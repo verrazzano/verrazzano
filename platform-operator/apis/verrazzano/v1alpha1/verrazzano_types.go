@@ -262,6 +262,9 @@ const (
 	// CompStateUninstalling is the state when an uninstall is in progress
 	CompStateUninstalling CompStateType = "Uninstalling"
 
+	// CompStateUninstalled is the state when a component has been uninstalled
+	CompStateUninstalled CompStateType = "Uninstalled"
+
 	// CompStateUpgrading is the state when an upgrade is in progress
 	CompStateUpgrading CompStateType = "Upgrading"
 
@@ -673,7 +676,8 @@ type FluentdComponent struct {
 
 	// Configuration for integration with OCI (Oracle Cloud Infrastructure) Logging Service
 	// +optional
-	OCI *OciLoggingConfiguration `json:"oci,omitempty"`
+	OCI              *OciLoggingConfiguration `json:"oci,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // WebLogicOperatorComponent specifies the WebLogic Operator configuration

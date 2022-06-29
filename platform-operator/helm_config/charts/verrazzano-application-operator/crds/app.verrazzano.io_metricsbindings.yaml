@@ -66,6 +66,24 @@ spec:
                 - name
                 - namespace
                 type: object
+              prometheusConfigSecret:
+                description: Identifies a namespace, name and key for a secret containing
+                  the Prometheus config
+                properties:
+                  key:
+                    description: Key in the Secret whose value this object represents
+                    type: string
+                  name:
+                    description: Name of the Secret
+                    type: string
+                  namespace:
+                    description: Namespace of the Secret
+                    type: string
+                required:
+                - key
+                - name
+                - namespace
+                type: object
               workload:
                 description: Identifies the name and type for a workload
                 properties:
@@ -94,7 +112,6 @@ spec:
                 type: object
             required:
             - metricsTemplate
-            - prometheusConfigMap
             - workload
             type: object
         required:

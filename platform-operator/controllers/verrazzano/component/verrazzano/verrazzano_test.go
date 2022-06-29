@@ -4,7 +4,6 @@
 package verrazzano
 
 import (
-	"context"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -16,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -76,125 +74,6 @@ func TestVzResolveNamespace(t *testing.T) {
 	a.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using default namespace")
 	ns = resolveVerrazzanoNamespace("custom")
 	a.Equal("custom", ns, "Wrong namespace resolved for Verrazzano when using custom namesapce")
-}
-
-// TestFixupFluentdDaemonset tests calls to fixupFluentdDaemonset
-func TestFixupFluentdDaemonset(t *testing.T) {
-	const defNs = vpoconst.VerrazzanoSystemNamespace
-	a := assert.New(t)
-	scheme := runtime.NewScheme()
-	_ = appsv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	c := fake.NewClientBuilder().WithScheme(scheme).Build()
-	log := vzlog.DefaultLogger()
-
-	ns := corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: defNs,
-		},
-	}
-	err := c.Create(context.TODO(), &ns)
-	a.NoError(err)
-
-	// Should return with no error since the fluentd daemonset does not exist.
-	// This is valid case when fluentd is not installed.
-	err = fixupFluentdDaemonset(log, c, defNs)
-	a.NoError(err)
-
-	// Create a fluentd daemonset for test purposes
-	daemonSet := appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: defNs,
-			Name:      globalconst.FluentdDaemonSetName,
-		},
-		Spec: appsv1.DaemonSetSpec{
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name: "wrong-name",
-							Env: []corev1.EnvVar{
-								{
-									Name:  vpoconst.ClusterNameEnvVar,
-									Value: "managed1",
-								},
-								{
-									Name:  vpoconst.ElasticsearchURLEnvVar,
-									Value: "some-url",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	err = c.Create(context.TODO(), &daemonSet)
-	a.NoError(err)
-
-	// should return error that fluentd container is missing
-	err = fixupFluentdDaemonset(log, c, defNs)
-	a.Contains(err.Error(), "fluentd container not found in fluentd daemonset: fluentd")
-
-	daemonSet.Spec.Template.Spec.Containers[0].Name = "fluentd"
-	err = c.Update(context.TODO(), &daemonSet)
-	a.NoError(err)
-
-	// should return no error since the env variables don't need fixing up
-	err = fixupFluentdDaemonset(log, c, defNs)
-	a.NoError(err)
-
-	// create a secret with needed keys
-	data := make(map[string][]byte)
-	data[vpoconst.ClusterNameData] = []byte("managed1")
-	data[vpoconst.ElasticsearchURLData] = []byte("some-url")
-	secret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: defNs,
-			Name:      vpoconst.MCRegistrationSecret,
-		},
-		Data: data,
-	}
-	err = c.Create(context.TODO(), &secret)
-	a.NoError(err)
-
-	// Update env variables to use ValueFrom instead of Value
-	clusterNameRef := corev1.EnvVarSource{
-		SecretKeyRef: &corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: vpoconst.MCRegistrationSecret,
-			},
-			Key: vpoconst.ClusterNameData,
-		},
-	}
-	esURLRef := corev1.EnvVarSource{
-		SecretKeyRef: &corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: vpoconst.MCRegistrationSecret,
-			},
-			Key: vpoconst.ElasticsearchURLData,
-		},
-	}
-	daemonSet.Spec.Template.Spec.Containers[0].Env[0].Value = ""
-	daemonSet.Spec.Template.Spec.Containers[0].Env[0].ValueFrom = &clusterNameRef
-	daemonSet.Spec.Template.Spec.Containers[0].Env[1].Value = ""
-	daemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom = &esURLRef
-	err = c.Update(context.TODO(), &daemonSet)
-	a.NoError(err)
-
-	// should return no error
-	err = fixupFluentdDaemonset(log, c, defNs)
-	a.NoError(err)
-
-	// env variables should be fixed up to use Value instead of ValueFrom
-	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: defNs}
-	updatedDaemonSet := appsv1.DaemonSet{}
-	err = c.Get(context.TODO(), fluentdNamespacedName, &updatedDaemonSet)
-	a.NoError(err)
-	a.Equal("managed1", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].Value)
-	a.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[0].ValueFrom)
-	a.Equal("some-url", updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].Value)
-	a.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom)
 }
 
 // Test_appendVerrazzanoValues tests the appendVerrazzanoValues function
@@ -633,60 +512,6 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			},
 			expectedYAML: "testdata/vzOverridesProdWithAdminAndMonitorRoleOverrides.yaml",
 		},
-		{
-			name:        "ProdWithFluentdEmptyExtraVolumeMountsOverrides",
-			description: "Test prod with a fluentd override with an empty extra volume mounts field",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile: vzapi.Prod,
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithFluentdEmptyExtraVolumeMountsOverrides.yaml",
-		},
-		{
-			name:        "ProdWithFluentdOverrides",
-			description: "Test prod with fluentd overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile: vzapi.Prod,
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{
-								{Source: "mysourceDefaults"},
-								{Source: "mysourceRO", ReadOnly: &trueValue},
-								{Source: "mysourceCustomDestRW", Destination: "mydest", ReadOnly: &falseValue},
-							},
-							ElasticsearchURL:    "http://myes.mydomain.com:9200",
-							ElasticsearchSecret: "custom-elasticsearch-secret",
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithFluentdOverrides.yaml",
-		},
-		{
-			name:        "ProdWithFluentdOCILoggingOverrides",
-			description: "Test prod with fluentd OCI Logging overrides",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Profile: vzapi.Prod,
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							OCI: &vzapi.OciLoggingConfiguration{
-								SystemLogID:     "ocid1.log.oc1.iad.system-log-ocid",
-								DefaultAppLogID: "ocid1.log.oc1.iad.default-app-log-ocid",
-							},
-						},
-					},
-				},
-			},
-			expectedYAML: "testdata/vzOverridesProdWithFluentdOCILoggingOverrides.yaml",
-		},
 	}
 	defer resetWriteFileFunc()
 	for _, test := range tests {
@@ -722,7 +547,6 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				err = yaml.Unmarshal(expectedData, &expectedValues)
 
 				a.NoError(err)
-				a.Equal(expectedValues.Logging.ConfigHash, HashSum(fakeContext.EffectiveCR().Spec.Components.Fluentd))
 				// Compare the actual and expected values objects
 				a.Equal(expectedValues, actualValues)
 				a.Equal(HashSum(expectedValues), HashSum(actualValues))
@@ -762,113 +586,6 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			"Found unexpected temp file remaining: %s", file.Name())
 	}
 
-}
-
-// Test_loggingPreInstall tests the Verrazzano loggingPreInstall call
-func Test_loggingPreInstall(t *testing.T) {
-	// GIVEN a Verrazzano component
-	//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret
-	//  THEN no error is returned and the secret has been copied
-	trueValue := true
-	secretName := "my-es-secret" //nolint:gosec //#gosec G101
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
-	}).Build()
-
-	ctx := spi.NewFakeContext(c,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled:             &trueValue,
-						ElasticsearchURL:    "https://myes.mydomain.com:9200",
-						ElasticsearchSecret: secretName,
-					},
-				},
-			},
-		},
-		false)
-	err := loggingPreInstall(ctx)
-	assert.NoError(t, err)
-
-	secret := &corev1.Secret{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}, secret)
-	assert.NoError(t, err)
-
-	// GIVEN a Verrazzano component
-	//  WHEN I call loggingPreInstall with fluentd overrides for OCI logging, including an OCI API secret name
-	//  THEN no error is returned and the secret has been copied
-	secretName = "my-oci-api-secret" //nolint:gosec //#gosec G101
-	cs := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
-		},
-	).Build()
-	ctx = spi.NewFakeContext(cs,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled: &trueValue,
-						OCI: &vzapi.OciLoggingConfiguration{
-							APISecret: secretName,
-						},
-					},
-				},
-			},
-		},
-		false)
-	err = loggingPreInstall(ctx)
-	assert.NoError(t, err)
-
-	err = cs.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}, secret)
-	assert.NoError(t, err)
-}
-
-// Test_loggingPreInstallSecretNotFound tests the Verrazzano loggingPreInstall call
-// GIVEN a Verrazzano component
-//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret and the secret does not exist
-//  THEN an error is returned
-func Test_loggingPreInstallSecretNotFound(t *testing.T) {
-	trueValue := true
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled:             &trueValue,
-						ElasticsearchURL:    "https://myes.mydomain.com:9200",
-						ElasticsearchSecret: "my-es-secret",
-					},
-				},
-			},
-		},
-		false)
-	err := loggingPreInstall(ctx)
-	assert.Error(t, err)
-}
-
-// Test_loggingPreInstallFluentdNotEnabled tests the Verrazzano loggingPreInstall call
-// GIVEN a Verrazzano component
-//  WHEN I call loggingPreInstall and fluentd is disabled
-//  THEN no error is returned
-func Test_loggingPreInstallFluentdNotEnabled(t *testing.T) {
-	falseValue := false
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled: &falseValue,
-					},
-				},
-			},
-		},
-		false)
-	err := loggingPreInstall(ctx)
-	assert.NoError(t, err)
 }
 
 func createFakeClientWithIngress() client.Client {
@@ -984,16 +701,6 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      fluentDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoMonitoringNamespace,
 				Name:      nodeExporterDaemonset,
 			},
@@ -1033,16 +740,6 @@ func TestIsReady(t *testing.T) {
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      fluentDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
 			},
 		},
 		&appsv1.DaemonSet{

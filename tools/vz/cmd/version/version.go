@@ -33,13 +33,13 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.Example = helpExample
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdVersion(cmd, args, vzHelper)
+		return runCmdVersion(vzHelper)
 	}
 
 	return cmd
 }
 
-func runCmdVersion(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+func runCmdVersion(vzHelper helpers.VZHelper) error {
 
 	templateValues := map[string]string{
 		"cli_version": cliVersion,
@@ -49,7 +49,7 @@ func runCmdVersion(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 	result, err := templates.ApplyTemplate(versionOutputTemplate, templateValues)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to generate %s command output: %s", CommandName, err.Error())
 	}
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), result)
 	return nil

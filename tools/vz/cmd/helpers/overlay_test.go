@@ -4,10 +4,15 @@
 package helpers
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // TestMergeYAMLFilesSingle
@@ -74,16 +79,6 @@ func TestMergeYAMLFilesEmpty(t *testing.T) {
 	assert.Equal(t, vzapi.Dev, vz.Spec.Profile)
 }
 
-// TestMergeYAMLFilesNone
-// GIVEN no YAML files
-//  WHEN I call MergeYAMLFiles
-//  THEN the call returns an error
-func TestMergeYAMLFilesNone(t *testing.T) {
-	_, err := MergeYAMLFiles([]string{})
-	assert.Error(t, err)
-	assert.EqualError(t, err, "Failed to merge files - no files specified")
-}
-
 // TestMergeYAMLFilesNotFound
 // GIVEN a YAML file that does not exist
 //  WHEN I call MergeYAMLFiles
@@ -92,4 +87,29 @@ func TestMergeYAMLFilesNotFound(t *testing.T) {
 	_, err := MergeYAMLFiles([]string{"../../test/testdate/file-does-not-exist.yaml"})
 	assert.Error(t, err)
 	assert.EqualError(t, err, "open ../../test/testdate/file-does-not-exist.yaml: no such file or directory")
+}
+
+// TestMergeSetFlags
+// GIVEN a YAML file and a YAML string
+// WHEN I call MergeSetFlags
+// THEN the call returns a vz resource with the two source merged
+func TestMergeSetFlags(t *testing.T) {
+	yamlString := "spec:\n  environmentName: test"
+	vz := &vzapi.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
+
+	_, err := MergeSetFlags(vz, yamlString)
+	assert.NoError(t, err)
+
+	// Verify the vz resource is as expected
+	mergedvz := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &mergedvz)
+	assert.NoError(t, err)
+	assert.Equal(t, "test", vz.Spec.EnvironmentName)
 }

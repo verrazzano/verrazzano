@@ -5,8 +5,10 @@ package metrics
 
 import (
 	"fmt"
+	"strconv"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -111,11 +113,16 @@ func createServiceMonitorEndpoint(info ScrapeInfo, portIncrement int) (promopera
 	if info.VZPrometheusLabels != nil && *info.VZPrometheusLabels {
 		var portString string
 		if portIncrement > 0 {
-			portString = fmt.Sprintf("_%d", portIncrement)
+			portString = strconv.Itoa(portIncrement)
 		}
 		enabledLabel = fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled%s", portString)
 		portLabel = fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsPort%s", portString)
 		pathLabel = fmt.Sprintf("__meta_kubernetes_pod_annotation_verrazzano_io_metricsPath%s", portString)
+	}
+
+	// Add default cluster name if not populated
+	if info.ClusterName == "" {
+		info.ClusterName = constants.DefaultClusterName
 	}
 
 	// Relabel the cluster name

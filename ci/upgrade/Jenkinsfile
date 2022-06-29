@@ -257,6 +257,11 @@ pipeline {
                                 runGinkgoSerial('upgrade/pre-upgrade/grafana')
                             }
                         }
+                        stage('metricsbinding pre-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/pre-upgrade/metricsbinding')
+                            }
+                        }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
 //                         stage('examples socks') {
 //                             steps {
@@ -472,6 +477,11 @@ pipeline {
                                 runGinkgoSerial('upgrade/post-upgrade/grafana')
                             }
                         }
+                        stage('metricsbinding post-upgrade') {
+                            steps {
+                                runGinkgoSerial('upgrade/post-upgrade/metricsbinding')
+                            }
+                        }
                         stage('examples socks') {
                             steps {
                                 runGinkgoNamespace('examples/socks', "false", "false", "sockshop")
@@ -529,7 +539,9 @@ pipeline {
                 script {
                     try {
                         sh """
-                            kubectl delete verrazzano my-verrazzano
+                            echo "Uninstalling Verrazzano"
+                            cd ${GO_REPO_PATH}/verrazzano/tools/vz
+                            GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go uninstall
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"

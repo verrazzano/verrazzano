@@ -4,9 +4,11 @@
 package registry
 
 import (
+	"testing"
+
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
-	"testing"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -61,7 +63,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 25, "Wrong number of components")
+	a.Len(comps, 26, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -87,6 +89,7 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[22].Name(), promnodeexporter.ComponentName)
 	a.Equal(comps[23].Name(), jaegeroperator.ComponentName)
 	a.Equal(comps[24].Name(), console.ComponentName)
+	a.Equal(comps[25].Name(), fluentd.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -531,6 +534,22 @@ func (f fakeComponent) Install(_ spi.ComponentContext) error {
 }
 
 func (f fakeComponent) PostInstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) IsOperatorUninstallSupported() bool {
+	return true
+}
+
+func (f fakeComponent) PreUninstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) Uninstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) PostUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 

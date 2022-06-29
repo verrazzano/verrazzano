@@ -36,8 +36,9 @@ type proxyValues struct {
 }
 
 type configValues struct {
-	EnvName   string `json:"envName,omitempty"`
-	DNSSuffix string `json:"dnsSuffix,omitempty"`
+	EnvName                   string `json:"envName,omitempty"`
+	DNSSuffix                 string `json:"dnsSuffix,omitempty"`
+	PrometheusOperatorEnabled bool   `json:"prometheusOperatorEnabled,omitempty"`
 }
 
 type dnsValues struct {

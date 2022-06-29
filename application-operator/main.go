@@ -34,6 +34,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
 	"go.uber.org/zap"
@@ -217,10 +218,12 @@ func main() {
 		)
 
 		// Register the metrics binding mutating webhooks for plain old kubernetes objects workloads
+		// The webhooks handle legacy metrics template annotations on these workloads - newer
+		// workloads should rely on user-created monitor resources.
 		mgr.GetWebhookServer().Register(
 			webhooks.MetricsBindingGeneratorWorkloadPath,
 			&webhook.Admission{
-				Handler: &webhooks.GeneratorWorkloadWebhook{
+				Handler: &webhooks.WorkloadWebhook{
 					Client:     mgr.GetClient(),
 					KubeClient: kubeClient,
 				},
@@ -336,6 +339,9 @@ func main() {
 
 	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
 	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
+
+	// Initialize the metricsExporter
+	metricsexporter.InitalizeMetricsEndpoint()
 
 	if err = (&multiclustersecret.Reconciler{
 		Client:       mgr.GetClient(),

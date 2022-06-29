@@ -73,6 +73,19 @@ type ComponentInstaller interface {
 	PostInstall(context ComponentContext) error
 }
 
+// ComponentUninstaller interface defines uninstall operations
+type ComponentUninstaller interface {
+	// IsOperatorUninstallSupported Returns true if the component supports uninstall directly via the platform operator
+	// - scaffolding while we move components from the scripts to the operator
+	IsOperatorUninstallSupported() bool
+	// PreUninstall allows components to perform any pre-processing required prior to upgrading
+	PreUninstall(context ComponentContext) error
+	// Uninstall will Uninstall the Verrazzano component specified in the CR.Version field
+	Uninstall(context ComponentContext) error
+	// PostUninstall allows components to perform any post-processing required after upgrading
+	PostUninstall(context ComponentContext) error
+}
+
 // ComponentUpgrader interface defines upgrade operations for components that support it
 type ComponentUpgrader interface {
 	// PreUpgrade allows components to perform any pre-processing required prior to upgrading
@@ -98,6 +111,7 @@ type ComponentValidator interface {
 type Component interface {
 	ComponentInfo
 	ComponentInstaller
+	ComponentUninstaller
 	ComponentUpgrader
 	ComponentValidator
 

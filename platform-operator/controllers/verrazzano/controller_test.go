@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -494,6 +496,19 @@ func TestUninstallComplete(t *testing.T) {
 		Time: time.Now(),
 	}
 
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{
+				HelmComponent: helm2.HelmComponent{
+					ReleaseName: "fake",
+				},
+				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
+					return false, nil
+				},
+			},
+		}
+	})
+
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
@@ -741,7 +756,7 @@ func TestUninstallFailed(t *testing.T) {
 		})
 
 	// Expect a status update on the job
-	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
@@ -754,7 +769,7 @@ func TestUninstallFailed(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
-		})
+		}).AnyTimes()
 
 	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
 	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
@@ -789,6 +804,19 @@ func TestUninstallSucceeded(t *testing.T) {
 	deleteTime := metav1.Time{
 		Time: time.Now(),
 	}
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{
+				HelmComponent: helm2.HelmComponent{
+					ReleaseName: "fake",
+				},
+				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
+					return false, nil
+				},
+			},
+		}
+	})
 
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -842,10 +870,10 @@ func TestUninstallSucceeded(t *testing.T) {
 		})
 
 	// Expect a status update on the job
-	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	// Expect a call to update the finalizers - return success
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -855,7 +883,7 @@ func TestUninstallSucceeded(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
-		})
+		}).AnyTimes()
 
 	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
 	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
@@ -1441,228 +1469,6 @@ func expectDeleteClusterRoleBinding(mock *mocks.MockClient, namespace string, na
 	//	mock.EXPECT().Delete(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Any()).Return(nil)
 }
 
-// Test_commonPath tests commonPath function
-// GIVEN two file paths
-// WHEN the commonPath function is called
-// THEN commonPath func extracts common path or containing directory of two file paths
-func Test_commonPath(t *testing.T) {
-	tests := []struct {
-		name string
-		a    string
-		b    string
-		want string
-	}{
-		{
-			name: "/var/log/containers",
-			a:    "/var/log/containers/kube-flannel-ds-f64g8_kube-system_kube-flannel-88.log",
-			b:    "/var/log/containers/csi-oci-node-6rpr5_kube-system_csi-node-driver-99.log",
-			want: "/var/log/containers/",
-		},
-		{
-			name: "/var/log/pods",
-			a:    "/var/log/pods/kube-system_csi-oci-node-6rpr5_f69cf85b-x0x0-12345cd3fbd0/csi-node-driver/0.log",
-			b:    "/var/log/pods/kube-system_kube-flannel-ds-f64g8_1ff336c7-y1y1-12a345c45e6c/kube-flannel/1.log",
-			want: "/var/log/pods/",
-		},
-		{
-			name: "/u01/data/docker/containers",
-			a:    "/u01/data/docker/containers/82e/82e-json.log",
-			b:    "/u01/data/docker/containers/92a/92a-json.log",
-			want: "/u01/data/docker/containers/",
-		},
-		{
-			name: "/u01/data/",
-			a:    "/u01/data/",
-			b:    "/u01/data/docker/containers/",
-			want: "/u01/data/",
-		},
-		{
-			name: "/u01/data/",
-			a:    "/u01/data/docker/containers/",
-			b:    "/u01/data/",
-			want: "/u01/data/",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := commonPath(tt.a, tt.b); got != tt.want {
-				t.Errorf("commonPath() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-// Test_dirsOutsideVarLog tests dirsOutsideVarLog function
-// GIVEN a set of file paths
-// WHEN the dirsOutsideVarLog function is called
-// THEN dirsOutsideVarLog func collects containing directories of given file paths
-func Test_dirsOutsideVarLog(t *testing.T) {
-	tests := []struct {
-		name  string
-		paths []string
-		want  []string
-	}{
-		{
-			name: "Should not include /var/log",
-			paths: []string{
-				"/var/log/containers/podx_kube-system_pod-xx-88.log",
-				"/var/log/pods/kube-system_pod-xx-6rpr5_f69cf85b-x0x0-12345cd3fbd0/pod-xx/0.log",
-				"/var/log/containers/pody_kube-system_pod-yy-99.log",
-				"/var/log/pods/kube-system_pod-yy-f64g8_1ff336c7-y1y1-12a345c45e6c/pod-yy/1.log",
-			},
-			want: []string{},
-		},
-		{
-			name: "/u01/data/",
-			paths: []string{
-				"/var/log/containers/podx_kube-system_pod-xx-88.log",
-				"/var/log/pods/kube-system_pod-xx-6rpr5_f69cf85b-x0x0-12345cd3fbd0/pod-xx/0.log",
-				"/u01/data/docker/containers/82e/82e-json.log",
-				"/var/log/containers/pody_kube-system_pod-yy-99.log",
-				"/var/log/pods/kube-system_pod-yy-f64g8_1ff336c7-y1y1-12a345c45e6c/pod-yy/1.log",
-				"/u01/data/docker/containers/92a/92a-json.log",
-			},
-			want: []string{"/u01/data/docker/containers/"},
-		},
-		{
-			name: "multiple extra",
-			paths: []string{
-				"/var/log/containers/podx_kube-system_pod-xx-88.log",
-				"/u0/x/pods/kube-system_pod-xx-6rpr5_f69cf85b-x0x0-12345cd3fbd0/pod-xx/0.log",
-				"/u0/y/containers/82e/82e-json.log",
-				"/u01/data/containers/82e/82e-json.log",
-				"/var/log/containers/pody_kube-system_pod-yy-99.log",
-				"/u0/x/pods/kube-system_pod-yy-f64g8_1ff336c7-y1y1-12a345c45e6c/pod-yy/1.log",
-				"/u0/y/containers/92a/92a-json.log",
-				"/u01/data/containers/92a/92a-json.log",
-			},
-			want: []string{"/u0/", "/u01/data/containers/"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := dirsOutsideVarLog(tt.paths); !equalStringSet(got, tt.want) {
-				t.Errorf("commonPaths() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-// Test_isParentDir tests isParentDir function
-// GIVEN two file paths
-// WHEN the isParentDir function is called
-// THEN isParentDir func return true if the dir is container directory of the path
-func Test_isParentDir(t *testing.T) {
-	tests := []struct {
-		name string
-		path string
-		want bool
-	}{
-		{
-			name: "/u01/data/containers",
-			path: "/u01/data/containers/",
-			want: true,
-		}, {
-			name: "/u01/data/containers/",
-			path: "/u01/data/containers/",
-			want: true,
-		}, {
-			name: "/u01/data/cont",
-			path: "/u01/data/containers/",
-			want: false,
-		}, {
-			name: "/u01/da",
-			path: "/u01/data",
-			want: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isParentDir(tt.path, tt.name); got != tt.want {
-				t.Errorf("isParentDir() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-// Test_addFluentdExtraVolumeMounts tests addFluentdExtraVolumeMounts function
-// GIVEN a Verrazzano and a set of file paths
-// WHEN the addFluentdExtraVolumeMounts function is called
-// THEN extra volume mounts are added to the fluentd component
-func Test_addFluentdExtraVolumeMounts(t *testing.T) {
-	tests := []struct {
-		name  string
-		files []string
-		vz    *vzapi.Verrazzano
-		want  []string
-	}{
-		{
-			name: "/u01/data/containers/",
-			files: []string{
-				"/var/log/containers/podx_kube-system_pod-xx-88.log",
-				"/u0/x/pods/kube-system_pod-xx-6rpr5_f69cf85b-x0x0-12345cd3fbd0/pod-xx/0.log",
-				"/u0/y/containers/82e/82e-json.log",
-				"/u01/data/containers/82e/82e-json.log",
-				"/var/log/containers/pody_kube-system_pod-yy-99.log",
-				"/u0/x/pods/kube-system_pod-yy-f64g8_1ff336c7-y1y1-12a345c45e6c/pod-yy/1.log",
-				"/u0/y/containers/92a/92a-json.log",
-				"/u01/data/containers/92a/92a-json.log",
-			},
-			vz:   &vzapi.Verrazzano{},
-			want: []string{"/u0/", "/u01/data/containers/"},
-		}, {
-			name: "/u01/data",
-			files: []string{
-				"/var/log/containers/podx_kube-system_pod-xx-88.log",
-				"/u0/x/pods/kube-system_pod-xx-6rpr5_f69cf85b-x0x0-12345cd3fbd0/pod-xx/0.log",
-				"/u0/y/containers/82e/82e-json.log",
-				"/u01/data/containers/82e/82e-json.log",
-				"/var/log/containers/pody_kube-system_pod-yy-99.log",
-				"/u0/x/pods/kube-system_pod-yy-f64g8_1ff336c7-y1y1-12a345c45e6c/pod-yy/1.log",
-				"/u0/y/containers/92a/92a-json.log",
-				"/u01/data/containers/92a/92a-json.log",
-			},
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
-					ExtraVolumeMounts: []vzapi.VolumeMount{{
-						Source: "/u01/data",
-					}},
-				}}},
-			},
-			want: []string{"/u0/", "/u01/data"},
-		}, {
-			name: "/u01/",
-			files: []string{
-				"/var/log/containers/podx_kube-system_pod-xx-88.log",
-				"/u0/x/pods/kube-system_pod-xx-6rpr5_f69cf85b-x0x0-12345cd3fbd0/pod-xx/0.log",
-				"/u0/y/containers/82e/82e-json.log",
-				"/u01/data/containers/82e/82e-json.log",
-				"/var/log/containers/pody_kube-system_pod-yy-99.log",
-				"/u0/x/pods/kube-system_pod-yy-f64g8_1ff336c7-y1y1-12a345c45e6c/pod-yy/1.log",
-				"/u0/y/containers/92a/92a-json.log",
-				"/u01/data/containers/92a/92a-json.log",
-			},
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
-					ExtraVolumeMounts: []vzapi.VolumeMount{{
-						Source: "/u0/x",
-					}, {
-						Source: "/u01/",
-					}},
-				}}},
-			},
-			want: []string{"/u0/", "/u01/", "/u0/x"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := collectVolumeMounts(addFluentdExtraVolumeMounts(tt.files, tt.vz)); !equalStringSet(got, tt.want) {
-				t.Errorf("addFluentdExtraVolumeMounts() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 // TestMergeMapsNilSourceMap tests mergeMaps function
 // GIVEN an empty source map and a non-empty map to merge
 // WHEN the mergeMaps function is called
@@ -1798,30 +1604,4 @@ func TestNonIntersectingMergeNestedMap(t *testing.T) {
 	assert.True(t, updated)
 	assert.Len(t, myInstance.MyMap, 3)
 	assert.Equal(t, expectedMap, myInstance.MyMap)
-}
-
-func collectVolumeMounts(vz *vzapi.Verrazzano) []string {
-	var vms []string
-	for _, vm := range vz.Spec.Components.Fluentd.ExtraVolumeMounts {
-		vms = append(vms, vm.Source)
-	}
-	return vms
-}
-
-func equalStringSet(x, y []string) bool {
-	if len(x) != len(y) {
-		return false
-	}
-	for _, a := range x {
-		found := false
-		for _, b := range y {
-			if a == b {
-				found = true
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
 }

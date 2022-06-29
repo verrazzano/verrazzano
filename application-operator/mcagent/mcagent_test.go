@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -82,6 +83,8 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 			return nil
 		})
 
+	expectServiceAndPodMonitorsList(mcMock, assert)
+
 	// Managed Cluster - expect call to list VerrazzanoProject objects - return an empty list
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Any()).
@@ -113,6 +116,22 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	mcMocker.Finish()
 	assert.NoError(err)
 	assert.Equal(validSecret.ResourceVersion, s.SecretResourceVersion)
+}
+
+func expectServiceAndPodMonitorsList(mock *mocks.MockClient, assert *asserts.Assertions) {
+	// Managed Cluster, expect call to list service monitors, return an empty list
+	mock.EXPECT().
+		List(gomock.Any(), &v1.ServiceMonitorList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.ServiceMonitorList, opts ...client.ListOption) error {
+			return nil
+		})
+	// Managed Cluster, expect call to list pod monitors, return an empty list
+	mock.EXPECT().
+		List(gomock.Any(), &v1.PodMonitorList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PodMonitorList, opts ...client.ListOption) error {
+			return nil
+		})
+
 }
 
 // TestProcessAgentThreadSecretDeleted tests agent thread when the registration secret is deleted
@@ -760,6 +779,11 @@ func TestSyncer_configureLogging(t *testing.T) {
 				mcMock.EXPECT().
 					Update(gomock.Any(), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet, opts ...client.UpdateOption) error {
+						// for default secret (verrazzano-es-internal), the secret-volume should be optional, since it may
+						// not exist on managed clusters.
+						if dsSecretName == defaultSecretName {
+							asserts.Equal(t, true, ds.Spec.Template.Spec.Volumes[0].Secret.Optional)
+						}
 						return nil
 					})
 			}
@@ -787,6 +811,7 @@ func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSe
 		usernameKey = constants.VerrazzanoUsernameData
 		passwordKey = constants.VerrazzanoPasswordData
 	}
+	volumeIsOptional := secretName == defaultSecretName
 	return appsv1.DaemonSetSpec{
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
@@ -829,6 +854,17 @@ func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSe
 										}(true),
 									},
 								},
+							},
+						},
+					},
+				},
+				Volumes: []corev1.Volume{
+					{
+						Name: "secret-volume",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: secretName,
+								Optional:   &volumeIsOptional,
 							},
 						},
 					},
