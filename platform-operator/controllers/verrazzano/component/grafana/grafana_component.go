@@ -148,6 +148,10 @@ func (g grafanaComponent) PostInstall(ctx spi.ComponentContext) error {
 	return common.CheckIngressesAndCerts(ctx, g)
 }
 
+func (g grafanaComponent) IsOperatorUninstallSupported() bool {
+	return false
+}
+
 func (g grafanaComponent) PreUninstall(context spi.ComponentContext) error {
 	return nil
 }

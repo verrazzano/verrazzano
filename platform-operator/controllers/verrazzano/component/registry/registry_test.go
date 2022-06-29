@@ -537,6 +537,10 @@ func (f fakeComponent) PostInstall(_ spi.ComponentContext) error {
 	return nil
 }
 
+func (f fakeComponent) IsOperatorUninstallSupported() bool {
+	return true
+}
+
 func (f fakeComponent) PreUninstall(_ spi.ComponentContext) error {
 	return nil
 }
