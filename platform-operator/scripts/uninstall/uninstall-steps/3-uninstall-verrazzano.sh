@@ -233,8 +233,19 @@ function delete_fluentd {
 }
 
 function delete_velero {
-  log "Uninstall velero"
-  velero uninstall --namespace velero --force || err_return $? "Could not delete Velero"
+    log "Uninstall Velero"
+    if helm status velero --namespace velero > /dev/null 2>&1 ; then
+      if ! helm uninstall velero --namespace velero ; then
+        error "Failed to uninstall the Velero."
+      fi
+    fi
+
+    log "Deleting velero namespace finalizers"
+    patch_k8s_resources namespace ":metadata.name" "Could not remove finalizers from namespace velero" "/velero/ {print \$1}" '{"metadata":{"finalizers":null}}' \
+        || return $? # return on pipefail
+
+    log "Deleting the velero namespace"
+    kubectl delete namespace velero --ignore-not-found=true || err_return $? "Could not delete the velero namespace"
 }
 
 action "Deleting Fluentd" delete_fluentd || exit 1
