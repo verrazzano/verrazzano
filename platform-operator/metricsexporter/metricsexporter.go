@@ -655,27 +655,19 @@ func CheckIfNewOperationHasToBegin(componentName string, metric string) bool {
 		if updateDesiredNumberMap[componentName] == updateCompletedNumberMap[componentName] {
 			updateDesiredNumberMap[componentName] = updateDesiredNumberMap[componentName] + 1
 			return true
-		} else {
-			return false
 		}
 	}
 	if metric == "install" {
 		if installDesiredNumberMap[componentName] == updateCompletedNumberMap[componentName] {
 			installDesiredNumberMap[componentName] = installDesiredNumberMap[componentName] + 1
 			return true
-		} else {
-			return false
 		}
 	}
 	if metric == "upgrade" {
 		if upgradeDesiredNumberMap[componentName] == upgradeCompletedNumberMap[componentName] {
 			upgradeDesiredNumberMap[componentName] = upgradeDesiredNumberMap[componentName] + 1
 			return true
-		} else {
-			return false
 		}
-	} else {
-		//return error later
-		return false
 	}
+	return false
 }
