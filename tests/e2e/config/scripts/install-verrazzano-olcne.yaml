@@ -18,6 +18,12 @@ spec:
         protocol: TCP
         targetPort: https
       nginxInstallArgs:
+      - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-internal"
+        valueList: "true"
+      - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
+        valueList: "10Mbps"
+      - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-security-list-management-mode" 
+        valueList: None
       - name: controller.service.externalIPs
         valueList:
         - 
