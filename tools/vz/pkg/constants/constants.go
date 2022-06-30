@@ -92,13 +92,10 @@ const (
 	VzResource = "verrazzano_resources.json"
 
 	// Indentation when the resource is marshalled as Json
-	JsonIndent = "  "
+	JSONIndent = "  "
 
 	// The prefix used for the json.MarshalIndent
-	JsonPrefix = ""
-
-	// Till the command provides a way to specify the time range, in which to capture the resource, use a constant
-	SinceSeconds = 1000
+	JSONPrefix = ""
 
 	// Top level directory for the bug report, keeping cluster-dump for now to support the analyze the command
 	BugReportRoot = "cluster-dump"

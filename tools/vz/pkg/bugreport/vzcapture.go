@@ -128,9 +128,9 @@ func captureVerrazzanoResource(vz *vzapi.Verrazzano, bugReportDir string) error 
 	}
 	defer f.Close()
 
-	a, _ := json.MarshalIndent(vz, constants.JsonPrefix, constants.JsonIndent)
-	vzJson := string(a)
-	_, err = f.WriteString(vzJson)
+	a, _ := json.MarshalIndent(vz, constants.JSONPrefix, constants.JSONIndent)
+	vzJSON := string(a)
+	_, err = f.WriteString(vzJSON)
 	if err != nil {
 		return fmt.Errorf("an error occurred while writing the file %s: %s", vzRes, err.Error())
 	}
@@ -139,17 +139,9 @@ func captureVerrazzanoResource(vz *vzapi.Verrazzano, bugReportDir string) error 
 
 // capturePodLogs captures the log from the pod in the bugReportDir
 func capturePodLogs(kubeClient kubernetes.Interface, podName, container, namespace, bugReportDir string) error {
-	// TODO: Investigate an efficient way to read the pod log from the beginning
-	return capturePodLogsTimeRange(kubeClient, podName, container, namespace, bugReportDir, constants.SinceSeconds)
-}
-
-// capturePodLogs captures the log from the pod in the bugReportDir, generated in lastSeconds
-func capturePodLogsTimeRange(kubeClient kubernetes.Interface, podName, container, namespace, bugReportDir string, lastSeconds int) error {
-	sinceSec := int64(lastSeconds)
 	podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
 		Container:                    container,
 		InsecureSkipTLSVerifyBackend: true,
-		SinceSeconds:                 &sinceSec,
 	}).Stream(context.TODO())
 	if err != nil {
 		return fmt.Errorf("an error occurred while reading the logs from pod %s: %s", podName, err.Error())

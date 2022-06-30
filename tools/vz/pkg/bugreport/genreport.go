@@ -18,7 +18,7 @@ var bugReportDir string
 func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bugReportFile string, vzHelper helpers.VZHelper) error {
 	tmpDir, err := ioutil.TempDir("", constants.BugReportDir)
 	if err != nil {
-		return fmt.Errorf("an error creating the temporary: %s, to place cluster resources")
+		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 	}
 	defer os.RemoveAll(tmpDir)
 
@@ -44,6 +44,6 @@ func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bu
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully generated the bug report %s\n", bugReportFile))
 
 	// Display a warning message to review the contents of the report
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("WARNING: Please examine the contents of the bug report for sensitive data.\n"))
+	fmt.Fprint(vzHelper.GetOutputStream(), "WARNING: Please examine the contents of the bug report for any sensitive data.\n")
 	return nil
 }

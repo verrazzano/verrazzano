@@ -66,5 +66,5 @@ func validateReportFileExtn(cmd *cobra.Command) error {
 	if strings.HasSuffix(reportFile.Value.String(), constants.BugReportFileExtn) {
 		return nil
 	}
-	return fmt.Errorf("unsupported report format: %s, use a .tar.gz file for %s", reportFile, constants.BugReportFileFlagName)
+	return fmt.Errorf("unsupported report-file: %s, set a .tar.gz file", reportFile.Value.String())
 }
