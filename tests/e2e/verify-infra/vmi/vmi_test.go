@@ -26,7 +26,16 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const verrazzanoNamespace string = "verrazzano-system"
+const (
+	verrazzanoNamespace = "verrazzano-system"
+	esMasterPrefix      = "elasticsearch-master-vmi-system-es-master-0"
+	esMaster0           = esMasterPrefix + "-0"
+	esMaster1           = esMasterPrefix + "-1"
+	esMaster2           = esMasterPrefix + "-2"
+	esData              = "vmi-system-es-data"
+	esData1             = esData + "-1"
+	esData2             = esData + "-2"
+)
 
 var t = framework.NewTestFramework("vmi")
 
@@ -316,7 +325,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				if minVer14 {
 					Expect(len(volumeClaims)).To(Equal(2))
 					assertPersistentVolume("vmi-system-grafana", size)
-					assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
+					assertPersistentVolume(esMaster0, size)
 
 					Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
 					assertPrometheusVolume(size)
@@ -324,7 +333,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					Expect(len(volumeClaims)).To(Equal(3))
 					assertPersistentVolume("vmi-system-prometheus", size)
 					assertPersistentVolume("vmi-system-grafana", size)
-					assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
+					assertPersistentVolume(esMaster0, size)
 				}
 			} else {
 				Expect(len(volumeClaims)).To(Equal(0))
@@ -352,12 +361,12 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				assertPersistentVolume("vmi-system-prometheus", size)
 			}
 			assertPersistentVolume("vmi-system-grafana", size)
-			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
-			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-1", size)
-			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-2", size)
-			assertPersistentVolume("vmi-system-es-data", size)
-			assertPersistentVolume("vmi-system-es-data-1", size)
-			assertPersistentVolume("vmi-system-es-data-2", size)
+			assertPersistentVolume(esMaster0, size)
+			assertPersistentVolume(esMaster1, size)
+			assertPersistentVolume(esMaster2, size)
+			assertPersistentVolume(esData, size)
+			assertPersistentVolume(esData1, size)
+			assertPersistentVolume(esData2, size)
 		})
 	}
 })
