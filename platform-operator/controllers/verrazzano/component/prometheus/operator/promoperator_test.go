@@ -359,16 +359,16 @@ func TestApplySystemMonitors(t *testing.T) {
 	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "PodMonitor"})
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
-	assert.Len(t, monitors.Items, 3)
+	assert.Len(t, monitors.Items, 2)
 
 	monitors = &unstructured.UnstructuredList{}
 	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
 
-	// expect that 3 ServiceMonitors are created
+	// expect that 4 ServiceMonitors are created
 
-	assert.Len(t, monitors.Items, 3)
+	assert.Len(t, monitors.Items, 4)
 
 }
 
