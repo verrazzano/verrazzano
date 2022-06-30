@@ -12,17 +12,17 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -58,6 +58,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
+
 	if req.Namespace == constants.KubeSystem {
 		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)
 		log.Infof("Application configuration resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
@@ -91,7 +92,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// The Verrazzano resource has been reconciled.
 	log.Oncef("Finished reconciling application configuration %v", req.NamespacedName)
 
+	metricsexporter.AppconfigIncrementEventsProcessed()
+
 	return ctrl.Result{}, nil
+
 }
 
 // doReconcile performs the reconciliation operations for the application configuration

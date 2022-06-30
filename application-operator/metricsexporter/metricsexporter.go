@@ -7,18 +7,88 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
+var (
+	appconfigReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "appconfig_reconcile_puller_events_total",
+		Help: "The total number of processed Reconcile events",
+	})
+
+	cohworkloadReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "cohworkload_reconcile_puller_events_total",
+		Help: "The total number of processed Reconcile events",
+	})
+
+	helidonworkloadReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "helidonworkload_reconcile_puller_events_total",
+		Help: "The total number of processed Reconcile events",
+	})
+
+	allMetrics    = []prometheus.Collector{appconfigReconcileProcessed, cohworkloadReconcileProcessed, helidonworkloadReconcileProcessed}
+	failedMetrics = map[prometheus.Collector]int{}
+	registry      = prometheus.DefaultRegisterer
+)
+
 // InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
-func InitalizeMetricsEndpoint() {
+func StartMetricsServer() {
+	go registerMetricsHandlers()
+
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
 		err := http.ListenAndServe(":9100", nil)
 		if err != nil {
-			zap.S().Errorf("Failed to start metrics server for verrazzano-application-operator: %v", err)
+			zap.S().Errorf("Failed to start metrics server for VAO: %v", err)
 		}
 	}, time.Second*3, wait.NeverStop)
+
+}
+func initializeFailedMetricsArray() {
+	for i, metric := range allMetrics {
+		failedMetrics[metric] = i
+	}
+}
+
+func registerMetricsHandlers() {
+	initializeFailedMetricsArray()
+	for err := registerMetricsHandlersHelper(); err != nil; err = registerMetricsHandlersHelper() {
+		zap.S().Errorf("Failed to register some metrics for VMI: %v", err)
+		time.Sleep(time.Second)
+	}
+}
+
+func registerMetricsHandlersHelper() error {
+	var errorObserved error = nil
+	for metric, i := range failedMetrics {
+		err := registry.Register(metric)
+		if err != nil {
+			zap.S().Errorf("Failed to register metric index %v for VAO", i)
+			errorObserved = err
+		} else {
+			delete(failedMetrics, metric)
+		}
+	}
+	return errorObserved
+}
+
+func AppconfigIncrementEventsProcessed() {
+
+	appconfigReconcileProcessed.Inc()
+
+}
+
+func CohworkloadIncrementEventsProcessed() {
+
+	appconfigReconcileProcessed.Inc()
+
+}
+
+func HelidonworkloadIncrementEventsProcessed() {
+
+	appconfigReconcileProcessed.Inc()
+
 }
