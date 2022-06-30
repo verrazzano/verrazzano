@@ -44,14 +44,17 @@ spec:
       ports:
         - protocol: TCP
           port: 9300
+    # Allow ingress from Prometheus to collect metrics from the app and the Istio sidecar
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
       ports:
+        - port: 9200
+          protocol: TCP
         - port: 15090
           protocol: TCP
 ---
@@ -60,7 +63,7 @@ spec:
 #          allow from ES data to port 9300
 #          allow from ES ingest to port 9200 and 9300
 #          allow from Kibana to port 9200
-#          allow from Prometheus to scrape Envoy stats on port 15090
+#          allow from Prometheus to scrape port 9200 and Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -108,14 +111,17 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
+    # Allow ingress from Prometheus
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
       ports:
+        - port: 9200
+          protocol: TCP
         - port: 15090
           protocol: TCP
 ---
@@ -123,7 +129,7 @@ spec:
 # Ingress: allow from auth proxy to port 9200
 #          allow from ES master and ES data to port 9300
 #          allow from Kibana to port 9200
-#          allow from Prometheus to scrape Envoy stats on port 15090
+#          allow from Prometheus to scrape port 9200 and Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -166,14 +172,17 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
+    # Allow ingress from Prometheus
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
       ports:
+        - port: 9200
+          protocol: TCP
         - port: 15090
           protocol: TCP
   {{- else }}
@@ -182,7 +191,7 @@ spec:
 #          allow from Verrazzano Monitoring Operator to port 9200
 #          allow from auth proxy to port 9200
 #          allow from Kibana to port 9200
-#          allow from Prometheus to scrape Envoy stats on port 15090
+#          allow from Prometheus to scrape port 9200 and Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -230,15 +239,17 @@ spec:
     - ports:
         - protocol: TCP
           port: 9200
-    # Allow ingress from Prometheus to scrape Envoy stats
+    # Allow ingress from Prometheus
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
       ports:
+        - port: 9200
+          protocol: TCP
         - port: 15090
           protocol: TCP
   # end else
@@ -279,13 +290,14 @@ spec:
       ports:
         - protocol: TCP
           port: 5601
+    # Allow ingress from Prometheus
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
           protocol: TCP
