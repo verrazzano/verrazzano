@@ -66,6 +66,14 @@ controller:
   # when users add those annotations.
   # Global snippets in ConfigMap are still respected
   allowSnippetAnnotations: false
+  # Use IngressClass to prevent Ingress Controller race conditions
+  ingressClassResource:
+    name: verrazzano-nginx  # default: nginx
+    enabled: true
+    # There may be ingress controllers already present on the cluster, so we set
+    # default to false to prevent conflicts.
+    default: false
+    controllerValue: "k8s.io/internal-ingress-nginx"
 defaultBackend:
   # NOTE: The image you're looking for isn't here. The nginx-ingress-default-backend image now comes from
   # the bill of materials file (verrazzano-bom.json).

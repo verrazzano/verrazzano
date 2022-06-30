@@ -72,7 +72,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 
 		kialiHostName := buildKialiHostnameForDomain(dnsSubDomain)
-
+		ingressClassName := vzconfig.GetIngressClassName(ctx.EffectiveCR())
 		// Overwrite the existing Kiali service definition to point to the Verrazzano authproxy
 		pathType := v1.PathTypeImplementationSpecific
 		ingRule := v1.IngressRule{
@@ -104,7 +104,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 			},
 		}
 		ingress.Spec.Rules = []v1.IngressRule{ingRule}
-
+		ingress.Spec.IngressClassName = &ingressClassName
 		if ingress.Annotations == nil {
 			ingress.Annotations = make(map[string]string)
 		}
@@ -116,6 +116,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = kialiHostName
+		ingress.Annotations["kubernetes.io/ingress.class"] = ingressClassName
 		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"

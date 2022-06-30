@@ -470,5 +470,18 @@ func TestFindVolumeTemplate(t *testing.T) {
 	temp2, found := FindVolumeTemplate("template2", specTemplateList)
 	assert.True(t, found)
 	assert.Equal(t, "temp2Volume", temp2.VolumeName)
+}
 
+func TestGetIngressClassName(t *testing.T) {
+	assert.Equal(t, defaultIngressClassName, GetIngressClassName(&vzapi.Verrazzano{}))
+	ingressClassName := "foobar"
+	assert.Equal(t, ingressClassName, GetIngressClassName(&vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Ingress: &vzapi.IngressNginxComponent{
+					IngressClassName: &ingressClassName,
+				},
+			},
+		},
+	}))
 }

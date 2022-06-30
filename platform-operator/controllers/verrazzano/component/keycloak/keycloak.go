@@ -60,6 +60,7 @@ const (
 
 // Define the keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
+const kcIngressClassKey = "ingress.ingressClassName"
 const kcInitContainerKey = "extraInitContainers"
 const kcInitContainerValueTemplate = `
     - name: theme-provider
@@ -423,6 +424,11 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		Value: keycloakCertificateName,
 	})
 
+	kvs = append(kvs, bom.KeyValue{
+		Key:   kcIngressClassKey,
+		Value: vzconfig.GetIngressClassName(compContext.EffectiveCR()),
+	})
+
 	return kvs, nil
 }
 
@@ -453,6 +459,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ctx.Log().Debugf("updateKeycloakIngress: Updating Keycloak Ingress with ingressTarget = %s", ingressTarget)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
+			ingress.Annotations["kubernetes.io/ingress.class"] = vzconfig.GetIngressClassName(ctx.EffectiveCR())
 		}
 		return nil
 	})

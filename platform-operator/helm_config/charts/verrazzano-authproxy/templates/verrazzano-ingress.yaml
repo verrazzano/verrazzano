@@ -34,9 +34,11 @@ metadata:
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
     cert-manager.io/common-name: verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
+    kubernetes.io/ingress.class: {{ .Values.config.ingressClassName }}
   name: verrazzano-ingress
   namespace: {{ .Release.Namespace }}
 spec:
+  ingressClassName: {{ .Values.config.ingressClassName }}
   rules:
     - host: verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
       http:

@@ -551,6 +551,8 @@ type DNSComponent struct {
 
 // IngressNginxComponent specifies the ingress-nginx configuration
 type IngressNginxComponent struct {
+	// +optional
+	IngressClassName *string `json:"ingressClassName,omitempty"`
 	// Type of ingress.  Default is LoadBalancer
 	// +optional
 	Type IngressType `json:"type,omitempty"`
