@@ -75,3 +75,31 @@ const (
 	ReportFormatFlagValue = "simple"
 	ReportFormatFlagUsage = "The format of the report output. Valid output format is \"simple\""
 )
+
+// Constants for bug report
+const (
+	BugReportFileFlagName  = "report-file"
+	BugReportFileFlagValue = ""
+	BugReportFileFlagUsage = "The report file to be created by bug-report command, as a .tar.gz file [Required]"
+	BugReportFileExtn      = ".tar.gz"
+
+	BugReportDir = "bug-report"
+
+	// File name for the log captured from the pod
+	LogFile = "logs.txt"
+
+	// File name for the Verrazzano resource
+	VzResource = "verrazzano_resources.json"
+
+	// Indentation when the resource is marshalled as Json
+	JsonIndent = "  "
+
+	// The prefix used for the json.MarshalIndent
+	JsonPrefix = ""
+
+	// Till the command provides a way to specify the time range, in which to capture the resource, use a constant
+	SinceSeconds = 1000
+
+	// Top level directory for the bug report, keeping cluster-dump for now to support the analyze the command
+	BugReportRoot = "cluster-dump"
+)
