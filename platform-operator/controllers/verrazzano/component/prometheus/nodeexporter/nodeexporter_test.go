@@ -42,11 +42,11 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      daemonsetName,
-						Labels:    map[string]string{"app": "test"},
+						Labels:    map[string]string{"app": "node-exporter"},
 					},
 					Spec: appsv1.DaemonSetSpec{
 						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"app": "test"},
+							MatchLabels: map[string]string{"app": "node-exporter"},
 						},
 					},
 					Status: appsv1.DaemonSetStatus{
@@ -59,7 +59,7 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 						Namespace: ComponentNamespace,
 						Name:      ComponentName,
 						Labels: map[string]string{
-							"app":                      "test",
+							"app":                      "node-exporter",
 							"controller-revision-hash": "test-95d8c5d96",
 						},
 					},
