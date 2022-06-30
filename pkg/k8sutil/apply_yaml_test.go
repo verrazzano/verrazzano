@@ -226,7 +226,7 @@ func TestApplyDT(t *testing.T) {
 			"should apply all template files in directory",
 			testdata,
 			map[string]interface{}{"namespace": "default"},
-			3,
+			5,
 			false,
 		},
 		// GIVEN a directory of template YAML files
@@ -236,7 +236,7 @@ func TestApplyDT(t *testing.T) {
 			"should fail to apply when one or more templates are incomplete",
 			testdata,
 			map[string]interface{}{},
-			0,
+			2,
 			true,
 		},
 	}
