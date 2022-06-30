@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -18,10 +19,6 @@ import (
 var (
 	//InstallStartTimeMap is a map that will have its keys as the component name and the time since the epoch in seconds as its value
 	//It will be used to store the "true" time when a component install successfully begins
-	installStartTimeMap = map[string]int64{}
-	upgradeStartTimeMap = map[string]int64{}
-	updateStartTimeMap  = map[string]int64{}
-
 	verrazzanoAuthproxyInstallTimeMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "authproxy_component_install_time",
 		Help: "The install time for the authproxy component",
@@ -376,62 +373,6 @@ var (
 		"verrazzano-console":              verrazzanoConsoleInstallTimeMetric,
 		"fluentd":                         fluentdInstallTimeMetric,
 	}
-	installDesiredNumberMap = map[string]int{
-		"verrazzano-authproxy":            0,
-		"oam-kubernetes-runtime":          0,
-		"verrazzano-application-operator": 0,
-		"istio":                           0,
-		"weblogic-operator":               0,
-		"ingress-controller":              0,
-		"cert-manager":                    0,
-		"external-dns":                    0,
-		"rancher":                         0,
-		"verrazzano":                      0,
-		"verrazzano-monitoring-operator":  0,
-		"opensearch":                      0,
-		"opensearch-dashboards":           0,
-		"grafana":                         0,
-		"coherence-operator":              0,
-		"mysql":                           0,
-		"keycloak":                        0,
-		"kiali-server":                    0,
-		"prometheus-operator":             0,
-		"prometheus-adapter":              0,
-		"kube-state-metrics":              0,
-		"prometheus-pushgateway":          0,
-		"prometheus-node-exporter":        0,
-		"jaeger-operator":                 0,
-		"verrazzano-console":              0,
-		"fluentd":                         0,
-	}
-	installCompletedNumberMap = map[string]int{
-		"verrazzano-authproxy":            0,
-		"oam-kubernetes-runtime":          0,
-		"verrazzano-application-operator": 0,
-		"istio":                           0,
-		"weblogic-operator":               0,
-		"ingress-controller":              0,
-		"cert-manager":                    0,
-		"external-dns":                    0,
-		"rancher":                         0,
-		"verrazzano":                      0,
-		"verrazzano-monitoring-operator":  0,
-		"opensearch":                      0,
-		"opensearch-dashboards":           0,
-		"grafana":                         0,
-		"coherence-operator":              0,
-		"mysql":                           0,
-		"keycloak":                        0,
-		"kiali-server":                    0,
-		"prometheus-operator":             0,
-		"prometheus-adapter":              0,
-		"kube-state-metrics":              0,
-		"prometheus-pushgateway":          0,
-		"prometheus-node-exporter":        0,
-		"jaeger-operator":                 0,
-		"verrazzano-console":              0,
-		"fluentd":                         0,
-	}
 	upgradeMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyUpgradeTimeMetric,
 		"oam-kubernetes-runtime":          oamUpgradeTimeMetric,
@@ -463,68 +404,6 @@ var (
 		"EnabledComponent":                enabledTestingUpgradeTimeMetric,
 		"DisabledComponent":               disabledTestingUpgradeTimeMetric,
 	}
-	upgradeDesiredNumberMap = map[string]int{
-		"verrazzano-authproxy":            0,
-		"oam-kubernetes-runtime":          0,
-		"verrazzano-application-operator": 0,
-		"istio":                           0,
-		"weblogic-operator":               0,
-		"ingress-controller":              0,
-		"cert-manager":                    0,
-		"external-dns":                    0,
-		"rancher":                         0,
-		"verrazzano":                      0,
-		"verrazzano-monitoring-operator":  0,
-		"opensearch":                      0,
-		"opensearch-dashboards":           0,
-		"grafana":                         0,
-		"coherence-operator":              0,
-		"mysql":                           0,
-		"keycloak":                        0,
-		"kiali-server":                    0,
-		"prometheus-operator":             0,
-		"prometheus-adapter":              0,
-		"kube-state-metrics":              0,
-		"prometheus-pushgateway":          0,
-		"prometheus-node-exporter":        0,
-		"jaeger-operator":                 0,
-		"verrazzano-console":              0,
-		"fluentd":                         0,
-		"":                                0,
-		"EnabledComponent":                0,
-		"DisabledComponent":               0,
-	}
-	upgradeCompletedNumberMap = map[string]int{
-		"verrazzano-authproxy":            0,
-		"oam-kubernetes-runtime":          0,
-		"verrazzano-application-operator": 0,
-		"istio":                           0,
-		"weblogic-operator":               0,
-		"ingress-controller":              0,
-		"cert-manager":                    0,
-		"external-dns":                    0,
-		"rancher":                         0,
-		"verrazzano":                      0,
-		"verrazzano-monitoring-operator":  0,
-		"opensearch":                      0,
-		"opensearch-dashboards":           0,
-		"grafana":                         0,
-		"coherence-operator":              0,
-		"mysql":                           0,
-		"keycloak":                        0,
-		"kiali-server":                    0,
-		"prometheus-operator":             0,
-		"prometheus-adapter":              0,
-		"kube-state-metrics":              0,
-		"prometheus-pushgateway":          0,
-		"prometheus-node-exporter":        0,
-		"jaeger-operator":                 0,
-		"verrazzano-console":              0,
-		"fluentd":                         0,
-		"":                                0,
-		"EnabledComponent":                0,
-		"DisabledComponent":               0,
-	}
 	updateMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyUpdateTimeMetric,
 		"oam-kubernetes-runtime":          oamUpdateTimeMetric,
@@ -553,62 +432,6 @@ var (
 		"verrazzano-console":              verrazzanoConsoleUpdateTimeMetric,
 		"fluentd":                         fluentdUpdateTimeMetric,
 	}
-	updateDesiredNumberMap = map[string]int{
-		"verrazzano-authproxy":            0,
-		"oam-kubernetes-runtime":          0,
-		"verrazzano-application-operator": 0,
-		"istio":                           0,
-		"weblogic-operator":               0,
-		"ingress-controller":              0,
-		"cert-manager":                    0,
-		"external-dns":                    0,
-		"rancher":                         0,
-		"verrazzano":                      0,
-		"verrazzano-monitoring-operator":  0,
-		"opensearch":                      0,
-		"opensearch-dashboards":           0,
-		"grafana":                         0,
-		"coherence-operator":              0,
-		"mysql":                           0,
-		"keycloak":                        0,
-		"kiali-server":                    0,
-		"prometheus-operator":             0,
-		"prometheus-adapter":              0,
-		"kube-state-metrics":              0,
-		"prometheus-pushgateway":          0,
-		"prometheus-node-exporter":        0,
-		"jaeger-operator":                 0,
-		"verrazzano-console":              0,
-		"fluentd":                         0,
-	}
-	updateCompletedNumberMap = map[string]int{
-		"verrazzano-authproxy":            0,
-		"oam-kubernetes-runtime":          0,
-		"verrazzano-application-operator": 0,
-		"istio":                           0,
-		"weblogic-operator":               0,
-		"ingress-controller":              0,
-		"cert-manager":                    0,
-		"external-dns":                    0,
-		"rancher":                         0,
-		"verrazzano":                      0,
-		"verrazzano-monitoring-operator":  0,
-		"opensearch":                      0,
-		"opensearch-dashboards":           0,
-		"grafana":                         0,
-		"coherence-operator":              0,
-		"mysql":                           0,
-		"keycloak":                        0,
-		"kiali-server":                    0,
-		"prometheus-operator":             0,
-		"prometheus-adapter":              0,
-		"kube-state-metrics":              0,
-		"prometheus-pushgateway":          0,
-		"prometheus-node-exporter":        0,
-		"jaeger-operator":                 0,
-		"verrazzano-console":              0,
-		"fluentd":                         0,
-	}
 )
 
 //InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
@@ -621,53 +444,66 @@ func InitalizeMetricsEndpoint() {
 		}
 	}, time.Second*3, wait.NeverStop)
 }
-func AddStartTime(startTime int64, componentName string, metric string) {
-	if metric == "install" {
-		installStartTimeMap[componentName] = startTime
-	}
-	if metric == "upgrade" {
-		upgradeStartTimeMap[componentName] = startTime
-	}
-	if metric == "update" {
-		updateStartTimeMap[componentName] = startTime
-	}
-}
-func CollectTimeMetric(componentName string, metric string) {
-	endTime := time.Now().UnixNano()
-	if metric == "install" {
-		totalInstallTime := float64((endTime - installStartTimeMap[componentName])) / 1000000000.0
-		installMetricsMap[componentName].Set(totalInstallTime)
-		installCompletedNumberMap[componentName] = installCompletedNumberMap[componentName] + 1
-	}
-	if metric == "upgrade" {
-		totalUpgradeTime := float64((endTime - upgradeStartTimeMap[componentName])) / 1000000000.0
-		upgradeMetricsMap[componentName].Set(totalUpgradeTime)
-		upgradeCompletedNumberMap[componentName] = upgradeCompletedNumberMap[componentName] + 1
-	}
-	if metric == "update" {
-		totalUpdateTime := float64((endTime - updateStartTimeMap[componentName])) / 1000000000.0
-		updateMetricsMap[componentName].Set(totalUpdateTime)
-		updateCompletedNumberMap[componentName] = updateCompletedNumberMap[componentName] + 1
-	}
-}
-func CheckIfNewOperationHasToBegin(componentName string, metric string) bool {
-	if metric == "update" {
-		if updateDesiredNumberMap[componentName] == updateCompletedNumberMap[componentName] {
-			updateDesiredNumberMap[componentName] = updateDesiredNumberMap[componentName] + 1
-			return true
+func AnalyzeVZCR(CR vzapi.Verrazzano) {
+	//Get the VZ CR Component Map (Store it in this function, so the state does not change)
+	mapOfComponents := CR.Status.Components
+	for componentName, componentStatusDetails := range mapOfComponents {
+		latestInstallCompletionTime := ""
+		latestInstallStartTime := ""
+		latestUpgradeCompletionTime := ""
+		latestUpgradeStartTime := ""
+		latestUpdateCompletionTime := ""
+		latestUpdateStartTime := ""
+		possibleUpgradeStartTime := ""
+		possibleInstallStartTime := ""
+		possibleUpdateStartTime := ""
+		installHappened := false
+		for _, status := range componentStatusDetails.Conditions {
+			if status.Type == vzapi.CondInstallStarted && installHappened == false {
+				latestInstallStartTime = status.LastTransitionTime
+			}
+			if status.Type == vzapi.CondInstallComplete && installHappened == false {
+				latestInstallCompletionTime = status.LastTransitionTime
+				installHappened = true
+			}
+			if status.Type == vzapi.CondUpgradeStarted {
+				possibleUpgradeStartTime = status.LastTransitionTime
+			}
+			if status.Type == vzapi.CondUpgradeComplete {
+				latestUpgradeCompletionTime = status.LastTransitionTime
+				latestUpgradeStartTime = possibleUpgradeStartTime
+			}
+			if status.Type == vzapi.CondInstallStarted && installHappened == true {
+				possibleUpdateStartTime = status.LastTransitionTime
+			}
+			if status.Type == vzapi.CondInstallComplete && installHappened == true {
+				latestUpdateCompletionTime = status.LastTransitionTime
+				latestUpdateStartTime = possibleUpdateStartTime
+			}
+		}
+		if latestInstallCompletionTime != "" && latestInstallStartTime != "" && possibleInstallStartTime != "" {
+			installStartInSeconds, _ := time.Parse(time.RFC3339, latestInstallStartTime)
+			installStartInSecondsUnix := installStartInSeconds.Unix()
+			installCompletionInSeconds, _ := time.Parse(time.RFC3339, latestInstallCompletionTime)
+			installCompletionInSecondsUnix := installCompletionInSeconds.Unix()
+			totalDurationOfInstall := (installStartInSecondsUnix - installCompletionInSecondsUnix)
+			installMetricsMap[componentName].Set(float64(totalDurationOfInstall))
+		}
+		if latestUpdateCompletionTime != "" && latestUpdateStartTime != "" && possibleUpdateStartTime != "" {
+			updateStartInSeconds, _ := time.Parse(time.RFC3339, latestUpdateStartTime)
+			updateStartInSecondsUnix := updateStartInSeconds.Unix()
+			updateCompletionInSeconds, _ := time.Parse(time.RFC3339, latestUpdateCompletionTime)
+			updateCompletionInSecondsUnix := updateCompletionInSeconds.Unix()
+			totalDurationOfUpdate := (updateStartInSecondsUnix - updateCompletionInSecondsUnix)
+			updateMetricsMap[componentName].Set(float64(totalDurationOfUpdate))
+		}
+		if latestUpgradeCompletionTime != "" && latestUpgradeStartTime != "" && possibleUpgradeStartTime != "" {
+			upgradeStartInSeconds, _ := time.Parse(time.RFC3339, latestUpgradeStartTime)
+			upgradeStartInSecondsUnix := upgradeStartInSeconds.Unix()
+			upgradeCompletionInSeconds, _ := time.Parse(time.RFC3339, latestUpgradeCompletionTime)
+			upgradeCompletionInSecondsUnix := upgradeCompletionInSeconds.Unix()
+			totalDurationOfUpgrade := (upgradeStartInSecondsUnix - upgradeCompletionInSecondsUnix)
+			upgradeMetricsMap[componentName].Set(float64(totalDurationOfUpgrade))
 		}
 	}
-	if metric == "install" {
-		if installDesiredNumberMap[componentName] == updateCompletedNumberMap[componentName] {
-			installDesiredNumberMap[componentName] = installDesiredNumberMap[componentName] + 1
-			return true
-		}
-	}
-	if metric == "upgrade" {
-		if upgradeDesiredNumberMap[componentName] == upgradeCompletedNumberMap[componentName] {
-			upgradeDesiredNumberMap[componentName] = upgradeDesiredNumberMap[componentName] + 1
-			return true
-		}
-	}
-	return false
 }

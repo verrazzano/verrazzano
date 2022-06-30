@@ -4,8 +4,6 @@
 package verrazzano
 
 import (
-	"time"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -13,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -120,16 +117,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				continue
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
-			if compContext.ActualCR().Status.Components[compName].State == vzapi.CompStateDisabled {
-				if metricsexporter.CheckIfNewOperationHasToBegin(compName, "install") {
-					metricsexporter.AddStartTime(time.Now().UnixNano(), compName, "install")
-				}
-			}
-			if compContext.ActualCR().Status.Components[compName].State == vzapi.CompStateReady {
-				if metricsexporter.CheckIfNewOperationHasToBegin(compName, "update") {
-					metricsexporter.AddStartTime(time.Now().UnixNano(), compName, "update")
-				}
-			}
 			if err := comp.PreInstall(compContext); err != nil {
 				requeue = true
 				continue
@@ -154,12 +141,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				if err := comp.PostInstall(compContext); err != nil {
 					requeue = true
 					continue
-				}
-				if compContext.ActualCR().Status.Components[compName].State == vzapi.CompStateDisabled {
-					metricsexporter.CollectTimeMetric(compName, "install")
-				}
-				if compContext.ActualCR().Status.Components[compName].State == vzapi.CompStateReady {
-					metricsexporter.CollectTimeMetric(compName, "update")
 				}
 				compLog.Oncef("Component %s successfully installed", comp.Name())
 				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.CondInstallComplete); err != nil {

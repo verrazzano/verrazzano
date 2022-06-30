@@ -29,6 +29,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -116,6 +117,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	// The Verrazzano resource has been reconciled.
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
+
+	metricsexporter.AnalyzeVZCR(*vz)
 
 	return ctrl.Result{}, nil
 }
