@@ -7,16 +7,14 @@ import (
 	"context"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	appv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -128,7 +126,7 @@ func TestApplyFNonSpec(t *testing.T) {
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(sa).Build()
 	y := k8sutil.NewYAMLApplier(c, "")
-	err := y.ApplyF(testdata + "/sa_add_imagepullsecrets")
+	err := y.ApplyF(testdata + "/sa_add_imagepullsecrets.yaml")
 	assert.NoError(t, err)
 
 	// Verify the resulting SA
@@ -143,6 +141,34 @@ func TestApplyFNonSpec(t *testing.T) {
 	assert.NotEmpty(t, saUpdated.Secrets)
 	assert.Equal(t, 1, len(saUpdated.Secrets))
 	assert.Equal(t, "verrazzano-platform-operator-token", saUpdated.Secrets[0].Name)
+}
+
+// TestApplyFMerge
+// GIVEN a object that contains spec field
+//  WHEN I call apply with additions to the spec field
+//  THEN the resulting object contains the merged updates
+func TestApplyFMerge(t *testing.T) {
+	deployment := &appv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.VerrazzanoPlatformOperator,
+			Namespace: constants.VerrazzanoInstall,
+		},
+		Spec: appv1.DeploymentSpec{
+			MinReadySeconds: 5,
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment).Build()
+	y := k8sutil.NewYAMLApplier(c, "")
+	err := y.ApplyF(testdata + "/deployment_merge.yaml")
+	assert.NoError(t, err)
+
+	// Verify the resulting Deployment
+	depUpdated := &appv1.Deployment{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator, Namespace: constants.VerrazzanoInstall}, depUpdated)
+	assert.NoError(t, err)
+
+	assert.Equal(t, int32(5), depUpdated.Spec.MinReadySeconds)
+	assert.Equal(t, int32(5), *depUpdated.Spec.Replicas)
 }
 
 func TestApplyFT(t *testing.T) {

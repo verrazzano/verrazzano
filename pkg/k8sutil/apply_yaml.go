@@ -15,10 +15,9 @@ import (
 	"strings"
 	"text/template"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	crtpkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -173,11 +172,11 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 					return err
 				}
 				if serverSpec != nil {
-					merge(serverSpec.(map[string]interface{}), clientSpec.(map[string]interface{}))
+					merge(clientSpec.(map[string]interface{}), serverSpec.(map[string]interface{}))
 				}
 			}
 
-			// Set the resulting values in the server object
+			// Set the resulting value in the server object
 			err = unstructured.SetNestedField(obj.Object, clientSpec, fieldName)
 			if err != nil {
 				return err
