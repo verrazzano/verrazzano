@@ -21,7 +21,8 @@ const (
 
 // isVeleroOperatorReady checks if the Velero deployment is ready
 func isVeleroOperatorReady(context spi.ComponentContext) bool {
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
+	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix) &&
+		status.DaemonSetsAreReady(context.Log(), context.Client(), daemonSets, 1, componentPrefix)
 }
 
 // AppendOverrides appends Helm value overrides for the Velero component's Helm chart

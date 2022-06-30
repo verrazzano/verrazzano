@@ -29,13 +29,22 @@ const (
 )
 
 var (
-	componentPrefix  = fmt.Sprintf("Component %s", ComponentName)
+	componentPrefix = fmt.Sprintf("Component %s", ComponentName)
+	//daemonsetPrefix  = fmt.Sprintf("Component %s", constants.ResticDaemonSetName)
 	veleroDeployment = types.NamespacedName{
 		Name:      ComponentName,
 		Namespace: ComponentNamespace,
 	}
+	resticDaemonset = types.NamespacedName{
+		Name:      constants.ResticDaemonSetName,
+		Namespace: ComponentNamespace,
+	}
 	deployments = []types.NamespacedName{
 		veleroDeployment,
+	}
+
+	daemonSets = []types.NamespacedName{
+		resticDaemonset,
 	}
 )
 
@@ -52,7 +61,7 @@ func NewComponent() spi.Component {
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
+			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_4_0,
 			ImagePullSecretKeyname:  "image.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "velero-override-static-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
