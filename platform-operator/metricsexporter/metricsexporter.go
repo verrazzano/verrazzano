@@ -485,7 +485,7 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 			installStartInSecondsUnix := installStartInSeconds.Unix()
 			installCompletionInSeconds, _ := time.Parse(time.RFC3339, latestInstallCompletionTime)
 			installCompletionInSecondsUnix := installCompletionInSeconds.Unix()
-			totalDurationOfInstall := (installStartInSecondsUnix - installCompletionInSecondsUnix)
+			totalDurationOfInstall := (installCompletionInSecondsUnix - installStartInSecondsUnix)
 			installMetricsMap[componentName].Set(float64(totalDurationOfInstall))
 		}
 		if latestUpdateCompletionTime != "" && latestUpdateStartTime != "" && possibleUpdateStartTime != "" {
@@ -493,7 +493,7 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 			updateStartInSecondsUnix := updateStartInSeconds.Unix()
 			updateCompletionInSeconds, _ := time.Parse(time.RFC3339, latestUpdateCompletionTime)
 			updateCompletionInSecondsUnix := updateCompletionInSeconds.Unix()
-			totalDurationOfUpdate := (updateStartInSecondsUnix - updateCompletionInSecondsUnix)
+			totalDurationOfUpdate := (updateCompletionInSecondsUnix - updateStartInSecondsUnix)
 			updateMetricsMap[componentName].Set(float64(totalDurationOfUpdate))
 		}
 		if latestUpgradeCompletionTime != "" && latestUpgradeStartTime != "" && possibleUpgradeStartTime != "" {
@@ -501,7 +501,7 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 			upgradeStartInSecondsUnix := upgradeStartInSeconds.Unix()
 			upgradeCompletionInSeconds, _ := time.Parse(time.RFC3339, latestUpgradeCompletionTime)
 			upgradeCompletionInSecondsUnix := upgradeCompletionInSeconds.Unix()
-			totalDurationOfUpgrade := (upgradeStartInSecondsUnix - upgradeCompletionInSecondsUnix)
+			totalDurationOfUpgrade := (upgradeCompletionInSecondsUnix - upgradeStartInSecondsUnix)
 			upgradeMetricsMap[componentName].Set(float64(totalDurationOfUpgrade))
 		}
 	}
