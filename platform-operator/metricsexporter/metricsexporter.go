@@ -447,8 +447,6 @@ func InitalizeMetricsEndpoint() {
 func AnalyzeVZCR(CR vzapi.Verrazzano) {
 	//Get the VZ CR Component Map (Store it in this function, so the state does not change)
 	mapOfComponents := CR.Status.Components
-	print(mapOfComponents)
-	print("Verrazzano going into analyze CR is")
 	for componentName, componentStatusDetails := range mapOfComponents {
 		latestInstallCompletionTime := ""
 		latestInstallStartTime := ""
@@ -457,7 +455,6 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 		latestUpdateCompletionTime := ""
 		latestUpdateStartTime := ""
 		possibleUpgradeStartTime := ""
-		possibleInstallStartTime := ""
 		possibleUpdateStartTime := ""
 		installNotHappened := true
 		for _, status := range componentStatusDetails.Conditions {
@@ -483,7 +480,7 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 				latestUpdateStartTime = possibleUpdateStartTime
 			}
 		}
-		if latestInstallCompletionTime != "" && latestInstallStartTime != "" && possibleInstallStartTime != "" {
+		if latestInstallCompletionTime != "" && latestInstallStartTime != "" {
 			installStartInSeconds, _ := time.Parse(time.RFC3339, latestInstallStartTime)
 			installStartInSecondsUnix := installStartInSeconds.Unix()
 			installCompletionInSeconds, _ := time.Parse(time.RFC3339, latestInstallCompletionTime)
