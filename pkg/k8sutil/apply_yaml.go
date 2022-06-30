@@ -11,8 +11,11 @@ import (
 	"io"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"text/template"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -150,19 +153,37 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 	if len(ns) > 0 {
 		obj.SetNamespace(ns)
 	}
-	clientSpec, _, err := unstructured.NestedFieldCopy(obj.Object, specField)
-	if err != nil {
-		return err
-	}
+	clientObj := runtime.DeepCopyJSON(obj.Object)
 	result, err := controllerruntime.CreateOrUpdate(context.TODO(), y.client, obj, func() error {
-		serverSpec, _, err := unstructured.NestedFieldCopy(obj.Object, specField)
-		if err != nil {
-			return err
+		// Handle each field in the object except kind, metadata
+		for fieldName, fieldObj := range clientObj {
+			if fieldName == "kind" || fieldName == "apiVersion" {
+				continue
+			}
+
+			clientSpec, _, err := unstructured.NestedFieldCopy(clientObj, fieldName)
+			if err != nil {
+				return err
+			}
+
+			// See if merge needed on objects of type map[string]interface {}
+			if reflect.TypeOf(fieldObj).String() == "map[string]interface {}" {
+				serverSpec, _, err := unstructured.NestedFieldCopy(obj.Object, fieldName)
+				if err != nil {
+					return err
+				}
+				if serverSpec != nil {
+					merge(serverSpec.(map[string]interface{}), clientSpec.(map[string]interface{}))
+				}
+			}
+
+			// Set the resulting values in the server object
+			err = unstructured.SetNestedField(obj.Object, clientSpec, fieldName)
+			if err != nil {
+				return err
+			}
 		}
-		if clientSpec != nil {
-			merge(serverSpec.(map[string]interface{}), clientSpec.(map[string]interface{}))
-		}
-		return unstructured.SetNestedField(obj.Object, serverSpec, specField)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -256,16 +277,17 @@ func (y *YAMLApplier) unmarshall(reader *bufio.Reader) ([]unstructured.Unstructu
 		return nil
 	}
 
+	eofReached := false
 	for {
 		// Read the file line by line
 		line, err := reader.ReadBytes('\n')
 		if err != nil {
-			// if EOF, flush the buffer and return the objs
 			if err == io.EOF {
-				flushErr := flushBuffer()
-				return objs, flushErr
+				// EOF has been reached, but there may be some line data to process
+				eofReached = true
+			} else {
+				return objs, err
 			}
-			return objs, err
 		}
 		lineStr := string(line)
 		// Flush buffer at document break
@@ -280,6 +302,11 @@ func (y *YAMLApplier) unmarshall(reader *bufio.Reader) ([]unstructured.Unstructu
 					return objs, err
 				}
 			}
+		}
+		// if EOF, flush the buffer and return the objs
+		if eofReached {
+			flushErr := flushBuffer()
+			return objs, flushErr
 		}
 	}
 }

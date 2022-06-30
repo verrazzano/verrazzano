@@ -4,7 +4,16 @@
 package k8sutil_test
 
 import (
+	"context"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -99,6 +108,41 @@ func TestApplyF(t *testing.T) {
 			assert.Equal(t, tt.count, len(y.Objects()))
 		})
 	}
+}
+
+// TestApplyFNonSpec
+// GIVEN a object that contains top level fields outside of spec
+//  WHEN I call apply with changes non-spec fields
+//  THEN the resulting object contains the updates
+func TestApplyFNonSpec(t *testing.T) {
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.VerrazzanoPlatformOperator,
+			Namespace: constants.VerrazzanoInstall,
+		},
+		Secrets: []corev1.ObjectReference{
+			{
+				Name: "verrazzano-platform-operator-token",
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(sa).Build()
+	y := k8sutil.NewYAMLApplier(c, "")
+	err := y.ApplyF(testdata + "/sa_add_imagepullsecrets")
+	assert.NoError(t, err)
+
+	// Verify the resulting SA
+	saUpdated := &corev1.ServiceAccount{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator, Namespace: constants.VerrazzanoInstall}, saUpdated)
+	assert.NoError(t, err)
+
+	assert.NotEmpty(t, saUpdated.ImagePullSecrets)
+	assert.Equal(t, 1, len(saUpdated.ImagePullSecrets))
+	assert.Equal(t, "verrazzano-container-registry", saUpdated.ImagePullSecrets[0].Name)
+
+	assert.NotEmpty(t, saUpdated.Secrets)
+	assert.Equal(t, 1, len(saUpdated.Secrets))
+	assert.Equal(t, "verrazzano-platform-operator-token", saUpdated.Secrets[0].Name)
 }
 
 func TestApplyFT(t *testing.T) {
