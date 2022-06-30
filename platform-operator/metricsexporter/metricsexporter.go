@@ -459,10 +459,10 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 		possibleUpdateStartTime := ""
 		installHappened := false
 		for _, status := range componentStatusDetails.Conditions {
-			if status.Type == vzapi.CondInstallStarted && installHappened == false {
+			if status.Type == vzapi.CondInstallStarted && installHappened {
 				latestInstallStartTime = status.LastTransitionTime
 			}
-			if status.Type == vzapi.CondInstallComplete && installHappened == false {
+			if status.Type == vzapi.CondInstallComplete && installHappened {
 				latestInstallCompletionTime = status.LastTransitionTime
 				installHappened = true
 			}
@@ -473,10 +473,10 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 				latestUpgradeCompletionTime = status.LastTransitionTime
 				latestUpgradeStartTime = possibleUpgradeStartTime
 			}
-			if status.Type == vzapi.CondInstallStarted && installHappened == true {
+			if status.Type == vzapi.CondInstallStarted && installHappened {
 				possibleUpdateStartTime = status.LastTransitionTime
 			}
-			if status.Type == vzapi.CondInstallComplete && installHappened == true {
+			if status.Type == vzapi.CondInstallComplete && installHappened {
 				latestUpdateCompletionTime = status.LastTransitionTime
 				latestUpdateStartTime = possibleUpdateStartTime
 			}
