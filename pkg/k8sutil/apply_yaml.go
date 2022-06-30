@@ -17,7 +17,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	crtpkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -151,20 +150,37 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 	if len(ns) > 0 {
 		obj.SetNamespace(ns)
 	}
-	clientObj := runtime.DeepCopyJSON(obj.Object)
+
+	// Struct to store a copy of a client field
+	type clientField struct {
+		name       string
+		nestedCopy interface{}
+		typeOf     string
+	}
+
+	// Make a nested copy of each client field.
+	var clientFields []clientField
+	var err error
+	for fieldName, fieldObj := range obj.Object {
+		if fieldName == "kind" || fieldName == "apiVersion" {
+			continue
+		}
+		cf := clientField{}
+		cf.name = fieldName
+		cf.nestedCopy, _, err = unstructured.NestedFieldCopy(obj.Object, fieldName)
+		if err != nil {
+			return err
+		}
+		cf.typeOf = reflect.TypeOf(fieldObj).String()
+		clientFields = append(clientFields, cf)
+	}
+
 	result, err := controllerruntime.CreateOrUpdate(context.TODO(), y.client, obj, func() error {
-		// Handle each field in the object except kind, metadata
-		for fieldName, fieldObj := range clientObj {
-			if fieldName == "kind" || fieldName == "apiVersion" {
-				continue
-			}
+		// For each nested copy of a client field, determine if it needs to be added or merged
+		// with the server.
+		for _, clientField := range clientFields {
 
-			clientSpec, _, err := unstructured.NestedFieldCopy(clientObj, fieldName)
-			if err != nil {
-				return err
-			}
-
-			serverSpec, _, err := unstructured.NestedFieldCopy(obj.Object, fieldName)
+			serverField, _, err := unstructured.NestedFieldCopy(obj.Object, clientField.name)
 			if err != nil {
 				return err
 			}
@@ -173,19 +189,19 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 			//
 			// For objects of type []interface{}, e.g. secrets or imagePullSecrets, a replace will be
 			// done.  This appears to be consistent with the behavior of kubectl.
-			if reflect.TypeOf(fieldObj).String() == "map[string]interface {}" {
-				if serverSpec != nil {
-					merge(serverSpec.(map[string]interface{}), clientSpec.(map[string]interface{}))
+			if clientField.typeOf == "map[string]interface {}" {
+				if serverField != nil {
+					merge(serverField.(map[string]interface{}), clientField.nestedCopy.(map[string]interface{}))
 				}
 			}
 
 			// If serverSpec is nil, then the clientSpec field is being added
-			if serverSpec == nil {
-				serverSpec = clientSpec
+			if serverField == nil {
+				serverField = clientField.nestedCopy
 			}
 
 			// Set the resulting value in the server object
-			err = unstructured.SetNestedField(obj.Object, serverSpec, fieldName)
+			err = unstructured.SetNestedField(obj.Object, serverField, clientField.name)
 			if err != nil {
 				return err
 			}
