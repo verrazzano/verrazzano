@@ -4,6 +4,7 @@
 package verrazzano
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -11,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -21,14 +24,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/stretchr/testify/assert"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -681,44 +682,11 @@ func TestAssociateHelmObjectAndKeep(t *testing.T) {
 	assert.Equal(t, "Helm", obj.Labels["app.kubernetes.io/managed-by"])
 }
 
-// TestIsReadySecretNotReady tests the Verrazzano isVerrazzanoReady call
+// TestIsReadyNotReady tests the Verrazzano isVerrazzanoReady call
 // GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when it is installed and the deployment availability criteria are met, but the secret is not found
+//  WHEN I call isVerrazzanoReady when it is installed but the secret is not found
 //  THEN false is returned
-func TestIsReadySecretNotReady(t *testing.T) {
-	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      prometheusDeployment,
-				Labels:    map[string]string{"app": "system-prometheus"},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-				Name:      nodeExporterDaemonset,
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
-			},
-		},
-	).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
-	assert.False(t, isVerrazzanoReady(ctx))
-}
-
-// TestIsReadyChartNotInstalled tests the Verrazzano isVerrazzanoReady call
-// GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when it is not installed
-//  THEN false is returned
-func TestIsReadyChartNotInstalled(t *testing.T) {
+func TestIsReadyNotReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
 	assert.False(t, isVerrazzanoReady(ctx))
@@ -730,73 +698,6 @@ func TestIsReadyChartNotInstalled(t *testing.T) {
 //  THEN false is returned
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      prometheusDeployment,
-				Labels:    map[string]string{"app": "system-prometheus"},
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": "system-prometheus"},
-				},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      prometheusDeployment + "-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "system-prometheus",
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
-				Name:        prometheusDeployment + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-				Name:      nodeExporterDaemonset,
-				Labels:    map[string]string{"app": "test"},
-			},
-			Spec: appsv1.DaemonSetSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": "test"},
-				},
-			},
-			Status: appsv1.DaemonSetStatus{
-				UpdatedNumberScheduled: 1,
-				NumberAvailable:        1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-				Name:      ComponentName,
-				Labels: map[string]string{
-					"app":                      "test",
-					"controller-revision-hash": "test-95d8c5d96",
-				},
-			},
-		},
-		&appsv1.ControllerRevision{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      nodeExporterDaemonset + "-test-95d8c5d96",
-				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-			},
-			Revision: 1,
-		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
 	).Build()
@@ -853,25 +754,63 @@ func TestConfigHashSum(t *testing.T) {
 	assert.Equal(t, HashSum(f1), HashSum(f2))
 }
 
-// TestIsinstalled tests the Verrazzano doesPromExist call
+// TestRemoveNodeExporterResources tests the removeNodeExporterResources function
 // GIVEN a Verrazzano component
-//  WHEN I call doesPromExist
-//  THEN true is returned
-func TestIsinstalled(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
+// WHEN I call the removeNodeExporterResources function
+// THEN the function removes all of the expected resources from the cluster
+func TestRemoveNodeExporterResources(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
+		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      prometheusDeployment,
-				Labels:    map[string]string{"app": "system-prometheus"},
+				Namespace: monitoringNamespace,
+				Name:      nodeExporter,
+			},
+		},
+		&corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: monitoringNamespace,
+				Name:      nodeExporter,
+			},
+		},
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: monitoringNamespace,
+				Name:      nodeExporter,
+			},
+		},
+		&rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: nodeExporter,
+			},
+		},
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: nodeExporter,
 			},
 		},
 	).Build()
-	vz := &vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(c, vz, false)
-	assert.True(t, doesPromExist(ctx))
+
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	removeNodeExporterResources(ctx)
+
+	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
+	s := &corev1.Service{}
+	err := c.Get(context.TODO(), namespacedName, s)
+	assert.True(t, errors.IsNotFound(err))
+
+	sa := &corev1.ServiceAccount{}
+	err = c.Get(context.TODO(), namespacedName, sa)
+	assert.True(t, errors.IsNotFound(err))
+
+	ds := &appsv1.DaemonSet{}
+	err = c.Get(context.TODO(), namespacedName, ds)
+	assert.True(t, errors.IsNotFound(err))
+
+	crb := &rbacv1.ClusterRoleBinding{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: nodeExporter}, crb)
+	assert.True(t, errors.IsNotFound(err))
+
+	cr := &rbacv1.ClusterRole{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: nodeExporter}, cr)
+	assert.True(t, errors.IsNotFound(err))
 }

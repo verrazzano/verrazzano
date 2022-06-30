@@ -194,3 +194,15 @@ const VerrazzanoComponentLabelKey = "verrazzano-component"
 
 // IstioAppLabel is the label used for Verrazzano Istio components
 const IstioAppLabel = "verrazzano.io/istio"
+
+// OldReclaimPolicyLabel is the name of the label used to store the old reclaim policy of a persistent volume before it is migrated
+const OldReclaimPolicyLabel = "verrazzano.io/old-reclaim-policy"
+
+// StorageForLabel is the name of the label applied to a persistent volume so storage can be selected by a pod
+const StorageForLabel = "verrazzano.io/storage-for"
+
+// PrometheusStorageLabelValue is the label value for Prometheus storage
+const PrometheusStorageLabelValue = "prometheus"
+
+// VMISystemPrometheusVolumeClaim is the name of the VMO-managed Prometheus persistent volume claim
+const VMISystemPrometheusVolumeClaim = "vmi-system-prometheus"

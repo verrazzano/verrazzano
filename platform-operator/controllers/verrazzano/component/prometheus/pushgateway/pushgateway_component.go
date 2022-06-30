@@ -4,14 +4,17 @@
 package pushgateway
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
 // ComponentName is the name of the component
@@ -41,7 +44,8 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-pushgateway-values.yaml"),
-			Dependencies:            []string{},
+			AppendOverridesFunc:     AppendOverrides,
+			Dependencies:            []string{promoperator.ComponentName},
 			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
@@ -79,4 +83,16 @@ func (c prometheusPushgatewayComponent) MonitorOverrides(ctx spi.ComponentContex
 		return true
 	}
 	return false
+}
+
+// AppendOverrides appends install overrides for the Prometheus PrometheusPushgateway component's Helm chart
+func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// Only enable the ServiceMonitor if Prometheus Operator is enabled in this install
+	ctx.Log().Debug("Appending service monitor override for the Prometheus PrometheusPushgateway component")
+	if vzconfig.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+		kvs = append(kvs, bom.KeyValue{
+			Key: "serviceMonitor.enabled", Value: "true",
+		})
+	}
+	return kvs, nil
 }

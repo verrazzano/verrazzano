@@ -87,6 +87,8 @@ spec:
       enabled: true
     prometheus:
       enabled: true
+    prometheusOperator:
+      enabled: true
     rancher:
       enabled: true
     verrazzano:

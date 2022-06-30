@@ -14,6 +14,7 @@ proxy:
 config:
   dnsSuffix: 11.22.33.44.sslip.io
   envName: default
+  prometheusOperatorEnabled: true
 
 dns:
   wildcard:

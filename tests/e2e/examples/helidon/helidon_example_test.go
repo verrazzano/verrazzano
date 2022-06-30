@@ -35,7 +35,7 @@ const (
 var (
 	t                  = framework.NewTestFramework("helidon")
 	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
-	//yamlApplier              = k8sutil.YAMLApplier{}
+	// yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 )
 
@@ -261,9 +261,35 @@ func appConfigMetricsExists() bool {
 }
 
 func nodeExporterProcsRunning() bool {
-	return pkg.MetricsExist("node_procs_running", "job", "node-exporter")
+	nodeExporterJob, err := getNodeExporterJobName()
+	if err != nil {
+		return false
+	}
+	return pkg.MetricsExist("node_procs_running", "job", nodeExporterJob)
 }
 
 func nodeExporterDiskIoNow() bool {
-	return pkg.MetricsExist("node_disk_io_now", "job", "node-exporter")
+	nodeExporterJob, err := getNodeExporterJobName()
+	if err != nil {
+		return false
+	}
+	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJob)
+}
+
+// getNodeExporterJobName returns the name of the Node Exporter job name depending on the Verrazzano version
+func getNodeExporterJobName() (string, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		return "", err
+	}
+	minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to verify the Verrazzano version was min 1.4.0: %v", err))
+		return "", err
+	}
+	if minVer14 {
+		return "prometheus-node-exporter", nil
+	}
+	return "node-exporter", nil
 }
