@@ -118,7 +118,7 @@ extraObjects: []
   #     secretObjects:
   #       - data:
   #         - key: access_key
-  #           objectName: client-idsources
+  #           objectName: client-id
   #         - key: client-secret
   #           objectName: client-secret
   #         secretName: velero-secrets-store
