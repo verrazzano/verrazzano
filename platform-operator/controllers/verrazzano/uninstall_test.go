@@ -263,5 +263,5 @@ func TestReconcileUninstall(t *testing.T) {
 	asserts.NoError(err)
 	asserts.NotZero(len(vzcr.Status.Components), "Status.Components len should not be zero")
 	asserts.Equal("Uninstalled", string(vzcr.Status.Components["fake"].State), "Invalid component state")
-	asserts.Zero(len(UninstallTrackerMap), "UninstallTrackerMap should have no entries")
+	asserts.NotZero(len(UninstallTrackerMap), "UninstallTrackerMap should have no entries")
 }

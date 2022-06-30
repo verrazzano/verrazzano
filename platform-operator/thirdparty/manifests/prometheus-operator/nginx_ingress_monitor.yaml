@@ -37,3 +37,6 @@ spec:
         regex: ([^:]+)(?::\d+)?;(\d+)
         replacement: $1:10254
         targetLabel: __address__
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local

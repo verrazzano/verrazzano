@@ -29,8 +29,7 @@ const (
 )
 
 var (
-	componentPrefix = fmt.Sprintf("Component %s", ComponentName)
-	//daemonsetPrefix  = fmt.Sprintf("Component %s", constants.ResticDaemonSetName)
+	componentPrefix  = fmt.Sprintf("Component %s", ComponentName)
 	veleroDeployment = types.NamespacedName{
 		Name:      ComponentName,
 		Namespace: ComponentNamespace,

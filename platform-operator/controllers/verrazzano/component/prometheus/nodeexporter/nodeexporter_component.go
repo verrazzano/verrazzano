@@ -11,6 +11,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -45,19 +46,19 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "serviceAccount.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), valuesFile),
-			Dependencies:            []string{},
+			Dependencies:            []string{promoperator.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
 
-// IsEnabled returns true if the Prometheus Node-Exporter is enabled or if the component is not specified
-// in the Verrazzano CR.
+// IsEnabled returns true if the Prometheus Node-Exporter is explicitly enabled in the Verrazzano CR, otherwise
+// it returns true if the Prometheus component is enabled.
 func (c prometheusNodeExporterComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.PrometheusNodeExporter
 	if comp == nil || comp.Enabled == nil {
-		return false
+		return vzconfig.IsPrometheusEnabled(effectiveCR)
 	}
 	return *comp.Enabled
 }
@@ -96,4 +97,14 @@ func (c prometheusNodeExporterComponent) MonitorOverrides(ctx spi.ComponentConte
 		return true
 	}
 	return false
+}
+
+// PostInstall creates/updates associated resources after this component is installed
+func (c prometheusNodeExporterComponent) PostInstall(ctx spi.ComponentContext) error {
+	return createOrUpdateNetworkPolicies(ctx)
+}
+
+// PostUpgrade creates/updates associated resources after this component is installed
+func (c prometheusNodeExporterComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	return createOrUpdateNetworkPolicies(ctx)
 }

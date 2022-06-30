@@ -116,12 +116,12 @@ func IsVMOEnabled(vz *vzapi.Verrazzano) bool {
 	return IsPrometheusEnabled(vz) || IsKibanaEnabled(vz) || IsElasticsearchEnabled(vz) || IsGrafanaEnabled(vz)
 }
 
-// IsPrometheusOperatorEnabled returns true only if the Prometheus Operator is explicitly enabled in the CR
+// IsPrometheusOperatorEnabled returns false only if the Prometheus Operator is explicitly disabled in the CR
 func IsPrometheusOperatorEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusOperator != nil && vz.Spec.Components.PrometheusOperator.Enabled != nil {
 		return *vz.Spec.Components.PrometheusOperator.Enabled
 	}
-	return false
+	return true
 }
 
 // IsPrometheusAdapterEnabled returns true only if the Prometheus Adapter is explicitly enabled in the CR
@@ -148,12 +148,12 @@ func IsPrometheusPushgatewayEnabled(vz *vzapi.Verrazzano) bool {
 	return false
 }
 
-// IsPrometheusNodeExporterEnabled returns true only if the Prometheus Node-Exporter is explicitly enabled in the CR
+// IsPrometheusNodeExporterEnabled returns false only if the Prometheus Node-Exporter is explicitly disabled in the CR
 func IsPrometheusNodeExporterEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.PrometheusNodeExporter != nil && vz.Spec.Components.PrometheusNodeExporter.Enabled != nil {
 		return *vz.Spec.Components.PrometheusNodeExporter.Enabled
 	}
-	return false
+	return true
 }
 
 // IsJaegerOperatorEnabled returns true only if the Jaeger Operator is explicitly enabled in the CR

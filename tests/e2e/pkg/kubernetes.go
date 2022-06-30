@@ -138,7 +138,7 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	return deployments, nil
 }
 
-//GetReplicaCounts Builds a map of pod counts for a list of deployments
+// GetReplicaCounts Builds a map of pod counts for a list of deployments
 // expectedDeployments - a list of namespaced names for deployments to look for
 // optsBuilder - a callback func to build the right set of options to select pods for the deployment
 func GetReplicaCounts(expectedDeployments []types.NamespacedName, optsBuilder func(name types.NamespacedName) (metav1.ListOptions, error)) (map[string]uint32, error) {
@@ -536,26 +536,6 @@ func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, err
 		return false, err
 	}
 	return !vzSemver.IsLessThan(minSemver), nil
-}
-
-// IsVerrazzanoBelowVersion returns true if the Verrazzano version < belowVersion
-func IsVerrazzanoBelowVersion(belowVersion string, kubeconfigpath string) (bool, error) {
-	vzVersion, err := GetVerrazzanoVersion(kubeconfigpath)
-	if err != nil {
-		return false, err
-	}
-	if len(vzVersion) == 0 {
-		return false, nil
-	}
-	vzSemver, err := semver.NewSemVersion(vzVersion)
-	if err != nil {
-		return false, err
-	}
-	maxSemver, err := semver.NewSemVersion(belowVersion)
-	if err != nil {
-		return false, err
-	}
-	return vzSemver.IsLessThan(maxSemver), nil
 }
 
 // IsProdProfile returns true if the deployed resource is a 'prod' profile

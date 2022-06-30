@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -78,7 +80,11 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	rancherHostname := fmt.Sprintf("%s.%s.%s", common.RancherName, vz.Spec.EnvironmentName, dnsSuffix)
+	env := vz.Spec.EnvironmentName
+	if len(env) == 0 {
+		env = constants.DefaultEnvironmentName
+	}
+	rancherHostname := fmt.Sprintf("%s.%s.%s", common.RancherName, env, dnsSuffix)
 	return rancherHostname, nil
 }
 
@@ -288,4 +294,42 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 		return effectiveCR.Spec.Components.Rancher.ValueOverrides
 	}
 	return []vzapi.Overrides{}
+}
+
+// Delete the local cluster
+func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
+	log.Once("Deleting Rancher local cluster")
+
+	password, err := common.GetAdminSecret(c)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
+	}
+	if len(password) == 0 {
+		log.Oncef("Skipping Rancher delete local host because Rancher admin password is missing")
+		return nil
+	}
+	rancherHostName, err := getRancherHostname(c, vz)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
+	}
+	if len(rancherHostName) == 0 {
+		log.Oncef("Skipping Rancher delete local host since Rancher host name is missing")
+		return nil
+	}
+
+	rest, err := common.NewClient(c, rancherHostName, password)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
+	}
+	if err := rest.SetAccessToken(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
+	}
+	if err := rest.DeleteLocalHost(); err != nil {
+		// This is a warning
+		log.Oncef("Failed deleting Rancher local host: %s", err.Error())
+		return nil
+	}
+
+	log.Once("Successfully delete Rancher local cluster")
+	return nil
 }
