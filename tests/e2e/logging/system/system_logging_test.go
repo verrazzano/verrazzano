@@ -50,7 +50,7 @@ var (
 		regexp.MustCompile(`^-+$`),
 		regexp.MustCompile(`^$`),
 	}
-	jaegerExceptions = []*regexp.Regexp {
+	jaegerExceptions = []*regexp.Regexp{
 		regexp.MustCompile(`^.*http: TLS handshake error.*$`),
 		regexp.MustCompile(`^.*GOMAXPROCS.*$`),
 	}
