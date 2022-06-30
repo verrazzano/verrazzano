@@ -31,6 +31,12 @@ func TestDeploymentsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
 				Name:      "foo",
+				Labels:    map[string]string{"app": "foo"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "foo"},
+				},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -205,6 +211,12 @@ func TestMultipleReplicasReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
 				Name:      "foo",
+				Labels:    map[string]string{"app": "foo"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "foo"},
+				},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 2,
@@ -273,6 +285,12 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
 				Name:      "foo",
+				Labels:    map[string]string{"app": "foo"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "foo"},
+				},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 2,
