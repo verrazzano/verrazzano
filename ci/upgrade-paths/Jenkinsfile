@@ -396,9 +396,9 @@ pipeline {
                             }
                         }
                         stage ('Deploy Coherence example application - multi cluster') {
-                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
+                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeBelowVer("v1.3.0") } }
                             steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "true", "true")
                             }
                         }
                         stage('Prometheus pre-upgrade') {
@@ -457,7 +457,6 @@ pipeline {
                 }
             }
         }
-
         stage ('Verify Install') {
             parallel {
                 stage('verify-install') {
@@ -607,7 +606,7 @@ pipeline {
                         }
                         stage ('Verify/Uninstall Example Coherence') {
                             steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeBelowVer("v1.3.0"), "false", "false")
                             }
                         }
                     }
@@ -681,6 +680,34 @@ pipeline {
         }
     }
 }
+
+// false : version parameter falls between vz to(current) and from(to be upgraded) version
+// true  : vz to(current) and from(to be upgraded) version falls below version parameter
+def checkUpgradeBelowVer(version) {
+    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
+        VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
+    }
+    return !(isMinVersion(params.VERSION_FOR_INSTALL, version) && !isMinVersion(VERRAZZANO_DEV_VERSION, version))
+}
+
+// compares the two vz versions v1 & v2
+// true : v1 < v2, false : v1 >= v2
+def isMinVersion(v1, v2) {
+    v2 = v2 - 'v'
+    v1 = v1 - 'v'
+    def v2Split  = v2.split('\\.')
+    runningVZVersion = v2Split[0] + '.' + v2Split[1] + '.' + v2Split[2].charAt(0)
+    v1Split = v1.split('\\.')
+    if(v1Split[0] < v2Split[0]){
+        return true
+    }else if(v1Split[0] == v2Split[0] && v1Split[1] < v2Split[1]){
+        return true
+    }else if(v1Split[0] == v2Split[0] && v1Split[1] == v2Split[1] && v1Split[2].charAt(0) < v2Split[2].charAt(0)){
+        return true
+    }
+    return false
+}
+
 
 def createOCIDNSZone() {
     script {
