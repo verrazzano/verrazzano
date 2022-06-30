@@ -25,11 +25,12 @@ import (
 )
 
 const (
-	deploymetricsCompYaml = "testdata/deploymetrics/deploymetrics-comp.yaml"
-	deploymetricsCompName = "deploymetrics-deployment"
-	deploymetricsAppYaml  = "testdata/deploymetrics/deploymetrics-app.yaml"
-	deploymetricsAppName  = "deploymetrics-appconf"
-	skipVerifications     = "Skip Verifications"
+	deploymetricsCompYaml    = "testdata/deploymetrics/deploymetrics-comp.yaml"
+	deploymetricsCompName    = "deploymetrics-deployment"
+	deploymetricsAppYaml     = "testdata/deploymetrics/deploymetrics-app.yaml"
+	deploymetricsAppName     = "deploymetrics-appconf"
+	skipVerifications        = "Skip Verifications"
+	errGenerateSvcMonJobName = "Failed to generate the Service Monitor job name"
 )
 
 var (
@@ -75,7 +76,7 @@ var _ = clusterDump.BeforeSuite(func() {
 		Eventually(func() error {
 			promJobName, err := getPromConfigJobName()
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to generate the Service Monitor job name: %v", err))
+				pkg.Log(pkg.Error, fmt.Sprintf("%s: %v", errGenerateSvcMonJobName, err))
 			}
 			serviceName := promJobName
 			if len(serviceName) > 63 {
@@ -159,7 +160,7 @@ func undeployMetricsApplication() {
 		Eventually(func() bool {
 			promJobName, err := getPromConfigJobName()
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to generate the Service Monitor job name: %v", err))
+				pkg.Log(pkg.Error, fmt.Sprintf("%s: %v", errGenerateSvcMonJobName, err))
 				return false
 			}
 			serviceName := promJobName
@@ -197,7 +198,7 @@ var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), fun
 			}
 			promJobName, err := getPromConfigJobName()
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to generate the Service Monitor job name: %v", err))
+				pkg.Log(pkg.Error, fmt.Sprintf("%s: %v", errGenerateSvcMonJobName, err))
 			}
 			serviceName := promJobName
 			if len(serviceName) > 63 {
