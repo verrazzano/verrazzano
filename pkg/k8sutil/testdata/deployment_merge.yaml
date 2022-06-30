@@ -8,3 +8,4 @@ metadata:
   namespace: verrazzano-install
 spec:
   replicas: 5
+  progressDeadlineSeconds: 10

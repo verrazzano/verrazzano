@@ -164,19 +164,25 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 				return err
 			}
 
+			serverSpec, _, err := unstructured.NestedFieldCopy(obj.Object, fieldName)
+			if err != nil {
+				return err
+			}
+
 			// See if merge needed on objects of type map[string]interface {}
 			if reflect.TypeOf(fieldObj).String() == "map[string]interface {}" {
-				serverSpec, _, err := unstructured.NestedFieldCopy(obj.Object, fieldName)
-				if err != nil {
-					return err
-				}
 				if serverSpec != nil {
-					merge(clientSpec.(map[string]interface{}), serverSpec.(map[string]interface{}))
+					merge(serverSpec.(map[string]interface{}), clientSpec.(map[string]interface{}))
 				}
 			}
 
+			// If serverSpec is nil, then the clientSpec field is being added
+			if serverSpec == nil {
+				serverSpec = clientSpec
+			}
+
 			// Set the resulting value in the server object
-			err = unstructured.SetNestedField(obj.Object, clientSpec, fieldName)
+			err = unstructured.SetNestedField(obj.Object, serverSpec, fieldName)
 			if err != nil {
 				return err
 			}

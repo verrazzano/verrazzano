@@ -148,13 +148,15 @@ func TestApplyFNonSpec(t *testing.T) {
 //  WHEN I call apply with additions to the spec field
 //  THEN the resulting object contains the merged updates
 func TestApplyFMerge(t *testing.T) {
+	deadlineSeconds := int32(5)
 	deployment := &appv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.VerrazzanoPlatformOperator,
 			Namespace: constants.VerrazzanoInstall,
 		},
 		Spec: appv1.DeploymentSpec{
-			MinReadySeconds: 5,
+			MinReadySeconds:         5,
+			ProgressDeadlineSeconds: &deadlineSeconds,
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment).Build()
@@ -169,6 +171,7 @@ func TestApplyFMerge(t *testing.T) {
 
 	assert.Equal(t, int32(5), depUpdated.Spec.MinReadySeconds)
 	assert.Equal(t, int32(5), *depUpdated.Spec.Replicas)
+	assert.Equal(t, int32(10), *depUpdated.Spec.ProgressDeadlineSeconds)
 }
 
 func TestApplyFT(t *testing.T) {
