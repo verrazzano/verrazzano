@@ -28,7 +28,7 @@ import (
 
 const (
 	verrazzanoNamespace = "verrazzano-system"
-	esMasterPrefix      = "elasticsearch-master-vmi-system-es-master-0"
+	esMasterPrefix      = "elasticsearch-master-vmi-system-es-master"
 	esMaster0           = esMasterPrefix + "-0"
 	esMaster1           = esMasterPrefix + "-1"
 	esMaster2           = esMasterPrefix + "-2"
