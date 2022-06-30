@@ -45,6 +45,8 @@ vz uninstall --timeout 30m`
 // Number of retries after waiting a second for uninstall pod to be ready
 const uninstallDefaultWaitRetries = 60
 
+const verrazzanoUninstallJobDetectWait = 5
+
 var uninstallWaitRetries = uninstallDefaultWaitRetries
 
 var propagationPolicy = metav1.DeletePropagationBackground
@@ -168,8 +170,8 @@ func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper, jobName str
 				fmt.Fprint(outputStream, "\n")
 				return
 			default:
-				time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
-				seconds += constants.VerrazzanoPlatformOperatorWait
+				time.Sleep(verrazzanoUninstallJobDetectWait * time.Second)
+				seconds += verrazzanoUninstallJobDetectWait
 				fmt.Fprintf(outputStream, fmt.Sprintf("\rWaiting for %s to be ready before starting uninstall - %d seconds", jobName, seconds))
 			}
 		}
@@ -183,8 +185,8 @@ func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper, jobName str
 		if retryCount > uninstallWaitRetries {
 			return "", fmt.Errorf("%s pod not found in namespace %s", constants.VerrazzanoUninstall, vzconstants.VerrazzanoInstallNamespace)
 		}
-		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
-		seconds += constants.VerrazzanoPlatformOperatorWait
+		time.Sleep(verrazzanoUninstallJobDetectWait * time.Second)
+		seconds += verrazzanoUninstallJobDetectWait
 
 		err := c.List(
 			context.TODO(),
@@ -210,8 +212,8 @@ func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper, jobName str
 	pod := &corev1.Pod{}
 	seconds = 0
 	for {
-		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
-		seconds += constants.VerrazzanoPlatformOperatorWait
+		time.Sleep(verrazzanoUninstallJobDetectWait * time.Second)
+		seconds += verrazzanoUninstallJobDetectWait
 
 		err := c.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
 		if err != nil {
