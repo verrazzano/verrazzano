@@ -21,6 +21,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const testIngressName = "test-ingress"
+
 // TestCreateOrUpdateSystemComponentIngress tests the CreateOrUpdateSystemComponentIngress function
 func TestCreateOrUpdateSystemComponentIngress(t *testing.T) {
 	scheme := runtime.NewScheme()
@@ -45,11 +47,11 @@ func TestCreateOrUpdateSystemComponentIngress(t *testing.T) {
 	}
 
 	ctx := spi.NewFakeContext(client, vz, false)
-	err := CreateOrUpdateSystemComponentIngress(ctx, "test-ingress", "host", "tls-secret")
+	err := CreateOrUpdateSystemComponentIngress(ctx, testIngressName, "host", "tls-secret")
 	assert.NoError(t, err)
 
 	ingress := &netv1.Ingress{}
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "test-ingress"}, ingress)
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: testIngressName}, ingress)
 	assert.NoError(t, err)
 	assert.Equal(t, "host.default.mydomain.com", ingress.Spec.Rules[0].Host)
 	assert.Equal(t, constants.VerrazzanoAuthProxyServiceName, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Name)
@@ -70,11 +72,11 @@ func TestCreateOrUpdateSystemComponentIngress(t *testing.T) {
 	client = fake.NewClientBuilder().WithScheme(scheme).WithObjects(service).Build()
 
 	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	err = CreateOrUpdateSystemComponentIngress(ctx, "test-ingress", "host", "tls-secret")
+	err = CreateOrUpdateSystemComponentIngress(ctx, testIngressName, "host", "tls-secret")
 	assert.NoError(t, err)
 
 	ingress = &netv1.Ingress{}
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "test-ingress"}, ingress)
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: testIngressName}, ingress)
 	assert.NoError(t, err)
 	assert.Equal(t, "host.default.1.2.3.4.nip.io", ingress.Spec.Rules[0].Host)
 	assert.Equal(t, constants.VerrazzanoAuthProxyServiceName, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Name)
