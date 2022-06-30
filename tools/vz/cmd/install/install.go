@@ -6,6 +6,7 @@ package install
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -30,14 +31,23 @@ const (
 # Install the latest version of Verrazzano using the prod profile. Stream the logs to the console until the install completes.
 vz install
 
-# Install version 1.3.0 using a dev profile, timeout the command after 20 minutes
+# Install version 1.3.0 using a dev profile, timeout the command after 20 minutes.
 vz install --version v1.3.0 --set profile=dev --timeout 20m
 
-# Install version 1.3.0 using a dev profile with kiali disabled and wait for the install to complete
+# Install version 1.3.0 using a dev profile with kiali disabled and wait for the install to complete.
 vz install --version v1.3.0 --set profile=dev --set components.kiali.enabled=false
 
 # Install the latest version of Verrazzano using CR overlays and explicit value sets.  Output the logs in json format.
-vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json`
+vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json
+
+# Install the latest version of Verrazzano using a Verrazzano CR specified with stdin.
+vz install -f - <<EOF
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  namespace: default
+  name: example-verrazzano
+EOF`
 )
 
 var logsEnum = cmdhelpers.LogFormatSimple
@@ -177,7 +187,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 		}
 	} else {
 		// Merge the yaml files passed on the command line
-		vz, err = cmdhelpers.MergeYAMLFiles(filenames)
+		vz, err = cmdhelpers.MergeYAMLFiles(filenames, os.Stdin)
 		if err != nil {
 			return nil, err
 		}
