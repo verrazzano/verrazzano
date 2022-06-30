@@ -277,6 +277,7 @@ rules:
       - monitoring.coreos.com
     resources:
       - servicemonitors
+      - podmonitors
     verbs:
       - create
       - delete
@@ -312,6 +313,10 @@ spec:
     - name: https-webhook
       port: 443
       targetPort: 9443
+    - name: http-metric
+      protocol: TCP
+      port: 9100
+      targetPort: 9100
   selector:
     app: {{ .Values.name }}
 ---
@@ -339,6 +344,9 @@ spec:
           ports:
             - containerPort: 9443
               name: https-webhook
+              protocol: TCP
+            - containerPort: 9100
+              name: http-metric
               protocol: TCP
           args:
             - --zap-log-level={{ .Values.logLevel }}

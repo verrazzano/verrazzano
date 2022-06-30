@@ -47,6 +47,7 @@ spec:
       annotations:
         sidecar.istio.io/inject: "true"
         traffic.sidecar.istio.io/excludeOutboundPorts: 443,6443
+        verrazzano.io/metricsEnabled: "true"
       labels:
         app: {{ .Values.name }}
     spec:

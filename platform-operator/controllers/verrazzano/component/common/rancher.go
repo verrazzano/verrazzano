@@ -48,8 +48,11 @@ const (
   "type": "token",
   "description": "automation"
 }`
+
 	// RancherServerURLPath Path to update server URL, as in PUT during PostInstall
 	RancherServerURLPath = "/v3/settings/server-url"
+	// RancherDeleteHostURLPath Path to delete Rancher localhost
+	RancherDeleteHostURLPath = "/v3/clusters/local"
 	// Template body to PUT a new server url
 	serverURLTmpl = `
 {
@@ -237,6 +240,25 @@ func (r *RESTClient) PutServerURL() error {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Failed to set server url: %s", resp.Status)
+	}
+	return nil
+}
+
+func (r *RESTClient) DeleteLocalHost() error {
+	url := fmt.Sprintf("https://%s%s", r.hostname, RancherDeleteHostURLPath)
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set(contentTypeHeader, applicationJSON)
+	req.Header.Set(authorizationHeader, fmt.Sprintf("Bearer %s", r.accessToken))
+	resp, err := r.do(r.client, req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed calling https DELETE url %s: %v", url, resp.Status)
 	}
 	return nil
 }

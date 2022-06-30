@@ -6,12 +6,13 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -603,8 +604,7 @@ func (r *Reconciler) createUninstallJob(log vzlog.VerrazzanoLogger, vz *installv
 
 	log.Progressf("Uninstall job %s is running", buildUninstallJobName(vz.Name))
 
-	err = r.setUninstallCondition(log, jobFound, vz)
-	if err != nil {
+	if err := r.setUninstallCondition(log, jobFound, vz); err != nil {
 		return err
 	}
 
@@ -760,7 +760,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	case installv1alpha1.CondUpgradePaused:
 		return installv1alpha1.CompStateUpgrading
 	case installv1alpha1.CondUninstallComplete:
-		return installv1alpha1.CompStateReady
+		return installv1alpha1.CompStateUninstalled
 	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
 		return installv1alpha1.CompStateFailed
 	}
@@ -882,7 +882,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 // setUninstallCondition sets the Verrazzano resource condition in status for uninstall
 func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
-	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
+	if job != nil && (job.Status.Succeeded != 0 || job.Status.Failed != 0) {
 		for _, condition := range vz.Status.Conditions {
 			if condition.Type == installv1alpha1.CondUninstallComplete || condition.Type == installv1alpha1.CondUninstallFailed {
 				return nil
@@ -1030,7 +1030,15 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 	}
 	log.Once("Deleting Verrazzano installation")
 
-	// Create the uninstall job if it doesn't exist
+	// Uninstall all components
+	log.Oncef("Uninstalling components")
+	if result, err := r.reconcileUninstall(log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
+		return result, nil
+	}
+
+	// Run the uninstall and check for completion
 	if err := r.createUninstallJob(log, vz); err != nil {
 		if errors.IsConflict(err) {
 			log.Debug("Resource conflict creating the uninstall job, requeuing")
@@ -1064,6 +1072,10 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 			}
 
 			delete(initializedSet, vz.Name)
+
+			// Delete the uninstall tracker so the memory can be freed up
+			DeleteUninstallTracker(vz)
+
 			// Uninstall is done, all cleanup is finished, and finalizer removed.
 			return ctrl.Result{}, nil
 		}

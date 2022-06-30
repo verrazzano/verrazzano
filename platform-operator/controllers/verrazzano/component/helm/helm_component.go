@@ -5,8 +5,9 @@ package helm
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -71,6 +72,9 @@ type HelmComponent struct {
 
 	// SupportsOperatorInstall Indicates whether or not the component supports install via the operator
 	SupportsOperatorInstall bool
+
+	// SupportsOperatorUninstall Indicates whether or not the component supports uninstall via the operator
+	SupportsOperatorUninstall bool
 
 	// WaitForInstall Indicates if the operator should wait for helm operations to complete (synchronous behavior)
 	WaitForInstall bool
@@ -159,6 +163,11 @@ func (h HelmComponent) GetDependencies() []string {
 // IsOperatorInstallSupported Returns true if the component supports direct install via the operator
 func (h HelmComponent) IsOperatorInstallSupported() bool {
 	return h.SupportsOperatorInstall
+}
+
+// IsOperatorUninstallSupported Returns true if the component supports direct uninstall via the operator
+func (h HelmComponent) IsOperatorUninstallSupported() bool {
+	return h.SupportsOperatorUninstall
 }
 
 // GetCertificateNames returns the list of expected certificates used by this component
@@ -296,6 +305,18 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 		}
 	}
 
+	return nil
+}
+
+func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (h HelmComponent) PostUninstall(context spi.ComponentContext) error {
 	return nil
 }
 

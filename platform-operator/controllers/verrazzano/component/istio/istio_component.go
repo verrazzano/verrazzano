@@ -133,6 +133,22 @@ func NewComponent() spi.Component {
 	}
 }
 
+func (i istioComponent) IsOperatorUninstallSupported() bool {
+	return false
+}
+
+func (i istioComponent) PreUninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (i istioComponent) Uninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
+	return nil
+}
+
 // IsEnabled istio-specific enabled check for installation
 func (i istioComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Istio

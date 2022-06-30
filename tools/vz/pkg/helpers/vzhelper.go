@@ -13,6 +13,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
+	adminv1 "k8s.io/api/admissionregistration/v1"
+	appv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -84,4 +89,14 @@ func getLatestReleaseVersion(releases []string) (string, error) {
 		}
 	}
 	return fmt.Sprintf("v%s", latestRelease.ToString()), nil
+}
+
+func NewScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	_ = vzapi.AddToScheme(scheme)
+	_ = corev1.SchemeBuilder.AddToScheme(scheme)
+	_ = adminv1.SchemeBuilder.AddToScheme(scheme)
+	_ = rbacv1.SchemeBuilder.AddToScheme(scheme)
+	_ = appv1.SchemeBuilder.AddToScheme(scheme)
+	return scheme
 }

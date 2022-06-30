@@ -1,0 +1,541 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": {
+                "annotations": {
+                    "cert-manager.io/cluster-issuer": "verrazzano-cluster-issuer",
+                    "cert-manager.io/common-name": "rancher.b2.z69d20a.v8o.io",
+                    "kubernetes.io/tls-acme": "true",
+                    "meta.helm.sh/release-name": "rancher",
+                    "meta.helm.sh/release-namespace": "cattle-system",
+                    "nginx.ingress.kubernetes.io/auth-realm": "b2.z69d20a.v8o.io auth",
+                    "nginx.ingress.kubernetes.io/proxy-connect-timeout": "30",
+                    "nginx.ingress.kubernetes.io/proxy-read-timeout": "1800",
+                    "nginx.ingress.kubernetes.io/proxy-send-timeout": "1800"
+                },
+                "creationTimestamp": "2022-06-16T10:21:29Z",
+                "generation": 1,
+                "labels": {
+                    "app": "rancher",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "chart": "rancher-2.6.4",
+                    "heritage": "Helm",
+                    "release": "rancher"
+                },
+                "name": "rancher",
+                "namespace": "cattle-system",
+                "resourceVersion": "4902",
+                "uid": "b2054a1b-7ac0-4e7f-9dfb-e41c831a7841"
+            },
+            "spec": {
+                "rules": [
+                    {
+                        "host": "rancher.b2.z69d20a.v8o.io",
+                        "http": {
+                            "paths": [
+                                {
+                                    "backend": {
+                                        "service": {
+                                            "name": "rancher",
+                                            "port": {
+                                                "number": 80
+                                            }
+                                        }
+                                    },
+                                    "pathType": "ImplementationSpecific"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "tls": [
+                    {
+                        "hosts": [
+                            "rancher.b2.z69d20a.v8o.io"
+                        ],
+                        "secretName": "tls-rancher-ingress"
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": {
+                "annotations": {
+                    "cert-manager.io/common-name": "keycloak.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/ttl": "60",
+                    "kubernetes.io/ingress.class": "nginx",
+                    "kubernetes.io/tls-acme": "true",
+                    "meta.helm.sh/release-name": "keycloak",
+                    "meta.helm.sh/release-namespace": "keycloak",
+                    "nginx.ingress.kubernetes.io/service-upstream": "true",
+                    "nginx.ingress.kubernetes.io/upstream-vhost": "keycloak-http.${namespace}.svc.cluster.local"
+                },
+                "creationTimestamp": "2022-06-16T10:21:55Z",
+                "generation": 1,
+                "labels": {
+                    "app.kubernetes.io/instance": "keycloak",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "app.kubernetes.io/name": "keycloak",
+                    "app.kubernetes.io/version": "15.0.2-20220613060015-16e593e4ac",
+                    "helm.sh/chart": "keycloak-15.1.0"
+                },
+                "name": "keycloak",
+                "namespace": "keycloak",
+                "resourceVersion": "10165",
+                "uid": "51b5cb3b-be10-4b6f-ad3d-9814e5e75cfd"
+            },
+            "spec": {
+                "rules": [
+                    {
+                        "host": "keycloak.b2.z69d20a.v8o.io",
+                        "http": {
+                            "paths": [
+                                {
+                                    "backend": {
+                                        "service": {
+                                            "name": "keycloak-http",
+                                            "port": {
+                                                "name": "http"
+                                            }
+                                        }
+                                    },
+                                    "path": "/",
+                                    "pathType": "ImplementationSpecific"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "tls": [
+                    {
+                        "hosts": [
+                            "keycloak.b2.z69d20a.v8o.io"
+                        ],
+                        "secretName": "keycloak-tls"
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": {
+                "annotations": {
+                    "cert-manager.io/common-name": "verrazzano.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.b2.z69d20a.v8o.io",
+                    "kubernetes.io/tls-acme": "true",
+                    "meta.helm.sh/release-name": "verrazzano-authproxy",
+                    "meta.helm.sh/release-namespace": "verrazzano-system",
+                    "nginx.ingress.kubernetes.io/affinity": "cookie",
+                    "nginx.ingress.kubernetes.io/configuration-snippet": "proxy_hide_header X-Powered-By;\nadd_header Last-Modified \"$date_gmt\";\nadd_header Pragma \"no-cache\";\nadd_header Cache-Control \"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0\";\nadd_header Expect-CT \"max-age=86400, enforce\";\nadd_header Referrer-Policy \"strict-origin\";\nadd_header X-Content-Type-Options \"nosniff\" always;\nadd_header X-Frame-Options \"DENY\" always;\nadd_header X-Permitted-Cross-Domain-Policies \"none\";\nadd_header Strict-Transport-Security \"max-age=86400; includeSubDomains\";\nadd_header X-XSS-Protection \"1; mode=block\";\nadd_header Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-eval' static.oracle.com; form-action 'none'; connect-src 'self' https:; media-src 'none'; object-src 'none'; font-src 'self' static.oracle.com; img-src 'self' data:; style-src 'self' static.oracle.com; frame-ancestors 'none';\" always;\n",
+                    "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+                    "nginx.ingress.kubernetes.io/service-upstream": "true",
+                    "nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none": "true",
+                    "nginx.ingress.kubernetes.io/session-cookie-expires": "86400",
+                    "nginx.ingress.kubernetes.io/session-cookie-max-age": "86400",
+                    "nginx.ingress.kubernetes.io/session-cookie-name": "route",
+                    "nginx.ingress.kubernetes.io/session-cookie-samesite": "Strict",
+                    "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+                },
+                "creationTimestamp": "2022-06-16T10:19:50Z",
+                "generation": 1,
+                "labels": {
+                    "app.kubernetes.io/managed-by": "Helm"
+                },
+                "name": "verrazzano-ingress",
+                "namespace": "verrazzano-system",
+                "resourceVersion": "3605",
+                "uid": "e6b7fc45-a87b-448f-a897-91bec1e2bc28"
+            },
+            "spec": {
+                "rules": [
+                    {
+                        "host": "verrazzano.b2.z69d20a.v8o.io",
+                        "http": {
+                            "paths": [
+                                {
+                                    "backend": {
+                                        "service": {
+                                            "name": "verrazzano-authproxy",
+                                            "port": {
+                                                "number": 8775
+                                            }
+                                        }
+                                    },
+                                    "path": "/()(.*)",
+                                    "pathType": "ImplementationSpecific"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "tls": [
+                    {
+                        "hosts": [
+                            "verrazzano.b2.z69d20a.v8o.io"
+                        ],
+                        "secretName": "verrazzano-tls"
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": {
+                "annotations": {
+                    "cert-manager.io/common-name": "elasticsearch.vmi.system.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/ttl": "60",
+                    "kubernetes.io/tls-acme": "true",
+                    "nginx.ingress.kubernetes.io/proxy-body-size": "65M",
+                    "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+                    "nginx.ingress.kubernetes.io/service-upstream": "true",
+                    "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+                },
+                "creationTimestamp": "2022-06-16T10:23:07Z",
+                "generation": 1,
+                "labels": {
+                    "k8s-app": "verrazzano.io",
+                    "vmo.v1.verrazzano.io": "system"
+                },
+                "name": "vmi-system-es-ingest",
+                "namespace": "verrazzano-system",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "verrazzano.io/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "VerrazzanoMonitoringInstance",
+                        "name": "system",
+                        "uid": "f1df7066-6bf5-4740-8d43-3048e074c9e1"
+                    }
+                ],
+                "resourceVersion": "6066",
+                "uid": "26057b9a-0d7d-4e19-bf2d-e69b1c89ca7a"
+            },
+            "spec": {
+                "rules": [
+                    {
+                        "host": "elasticsearch.vmi.system.b2.z69d20a.v8o.io",
+                        "http": {
+                            "paths": [
+                                {
+                                    "backend": {
+                                        "service": {
+                                            "name": "verrazzano-authproxy",
+                                            "port": {
+                                                "number": 8775
+                                            }
+                                        }
+                                    },
+                                    "path": "/()(.*)",
+                                    "pathType": "ImplementationSpecific"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "tls": [
+                    {
+                        "hosts": [
+                            "elasticsearch.vmi.system.b2.z69d20a.v8o.io"
+                        ],
+                        "secretName": "system-tls-es-ingest"
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": {
+                "annotations": {
+                    "cert-manager.io/common-name": "grafana.vmi.system.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/ttl": "60",
+                    "kubernetes.io/tls-acme": "true",
+                    "nginx.ingress.kubernetes.io/proxy-body-size": "6M",
+                    "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+                    "nginx.ingress.kubernetes.io/service-upstream": "true",
+                    "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+                },
+                "creationTimestamp": "2022-06-16T10:23:04Z",
+                "generation": 1,
+                "labels": {
+                    "k8s-app": "verrazzano.io",
+                    "vmo.v1.verrazzano.io": "system"
+                },
+                "name": "vmi-system-grafana",
+                "namespace": "verrazzano-system",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "verrazzano.io/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "VerrazzanoMonitoringInstance",
+                        "name": "system",
+                        "uid": "f1df7066-6bf5-4740-8d43-3048e074c9e1"
+                    }
+                ],
+                "resourceVersion": "5979",
+                "uid": "d9869f76-e227-4331-8be3-b038f6cd12b1"
+            },
+            "spec": {
+                "rules": [
+                    {
+                        "host": "grafana.vmi.system.b2.z69d20a.v8o.io",
+                        "http": {
+                            "paths": [
+                                {
+                                    "backend": {
+                                        "service": {
+                                            "name": "verrazzano-authproxy",
+                                            "port": {
+                                                "number": 8775
+                                            }
+                                        }
+                                    },
+                                    "path": "/()(.*)",
+                                    "pathType": "ImplementationSpecific"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "tls": [
+                    {
+                        "hosts": [
+                            "grafana.vmi.system.b2.z69d20a.v8o.io"
+                        ],
+                        "secretName": "system-tls-grafana"
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": {
+                "annotations": {
+                    "cert-manager.io/common-name": "kiali.vmi.system.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/ttl": "60",
+                    "kubernetes.io/tls-acme": "true",
+                    "nginx.ingress.kubernetes.io/backend-protocol": "HTTP",
+                    "nginx.ingress.kubernetes.io/proxy-body-size": "6M",
+                    "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+                    "nginx.ingress.kubernetes.io/secure-backends": "false",
+                    "nginx.ingress.kubernetes.io/service-upstream": "true",
+                    "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+                },
+                "creationTimestamp": "2022-06-16T10:21:56Z",
+                "generation": 1,
+                "name": "vmi-system-kiali",
+                "namespace": "verrazzano-system",
+                "resourceVersion": "5383",
+                "uid": "b6af833e-abb6-42f6-a046-45250b332b05"
+            },
+            "spec": {
+                "rules": [
+                    {
+                        "host": "kiali.vmi.system.b2.z69d20a.v8o.io",
+                        "http": {
+                            "paths": [
+                                {
+                                    "backend": {
+                                        "service": {
+                                            "name": "verrazzano-authproxy",
+                                            "port": {
+                                                "number": 8775
+                                            }
+                                        }
+                                    },
+                                    "path": "/()(.*)",
+                                    "pathType": "ImplementationSpecific"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "tls": [
+                    {
+                        "hosts": [
+                            "kiali.vmi.system.b2.z69d20a.v8o.io"
+                        ],
+                        "secretName": "system-tls-kiali"
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": {
+                "annotations": {
+                    "cert-manager.io/common-name": "kibana.vmi.system.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/ttl": "60",
+                    "kubernetes.io/tls-acme": "true",
+                    "nginx.ingress.kubernetes.io/proxy-body-size": "6M",
+                    "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+                    "nginx.ingress.kubernetes.io/service-upstream": "true",
+                    "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+                },
+                "creationTimestamp": "2022-06-16T10:23:08Z",
+                "generation": 1,
+                "labels": {
+                    "k8s-app": "verrazzano.io",
+                    "vmo.v1.verrazzano.io": "system"
+                },
+                "name": "vmi-system-kibana",
+                "namespace": "verrazzano-system",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "verrazzano.io/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "VerrazzanoMonitoringInstance",
+                        "name": "system",
+                        "uid": "f1df7066-6bf5-4740-8d43-3048e074c9e1"
+                    }
+                ],
+                "resourceVersion": "6113",
+                "uid": "27e06441-2d2d-4fe4-88c0-bd632d6a8211"
+            },
+            "spec": {
+                "rules": [
+                    {
+                        "host": "kibana.vmi.system.b2.z69d20a.v8o.io",
+                        "http": {
+                            "paths": [
+                                {
+                                    "backend": {
+                                        "service": {
+                                            "name": "verrazzano-authproxy",
+                                            "port": {
+                                                "number": 8775
+                                            }
+                                        }
+                                    },
+                                    "path": "/()(.*)",
+                                    "pathType": "ImplementationSpecific"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "tls": [
+                    {
+                        "hosts": [
+                            "kibana.vmi.system.b2.z69d20a.v8o.io"
+                        ],
+                        "secretName": "system-tls-kibana"
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": {
+                "annotations": {
+                    "cert-manager.io/common-name": "prometheus.vmi.system.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.b2.z69d20a.v8o.io",
+                    "external-dns.alpha.kubernetes.io/ttl": "60",
+                    "kubernetes.io/tls-acme": "true",
+                    "nginx.ingress.kubernetes.io/proxy-body-size": "6M",
+                    "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+                    "nginx.ingress.kubernetes.io/service-upstream": "true",
+                    "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+                },
+                "creationTimestamp": "2022-06-16T10:22:58Z",
+                "generation": 1,
+                "labels": {
+                    "k8s-app": "verrazzano.io",
+                    "vmo.v1.verrazzano.io": "system"
+                },
+                "name": "vmi-system-prometheus",
+                "namespace": "verrazzano-system",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "verrazzano.io/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "VerrazzanoMonitoringInstance",
+                        "name": "system",
+                        "uid": "f1df7066-6bf5-4740-8d43-3048e074c9e1"
+                    }
+                ],
+                "resourceVersion": "5812",
+                "uid": "3b581c89-ae9f-4323-9035-df8bcd40e10f"
+            },
+            "spec": {
+                "rules": [
+                    {
+                        "host": "prometheus.vmi.system.b2.z69d20a.v8o.io",
+                        "http": {
+                            "paths": [
+                                {
+                                    "backend": {
+                                        "service": {
+                                            "name": "verrazzano-authproxy",
+                                            "port": {
+                                                "number": 8775
+                                            }
+                                        }
+                                    },
+                                    "path": "/()(.*)",
+                                    "pathType": "ImplementationSpecific"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "tls": [
+                    {
+                        "hosts": [
+                            "prometheus.vmi.system.b2.z69d20a.v8o.io"
+                        ],
+                        "secretName": "system-tls-prometheus"
+                    }
+                ]
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": "",
+        "selfLink": ""
+    }
+}
