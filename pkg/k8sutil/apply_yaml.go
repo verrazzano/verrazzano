@@ -170,6 +170,9 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 			}
 
 			// See if merge needed on objects of type map[string]interface {}
+			//
+			// For objects of type []interface{}, e.g. secrets or imagePullSecrets, a replace will be
+			// done.  This appears to be consistent with the behavior of kubectl.
 			if reflect.TypeOf(fieldObj).String() == "map[string]interface {}" {
 				if serverSpec != nil {
 					merge(serverSpec.(map[string]interface{}), clientSpec.(map[string]interface{}))
