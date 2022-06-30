@@ -24,8 +24,7 @@ import (
 )
 
 const (
-	sep       = "---"
-	specField = "spec"
+	sep = "---"
 )
 
 type (
