@@ -1072,6 +1072,10 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 			}
 
 			delete(initializedSet, vz.Name)
+
+			// Delete the uninstall tracker so the memory can be freed up
+			DeleteUninstallTracker(vz)
+
 			// Uninstall is done, all cleanup is finished, and finalizer removed.
 			return ctrl.Result{}, nil
 		}

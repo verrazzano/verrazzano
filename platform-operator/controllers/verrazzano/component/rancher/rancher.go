@@ -325,7 +325,9 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.V
 		return log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
 	}
 	if err := rest.DeleteLocalHost(); err != nil {
-		return log.ErrorfThrottledNewErr("Failed deleting Rancher local host: %s", err.Error())
+		// This is a warning
+		log.Oncef("Failed deleting Rancher local host: %s", err.Error())
+		return nil
 	}
 
 	log.Once("Successfully delete Rancher local cluster")
