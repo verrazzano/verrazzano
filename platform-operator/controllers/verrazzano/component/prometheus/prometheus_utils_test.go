@@ -13,8 +13,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
-// TestGetVerrazzanoMonitoringNamespace tests the GetVerrazzanoMonitoringNamespace function.
-func TestGetVerrazzanoMonitoringNamespace(t *testing.T) {
+// TestMutateVerrazzanoMonitoringNamespace tests the MutateVerrazzanoMonitoringNamespace function.
+func TestMutateVerrazzanoMonitoringNamespace(t *testing.T) {
 	// GIVEN a Verrazzano CR with Istio injection enabled
 	//  WHEN we call the function to create the Verrazzano monitoring namespace struct
 	//  THEN the struct has the expected labels, including the label with Istio injection enabled
@@ -30,7 +30,8 @@ func TestGetVerrazzanoMonitoringNamespace(t *testing.T) {
 	}
 	ctx := spi.NewFakeContext(nil, vz, false)
 
-	ns := GetVerrazzanoMonitoringNamespace(ctx)
+	ns := GetVerrazzanoMonitoringNamespace()
+	MutateVerrazzanoMonitoringNamespace(ctx, ns)
 	assert.Equal(t, "enabled", ns.Labels[v8oconst.LabelIstioInjection])
 	assert.Equal(t, vpoconst.VerrazzanoMonitoringNamespace, ns.Labels[v8oconst.LabelVerrazzanoNamespace])
 	assert.Equal(t, vpoconst.VerrazzanoMonitoringNamespace, ns.Name)
@@ -50,8 +51,16 @@ func TestGetVerrazzanoMonitoringNamespace(t *testing.T) {
 	}
 	ctx = spi.NewFakeContext(nil, vz, false)
 
-	ns = GetVerrazzanoMonitoringNamespace(ctx)
+	ns = GetVerrazzanoMonitoringNamespace()
+	MutateVerrazzanoMonitoringNamespace(ctx, ns)
 	assert.NotContains(t, ns.Labels, v8oconst.LabelIstioInjection)
 	assert.Equal(t, vpoconst.VerrazzanoMonitoringNamespace, ns.Labels[v8oconst.LabelVerrazzanoNamespace])
 	assert.Equal(t, vpoconst.VerrazzanoMonitoringNamespace, ns.Name)
+}
+
+// TestGetVerrazzanoMonitoringNamespace tests the GetVerrazzanoMonitoringNamespace function.
+func TestGetVerrazzanoMonitoringNamespace(t *testing.T) {
+	ns := GetVerrazzanoMonitoringNamespace()
+	assert.Equal(t, vpoconst.VerrazzanoMonitoringNamespace, ns.Name)
+	assert.Nil(t, ns.Labels)
 }
