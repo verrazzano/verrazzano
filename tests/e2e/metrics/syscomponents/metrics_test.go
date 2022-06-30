@@ -50,6 +50,8 @@ const (
 	app                 = "app"
 	namespace           = "namespace"
 	podName             = "pod_name"
+
+	failedVerifyVersionMsg = "Failed to verify the Verrazzano version was min 1.4.0: %v"
 )
 
 var clusterName = os.Getenv("CLUSTER_NAME")
@@ -141,7 +143,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 
 				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
 				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Failed to verify the Verrazzano version was min 1.4.0: %v", err))
+					pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
 					return false
 				}
 				if minVer14 {
@@ -173,7 +175,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 
 					minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
 					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Failed to verify the Verrazzano version was min 1.4.0: %v", err))
+						pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
 						return false
 					}
 					if minVer14 {
@@ -195,7 +197,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 
 				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
 				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Failed to verify the Verrazzano version was min 1.4.0: %v", err))
+					pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
 					return false
 				}
 				if minVer14 {
