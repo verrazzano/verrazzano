@@ -288,7 +288,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 	actualCR := vzctx.ActualCR
 	log := vzctx.Log
 	log.Debug("Entering ProcUpgradingState")
-	
+
 	// check for need to pause the upgrade due to VPO update
 	if bomVersion, isNewer := isOperatorNewerVersionThanCR(actualCR.Spec.Version); isNewer {
 		// upgrade needs to be restarted due to newer operator
