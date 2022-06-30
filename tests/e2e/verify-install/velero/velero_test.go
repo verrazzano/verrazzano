@@ -57,10 +57,10 @@ func WhenVeleroInstalledIt(description string, f func()) {
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		})
 	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
-			Fail(fmt.Sprintf("Failed to check Verrazzano version 1.3.0: %s", err.Error()))
+			Fail(fmt.Sprintf("Failed to check Verrazzano version 1.4.0: %s", err.Error()))
 		})
 	}
 	if supported {
@@ -91,7 +91,7 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 			verifyImages := func() bool {
 				if isVeleroEnabled() {
 
-					cfgMap, err := pkg.GetConfigMap(veleroRestoreHelperConfigMap, constants.VeleroNameSpace)
+					cfgMap, err := pkg.GetConfigMap(fmt.Sprintf("%s-%s", constants.VeleroNameSpace, veleroRestoreHelperConfigMap), constants.VeleroNameSpace)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("Unable to retrieve configmap %s in the namespace: %s, error: %v", veleroRestoreHelperConfigMap, constants.VeleroNameSpace, err))
 						return false

@@ -4,6 +4,7 @@
 package velero
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,6 +48,18 @@ func TestIsVeleroOperatorReady(t *testing.T) {
 						AvailableReplicas: 1,
 						Replicas:          1,
 						UpdatedReplicas:   1,
+					},
+				},
+				&appsv1.DaemonSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      constants.ResticDaemonSetName,
+					},
+					Status: appsv1.DaemonSetStatus{
+						UpdatedNumberScheduled: 1,
+						NumberAvailable:        1,
+						NumberMisscheduled:     1,
+						NumberReady:            1,
 					},
 				}).Build(),
 			expectTrue: true,
