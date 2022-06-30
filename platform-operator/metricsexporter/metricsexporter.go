@@ -447,6 +447,8 @@ func InitalizeMetricsEndpoint() {
 func AnalyzeVZCR(CR vzapi.Verrazzano) {
 	//Get the VZ CR Component Map (Store it in this function, so the state does not change)
 	mapOfComponents := CR.Status.Components
+	print(mapOfComponents)
+	print("Verrazzano going into analyze CR is")
 	for componentName, componentStatusDetails := range mapOfComponents {
 		latestInstallCompletionTime := ""
 		latestInstallStartTime := ""
@@ -457,14 +459,14 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 		possibleUpgradeStartTime := ""
 		possibleInstallStartTime := ""
 		possibleUpdateStartTime := ""
-		installHappened := false
+		installNotHappened := true
 		for _, status := range componentStatusDetails.Conditions {
-			if status.Type == vzapi.CondInstallStarted && installHappened {
+			if status.Type == vzapi.CondInstallStarted && installNotHappened {
 				latestInstallStartTime = status.LastTransitionTime
 			}
-			if status.Type == vzapi.CondInstallComplete && installHappened {
+			if status.Type == vzapi.CondInstallComplete && installNotHappened {
 				latestInstallCompletionTime = status.LastTransitionTime
-				installHappened = true
+				installNotHappened = false
 			}
 			if status.Type == vzapi.CondUpgradeStarted {
 				possibleUpgradeStartTime = status.LastTransitionTime
@@ -473,10 +475,10 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 				latestUpgradeCompletionTime = status.LastTransitionTime
 				latestUpgradeStartTime = possibleUpgradeStartTime
 			}
-			if status.Type == vzapi.CondInstallStarted && installHappened {
+			if status.Type == vzapi.CondInstallStarted && !installNotHappened {
 				possibleUpdateStartTime = status.LastTransitionTime
 			}
-			if status.Type == vzapi.CondInstallComplete && installHappened {
+			if status.Type == vzapi.CondInstallComplete && !installNotHappened {
 				latestUpdateCompletionTime = status.LastTransitionTime
 				latestUpdateStartTime = possibleUpdateStartTime
 			}
