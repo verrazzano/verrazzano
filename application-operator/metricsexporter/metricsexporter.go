@@ -35,7 +35,7 @@ var (
 )
 
 // InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
-func StartMetricsServer() {
+func InitalizeMetricsEndpoint() {
 	go registerMetricsHandlers()
 
 	go wait.Until(func() {

@@ -92,7 +92,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// The Verrazzano resource has been reconciled.
 	log.Oncef("Finished reconciling application configuration %v", req.NamespacedName)
 
-	metricsexporter.AppconfigIncrementEventsProcessed()
+	defer metricsexporter.AppconfigIncrementEventsProcessed()
 
 	return ctrl.Result{}, nil
 
