@@ -42,6 +42,11 @@ import (
 
 const (
 	testBomFilePath = "../../../testdata/test_bom.json"
+
+	disableMountSubPathKey = "prometheus.prometheusSpec.storageSpec.disableMountSubPath"
+	requestsStorageKey     = "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage"
+	storageForKey          = `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`
+	requestsMemoryKey      = "prometheus.prometheusSpec.resources.requests.memory"
 )
 
 var (
@@ -863,7 +868,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 
 // TestResetVolumeReclaimPolicy tests the resetVolumeReclaimPolicy function
 func TestResetVolumeReclaimPolicy(t *testing.T) {
-	const volumeName = "pvc-5ab58a05-71f9-4f09-8911-a5c029f6305f"
+	const volumeName = "pvc-5ab58a05-71f9-4f09-8911-a5c029f6305a"
 
 	// GIVEN a persistent volume that has a bound status
 	// WHEN the resetVolumeReclaimPolicy function is called
@@ -965,7 +970,7 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 	clientWithPV := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.PersistentVolume{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "pvc-5ab58a05-71f9-4f09-8911-a5c029f6305f",
+				Name: "pvc-5ab58a05-71f9-4f09-8911-a5c029f6305b",
 				Labels: map[string]string{
 					constants.StorageForLabel: constants.PrometheusStorageLabelValue,
 				},
@@ -991,15 +996,15 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 			},
 			expectOverrides: []bom.KeyValue{
 				{
-					Key:   "prometheus.prometheusSpec.storageSpec.disableMountSubPath",
+					Key:   disableMountSubPathKey,
 					Value: "true",
 				},
 				{
-					Key:   "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage",
+					Key:   requestsStorageKey,
 					Value: storageSize,
 				},
 				{
-					Key:   "prometheus.prometheusSpec.resources.requests.memory",
+					Key:   requestsMemoryKey,
 					Value: memorySize,
 				},
 			},
@@ -1017,19 +1022,19 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 			},
 			expectOverrides: []bom.KeyValue{
 				{
-					Key:   "prometheus.prometheusSpec.storageSpec.disableMountSubPath",
+					Key:   disableMountSubPathKey,
 					Value: "true",
 				},
 				{
-					Key:   "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage",
+					Key:   requestsStorageKey,
 					Value: storageSize,
 				},
 				{
-					Key:   `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`,
+					Key:   storageForKey,
 					Value: "prometheus",
 				},
 				{
-					Key:   "prometheus.prometheusSpec.resources.requests.memory",
+					Key:   requestsMemoryKey,
 					Value: memorySize,
 				},
 			},
@@ -1056,11 +1061,11 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 			},
 			expectOverrides: []bom.KeyValue{
 				{
-					Key:   "prometheus.prometheusSpec.storageSpec.disableMountSubPath",
+					Key:   disableMountSubPathKey,
 					Value: "true",
 				},
 				{
-					Key:   "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage",
+					Key:   requestsStorageKey,
 					Value: storageSize,
 				},
 			},
@@ -1077,15 +1082,15 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 			},
 			expectOverrides: []bom.KeyValue{
 				{
-					Key:   "prometheus.prometheusSpec.storageSpec.disableMountSubPath",
+					Key:   disableMountSubPathKey,
 					Value: "true",
 				},
 				{
-					Key:   "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage",
+					Key:   requestsStorageKey,
 					Value: storageSize,
 				},
 				{
-					Key:   `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`,
+					Key:   storageForKey,
 					Value: "prometheus",
 				},
 			},
@@ -1102,7 +1107,7 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 			},
 			expectOverrides: []bom.KeyValue{
 				{
-					Key:   "prometheus.prometheusSpec.resources.requests.memory",
+					Key:   requestsMemoryKey,
 					Value: memorySize,
 				},
 			},
