@@ -17,14 +17,14 @@ import (
 )
 
 var (
-	reconcileIndex int = 0
-	reconcileCounterMetric = prometheus.NewCounter(prometheus.CounterOpts{
+	reconcileIndex         int = 0
+	reconcileCounterMetric     = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "counter_for_reconcile_function",
 		Help: "The number of times the reconcile function has been called in the VPO",
 	})
-	reconcileLastTime = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "reconcileLastTime", 
-		Help: "The duration of each reconcile call"}, 
+	reconcileLastDurationMetric = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "reconcileLastTime",
+		Help: "The duration of each reconcile call"},
 		[]string{"reconcile_index"},
 	)
 	verrazzanoAuthproxyInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -416,7 +416,10 @@ var (
 		prometheusNodeExporterUpdateTimeMetric,
 		jaegerOperatorUpdateTimeMetric,
 		verrazzanoConsoleUpdateTimeMetric,
-		fluentdUpdateTimeMetric}
+		fluentdUpdateTimeMetric,
+		reconcileCounterMetric,
+		reconcileLastDurationMetric,
+	}
 	failedMetrics = map[prometheus.Collector]int{}
 	registry      = prometheus.DefaultRegisterer
 
@@ -518,11 +521,11 @@ func InitalizeMetricsEndpoint() {
 	}, time.Second*3, wait.NeverStop)
 }
 
-func CollectReconcileMetrics(startTime int64){
+func CollectReconcileMetrics(startTime int64) {
 	reconcileCounterMetric.Add(float64(1))
 	durationTime := time.Now().UnixMilli() - startTime
-	reconcileLastTime.WithLabelValues(strconv.Itoa(reconcileIndex)).Set(float64(durationTime))
-	reconcileIndex = reconcileIndex +1 
+	reconcileLastDurationMetric.WithLabelValues(strconv.Itoa(reconcileIndex)).Set(float64(durationTime))
+	reconcileIndex = reconcileIndex + 1
 }
 
 func AnalyzeVZCR(CR vzapi.Verrazzano) {
