@@ -568,16 +568,16 @@ func newDeployment(name string, labels map[string]string, updated bool) *appsv1.
 }
 
 func newPod(name string, labelsIn map[string]string) *v1.Pod {
-	lablels := make(map[string]string)
-	lablels["pod-template-hash"] = "95d8c5d96"
+	labels := make(map[string]string)
+	labels["pod-template-hash"] = "95d8c5d96"
 	for key, element := range labelsIn {
-		lablels[key] = element
+		labels[key] = element
 	}
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      name + "-95d8c5d96-m6mbr",
-			Labels:    lablels,
+			Labels:    labels,
 		},
 	}
 	return pod
