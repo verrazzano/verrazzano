@@ -519,6 +519,12 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 
 // createOrUpdatePrometheusAuthPolicy creates the Istio authorization policy for Prometheus
 func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
+	// if Istio is explicitly disabled, do not attempt to create the auth policy
+	istio := ctx.EffectiveCR().Spec.Components.Istio
+	if istio != nil && istio.Enabled != nil && !*istio.Enabled {
+		return nil
+	}
+
 	authPol := istioclisec.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName},
 	}
