@@ -5,19 +5,26 @@ package status
 import (
 	"context"
 	"fmt"
-	"strconv"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
 )
 
 // DeploymentsAreReady check that the named deployments have the minimum number of specified replicas ready and available
 func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
+	veleroPodLabel := map[string]string{
+		"name": constants.VeleroNameSpace,
+	}
+	veleroPodSelector := &metav1.LabelSelector{
+		MatchLabels: veleroPodLabel,
+	}
+
 	for _, namespacedName := range namespacedNames {
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
@@ -38,7 +45,15 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 				expectedReplicas, deployment.Status.AvailableReplicas)
 			return false
 		}
-		if !podsReadyDeployment(log, client, namespacedName, deployment.Spec.Selector, expectedReplicas, prefix) {
+
+		// Velero install deploys a daemonset and deployment with common labels. The labels need to be adjusted so the pod fetch logic works
+		// as expected
+		podSelector := deployment.Spec.Selector
+		if namespacedName.Namespace == constants.VeleroNameSpace && namespacedName.Name == constants.VeleroNameSpace {
+			podSelector = veleroPodSelector
+		}
+
+		if !podsReadyDeployment(log, client, namespacedName, podSelector, expectedReplicas, prefix) {
 			return false
 		}
 		log.Oncef("%s has enough replicas for deployment %v", prefix, namespacedName)
@@ -74,7 +89,7 @@ func podsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
 		log.Progressf("Found no pods with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
-		return true
+		return false
 	}
 
 	// Loop through pods identifying pods that are using the latest replicaset revision

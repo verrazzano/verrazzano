@@ -80,13 +80,37 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      deploymentName,
+						Labels:    map[string]string{"app.kubernetes.io/instance": ComponentName},
+					},
+					Spec: appsv1.DeploymentSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app.kubernetes.io/instance": ComponentName},
+						},
 					},
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 1,
 						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
-				}).Build(),
+				},
+				&v1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      deploymentName + "-95d8c5d96-m6mbr",
+						Labels: map[string]string{
+							"pod-template-hash":          "95d8c5d96",
+							"app.kubernetes.io/instance": ComponentName,
+						},
+					},
+				},
+				&appsv1.ReplicaSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace:   ComponentNamespace,
+						Name:        deploymentName + "-95d8c5d96",
+						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+					},
+				},
+			).Build(),
 			expectTrue: true,
 		},
 		{
@@ -194,6 +218,28 @@ func TestAppendOverrides(t *testing.T) {
 	assert.Len(t, kvs, 27)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
+
+	// GIVEN a Verrazzano CR with Prometheus disabled
+	// WHEN the AppendOverrides function is called
+	// THEN the key/value slice contains the expected helm override keys and values
+	vz = &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Prometheus: &vzapi.PrometheusComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+
+	ctx = spi.NewFakeContext(client, vz, false)
+	kvs = make([]bom.KeyValue, 0)
+
+	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
+	assert.NoError(t, err)
+	assert.Len(t, kvs, 12)
+
+	assert.Equal(t, "false", bom.FindKV(kvs, "prometheus.enabled"))
 }
 
 // TestPreInstallUpgrade tests the preInstallUpgrade function.
@@ -725,6 +771,29 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
 	assert.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
+
+	// GIVEN Prometheus Operator is being installed or upgraded
+	// AND   Istio is disabled
+	// WHEN  we call the createOrUpdatePrometheusAuthPolicy function
+	// THEN  no Istio authorization policy is created
+	client = fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	ctx = spi.NewFakeContext(client, vz, false)
+
+	err = createOrUpdatePrometheusAuthPolicy(ctx)
+	assert.NoError(err)
+
+	authPolicy = &istioclisec.AuthorizationPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
+	assert.ErrorContains(err, "not found")
 }
 
 // TestCreateOrUpdateNetworkPolicies tests the createOrUpdateNetworkPolicies function

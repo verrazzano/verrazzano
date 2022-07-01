@@ -29,6 +29,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// checkRancherUpgradeFailureSig is a function needed for unit test override
+type checkRancherUpgradeFailureSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
+
+// checkRancherUpgradeFailureFunc is the default checkRancherUpgradeFailure function
+var checkRancherUpgradeFailureFunc checkRancherUpgradeFailureSig = checkRancherUpgradeFailure
+
+// fakeCheckRancherUpgradeFailure is the fake checkRancherUpgradeFailure function needed for unit testing
+func fakeCheckRancherUpgradeFailure(_ client.Client, _ vzlog.VerrazzanoLogger) (err error) {
+	return nil
+}
+
+func SetFakeCheckRancherUpgradeFailureFunc() {
+	checkRancherUpgradeFailureFunc = fakeCheckRancherUpgradeFailure
+}
+
+func SetDefaultCheckRancherUpgradeFailureFunc() {
+	checkRancherUpgradeFailureFunc = checkRancherUpgradeFailure
+}
+
 // Constants for Kubernetes resource names
 const (
 	// note: VZ-5241 In Rancher 2.6.3 the agent was moved from cattle-fleet-system ns
@@ -95,7 +114,7 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 	c := ctx.Client()
 
 	// Temporary work around for Rancher issue 36914
-	err := checkRancherUpgradeFailure(c, log)
+	err := checkRancherUpgradeFailureFunc(c, log)
 	if err != nil {
 		log.ErrorfThrottled("Error checking Rancher pod logs: %s", err.Error())
 		return false

@@ -10,6 +10,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -41,13 +42,37 @@ func TestIsReady(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      deploymentName,
+						Labels:    map[string]string{"app.kubernetes.io/instance": deploymentName},
+					},
+					Spec: appsv1.DeploymentSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app.kubernetes.io/instance": deploymentName},
+						},
 					},
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 1,
 						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
-				}),
+				},
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      deploymentName + "-95d8c5d96-m6mbr",
+						Labels: map[string]string{
+							"pod-template-hash":          "95d8c5d96",
+							"app.kubernetes.io/instance": deploymentName,
+						},
+					},
+				},
+				&appsv1.ReplicaSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace:   ComponentNamespace,
+						Name:        deploymentName + "-95d8c5d96",
+						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+					},
+				},
+			),
 			expectTrue: true,
 		},
 		{

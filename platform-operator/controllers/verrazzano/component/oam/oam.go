@@ -6,7 +6,9 @@ package oam
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -128,6 +130,22 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 	})
 
 	return err
+}
+
+func deleteOAMClusterRoles(client client.Client, log vzlog.VerrazzanoLogger) error {
+	ctx := context.TODO()
+	clusterRoles := []*rbacv1.ClusterRole{
+		{ObjectMeta: metav1.ObjectMeta{Name: pvcClusterRoleName}},
+		{ObjectMeta: metav1.ObjectMeta{Name: istioClusterRoleName}},
+		{ObjectMeta: metav1.ObjectMeta{Name: certClusterRoleName}},
+	}
+	for _, role := range clusterRoles {
+		log.Progressf("Deleting OAM clusterrole %s", role.Name)
+		if err := client.Delete(ctx, role); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // GetOverrides gets the install overrides

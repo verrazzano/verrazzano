@@ -203,6 +203,13 @@ func TestDaemonSetsReady(t *testing.T) {
 			1,
 		},
 		{
+			"should be not ready when pod not found for daemonset",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas),
+			namespacedName,
+			false,
+			1,
+		},
+		{
 			"should be not ready when daemonset not found",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme),
 			namespacedName,

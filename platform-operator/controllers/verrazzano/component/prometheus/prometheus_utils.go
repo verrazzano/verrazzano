@@ -11,21 +11,30 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// GetVerrazzanoMonitoringNamespace provides the namespace for the Monitoring subcomponents in one location
-func GetVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) *corev1.Namespace {
-	labels := map[string]string{
-		v8oconst.LabelVerrazzanoNamespace: vpoconst.VerrazzanoMonitoringNamespace,
+// MutateVerrazzanoMonitoringNamespace modifies the given namespace for the Monitoring subcomponents
+// with the appropriate labels, in one location. If the provided namespace is not the Verrazzano
+// monitoring namespace, it is ignored.
+func MutateVerrazzanoMonitoringNamespace(ctx spi.ComponentContext, namespace *corev1.Namespace) {
+	if namespace.Name != vpoconst.VerrazzanoMonitoringNamespace {
+		return
 	}
+	if namespace.Labels == nil {
+		namespace.Labels = map[string]string{}
+	}
+	namespace.Labels[v8oconst.LabelVerrazzanoNamespace] = vpoconst.VerrazzanoMonitoringNamespace
 
 	istio := ctx.EffectiveCR().Spec.Components.Istio
 	if istio != nil && istio.IsInjectionEnabled() {
-		labels[v8oconst.LabelIstioInjection] = "enabled"
+		namespace.Labels[v8oconst.LabelIstioInjection] = "enabled"
 	}
+}
 
+// GetVerrazzanoMonitoringNamespace creates and returns a namespace object for the Monitoring
+// subcomponents' namespace
+func GetVerrazzanoMonitoringNamespace() *corev1.Namespace {
 	return &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   vpoconst.VerrazzanoMonitoringNamespace,
-			Labels: labels,
+			Name: vpoconst.VerrazzanoMonitoringNamespace,
 		},
 	}
 }

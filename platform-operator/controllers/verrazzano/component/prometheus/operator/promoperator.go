@@ -68,7 +68,9 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 
 	// Create the verrazzano-monitoring namespace
 	ctx.Log().Debugf("Creating/updating namespace %s for the Prometheus Operator", ComponentNamespace)
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), prometheus.GetVerrazzanoMonitoringNamespace(ctx), func() error {
+	ns := prometheus.GetVerrazzanoMonitoringNamespace()
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), ns, func() error {
+		prometheus.MutateVerrazzanoMonitoringNamespace(ctx, ns)
 		return nil
 	}); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
@@ -240,40 +242,47 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Value: strconv.FormatBool(vzconfig.IsCertManagerEnabled(ctx.EffectiveCR())),
 	})
 
-	// If storage overrides are specified, set helm overrides
-	resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
-	if err != nil {
-		return kvs, err
-	}
-	if resourceRequest != nil {
-		kvs, err = appendResourceRequestOverrides(ctx, resourceRequest, kvs)
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		// If storage overrides are specified, set helm overrides
+		resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
 		if err != nil {
 			return kvs, err
 		}
-	}
+		if resourceRequest != nil {
+			kvs, err = appendResourceRequestOverrides(ctx, resourceRequest, kvs)
+			if err != nil {
+				return kvs, err
+			}
+		}
 
-	// Append the Istio Annotations for Prometheus
-	kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
-		"prometheus.prometheusSpec.volumeMounts",
-		"prometheus.prometheusSpec.volumes",
-		kvs)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
-	}
+		// Append the Istio Annotations for Prometheus
+		kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
+			"prometheus.prometheusSpec.volumeMounts",
+			"prometheus.prometheusSpec.volumes",
+			kvs)
+		if err != nil {
+			return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
+		}
 
-	// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
-	kvs = append(kvs, []bom.KeyValue{
-		{Key: "prometheus.prometheusSpec.containers[0].name", Value: "prometheus"},
-		{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
-		{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
-	}...)
+		// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
+		kvs = append(kvs, []bom.KeyValue{
+			{Key: "prometheus.prometheusSpec.containers[0].name", Value: "prometheus"},
+			{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
+			{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
+		}...)
 
-	kvs, err = appendAdditionalVolumeOverrides(ctx,
-		"prometheus.prometheusSpec.volumeMounts",
-		"prometheus.prometheusSpec.volumes",
-		kvs)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed applying additional volume overrides for Prometheus")
+		kvs, err = appendAdditionalVolumeOverrides(ctx,
+			"prometheus.prometheusSpec.volumeMounts",
+			"prometheus.prometheusSpec.volumes",
+			kvs)
+		if err != nil {
+			return kvs, ctx.Log().ErrorfNewErr("Failed applying additional volume overrides for Prometheus")
+		}
+	} else {
+		kvs = append(kvs, bom.KeyValue{
+			Key:   "prometheus.enabled",
+			Value: "false",
+		})
 	}
 
 	// Add a label to Prometheus Operator resources to distinguish Verrazzano resources
@@ -517,6 +526,12 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 
 // createOrUpdatePrometheusAuthPolicy creates the Istio authorization policy for Prometheus
 func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
+	// if Istio is explicitly disabled, do not attempt to create the auth policy
+	istio := ctx.EffectiveCR().Spec.Components.Istio
+	if istio != nil && istio.Enabled != nil && !*istio.Enabled {
+		return nil
+	}
+
 	authPol := istioclisec.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName},
 	}

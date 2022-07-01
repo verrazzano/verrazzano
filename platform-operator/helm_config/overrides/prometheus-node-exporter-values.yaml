@@ -12,3 +12,9 @@ prometheus:
       - action: replace
         targetLabel: verrazzano_cluster
         replacement: local
+      # preserve job name compatibility with the old node-exporter
+      - action: replace
+        sourceLabels:
+        - job
+        targetLabel: job
+        replacement: node-exporter

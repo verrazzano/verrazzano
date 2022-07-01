@@ -494,7 +494,18 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-0", esDataDeployment),
-				Labels:    map[string]string{"app": "system-es-data", "index": "0"},
+				Labels: map[string]string{
+					"app":   "system-es-data",
+					"index": "0",
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app":   "system-es-data",
+						"index": "0",
+					},
+				},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -502,16 +513,63 @@ func TestIsReady(t *testing.T) {
 				UpdatedReplicas:   1,
 			},
 		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      fmt.Sprintf("%s-0-95d8c5d96-m6mbr", esDataDeployment),
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               "system-es-data",
+					"index":             "0",
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        fmt.Sprintf("%s-0-95d8c5d96", esDataDeployment),
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-1", esDataDeployment),
-				Labels:    map[string]string{"app": "system-es-data", "index": "1"},
+				Labels: map[string]string{
+					"app":   "system-es-data",
+					"index": "1",
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app":   "system-es-data",
+						"index": "1",
+					},
+				},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      fmt.Sprintf("%s-1-95d8c5d96-m6mbr", esDataDeployment),
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               "system-es-data",
+					"index":             "1",
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        fmt.Sprintf("%s-1-95d8c5d96", esDataDeployment),
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
 		&appsv1.Deployment{
@@ -520,10 +578,42 @@ func TestIsReady(t *testing.T) {
 				Name:      esIngestDeployment,
 				Labels:    map[string]string{"app": "system-es-ingest"},
 			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "system-es-ingest"},
+				},
+			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 2,
 				Replicas:          2,
 				UpdatedReplicas:   2,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esIngestDeployment + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               "system-es-ingest",
+				},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esIngestDeployment + "-95d8c5d96-x1v76",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               "system-es-ingest",
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        esIngestDeployment + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
 		&appsv1.StatefulSet{
@@ -532,14 +622,35 @@ func TestIsReady(t *testing.T) {
 				Name:      esMasterStatefulset,
 				Labels:    map[string]string{"app": "system-es-master"},
 			},
+			Spec: appsv1.StatefulSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "system-es-master"},
+				},
+			},
 			Status: appsv1.StatefulSetStatus{
-				ReadyReplicas:   3,
-				UpdatedReplicas: 3,
+				ReadyReplicas:   1,
+				UpdatedReplicas: 1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esMasterStatefulset + "-0",
+				Labels: map[string]string{
+					"app":                      "system-es-master",
+					"controller-revision-hash": "test-95d8c5d96",
+				},
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
-	).Build()
+		&appsv1.ControllerRevision{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-95d8c5d96",
+				Namespace: ComponentNamespace,
+			},
+			Revision: 1,
+		}).Build()
 
 	vz := &vzapi.Verrazzano{}
 	vz.Spec.Components = vzapi.ComponentSpec{
@@ -547,7 +658,7 @@ func TestIsReady(t *testing.T) {
 			ESInstallArgs: []vzapi.InstallArgs{
 				{
 					Name:  "nodes.master.replicas",
-					Value: "3",
+					Value: "1",
 				},
 				{
 					Name:  "nodes.data.replicas",
