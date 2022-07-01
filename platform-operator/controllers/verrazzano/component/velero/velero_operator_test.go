@@ -11,6 +11,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -43,6 +44,12 @@ func TestIsVeleroOperatorReady(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      deploymentName,
+						Labels:    map[string]string{"name": deploymentName},
+					},
+					Spec: appsv1.DeploymentSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"name": deploymentName},
+						},
 					},
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 1,
@@ -50,10 +57,34 @@ func TestIsVeleroOperatorReady(t *testing.T) {
 						UpdatedReplicas:   1,
 					},
 				},
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      deploymentName + "-95d8c5d96-m6mbr",
+						Labels: map[string]string{
+							"pod-template-hash": "95d8c5d96",
+							"name":              deploymentName,
+						},
+					},
+				},
+				&appsv1.ReplicaSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace:   ComponentNamespace,
+						Name:        deploymentName + "-95d8c5d96",
+						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+					},
+				},
+
 				&appsv1.DaemonSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      constants.ResticDaemonSetName,
+						Labels:    map[string]string{"name": constants.ResticDaemonSetName},
+					},
+					Spec: appsv1.DaemonSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"name": constants.ResticDaemonSetName},
+						},
 					},
 					Status: appsv1.DaemonSetStatus{
 						UpdatedNumberScheduled: 1,
@@ -61,7 +92,25 @@ func TestIsVeleroOperatorReady(t *testing.T) {
 						NumberMisscheduled:     1,
 						NumberReady:            1,
 					},
-				}).Build(),
+				},
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      constants.ResticDaemonSetName,
+						Labels: map[string]string{
+							"name":                     constants.ResticDaemonSetName,
+							"controller-revision-hash": "restic-95d8c5d96",
+						},
+					},
+				},
+				&appsv1.ControllerRevision{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "restic-restic-95d8c5d96",
+						Namespace: ComponentNamespace,
+					},
+					Revision: 1,
+				},
+			).Build(),
 			expectTrue: true,
 		},
 		{

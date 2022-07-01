@@ -11,6 +11,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,12 +45,36 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      daemonsetName,
+						Labels:    map[string]string{"app": "node-exporter"},
+					},
+					Spec: appsv1.DaemonSetSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "node-exporter"},
+						},
 					},
 					Status: appsv1.DaemonSetStatus{
 						NumberAvailable:        1,
 						UpdatedNumberScheduled: 1,
 					},
-				}),
+				},
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      ComponentName,
+						Labels: map[string]string{
+							"app":                      "node-exporter",
+							"controller-revision-hash": "test-95d8c5d96",
+						},
+					},
+				},
+				&appsv1.ControllerRevision{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      ComponentName + "-test-95d8c5d96",
+						Namespace: ComponentNamespace,
+					},
+					Revision: 1,
+				},
+			),
 			expectTrue: true,
 		},
 		{
