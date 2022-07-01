@@ -53,6 +53,10 @@ const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases
 
 const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
 
+const VerrazzanoApplicationOperator = "verrazzano-application-operator"
+
+const VerrazzanoMonitoringOperator = "verrazzano-monitoring-operator"
+
 const VerrazzanoUninstall = "verrazzano-uninstall"
 
 const VerrazzanoInstall = "verrazzano-install"
@@ -88,8 +92,16 @@ const (
 	// File name for the log captured from the pod
 	LogFile = "logs.txt"
 
-	// File name for the Verrazzano resource
-	VzResource = "verrazzano_resources.json"
+	// File names for the various resources
+	VzResource       = "verrazzano_resources.json"
+	DeploymentsJSON  = "deployments.json"
+	EventsJSON       = "events.json"
+	PodsJSON         = "pods.json"
+	ServicesJSON     = "services.json"
+	ReplicaSetsJSON  = "replicasets.json"
+	DaemonSetsJSON   = "daemonsets.json"
+	IngressJSON      = "ingress.json"
+	StatefulSetsJSON = "statefulsets.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "
