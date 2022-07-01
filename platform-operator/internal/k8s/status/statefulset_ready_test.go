@@ -203,6 +203,13 @@ func TestStatefulsetReady(t *testing.T) {
 			1,
 		},
 		{
+			"should be not ready when pod not found for statefulset",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas),
+			namespacedName,
+			false,
+			1,
+		},
+		{
 			"should be not ready when statefulset not found",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme),
 			namespacedName,
