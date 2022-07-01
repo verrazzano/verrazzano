@@ -57,6 +57,8 @@ controller:
         items:
           - key: 400.html
             path: 400.html
+  extraArgs:
+    ingress-class: verrazzano-nginx
   # -- Process Ingress objects without ingressClass annotation/ingressClassName field
   # Overrides value for --watch-ingress-without-class flag of the controller binary
   # Defaults to false
@@ -67,13 +69,14 @@ controller:
   # Global snippets in ConfigMap are still respected
   allowSnippetAnnotations: false
   # Use IngressClass to prevent Ingress Controller race conditions
+  ingressClassByName: true
   ingressClassResource:
     name: verrazzano-nginx  # default: nginx
     enabled: true
     # There may be ingress controllers already present on the cluster, so we set
     # default to false to prevent conflicts.
     default: false
-    controllerValue: "k8s.io/internal-ingress-nginx"
+    controllerValue: "k8s.io/verrazzano-ingress-nginx"
 defaultBackend:
   # NOTE: The image you're looking for isn't here. The nginx-ingress-default-backend image now comes from
   # the bill of materials file (verrazzano-bom.json).
