@@ -9,7 +9,6 @@ import (
 	"path"
 	"strconv"
 
-	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -44,6 +43,7 @@ const (
 
 	prometheusAuthPolicyName = "vmi-system-prometheus-authzpol"
 	networkPolicyName        = "vmi-system-prometheus"
+	istioCertMountPath = "/etc/istio-certs"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -408,7 +408,7 @@ func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 	// Volume mount on the Prometheus container to mount the Istio-generated certificates
 	vm := corev1.VolumeMount{
 		Name:      istioVolumeName,
-		MountPath: vmoconst.IstioCertsMountPath,
+		MountPath: istioCertMountPath,
 	}
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeMountKey), Value: vm.Name})
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].mountPath", volumeMountKey), Value: vm.MountPath})
