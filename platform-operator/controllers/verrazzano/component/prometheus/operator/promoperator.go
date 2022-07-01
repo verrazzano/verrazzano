@@ -43,7 +43,7 @@ const (
 
 	prometheusAuthPolicyName = "vmi-system-prometheus-authzpol"
 	networkPolicyName        = "vmi-system-prometheus"
-	istioCertMountPath = "/etc/istio-certs"
+	istioCertMountPath       = "/etc/istio-certs"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
