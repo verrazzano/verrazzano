@@ -330,7 +330,9 @@ pipeline {
                 script {
                     echo "[INFO] Creating OLCNE cluster"
                     createOLCNECluster()
-                    echo "[INFO] Setting up cluster access"
+                    echo "[INFO] Setting up ssh access to cluster nodes"
+                    setupSSH()
+                    echo "[INFO] Setting up Kubeconfig"
                     setupKubeconfig()
                     echo "[INFO] Enable External IP access"
                     enableOLCNEExternalIPService
@@ -349,7 +351,7 @@ pipeline {
             steps {
                 script {
                     echo "[INFO] Creating OCI Storage"
-                    createOCIFileSystem()
+                    createOCIStorage()
                     echo "[INFO] Mounting OCI Storage"
                     mountOCIStorage()
                 }
@@ -987,7 +989,52 @@ def createOLCNECluster() {
     env.BASTION_USER=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_user """)
 }
 
-def createOCIFileSystem() {
+def setupSSH() {
+    sh '''
+        sudo yum -y install oracle-epel-release-el7
+        sudo yum -y install sshuttle
+        if [ $? -ne 0 ]; then
+            echo "[ERROR] Failed to install sshuttle"
+            exit 1
+        fi
+        sshuttle -r $BASTION_USER@$BASTION_IP $VCN_CIDR --ssh-cmd 'ssh -o StrictHostKeyChecking=no -i '$TF_VAR_bastion_private_key_path'' --daemon
+        if [ $? -ne 0 ]; then
+            echo "[ERROR] Failed to ssh tunnel to the bastion host $TF_VAR_prefix-bastion at $BASTION_USER@$BASTION_IP"
+            exit 1
+        fi
+    '''
+}
+
+def setupKubeconfig() {
+    env.INSTANCE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
+    sh """
+        ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP" '
+            mkdir -p $HOME/.kube
+            scp -o StrictHostKeyChecking=no -4 opc@"$API_SERVER_IP":/home/opc/.kube/config $HOME/.kube
+        '
+        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP":/home/"$BASTION_USER"/.kube/config "$KUBECONFIG"
+        yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
+        yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
+        yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
+        cat $KUBECONFIG
+        ssh -i "$TF_VAR_ssh_private_key_path" -fN4 -L 6443:$INSTANCE_IP:6443 "$BASTION_USER"@"$BASTION_IP"
+    """
+}
+
+def enableOLCNEExternalIPService() {
+    sh """
+        ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP" '
+            ssh opc@$API_SERVER_IP "
+                olcnectl module update \
+                --environment-name $TF_VAR_environment_name \
+                --name $TF_VAR_kubernetes_name \
+                --restrict-service-externalip=false 
+            " 
+        '
+    """
+}
+
+def createOCIStorage() {
     env.createdOCIFileSystem="true"
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
@@ -998,6 +1045,14 @@ def createOCIFileSystem() {
     env.MT_PVT_IP_OCID=sh(returnStdout: true, script: """ oci fs mount-target list --compartment-id "$TF_VAR_compartment_id" --availability-domain "$TF_VAR_availability_domain_id" --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0]."private-ip-ids"[0]' """)
     env.OCI_MOUNT_IP=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_private_ip_address.sh "$MT_PVT_IP_OCID" """)
     env.OCI_EXPORT_PATH="$TF_VAR_prefix-export"
+}
+
+def mountOCIStorage() {
+    env.INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
+    sh """
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/mount_oci_storage.sh \
+        "$INSTANCE_IP" "$API_SERVER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
+    """
 }
 
 def createOCILoadBalancers() {
@@ -1029,43 +1084,6 @@ def createOCIDNSZoneRecords() {
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create_dns_records.sh \
         -c $TF_VAR_compartment_id -e $VZ_ENVIRONMENT_NAME -z $OCI_DNS_ZONE_NAME \
         -s $OCI_DNS_SCOPE -m $OCI_LB_MGMT_IP -a $OCI_LB_APP_IP
-    """
-}
-
-def mountOCIStorage() {
-    env.INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/mount_oci_storage.sh \
-        "$INSTANCE_IP" "$API_SERVER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
-    """
-}
-
-def setupKubeconfig() {
-    env.INSTANCE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
-    sh """
-        ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP" '
-            mkdir -p $HOME/.kube
-            scp -o StrictHostKeyChecking=no -4 opc@"$API_SERVER_IP":/home/opc/.kube/config $HOME/.kube
-        '
-        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP":/home/"$BASTION_USER"/.kube/config "$KUBECONFIG"
-        yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
-        yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
-        yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
-        cat $KUBECONFIG
-        ssh -i "$TF_VAR_ssh_private_key_path" -fN4 -L 6443:$INSTANCE_IP:6443 "$BASTION_USER"@"$BASTION_IP"
-    """
-}
-
-def enableOLCNEExternalIPService() {
-    sh """
-        ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP" '
-            ssh opc@$API_SERVER_IP "
-                olcnectl module update \
-                --environment-name $TF_VAR_environment_name \
-                --name $TF_VAR_kubernetes_name \
-                --restrict-service-externalip=false 
-            " 
-        '
     """
 }
 
