@@ -8,7 +8,6 @@ nodeExporter:
 kubeStateMetrics:
   enabled: false
 prometheus:
-  enabled: true
   prometheusSpec:
     securityContext:
       fsGroup: 65534

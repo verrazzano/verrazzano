@@ -194,6 +194,28 @@ func TestAppendOverrides(t *testing.T) {
 	assert.Len(t, kvs, 27)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
+
+	// GIVEN a Verrazzano CR with Prometheus disabled
+	// WHEN the AppendOverrides function is called
+	// THEN the key/value slice contains the expected helm override keys and values
+	vz = &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Prometheus: &vzapi.PrometheusComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+
+	ctx = spi.NewFakeContext(client, vz, false)
+	kvs = make([]bom.KeyValue, 0)
+
+	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
+	assert.NoError(t, err)
+	assert.Len(t, kvs, 12)
+
+	assert.Equal(t, "false", bom.FindKV(kvs, "prometheus.enabled"))
 }
 
 // TestPreInstallUpgrade tests the preInstallUpgrade function.

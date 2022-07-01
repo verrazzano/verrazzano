@@ -242,40 +242,47 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Value: strconv.FormatBool(vzconfig.IsCertManagerEnabled(ctx.EffectiveCR())),
 	})
 
-	// If storage overrides are specified, set helm overrides
-	resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
-	if err != nil {
-		return kvs, err
-	}
-	if resourceRequest != nil {
-		kvs, err = appendResourceRequestOverrides(ctx, resourceRequest, kvs)
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		// If storage overrides are specified, set helm overrides
+		resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
 		if err != nil {
 			return kvs, err
 		}
-	}
+		if resourceRequest != nil {
+			kvs, err = appendResourceRequestOverrides(ctx, resourceRequest, kvs)
+			if err != nil {
+				return kvs, err
+			}
+		}
 
-	// Append the Istio Annotations for Prometheus
-	kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
-		"prometheus.prometheusSpec.volumeMounts",
-		"prometheus.prometheusSpec.volumes",
-		kvs)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
-	}
+		// Append the Istio Annotations for Prometheus
+		kvs, err = appendIstioOverrides("prometheus.prometheusSpec.podMetadata.annotations",
+			"prometheus.prometheusSpec.volumeMounts",
+			"prometheus.prometheusSpec.volumes",
+			kvs)
+		if err != nil {
+			return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
+		}
 
-	// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
-	kvs = append(kvs, []bom.KeyValue{
-		{Key: "prometheus.prometheusSpec.containers[0].name", Value: "prometheus"},
-		{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
-		{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
-	}...)
+		// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
+		kvs = append(kvs, []bom.KeyValue{
+			{Key: "prometheus.prometheusSpec.containers[0].name", Value: "prometheus"},
+			{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
+			{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
+		}...)
 
-	kvs, err = appendAdditionalVolumeOverrides(ctx,
-		"prometheus.prometheusSpec.volumeMounts",
-		"prometheus.prometheusSpec.volumes",
-		kvs)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed applying additional volume overrides for Prometheus")
+		kvs, err = appendAdditionalVolumeOverrides(ctx,
+			"prometheus.prometheusSpec.volumeMounts",
+			"prometheus.prometheusSpec.volumes",
+			kvs)
+		if err != nil {
+			return kvs, ctx.Log().ErrorfNewErr("Failed applying additional volume overrides for Prometheus")
+		}
+	} else {
+		kvs = append(kvs, bom.KeyValue{
+			Key:   "prometheus.enabled",
+			Value: "false",
+		})
 	}
 
 	// Add a label to Prometheus Operator resources to distinguish Verrazzano resources
