@@ -987,18 +987,28 @@ def createOLCNECluster() {
         terraform apply -input=false -no-color -auto-approve tfplan
     """
     env.API_SERVER_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw apiserver_ip """)
+    echo API_SERVER_IP
     env.WORKER_NODES_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -json worker_nodes""").replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    echo WORKER_NODES_IP
     env.CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -json control_plane_nodes """).replaceAll(/["\[\]]/, "").replaceAll(",", " ")
+    echo CONTROL_PLANE_NODES_IP
     env.VCN_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw vcn_id """)
+    echo VCN_OCID
     env.VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """)
+    echo VCN_CIDR
     env.PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw subnet_id """)
+    echo PRIVATE_SUBNET_OCID
     env.PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """)
+    echo PUBLIC_SUBNET_OCID
     env.BASTION_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_public_ip """)
+    echo BASTION_IP
     env.BASTION_USER=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_user """)
+    echo BASTION_USER
 }
 
 def setupSSH() {
     env.INSTANCE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
+    echo INSTANCE_IP
     sh '''
         sudo yum -y install oracle-epel-release-el7
         sudo yum -y install sshuttle
@@ -1046,12 +1056,16 @@ def createOCIStorage() {
         -p "/$TF_VAR_prefix-export" -c "$TF_VAR_compartment_id" -s "$PRIVATE_SUBNET_OCID"
     """
     env.MT_PVT_IP_OCID=sh(returnStdout: true, script: """ oci fs mount-target list --compartment-id "$TF_VAR_compartment_id" --availability-domain "$TF_VAR_availability_domain_id" --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0]."private-ip-ids"[0]' """)
+    echo MT_PVT_IP_OCID
     env.OCI_MOUNT_IP=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_private_ip_address.sh "$MT_PVT_IP_OCID" """)
+    echo OCI_MOUNT_IP
     env.OCI_EXPORT_PATH="$TF_VAR_prefix-export"
+    echo OCI_EXPORT_PATH
 }
 
 def mountOCIStorage() {
     env.INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
+    echo INSTANCE_IP
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/mount_oci_storage.sh \
         "$INSTANCE_IP" "$API_SERVER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
@@ -1074,12 +1088,15 @@ def createOCILoadBalancers() {
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
     """
     env.OCI_LB_MGMT_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-mgmt" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """)
+    echo OCI_LB_MGMT_IP
     env.OCI_LB_APP_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-app" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """)
+    echo OCI_LB_APP_IP
 }
 
 def createOCIDNSZone() {
     env.createdOCIDNSZone="true"
     env.OCI_DNS_ZONE_OCID=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c "$TF_VAR_compartment_id" -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" """)
+    echo OCI_DNS_ZONE_OCID
 }
 
 def createOCIDNSZoneRecords() {
@@ -1149,6 +1166,8 @@ def deleteOLCNECluster() {
             if [[ $? -ne 0 ]]; then 
                 echo "[INFO] Failed to destroy terraform resources. Retrying ..."
                 terraform destroy -auto-approve
+            else
+                break
             fi
         done
     '''
