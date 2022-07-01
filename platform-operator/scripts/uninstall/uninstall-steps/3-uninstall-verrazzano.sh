@@ -31,15 +31,6 @@ function delete_verrazzano() {
   log "Deleting Verrazzano secrets"
   kubectl delete secret verrazzano-managed-cluster-local --ignore-not-found=true || err_return $? "Could not delete secrets from Verrazzano" || return $?
 
-  # delete crds
-  log "Deleting Verrazzano crd finalizers"
-  patch_k8s_resources crds ":metadata.name" "Could not remove finalizers from CustomResourceDefinitions in Verrazzano" '/verrazzano.io/' '{"metadata":{"finalizers":null}}' \
-    || return $? # return on pipefail
-
-  log "Deleting Verrazzano crds"
-  delete_k8s_resources crds ":metadata.name" "Could not delete CustomResourceDefinitions from Verrazzano" '/verrazzano.io/ && ! /verrazzanos.install.verrazzano.io/ && ! /verrazzanomanagedclusters.clusters.verrazzano.io/' \
-   || return $? # return on pipefail
-   
   log "Deleting ClusterRoleBindings"
   # deleting clusterrolebindings
   delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Verrazzano" '/verrazzano/ && ! /verrazzano-platform-operator/ && ! /verrazzano-install/ && ! /verrazzano-managed-cluster/ {print $1}' \
@@ -61,11 +52,6 @@ function delete_verrazzano() {
     || return $? # return on pipefail
 
   # Delete CR'S from all Verrazzano managed namespaces
-  delete_managed_k8s_resources applicationconfigurations.core.oam.dev
-  delete_managed_k8s_resources coherence.coherence.oracle.com
-  delete_managed_k8s_resources components.core.oam.dev
-  delete_managed_k8s_resources containerizedworkloads.core.oam.dev
-  delete_managed_k8s_resources domains.weblogic.oracle
   delete_managed_k8s_resources healthscopes.core.oam.dev
   delete_managed_k8s_resources manualscalertraits.core.oam.dev
   delete_managed_k8s_resources traitdefinitions.core.oam.dev
@@ -214,15 +200,6 @@ function delete_jaeger_operator {
   rm -f jaeger.yaml
 }
 
-function delete_verrazzano_console {
-  log "Uninstall the Verrazzano Console"
-  if helm status verrazzano-console --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall verrazzano-console --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall the Verrazzano Console."
-    fi
-  fi
-}
-
 function delete_fluentd {
   log "Uninstall the Fluentd"
   if helm status fluentd --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -232,8 +209,23 @@ function delete_fluentd {
   fi
 }
 
+function delete_velero {
+    log "Uninstall Velero"
+    if helm status velero --namespace velero > /dev/null 2>&1 ; then
+      if ! helm uninstall velero --namespace velero ; then
+        error "Failed to uninstall the Velero."
+      fi
+    fi
+
+    log "Deleting velero namespace finalizers"
+    patch_k8s_resources namespace ":metadata.name" "Could not remove finalizers from namespace velero" "/velero/ {print \$1}" '{"metadata":{"finalizers":null}}' \
+        || return $? # return on pipefail
+
+    log "Deleting the velero namespace"
+    kubectl delete namespace velero --ignore-not-found=true || err_return $? "Could not delete the velero namespace"
+}
+
 action "Deleting Fluentd" delete_fluentd || exit 1
-action "Deleting Verrazzano Console" delete_verrazzano_console || exit 1
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
 action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
@@ -248,3 +240,4 @@ action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Monitoring Operator" delete_vmo || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
+action "Deleting Velero " delete_velero || exit 1

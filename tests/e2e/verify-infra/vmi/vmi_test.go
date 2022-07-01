@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -25,7 +26,16 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const verrazzanoNamespace string = "verrazzano-system"
+const (
+	verrazzanoNamespace = "verrazzano-system"
+	esMasterPrefix      = "elasticsearch-master-vmi-system-es-master"
+	esMaster0           = esMasterPrefix + "-0"
+	esMaster1           = esMasterPrefix + "-1"
+	esMaster2           = esMasterPrefix + "-2"
+	esData              = "vmi-system-es-data"
+	esData1             = esData + "-1"
+	esData2             = esData + "-2"
+)
 
 var t = framework.NewTestFramework("vmi")
 
@@ -88,6 +98,8 @@ var (
 	pollingInterval        = 5 * time.Second
 	elasticWaitTimeout     = 2 * time.Minute
 	elasticPollingInterval = 5 * time.Second
+
+	vzMonitoringVolumeClaims map[string]*corev1.PersistentVolumeClaim
 )
 
 var _ = t.BeforeSuite(func() {
@@ -107,6 +119,11 @@ var _ = t.BeforeSuite(func() {
 
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		volumeClaims, err = pkg.GetPersistentVolumeClaims(verrazzanoNamespace)
+		return volumeClaims, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
+		vzMonitoringVolumeClaims, err = pkg.GetPersistentVolumeClaims(constants.VerrazzanoMonitoringNamespace)
 		return volumeClaims, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
@@ -299,35 +316,57 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		size = override.Spec.Resources.Requests.Storage().String()
 	}
 
+	minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+	Expect(err).ToNot(HaveOccurred())
+
 	if pkg.IsDevProfile() {
 		t.It("Check persistent volumes for dev profile", func() {
-			expectedVolumes := 0
 			if override != nil {
-				expectedVolumes = 3
-			}
-			Expect(len(volumeClaims)).To(Equal(expectedVolumes))
-			if expectedVolumes > 0 {
-				assertPersistentVolume("vmi-system-prometheus", size)
-				assertPersistentVolume("vmi-system-grafana", size)
-				assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
+				if minVer14 {
+					Expect(len(volumeClaims)).To(Equal(2))
+					assertPersistentVolume("vmi-system-grafana", size)
+					assertPersistentVolume(esMaster0, size)
+
+					Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
+					assertPrometheusVolume(size)
+				} else {
+					Expect(len(volumeClaims)).To(Equal(3))
+					assertPersistentVolume("vmi-system-prometheus", size)
+					assertPersistentVolume("vmi-system-grafana", size)
+					assertPersistentVolume(esMaster0, size)
+				}
+			} else {
+				Expect(len(volumeClaims)).To(Equal(0))
 			}
 		})
 	} else if isManagedClusterProfile {
 		t.It("Check persistent volumes for managed cluster profile", func() {
-			Expect(len(volumeClaims)).To(Equal(1))
-			assertPersistentVolume("vmi-system-prometheus", size)
+			if minVer14 {
+				Expect(len(volumeClaims)).To(Equal(0))
+				Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
+				assertPrometheusVolume(size)
+			} else {
+				Expect(len(volumeClaims)).To(Equal(1))
+				assertPersistentVolume("vmi-system-prometheus", size)
+			}
 		})
 	} else if pkg.IsProdProfile() {
 		t.It("Check persistent volumes for prod cluster profile", func() {
-			Expect(len(volumeClaims)).To(Equal(8))
-			assertPersistentVolume("vmi-system-prometheus", size)
+			if minVer14 {
+				Expect(len(volumeClaims)).To(Equal(7))
+				Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
+				assertPrometheusVolume(size)
+			} else {
+				Expect(len(volumeClaims)).To(Equal(8))
+				assertPersistentVolume("vmi-system-prometheus", size)
+			}
 			assertPersistentVolume("vmi-system-grafana", size)
-			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
-			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-1", size)
-			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-2", size)
-			assertPersistentVolume("vmi-system-es-data", size)
-			assertPersistentVolume("vmi-system-es-data-1", size)
-			assertPersistentVolume("vmi-system-es-data-2", size)
+			assertPersistentVolume(esMaster0, size)
+			assertPersistentVolume(esMaster1, size)
+			assertPersistentVolume(esMaster2, size)
+			assertPersistentVolume(esData, size)
+			assertPersistentVolume(esData1, size)
+			assertPersistentVolume(esData2, size)
 		})
 	}
 })
@@ -336,6 +375,17 @@ func assertPersistentVolume(key string, size string) {
 	Expect(volumeClaims).To(HaveKey(key))
 	pvc := volumeClaims[key]
 	Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(size))
+}
+
+func assertPrometheusVolume(size string) {
+	// Prometheus Operator generates the name for the PVC so look for a PVC name that contains "prometheus"
+	for key, pvc := range vzMonitoringVolumeClaims {
+		if strings.Contains(key, "prometheus") {
+			Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(size))
+			return
+		}
+	}
+	Fail("Expected to find Prometheus persistent volume claim")
 }
 
 func assertOidcIngressByName(key string) {

@@ -125,3 +125,7 @@ const LegacyDefaultMetricsTemplateName = "standard-k8s-metrics-template"
 // LegacyDefaultMetricsTemplateNamespace is the namespace containing the default metrics template
 // used for standard Kubernetes workloads (legacy as of VZ 1.4)
 const LegacyDefaultMetricsTemplateNamespace = VerrazzanoSystemNamespace
+
+// DefaultScraperName is the default Prometheus deployment name used to scrape metrics. If a metrics trait does not specify a scraper, this
+// is the scraper that will be used.
+const DefaultScraperName = "verrazzano-system/vmi-system-prometheus-0"

@@ -23,3 +23,6 @@ spec:
       - sourceLabels:
           - __meta_kubernetes_service_label_app
         targetLabel: app
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local

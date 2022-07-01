@@ -7,12 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"testing"
+	"time"
+
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -401,7 +402,7 @@ func TestDeploymentUpdateError(t *testing.T) {
 				{APIVersion: "v1", Kind: "Service", Selector: nil},
 			}
 			return nil
-		}).Times(2)
+		})
 	// Expect a call to list the child Deployment resources of the containerized workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
@@ -411,7 +412,7 @@ func TestDeploymentUpdateError(t *testing.T) {
 				return appendAsUnstructured(list, testDeployment)
 			}
 			return nil
-		}).Times(4)
+		}).Times(2)
 	// Expect a call to get the deployment definition
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-deployment-name"}, gomock.Not(gomock.Nil())).
@@ -419,15 +420,9 @@ func TestDeploymentUpdateError(t *testing.T) {
 			deployment.ObjectMeta = testDeployment.ObjectMeta
 			deployment.Spec = testDeployment.Spec
 			return nil
-		}).Times(2)
-	// Expect a call to update the child with annotations but return an error.
-	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("test-error")).Times(3)
-	// Expect a call to get the Service Monitor
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: "test-app-default-test-namespace-test-comp", Namespace: "test-namespace"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, serviceMonitor *promoperapi.ServiceMonitor) error {
-			return nil
 		})
+	// Expect a call to update the child with annotations but return an error.
+	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("test-error"))
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// Expect a call to update the status of the ingress trait.
@@ -437,21 +432,6 @@ func TestDeploymentUpdateError(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
 			assert.Equal(oamrt.ReasonReconcileError, trait.Status.Conditions[0].Reason)
-			return nil
-		}).Times(2)
-	// Expect a call to get the Namespace to check if Istio is enabled
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: "test-namespace"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, ns *k8score.Namespace) error {
-			return nil
-		})
-
-	// Expect a call to the multicluster Secret object
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster-registration"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, secret *k8score.Secret) error {
-			secret.Data = make(map[string][]byte)
-			secret.Data[constants.ClusterNameData] = []byte("local")
 			return nil
 		})
 
@@ -807,6 +787,41 @@ func TestMetricsTraitDisabledForContainerizedWorkload(t *testing.T) {
 	// Validate the results
 	assert.NoError(err)
 	assert.Equal(true, result.Requeue)
+}
+
+// TestLegacyPrometheusScraper tests the case where the scraper is the default (legacy) VMO Prometheus.
+func TestLegacyPrometheusScraper(t *testing.T) {
+	assert := asserts.New(t)
+
+	// GIVEN a containerized workload and the reconciler scraper is configured to use the default (legacy) Prometheus scraper
+	//  WHEN we reconcile metrics traits
+	//  THEN the trait is updated with a finalizer and a ServiceMonitor has been created
+	c := containerizedWorkloadClient(false, false, false)
+
+	// Create and make the request
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
+
+	reconciler := newMetricsTraitReconciler(c)
+	reconciler.Scraper = constants.DefaultScraperName
+
+	result, err := reconciler.Reconcile(context.TODO(), request)
+
+	// Validate the results
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue)
+	assert.True(result.RequeueAfter > 0)
+
+	trait := vzapi.MetricsTrait{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: "test-trait-name", Namespace: "test-namespace"}, &trait)
+	assert.NoError(err)
+	assert.Equal("test-namespace", trait.Namespace)
+	assert.Equal("test-trait-name", trait.Name)
+	assert.Len(trait.Finalizers, 1)
+	assert.Equal("metricstrait.finalizers.verrazzano.io", trait.Finalizers[0])
+
+	monitor := &promoperapi.ServiceMonitor{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app-default-test-namespace-test-comp"}, monitor)
+	assert.NoError(err)
 }
 
 // deploymentWorkloadClient returns a fake client with a containerized workload target in the trait

@@ -7,7 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
@@ -241,4 +244,36 @@ func IsAppInPromConfig(configAppName string) bool {
 		Log(Error, fmt.Sprintf("scrap target %s not found in Prometheus configmap", configAppName))
 	}
 	return found
+}
+
+// getPromOperatorClient returns a client for fetching ServiceMonitor resources
+func getPromOperatorClient() (client.Client, error) {
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	scheme := runtime.NewScheme()
+	_ = promoperapi.AddToScheme(scheme)
+
+	cli, err := client.New(config, client.Options{Scheme: scheme})
+	if err != nil {
+		return nil, err
+	}
+	return cli, nil
+}
+
+// GetServiceMonitor returns the ServiceMonitor identified by namespace and name
+func GetServiceMonitor(namespace, name string) (*promoperapi.ServiceMonitor, error) {
+	cli, err := getPromOperatorClient()
+	if err != nil {
+		return nil, err
+	}
+
+	serviceMonitor := &promoperapi.ServiceMonitor{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, serviceMonitor)
+	if err != nil {
+		return nil, err
+	}
+	return serviceMonitor, nil
 }

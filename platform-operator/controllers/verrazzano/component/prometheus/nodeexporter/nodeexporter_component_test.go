@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const profilesRelativePath = "../../../../../manifests/profiles"
@@ -26,10 +27,10 @@ func TestIsEnabled(t *testing.T) {
 		{
 			// GIVEN a default Verrazzano custom resource
 			// WHEN we call IsReady on the Prometheus Node-Exporter component
-			// THEN the call returns false (since it is disabled by default)
+			// THEN the call returns true (since by default, it is enabled when Prometheus is enabled)
 			name:       "Test IsEnabled when using default Verrazzano CR",
 			actualCR:   vzapi.Verrazzano{},
-			expectTrue: false,
+			expectTrue: true,
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Prometheus Node-Exporter enabled
@@ -63,6 +64,23 @@ func TestIsEnabled(t *testing.T) {
 			},
 			expectTrue: false,
 		},
+		{
+			// GIVEN a Verrazzano custom resource with Prometheus disabled
+			// AND Prometheus Node-Exporter is not specified
+			// WHEN we call IsReady on the Prometheus Node-Exporter component
+			// THEN the call returns false
+			name: "Test IsEnabled when Prometheus is disabled and Node-Exporter component is not specified",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus: &vzapi.PrometheusComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectTrue: false,
+		},
 	}
 
 	for i, tt := range tests {
@@ -78,6 +96,7 @@ func TestIsEnabled(t *testing.T) {
 // not otherwise
 func TestAppendOverrides(t *testing.T) {
 	trueValue := true
+	falseValue := false
 	tests := []struct {
 		name              string
 		actualCR          vzapi.Verrazzano
@@ -93,6 +112,9 @@ func TestAppendOverrides(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{
 							Enabled: &trueValue,
+						},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+							Enabled: &falseValue,
 						},
 					},
 				},
@@ -133,4 +155,26 @@ func TestAppendOverrides(t *testing.T) {
 			assert.Equal(t, tt.expectedOverrides, kvs)
 		})
 	}
+}
+
+// TestPostInstall tests the PostInstall component function
+func TestPostInstall(t *testing.T) {
+	// GIVEN the Prometheus Node Exporter is being installed
+	// WHEN we call the PostInstall function
+	// THEN no error is returned
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profilesRelativePath)
+	err := NewComponent().PostInstall(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPostUpgrade tests the PostUpgrade component function
+func TestPostUpgrade(t *testing.T) {
+	// GIVEN the Prometheus Node Exporter is being upgraded
+	// WHEN we call the PostUpgrade function
+	// THEN no error is returned
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profilesRelativePath)
+	err := NewComponent().PostUpgrade(ctx)
+	assert.NoError(t, err)
 }
