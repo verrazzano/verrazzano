@@ -91,6 +91,9 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			}
 
 		case compStatePreUpgrade:
+			if err := r.updateComponentStatus(compContext, "Upgrading", installv1alpha1.CondUpgradeStarted); err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
 				compLog.Errorf("Failed pre-upgrading component %s: %v", compName, err)
@@ -125,6 +128,9 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			upgradeContext.state = compStateUpgradeDone
 
 		case compStateUpgradeDone:
+			if err := r.updateComponentStatus(compContext, "Upgrade Completed", installv1alpha1.CondUpgradeComplete); err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
 			compLog.Oncef("Component %s has successfully upgraded", compName)
 			upgradeContext.state = compStateEnd
 		}
