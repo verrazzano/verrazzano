@@ -79,6 +79,8 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Get the Verrazzano resource
+	startTime := time.Now().UnixMilli()
+	defer metricsexporter.CollectReconcileMetrics(startTime)
 	if ctx == nil {
 		ctx = context.TODO()
 	}
