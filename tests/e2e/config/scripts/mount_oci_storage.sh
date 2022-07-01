@@ -11,7 +11,6 @@ OCI_MOUNT_IP="$3"
 PREFIX="$4"
 PRIVATE_KEY_PATH="$5"
 OCI_EXPORT_PATH="$6"
-kubectl="kubectl --insecure-skip-tls-verify"
 
 ssh -o StrictHostKeyChecking=no opc@$INSTANCE_IP -i $PRIVATE_KEY_PATH "
     sudo yum install -y nfs-utils
@@ -22,7 +21,7 @@ ssh -o StrictHostKeyChecking=no opc@$INSTANCE_IP -i $PRIVATE_KEY_PATH "
     done
 "
 
-cat << EOF | $kubectl apply -f -
+cat << EOF | kubectl apply -f -
     apiVersion: storage.k8s.io/v1
     kind: StorageClass
     metadata:
@@ -34,7 +33,7 @@ cat << EOF | $kubectl apply -f -
 EOF
 
 for n in {0001..0020}; do 
-cat << EOF | $kubectl apply -f -
+cat << EOF | kubectl apply -f -
     apiVersion: v1
     kind: PersistentVolume
     metadata:
