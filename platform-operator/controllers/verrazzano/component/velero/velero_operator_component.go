@@ -120,7 +120,7 @@ func (v veleroHelmComponent) PreInstall(ctx spi.ComponentContext) error {
 	return ensureVeleroNamespace(ctx)
 }
 
-// IsReady checks if the Jaeger Operator deployment is ready
+// IsReady checks if the Velero objects are ready
 func (v veleroHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isVeleroOperatorReady(ctx)
 }
