@@ -1007,7 +1007,7 @@ def createOLCNECluster() {
 }
 
 def setupSSH() {
-    env.INSTANCE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
+    env.INSTANCE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0].replaceAll(" ", "")
     echo INSTANCE_IP
     sh '''
         sudo yum -y install oracle-epel-release-el7
