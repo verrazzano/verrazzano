@@ -163,6 +163,7 @@ pipeline {
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
         OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
         OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
+        SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
 
         // Terraform variables
         TF_VAR_tenancy_id=credentials('oci-tenancy')
@@ -325,17 +326,15 @@ pipeline {
             }
         }
 
-        stage("Setup OLCNE cluster") {
+        stage("Create OLCNE cluster") {
             steps {
                 script {
                     echo "[INFO] Creating OLCNE cluster"
                     createOLCNECluster()
-                    echo "[INFO] Setting up ssh access to cluster nodes"
+                    echo "[INFO] Setting up ssh access"
                     setupSSH()
-                    echo "[INFO] Setting up Kubeconfig"
-                    setupKubeconfig()
                     echo "[INFO] Enable External IP access"
-                    enableOLCNEExternalIPService
+                    enableOLCNEExternalIPService()
                 }
             }
             post {
@@ -343,6 +342,15 @@ pipeline {
                     script {
                         echo "[ERROR] Cluster create failed"
                     }
+                }
+            }
+        }
+
+        stage("Setup Kubeconfig") {
+            steps {
+                script {
+                    echo "[INFO] Setting up Kubeconfig"
+                    setupKubeconfig()
                 }
             }
         }
@@ -358,7 +366,7 @@ pipeline {
             }
         }
 
-        stage("Create OCI Load Balancers") {
+        stage("Setup OCI Load Balancers") {
             steps {
                 script {
                     echo "[INFO] Creating OCI LoadBalancers"
@@ -387,7 +395,7 @@ pipeline {
             }
         }
 
-        stage("Install Verrazzano platform operator") {
+        stage("Install Verrazzano Platform Operator") {
             environment {
                 OCI_CLI_AUTH="instance_principal"
             }
@@ -990,6 +998,7 @@ def createOLCNECluster() {
 }
 
 def setupSSH() {
+    env.INSTANCE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
     sh '''
         sudo yum -y install oracle-epel-release-el7
         sudo yum -y install sshuttle
@@ -997,39 +1006,33 @@ def setupSSH() {
             echo "[ERROR] Failed to install sshuttle"
             exit 1
         fi
-        sshuttle -r $BASTION_USER@$BASTION_IP $VCN_CIDR --ssh-cmd 'ssh -o StrictHostKeyChecking=no -i '$TF_VAR_bastion_private_key_path'' --daemon
+        sshuttle -r $BASTION_USER@$BASTION_IP $VCN_CIDR --ssh-cmd 'ssh -o StrictHostKeyChecking=no -i '$TF_VAR_bastion_private_key_path'' --daemon --pidfile=$SSHUTTLE_PID_FILE
         if [ $? -ne 0 ]; then
             echo "[ERROR] Failed to ssh tunnel to the bastion host $TF_VAR_prefix-bastion at $BASTION_USER@$BASTION_IP"
             exit 1
         fi
+        ssh -i "$TF_VAR_ssh_private_key_path" -fN4 -L 6443:$INSTANCE_IP:6443 "$BASTION_USER"@"$BASTION_IP"
     '''
 }
 
 def setupKubeconfig() {
-    env.INSTANCE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
     sh """
-        ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP" '
-            mkdir -p $HOME/.kube
-            scp -o StrictHostKeyChecking=no -4 opc@"$API_SERVER_IP":/home/opc/.kube/config $HOME/.kube
-        '
-        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP":/home/"$BASTION_USER"/.kube/config "$KUBECONFIG"
+        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@"$API_SERVER_IP":/home/opc/.kube/config "$KUBECONFIG"
         yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
-        cat $KUBECONFIG
-        ssh -i "$TF_VAR_ssh_private_key_path" -fN4 -L 6443:$INSTANCE_IP:6443 "$BASTION_USER"@"$BASTION_IP"
+        cat "$KUBECONFIG"
     """
 }
 
 def enableOLCNEExternalIPService() {
     sh """
-        ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" -4 "$BASTION_USER"@"$BASTION_IP" '
-            ssh opc@$API_SERVER_IP "
-                olcnectl module update \
-                --environment-name $TF_VAR_environment_name \
-                --name $TF_VAR_kubernetes_name \
-                --restrict-service-externalip=false 
-            " 
+        ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@$API_SERVER_IP '
+            olcnectl module update \
+            --environment-name $TF_VAR_environment_name \
+            --name $TF_VAR_kubernetes_name \
+            --restrict-service-externalip=false 
+            --force
         '
     """
 }
