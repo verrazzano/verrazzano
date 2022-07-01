@@ -37,8 +37,7 @@ const (
 	keycloakNamespace         = "keycloak"
 
 	// Constants for various metric labels, used in the validation
-	nodeExporter        = "prometheus-node-exporter"
-	oldNodeExporter     = "node-exporter"
+	nodeExporter        = "node-exporter"
 	istiod              = "istiod"
 	pilot               = "pilot"
 	prometheus          = "prometheus-operator-kube-p-prometheus"
@@ -138,20 +137,8 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
-					job: oldNodeExporter,
+					job: nodeExporter,
 				}
-
-				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
-					return false
-				}
-				if minVer14 {
-					kv = map[string]string{
-						job: nodeExporter,
-					}
-				}
-
 				return metricsContainLabels(cpuSecondsTotal, kv)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})

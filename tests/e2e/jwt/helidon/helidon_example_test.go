@@ -31,6 +31,7 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
 	helloHelidon             = "hello-helidon"
+	nodeExporterJobName      = "node-exporter"
 )
 
 const (
@@ -317,35 +318,9 @@ func appConfigMetricsExists() bool {
 }
 
 func nodeExporterProcsRunning() bool {
-	nodeExporterName, err := determineNodeExporterName()
-	if err != nil {
-		return false
-	}
-	return pkg.MetricsExist("node_procs_running", "job", nodeExporterName)
+	return pkg.MetricsExist("node_procs_running", "job", nodeExporterJobName)
 }
 
 func nodeExporterDiskIoNow() bool {
-	nodeExporterName, err := determineNodeExporterName()
-	if err != nil {
-		return false
-	}
-	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterName)
-}
-
-func determineNodeExporterName() (string, error) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		t.Logs.Errorf("Failed to get the kubeconfig location: %v", err)
-		return "", err
-	}
-	nodeExporterJobName := "node-exporter"
-	isMin, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	if err != nil {
-		t.Logs.Errorf("Failed to determine Verrazzano version: %v", err)
-		return "", err
-	}
-	if isMin {
-		nodeExporterJobName = "prometheus-node-exporter"
-	}
-	return nodeExporterJobName, nil
+	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJobName)
 }

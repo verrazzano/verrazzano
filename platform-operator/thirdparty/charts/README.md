@@ -131,3 +131,14 @@ helm fetch crossplane-master/oam-kubernetes-runtime --untar=true --version=${OAM
 
 The `verrazzano-application-operator` folder was created manually.
 
+### Velero
+
+The `velero` folder was created by running the following commands:
+
+```
+export VELERO_HELM_CHART_VERSION=2.30.0
+rm -rf velero
+helm repo add vmware-tanzu https://vmware-tanzu.github.io/helm-charts
+helm repo update
+helm fetch vmware-tanzu/velero --untar=true --version=${VELERO_HELM_CHART_VERSION}
+```

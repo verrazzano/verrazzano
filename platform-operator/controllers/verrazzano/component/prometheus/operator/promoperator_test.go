@@ -749,6 +749,29 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
 	assert.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
+
+	// GIVEN Prometheus Operator is being installed or upgraded
+	// AND   Istio is disabled
+	// WHEN  we call the createOrUpdatePrometheusAuthPolicy function
+	// THEN  no Istio authorization policy is created
+	client = fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	ctx = spi.NewFakeContext(client, vz, false)
+
+	err = createOrUpdatePrometheusAuthPolicy(ctx)
+	assert.NoError(err)
+
+	authPolicy = &istioclisec.AuthorizationPolicy{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
+	assert.ErrorContains(err, "not found")
 }
 
 // TestCreateOrUpdateNetworkPolicies tests the createOrUpdateNetworkPolicies function

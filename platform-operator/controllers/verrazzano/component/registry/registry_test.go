@@ -4,6 +4,7 @@
 package registry
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -62,7 +63,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 26, "Wrong number of components")
+	a.Len(comps, 27, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -89,6 +90,7 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[23].Name(), jaegeroperator.ComponentName)
 	a.Equal(comps[24].Name(), console.ComponentName)
 	a.Equal(comps[25].Name(), fluentd.ComponentName)
+	a.Equal(comps[26].Name(), velero.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
