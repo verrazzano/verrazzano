@@ -24,7 +24,6 @@ metadata:
     {{- else }}
     cert-manager.io/issuer: {{ template "rancher.fullname" . }}
     cert-manager.io/issuer-kind: Issuer
-    kubernetes.io/ingress.class: {{ .Values.ingress.ingressClassName }}
     {{- end }}
   {{- end }}
 {{- end }}

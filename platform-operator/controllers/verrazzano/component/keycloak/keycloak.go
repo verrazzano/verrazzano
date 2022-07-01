@@ -459,7 +459,6 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ctx.Log().Debugf("updateKeycloakIngress: Updating Keycloak Ingress with ingressTarget = %s", ingressTarget)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
-			ingress.Annotations["kubernetes.io/ingress.class"] = vzconfig.GetIngressClassName(ctx.EffectiveCR())
 		}
 		return nil
 	})

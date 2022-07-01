@@ -116,7 +116,6 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = kialiHostName
-		ingress.Annotations["kubernetes.io/ingress.class"] = ingressClassName
 		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
