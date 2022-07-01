@@ -6,6 +6,7 @@ package metricsexporter
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -16,8 +17,16 @@ import (
 )
 
 var (
-	//InstallStartTimeMap is a map that will have its keys as the component name and the time since the epoch in seconds as its value
-	//It will be used to store the "true" time when a component install successfully begins
+	reconcileIndex int = 0
+	reconcileCounterMetric = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "counter_for_reconcile_function",
+		Help: "The number of times the reconcile function has been called in the VPO",
+	})
+	reconcileLastTime = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "reconcileLastTime", 
+		Help: "The duration of each reconcile call"}, 
+		[]string{"reconcile_index"},
+	)
 	verrazzanoAuthproxyInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "authproxy_component_install_time",
 		Help: "The install time for the authproxy component",
@@ -225,18 +234,6 @@ var (
 	fluentdUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "fluentd_upgrade_time",
 		Help: "The upgrade time for the fluentd component",
-	})
-	testingUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "test_component_upgrade_time",
-		Help: "The upgrade time for the fake component",
-	})
-	enabledTestingUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "enabled_test_component_upgrade_time",
-		Help: "The upgrade time for the fake component",
-	})
-	disabledTestingUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "disabled_test_component_upgrade_time",
-		Help: "The upgrade time for the fake component",
 	})
 	verrazzanoAuthproxyUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "authproxy_component_update_time",
@@ -478,9 +475,6 @@ var (
 		"jaeger-operator":                 jaegerOperatorUpgradeTimeMetric,
 		"verrazzano-console":              verrazzanoConsoleUpgradeTimeMetric,
 		"fluentd":                         fluentdUpgradeTimeMetric,
-		"":                                testingUpgradeTimeMetric,
-		"EnabledComponent":                enabledTestingUpgradeTimeMetric,
-		"DisabledComponent":               disabledTestingUpgradeTimeMetric,
 	}
 	updateMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyUpdateTimeMetric,
@@ -524,10 +518,13 @@ func InitalizeMetricsEndpoint() {
 	}, time.Second*3, wait.NeverStop)
 }
 
-//func IncrementReconcileCounter(){
-//	Reconcilemetric.add(1)
+func CollectReconcileMetrics(startTime int64){
+	reconcileCounterMetric.Add(float64(1))
+	durationTime := time.Now().UnixMilli() - startTime
+	reconcileLastTime.WithLabelValues(strconv.Itoa(reconcileIndex)).Set(float64(durationTime))
+	reconcileIndex = reconcileIndex +1 
+}
 
-//}
 func AnalyzeVZCR(CR vzapi.Verrazzano) {
 	//Get the VZ CR Component Map (Store it in this function, so the state does not change)
 	mapOfComponents := CR.Status.Components
