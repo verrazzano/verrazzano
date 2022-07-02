@@ -36,3 +36,6 @@ spec:
           - __meta_kubernetes_pod_name
         action: replace
         targetLabel: pod_name
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local

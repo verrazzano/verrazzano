@@ -85,6 +85,10 @@ func (c oamComponent) PostInstall(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PostInstall(ctx)
 }
 
+func (c oamComponent) PostUninstall(ctx spi.ComponentContext) error {
+	return deleteOAMClusterRoles(ctx.Client(), ctx.Log())
+}
+
 // PostUpgrade runs post-upgrade processing for the OAM component
 func (c oamComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := ensureClusterRoles(ctx); err != nil {

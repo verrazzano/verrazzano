@@ -205,7 +205,7 @@ pipeline {
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
 
-        VERSION_FOR_UPGRADE = "${params.VERSION_FOR_UPGRADE}"
+        VERSION_FOR_UPGRADE_ENV = "${params.VERSION_FOR_UPGRADE}"
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
 
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
@@ -396,9 +396,9 @@ pipeline {
                             }
                         }
                         stage ('Deploy Coherence example application - multi cluster') {
-                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
+                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeBelowVer("v1.3.0") } }
                             steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "true", "true")
                             }
                         }
                         stage('Prometheus pre-upgrade') {
@@ -457,7 +457,6 @@ pipeline {
                 }
             }
         }
-
         stage ('Verify Install') {
             parallel {
                 stage('verify-install') {
@@ -607,7 +606,7 @@ pipeline {
                         }
                         stage ('Verify/Uninstall Example Coherence') {
                             steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "false", "false")
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeBelowVer("v1.3.0"), "false", "false")
                             }
                         }
                     }
@@ -681,6 +680,34 @@ pipeline {
         }
     }
 }
+
+// false : version parameter falls between vz to(current) and from(to be upgraded) version
+// true  : vz to(current) and from(to be upgraded) version falls below version parameter
+def checkUpgradeBelowVer(version) {
+    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
+        VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
+    }
+    return !(isMinVersion(params.VERSION_FOR_INSTALL, version) && !isMinVersion(VERRAZZANO_DEV_VERSION, version))
+}
+
+// compares the two vz versions v1 & v2
+// true : v1 < v2, false : v1 >= v2
+def isMinVersion(v1, v2) {
+    v2 = v2 - 'v'
+    v1 = v1 - 'v'
+    def v2Split  = v2.split('\\.')
+    runningVZVersion = v2Split[0] + '.' + v2Split[1] + '.' + v2Split[2].charAt(0)
+    v1Split = v1.split('\\.')
+    if(v1Split[0] < v2Split[0]){
+        return true
+    }else if(v1Split[0] == v2Split[0] && v1Split[1] < v2Split[1]){
+        return true
+    }else if(v1Split[0] == v2Split[0] && v1Split[1] == v2Split[1] && v1Split[2].charAt(0) < v2Split[2].charAt(0)){
+        return true
+    }
+    return false
+}
+
 
 def createOCIDNSZone() {
     script {
@@ -941,17 +968,19 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 def getPlatformOperatorForRelease(){
     script {
         //Removing v from the upgrade version for error handling.
-        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
+        VERSION_FOR_UPGRADE_ENV = VERSION_FOR_UPGRADE_ENV - "v"
+        //Command to retrieve the platform operator yaml of the current branch.
         def operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file"
 
-        if(VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && VERSION_FOR_UPGRADE != "NONE"){
+        //Command to retrieve the platform operator yaml of the release branch for patch release upgrade testing.
+        if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
 
             def latestReleaseBranch = getLatestReleaseVersion()
 
             operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
-
-        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
-            operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE}/operator.yaml --output"
+        //Command to retrieve the released version platform operator yaml.
+        }else if(params.IS_TRIGGERED_MANUALLY == "YES" && params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+            operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE_ENV}/operator.yaml --output"
         }
 
         sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
@@ -960,9 +989,9 @@ def getPlatformOperatorForRelease(){
 
 def getLatestReleaseVersion(){
     def latestReleaseBranch
-    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
-        VERSION_FOR_UPGRADE = VERSION_FOR_UPGRADE - "v"
-        def latestReleaseTagSplit = VERSION_FOR_UPGRADE.split("\\.")
+    if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+        VERSION_FOR_UPGRADE_ENV = VERSION_FOR_UPGRADE_ENV - "v"
+        def latestReleaseTagSplit = VERSION_FOR_UPGRADE_ENV.split("\\.")
         latestReleaseBranch = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
     }
     return latestReleaseBranch
@@ -975,10 +1004,8 @@ def upgradeVerrazzano() {
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
         VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
 
-        if(VERSION_FOR_UPGRADE == "NONE"){
-            VERSION_FOR_UPGRADE = VERRAZZANO_DEV_VERSION
-        } else if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
-            VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
+        if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+            VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE_ENV
         }
 
         echo "Downloading target upgrade operator yaml"

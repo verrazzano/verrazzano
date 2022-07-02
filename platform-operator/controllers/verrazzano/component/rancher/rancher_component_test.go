@@ -22,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -143,66 +144,21 @@ func TestPreInstall(t *testing.T) {
 //  THEN IsReady should return true
 func TestIsReady(t *testing.T) {
 	readyClient := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      ComponentName,
-				Labels:    map[string]string{"app": ComponentName},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      rancherWebhookDeployment,
-				Labels:    map[string]string{"app": rancherWebhookDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: FleetLocalSystemNamespace,
-				Name:      fleetAgentDeployment,
-				Labels:    map[string]string{"app": fleetAgentDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: FleetSystemNamespace,
-				Name:      fleetControllerDeployment,
-				Labels:    map[string]string{"app": fleetControllerDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: FleetSystemNamespace,
-				Name:      gitjobDeployment,
-				Labels:    map[string]string{"app": gitjobDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
+		newReadyDeployment(ComponentNamespace, ComponentName),
+		newPod(ComponentNamespace, ComponentName),
+		newReplicaSet(ComponentNamespace, ComponentName),
+		newReadyDeployment(ComponentNamespace, rancherWebhookDeployment),
+		newPod(ComponentNamespace, rancherWebhookDeployment),
+		newReplicaSet(ComponentNamespace, rancherWebhookDeployment),
+		newReadyDeployment(FleetLocalSystemNamespace, fleetAgentDeployment),
+		newPod(FleetLocalSystemNamespace, fleetAgentDeployment),
+		newReplicaSet(FleetLocalSystemNamespace, fleetAgentDeployment),
+		newReadyDeployment(FleetSystemNamespace, fleetControllerDeployment),
+		newPod(FleetSystemNamespace, fleetControllerDeployment),
+		newReplicaSet(FleetSystemNamespace, fleetControllerDeployment),
+		newReadyDeployment(FleetSystemNamespace, gitjobDeployment),
+		newPod(FleetSystemNamespace, gitjobDeployment),
+		newReplicaSet(FleetSystemNamespace, gitjobDeployment),
 	).Build()
 	unreadyDeployClient := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
 		&appsv1.Deployment{
@@ -257,6 +213,8 @@ func TestIsReady(t *testing.T) {
 		},
 	).Build()
 
+	SetFakeCheckRancherUpgradeFailureFunc()
+	defer SetDefaultCheckRancherUpgradeFailureFunc()
 	var tests = []struct {
 		testName string
 		ctx      spi.ComponentContext
@@ -391,5 +349,48 @@ func Test_rancherComponent_ValidateUpdate(t *testing.T) {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func newReadyDeployment(namespace string, name string) *appsv1.Deployment {
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+			Labels:    map[string]string{"app": name},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": name},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
+		},
+	}
+}
+
+func newPod(namespace string, name string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name + "-95d8c5d96-m6mbr",
+			Labels: map[string]string{
+				"pod-template-hash": "95d8c5d96",
+				"app":               name,
+			},
+		},
+	}
+}
+
+func newReplicaSet(namespace string, name string) *appsv1.ReplicaSet {
+	return &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   namespace,
+			Name:        name + "-95d8c5d96",
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
 	}
 }

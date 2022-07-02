@@ -155,6 +155,11 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 		return newRequeueWithDelay(), err
 	}
 
+	// Check if uninstalling
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
+	}
+
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.VzStateFailed:
@@ -163,8 +168,6 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 		return r.ProcInstallingState(vzctx)
 	case installv1alpha1.VzStateReady:
 		return r.ProcReadyState(vzctx)
-	case installv1alpha1.VzStateUninstalling:
-		return r.ProcUninstallingState(vzctx)
 	case installv1alpha1.VzStateUpgrading:
 		return r.ProcUpgradingState(vzctx)
 	case installv1alpha1.VzStatePaused:
@@ -181,11 +184,6 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	log.Debugf("Entering ProcReadyState")
 	ctx := context.TODO()
-
-	// Check if Verrazzano resource is being deleted
-	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, actualCR)
-	}
 
 	// Pre-populate the component status fields
 	result, err := r.initializeComponentStatus(log, actualCR)
@@ -268,14 +266,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 // ProcInstallingState processes the CR while in the installing state
 func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
 	log := vzctx.Log
-	actualCR := vzctx.ActualCR
 	log.Debug("Entering ProcInstallingState")
-	ctx := context.TODO()
-
-	// Check if Verrazzano resource is being deleted
-	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, actualCR)
-	}
 
 	if result, err := r.reconcileComponents(vzctx); err != nil {
 		return newRequeueWithDelay(), err
@@ -292,31 +283,11 @@ func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctr
 	return ctrl.Result{}, nil
 }
 
-// ProcUninstallingState processes the CR while in the uninstalling state
-func (r *Reconciler) ProcUninstallingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
-	vz := vzctx.ActualCR
-	log := vzctx.Log
-	log.Debug("Entering ProcUninstallingState")
-	ctx := context.TODO()
-
-	// Update uninstall status
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, vz)
-	}
-
-	return ctrl.Result{}, nil
-}
-
 // ProcUpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
 	actualCR := vzctx.ActualCR
 	log := vzctx.Log
 	log.Debug("Entering ProcUpgradingState")
-
-	// Check if Verrazzano resource is being deleted
-	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(context.TODO(), log, actualCR)
-	}
 
 	// check for need to pause the upgrade due to VPO update
 	if bomVersion, isNewer := isOperatorNewerVersionThanCR(actualCR.Spec.Version); isNewer {
@@ -1059,12 +1030,13 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 
 			err := r.cleanup(ctx, log, vz)
 			if err != nil {
+				log.Oncef("Uninstall cleanup failed finalizer %s", finalizerName)
 				return newRequeueWithDelay(), err
 			}
 
 			// All install related resources have been deleted, delete the finalizer so that the Verrazzano
 			// resource can get removed from etcd.
-			log.Debugf("Removing finalizer %s", finalizerName)
+			log.Oncef("Removing finalizer %s", finalizerName)
 			vz.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(vz.ObjectMeta.Finalizers, finalizerName)
 			err = r.Update(ctx, vz)
 			if err != nil {
@@ -1072,6 +1044,10 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 			}
 
 			delete(initializedSet, vz.Name)
+
+			// Delete the uninstall tracker so the memory can be freed up
+			DeleteUninstallTracker(vz)
+
 			// Uninstall is done, all cleanup is finished, and finalizer removed.
 			return ctrl.Result{}, nil
 		}

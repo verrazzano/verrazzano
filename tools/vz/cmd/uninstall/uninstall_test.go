@@ -83,7 +83,7 @@ func TestUninstallCmd(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 	assert.Contains(t, buf.String(), "Uninstalling Verrazzano\n")
-	assert.Contains(t, buf.String(), "Waiting for verrazzano-uninstall-verrazzano to be ready before starting uninstall")
+	assert.Contains(t, buf.String(), "Waiting for verrazzano-uninstall-verrazzano pod to be ready before starting uninstall")
 	assert.Contains(t, buf.String(), "Successfully uninstalled Verrazzano\n")
 
 	// Expect the Verrazzano resource to be deleted

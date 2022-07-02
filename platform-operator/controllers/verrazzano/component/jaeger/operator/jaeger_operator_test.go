@@ -18,7 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -62,13 +62,37 @@ func TestIsJaegerOperatorReady(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      deploymentName,
+						Labels:    map[string]string{"name": "jaeger-operator"},
+					},
+					Spec: appsv1.DeploymentSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"name": "jaeger-operator"},
+						},
 					},
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 1,
 						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
-				}).Build(),
+				},
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      deploymentName + "-95d8c5d96-m6mbr",
+						Labels: map[string]string{
+							"pod-template-hash": "95d8c5d96",
+							"name":              "jaeger-operator",
+						},
+					},
+				},
+				&appsv1.ReplicaSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace:   ComponentNamespace,
+						Name:        deploymentName + "-95d8c5d96",
+						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+					},
+				},
+			).Build(),
 			expectTrue: true,
 		},
 		{
@@ -118,7 +142,7 @@ func TestPreInstall(t *testing.T) {
 	err := preInstall(ctx)
 	assert.NoError(t, err)
 
-	ns := v1.Namespace{}
+	ns := corev1.Namespace{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
 	assert.NoError(t, err)
 }

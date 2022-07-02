@@ -31,6 +31,7 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
 	helloHelidon             = "hello-helidon"
+	nodeExporterJobName      = "node-exporter"
 )
 
 const (
@@ -317,9 +318,9 @@ func appConfigMetricsExists() bool {
 }
 
 func nodeExporterProcsRunning() bool {
-	return pkg.MetricsExist("node_procs_running", "job", "node-exporter")
+	return pkg.MetricsExist("node_procs_running", "job", nodeExporterJobName)
 }
 
 func nodeExporterDiskIoNow() bool {
-	return pkg.MetricsExist("node_disk_io_now", "job", "node-exporter")
+	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJobName)
 }
