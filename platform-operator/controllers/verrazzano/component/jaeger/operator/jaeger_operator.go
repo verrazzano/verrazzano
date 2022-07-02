@@ -4,91 +4,200 @@
 package operator
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"path"
-	"strings"
-
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	v1 "k8s.io/api/core/v1"
+	"io/fs"
+	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"text/template"
 )
+
+var (
+	// For Unit test purposes
+	writeFileFunc = ioutil.WriteFile
+)
+
+func resetWriteFileFunc() {
+	writeFileFunc = ioutil.WriteFile
+}
 
 const (
-	deploymentName = "jaeger-operator"
-	templateFile   = "/jaeger/jaeger-operator.yaml"
+	deploymentName       = "jaeger-operator"
+	tmpFilePrefix        = "jaeger-operator-overrides-"
+	tmpSuffix            = "yaml"
+	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
+	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
-var subcomponentNames = []string{
-	"jaeger-ingester",
-	"jaeger-agent",
-	"jaeger-query",
-	"jaeger-collector",
-	"jaeger-operator",
+// Define the Jaeger images using extraEnv key.
+// We need to replace image using the real image in the bom
+const extraEnvValueTemplate = `extraEnv:
+  - name: "JAEGER-AGENT-IMAGE"
+    value: "{{.AgentImage}}"
+  - name: "JAEGER-QUERY-IMAGE"
+    value: "{{.QueryImage}}"
+  - name: "JAEGER-COLLECTOR-IMAGE"
+    value: "{{.CollectorImage}}"
+  - name: "JAEGER-INGESTER-IMAGE"
+    value: "{{.IngesterImage}}"
+`
+
+// imageData needed for template rendering
+type imageData struct {
+	AgentImage     string
+	QueryImage     string
+	CollectorImage string
+	IngesterImage  string
 }
 
-func componentInstall(ctx spi.ComponentContext) error {
-	args, err := buildInstallArgs()
-	if err != nil {
-		return err
+// isjaegerOperatorReady checks if the Jaeger Operator deployment is ready
+func isJaegerOperatorReady(ctx spi.ComponentContext) bool {
+	deployments := []types.NamespacedName{
+		{
+			Name:      deploymentName,
+			Namespace: ComponentNamespace,
+		},
 	}
-
-	// Apply Jaeger Operator
-	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
-	if err := yamlApplier.ApplyFT(path.Join(config.GetThirdPartyManifestsDir(), templateFile), args); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to install Jaeger Operator: %v", err)
-	}
-	return nil
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
-func buildInstallArgs() (map[string]interface{}, error) {
-	args := map[string]interface{}{
-		"namespace": constants.VerrazzanoMonitoringNamespace,
+// PreInstall implementation for the Jaeger Operator Component
+func preInstall(ctx spi.ComponentContext) error {
+	// Do nothing if dry run
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("Jaeger Operator PreInstall dry run")
+		return nil
 	}
+
+	// Create the verrazzano-monitoring namespace if not already created
+	return ensureVerrazzanoMonitoringNamespace(ctx)
+}
+
+// AppendOverrides appends Helm value overrides for the Jaeger Operator component's Helm chart
+// A go template is used to specify the Jaeger images using extraEnv key.
+func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return args, err
+		return nil, err
 	}
-	for _, subcomponent := range subcomponentNames {
-		if err := setImageOverride(args, bomFile, subcomponent); err != nil {
-			return args, err
-		}
+
+	// Get jaeger-agent image
+	agentImages, err := bomFile.BuildImageOverrides("jaeger-agent")
+	if err != nil {
+		return nil, err
 	}
-	return args, nil
+	if len(agentImages) != 1 {
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Agent, found %v", len(agentImages))
+	}
+
+	// Get jaeger-collector image
+	collectorImages, err := bomFile.BuildImageOverrides("jaeger-collector")
+	if err != nil {
+		return nil, err
+	}
+	if len(collectorImages) != 1 {
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Collector, found %v", len(collectorImages))
+	}
+
+	// Get jaeger-query image
+	queryImages, err := bomFile.BuildImageOverrides("jaeger-query")
+	if err != nil {
+		return nil, err
+	}
+	if len(queryImages) != 1 {
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Query, found %v", len(queryImages))
+	}
+
+	// Get jaeger-ingester image
+	ingesterImages, err := bomFile.BuildImageOverrides("jaeger-ingester")
+	if err != nil {
+		return nil, err
+	}
+	if len(ingesterImages) != 1 {
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Ingester, found %v", len(ingesterImages))
+	}
+
+	// use template to populate Jaeger images
+	var b bytes.Buffer
+	t, err := template.New("images").Parse(extraEnvValueTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	// Render the template
+	data := imageData{AgentImage: agentImages[0].Value, CollectorImage: collectorImages[0].Value,
+		QueryImage: queryImages[0].Value, IngesterImage: ingesterImages[0].Value}
+	err = t.Execute(&b, data)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write the overrides file to a temp dir and add a helm file override argument
+	overridesFileName, err := generateOverridesFile(compContext, b.Bytes())
+	if err != nil {
+		return kvs, fmt.Errorf("failed generating Jaeger Operator overrides file: %v", err)
+	}
+
+	// Append any installArgs overrides
+	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
+	return kvs, nil
 }
 
-func setImageOverride(args map[string]interface{}, bomFile bom.Bom, subcomponent string) error {
-	images, err := bomFile.GetImageNameList(subcomponent)
-	if err != nil {
-		return err
+// validateJaegerOperator checks scenarios in which the Verrazzano CR violates install verification
+// due to Jaeger Operator specifications
+func (c jaegerOperatorComponent) validateJaegerOperator(vz *vzapi.Verrazzano) error {
+	// Validate install overrides
+	if vz.Spec.Components.JaegerOperator != nil {
+		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.JaegerOperator.ValueOverrides); err != nil {
+			return err
+		}
 	}
-	if len(images) != 1 {
-		return fmt.Errorf("expected 1 %s image, got %d", subcomponent, len(images))
-	}
-
-	args[strings.ReplaceAll(subcomponent, "-", "")] = images[0]
 	return nil
 }
 
-// isJaegerOperatorReady checks if the Jaeger operator deployment is ready
-func isJaegerOperatorReady(context spi.ComponentContext) bool {
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
+// GetOverrides returns the list of install overrides for a component
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.JaegerOperator != nil {
+		return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
+	}
+	return []vzapi.Overrides{}
 }
 
 func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
 	// Create the verrazzano-monitoring namespace
 	ctx.Log().Debugf("Creating namespace %s for the Jaeger Operator", ComponentNamespace)
-	namespace := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
+	namespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
 		return nil
 	}); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 	return nil
+}
+
+func generateOverridesFile(ctx spi.ComponentContext, contents []byte) (string, error) {
+	file, err := os.CreateTemp(os.TempDir(), tmpFileCreatePattern)
+	if err != nil {
+		return "", err
+	}
+
+	overridesFileName := file.Name()
+	if err := writeFileFunc(overridesFileName, contents, fs.ModeAppend); err != nil {
+		return "", err
+	}
+	ctx.Log().Debugf("Verrazzano jaeger-operator install overrides file %s contents: %s", overridesFileName,
+		string(contents))
+	return overridesFileName, nil
 }
