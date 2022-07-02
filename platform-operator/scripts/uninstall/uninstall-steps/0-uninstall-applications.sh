@@ -30,18 +30,6 @@ function delete_multicluster_resources {
     fi
     log "Deleting VMCs"
     delete_k8s_resources verrazzanomanagedcluster ":metadata.name" "Could not delete VerrazzanoManagedClusters from Verrazzano" "" "verrazzano-mc"
-    log "Deleting VerrazzanoProjects"
-    delete_k8s_resources verrazzanoproject ":metadata.name" "Could not delete VerrazzanoProjects from Verrazzano" "" "verrazzano-mc"
-    log "Deleting MultiClusterApplicationConfigurations"
-    delete_k8s_resource_from_all_namespaces multiclusterapplicationconfigurations.clusters.verrazzano.io no
-    log "Deleting MultiClusterComponents"
-    delete_k8s_resource_from_all_namespaces multiclustercomponents.clusters.verrazzano.io no
-    log "Deleting MultiClusterConfigMaps"
-    delete_k8s_resource_from_all_namespaces multiclusterconfigmaps.clusters.verrazzano.io no
-    log "Deleting MultiClusterLoggingScopes"
-    delete_k8s_resource_from_all_namespaces multiclusterloggingscopes.clusters.verrazzano.io no
-    log "Deleting MultiClusterSecrets"
-    delete_k8s_resource_from_all_namespaces multiclustersecrets.clusters.verrazzano.io no
 }
 
 action "Deleting Multicluster resources" delete_multicluster_resources || exit 1
