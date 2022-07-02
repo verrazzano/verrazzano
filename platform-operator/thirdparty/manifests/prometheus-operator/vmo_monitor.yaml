@@ -12,7 +12,9 @@ spec:
   namespaceSelector:
     matchNames:
       - { { .systemNamespace } }
-  selector: {}
+  selector:
+    matchLabels:
+      k8s-app: verrazzano-monitoring-operator
   endpoints:
     - relabelings:
         - sourceLabels:
