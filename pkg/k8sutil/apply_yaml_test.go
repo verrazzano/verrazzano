@@ -7,6 +7,8 @@ import (
 	"context"
 	"testing"
 
+	rbacv1 "k8s.io/api/rbac/v1"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -172,6 +174,66 @@ func TestApplyFMerge(t *testing.T) {
 	assert.Equal(t, int32(5), depUpdated.Spec.MinReadySeconds)
 	assert.Equal(t, int32(5), *depUpdated.Spec.Replicas)
 	assert.Equal(t, int32(10), *depUpdated.Spec.ProgressDeadlineSeconds)
+}
+
+// TestApplyFClusterRole
+// GIVEN a ClusterRole object
+//  WHEN I call apply with additions
+//  THEN the resulting object contains the merged updates
+func TestApplyFClusterRole(t *testing.T) {
+	deadlineSeconds := int32(5)
+	deployment := &appv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.VerrazzanoPlatformOperator,
+			Namespace: constants.VerrazzanoInstall,
+		},
+		Spec: appv1.DeploymentSpec{
+			MinReadySeconds:         5,
+			ProgressDeadlineSeconds: &deadlineSeconds,
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment).Build()
+	y := k8sutil.NewYAMLApplier(c, "")
+	err := y.ApplyF(testdata + "/clusterrole_create.yaml")
+	assert.NoError(t, err)
+
+	// Verify the ClusterRole that was created
+	clusterRole := &rbacv1.ClusterRole{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-managed-cluster"}, clusterRole)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 1, len(clusterRole.Rules))
+	rule := clusterRole.Rules[0]
+	assert.Equal(t, "", rule.APIGroups[0])
+	assert.Equal(t, "secrets", rule.Resources[0])
+	assert.Equal(t, 3, len(rule.Verbs))
+
+	// Update the ClusterRole
+	err = y.ApplyF(testdata + "/clusterrole_update.yaml")
+	assert.NoError(t, err)
+
+	// Verify the ClusterRole that was updated
+	clusterRoleUpdated := &rbacv1.ClusterRole{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-managed-cluster"}, clusterRoleUpdated)
+	assert.NoError(t, err)
+	rule = clusterRoleUpdated.Rules[0]
+	assert.Equal(t, 4, len(rule.Verbs))
+
+	// Verify all the expected verbs are there
+	foundCount := 0
+	for _, verb := range rule.Verbs {
+		switch verb {
+		case "get":
+			foundCount++
+		case "list":
+			foundCount++
+		case "watch":
+			foundCount++
+		case "update":
+			foundCount++
+		}
+	}
+	assert.Equal(t, 4, foundCount)
 }
 
 func TestApplyFT(t *testing.T) {
