@@ -28,7 +28,7 @@ cat << EOF | kubectl apply -f -
     metadata:
         name: $PREFIX-nfs
         annotations:
-            storageclass.kubernetes.io/is-default-class: true
+            storageclass.kubernetes.io/is-default-class: "true"
     provisioner: kubernetes.io/no-provisioner
     volumeBindingMode: WaitForFirstConsumer
 EOF
