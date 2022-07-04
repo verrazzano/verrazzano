@@ -1009,8 +1009,6 @@ def createOLCNECluster() {
 def setupSSH() {
     env.INSTANCE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0].replaceAll(" ", "").trim()
     echo INSTANCE_IP
-    env.temp="6443:"+INSTANCE_IP+":6443"
-    echo temp
     sh '''
         sudo yum -y install oracle-epel-release-el7
         sudo yum -y install sshuttle
@@ -1043,7 +1041,7 @@ def enableOLCNEExternalIPService() {
             olcnectl module update \
             --environment-name $TF_VAR_environment_name \
             --name $TF_VAR_kubernetes_name \
-            --restrict-service-externalip=false 
+            --restrict-service-externalip=false \
             --force
         '
     """
