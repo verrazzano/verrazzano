@@ -1133,10 +1133,10 @@ def installVerrazzanoPlatformOperator() {
 
 def installVerrazzano() {
     sh """
-        yq -i eval '.spec.environmentName = $VZ_ENVIRONMENT_NAME' "$INSTALL_CONFIG_FILE_OLCNE"
-        yq -i eval '.spec.components.dns.external.suffix = $OCI_DNS_ZONE_NAME' "$INSTALL_CONFIG_FILE_OLCNE"
-        yq -i eval '.spec.components.ingress.nginxInstallArgs[0].valueList[0] = $OCI_LB_MGMT_IP' "$INSTALL_CONFIG_FILE_OLCNE"
-        yq -i eval '.spec.components.istio.istioInstallArgs[0].valueList[0] = $OCI_LB_APP_IP' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.environmentName = "$VZ_ENVIRONMENT_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.components.dns.external.suffix = "$OCI_DNS_ZONE_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.components.ingress.nginxInstallArgs[0].valueList[0] = "$OCI_LB_MGMT_IP"' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.components.istio.istioInstallArgs[0].valueList[0] = "$OCI_LB_APP_IP"' "$INSTALL_CONFIG_FILE_OLCNE"
         
         # apply config to create cluster
         kubectl apply -f $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml
