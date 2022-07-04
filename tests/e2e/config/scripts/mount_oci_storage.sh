@@ -19,6 +19,7 @@ ssh -o StrictHostKeyChecking=no opc@$INSTANCE_IP -i $PRIVATE_KEY_PATH "
     for x in {0001..0020}; do
         sudo mkdir -p /mnt/olcne-master-filesystem/pv\$x && sudo chmod 777 /mnt/olcne-master-filesystem/pv\$x
     done
+    ls /mnt/olcne-master-filesystem
 "
 
 cat << EOF | kubectl apply -f -
@@ -27,7 +28,7 @@ cat << EOF | kubectl apply -f -
     metadata:
         name: $PREFIX-nfs
         annotations:
-            storageclass.kubernetes.io/is-default-class: \"true\"
+            storageclass.kubernetes.io/is-default-class: true
     provisioner: kubernetes.io/no-provisioner
     volumeBindingMode: WaitForFirstConsumer
 EOF
@@ -37,7 +38,7 @@ cat << EOF | kubectl apply -f -
     apiVersion: v1
     kind: PersistentVolume
     metadata:
-        name: $PREFIX-pv\$n
+        name: $PREFIX-pv$n
     spec:
         storageClassName: $PREFIX-nfs
         accessModes:
@@ -46,7 +47,7 @@ cat << EOF | kubectl apply -f -
         capacity:
             storage: 50Gi
         nfs:
-            path: /$OCI_EXPORT_PATH/pv\$n
+            path: /$OCI_EXPORT_PATH/pv$n
             server: $OCI_MOUNT_IP
         volumeMode: Filesystem
         persistentVolumeReclaimPolicy: Recycle
