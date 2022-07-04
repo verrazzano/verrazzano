@@ -1116,13 +1116,12 @@ def installVerrazzanoPlatformOperator() {
         # --file $WORKSPACE/downloaded-operator.yaml
         
         # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands
-        cd $WORKSPACE
-        wget -O downloaded-operator.yaml https://github.com/verrazzano/verrazzano/releases/download/v1.3.1/operator.yaml
+        wget -O $WORKSPACE/downloaded-operator.yaml https://github.com/verrazzano/verrazzano/releases/download/v1.3.1/operator.yaml
         
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
         # Install the verrazzano-platform-operator
-        kubectl apply -f $HOME/verrazzano/acceptance-test-operator.yaml
+        kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
         # make sure ns exists
         chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
