@@ -333,8 +333,8 @@ pipeline {
                     createOLCNECluster()
                     echo "[INFO] Setting up ssh access"
                     setupSSH()
-                    echo "[INFO] Enable External IP access"
-                    enableOLCNEExternalIPService()
+                    // echo "[INFO] Enable External IP access"
+                    // enableOLCNEExternalIPService()
                 }
             }
             post {
