@@ -716,17 +716,13 @@ data:
       emit_invalid_record_to_error true
       <parse>
         @type multi_format
-        # zap log format
+        # zap log format for jaeger components
         <pattern>
           format json
           time_key ts
           time_type float
         </pattern>
-        <pattern>
-          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}\:\d{2}\:\d{2}) (?<message>[\s\S]*?)$/
-          time_key logtime
-          time_format %Y/%m/%d %H:%M:%S
-        </pattern>
+        # Log patterns for jaeger operator
         <pattern>
           format /^(?<logtime>.*?) (?<level>\S+?) (?<component>[\.\S]+?) (?<message>[\s\S]*?)$/
           time_key logtime
