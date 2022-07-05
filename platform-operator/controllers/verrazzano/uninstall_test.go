@@ -53,7 +53,8 @@ func TestReconcileUninstalling(t *testing.T) {
 		return []spi.Component{
 			fakeComponent{
 				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
+					ReleaseName:               "fake",
+					SupportsOperatorUninstall: true,
 				},
 			},
 		}
@@ -161,7 +162,8 @@ func TestReconcileUninstall(t *testing.T) {
 		return []spi.Component{
 			fakeComponent{
 				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
+					ReleaseName:               "fake",
+					SupportsOperatorUninstall: true,
 				},
 			},
 		}
@@ -243,7 +245,8 @@ func TestReconcileUninstall(t *testing.T) {
 		return []spi.Component{
 			fakeComponent{
 				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
+					ReleaseName:               "fake",
+					SupportsOperatorUninstall: true,
 				},
 				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
 					return false, nil
@@ -260,5 +263,5 @@ func TestReconcileUninstall(t *testing.T) {
 	asserts.NoError(err)
 	asserts.NotZero(len(vzcr.Status.Components), "Status.Components len should not be zero")
 	asserts.Equal("Uninstalled", string(vzcr.Status.Components["fake"].State), "Invalid component state")
-	asserts.Zero(len(UninstallTrackerMap), "UninstallTrackerMap should have no entries")
+	asserts.NotZero(len(UninstallTrackerMap), "UninstallTrackerMap should have no entries")
 }

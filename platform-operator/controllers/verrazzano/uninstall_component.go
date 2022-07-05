@@ -74,6 +74,11 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 	for UninstallContext.state != compStateUninstallEnd {
 		switch UninstallContext.state {
 		case compStateUninstallStart:
+			// Check if operator based uninstall is supported
+			if !comp.IsOperatorUninstallSupported() {
+				UninstallContext.state = compStateUninstallEnd
+				continue
+			}
 			// Check if component is installed, if not continue
 			installed, err := comp.IsInstalled(compContext)
 			if err != nil {
@@ -112,6 +117,11 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			if installed, err := comp.IsInstalled(compContext); err != nil || installed {
 				compLog.Progressf("Waiting for the component to be uninstalled", compName)
 				return newRequeueWithDelay(), nil
+			}
+			if err := comp.PostUninstall(compContext); err != nil {
+				compLog.Errorf("PostUninstall for component %s failed, will retry: %v", compName, err)
+				// requeue for 30 to 60 seconds later
+				return controller.NewRequeueWithDelay(30, 60, time.Second), nil
 			}
 			UninstallContext.state = compStateUninstalledone
 

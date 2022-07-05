@@ -95,6 +95,10 @@ func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
+func (o opensearchComponent) IsOperatorUninstallSupported() bool {
+	return false
+}
+
 func (o opensearchComponent) PreUninstall(context spi.ComponentContext) error {
 	return nil
 }

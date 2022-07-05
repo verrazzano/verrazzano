@@ -1,0 +1,3587 @@
+{
+    "kind": "EventList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "21570"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912dbe642734f",
+                "namespace": "cattle-system",
+                "uid": "2de53224-57f0-4d88-95e6-186eb1581d22",
+                "resourceVersion": "8280",
+                "creationTimestamp": "2022-06-16T10:24:33Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8277"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/helm-operation-d2p4w to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:24:33.705613Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912e529a1c3c7",
+                "namespace": "cattle-system",
+                "uid": "c4d6688d-0257-43d4-8f70-f075d6a35f84",
+                "resourceVersion": "8973",
+                "creationTimestamp": "2022-06-16T10:25:13Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Pulling",
+            "message": "Pulling image \"rancher/shell:v0.1.16\"",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:13Z",
+            "lastTimestamp": "2022-06-16T10:25:13Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912e76445ae88",
+                "namespace": "cattle-system",
+                "uid": "0fb3fa20-cb15-4aa6-bbb3-a51b102ff80b",
+                "resourceVersion": "9056",
+                "creationTimestamp": "2022-06-16T10:25:23Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Pulled",
+            "message": "Successfully pulled image \"rancher/shell:v0.1.16\" in 9.573730414s",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:23Z",
+            "lastTimestamp": "2022-06-16T10:25:23Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912e76fef2b53",
+                "namespace": "cattle-system",
+                "uid": "bd220945-0ebe-46d8-aaa1-8149ac63bdd3",
+                "resourceVersion": "9059",
+                "creationTimestamp": "2022-06-16T10:25:23Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Created",
+            "message": "Created container helm",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:23Z",
+            "lastTimestamp": "2022-06-16T10:25:23Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912e771bf59a3",
+                "namespace": "cattle-system",
+                "uid": "0acb9f70-3215-4003-86de-520432dd623a",
+                "resourceVersion": "9060",
+                "creationTimestamp": "2022-06-16T10:25:23Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Started",
+            "message": "Started container helm",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:23Z",
+            "lastTimestamp": "2022-06-16T10:25:23Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912e771ef5ff9",
+                "namespace": "cattle-system",
+                "uid": "16d49fae-8ab5-4e93-bdf7-e935ba8c322b",
+                "resourceVersion": "9061",
+                "creationTimestamp": "2022-06-16T10:25:23Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"rancher/shell:v0.1.16\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:23Z",
+            "lastTimestamp": "2022-06-16T10:25:23Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912e77c0e4e2f",
+                "namespace": "cattle-system",
+                "uid": "9c0396fb-0741-41a7-a982-4f60641ece0b",
+                "resourceVersion": "9065",
+                "creationTimestamp": "2022-06-16T10:25:23Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Created",
+            "message": "Created container proxy",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:23Z",
+            "lastTimestamp": "2022-06-16T10:25:23Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912e77dc8084c",
+                "namespace": "cattle-system",
+                "uid": "9b8a98eb-06f7-4cdd-9ca7-3cac4f198ed7",
+                "resourceVersion": "9066",
+                "creationTimestamp": "2022-06-16T10:25:23Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Started",
+            "message": "Started container proxy",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:23Z",
+            "lastTimestamp": "2022-06-16T10:25:23Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912eb80abe0f3",
+                "namespace": "cattle-system",
+                "uid": "ea04a603-f2f0-4a54-8527-d0cbe4344662",
+                "resourceVersion": "9405",
+                "creationTimestamp": "2022-06-16T10:25:40Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"admin-kubeconfig\" : object \"cattle-system\"/\"impersonation-helm-op-admin-kubeconfig-b4fvh\" not registered",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:40Z",
+            "lastTimestamp": "2022-06-16T10:25:48Z",
+            "count": 5,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912eb80ac7993",
+                "namespace": "cattle-system",
+                "uid": "0e8ebe61-fce5-4a60-9579-3c8789e71bf8",
+                "resourceVersion": "9370",
+                "creationTimestamp": "2022-06-16T10:25:40Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"pod-impersonation-helm-op-4pfcz-token-jsdd6\" : object \"cattle-system\"/\"pod-impersonation-helm-op-4pfcz-token-jsdd6\" not registered",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:40Z",
+            "lastTimestamp": "2022-06-16T10:25:44Z",
+            "count": 4,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912eb80ad6773",
+                "namespace": "cattle-system",
+                "uid": "55ffd7c0-29f2-43ab-900e-b63288452aa8",
+                "resourceVersion": "9371",
+                "creationTimestamp": "2022-06-16T10:25:40Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"data\" : object \"cattle-system\"/\"helm-operation-5rsz2\" not registered",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:40Z",
+            "lastTimestamp": "2022-06-16T10:25:44Z",
+            "count": 4,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-d2p4w.16f912eb80af6bb7",
+                "namespace": "cattle-system",
+                "uid": "747ea5d5-284f-4b17-a839-6eb69ea46b34",
+                "resourceVersion": "9406",
+                "creationTimestamp": "2022-06-16T10:25:40Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-d2p4w",
+                "uid": "1aafb363-f6bb-4087-b83d-339d771c0b01",
+                "apiVersion": "v1",
+                "resourceVersion": "8279"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"user-kubeconfig\" : object \"cattle-system\"/\"impersonation-helm-op-user-kubeconfig-hd6j7\" not registered",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:40Z",
+            "lastTimestamp": "2022-06-16T10:25:48Z",
+            "count": 5,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-dlhvn.16f912f11eac3357",
+                "namespace": "cattle-system",
+                "uid": "9eb5f892-2cfc-4835-8348-4ec6616bdc76",
+                "resourceVersion": "9721",
+                "creationTimestamp": "2022-06-16T10:26:04Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-dlhvn",
+                "uid": "03a3581d-6446-4686-a720-3d681f180944",
+                "apiVersion": "v1",
+                "resourceVersion": "9717"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/helm-operation-dlhvn to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:26:04.846377Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-dlhvn.16f912f3e06f4d21",
+                "namespace": "cattle-system",
+                "uid": "d80e8c86-844c-48ea-a79a-e818586153fa",
+                "resourceVersion": "9822",
+                "creationTimestamp": "2022-06-16T10:26:16Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-dlhvn",
+                "uid": "03a3581d-6446-4686-a720-3d681f180944",
+                "apiVersion": "v1",
+                "resourceVersion": "9719",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Pulling",
+            "message": "Pulling image \"rancher/shell:v0.1.16\"",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:26:16Z",
+            "lastTimestamp": "2022-06-16T10:26:16Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-dlhvn.16f912fcb9d5b0f5",
+                "namespace": "cattle-system",
+                "uid": "c6cb70f9-a6e7-46b1-a8c1-e510a06c2295",
+                "resourceVersion": "10101",
+                "creationTimestamp": "2022-06-16T10:26:54Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-dlhvn",
+                "uid": "03a3581d-6446-4686-a720-3d681f180944",
+                "apiVersion": "v1",
+                "resourceVersion": "9719",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Pulled",
+            "message": "Successfully pulled image \"rancher/shell:v0.1.16\" in 38.007077004s",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:26:54Z",
+            "lastTimestamp": "2022-06-16T10:26:54Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-dlhvn.16f912fcc69fb181",
+                "namespace": "cattle-system",
+                "uid": "5998a3fd-559f-4de9-8b3a-95b6a195c6f7",
+                "resourceVersion": "10105",
+                "creationTimestamp": "2022-06-16T10:26:54Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-dlhvn",
+                "uid": "03a3581d-6446-4686-a720-3d681f180944",
+                "apiVersion": "v1",
+                "resourceVersion": "9719",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Created",
+            "message": "Created container helm",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:26:54Z",
+            "lastTimestamp": "2022-06-16T10:26:54Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-dlhvn.16f912fcc8a39b26",
+                "namespace": "cattle-system",
+                "uid": "84f65da7-af79-4d97-a213-bdc14f2f061a",
+                "resourceVersion": "10107",
+                "creationTimestamp": "2022-06-16T10:26:54Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-dlhvn",
+                "uid": "03a3581d-6446-4686-a720-3d681f180944",
+                "apiVersion": "v1",
+                "resourceVersion": "9719",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Started",
+            "message": "Started container helm",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:26:54Z",
+            "lastTimestamp": "2022-06-16T10:26:54Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-dlhvn.16f912fcc8d14c42",
+                "namespace": "cattle-system",
+                "uid": "b17ae17f-9bd5-4630-835a-bf718d5a7928",
+                "resourceVersion": "10108",
+                "creationTimestamp": "2022-06-16T10:26:54Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-dlhvn",
+                "uid": "03a3581d-6446-4686-a720-3d681f180944",
+                "apiVersion": "v1",
+                "resourceVersion": "9719",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"rancher/shell:v0.1.16\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:26:54Z",
+            "lastTimestamp": "2022-06-16T10:26:54Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-dlhvn.16f912fcd2eb13b7",
+                "namespace": "cattle-system",
+                "uid": "6238fb00-a305-4fef-b839-e54492c55c7a",
+                "resourceVersion": "10109",
+                "creationTimestamp": "2022-06-16T10:26:55Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-dlhvn",
+                "uid": "03a3581d-6446-4686-a720-3d681f180944",
+                "apiVersion": "v1",
+                "resourceVersion": "9719",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Created",
+            "message": "Created container proxy",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:26:55Z",
+            "lastTimestamp": "2022-06-16T10:26:55Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-dlhvn.16f912fcd4def60a",
+                "namespace": "cattle-system",
+                "uid": "269aae37-c6c0-43a6-ba69-fcf708883d2a",
+                "resourceVersion": "10110",
+                "creationTimestamp": "2022-06-16T10:26:55Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-dlhvn",
+                "uid": "03a3581d-6446-4686-a720-3d681f180944",
+                "apiVersion": "v1",
+                "resourceVersion": "9719",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Started",
+            "message": "Started container proxy",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:26:55Z",
+            "lastTimestamp": "2022-06-16T10:26:55Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-gjfls.16f912ea502062de",
+                "namespace": "cattle-system",
+                "uid": "12b772d6-bcfa-4968-b347-3439c2816613",
+                "resourceVersion": "9227",
+                "creationTimestamp": "2022-06-16T10:25:35Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-gjfls",
+                "uid": "e2ecbec9-5a47-432e-aff3-3cdd589aa9c8",
+                "apiVersion": "v1",
+                "resourceVersion": "9225"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/helm-operation-gjfls to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:25:35.611308Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-gjfls.16f912ea727acc59",
+                "namespace": "cattle-system",
+                "uid": "cdcb9f46-2bab-4c54-bc53-5548c9dbd61b",
+                "resourceVersion": "9241",
+                "creationTimestamp": "2022-06-16T10:25:36Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-gjfls",
+                "uid": "e2ecbec9-5a47-432e-aff3-3cdd589aa9c8",
+                "apiVersion": "v1",
+                "resourceVersion": "9226",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"rancher/shell:v0.1.16\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:36Z",
+            "lastTimestamp": "2022-06-16T10:25:36Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-gjfls.16f912ea808e0024",
+                "namespace": "cattle-system",
+                "uid": "5916c48a-f0a4-477d-a741-e5fae430db1a",
+                "resourceVersion": "9242",
+                "creationTimestamp": "2022-06-16T10:25:36Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-gjfls",
+                "uid": "e2ecbec9-5a47-432e-aff3-3cdd589aa9c8",
+                "apiVersion": "v1",
+                "resourceVersion": "9226",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Created",
+            "message": "Created container helm",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:36Z",
+            "lastTimestamp": "2022-06-16T10:25:36Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-gjfls.16f912ea82a2d049",
+                "namespace": "cattle-system",
+                "uid": "d46cc892-04b3-4d8d-b080-de7bd8fcaa53",
+                "resourceVersion": "9243",
+                "creationTimestamp": "2022-06-16T10:25:36Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-gjfls",
+                "uid": "e2ecbec9-5a47-432e-aff3-3cdd589aa9c8",
+                "apiVersion": "v1",
+                "resourceVersion": "9226",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Started",
+            "message": "Started container helm",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:36Z",
+            "lastTimestamp": "2022-06-16T10:25:36Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-gjfls.16f912ea82de2dd4",
+                "namespace": "cattle-system",
+                "uid": "5e8dc590-a744-468d-9f9a-5f3f10aa0850",
+                "resourceVersion": "9244",
+                "creationTimestamp": "2022-06-16T10:25:36Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-gjfls",
+                "uid": "e2ecbec9-5a47-432e-aff3-3cdd589aa9c8",
+                "apiVersion": "v1",
+                "resourceVersion": "9226",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"rancher/shell:v0.1.16\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:36Z",
+            "lastTimestamp": "2022-06-16T10:25:36Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-gjfls.16f912ea8f1e3a18",
+                "namespace": "cattle-system",
+                "uid": "3b43495d-4bee-472e-b080-290cd6623e77",
+                "resourceVersion": "9246",
+                "creationTimestamp": "2022-06-16T10:25:36Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-gjfls",
+                "uid": "e2ecbec9-5a47-432e-aff3-3cdd589aa9c8",
+                "apiVersion": "v1",
+                "resourceVersion": "9226",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Created",
+            "message": "Created container proxy",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:36Z",
+            "lastTimestamp": "2022-06-16T10:25:36Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-gjfls.16f912ea9166a737",
+                "namespace": "cattle-system",
+                "uid": "9c23cbe4-3e05-45fd-813f-1a7d02a2126e",
+                "resourceVersion": "9247",
+                "creationTimestamp": "2022-06-16T10:25:36Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-gjfls",
+                "uid": "e2ecbec9-5a47-432e-aff3-3cdd589aa9c8",
+                "apiVersion": "v1",
+                "resourceVersion": "9226",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Started",
+            "message": "Started container proxy",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:36Z",
+            "lastTimestamp": "2022-06-16T10:25:36Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f912ffb88ea0cb",
+                "namespace": "cattle-system",
+                "uid": "1cdbdedb-1653-43d8-9235-44a222974e3a",
+                "resourceVersion": "10313",
+                "creationTimestamp": "2022-06-16T10:27:07Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10311"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/helm-operation-s5stv to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:27:07.557674Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f912fffe7d47ac",
+                "namespace": "cattle-system",
+                "uid": "3527024f-b17d-4983-945f-273b4fb6c490",
+                "resourceVersion": "10328",
+                "creationTimestamp": "2022-06-16T10:27:08Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10312",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"rancher/shell:v0.1.16\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:08Z",
+            "lastTimestamp": "2022-06-16T10:27:08Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f913000aa09314",
+                "namespace": "cattle-system",
+                "uid": "0a64f1f3-0d6f-4497-aa5b-bfd6323aca17",
+                "resourceVersion": "10331",
+                "creationTimestamp": "2022-06-16T10:27:08Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10312",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Created",
+            "message": "Created container helm",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:08Z",
+            "lastTimestamp": "2022-06-16T10:27:08Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f913000c8913f6",
+                "namespace": "cattle-system",
+                "uid": "8036d235-9b4b-4990-a9c7-58a19254c4e6",
+                "resourceVersion": "10333",
+                "creationTimestamp": "2022-06-16T10:27:08Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10312",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Started",
+            "message": "Started container helm",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:08Z",
+            "lastTimestamp": "2022-06-16T10:27:08Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f913000cc5bed8",
+                "namespace": "cattle-system",
+                "uid": "1de96a67-c313-4397-b464-42bf0c9abefb",
+                "resourceVersion": "10334",
+                "creationTimestamp": "2022-06-16T10:27:08Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10312",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"rancher/shell:v0.1.16\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:08Z",
+            "lastTimestamp": "2022-06-16T10:27:08Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f913001845026f",
+                "namespace": "cattle-system",
+                "uid": "7a112d95-d1ca-4eb8-af5f-fe37dbe2f862",
+                "resourceVersion": "10337",
+                "creationTimestamp": "2022-06-16T10:27:09Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10312",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Created",
+            "message": "Created container proxy",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:09Z",
+            "lastTimestamp": "2022-06-16T10:27:09Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f913001a431f42",
+                "namespace": "cattle-system",
+                "uid": "8e41ebb9-4a8e-4c1d-a264-173a96bd3f0f",
+                "resourceVersion": "10339",
+                "creationTimestamp": "2022-06-16T10:27:09Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10312",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Started",
+            "message": "Started container proxy",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:09Z",
+            "lastTimestamp": "2022-06-16T10:27:09Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f91304c8ff48ab",
+                "namespace": "cattle-system",
+                "uid": "86557d57-d379-49d8-88b0-50cc8819bf7c",
+                "resourceVersion": "10693",
+                "creationTimestamp": "2022-06-16T10:27:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10312"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"admin-kubeconfig\" : object \"cattle-system\"/\"impersonation-helm-op-admin-kubeconfig-2qhqq\" not registered",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:29Z",
+            "lastTimestamp": "2022-06-16T10:27:29Z",
+            "count": 2,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f91304c8ff5239",
+                "namespace": "cattle-system",
+                "uid": "1d95f190-f25a-4845-b8b5-023da7f8b5a5",
+                "resourceVersion": "10694",
+                "creationTimestamp": "2022-06-16T10:27:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10312"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"pod-impersonation-helm-op-krzmf-token-pst2h\" : object \"cattle-system\"/\"pod-impersonation-helm-op-krzmf-token-pst2h\" not registered",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:29Z",
+            "lastTimestamp": "2022-06-16T10:27:29Z",
+            "count": 2,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f91304c90082c5",
+                "namespace": "cattle-system",
+                "uid": "b9a2f4c5-afc1-42ac-84b9-0ff843d5577b",
+                "resourceVersion": "10691",
+                "creationTimestamp": "2022-06-16T10:27:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10312"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"user-kubeconfig\" : object \"cattle-system\"/\"impersonation-helm-op-user-kubeconfig-xcrrs\" not registered",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:29Z",
+            "lastTimestamp": "2022-06-16T10:27:29Z",
+            "count": 2,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-s5stv.16f91304c90154fb",
+                "namespace": "cattle-system",
+                "uid": "b451c383-582e-4512-b020-f8dbbf21fe9e",
+                "resourceVersion": "10692",
+                "creationTimestamp": "2022-06-16T10:27:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-s5stv",
+                "uid": "f8d545c0-fdcc-4079-a1f3-8338d5f4280a",
+                "apiVersion": "v1",
+                "resourceVersion": "10312"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"data\" : object \"cattle-system\"/\"helm-operation-txh24\" not registered",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:29Z",
+            "lastTimestamp": "2022-06-16T10:27:29Z",
+            "count": 2,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-xnktw.16f912eee385a230",
+                "namespace": "cattle-system",
+                "uid": "dc7274da-8969-43e0-9c01-3f8eecd4788a",
+                "resourceVersion": "9518",
+                "creationTimestamp": "2022-06-16T10:25:55Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-xnktw",
+                "uid": "8feb86fc-a97a-4211-952a-3a5396c83256",
+                "apiVersion": "v1",
+                "resourceVersion": "9516"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/helm-operation-xnktw to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:25:55.264048Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-xnktw.16f912ef06d218e6",
+                "namespace": "cattle-system",
+                "uid": "664c3d26-bbb7-46e5-b0a0-cbd94273f7d9",
+                "resourceVersion": "9531",
+                "creationTimestamp": "2022-06-16T10:25:55Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-xnktw",
+                "uid": "8feb86fc-a97a-4211-952a-3a5396c83256",
+                "apiVersion": "v1",
+                "resourceVersion": "9517",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"rancher/shell:v0.1.16\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:55Z",
+            "lastTimestamp": "2022-06-16T10:25:55Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-xnktw.16f912ef166b803c",
+                "namespace": "cattle-system",
+                "uid": "2abfc51f-eda1-4ef7-a2db-007b604feb5c",
+                "resourceVersion": "9534",
+                "creationTimestamp": "2022-06-16T10:25:56Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-xnktw",
+                "uid": "8feb86fc-a97a-4211-952a-3a5396c83256",
+                "apiVersion": "v1",
+                "resourceVersion": "9517",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Created",
+            "message": "Created container helm",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:56Z",
+            "lastTimestamp": "2022-06-16T10:25:56Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-xnktw.16f912ef18a70d53",
+                "namespace": "cattle-system",
+                "uid": "9f85f422-e4bd-4b6f-af7b-e5160755d2a8",
+                "resourceVersion": "9535",
+                "creationTimestamp": "2022-06-16T10:25:56Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-xnktw",
+                "uid": "8feb86fc-a97a-4211-952a-3a5396c83256",
+                "apiVersion": "v1",
+                "resourceVersion": "9517",
+                "fieldPath": "spec.containers{helm}"
+            },
+            "reason": "Started",
+            "message": "Started container helm",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:56Z",
+            "lastTimestamp": "2022-06-16T10:25:56Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-xnktw.16f912ef18e61d5f",
+                "namespace": "cattle-system",
+                "uid": "8b596805-2100-452e-b642-b8c4533e553d",
+                "resourceVersion": "9536",
+                "creationTimestamp": "2022-06-16T10:25:56Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-xnktw",
+                "uid": "8feb86fc-a97a-4211-952a-3a5396c83256",
+                "apiVersion": "v1",
+                "resourceVersion": "9517",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"rancher/shell:v0.1.16\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:56Z",
+            "lastTimestamp": "2022-06-16T10:25:56Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-xnktw.16f912ef26f384ff",
+                "namespace": "cattle-system",
+                "uid": "ce2f51da-658c-4452-8a71-eb23d8e54be0",
+                "resourceVersion": "9537",
+                "creationTimestamp": "2022-06-16T10:25:56Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-xnktw",
+                "uid": "8feb86fc-a97a-4211-952a-3a5396c83256",
+                "apiVersion": "v1",
+                "resourceVersion": "9517",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Created",
+            "message": "Created container proxy",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:56Z",
+            "lastTimestamp": "2022-06-16T10:25:56Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "helm-operation-xnktw.16f912ef2923a588",
+                "namespace": "cattle-system",
+                "uid": "d185a2e0-2993-45fa-bfa5-078964a67ad3",
+                "resourceVersion": "9539",
+                "creationTimestamp": "2022-06-16T10:25:56Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "helm-operation-xnktw",
+                "uid": "8feb86fc-a97a-4211-952a-3a5396c83256",
+                "apiVersion": "v1",
+                "resourceVersion": "9517",
+                "fieldPath": "spec.containers{proxy}"
+            },
+            "reason": "Started",
+            "message": "Started container proxy",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:25:56Z",
+            "lastTimestamp": "2022-06-16T10:25:56Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dt67w.16f912b115b4382c",
+                "namespace": "cattle-system",
+                "uid": "2877b918-54ef-4c95-b69b-583254b48ee0",
+                "resourceVersion": "4923",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dt67w",
+                "uid": "9402adfd-c588-4125-a1f8-86640c10ccee",
+                "apiVersion": "v1",
+                "resourceVersion": "4916"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/rancher-649dc876b-dt67w to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:21:29.818002Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dt67w.16f912b162b39232",
+                "namespace": "cattle-system",
+                "uid": "216355e9-f039-48d9-b4b3-a915196a7931",
+                "resourceVersion": "4993",
+                "creationTimestamp": "2022-06-16T10:21:31Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dt67w",
+                "uid": "9402adfd-c588-4125-a1f8-86640c10ccee",
+                "apiVersion": "v1",
+                "resourceVersion": "4918"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"kube-api-access-5lv5q\" : failed to sync configmap cache: timed out waiting for the condition",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:21:31Z",
+            "lastTimestamp": "2022-06-16T10:21:31Z",
+            "count": 1,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dt67w.16f912b5188903a0",
+                "namespace": "cattle-system",
+                "uid": "2f801fcf-a6a6-422b-9090-2f928e086897",
+                "resourceVersion": "5223",
+                "creationTimestamp": "2022-06-16T10:21:47Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dt67w",
+                "uid": "9402adfd-c588-4125-a1f8-86640c10ccee",
+                "apiVersion": "v1",
+                "resourceVersion": "4918",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulling",
+            "message": "Pulling image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\"",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:21:47Z",
+            "lastTimestamp": "2022-06-16T10:21:47Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dt67w.16f912c5f4900900",
+                "namespace": "cattle-system",
+                "uid": "9965b7ed-ead6-4546-a380-596496eda87c",
+                "resourceVersion": "5864",
+                "creationTimestamp": "2022-06-16T10:22:59Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dt67w",
+                "uid": "9402adfd-c588-4125-a1f8-86640c10ccee",
+                "apiVersion": "v1",
+                "resourceVersion": "4918",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulled",
+            "message": "Successfully pulled image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\" in 1m12.410905034s",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:22:59Z",
+            "lastTimestamp": "2022-06-16T10:22:59Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dt67w.16f912c608f3c5b1",
+                "namespace": "cattle-system",
+                "uid": "38c5d944-623f-401b-b9e6-27bc2517338c",
+                "resourceVersion": "5921",
+                "creationTimestamp": "2022-06-16T10:22:59Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dt67w",
+                "uid": "9402adfd-c588-4125-a1f8-86640c10ccee",
+                "apiVersion": "v1",
+                "resourceVersion": "4918",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Created",
+            "message": "Created container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:22:59Z",
+            "lastTimestamp": "2022-06-16T10:23:01Z",
+            "count": 2,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dt67w.16f912c60cc8b7c5",
+                "namespace": "cattle-system",
+                "uid": "1670567f-2274-4b7f-bc5c-8b8c771dca2b",
+                "resourceVersion": "5928",
+                "creationTimestamp": "2022-06-16T10:22:59Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dt67w",
+                "uid": "9402adfd-c588-4125-a1f8-86640c10ccee",
+                "apiVersion": "v1",
+                "resourceVersion": "4918",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Started",
+            "message": "Started container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:22:59Z",
+            "lastTimestamp": "2022-06-16T10:23:01Z",
+            "count": 2,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dt67w.16f912c651c6b125",
+                "namespace": "cattle-system",
+                "uid": "f371465c-c776-4dad-b620-30866035d590",
+                "resourceVersion": "5911",
+                "creationTimestamp": "2022-06-16T10:23:01Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dt67w",
+                "uid": "9402adfd-c588-4125-a1f8-86640c10ccee",
+                "apiVersion": "v1",
+                "resourceVersion": "4918",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:01Z",
+            "lastTimestamp": "2022-06-16T10:23:01Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dt67w.16f912cd0915c18f",
+                "namespace": "cattle-system",
+                "uid": "2f3bcb62-bc94-401e-acdc-8964c77fde9f",
+                "resourceVersion": "6876",
+                "creationTimestamp": "2022-06-16T10:23:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dt67w",
+                "uid": "9402adfd-c588-4125-a1f8-86640c10ccee",
+                "apiVersion": "v1",
+                "resourceVersion": "4918",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Unhealthy",
+            "message": "Readiness probe failed: Get \"http://REDACTED-IP4-ADDRESS:80/healthz\": dial tcp REDACTED-IP4-ADDRESS:80: connect: connection refused",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:29Z",
+            "lastTimestamp": "2022-06-16T10:23:59Z",
+            "count": 2,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dwqjg.16f912d8b5a9373f",
+                "namespace": "cattle-system",
+                "uid": "5f51c079-3ac2-4716-8399-806ccec7740a",
+                "resourceVersion": "7891",
+                "creationTimestamp": "2022-06-16T10:24:20Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dwqjg",
+                "uid": "7aeedd98-b5cf-45f4-afe1-00306239bcdb",
+                "apiVersion": "v1",
+                "resourceVersion": "7871"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/rancher-649dc876b-dwqjg to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:24:20.005356Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dwqjg.16f912dd3f268f3e",
+                "namespace": "cattle-system",
+                "uid": "afa7f31e-5438-48b4-ad6b-ac95f59a27ed",
+                "resourceVersion": "8641",
+                "creationTimestamp": "2022-06-16T10:24:39Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dwqjg",
+                "uid": "7aeedd98-b5cf-45f4-afe1-00306239bcdb",
+                "apiVersion": "v1",
+                "resourceVersion": "7876",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:24:39Z",
+            "lastTimestamp": "2022-06-16T10:24:39Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dwqjg.16f912dd4b6cff29",
+                "namespace": "cattle-system",
+                "uid": "924d38e2-3fb9-4dd1-8221-34c1c2c4a63d",
+                "resourceVersion": "8652",
+                "creationTimestamp": "2022-06-16T10:24:39Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dwqjg",
+                "uid": "7aeedd98-b5cf-45f4-afe1-00306239bcdb",
+                "apiVersion": "v1",
+                "resourceVersion": "7876",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Created",
+            "message": "Created container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:24:39Z",
+            "lastTimestamp": "2022-06-16T10:24:39Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dwqjg.16f912dd4d3f2495",
+                "namespace": "cattle-system",
+                "uid": "60dc0726-28a1-4096-a7cd-77c1dadbecb8",
+                "resourceVersion": "8655",
+                "creationTimestamp": "2022-06-16T10:24:39Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dwqjg",
+                "uid": "7aeedd98-b5cf-45f4-afe1-00306239bcdb",
+                "apiVersion": "v1",
+                "resourceVersion": "7876",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Started",
+            "message": "Started container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:24:39Z",
+            "lastTimestamp": "2022-06-16T10:24:39Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-dwqjg.16f912dfb38c54a5",
+                "namespace": "cattle-system",
+                "uid": "8eb70e48-d119-4cd9-a70a-1bf762aea66c",
+                "resourceVersion": "9036",
+                "creationTimestamp": "2022-06-16T10:24:50Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-dwqjg",
+                "uid": "7aeedd98-b5cf-45f4-afe1-00306239bcdb",
+                "apiVersion": "v1",
+                "resourceVersion": "7876",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Unhealthy",
+            "message": "Readiness probe failed: Get \"http://REDACTED-IP4-ADDRESS:80/healthz\": dial tcp REDACTED-IP4-ADDRESS:80: connect: connection refused",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:24:50Z",
+            "lastTimestamp": "2022-06-16T10:25:20Z",
+            "count": 2,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-kdrb2.16f912b119de1a23",
+                "namespace": "cattle-system",
+                "uid": "9aa8769c-6404-40be-937b-0818ca4139ae",
+                "resourceVersion": "4945",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-kdrb2",
+                "uid": "1f36ef0a-c41b-4882-b91d-94313742cf76",
+                "apiVersion": "v1",
+                "resourceVersion": "4937"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/rancher-649dc876b-kdrb2 to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:21:29.887858Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-kdrb2.16f912b13be3087e",
+                "namespace": "cattle-system",
+                "uid": "ec157f9a-0c85-4141-b87c-cf97d0e3b00e",
+                "resourceVersion": "4967",
+                "creationTimestamp": "2022-06-16T10:21:30Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-kdrb2",
+                "uid": "1f36ef0a-c41b-4882-b91d-94313742cf76",
+                "apiVersion": "v1",
+                "resourceVersion": "4939",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulling",
+            "message": "Pulling image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\"",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:21:30Z",
+            "lastTimestamp": "2022-06-16T10:21:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-kdrb2.16f912c663440587",
+                "namespace": "cattle-system",
+                "uid": "9134f94e-139d-456e-90f2-d2d05e407de3",
+                "resourceVersion": "5917",
+                "creationTimestamp": "2022-06-16T10:23:01Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-kdrb2",
+                "uid": "1f36ef0a-c41b-4882-b91d-94313742cf76",
+                "apiVersion": "v1",
+                "resourceVersion": "4939",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulled",
+            "message": "Successfully pulled image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\" in 1m30.854965369s",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:01Z",
+            "lastTimestamp": "2022-06-16T10:23:01Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-kdrb2.16f912c6a436c579",
+                "namespace": "cattle-system",
+                "uid": "bf82b7f1-d6d4-4007-b4d8-0c2e225756a0",
+                "resourceVersion": "5937",
+                "creationTimestamp": "2022-06-16T10:23:02Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-kdrb2",
+                "uid": "1f36ef0a-c41b-4882-b91d-94313742cf76",
+                "apiVersion": "v1",
+                "resourceVersion": "4939",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Created",
+            "message": "Created container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:02Z",
+            "lastTimestamp": "2022-06-16T10:23:02Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-kdrb2.16f912c6a826c7d3",
+                "namespace": "cattle-system",
+                "uid": "ce3cd18e-6e0a-4206-bb3b-8a99a7676af9",
+                "resourceVersion": "5939",
+                "creationTimestamp": "2022-06-16T10:23:02Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-kdrb2",
+                "uid": "1f36ef0a-c41b-4882-b91d-94313742cf76",
+                "apiVersion": "v1",
+                "resourceVersion": "4939",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Started",
+            "message": "Started container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:02Z",
+            "lastTimestamp": "2022-06-16T10:23:02Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b-kdrb2.16f912cd0e0ed992",
+                "namespace": "cattle-system",
+                "uid": "69e36b7d-6617-4da4-8171-23f992b3f7d6",
+                "resourceVersion": "6875",
+                "creationTimestamp": "2022-06-16T10:23:30Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b-kdrb2",
+                "uid": "1f36ef0a-c41b-4882-b91d-94313742cf76",
+                "apiVersion": "v1",
+                "resourceVersion": "4939",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Unhealthy",
+            "message": "Readiness probe failed: Get \"http://REDACTED-IP4-ADDRESS:80/healthz\": dial tcp REDACTED-IP4-ADDRESS:80: connect: connection refused",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:29Z",
+            "lastTimestamp": "2022-06-16T10:23:59Z",
+            "count": 2,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b.16f912b11547c26e",
+                "namespace": "cattle-system",
+                "uid": "f5f914a6-578b-4b55-894c-5b585300a995",
+                "resourceVersion": "4920",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b",
+                "uid": "35968210-3da3-46c8-ac87-49bbfa208001",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "4901"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: rancher-649dc876b-dt67w",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b.16f912b118eb410a",
+                "namespace": "cattle-system",
+                "uid": "028448ef-c23e-4f32-b9d3-4274c9eac03a",
+                "resourceVersion": "4943",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b",
+                "uid": "35968210-3da3-46c8-ac87-49bbfa208001",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "4932"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: rancher-649dc876b-kdrb2",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-649dc876b.16f912d8b1d45e78",
+                "namespace": "cattle-system",
+                "uid": "4aeaa56e-b1b3-4a4a-9809-e0a6b3387518",
+                "resourceVersion": "7878",
+                "creationTimestamp": "2022-06-16T10:24:19Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "cattle-system",
+                "name": "rancher-649dc876b",
+                "uid": "35968210-3da3-46c8-ac87-49bbfa208001",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "7851"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: rancher-649dc876b-dwqjg",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:24:19Z",
+            "lastTimestamp": "2022-06-16T10:24:19Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-8cln7.16f912b11686323b",
+                "namespace": "cattle-system",
+                "uid": "65d920ad-2765-46fb-98cd-5f905daca087",
+                "resourceVersion": "4926",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-8cln7",
+                "uid": "567a4bb1-cf64-4130-92db-f108979eaa2a",
+                "apiVersion": "v1",
+                "resourceVersion": "4917"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/rancher-856c976c97-8cln7 to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:21:29.831767Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-8cln7.16f912b13750b02d",
+                "namespace": "cattle-system",
+                "uid": "d013a94c-422e-4419-a0c3-b99c3a855662",
+                "resourceVersion": "4962",
+                "creationTimestamp": "2022-06-16T10:21:30Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-8cln7",
+                "uid": "567a4bb1-cf64-4130-92db-f108979eaa2a",
+                "apiVersion": "v1",
+                "resourceVersion": "4922",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulling",
+            "message": "Pulling image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\"",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:21:30Z",
+            "lastTimestamp": "2022-06-16T10:21:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-8cln7.16f912c680637dfb",
+                "namespace": "cattle-system",
+                "uid": "c451973a-1d43-4fc0-a65b-d65c18ef56b1",
+                "resourceVersion": "5923",
+                "creationTimestamp": "2022-06-16T10:23:01Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-8cln7",
+                "uid": "567a4bb1-cf64-4130-92db-f108979eaa2a",
+                "apiVersion": "v1",
+                "resourceVersion": "4922",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulled",
+            "message": "Successfully pulled image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\" in 1m31.420263698s",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:01Z",
+            "lastTimestamp": "2022-06-16T10:23:01Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-8cln7.16f912c6cb671a3a",
+                "namespace": "cattle-system",
+                "uid": "d20b9600-d311-4739-94e1-fb37363b1641",
+                "resourceVersion": "5946",
+                "creationTimestamp": "2022-06-16T10:23:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-8cln7",
+                "uid": "567a4bb1-cf64-4130-92db-f108979eaa2a",
+                "apiVersion": "v1",
+                "resourceVersion": "4922",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Created",
+            "message": "Created container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:03Z",
+            "lastTimestamp": "2022-06-16T10:23:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-8cln7.16f912c6ceaa76dc",
+                "namespace": "cattle-system",
+                "uid": "b9e0c6b1-ef3b-4fc5-9cab-132003a8efef",
+                "resourceVersion": "5949",
+                "creationTimestamp": "2022-06-16T10:23:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-8cln7",
+                "uid": "567a4bb1-cf64-4130-92db-f108979eaa2a",
+                "apiVersion": "v1",
+                "resourceVersion": "4922",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Started",
+            "message": "Started container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:03Z",
+            "lastTimestamp": "2022-06-16T10:23:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-8cln7.16f912c7038c76b8",
+                "namespace": "cattle-system",
+                "uid": "32c4248f-21ca-44a1-bc60-6dfd1dd957a2",
+                "resourceVersion": "5971",
+                "creationTimestamp": "2022-06-16T10:23:04Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-8cln7",
+                "uid": "567a4bb1-cf64-4130-92db-f108979eaa2a",
+                "apiVersion": "v1",
+                "resourceVersion": "4922",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Killing",
+            "message": "Stopping container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:04Z",
+            "lastTimestamp": "2022-06-16T10:23:04Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-98n69.16f912b117d1d173",
+                "namespace": "cattle-system",
+                "uid": "ec281233-c099-4f30-9e5b-98ddaede71b3",
+                "resourceVersion": "4934",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-98n69",
+                "uid": "778309c7-04ab-4211-93ef-cccbe3b18cbc",
+                "apiVersion": "v1",
+                "resourceVersion": "4924"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/rancher-856c976c97-98n69 to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:21:29.853501Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-98n69.16f912b162d51a17",
+                "namespace": "cattle-system",
+                "uid": "783041bb-165e-4e5d-be83-7f617362475d",
+                "resourceVersion": "4995",
+                "creationTimestamp": "2022-06-16T10:21:31Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-98n69",
+                "uid": "778309c7-04ab-4211-93ef-cccbe3b18cbc",
+                "apiVersion": "v1",
+                "resourceVersion": "4929"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"kube-api-access-ghrdk\" : failed to sync configmap cache: timed out waiting for the condition",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:21:31Z",
+            "lastTimestamp": "2022-06-16T10:21:31Z",
+            "count": 1,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-98n69.16f912b518f9c135",
+                "namespace": "cattle-system",
+                "uid": "58a7c497-939a-418a-885d-0b036d0d1398",
+                "resourceVersion": "5224",
+                "creationTimestamp": "2022-06-16T10:21:47Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-98n69",
+                "uid": "778309c7-04ab-4211-93ef-cccbe3b18cbc",
+                "apiVersion": "v1",
+                "resourceVersion": "4929",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulling",
+            "message": "Pulling image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\"",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:21:47Z",
+            "lastTimestamp": "2022-06-16T10:21:47Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-98n69.16f912c5f48ff5fb",
+                "namespace": "cattle-system",
+                "uid": "80c2a831-b80c-492e-bb0f-ef147c073fbd",
+                "resourceVersion": "5863",
+                "creationTimestamp": "2022-06-16T10:22:59Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-98n69",
+                "uid": "778309c7-04ab-4211-93ef-cccbe3b18cbc",
+                "apiVersion": "v1",
+                "resourceVersion": "4929",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulled",
+            "message": "Successfully pulled image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\" in 1m12.403506691s",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:22:59Z",
+            "lastTimestamp": "2022-06-16T10:22:59Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-98n69.16f912c60907e7f5",
+                "namespace": "cattle-system",
+                "uid": "c6c6f46d-c2fb-4872-8710-9dabf0138ead",
+                "resourceVersion": "5870",
+                "creationTimestamp": "2022-06-16T10:22:59Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-98n69",
+                "uid": "778309c7-04ab-4211-93ef-cccbe3b18cbc",
+                "apiVersion": "v1",
+                "resourceVersion": "4929",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Created",
+            "message": "Created container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:22:59Z",
+            "lastTimestamp": "2022-06-16T10:22:59Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-98n69.16f912c60bf03e75",
+                "namespace": "cattle-system",
+                "uid": "f4912d5a-0236-4a56-86ea-d3fcb5242b82",
+                "resourceVersion": "5872",
+                "creationTimestamp": "2022-06-16T10:22:59Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-98n69",
+                "uid": "778309c7-04ab-4211-93ef-cccbe3b18cbc",
+                "apiVersion": "v1",
+                "resourceVersion": "4929",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Started",
+            "message": "Started container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:22:59Z",
+            "lastTimestamp": "2022-06-16T10:22:59Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-98n69.16f912cd0bcdf997",
+                "namespace": "cattle-system",
+                "uid": "b7748f39-2c7b-43d7-90b3-73d80e58b952",
+                "resourceVersion": "7049",
+                "creationTimestamp": "2022-06-16T10:23:30Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-98n69",
+                "uid": "778309c7-04ab-4211-93ef-cccbe3b18cbc",
+                "apiVersion": "v1",
+                "resourceVersion": "4929",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Unhealthy",
+            "message": "Readiness probe failed: Get \"http://REDACTED-IP4-ADDRESS:80/healthz\": dial tcp REDACTED-IP4-ADDRESS:80: connect: connection refused",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:29Z",
+            "lastTimestamp": "2022-06-16T10:24:07Z",
+            "count": 3,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-98n69.16f912d407fb6dc9",
+                "namespace": "cattle-system",
+                "uid": "4cef93b2-3018-47b1-bb15-c269a75896a1",
+                "resourceVersion": "6878",
+                "creationTimestamp": "2022-06-16T10:24:00Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-98n69",
+                "uid": "778309c7-04ab-4211-93ef-cccbe3b18cbc",
+                "apiVersion": "v1",
+                "resourceVersion": "4929",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Unhealthy",
+            "message": "Liveness probe failed: Get \"http://REDACTED-IP4-ADDRESS:80/healthz\": dial tcp REDACTED-IP4-ADDRESS:80: connect: connection refused",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:59Z",
+            "lastTimestamp": "2022-06-16T10:23:59Z",
+            "count": 1,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-98n69.16f912d8a2a4bb45",
+                "namespace": "cattle-system",
+                "uid": "f4bcaeaf-41e9-4803-a57c-67e50c07400c",
+                "resourceVersion": "7860",
+                "creationTimestamp": "2022-06-16T10:24:19Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-98n69",
+                "uid": "778309c7-04ab-4211-93ef-cccbe3b18cbc",
+                "apiVersion": "v1",
+                "resourceVersion": "4929",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Killing",
+            "message": "Stopping container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:24:19Z",
+            "lastTimestamp": "2022-06-16T10:24:19Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-98n69.16f912d8a4641051",
+                "namespace": "cattle-system",
+                "uid": "b35031a1-1c9a-4f75-b897-234f82522032",
+                "resourceVersion": "7863",
+                "creationTimestamp": "2022-06-16T10:24:19Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-98n69",
+                "uid": "778309c7-04ab-4211-93ef-cccbe3b18cbc",
+                "apiVersion": "v1",
+                "resourceVersion": "4929",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Unhealthy",
+            "message": "Readiness probe failed: Get \"http://REDACTED-IP4-ADDRESS:80/healthz\": EOF",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:24:19Z",
+            "lastTimestamp": "2022-06-16T10:24:19Z",
+            "count": 1,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-kjntj.16f912b117cccc33",
+                "namespace": "cattle-system",
+                "uid": "5dd52924-2429-4bba-bda8-c10748653d26",
+                "resourceVersion": "4933",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-kjntj",
+                "uid": "ec54bf53-19e5-488e-95d9-48ef76a80afc",
+                "apiVersion": "v1",
+                "resourceVersion": "4927"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/rancher-856c976c97-kjntj to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:21:29.853171Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-kjntj.16f912b14c39881d",
+                "namespace": "cattle-system",
+                "uid": "1dc1e166-0d61-4fc1-8784-887b15e0178b",
+                "resourceVersion": "4970",
+                "creationTimestamp": "2022-06-16T10:21:30Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-kjntj",
+                "uid": "ec54bf53-19e5-488e-95d9-48ef76a80afc",
+                "apiVersion": "v1",
+                "resourceVersion": "4930",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulling",
+            "message": "Pulling image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\"",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:21:30Z",
+            "lastTimestamp": "2022-06-16T10:21:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-kjntj.16f912c66313a56e",
+                "namespace": "cattle-system",
+                "uid": "32d7080a-40be-4d3d-87de-5f86432ed541",
+                "resourceVersion": "5916",
+                "creationTimestamp": "2022-06-16T10:23:01Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-kjntj",
+                "uid": "ec54bf53-19e5-488e-95d9-48ef76a80afc",
+                "apiVersion": "v1",
+                "resourceVersion": "4930",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Pulled",
+            "message": "Successfully pulled image \"ghcr.io/verrazzano/rancher:v2.6.4-20220504205847-7131173f2\" in 1m30.577687153s",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:01Z",
+            "lastTimestamp": "2022-06-16T10:23:01Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-kjntj.16f912c68e1bce52",
+                "namespace": "cattle-system",
+                "uid": "0f797bbc-9144-4292-8690-3e4dc37833de",
+                "resourceVersion": "5934",
+                "creationTimestamp": "2022-06-16T10:23:02Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-kjntj",
+                "uid": "ec54bf53-19e5-488e-95d9-48ef76a80afc",
+                "apiVersion": "v1",
+                "resourceVersion": "4930",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Created",
+            "message": "Created container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:02Z",
+            "lastTimestamp": "2022-06-16T10:23:02Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-kjntj.16f912c692f7ccfe",
+                "namespace": "cattle-system",
+                "uid": "327118c9-ca37-4460-a053-a8fc9c72b99a",
+                "resourceVersion": "5935",
+                "creationTimestamp": "2022-06-16T10:23:02Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-kjntj",
+                "uid": "ec54bf53-19e5-488e-95d9-48ef76a80afc",
+                "apiVersion": "v1",
+                "resourceVersion": "4930",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Started",
+            "message": "Started container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:02Z",
+            "lastTimestamp": "2022-06-16T10:23:02Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-kjntj.16f912cd0ade252c",
+                "namespace": "cattle-system",
+                "uid": "d5c9a1ab-b4fe-43d3-87bc-79bfc72da130",
+                "resourceVersion": "6874",
+                "creationTimestamp": "2022-06-16T10:23:29Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-kjntj",
+                "uid": "ec54bf53-19e5-488e-95d9-48ef76a80afc",
+                "apiVersion": "v1",
+                "resourceVersion": "4930",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Unhealthy",
+            "message": "Readiness probe failed: Get \"http://REDACTED-IP4-ADDRESS:80/healthz\": dial tcp REDACTED-IP4-ADDRESS:80: connect: connection refused",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:23:29Z",
+            "lastTimestamp": "2022-06-16T10:23:59Z",
+            "count": 2,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97-kjntj.16f912db11d3b71d",
+                "namespace": "cattle-system",
+                "uid": "9999e7e5-e1a8-405c-82e5-709e741ca12e",
+                "resourceVersion": "8158",
+                "creationTimestamp": "2022-06-16T10:24:30Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97-kjntj",
+                "uid": "ec54bf53-19e5-488e-95d9-48ef76a80afc",
+                "apiVersion": "v1",
+                "resourceVersion": "4930",
+                "fieldPath": "spec.containers{rancher}"
+            },
+            "reason": "Killing",
+            "message": "Stopping container rancher",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:24:30Z",
+            "lastTimestamp": "2022-06-16T10:24:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97.16f912b116075604",
+                "namespace": "cattle-system",
+                "uid": "427300c7-9989-40bd-a960-19ebddeb17f8",
+                "resourceVersion": "4925",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97",
+                "uid": "47b35f9d-ff3c-4379-8e36-4042b87729ca",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "4897"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: rancher-856c976c97-8cln7",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97.16f912b116d6b09b",
+                "namespace": "cattle-system",
+                "uid": "2b7d78a2-b09a-41f1-9bf5-a66e54553a67",
+                "resourceVersion": "4931",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97",
+                "uid": "47b35f9d-ff3c-4379-8e36-4042b87729ca",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "4897"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: rancher-856c976c97-98n69",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97.16f912b1176edddd",
+                "namespace": "cattle-system",
+                "uid": "2ae993b1-a2bd-4401-b45b-b27b313ced1c",
+                "resourceVersion": "4936",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97",
+                "uid": "47b35f9d-ff3c-4379-8e36-4042b87729ca",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "4897"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: rancher-856c976c97-kjntj",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97.16f912b11b63c8d7",
+                "namespace": "cattle-system",
+                "uid": "bdc66bc2-9b60-4e2e-a9ae-983164c56e0d",
+                "resourceVersion": "4951",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97",
+                "uid": "47b35f9d-ff3c-4379-8e36-4042b87729ca",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "4906"
+            },
+            "reason": "SuccessfulDelete",
+            "message": "Deleted pod: rancher-856c976c97-8cln7",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97.16f912d8a35e4ecb",
+                "namespace": "cattle-system",
+                "uid": "22cad635-ab25-4b12-a890-2f4e659925c6",
+                "resourceVersion": "7862",
+                "creationTimestamp": "2022-06-16T10:24:19Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97",
+                "uid": "47b35f9d-ff3c-4379-8e36-4042b87729ca",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "7833"
+            },
+            "reason": "SuccessfulDelete",
+            "message": "Deleted pod: rancher-856c976c97-98n69",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:24:19Z",
+            "lastTimestamp": "2022-06-16T10:24:19Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-856c976c97.16f912db0ff9c51e",
+                "namespace": "cattle-system",
+                "uid": "d6ae60a2-43a1-47d1-a08e-8157d224a3c0",
+                "resourceVersion": "8161",
+                "creationTimestamp": "2022-06-16T10:24:30Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "cattle-system",
+                "name": "rancher-856c976c97",
+                "uid": "47b35f9d-ff3c-4379-8e36-4042b87729ca",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "8154"
+            },
+            "reason": "SuccessfulDelete",
+            "message": "Deleted pod: rancher-856c976c97-kjntj",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:24:30Z",
+            "lastTimestamp": "2022-06-16T10:24:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-webhook-6958cfcddf-7wchz.16f913011d54a3aa",
+                "namespace": "cattle-system",
+                "uid": "556699c6-7f6c-4055-875c-68d54458ad26",
+                "resourceVersion": "10429",
+                "creationTimestamp": "2022-06-16T10:27:13Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-webhook-6958cfcddf-7wchz",
+                "uid": "ab33f42d-d545-4c24-864e-c93b73593fa8",
+                "apiVersion": "v1",
+                "resourceVersion": "10423"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned cattle-system/rancher-webhook-6958cfcddf-7wchz to REDACTED-IP4-ADDRESS",
+            "source": {},
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2022-06-16T10:27:13.543338Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-control-plane-host-10-64-252-197"
+        },
+        {
+            "metadata": {
+                "name": "rancher-webhook-6958cfcddf-7wchz.16f9130131e4f9cd",
+                "namespace": "cattle-system",
+                "uid": "831c9d43-4ef4-48ee-842b-a63971079cda",
+                "resourceVersion": "10448",
+                "creationTimestamp": "2022-06-16T10:27:13Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-webhook-6958cfcddf-7wchz",
+                "uid": "ab33f42d-d545-4c24-864e-c93b73593fa8",
+                "apiVersion": "v1",
+                "resourceVersion": "10424"
+            },
+            "reason": "FailedMount",
+            "message": "MountVolume.SetUp failed for volume \"tls\" : secret \"rancher-webhook-tls\" not found",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:13Z",
+            "lastTimestamp": "2022-06-16T10:27:14Z",
+            "count": 2,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-webhook-6958cfcddf-7wchz.16f91301a9cff175",
+                "namespace": "cattle-system",
+                "uid": "46f94cd7-dce3-4995-b1e4-5934e89e27b8",
+                "resourceVersion": "10513",
+                "creationTimestamp": "2022-06-16T10:27:15Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-webhook-6958cfcddf-7wchz",
+                "uid": "ab33f42d-d545-4c24-864e-c93b73593fa8",
+                "apiVersion": "v1",
+                "resourceVersion": "10424",
+                "fieldPath": "spec.containers{rancher-webhook}"
+            },
+            "reason": "Pulling",
+            "message": "Pulling image \"rancher/rancher-webhook:v0.2.5\"",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:15Z",
+            "lastTimestamp": "2022-06-16T10:27:15Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-webhook-6958cfcddf-7wchz.16f913035b6a2dbd",
+                "namespace": "cattle-system",
+                "uid": "734c17a3-325e-49dd-9882-27b4e230bbd6",
+                "resourceVersion": "10609",
+                "creationTimestamp": "2022-06-16T10:27:23Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-webhook-6958cfcddf-7wchz",
+                "uid": "ab33f42d-d545-4c24-864e-c93b73593fa8",
+                "apiVersion": "v1",
+                "resourceVersion": "10424",
+                "fieldPath": "spec.containers{rancher-webhook}"
+            },
+            "reason": "Pulled",
+            "message": "Successfully pulled image \"rancher/rancher-webhook:v0.2.5\" in 7.274598353s",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:23Z",
+            "lastTimestamp": "2022-06-16T10:27:23Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-webhook-6958cfcddf-7wchz.16f9130364d9b87a",
+                "namespace": "cattle-system",
+                "uid": "083487cf-bd78-4ae2-b012-c9290527459e",
+                "resourceVersion": "10610",
+                "creationTimestamp": "2022-06-16T10:27:23Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-webhook-6958cfcddf-7wchz",
+                "uid": "ab33f42d-d545-4c24-864e-c93b73593fa8",
+                "apiVersion": "v1",
+                "resourceVersion": "10424",
+                "fieldPath": "spec.containers{rancher-webhook}"
+            },
+            "reason": "Created",
+            "message": "Created container rancher-webhook",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:23Z",
+            "lastTimestamp": "2022-06-16T10:27:23Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-webhook-6958cfcddf-7wchz.16f9130366eae39a",
+                "namespace": "cattle-system",
+                "uid": "efb2eed5-e886-42b5-8991-89e013e1514f",
+                "resourceVersion": "10611",
+                "creationTimestamp": "2022-06-16T10:27:23Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "cattle-system",
+                "name": "rancher-webhook-6958cfcddf-7wchz",
+                "uid": "ab33f42d-d545-4c24-864e-c93b73593fa8",
+                "apiVersion": "v1",
+                "resourceVersion": "10424",
+                "fieldPath": "spec.containers{rancher-webhook}"
+            },
+            "reason": "Started",
+            "message": "Started container rancher-webhook",
+            "source": {
+                "component": "kubelet",
+                "host": "REDACTED-IP4-ADDRESS"
+            },
+            "firstTimestamp": "2022-06-16T10:27:23Z",
+            "lastTimestamp": "2022-06-16T10:27:23Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-webhook-6958cfcddf.16f913011ccacb2d",
+                "namespace": "cattle-system",
+                "uid": "019f306a-6f6c-45d3-a412-4ea023b70934",
+                "resourceVersion": "10426",
+                "creationTimestamp": "2022-06-16T10:27:13Z"
+            },
+            "involvedObject": {
+                "kind": "ReplicaSet",
+                "namespace": "cattle-system",
+                "name": "rancher-webhook-6958cfcddf",
+                "uid": "de6341d4-4b04-4f6f-9f8e-99b5949e314e",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "10410"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: rancher-webhook-6958cfcddf-7wchz",
+            "source": {
+                "component": "replicaset-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:27:13Z",
+            "lastTimestamp": "2022-06-16T10:27:13Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher-webhook.16f9130116c98ea2",
+                "namespace": "cattle-system",
+                "uid": "0c15a29d-35b0-4768-badf-c3f876254309",
+                "resourceVersion": "10413",
+                "creationTimestamp": "2022-06-16T10:27:13Z"
+            },
+            "involvedObject": {
+                "kind": "Deployment",
+                "namespace": "cattle-system",
+                "name": "rancher-webhook",
+                "uid": "4a895748-02f4-47b8-87a1-c08fd1c0b213",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "10404"
+            },
+            "reason": "ScalingReplicaSet",
+            "message": "Scaled up replica set rancher-webhook-6958cfcddf to 1",
+            "source": {
+                "component": "deployment-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:27:13Z",
+            "lastTimestamp": "2022-06-16T10:27:13Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher.16f912b10c7acb08",
+                "namespace": "cattle-system",
+                "uid": "e07bcc83-ad2d-4624-a8ea-5e1ddeb97428",
+                "resourceVersion": "4905",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "Ingress",
+                "namespace": "cattle-system",
+                "name": "rancher",
+                "uid": "b2054a1b-7ac0-4e7f-9dfb-e41c831a7841",
+                "apiVersion": "networking.k8s.io/v1",
+                "resourceVersion": "4892"
+            },
+            "reason": "Sync",
+            "message": "Scheduled for sync",
+            "source": {
+                "component": "nginx-ingress-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 2,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher.16f912b10c972ced",
+                "namespace": "cattle-system",
+                "uid": "9006ae2f-a3b8-40fa-bf46-ab894c19ff7f",
+                "resourceVersion": "4899",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "Deployment",
+                "namespace": "cattle-system",
+                "name": "rancher",
+                "uid": "e26c17dd-e2e4-495e-80dd-0fba3525afea",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "4891"
+            },
+            "reason": "ScalingReplicaSet",
+            "message": "Scaled up replica set rancher-856c976c97 to 3",
+            "source": {
+                "component": "deployment-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher.16f912b10ef4cea7",
+                "namespace": "cattle-system",
+                "uid": "32c08bd6-9eb5-4157-8518-a25f5616ad84",
+                "resourceVersion": "4903",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "Deployment",
+                "namespace": "cattle-system",
+                "name": "rancher",
+                "uid": "e26c17dd-e2e4-495e-80dd-0fba3525afea",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "4900"
+            },
+            "reason": "ScalingReplicaSet",
+            "message": "Scaled up replica set rancher-649dc876b to 1",
+            "source": {
+                "component": "deployment-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher.16f912b11085db4d",
+                "namespace": "cattle-system",
+                "uid": "5bc1111b-8bdc-47c5-88fa-4f7274aac418",
+                "resourceVersion": "4908",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "Deployment",
+                "namespace": "cattle-system",
+                "name": "rancher",
+                "uid": "e26c17dd-e2e4-495e-80dd-0fba3525afea",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "4900"
+            },
+            "reason": "ScalingReplicaSet",
+            "message": "Scaled down replica set rancher-856c976c97 to 2",
+            "source": {
+                "component": "deployment-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher.16f912b112abc450",
+                "namespace": "cattle-system",
+                "uid": "d32ab409-6533-4e38-bbad-bd4a7b499e09",
+                "resourceVersion": "4912",
+                "creationTimestamp": "2022-06-16T10:21:29Z"
+            },
+            "involvedObject": {
+                "kind": "Deployment",
+                "namespace": "cattle-system",
+                "name": "rancher",
+                "uid": "e26c17dd-e2e4-495e-80dd-0fba3525afea",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "4904"
+            },
+            "reason": "ScalingReplicaSet",
+            "message": "Scaled up replica set rancher-649dc876b to 2",
+            "source": {
+                "component": "deployment-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:21:29Z",
+            "lastTimestamp": "2022-06-16T10:21:29Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher.16f912b136e66e2f",
+                "namespace": "cattle-system",
+                "uid": "b8846226-3b14-44da-b998-c85e716761ea",
+                "resourceVersion": "4961",
+                "creationTimestamp": "2022-06-16T10:21:30Z"
+            },
+            "involvedObject": {
+                "kind": "Ingress",
+                "namespace": "cattle-system",
+                "name": "rancher",
+                "uid": "b2054a1b-7ac0-4e7f-9dfb-e41c831a7841",
+                "apiVersion": "networking.k8s.io/v1",
+                "resourceVersion": "4902"
+            },
+            "reason": "CreateCertificate",
+            "message": "Successfully created Certificate \"tls-rancher-ingress\"",
+            "source": {
+                "component": "cert-manager"
+            },
+            "firstTimestamp": "2022-06-16T10:21:30Z",
+            "lastTimestamp": "2022-06-16T10:21:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher.16f912d890f443df",
+                "namespace": "cattle-system",
+                "uid": "57bc940f-e00d-4aa1-b00d-e63f5f6a7b18",
+                "resourceVersion": "7849",
+                "creationTimestamp": "2022-06-16T10:24:19Z"
+            },
+            "involvedObject": {
+                "kind": "Deployment",
+                "namespace": "cattle-system",
+                "name": "rancher",
+                "uid": "e26c17dd-e2e4-495e-80dd-0fba3525afea",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "7764"
+            },
+            "reason": "ScalingReplicaSet",
+            "message": "Scaled down replica set rancher-856c976c97 to 1",
+            "source": {
+                "component": "deployment-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:24:19Z",
+            "lastTimestamp": "2022-06-16T10:24:19Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher.16f912d8a3252ac2",
+                "namespace": "cattle-system",
+                "uid": "4d2733b5-37ad-4362-9694-412134d28753",
+                "resourceVersion": "7859",
+                "creationTimestamp": "2022-06-16T10:24:19Z"
+            },
+            "involvedObject": {
+                "kind": "Deployment",
+                "namespace": "cattle-system",
+                "name": "rancher",
+                "uid": "e26c17dd-e2e4-495e-80dd-0fba3525afea",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "7764"
+            },
+            "reason": "ScalingReplicaSet",
+            "message": "Scaled up replica set rancher-649dc876b to 3",
+            "source": {
+                "component": "deployment-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:24:19Z",
+            "lastTimestamp": "2022-06-16T10:24:19Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "rancher.16f912db0cf021c0",
+                "namespace": "cattle-system",
+                "uid": "9ae76067-7c80-454d-93a6-20f6b82b025c",
+                "resourceVersion": "8155",
+                "creationTimestamp": "2022-06-16T10:24:30Z"
+            },
+            "involvedObject": {
+                "kind": "Deployment",
+                "namespace": "cattle-system",
+                "name": "rancher",
+                "uid": "e26c17dd-e2e4-495e-80dd-0fba3525afea",
+                "apiVersion": "apps/v1",
+                "resourceVersion": "7889"
+            },
+            "reason": "ScalingReplicaSet",
+            "message": "Scaled down replica set rancher-856c976c97 to 0",
+            "source": {
+                "component": "deployment-controller"
+            },
+            "firstTimestamp": "2022-06-16T10:24:30Z",
+            "lastTimestamp": "2022-06-16T10:24:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "tls-rancher-ingress-zk2vr.16f912b152f706a7",
+                "namespace": "cattle-system",
+                "uid": "3ce6c100-7661-4b67-b13e-766829a117b5",
+                "resourceVersion": "4975",
+                "creationTimestamp": "2022-06-16T10:21:30Z"
+            },
+            "involvedObject": {
+                "kind": "CertificateRequest",
+                "namespace": "cattle-system",
+                "name": "tls-rancher-ingress-zk2vr",
+                "uid": "d507d527-9f96-4755-896b-daba5b3ffe62",
+                "apiVersion": "cert-manager.io/v1",
+                "resourceVersion": "4972"
+            },
+            "reason": "cert-manager.io",
+            "message": "Certificate request has been approved by cert-manager.io",
+            "source": {
+                "component": "cert-manager"
+            },
+            "firstTimestamp": "2022-06-16T10:21:30Z",
+            "lastTimestamp": "2022-06-16T10:21:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "tls-rancher-ingress-zk2vr.16f912b15317731b",
+                "namespace": "cattle-system",
+                "uid": "3d8c031c-3873-48e5-b858-ccb737f2e640",
+                "resourceVersion": "4976",
+                "creationTimestamp": "2022-06-16T10:21:30Z"
+            },
+            "involvedObject": {
+                "kind": "CertificateRequest",
+                "namespace": "cattle-system",
+                "name": "tls-rancher-ingress-zk2vr",
+                "uid": "d507d527-9f96-4755-896b-daba5b3ffe62",
+                "apiVersion": "cert-manager.io/v1",
+                "resourceVersion": "4974"
+            },
+            "reason": "CertificateIssued",
+            "message": "Certificate fetched from issuer successfully",
+            "source": {
+                "component": "cert-manager"
+            },
+            "firstTimestamp": "2022-06-16T10:21:30Z",
+            "lastTimestamp": "2022-06-16T10:21:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "tls-rancher-ingress.16f912b13d61ea5e",
+                "namespace": "cattle-system",
+                "uid": "9e79f573-ca01-49f0-88a8-f1e2ee272b50",
+                "resourceVersion": "4966",
+                "creationTimestamp": "2022-06-16T10:21:30Z"
+            },
+            "involvedObject": {
+                "kind": "Certificate",
+                "namespace": "cattle-system",
+                "name": "tls-rancher-ingress",
+                "uid": "6e23291b-4700-4c06-98b5-ebca0e79bbed",
+                "apiVersion": "cert-manager.io/v1",
+                "resourceVersion": "4964"
+            },
+            "reason": "Issuing",
+            "message": "Issuing certificate as Secret does not exist",
+            "source": {
+                "component": "cert-manager"
+            },
+            "firstTimestamp": "2022-06-16T10:21:30Z",
+            "lastTimestamp": "2022-06-16T10:21:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "tls-rancher-ingress.16f912b14b999978",
+                "namespace": "cattle-system",
+                "uid": "1a890d90-c516-402c-9620-a91d6e7857f6",
+                "resourceVersion": "4969",
+                "creationTimestamp": "2022-06-16T10:21:30Z"
+            },
+            "involvedObject": {
+                "kind": "Certificate",
+                "namespace": "cattle-system",
+                "name": "tls-rancher-ingress",
+                "uid": "6e23291b-4700-4c06-98b5-ebca0e79bbed",
+                "apiVersion": "cert-manager.io/v1",
+                "resourceVersion": "4965"
+            },
+            "reason": "Generated",
+            "message": "Stored new private key in temporary Secret resource \"tls-rancher-ingress-jplc2\"",
+            "source": {
+                "component": "cert-manager"
+            },
+            "firstTimestamp": "2022-06-16T10:21:30Z",
+            "lastTimestamp": "2022-06-16T10:21:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "tls-rancher-ingress.16f912b14f801d94",
+                "namespace": "cattle-system",
+                "uid": "bdd84ec4-6659-45a3-8181-f5d141ed99c4",
+                "resourceVersion": "4973",
+                "creationTimestamp": "2022-06-16T10:21:30Z"
+            },
+            "involvedObject": {
+                "kind": "Certificate",
+                "namespace": "cattle-system",
+                "name": "tls-rancher-ingress",
+                "uid": "6e23291b-4700-4c06-98b5-ebca0e79bbed",
+                "apiVersion": "cert-manager.io/v1",
+                "resourceVersion": "4971"
+            },
+            "reason": "Requested",
+            "message": "Created new CertificateRequest resource \"tls-rancher-ingress-zk2vr\"",
+            "source": {
+                "component": "cert-manager"
+            },
+            "firstTimestamp": "2022-06-16T10:21:30Z",
+            "lastTimestamp": "2022-06-16T10:21:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "tls-rancher-ingress.16f912b158fe6908",
+                "namespace": "cattle-system",
+                "uid": "26d264e6-2a3e-4641-90ed-af3df5133d67",
+                "resourceVersion": "4982",
+                "creationTimestamp": "2022-06-16T10:21:30Z"
+            },
+            "involvedObject": {
+                "kind": "Certificate",
+                "namespace": "cattle-system",
+                "name": "tls-rancher-ingress",
+                "uid": "6e23291b-4700-4c06-98b5-ebca0e79bbed",
+                "apiVersion": "cert-manager.io/v1",
+                "resourceVersion": "4971"
+            },
+            "reason": "Issuing",
+            "message": "The certificate has been successfully issued",
+            "source": {
+                "component": "cert-manager"
+            },
+            "firstTimestamp": "2022-06-16T10:21:30Z",
+            "lastTimestamp": "2022-06-16T10:21:30Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        }
+    ]
+}

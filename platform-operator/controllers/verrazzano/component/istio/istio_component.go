@@ -133,6 +133,10 @@ func NewComponent() spi.Component {
 	}
 }
 
+func (i istioComponent) IsOperatorUninstallSupported() bool {
+	return false
+}
+
 func (i istioComponent) PreUninstall(context spi.ComponentContext) error {
 	return nil
 }

@@ -57,4 +57,4 @@ spec:
         - matchExpressions:
             - { key: control-plane, operator: In, values: [ coherence ] }
         - matchExpressions:
-            - { key: app.kubernetes.io/name, operator: In, values: [ oam-kubernetes-runtime, prometheus-adapter ] }
+            - { key: app.kubernetes.io/name, operator: In, values: [ oam-kubernetes-runtime, prometheus-adapter, jaeger-operator ] }

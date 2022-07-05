@@ -5,6 +5,8 @@ package vmo
 
 import (
 	"context"
+	"path/filepath"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -16,7 +18,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -82,7 +83,13 @@ func (c vmoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 
 // PreUpgrade VMO pre-upgrade processing
 func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
-	return common.ApplyCRDYaml(context, config.GetHelmVMOChartsDir())
+	if err := common.ApplyCRDYaml(context, config.GetHelmVMOChartsDir()); err != nil {
+		return err
+	}
+	if err := retainPrometheusPersistentVolume(context); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Upgrade VMO processing

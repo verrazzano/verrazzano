@@ -377,6 +377,10 @@ type ComponentSpec struct {
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
 
+	// Velero configuration
+	// +optional
+	Velero *VeleroComponent `json:"velero,omitempty"`
+
 	// Verrazzano configuration
 	// +optional
 	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
@@ -620,7 +624,8 @@ func (c *IstioComponent) IsInjectionEnabled() bool {
 // JaegerOperatorComponent specifies the Jaeger Operator configuration
 type JaegerOperatorComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration
@@ -682,6 +687,13 @@ type FluentdComponent struct {
 
 // WebLogicOperatorComponent specifies the WebLogic Operator configuration
 type WebLogicOperatorComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
+}
+
+// VeleroComponent  specifies the Velero configuration
+type VeleroComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`

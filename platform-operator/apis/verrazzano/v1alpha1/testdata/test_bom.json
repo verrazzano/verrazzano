@@ -180,12 +180,6 @@
           "name": "verrazzano",
           "images": [
             {
-              "image": "node-exporter",
-              "tag": "1.0.0-20210513143333-a470f06",
-              "helmFullImageKey": "nodeExporter.imageName",
-              "helmTagKey": "nodeExporter.imageVersion"
-            },
-            {
               "image": "verrazzano-monitoring-operator",
               "tag": "0.15.0-20210521020822-9b87485",
               "helmFullImageKey": "monitoringOperator.imageName",
@@ -523,7 +517,7 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.32.0"
+              "tag": "1.34.1"
             }
           ]
         },
@@ -533,7 +527,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.32.0"
+              "tag": "1.34.1"
             }
           ]
         },
@@ -543,7 +537,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.32.0"
+              "tag": "1.34.1"
             }
           ]
         },
@@ -553,7 +547,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.32.0"
+              "tag": "1.34.1"
             }
           ]
         },
@@ -563,7 +557,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.32.0"
+              "tag": "1.34.1"
             }
           ]
         }
