@@ -595,41 +595,12 @@ pipeline {
             stages {
                 stage('Uninstall') {
                     steps {
-                        script {
-                             // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
-                             // - the first one will always be the Admin cluster
-                             // - clusters 2-max are managed clusters
-                             def verrazzanoUninstallStages = [:]
-                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                             for (int count = 1; count <= clusterCount; count++) {
-                                 def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                                 def key = "vz-mgd-${count - 1}"
-                                 if (count == 1) {
-                                     key = "vz-admin"
-                                 }
-                                 verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
-                             }
-                             parallel verrazzanoUninstallStages
-                        }
+                        uninstallVerrazzano()
                     }
                 }
                 stage('Verify Uninstall') {
                     steps {
-                        script {
-                            // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
-                            // - the first one will always be the Admin cluster
-                            // - clusters 2-max are managed clusters
-                            def verifyUninstallStages = [:]
-                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            for (int count = 1; count <= clusterCount; count++) {
-                                def key = "vz-mgd-${count - 1}"
-                                if (count == 1) {
-                                    key = "vz-admin"
-                                }
-                                verifyUninstallStages["${key}"] = verifyUninstall(count)
-                            }
-                            parallel verifyUninstallStages
-                        }
+                        verifyUninstall()
                     }
                 }
             }
@@ -954,10 +925,29 @@ def upgradeVerrazzano() {
     }
 }
 
+def uninstallVerrazzano() {
+    script {
+         // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
+         // - the first one will always be the Admin cluster
+         // - clusters 2-max are managed clusters
+         def verrazzanoUninstallStages = [:]
+         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+         for (int count = 1; count <= clusterCount; count++) {
+             def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
+             def key = "vz-mgd-${count - 1}"
+             if (count == 1) {
+                 key = "vz-admin"
+             }
+             verrazzanoUninstallStages["${key}"] = uninstallVerrazzanoOnCluster(count, installerPath)
+         }
+         parallel verrazzanoUninstallStages
+    }
+}
+
 // Uninstall Verrazzano
 // - count is the cluster index into the $KUBECONFIG_DIR
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
-def uninstallVerrazzano(count, verrazzanoConfig) {
+def uninstallVerrazzanoOnCluster(count, verrazzanoConfig) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
@@ -970,9 +960,28 @@ def uninstallVerrazzano(count, verrazzanoConfig) {
     }
 }
 
-// Verify uninstall Verrazzano
+// Verify uninstall on all clusters
+def verifyUninstall() {
+    script {
+        // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def verifyUninstallStages = [:]
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for (int count = 1; count <= clusterCount; count++) {
+            def key = "vz-mgd-${count - 1}"
+            if (count == 1) {
+                key = "vz-admin"
+            }
+            verifyUninstallStages["${key}"] = verifyUninstallOnCluster(count)
+        }
+        parallel verifyUninstallStages
+    }
+}
+
+// Verify uninstall Verrazzano on a single cluster
 // - count is the cluster index into the $KUBECONFIG_DIR
-def verifyUninstall(count) {
+def verifyUninstallOnCluster(count) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
