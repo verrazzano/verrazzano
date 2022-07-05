@@ -340,8 +340,6 @@ pipeline {
                 script {
                     echo "[INFO] Setting up ssh access"
                     setupSSH()
-                    // echo "[INFO] Enable External IP access"
-                    // enableOLCNEExternalIPService()
                 }
             }
         }
@@ -391,6 +389,15 @@ pipeline {
                 script {
                     echo "[INFO] Creating image pull secrets"
                     createImagePullSecrets()
+                }
+            }
+        }
+
+        stage("Update OLCNE Configuration") {
+            steps {
+                script {
+                    echo "[INFO] Enable External IP access"
+                    enableOLCNEExternalIPService()
                 }
             }
         }
