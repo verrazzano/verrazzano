@@ -516,7 +516,7 @@ pipeline {
                         echo "[INFO] Deleting OCI FileSystem"
                         deleteOCIFileSystem()
                     }
-                    if (env.createOCILoadBalancers && env.createOCILoadBalancers == "true") {
+                    if (env.createdOCILoadBalancers && env.createdOCILoadBalancers == "true") {
                         echo "[INFO] Deleting OCI LoadBalancers"
                         deleteOCILoadBalancers()
                     }
