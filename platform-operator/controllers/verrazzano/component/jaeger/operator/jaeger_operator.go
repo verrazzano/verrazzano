@@ -268,7 +268,7 @@ func generateOverridesFile(ctx spi.ComponentContext, contents []byte) (string, e
 	return overridesFileName, nil
 }
 
-// createJaegerSecret creates a Jaeger secret for Elastic storage credentials.
+// createJaegerSecret creates a Jaeger secret for storing credentials needed to access OpenSearch.
 func createJaegerSecret(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", jaegerSecName)
 	esInternalSecret, err := getESInternalSecret(ctx)
