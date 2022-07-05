@@ -4,12 +4,20 @@
 package verrazzano
 
 import (
+	"context"
+
+	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -85,6 +93,9 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallMC
 
 		case vzStateUninstallMC:
+			if err := r.deleteMCResources(log); err != nil {
+				return ctrl.Result{}, err
+			}
 			tracker.vzState = vzStateUninstallComponents
 
 		case vzStateUninstallComponents:
@@ -131,4 +142,43 @@ func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 	if ok {
 		delete(UninstallTrackerMap, key)
 	}
+}
+
+// Delete multicluster related resources
+func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
+	var secret corev1.Secret
+	secretNsn := types.NamespacedName{
+		Namespace: vzconst.VerrazzanoSystemNamespace,
+		Name:      vzconst.MCAgentSecret,
+	}
+	// Get the MC secret
+	if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
+		if errors.IsNotFound(err) {
+			log.Once("Determined that this is not a managed cluster")
+			return nil
+		}
+		return log.ErrorfNewErr("Failed to fetch the multicluster secret %s/%s, %v", vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret, err)
+	}
+	log.Oncef("Deleting multicluster secret %s:%s", vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret)
+	if err := r.Delete(context.TODO(), &secret); err != nil {
+		// Treat error as warning (don't fail uninstall)
+		log.Oncef("Failed to delete multicluster secret %s/%s, %v", vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret, err)
+		return nil
+	}
+
+	log.Oncef("Deleting all VMC resources")
+	vmcList := clustersapi.VerrazzanoManagedClusterList{}
+	if err := r.List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil {
+		log.Errorf("Failed listing VMCs: %v", err)
+		return err
+	}
+	for _, vmc := range vmcList.Items {
+		if err := r.Delete(context.TODO(), &vmc); err != nil {
+			// Treat error as warning (don't fail uninstall)
+			log.Oncef("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
+			return nil
+		}
+	}
+
+	return nil
 }

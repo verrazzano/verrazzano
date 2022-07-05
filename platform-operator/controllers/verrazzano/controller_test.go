@@ -548,6 +548,10 @@ func TestUninstallComplete(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
 	// Expect a call to get the uninstall Job - return that it exists
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
@@ -652,6 +656,10 @@ func TestUninstallStarted(t *testing.T) {
 
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
 	// Expect a call to get the uninstall Job - return that it does not exist
 	mock.EXPECT().
@@ -846,6 +854,10 @@ func TestUninstallSucceeded(t *testing.T) {
 
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
 	// Expect a call to get the uninstall Job - return that it exists and the job succeeded
 	mock.EXPECT().
