@@ -27,7 +27,7 @@ kubernetes_config:
 
 external_services:
   prometheus:
-    url: http://vmi-system-prometheus:9090
+    url: http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090
   grafana:
     enabled: false
   tracing:
