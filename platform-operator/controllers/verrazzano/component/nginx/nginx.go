@@ -41,7 +41,9 @@ func isNginxReady(context spi.ComponentContext) bool {
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	ip, err := vzconfig.GetIngressIP()
+	log.Progressf("GetIngressIP : %s , error : %v", ip, err)
+	return err == nil && status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
