@@ -74,6 +74,15 @@ function delete_oam_operator {
   kubectl delete clusterrole oam-kubernetes-runtime-certificate --ignore-not-found
 }
 
+function delete_application_operator {
+  log "Uninstall the Verrazzano Kubernetes application operator"
+  if helm status verrazzano-application-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall verrazzano-application-operator --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the Verrazzano Kubernetes application operator."
+    fi
+  fi
+}
+
 function delete_vmo {
   log "Uninstall the Verrazzano Monitoring Operator"
   if helm status verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -185,10 +194,11 @@ function delete_prometheus_pushgateway {
 
 function delete_jaeger_operator {
   log "Uninstall the Jaeger operator"
-  local JAEGER_TEMPLATE_FILE=$MANIFESTS_DIR/jaeger/jaeger-operator.yaml
-  sed 's/{{.*}}/verrazzano-monitoring/g' "$JAEGER_TEMPLATE_FILE" > jaeger.yaml
-  kubectl delete -f jaeger.yaml --ignore-not-found || err_return $? "Could not delete Jaeger Operator"
-  rm -f jaeger.yaml
+  if helm status jaeger-operator --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall jaeger-operator --namespace "${VERRAZZANO_MONITORING_NS}" ; then
+      error "Failed to uninstall the Jaeger Operator."
+    fi
+  fi
 }
 
 function delete_fluentd {
@@ -223,6 +233,7 @@ action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
+action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
 action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
 action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
 action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
