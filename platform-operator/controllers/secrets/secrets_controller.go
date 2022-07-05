@@ -67,12 +67,16 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	if vzList != nil && len(vzList.Items) > 0 {
 		vz := &vzList.Items[0]
-		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
-		if err != nil {
-			zap.S().Errorf("Failed to reconcile Secret: %v", err)
-			return newRequeueWithDelay(), err
+		if vz.DeletionTimestamp != nil {
+			return ctrl.Result{}, nil
+		} else {
+			res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
+			if err != nil {
+				zap.S().Errorf("Failed to reconcile Secret: %v", err)
+				return newRequeueWithDelay(), err
+			}
+			return res, nil
 		}
-		return res, nil
 	}
 
 	return ctrl.Result{}, nil
