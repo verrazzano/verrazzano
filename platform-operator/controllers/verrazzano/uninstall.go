@@ -149,39 +149,44 @@ func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 
 // Delete multicluster related resources
 func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
-	// Return if this is not MC or error
+	// Return if this is not MC or if there is an error
 	if mc, err := r.isMC(log); err != nil || !mc {
-		return err
-	}
-	if err := r.deleteMCSecrets(log); err != nil {
 		return err
 	}
 
 	log.Oncef("Deleting all VMC resources")
 	vmcList := clustersapi.VerrazzanoManagedClusterList{}
 	if err := r.List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil {
-		log.Errorf("Failed listing VMCs: %v", err)
-		return err
+		return log.ErrorfNewErr("Failed listing VMCs: %v", err)
 	}
 	for i, vmc := range vmcList.Items {
 		if err := r.Delete(context.TODO(), &vmcList.Items[i]); err != nil {
-			// Treat error as warning (don't fail uninstall)
-			log.Oncef("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
-			return nil
+			return log.ErrorfNewErr("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
 		}
 	}
 
 	// Delete VMC namespace only if there are no projects
-	log.Oncef("Deleting VMC namespace if there are no projects")
 	projects := vzappclusters.VerrazzanoProjectList{}
 	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil {
-		log.Errorf("Failed listing MC projects: %v", err)
-		return err
+		return log.ErrorfNewErr("Failed listing MC projects: %v", err)
 	}
 	if len(projects.Items) > 0 {
-		log.Oncef("Skipping namespace %s deletion since there are projects in the namesapce", vzconst.VerrazzanoMultiClusterNamespace)
+		log.Oncef("Skipping namespace %s deletion since it contains projects", vzconst.VerrazzanoMultiClusterNamespace)
+		return nil
 	}
+	log.Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
 	if err := r.deleteNamespace(context.TODO(), log, vzconst.VerrazzanoMultiClusterNamespace); err != nil {
+		return err
+	}
+
+	// Delete secrets last. Don't delete MC agent secret until the end since it tells us this is MC install
+	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
+		return err
+	}
+	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, "verrazzano-cluster-elasticsearch"); err != nil {
+		return err
+	}
+	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
 		return err
 	}
 	return nil
@@ -205,19 +210,6 @@ func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
 	return true, nil
 }
 
-func (r *Reconciler) deleteMCSecrets(log vzlog.VerrazzanoLogger) error {
-	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
-		return err
-	}
-	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
-		return err
-	}
-	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, "verrazzano-cluster-elasticsearch"); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
@@ -227,7 +219,7 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 		if errors.IsNotFound(err) {
 			return nil
 		}
-		return log.ErrorfThrottledNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
+		return log.ErrorfNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
 	}
 	return nil
 }
