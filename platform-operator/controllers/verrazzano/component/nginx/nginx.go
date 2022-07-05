@@ -42,7 +42,7 @@ func isNginxReady(context spi.ComponentContext) bool {
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	ip, err := vzconfig.GetIngressIP(context.Client(), context.EffectiveCR())
-	log.Progressf("GetIngressIP : %s , error : %v", ip, err)
+	fmt.Println("GetIngressIP : , error : ", ip, err)
 	return err == nil && status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
