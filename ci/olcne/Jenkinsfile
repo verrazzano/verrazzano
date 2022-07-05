@@ -162,7 +162,9 @@ pipeline {
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
         OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
-        OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
+        // TODO: Make changes to the security list in the release branch and use it here
+        // OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
+        OLCNE_BRANCH_TO_USE="origin/feature/VZ-6040"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
 
         // Terraform variables
