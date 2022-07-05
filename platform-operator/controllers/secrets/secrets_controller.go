@@ -49,13 +49,6 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		ctx = context.TODO()
 	}
 
-	// We care about the CA secret for the cluster - this can come from the verrazzano ingress
-	// tls secret (verrazzano-tls in verrazzano-system NS), OR from the tls-additional-ca in the
-	// cattle-system NS (used in the Let's Encrypt staging cert case)
-	if isVerrazzanoIngressSecretName(req.NamespacedName) || isAdditionalTLSSecretName(req.NamespacedName) {
-		return r.reconcileVerrazzanoTLS(ctx, req)
-	}
-
 	vzList := &installv1alpha1.VerrazzanoList{}
 	err := r.List(ctx, vzList)
 	if err != nil {
@@ -70,6 +63,13 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		if vz.DeletionTimestamp != nil {
 			return ctrl.Result{}, nil
 		} else {
+			// We care about the CA secret for the cluster - this can come from the verrazzano ingress
+			// tls secret (verrazzano-tls in verrazzano-system NS), OR from the tls-additional-ca in the
+			// cattle-system NS (used in the Let's Encrypt staging cert case)
+			if isVerrazzanoIngressSecretName(req.NamespacedName) || isAdditionalTLSSecretName(req.NamespacedName) {
+				return r.reconcileVerrazzanoTLS(ctx, req)
+			}
+
 			res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
 			if err != nil {
 				zap.S().Errorf("Failed to reconcile Secret: %v", err)
