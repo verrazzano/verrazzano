@@ -45,8 +45,6 @@ if [ "$FORCE" = false ] ; then
   done
 fi
 
-section "Uninstalling Verrazzano Applications"
-$SCRIPT_DIR/uninstall-steps/0-uninstall-applications.sh || exit 1
 section "Uninstalling Keycloak..."
 $SCRIPT_DIR/uninstall-steps/4-uninstall-keycloak.sh || exit 1
 section "Uninstalling Verrazzano..."
