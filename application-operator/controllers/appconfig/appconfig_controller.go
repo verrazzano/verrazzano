@@ -59,6 +59,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
 
+	// Metric for number of times reconcile function is called
+	defer metricsexporter.AppconfigIncrementEventsProcessed()
+
 	if req.Namespace == constants.KubeSystem {
 		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)
 		log.Infof("Application configuration resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
@@ -91,9 +94,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// The Verrazzano resource has been reconciled.
 	log.Oncef("Finished reconciling application configuration %v", req.NamespacedName)
-
-	// Metric for number of times reconcile function is called
-	defer metricsexporter.AppconfigIncrementEventsProcessed()
 
 	return ctrl.Result{}, nil
 

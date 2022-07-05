@@ -16,22 +16,22 @@ import (
 var (
 	appconfigReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "appconfig_reconcile_puller_events_total",
-		Help: "The total number of processed Reconcile events",
+		Help: "The total number of processed Reconcile events for appconfig",
 	})
 
 	cohworkloadReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "cohworkload_reconcile_puller_events_total",
-		Help: "The total number of processed Reconcile events",
+		Help: "The total number of processed Reconcile events for cohworkload",
 	})
 
 	helidonworkloadReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "helidonworkload_reconcile_puller_events_total",
-		Help: "The total number of processed Reconcile events",
+		Help: "The total number of processed Reconcile events for helidonworkload",
 	})
 
 	ingresstraitloadReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "helidonworkload_reconcile_puller_events_total",
-		Help: "The total number of processed Reconcile events",
+		Name: "ingresstrait_reconcile_puller_events_total",
+		Help: "The total number of processed Reconcile events for ingresstrait",
 	})
 
 	allMetrics    = []prometheus.Collector{appconfigReconcileProcessed, cohworkloadReconcileProcessed, helidonworkloadReconcileProcessed}
@@ -88,17 +88,17 @@ func AppconfigIncrementEventsProcessed() {
 
 func CohworkloadIncrementEventsProcessed() {
 
-	appconfigReconcileProcessed.Inc()
+	cohworkloadReconcileProcessed.Inc()
 
 }
 
 func HelidonworkloadIncrementEventsProcessed() {
 
-	appconfigReconcileProcessed.Inc()
+	helidonworkloadReconcileProcessed.Inc()
 
 }
 func IngresstraitloadIncrementEventsProcessed() {
 
-	appconfigReconcileProcessed.Inc()
+	ingresstraitloadReconcileProcessed.Inc()
 
 }
