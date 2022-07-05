@@ -64,7 +64,6 @@ rules:
       - list
       - update
       - watch
-      - patch
   - apiGroups:
       - batch
     resources:
@@ -147,22 +146,6 @@ rules:
       - get
       - list
       - update
-      - watch
-  - apiGroups:
-      - velero.io
-    resources:
-      - '*'
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - v1
-    resources:
-      - secrets
-    verbs:
-      - get
-      - list
       - watch
   - nonResourceURLs: ["/metrics"]
     verbs: ["get"]
