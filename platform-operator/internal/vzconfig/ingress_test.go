@@ -472,6 +472,10 @@ func TestFindVolumeTemplate(t *testing.T) {
 	assert.Equal(t, "temp2Volume", temp2.VolumeName)
 }
 
+// TestGetIngressClassName Tests the GetIngressClassName utility function
+// GIVEN a call to GetIngressClassName
+// WHEN a Verrazzano resource with an ingress class name specified is given
+// THEN the ingress class name specified in the Verrazzano resource is returned
 func TestGetIngressClassName(t *testing.T) {
 	assert.Equal(t, defaultIngressClassName, GetIngressClassName(&vzapi.Verrazzano{}))
 	ingressClassName := "foobar"

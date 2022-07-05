@@ -556,6 +556,7 @@ type DNSComponent struct {
 // IngressNginxComponent specifies the ingress-nginx configuration
 type IngressNginxComponent struct {
 	// +optional
+	// Name of the ingress class used by the ingress controller. Defaults to verrazzano-nginx
 	IngressClassName *string `json:"ingressClassName,omitempty"`
 	// Type of ingress.  Default is LoadBalancer
 	// +optional
