@@ -493,9 +493,6 @@ var (
 		"jaeger-operator":                 jaegerOperatorUpgradeTimeMetric,
 		"verrazzano-console":              verrazzanoConsoleUpgradeTimeMetric,
 		"fluentd":                         fluentdUpgradeTimeMetric,
-		"":                                testingUpgradeTimeMetric,
-		"EnabledComponent":                enabledTestingUpgradeTimeMetric,
-		"DisabledComponent":               disabledTestingUpgradeTimeMetric,
 	}
 	updateMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyUpdateTimeMetric,
@@ -588,7 +585,9 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 			installCompletionInSeconds, _ := time.Parse(time.RFC3339, latestInstallCompletionTime)
 			installCompletionInSecondsUnix := installCompletionInSeconds.Unix()
 			totalDurationOfInstall := (installCompletionInSecondsUnix - installStartInSecondsUnix)
-			installMetricsMap[componentName].Set(float64(totalDurationOfInstall))
+			if _, ok := installMetricsMap[componentName]; ok {
+				installMetricsMap[componentName].Set(float64(totalDurationOfInstall))
+			}
 		}
 		if latestUpdateCompletionTime != "" && latestUpdateStartTime != "" && possibleUpdateStartTime != "" {
 			updateStartInSeconds, _ := time.Parse(time.RFC3339, latestUpdateStartTime)
@@ -596,7 +595,9 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 			updateCompletionInSeconds, _ := time.Parse(time.RFC3339, latestUpdateCompletionTime)
 			updateCompletionInSecondsUnix := updateCompletionInSeconds.Unix()
 			totalDurationOfUpdate := (updateCompletionInSecondsUnix - updateStartInSecondsUnix)
-			updateMetricsMap[componentName].Set(float64(totalDurationOfUpdate))
+			if _, ok := updateMetricsMap[componentName]; ok {
+				updateMetricsMap[componentName].Set(float64(totalDurationOfUpdate))
+			}
 		}
 		if latestUpgradeCompletionTime != "" && latestUpgradeStartTime != "" && possibleUpgradeStartTime != "" {
 			upgradeStartInSeconds, _ := time.Parse(time.RFC3339, latestUpgradeStartTime)
@@ -604,7 +605,9 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 			upgradeCompletionInSeconds, _ := time.Parse(time.RFC3339, latestUpgradeCompletionTime)
 			upgradeCompletionInSecondsUnix := upgradeCompletionInSeconds.Unix()
 			totalDurationOfUpgrade := (upgradeCompletionInSecondsUnix - upgradeStartInSecondsUnix)
-			upgradeMetricsMap[componentName].Set(float64(totalDurationOfUpgrade))
+			if _, ok := upgradeMetricsMap[componentName]; ok {
+				upgradeMetricsMap[componentName].Set(float64(totalDurationOfUpgrade))
+			}
 		}
 	}
 }
