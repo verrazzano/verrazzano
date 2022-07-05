@@ -36,6 +36,13 @@ func TestUninstallCmd(t *testing.T) {
 				"job-name": constants.VerrazzanoUninstall + "-verrazzano",
 			},
 		},
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					Ready: true,
+				},
+			},
+		},
 	}
 	namespace := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{},
@@ -126,6 +133,13 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 				"job-name": constants.VerrazzanoUninstall + "-verrazzano",
 			},
 		},
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					Ready: true,
+				},
+			},
+		},
 	}
 	namespace := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{},
@@ -179,6 +193,13 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 			Name:      constants.VerrazzanoUninstall,
 			Labels: map[string]string{
 				"job-name": constants.VerrazzanoUninstall + "-verrazzano",
+			},
+		},
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					Ready: true,
+				},
 			},
 		},
 	}
