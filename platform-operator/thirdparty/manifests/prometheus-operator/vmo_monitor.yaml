@@ -5,7 +5,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: verrazzano-monitoring-operator
-  namespace: {{ .monitoringNamespace }}
+  namespace: verrazzano-monitoring
   labels:
     release: prometheus-operator
 spec:
