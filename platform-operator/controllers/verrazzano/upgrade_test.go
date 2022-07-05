@@ -1075,10 +1075,20 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set mock component expectations
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).AnyTimes()
 	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(fmt.Errorf("Upgrade in progress")).AnyTimes()
 	mockComp.EXPECT().Name().Return("testcomp").Times(1).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).AnyTimes()
 
 	// expect a call to list any secrets with a status other than "deployed" for the component
 	statuses := []string{"unknown", "uninstalled", "superseded", "failed", "uninstalling", "pending-install", "pending-upgrade", "pending-rollback"}
@@ -1167,6 +1177,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set enabled mock component expectations
+	mockEnabledComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 	mockEnabledComp.EXPECT().Name().Return("EnabledComponent").AnyTimes()
 	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).Times(2)
 	mockEnabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
