@@ -63,25 +63,24 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		// Nothing to do if the vz resource is being deleted
 		if vz.DeletionTimestamp != nil {
 			return ctrl.Result{}, nil
-		} else {
-			// We care about the CA secret for the cluster - this can come from the verrazzano ingress
-			// tls secret (verrazzano-tls in verrazzano-system NS), OR from the tls-additional-ca in the
-			// cattle-system NS (used in the Let's Encrypt staging cert case)
-			if isVerrazzanoIngressSecretName(req.NamespacedName) || isAdditionalTLSSecretName(req.NamespacedName) {
-				return r.reconcileVerrazzanoTLS(ctx, req)
-			}
-
-			res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
-			if err != nil {
-				zap.S().Errorf("Failed to reconcile Secret: %v", err)
-				return newRequeueWithDelay(), err
-			}
-			return res, nil
 		}
+
+		// We care about the CA secret for the cluster - this can come from the verrazzano ingress
+		// tls secret (verrazzano-tls in verrazzano-system NS), OR from the tls-additional-ca in the
+		// cattle-system NS (used in the Let's Encrypt staging cert case)
+		if isVerrazzanoIngressSecretName(req.NamespacedName) || isAdditionalTLSSecretName(req.NamespacedName) {
+			return r.reconcileVerrazzanoTLS(ctx, req)
+		}
+
+		res, err := r.reconcileInstallOverrideSecret(ctx, req, vz)
+		if err != nil {
+			zap.S().Errorf("Failed to reconcile Secret: %v", err)
+			return newRequeueWithDelay(), err
+		}
+		return res, nil
 	}
 
 	return ctrl.Result{}, nil
-
 }
 
 // initialize secret logger
