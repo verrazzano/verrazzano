@@ -172,8 +172,8 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 		log.Errorf("Failed listing VMCs: %v", err)
 		return err
 	}
-	for _, vmc := range vmcList.Items {
-		if err := r.Delete(context.TODO(), &vmc); err != nil {
+	for i, vmc := range vmcList.Items {
+		if err := r.Delete(context.TODO(), &vmcList.Items[i]); err != nil {
 			// Treat error as warning (don't fail uninstall)
 			log.Oncef("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
 			return nil
