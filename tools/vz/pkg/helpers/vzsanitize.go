@@ -1,0 +1,118 @@
+//Copyright (C) 2022, Oracle and/or its affiliates.
+//Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+package helpers
+
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+)
+
+var regexList = []string{}
+var regexToReplacementMap = make(map[string]string)
+
+const redactIpAddress = "REDACTED-IP4-ADDRESS"
+const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
+
+func initRegexToReplacementMap() {
+	regexToReplacementMap[ipv4Regex] = redactIpAddress
+}
+
+// GetMatchingFiles returns the filenames for files that match a regular expression.
+func GetMatchingFiles(rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
+	if len(rootDirectory) == 0 {
+		return nil, fmt.Errorf("GetMatchingFiles requires a rootDirectory")
+	}
+
+	if fileMatchRe == nil {
+		return nil, fmt.Errorf("GetMatchingFiles requires a regular expression")
+	}
+
+	walkFunc := func(fileName string, fileInfo os.FileInfo, err error) error {
+		if !fileMatchRe.MatchString(fileName) {
+			return nil
+		}
+		if !fileInfo.IsDir() {
+			fileMatches = append(fileMatches, fileName)
+		}
+		return nil
+	}
+
+	err = filepath.Walk(rootDirectory, walkFunc)
+	if err != nil {
+		return nil, err
+	}
+	return fileMatches, err
+}
+
+func SanitizeDirectory(rootDirectory string, replaceFile bool) {
+	initRegexToReplacementMap()
+	fileMatches, err := GetMatchingFiles(rootDirectory, regexp.MustCompile(".*"))
+	check(err)
+	for _, eachFile := range fileMatches {
+		SanitizeFile(eachFile, replaceFile)
+	}
+}
+
+func SanitizeFile(path string, replaceFile bool) error {
+	fmt.Println("path provided is: ", path)
+	input, err := os.Open(path)
+	check(err)
+	defer input.Close()
+
+	outFile, err := os.Create(path + "_tmpfoo")
+	check(err)
+	defer outFile.Close()
+
+	br := bufio.NewReader(input)
+	for {
+		l, _, err := br.ReadLine()
+
+		if err == io.EOF || l == nil {
+			break
+		}
+		check(err)
+
+		sanitizedLine := sanitizeEachLine(string(l))
+		outFile.WriteString(sanitizedLine + "\n")
+	}
+
+	//originalFile, err := os.ReadFile(path)
+	//check(err)
+	//fmt.Println("Original file is: \n", string(originalFile))
+
+	//modifiedFile, err := os.ReadFile(path + "_tmpfoo")
+	//check(err)
+	//fmt.Println("Modified file is: \n", string(modifiedFile))
+
+	if replaceFile == true {
+		printError(os.Remove(path))
+		printError(os.Rename(path+"_tmpfoo", path))
+	}
+
+	return nil
+}
+
+func sanitizeEachLine(l string) string {
+	for k, v := range regexToReplacementMap {
+		l = regexp.MustCompile(k).ReplaceAllString(l, v)
+	}
+	return l
+}
+
+func check(e error) error {
+	if e != nil {
+		return e
+	}
+	return nil
+}
+
+func printError(err error) {
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+}
