@@ -38,7 +38,7 @@ func NewComponent() spi.Component {
 			ChartNamespace:            ComponentNamespace,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
-			SupportsOperatorUninstall: true,
+			SupportsOperatorUninstall: false,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "oam-kubernetes-runtime-values.yaml"),
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			Dependencies:              []string{},

@@ -31,5 +31,3 @@ function delete_multicluster_resources {
     log "Deleting VMCs"
     delete_k8s_resources verrazzanomanagedcluster ":metadata.name" "Could not delete VerrazzanoManagedClusters from Verrazzano" "" "verrazzano-mc"
 }
-
-action "Deleting Multicluster resources" delete_multicluster_resources || exit 1

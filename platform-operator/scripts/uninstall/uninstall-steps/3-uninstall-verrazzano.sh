@@ -59,6 +59,21 @@ function delete_verrazzano() {
   delete_managed_k8s_resources scopedefinitions.core.oam.dev
 }
 
+function delete_oam_operator {
+  log "Uninstall the OAM Kubernetes operator"
+  if helm status oam-kubernetes-runtime --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall oam-kubernetes-runtime --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the OAM Kubernetes operator."
+    fi
+  fi
+
+  # Delete the additional cluster roles we created during install
+  log "Deleting additional OAM cluster roles"
+  kubectl delete clusterrole oam-kubernetes-runtime-pvc --ignore-not-found
+  kubectl delete clusterrole oam-kubernetes-runtime-istio --ignore-not-found
+  kubectl delete clusterrole oam-kubernetes-runtime-certificate --ignore-not-found
+}
+
 function delete_vmo {
   log "Uninstall the Verrazzano Monitoring Operator"
   if helm status verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -208,6 +223,7 @@ action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
+action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
 action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
 action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
 action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
