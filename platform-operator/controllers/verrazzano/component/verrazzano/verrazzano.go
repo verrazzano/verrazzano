@@ -273,6 +273,8 @@ func removeNodeExporterResources(ctx spi.ComponentContext) {
 	removeNodeExporterClusterRoleAndBinding(ctx)
 }
 
+// removeNodeExporterClusterRoleAndBinding removes the ClusterRoleBinding and ClusterRole for the
+// "old" Prometheus node exporter - failure to delete is tolerated and logged
 func removeNodeExporterClusterRoleAndBinding(ctx spi.ComponentContext) {
 	crb := &rbacv1.ClusterRoleBinding{}
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: nodeExporter}, crb); err != nil {
@@ -293,6 +295,8 @@ func removeNodeExporterClusterRoleAndBinding(ctx spi.ComponentContext) {
 	}
 }
 
+// removeNodeExporterDaemonset removes the Daemonset for the "old" Prometheus node
+// exporter - failure to delete is tolerated and logged
 func removeNodeExporterDaemonset(ctx spi.ComponentContext) {
 	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
 	ds := &appsv1.DaemonSet{}
@@ -305,6 +309,8 @@ func removeNodeExporterDaemonset(ctx spi.ComponentContext) {
 	}
 }
 
+// removeNodeExporterServiceAccount removes the ServiceAccount for the "old" Prometheus node
+// exporter - failure to delete is tolerated and logged
 func removeNodeExporterServiceAccount(ctx spi.ComponentContext) {
 	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
 	sa := &corev1.ServiceAccount{}
@@ -317,6 +323,8 @@ func removeNodeExporterServiceAccount(ctx spi.ComponentContext) {
 	}
 }
 
+// removeNodeExporterService removes the Service for the "old" Prometheus node exporter - failure to
+// delete is tolerated and logged
 func removeNodeExporterService(ctx spi.ComponentContext) {
 	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}
 	s := &corev1.Service{}

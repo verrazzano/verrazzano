@@ -5,16 +5,13 @@ package operator
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const profilesRelativePath = "../../../../../manifests/profiles"
@@ -80,67 +77,67 @@ func TestIsEnabled(t *testing.T) {
 	}
 }
 
-//TestIsInstalled verifies component IsInstalled checks presence of the
-// jaeger operator deployment
-func TestIsInstalled(t *testing.T) {
-	var tests = []struct {
-		name        string
-		client      crtclient.Client
-		isInstalled bool
-	}{
-		{
-			"installed when jaeger deployment is present",
-			fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      ComponentName,
-						Namespace: ComponentNamespace,
-					},
-				},
-			).Build(),
-			true,
-		},
-		{
-			"not installed when jaeger deployment is absent",
-			fake.NewClientBuilder().WithScheme(testScheme).Build(),
-			false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, jaegerEnabledCR, false)
-			installed, err := NewComponent().IsInstalled(ctx)
-			assert.NoError(t, err)
-			assert.Equal(t, tt.isInstalled, installed)
-		})
-	}
-}
-
-func TestInstallUpgrade(t *testing.T) {
-	defer config.Set(config.Get())
-	j := NewComponent()
-	config.Set(config.OperatorConfig{VerrazzanoRootDir: "../../../../../../"})
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, jaegerEnabledCR, false)
-	err := j.Install(ctx)
-	assert.NoError(t, err)
-	err = j.Upgrade(ctx)
-	assert.NoError(t, err)
-	err = j.Reconcile(ctx)
-	assert.NoError(t, err)
-}
-
 func TestGetMinVerrazzanoVersion(t *testing.T) {
 	assert.Equal(t, constants.VerrazzanoVersion1_3_0, NewComponent().GetMinVerrazzanoVersion())
 }
 
 func TestGetDependencies(t *testing.T) {
-	assert.Equal(t, []string{}, NewComponent().GetDependencies())
+	assert.Equal(t, []string{"cert-manager"}, NewComponent().GetDependencies())
 }
 
-func TestGetName(t *testing.T) {
-	j := NewComponent()
-	assert.Equal(t, ComponentName, j.Name())
-	assert.Equal(t, ComponentJSONName, j.GetJSONName())
+// TestValidateUpdate tests the Jaeger Operator ValidateUpdate function
+func TestValidateUpdate(t *testing.T) {
+	oldVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	newVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
+}
+
+// TestPostInstall tests the component PostInstall function
+func TestPostInstall(t *testing.T) {
+	// GIVEN the Jaeger Operator is being installed
+	// WHEN we call the PostInstall function
+	// THEN no error is returned
+	oldConfig := config.Get()
+	defer config.Set(oldConfig)
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../../..",
+	})
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profilesRelativePath)
+	err := NewComponent().PostInstall(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPostUpgrade tests the component PostUpgrade function
+func TestPostUpgrade(t *testing.T) {
+	// GIVEN the Jaeger Operator is being upgraded
+	// WHEN we call the PostUpgrade function
+	// THEN no error is returned
+	oldConfig := config.Get()
+	defer config.Set(oldConfig)
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../../..",
+	})
+
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profilesRelativePath)
+	err := NewComponent().PostUpgrade(ctx)
+	assert.NoError(t, err)
 }
