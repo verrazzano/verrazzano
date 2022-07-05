@@ -1,15 +1,12 @@
+
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bomvalidator
 
 import (
-
-)
-
-const (
-	waitTimeout        = 3 * time.Minute
-	pollingInterval    = 10 * time.Second
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var t = framework.NewTestFramework("bom validator")
