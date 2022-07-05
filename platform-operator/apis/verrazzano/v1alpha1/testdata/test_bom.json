@@ -517,7 +517,7 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.34.1"
+              "tag": "1.34.1-20220705001411-cfb06635"
             }
           ]
         },
@@ -527,7 +527,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.34.1"
+              "tag": "1.34.1-20220705041607-b81f3dc8"
             }
           ]
         },
@@ -537,7 +537,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.34.1"
+              "tag": "1.34.1-20220705041607-b81f3dc8"
             }
           ]
         },
@@ -547,7 +547,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.34.1"
+              "tag": "1.34.1-20220705041607-b81f3dc8"
             }
           ]
         },
@@ -557,7 +557,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.34.1"
+              "tag": "1.34.1-20220705041607-b81f3dc8"
             }
           ]
         }
