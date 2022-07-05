@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -26,6 +28,25 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// checkRancherUpgradeFailureSig is a function needed for unit test override
+type checkRancherUpgradeFailureSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
+
+// checkRancherUpgradeFailureFunc is the default checkRancherUpgradeFailure function
+var checkRancherUpgradeFailureFunc checkRancherUpgradeFailureSig = checkRancherUpgradeFailure
+
+// fakeCheckRancherUpgradeFailure is the fake checkRancherUpgradeFailure function needed for unit testing
+func fakeCheckRancherUpgradeFailure(_ client.Client, _ vzlog.VerrazzanoLogger) (err error) {
+	return nil
+}
+
+func SetFakeCheckRancherUpgradeFailureFunc() {
+	checkRancherUpgradeFailureFunc = fakeCheckRancherUpgradeFailure
+}
+
+func SetDefaultCheckRancherUpgradeFailureFunc() {
+	checkRancherUpgradeFailureFunc = checkRancherUpgradeFailure
+}
 
 // Constants for Kubernetes resource names
 const (
@@ -78,7 +99,11 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	rancherHostname := fmt.Sprintf("%s.%s.%s", common.RancherName, vz.Spec.EnvironmentName, dnsSuffix)
+	env := vz.Spec.EnvironmentName
+	if len(env) == 0 {
+		env = constants.DefaultEnvironmentName
+	}
+	rancherHostname := fmt.Sprintf("%s.%s.%s", common.RancherName, env, dnsSuffix)
 	return rancherHostname, nil
 }
 
@@ -89,7 +114,7 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 	c := ctx.Client()
 
 	// Temporary work around for Rancher issue 36914
-	err := checkRancherUpgradeFailure(c, log)
+	err := checkRancherUpgradeFailureFunc(c, log)
 	if err != nil {
 		log.ErrorfThrottled("Error checking Rancher pod logs: %s", err.Error())
 		return false
@@ -288,4 +313,42 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 		return effectiveCR.Spec.Components.Rancher.ValueOverrides
 	}
 	return []vzapi.Overrides{}
+}
+
+// Delete the local cluster
+func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
+	log.Once("Deleting Rancher local cluster")
+
+	password, err := common.GetAdminSecret(c)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
+	}
+	if len(password) == 0 {
+		log.Oncef("Skipping Rancher delete local host because Rancher admin password is missing")
+		return nil
+	}
+	rancherHostName, err := getRancherHostname(c, vz)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
+	}
+	if len(rancherHostName) == 0 {
+		log.Oncef("Skipping Rancher delete local host since Rancher host name is missing")
+		return nil
+	}
+
+	rest, err := common.NewClient(c, rancherHostName, password)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
+	}
+	if err := rest.SetAccessToken(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
+	}
+	if err := rest.DeleteLocalHost(); err != nil {
+		// This is a warning
+		log.Oncef("Failed deleting Rancher local host: %s", err.Error())
+		return nil
+	}
+
+	log.Once("Successfully delete Rancher local cluster")
+	return nil
 }

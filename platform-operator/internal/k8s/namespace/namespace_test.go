@@ -5,6 +5,8 @@ package namespace
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -16,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 )
 
 var (
@@ -157,16 +158,6 @@ func TestCreateVerrazzanoSystemNamespace(t *testing.T) {
 	runNamespaceTestWithIstioFlag(t, globalconst.VerrazzanoSystemNamespace,
 		createVZAndIstioLabels(globalconst.VerrazzanoSystemNamespace),
 		CreateVerrazzanoSystemNamespace)
-}
-
-// TestCreateVerrazzanoMonitoringNamespace tests the CreateVerrazzanoMonitoringNamespace function
-// GIVEN a call to CreateVerrazzanoMonitoringNamespace
-// WHEN no error occurs
-// THEN no error is returned, the namespace is created, and the proper labels have been added
-func TestCreateVerrazzanoMonitoringNamespace(t *testing.T) {
-	runNamespaceTest(t, globalconst.VerrazzanoMonitoringNamespace,
-		createVzLabels(globalconst.VerrazzanoMonitoringNamespace),
-		CreateVerrazzanoMonitoringNamespace)
 }
 
 // TestCreateKeycloakNamespace tests the CreateKeycloakNamespace function

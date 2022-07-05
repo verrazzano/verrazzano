@@ -14,6 +14,7 @@ import (
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
@@ -321,6 +322,12 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 		return reconcile.Result{Requeue: false}, supported, nil
 	}
 
+	// If the legacy Prometheus instance is the scraper, do not attempt to update scrape config, a ServiceMonitor will be
+	// created instead.
+	if r.isLegacyPrometheusScraper(trait, traitDefaults) {
+		return reconcile.Result{}, true, nil
+	}
+
 	var scraper *k8sapps.Deployment
 	if scraper, err = r.fetchPrometheusDeploymentFromTrait(ctx, trait, traitDefaults, log); err != nil {
 		return reconcile.Result{}, true, err
@@ -536,6 +543,15 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 		return rel, controllerutil.OperationResultNone, err
 	}
 	return rel, controllerutil.OperationResultUpdated, nil
+}
+
+// isLegacyPrometheusScraper returns true if the scraper is the legacy VMO-managed Prometheus.
+func (r *Reconciler) isLegacyPrometheusScraper(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec) bool {
+	scraperRef := trait.Spec.Scraper
+	if scraperRef == nil {
+		scraperRef = traitDefaults.Scraper
+	}
+	return *scraperRef == constants.DefaultScraperName
 }
 
 // fetchPrometheusDeploymentFromTrait fetches the Prometheus deployment from information in the trait.

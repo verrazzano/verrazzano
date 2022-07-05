@@ -8,12 +8,30 @@ nodeExporter:
 kubeStateMetrics:
   enabled: false
 prometheus:
-  enabled: true
   prometheusSpec:
+    securityContext:
+      fsGroup: 65534
+      runAsGroup: 65534
+      runAsNonRoot: true
+      runAsUser: 65534
     additionalScrapeConfigsSecret:
       enabled: true
       name: additional-scrape-configs
       key: jobs
+    serviceMonitorSelector:
+      matchExpressions:
+      - key: release
+        operator: In
+        values:
+        - prometheus-operator
+        - prometheus-node-exporter
+        - kube-state-metrics
+        - prometheus-pushgateway
+  serviceMonitor:
+    relabelings:
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local
 alertmanager:
   enabled: false
 prometheusOperator:
@@ -23,3 +41,57 @@ prometheusOperator:
       enabled: true
   tls:
     enabled: true
+  serviceMonitor:
+    relabelings:
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local
+
+kubelet:
+  serviceMonitor:
+    relabelings:
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local
+    cAdvisorRelabelings:
+      - sourceLabels: [__metrics_path__]
+        targetLabel: metrics_path
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local
+coreDns:
+  serviceMonitor:
+    relabelings:
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local
+kubeApiServer:
+  serviceMonitor:
+    relabelings:
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local
+kubeControllerManager:
+  serviceMonitor:
+    relabelings:
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local
+kubeEtcd:
+  serviceMonitor:
+    relabelings:
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local
+kubeProxy:
+  serviceMonitor:
+    relabelings:
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local
+kubeScheduler:
+  serviceMonitor:
+    relabelings:
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local

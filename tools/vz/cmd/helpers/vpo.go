@@ -198,6 +198,9 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	resChan := make(chan error, 1)
 	defer close(resChan)
 
+	feedbackChan := make(chan bool)
+	defer close(feedbackChan)
+
 	// goroutine to stream log file output - this goroutine will be left running when this
 	// function is exited because there is no way to cancel the blocking read to the input stream.
 	re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`)
@@ -225,22 +228,26 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	// goroutine to wait for the completion of the operation
 	go func() {
 		for {
-			// Return when the Verrazzano operation has completed
-			vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
-			if err != nil {
-				resChan <- err
+			// Pause before each status check
+			time.Sleep(1 * time.Second)
+			select {
+			case <-feedbackChan:
 				return
-			}
-			for _, condition := range vz.Status.Conditions {
-				// Operation condition met for install/upgrade
-				if condition.Type == condType {
-					resChan <- nil
+			default:
+				// Return when the Verrazzano operation has completed
+				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
+				if err != nil {
+					resChan <- err
 					return
 				}
+				for _, condition := range vz.Status.Conditions {
+					// Operation condition met for install/upgrade
+					if condition.Type == condType {
+						resChan <- nil
+						return
+					}
+				}
 			}
-
-			// Pause before next status check
-			time.Sleep(1 * time.Second)
 		}
 	}()
 
