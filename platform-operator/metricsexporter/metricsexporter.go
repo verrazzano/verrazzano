@@ -339,18 +339,6 @@ var (
 		Name: "fluentd_update_time",
 		Help: "The update time for the fluentd component",
 	})
-	testingUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "test_component_upgrade_time",
-		Help: "The upgrade time for the fake component",
-	})
-	enabledTestingUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "test_component_upgrade_time",
-		Help: "The upgrade time for the fake component",
-	})
-	disabledTestingUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "test_component_upgrade_time",
-		Help: "The upgrade time for the fake component",
-	})
 	allMetrics = []prometheus.Collector{verrazzanoAuthproxyInstallTimeMetric,
 		oamInstallTimeMetric,
 		apopperInstallTimeMetric,
@@ -431,9 +419,6 @@ var (
 		fluentdUpdateTimeMetric,
 		reconcileCounterMetric,
 		reconcileLastDurationMetric,
-		testingUpgradeTimeMetric,
-		enabledTestingUpgradeTimeMetric,
-		disabledTestingUpgradeTimeMetric,
 	}
 	failedMetrics = map[prometheus.Collector]int{}
 	registry      = prometheus.DefaultRegisterer

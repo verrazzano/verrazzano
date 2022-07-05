@@ -713,6 +713,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	return r.updateVerrazzanoStatus(log, cr)
 }
 
+//Test Comment
 func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
 	for _, existingCondition := range compStatus.Conditions {
 		if existingCondition.Type == newCondition.Type {
