@@ -6,6 +6,9 @@ package verrazzano
 import (
 	"context"
 
+	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -146,24 +149,12 @@ func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 
 // Delete multicluster related resources
 func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
-	var secret corev1.Secret
-	secretNsn := types.NamespacedName{
-		Namespace: vzconst.VerrazzanoSystemNamespace,
-		Name:      vzconst.MCAgentSecret,
+	// Return if this is not MC or error
+	if mc, err := r.isMC(log); err != nil || !mc {
+		return err
 	}
-	// Get the MC secret
-	if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
-		if errors.IsNotFound(err) {
-			log.Once("Determined that this is not a managed cluster")
-			return nil
-		}
-		return log.ErrorfNewErr("Failed to fetch the multicluster secret %s/%s, %v", vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret, err)
-	}
-	log.Oncef("Deleting multicluster secret %s:%s", vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret)
-	if err := r.Delete(context.TODO(), &secret); err != nil {
-		// Treat error as warning (don't fail uninstall)
-		log.Oncef("Failed to delete multicluster secret %s/%s, %v", vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret, err)
-		return nil
+	if err := r.deleteMCSecrets(log); err != nil {
+		return err
 	}
 
 	log.Oncef("Deleting all VMC resources")
@@ -180,5 +171,63 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 		}
 	}
 
+	// Delete VMC namespace only if there are no projects
+	log.Oncef("Deleting VMC namespace if there are no projects")
+	projects := vzappclusters.VerrazzanoProjectList{}
+	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil {
+		log.Errorf("Failed listing MC projects: %v", err)
+		return err
+	}
+	if len(projects.Items) > 0 {
+		log.Oncef("Skipping namespace %s deletion since there are projects in the namesapce", vzconst.VerrazzanoMultiClusterNamespace)
+	}
+	if err := r.deleteNamespace(context.TODO(), log, vzconst.VerrazzanoMultiClusterNamespace); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
+	var secret corev1.Secret
+	secretNsn := types.NamespacedName{
+		Namespace: vzconst.VerrazzanoSystemNamespace,
+		Name:      vzconst.MCAgentSecret,
+	}
+
+	// Get the MC agent secret and return if not found
+	if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
+		if errors.IsNotFound(err) {
+			log.Once("Determined that this is not a managed cluster")
+			return false, nil
+		}
+		return false, log.ErrorfNewErr("Failed to fetch the multicluster secret %s/%s, %v", vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret, err)
+	}
+	return true, nil
+}
+
+func (r *Reconciler) deleteMCSecrets(log vzlog.VerrazzanoLogger) error {
+	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
+		return err
+	}
+	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
+		return err
+	}
+	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, "verrazzano-cluster-elasticsearch"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
+	}
+	log.Oncef("Deleting multicluster secret %s:%s", namespace, name)
+	if err := r.Delete(context.TODO(), &secret); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return log.ErrorfThrottledNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
+	}
 	return nil
 }
