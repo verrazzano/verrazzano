@@ -517,7 +517,7 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.32.0"
+              "tag": "1.34.1"
             }
           ]
         },
@@ -527,7 +527,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.32.0"
+              "tag": "1.34.1"
             }
           ]
         },
@@ -537,7 +537,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.32.0"
+              "tag": "1.34.1"
             }
           ]
         },
@@ -547,7 +547,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.32.0"
+              "tag": "1.34.1"
             }
           ]
         },
@@ -557,7 +557,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.32.0"
+              "tag": "1.34.1"
             }
           ]
         }
