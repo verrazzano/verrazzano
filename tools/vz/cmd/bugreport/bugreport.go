@@ -10,7 +10,7 @@ import (
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"strings"
+	"os"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 	helpShort   = "Capture data from the cluster"
 	helpLong    = `Verrazzano command line utility to capture the data from the cluster, to report an issue`
 	helpExample = `# Run bug report tool by providing the name for the report file
-$vz bug-report --report-file <name of the file to include cluster data, a .tar.gz file>
+$vz bug-report --report-file <name of the file to include cluster data, a .tar.gz or .tgz file>
 `
 )
 
@@ -40,9 +40,10 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("error fetching flag: %s", err.Error())
 	}
 
-	// Validate the report file format
-	if !strings.HasSuffix(bugReportFile, constants.BugReportFileExtn) {
-		return fmt.Errorf("unsupported report-file: %s, set a .tar.gz file", bugReportFile)
+	// Fail if the bugReportFile already exists
+	_, err = os.Stat(bugReportFile)
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("file %s already exists", bugReportFile)
 	}
 
 	// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.

@@ -37,8 +37,6 @@ func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bu
 	}
 	defer os.RemoveAll(bugReportDir)
 
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing the cluster resource for bug report ...\n")
-
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
 	err = captureVerrazzanoResources(client, kubeClient, bugReportDir, vzHelper.GetOutputStream())
 	if err != nil {
