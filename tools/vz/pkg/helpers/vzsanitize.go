@@ -90,8 +90,8 @@ func SanitizeFile(path string, replaceFile bool) error {
 	//fmt.Println("Modified file is: \n", string(modifiedFile))
 
 	if replaceFile == true {
-		printError(os.Remove(path))
-		printError(os.Rename(path+"_tmpfoo", path))
+		check(os.Remove(path))
+		check(os.Rename(path+"_tmpfoo", path))
 	}
 
 	return nil
@@ -106,13 +106,8 @@ func sanitizeEachLine(l string) string {
 
 func check(e error) error {
 	if e != nil {
+		fmt.Errorf(e.Error())
 		return e
 	}
 	return nil
-}
-
-func printError(err error) {
-	if err != nil {
-		fmt.Println(err.Error())
-	}
 }
