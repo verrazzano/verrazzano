@@ -113,7 +113,7 @@ func TestIsExternalDNSDisabled(t *testing.T) {
 // THEN the function returns true
 func TestIsExternalDNSReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newDeployment(ComponentName, true),
+		newDeployment(ComponentName, true), newPod(ComponentName), newReplicaSet(ComponentName),
 	).Build()
 	assert.True(t, isExternalDNSReady(spi.NewFakeContext(client, nil, false)))
 }
@@ -319,6 +319,11 @@ func newDeployment(name string, updated bool) *appsv1.Deployment {
 			Name:      name,
 			Labels:    map[string]string{"app.kubernetes.io/instance": "external-dns"},
 		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app.kubernetes.io/instance": "external-dns"},
+			},
+		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
 			Replicas:          1,
@@ -334,4 +339,27 @@ func newDeployment(name string, updated bool) *appsv1.Deployment {
 		}
 	}
 	return deployment
+}
+
+func newPod(name string) *v1.Pod {
+	return &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      name + "-95d8c5d96-m6mbr",
+			Labels: map[string]string{
+				"app.kubernetes.io/instance": "external-dns",
+				"pod-template-hash":          "95d8c5d96",
+			},
+		},
+	}
+}
+
+func newReplicaSet(name string) *appsv1.ReplicaSet {
+	return &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   ComponentNamespace,
+			Name:        name + "-95d8c5d96",
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
+	}
 }

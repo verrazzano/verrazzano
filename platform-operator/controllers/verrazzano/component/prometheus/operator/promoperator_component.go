@@ -9,10 +9,15 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -25,6 +30,11 @@ const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 const ComponentJSONName = "prometheusOperator"
 
 const chartDir = "prometheus-community/kube-prometheus-stack"
+
+const (
+	prometheusHostName        = "prometheus.vmi.system"
+	prometheusCertificateName = "system-tls-prometheus"
+)
 
 type prometheusComponent struct {
 	helm.HelmComponent
@@ -42,7 +52,9 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
-			Dependencies:            []string{certmanager.ComponentName},
+			// the dependency on the VMO is to ensure that a persistent volume is retained and the claim is released
+			// so that persistent storage can be migrated to the new Prometheus
+			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName, vmo.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,
 		},
@@ -80,28 +92,33 @@ func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstall(ctx)
+	return preInstallUpgrade(ctx)
 }
 
-// PostInstall applies monitor resources for Verrazzano system components
+// PreUpgrade updates resources necessary for the Prometheus Operator Component installation
+func (c prometheusComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return preInstallUpgrade(ctx)
+}
+
+// PostInstall creates/updates associated resources after this component is installed
 func (c prometheusComponent) PostInstall(ctx spi.ComponentContext) error {
-	if err := applySystemMonitors(ctx); err != nil {
+	if err := postInstallUpgrade(ctx); err != nil {
 		return err
 	}
-	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
-		return err
-	}
+
+	// these need to be set for helm component post install processing
+	c.IngressNames = c.GetIngressNames(ctx)
+	c.Certificates = c.GetCertificateNames(ctx)
+
 	return c.HelmComponent.PostInstall(ctx)
 }
 
-// PostUpgrade applies monitor resources for Verrazzano system components
+// PostInstall creates/updates associated resources after this component is upgraded
 func (c prometheusComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	if err := applySystemMonitors(ctx); err != nil {
+	if err := postInstallUpgrade(ctx); err != nil {
 		return err
 	}
-	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
-		return err
-	}
+
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 
@@ -116,4 +133,40 @@ func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.validatePrometheusOperator(new)
+}
+
+// getIngressNames - gets the names of the ingresses associated with this component
+func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var ingressNames []types.NamespacedName
+
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		ns := ComponentNamespace
+		if vzconfig.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+			ns = authproxy.ComponentNamespace
+		}
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: ns,
+			Name:      constants.PrometheusIngress,
+		})
+	}
+
+	return ingressNames
+}
+
+// getCertificateNames - gets the names of the TLS ingress certificates associated with this component
+func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var certificateNames []types.NamespacedName
+
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		ns := ComponentNamespace
+		if vzconfig.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+			ns = authproxy.ComponentNamespace
+		}
+		certificateNames = append(certificateNames, types.NamespacedName{
+			Namespace: ns,
+			Name:      prometheusCertificateName,
+		})
+	}
+
+	return certificateNames
 }

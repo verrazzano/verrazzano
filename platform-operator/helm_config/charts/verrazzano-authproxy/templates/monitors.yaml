@@ -1,6 +1,6 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-  {{- if .Values.prometheusOperatorEnabled }}
+  {{- if .Values.config.prometheusOperatorEnabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -14,8 +14,7 @@ spec:
       - {{ .Release.Namespace }}
   selector: {}
   endpoints:
-    - port: https
-      path: /metrics
+    - path: /metrics
       scheme: https
       tlsConfig:
         caFile: /etc/istio-certs/root-cert.pem
@@ -51,5 +50,5 @@ spec:
         replacement: $1
         sourceLabels:
         - name
-        targetLabel:
+        targetLabel: app
   {{- end }}

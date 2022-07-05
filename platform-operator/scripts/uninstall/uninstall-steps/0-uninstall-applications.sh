@@ -44,16 +44,4 @@ function delete_multicluster_resources {
     delete_k8s_resource_from_all_namespaces multiclustersecrets.clusters.verrazzano.io no
 }
 
-# Delete all of the OAM ApplicationConfiguration resources in all namespaces.
-function delete_oam_applications_configurations {
-  delete_managed_k8s_resources applicationconfigurations.core.oam.dev no
-}
-
-# Delete all of the OAM Component resources in all namespaces.
-function delete_oam_components {
-  delete_managed_k8s_resources components.core.oam.dev no
-}
-
 action "Deleting Multicluster resources" delete_multicluster_resources || exit 1
-action "Deleting OAM application configurations" delete_oam_applications_configurations || exit 1
-action "Deleting OAM components" delete_oam_components || exit 1

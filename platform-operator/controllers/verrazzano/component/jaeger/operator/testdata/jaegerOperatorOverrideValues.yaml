@@ -1,0 +1,11 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+extraEnv:
+  - name: "JAEGER-AGENT-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-agent:1.34.1"
+  - name: "JAEGER-QUERY-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-query:1.34.1"
+  - name: "JAEGER-COLLECTOR-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-collector:1.34.1"
+  - name: "JAEGER-INGESTER-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-ingester:1.34.1"

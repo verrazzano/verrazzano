@@ -42,7 +42,7 @@ const (
 
 	FilenameFlag          = "filename"
 	FilenameFlagShorthand = "f"
-	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files."
+	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files.  Specifying \"-\" as the filename accepts input from stdin."
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
