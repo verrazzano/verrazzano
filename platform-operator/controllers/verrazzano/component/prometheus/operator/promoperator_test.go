@@ -470,7 +470,7 @@ func TestApplySystemMonitors(t *testing.T) {
 	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
-	assert.Len(t, monitors.Items, 4)
+	assert.Len(t, monitors.Items, 6)
 }
 
 // TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR
