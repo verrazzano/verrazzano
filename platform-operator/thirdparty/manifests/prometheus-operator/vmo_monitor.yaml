@@ -5,16 +5,14 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: verrazzano-monitoring-operator
-  namespace: { { .monitoringNamespace } }
+  namespace: {{ .monitoringNamespace }}
   labels:
     release: prometheus-operator
 spec:
   namespaceSelector:
     matchNames:
-      - { { .systemNamespace } }
-  selector:
-    matchLabels:
-      k8s-app: verrazzano-monitoring-operator
+      - {{ .systemNamespace }}
+  selector: {}
   endpoints:
     - relabelings:
         - sourceLabels:
