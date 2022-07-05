@@ -331,17 +331,17 @@ pipeline {
                 script {
                     echo "[INFO] Creating OLCNE cluster"
                     createOLCNECluster()
+                }
+            }
+        }
+
+        stage("Setup SSH access") {
+            steps {
+                script {
                     echo "[INFO] Setting up ssh access"
                     setupSSH()
                     // echo "[INFO] Enable External IP access"
                     // enableOLCNEExternalIPService()
-                }
-            }
-            post {
-                failure {
-                    script {
-                        echo "[ERROR] Cluster create failed"
-                    }
                 }
             }
         }
