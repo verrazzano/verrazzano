@@ -170,13 +170,11 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil {
 		return log.ErrorfNewErr("Failed listing MC projects: %v", err)
 	}
-	if len(projects.Items) > 0 {
-		log.Oncef("Skipping namespace %s deletion since it contains projects", vzconst.VerrazzanoMultiClusterNamespace)
-		return nil
-	}
-	log.Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
-	if err := r.deleteNamespace(context.TODO(), log, vzconst.VerrazzanoMultiClusterNamespace); err != nil {
-		return err
+	if len(projects.Items) == 0 {
+		log.Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
+		if err := r.deleteNamespace(context.TODO(), log, vzconst.VerrazzanoMultiClusterNamespace); err != nil {
+			return err
+		}
 	}
 
 	// Delete secrets last. Don't delete MC agent secret until the end since it tells us this is MC install
