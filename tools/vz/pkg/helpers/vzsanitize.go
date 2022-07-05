@@ -18,6 +18,8 @@ var regexToReplacementMap = make(map[string]string)
 const redactIpAddress = "REDACTED-IP4-ADDRESS"
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
 
+// Initialize the regex string to replacement string map
+// Append to this map for any future additions
 func initRegexToReplacementMap() {
 	regexToReplacementMap[ipv4Regex] = redactIpAddress
 }
@@ -49,6 +51,8 @@ func GetMatchingFiles(rootDirectory string, fileMatchRe *regexp.Regexp) (fileMat
 	return fileMatches, err
 }
 
+// This will iterate over the given root directory to sanitize each file
+// replaceFile is to whether replace the file with sanitized content or create a new file with _tmpfoo suffix
 func SanitizeDirectory(rootDirectory string, replaceFile bool) {
 	initRegexToReplacementMap()
 	fileMatches, err := GetMatchingFiles(rootDirectory, regexp.MustCompile(".*"))
@@ -58,6 +62,7 @@ func SanitizeDirectory(rootDirectory string, replaceFile bool) {
 	}
 }
 
+//Sanitize the given file, replaceFile boolean is to whether inplace replacement or to a new file
 func SanitizeFile(path string, replaceFile bool) error {
 	fmt.Println("path provided is: ", path)
 	input, err := os.Open(path)
@@ -97,6 +102,8 @@ func SanitizeFile(path string, replaceFile bool) error {
 	return nil
 }
 
+// Sanitize each line in a given file,
+// Sanitizes based on the regex map initialized above
 func sanitizeEachLine(l string) string {
 	for k, v := range regexToReplacementMap {
 		l = regexp.MustCompile(k).ReplaceAllString(l, v)
