@@ -626,7 +626,8 @@ func (c *IstioComponent) IsInjectionEnabled() bool {
 // JaegerOperatorComponent specifies the Jaeger Operator configuration
 type JaegerOperatorComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration

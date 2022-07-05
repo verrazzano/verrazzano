@@ -32,17 +32,16 @@ type oamComponent struct {
 func NewComponent() spi.Component {
 	return oamComponent{
 		helm.HelmComponent{
-			ReleaseName:               ComponentName,
-			JSONName:                  ComponentJSONName,
-			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:            ComponentNamespace,
-			IgnoreNamespaceOverride:   true,
-			SupportsOperatorInstall:   true,
-			SupportsOperatorUninstall: true,
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "oam-kubernetes-runtime-values.yaml"),
-			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
-			Dependencies:              []string{},
-			GetInstallOverridesFunc:   GetOverrides,
+			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:          ComponentNamespace,
+			IgnoreNamespaceOverride: true,
+			SupportsOperatorInstall: true,
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "oam-kubernetes-runtime-values.yaml"),
+			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
+			Dependencies:            []string{},
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
