@@ -80,7 +80,7 @@ func CreateReportArchive(captureDir, bugReportFile string) error {
 	return nil
 }
 
-func CaptureK8SResources (kubeClient kubernetes.Interface, namespace, captureDir string) error {
+func CaptureK8SResources(kubeClient kubernetes.Interface, namespace, captureDir string) error {
 	if err := captureWorkLoads(kubeClient, namespace, captureDir); err != nil {
 		return err
 	}
@@ -99,10 +99,10 @@ func CaptureK8SResources (kubeClient kubernetes.Interface, namespace, captureDir
 	return nil
 }
 
-func GetPodName(client clipkg.Client, podPrefix, namespace string) (string, error) {
-	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{podPrefix})
+func GetPodList(client clipkg.Client, appLabel, appName, namespace string) ([]corev1.Pod, error) {
+	aLabel, _ := labels.NewRequirement(appLabel, selection.Equals, []string{appName})
 	labelSelector := labels.NewSelector()
-	labelSelector = labelSelector.Add(*appLabel)
+	labelSelector = labelSelector.Add(*aLabel)
 	podList := corev1.PodList{}
 	err := client.List(
 		context.TODO(),
@@ -112,19 +112,22 @@ func GetPodName(client clipkg.Client, podPrefix, namespace string) (string, erro
 			LabelSelector: labelSelector,
 		})
 	if err != nil {
-		return "", fmt.Errorf("waiting for %s, failed to list pods: %s", podPrefix, err.Error())
+		return nil, fmt.Errorf("an error while listing pods: %s", err.Error())
 	}
-	if len(podList.Items) == 0 {
-		return "", fmt.Errorf("failed to find %s in namespace %s", podPrefix, namespace)
-	}
-	if len(podList.Items) > 1 {
-		return "", fmt.Errorf("waiting for %s, more than one %s pod was found in namespace %s", podPrefix, podPrefix, namespace)
-	}
-	return podList.Items[0].Name, nil
+	return podList.Items, nil
 }
 
 // captureVZResource captures Verrazzano resources as a json under captureDir
-func CaptureVZResource(vz *vzapi.Verrazzano, captureDir string) error {
+func CaptureVZResource(client clipkg.Client, captureDir string, outStream io.Writer) error {
+
+	// Verrazzano as a list is required for the analysis tool
+	vz := vzapi.VerrazzanoList{}
+	err := client.List(context.TODO(), &vz)
+
+	if err != nil {
+		return fmt.Errorf("verrazzano is not installed: %s", err.Error())
+	}
+
 	var vzRes = captureDir + string(os.PathSeparator) + constants.VzResource
 	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -132,9 +135,12 @@ func CaptureVZResource(vz *vzapi.Verrazzano, captureDir string) error {
 	}
 	defer f.Close()
 
-	a, _ := json.MarshalIndent(vz, constants.JSONPrefix, constants.JSONIndent)
-	vzJSON := string(a)
-	_, err = f.WriteString(vzJSON)
+	fmt.Fprintf(outStream, "Capturing Verrazzano resource ...\n")
+	vzJSON, err := json.MarshalIndent(vz, constants.JSONPrefix, constants.JSONIndent)
+	if err != nil {
+		return fmt.Errorf("an error occurred while creating JSON encoding of %s: %s", vzRes, err.Error())
+	}
+	_, err = f.WriteString(string(vzJSON))
 	if err != nil {
 		return fmt.Errorf("an error occurred while writing the file %s: %s", vzRes, err.Error())
 	}
@@ -222,19 +228,15 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 }
 
 // captureLog captures the log from the pod in the captureDir
-func CaptureLog(kubeClient kubernetes.Interface, podName, container, namespace, captureDir string) error {
-	podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
-		Container:                    container,
-		InsecureSkipTLSVerifyBackend: true,
-	}).Stream(context.TODO())
-	if err != nil {
-		return fmt.Errorf("an error occurred while reading the logs from pod %s: %s", podName, err.Error())
+func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string) error {
+	podName := pod.Name
+	if len(podName) == 0 {
+		return nil
 	}
-	defer podLog.Close()
 
 	// Create directory for the namespace and the pod, under the root level directory containing the bug report
 	var folderPath = captureDir + string(os.PathSeparator) + namespace + string(os.PathSeparator) + podName
-	err = os.MkdirAll(folderPath, os.ModePerm)
+	err := os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("an error occurred while creating the directory %s: %s", folderPath, err.Error())
 	}
@@ -247,17 +249,37 @@ func CaptureLog(kubeClient kubernetes.Interface, podName, container, namespace, 
 	}
 	defer f.Close()
 
-	// Write the log from the pod to the file
-	reader := bufio.NewScanner(podLog)
-	var line string
-	for reader.Scan() {
-		line = reader.Text()
-		f.WriteString(line + "\n")
+	// Capture logs for both init containers and containers
+	var cs []corev1.Container
+	cs = append(cs, pod.Spec.InitContainers...)
+	cs = append(cs, pod.Spec.Containers...)
+
+	for _, c := range cs {
+		writeToFile := func(contName string) error {
+			podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
+				Container:                    contName,
+				InsecureSkipTLSVerifyBackend: true,
+			}).Stream(context.TODO())
+			if err != nil {
+				return fmt.Errorf("an error occurred while reading the logs from pod %s: %s", podName, err.Error())
+			}
+			defer podLog.Close()
+
+			// Write the log from the pod to the file
+			reader := bufio.NewScanner(podLog)
+			f.WriteString(fmt.Sprintf("==== START logs for container %s of pod %s/%s ====\n", contName, namespace, podName))
+			for reader.Scan() {
+				f.WriteString(reader.Text() + "\n")
+			}
+			f.WriteString(fmt.Sprintf("==== END logs for container %s of pod %s/%s ====\n", contName, namespace, podName))
+			return nil
+		}
+		writeToFile(c.Name)
 	}
 	return nil
 }
 
-func createFile (namespace, resourceFile, captureDir string, v interface{}) error {
+func createFile(namespace, resourceFile, captureDir string, v interface{}) error {
 	var folderPath = captureDir + string(os.PathSeparator) + namespace
 
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {

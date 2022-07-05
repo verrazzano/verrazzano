@@ -157,7 +157,24 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	feedbackChan <- true
 
 	// Return the platform operator pod name
-	return getPodName(client, podList, labelSelector)
+	err := client.List(
+		context.TODO(),
+		&podList,
+		&clipkg.ListOptions{
+			Namespace:     vzconstants.VerrazzanoInstallNamespace,
+			LabelSelector: labelSelector,
+		})
+	if err != nil {
+		return "", fmt.Errorf("Waiting for %s, failed to list pods: %s", constants.VerrazzanoPlatformOperator, err.Error())
+	}
+	if len(podList.Items) == 0 {
+		return "", fmt.Errorf("Failed to find the Verrazzano platform operator in namespace %s", vzconstants.VerrazzanoInstallNamespace)
+	}
+	if len(podList.Items) > 1 {
+		return "", fmt.Errorf("Waiting for %s, more than one %s pod was found in namespace %s", constants.VerrazzanoPlatformOperator, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+	}
+
+	return podList.Items[0].Name, nil
 }
 
 // WaitForOperationToComplete waits for the Verrazzano install/upgrade to complete and
@@ -244,34 +261,6 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	}
 
 	return nil
-}
-
-func GetVPOPodName(client clipkg.Client) (string, error) {
-	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{constants.VerrazzanoPlatformOperator})
-	labelSelector := labels.NewSelector()
-	labelSelector = labelSelector.Add(*appLabel)
-	podList := corev1.PodList{}
-	return getPodName(client, podList, labelSelector)
-}
-
-func getPodName(client clipkg.Client, podList corev1.PodList, labelSelector labels.Selector) (string, error) {
-	err := client.List(
-		context.TODO(),
-		&podList,
-		&clipkg.ListOptions{
-			Namespace:     vzconstants.VerrazzanoInstallNamespace,
-			LabelSelector: labelSelector,
-		})
-	if err != nil {
-		return "", fmt.Errorf("Waiting for %s, failed to list pods: %s", constants.VerrazzanoPlatformOperator, err.Error())
-	}
-	if len(podList.Items) == 0 {
-		return "", fmt.Errorf("Failed to find the Verrazzano platform operator in namespace %s", vzconstants.VerrazzanoInstallNamespace)
-	}
-	if len(podList.Items) > 1 {
-		return "", fmt.Errorf("Waiting for %s, more than one %s pod was found in namespace %s", constants.VerrazzanoPlatformOperator, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
-	}
-	return podList.Items[0].Name, nil
 }
 
 // return the operation string to display

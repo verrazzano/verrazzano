@@ -111,4 +111,8 @@ const (
 
 	// Top level directory for the bug report, keeping cluster-dump for now to support the analyze the command
 	BugReportRoot = "cluster-dump"
+
+	// Label for application
+	AppLabel    = "app"
+	K8SAppLabel = "k8s-app"
 )

@@ -24,11 +24,6 @@ $vz bug-report --report-file <name of the file>
 
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
-
-	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		return validateReportFileExtn(cmd)
-	}
-
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdBugReport(cmd, args, vzHelper)
 	}
@@ -45,6 +40,11 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("error fetching flag: %s", err.Error())
 	}
 
+	// Validate the report file format
+	if !strings.HasSuffix(bugReportFile, constants.BugReportFileExtn) {
+		return fmt.Errorf("unsupported report-file: %s, set a .tar.gz file", bugReportFile)
+	}
+
 	// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.
 	kubeClient, err := vzHelper.GetKubeClient(cmd)
 	if err != nil {
@@ -59,12 +59,4 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 	// Generate the bug report
 	return vzbugreport.GenerateBugReport(kubeClient, client, bugReportFile, vzHelper)
-}
-
-func validateReportFileExtn(cmd *cobra.Command) error {
-	reportFile := cmd.PersistentFlags().Lookup(constants.BugReportFileFlagName)
-	if strings.HasSuffix(reportFile.Value.String(), constants.BugReportFileExtn) {
-		return nil
-	}
-	return fmt.Errorf("unsupported report-file: %s, set a .tar.gz file", reportFile.Value.String())
 }
