@@ -7,23 +7,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"istio.io/api/security/v1beta1"
-	v1beta12 "istio.io/api/type/v1beta1"
 	"reflect"
 	"strings"
 	"time"
 
+	"istio.io/api/security/v1beta1"
+	v1beta12 "istio.io/api/type/v1beta1"
+
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -119,6 +120,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
+
+	// Metric for number of times reconcile function is called
+	defer metricsexporter.IngresstraitloadIncrementEventsProcessed()
 	if req.Namespace == vzconst.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
 		log.Infof("Ingress trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)

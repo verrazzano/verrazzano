@@ -29,6 +29,11 @@ var (
 		Help: "The total number of processed Reconcile events",
 	})
 
+	ingresstraitloadReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "helidonworkload_reconcile_puller_events_total",
+		Help: "The total number of processed Reconcile events",
+	})
+
 	allMetrics    = []prometheus.Collector{appconfigReconcileProcessed, cohworkloadReconcileProcessed, helidonworkloadReconcileProcessed}
 	failedMetrics = map[prometheus.Collector]int{}
 	registry      = prometheus.DefaultRegisterer
@@ -88,6 +93,11 @@ func CohworkloadIncrementEventsProcessed() {
 }
 
 func HelidonworkloadIncrementEventsProcessed() {
+
+	appconfigReconcileProcessed.Inc()
+
+}
+func IngresstraitloadIncrementEventsProcessed() {
 
 	appconfigReconcileProcessed.Inc()
 
