@@ -186,13 +186,16 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 			}
 
 			// See if merge needed on objects of type map[string]interface {}
-			//
-			// For objects of type []interface{}, e.g. secrets or imagePullSecrets, a replace will be
-			// done.  This appears to be consistent with the behavior of kubectl.
 			if clientField.typeOf == "map[string]interface {}" {
 				if serverField != nil {
 					merge(serverField.(map[string]interface{}), clientField.nestedCopy.(map[string]interface{}))
 				}
+			}
+
+			// For objects of type []interface{}, e.g. secrets or imagePullSecrets, a replace will be
+			// done.  This appears to be consistent with the behavior of kubectl.
+			if clientField.typeOf == "[]interface {}" {
+				serverField = clientField.nestedCopy
 			}
 
 			// If serverSpec is nil, then the clientSpec field is being added
