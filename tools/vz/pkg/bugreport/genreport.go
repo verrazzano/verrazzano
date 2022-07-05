@@ -29,19 +29,16 @@ type ErrorsChannel struct {
 
 // GenerateBugReport creates a bug report by including the resources selectively from the cluster, useful to analyze the issue.
 func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bugReportFile string, vzHelper pkghelpers.VZHelper) error {
-	tmpDir, err := ioutil.TempDir("", constants.BugReportDir)
+
+	// Create a temporary directory to place the cluster data
+	bugReportDir, err := ioutil.TempDir("", constants.BugReportDir)
 	if err != nil {
 		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 	}
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(bugReportDir)
 
-	bugReportDir := tmpDir + string(os.PathSeparator) + constants.BugReportDir
-	err = os.Mkdir(bugReportDir, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("an error creating the directory: %s", bugReportDir)
-	}
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing the cluster resource for bug report ...\n")
 
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing cluster resource for bug report ...\n")
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
 	err = captureVerrazzanoResources(client, kubeClient, bugReportDir, vzHelper.GetOutputStream())
 	if err != nil {
@@ -70,7 +67,7 @@ func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bu
 // captureVerrazzanoResources captures the resources from verrazzano-install and verrazzano-system namespaces
 func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, outputStream io.Writer) error {
 
-	// Capture Verrazzano resource
+	// Capture Verrazzano resource as JSON
 	if err := pkghelpers.CaptureVZResource(client, bugReportDir, outputStream); err != nil {
 		return err
 	}
@@ -122,7 +119,7 @@ func captureLogsInParallel(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient
 		return
 	}
 	// This won't work when there are more than one pods for the same app label
-	fmt.Fprintf(outStream, fmt.Sprintf("Capturing log from pod: %s in namespace: %s ...\n", pods[0].Name, namespace))
+	fmt.Fprintf(outStream, fmt.Sprintf("Capturing the log from pod %s in the namespace %s ...\n", pods[0].Name, namespace))
 	err := pkghelpers.CapturePodLog(kubeClient, pods[0], namespace, bugReportDir)
 	if err != nil {
 		ec <- ErrorsChannel{PodName: pods[0].Name, ErrorMessage: err.Error()}
