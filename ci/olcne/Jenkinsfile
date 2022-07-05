@@ -1005,10 +1005,10 @@ def createOLCNECluster() {
     echo VCN_OCID
     env.VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """).trim()
     echo VCN_CIDR
-    env.PRIVATE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw subnet_id """).trim()
-    echo PRIVATE_SUBNET_OCID
-    env.PUBLIC_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """).trim()
-    echo PUBLIC_SUBNET_OCID
+    env.NODE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw subnet_id """).trim()
+    echo NODE_SUBNET_OCID
+    env.BASTION_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """).trim()
+    echo BASTION_SUBNET_OCID
     env.BASTION_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_public_ip """).trim()
     echo BASTION_IP
     env.BASTION_USER=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_user """).trim()
@@ -1063,7 +1063,7 @@ def createOCIStorage() {
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
         -o create -a "$TF_VAR_availability_domain_id" \
         -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
-        -p "/$TF_VAR_prefix-export" -c "$TF_VAR_compartment_id" -s "$PRIVATE_SUBNET_OCID"
+        -p "/$TF_VAR_prefix-export" -c "$TF_VAR_compartment_id" -s "$NODE_SUBNET_OCID"
     """
     env.MT_PVT_IP_OCID=sh(returnStdout: true, script: """ oci fs mount-target list --compartment-id "$TF_VAR_compartment_id" --availability-domain "$TF_VAR_availability_domain_id" --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0]."private-ip-ids"[0]' """).trim()
     echo MT_PVT_IP_OCID
@@ -1087,13 +1087,13 @@ def createOCILoadBalancers() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
         -o create -n "$TF_VAR_prefix-mgmt" -e true \
-        -c "$TF_VAR_compartment_id" -s "$PUBLIC_SUBNET_OCID" \
+        -c "$TF_VAR_compartment_id" -s "$BASTION_SUBNET_OCID" \
         -i "$WORKER_NODES_IP" -p 30443 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
 
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
         -o create -n "$TF_VAR_prefix-app" -e true \
-        -c "$TF_VAR_compartment_id" -s "$PUBLIC_SUBNET_OCID" \
+        -c "$TF_VAR_compartment_id" -s "$BASTION_SUBNET_OCID" \
         -i "$WORKER_NODES_IP" -p 31390 \
         -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
     """
