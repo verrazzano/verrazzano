@@ -60,6 +60,7 @@ func (r *VerrazzanoSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	if vzList != nil && len(vzList.Items) > 0 {
 		vz := &vzList.Items[0]
+		// Nothing to do if the vz resource is being deleted
 		if vz.DeletionTimestamp != nil {
 			return ctrl.Result{}, nil
 		} else {
