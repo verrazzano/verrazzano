@@ -5,8 +5,6 @@ import (
 	"testing"
 )
 
-var testDir = "../../pkg/analysis/test/files"
-
 var (
 	testIP = "127.255.255.255"
 )
