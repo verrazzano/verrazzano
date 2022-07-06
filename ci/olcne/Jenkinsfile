@@ -513,19 +513,19 @@ pipeline {
                 if (keepOLCNEClusterOnFailure == false) {
                     if (env.createdOCIDNSZone && env.createdOCIDNSZone == "true") {
                         echo "[INFO] Deleting OCI DNS Zone"
-                        // deleteOCIDNSZone()
+                        deleteOCIDNSZone()
                     }
                     if (env.createdOCIFileSystem && env.createdOCIFileSystem == "true") {
                         echo "[INFO] Deleting OCI FileSystem"
-                        // deleteOCIFileSystem()
+                        deleteOCIFileSystem()
                     }
                     if (env.createdOCILoadBalancers && env.createdOCILoadBalancers == "true") {
                         echo "[INFO] Deleting OCI LoadBalancers"
-                        // deleteOCILoadBalancers()
+                        deleteOCILoadBalancers()
                     }
                     if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
                         echo "[INFO] Deleting OLCNE Cluster"
-                        // deleteOLCNECluster()
+                        deleteOLCNECluster()
                     }
                 }
             }
