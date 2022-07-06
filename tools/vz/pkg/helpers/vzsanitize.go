@@ -86,7 +86,7 @@ func SanitizeFile(path string, replaceFile bool) error {
 		outFile.WriteString(sanitizedLine + "\n")
 	}
 
-	if replaceFile == true {
+	if replaceFile {
 		check(os.Remove(path))
 		check(os.Rename(path+"_tmpfoo", path))
 	}
@@ -108,7 +108,6 @@ func SanitizeALine(l string) string {
 
 func check(e error) error {
 	if e != nil {
-		fmt.Errorf(e.Error())
 		return e
 	}
 	return nil
