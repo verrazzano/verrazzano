@@ -291,7 +291,9 @@ func (r *Reconciler) reconcileTraitDelete(ctx context.Context, trait *vzapi.Metr
 	status := r.deleteOrUpdateObsoleteResources(ctx, trait, &reconcileresults.ReconcileResults{}, log)
 	// Only remove the finalizer if all related resources were successfully updated.
 	if !status.ContainsErrors() {
-		r.removeFinalizerIfRequired(ctx, trait, log)
+		if err := r.removeFinalizerIfRequired(ctx, trait, log); err != nil {
+			return ctrl.Result{Requeue: true}, err // the caller always does a requeue if there is an error
+		}
 	}
 	return r.updateTraitStatus(ctx, trait, status, log)
 }
@@ -379,7 +381,7 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi
 			return nil
 		})
 		if err != nil {
-			log.Errorf("Failed to remove finalizer to trait %s: %v", traitName, err)
+			log.Errorf("Failed to remove finalizer for trait %s: %v", traitName, err)
 			return err
 		}
 	}
