@@ -125,15 +125,6 @@ function delete_prometheus_adapter {
   fi
 }
 
-function delete_kube_state_metrics {
-  log "Uninstall kube-state-metrics"
-  if helm status kube-state-metrics --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall kube-state-metrics --namespace "${VERRAZZANO_MONITORING_NS}" ; then
-      error "Failed to uninstall kube-state-metrics."
-    fi
-  fi
-}
-
 function delete_prometheus_node_exporter {
   log "Uninstall the Prometheus node-exporter"
   if helm status prometheus-node-exporter --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
@@ -206,7 +197,6 @@ action "Deleting Fluentd" delete_fluentd || exit 1
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
 action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
-action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
 action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
