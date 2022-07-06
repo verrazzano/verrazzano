@@ -9,6 +9,8 @@ import (
 
 var testDir = "../../pkg/analysis/test/files"
 
+const testIP = "132.23.234.24"
+
 func TestSanitizeDirectoryMatch(t *testing.T) {
 	SanitizeDirectory(testDir, false)
 	testFile := testDir + "/sanity_test.txt"
@@ -16,7 +18,7 @@ func TestSanitizeDirectoryMatch(t *testing.T) {
 	file, err := os.ReadFile(testFiletmp)
 	assert.Nil(t, err)
 	//assert.Contains(t, string(file), "REDACT")
-	assert.NotContains(t, string(file), "132.23.234.24")
+	assert.NotContains(t, string(file), testIP)
 	testCleanup(testDir)
 }
 
@@ -44,7 +46,7 @@ func testCleanup(path string) error {
 }
 
 func TestSanitizeALine(t *testing.T) {
-	assert.NotContains(t, SanitizeALine("1.2.3.4"), "1.2.3.4")
+	assert.NotContains(t, SanitizeALine(testIP), testIP)
 	assert.Contains(t, SanitizeALine("test.me.test.me"), "test")
 	testCleanup(testDir)
 }
