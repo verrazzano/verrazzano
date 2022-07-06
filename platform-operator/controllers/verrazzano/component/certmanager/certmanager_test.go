@@ -5,29 +5,29 @@ package certmanager
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -492,32 +492,27 @@ func TestUninstallCertManager(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		expectError bool
-		objects     []clipkg.Object
+		name    string
+		objects []clipkg.Object
 	}{
 		{
-			name:        "test no controller configmap",
-			expectError: true,
+			name: "test no controller configmap",
 		},
 		{
-			name:        "test no ca configmap",
-			expectError: true,
+			name: "test no ca configmap",
 			objects: []clipkg.Object{
 				&controllerCM,
 			},
 		},
 		{
-			name:        "test no namespace",
-			expectError: false,
+			name: "test no namespace",
 			objects: []clipkg.Object{
 				&controllerCM,
 				&caCM,
 			},
 		},
 		{
-			name:        "test all",
-			expectError: false,
+			name: "test all",
 			objects: []clipkg.Object{
 				&controllerCM,
 				&caCM,
@@ -530,10 +525,6 @@ func TestUninstallCertManager(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(tt.objects...).Build()
 			fakeContext := spi.NewFakeContext(c, vz, false, profileDir)
 			err := uninstallCertManager(fakeContext)
-			if tt.expectError {
-				assert.Error(t, err)
-				return
-			}
 			assert.NoError(t, err)
 			// expect the controller ConfigMap to get deleted
 			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{})

@@ -845,20 +845,27 @@ func uninstallCertManager(compContext spi.ComponentContext) error {
 	var controllerCM v1.ConfigMap
 	controllerCM.SetName(controllerConfigMap)
 	controllerCM.SetNamespace(constants.KubeSystem)
-	if err := compContext.Client().Delete(context.TODO(), &controllerCM); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s for the cert-manager uninstall: %v", constants.KubeSystem, controllerConfigMap, err)
+	err := compContext.Client().Delete(context.TODO(), &controllerCM)
+	if notFound := crtclient.IgnoreNotFound(err); notFound != nil {
+		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s: %v", constants.KubeSystem, controllerConfigMap, err)
+	} else if err == nil {
+		compContext.Log().Oncef("Successfully deleted ConfigMap %s/%s", constants.KubeSystem, controllerConfigMap)
 	}
+
 	var caCM v1.ConfigMap
 	caCM.SetName(caInjectorConfigMap)
 	caCM.SetNamespace(constants.KubeSystem)
-	if err := compContext.Client().Delete(context.TODO(), &caCM); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s for the cert-manager uninstall: %v", constants.KubeSystem, caInjectorConfigMap, err)
+	err = compContext.Client().Delete(context.TODO(), &caCM)
+	if crtclient.IgnoreNotFound(err) != nil {
+		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s: %v", constants.KubeSystem, caInjectorConfigMap, err)
+	} else if err == nil {
+		compContext.Log().Oncef("Successfully deleted ConfigMap %s/%s", constants.KubeSystem, caInjectorConfigMap)
 	}
 
 	// Remove finalizers from the cert-manager namespace to avoid hanging namespace deletion
 	certNS := v1.Namespace{}
 	certNS.Name = constants.CertManagerNamespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certNS, func() error {
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certNS, func() error {
 		certNS.Finalizers = []string{}
 		return nil
 	})
@@ -867,8 +874,11 @@ func uninstallCertManager(compContext spi.ComponentContext) error {
 	}
 
 	// Delete the cert-manager namespace now that the finalizers have been removed
-	if err := compContext.Client().Delete(context.TODO(), &certNS); err != nil {
+	err = compContext.Client().Delete(context.TODO(), &certNS)
+	if crtclient.IgnoreNotFound(err) != nil {
 		return compContext.Log().ErrorfNewErr("Failed to delete the cert-manager namespace %s: %v", constants.CertManagerNamespace, err)
+	} else if err == nil {
+		compContext.Log().Oncef("Successfully deleted the namespace %s", constants.CertManagerNamespace)
 	}
 	return nil
 }
