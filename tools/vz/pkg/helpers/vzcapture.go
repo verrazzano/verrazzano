@@ -31,7 +31,6 @@ var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
 func CreateReportArchive(captureDir, bugReportFile string) error {
-
 	// Create the bug report file
 	bugRepFile, err := os.Create(bugReportFile)
 	if err != nil {
@@ -147,7 +146,7 @@ func CaptureVZResource(client clipkg.Client, captureDir string, outStream io.Wri
 	if err != nil {
 		return fmt.Errorf("an error occurred while creating JSON encoding of %s: %s", vzRes, err.Error())
 	}
-	_, err = f.WriteString(string(vzJSON))
+	_, err = f.WriteString(SanitizeALine(string(vzJSON)))
 	if err != nil {
 		return fmt.Errorf("an error occurred while writing the file %s: %s", vzRes, err.Error())
 	}
@@ -279,11 +278,11 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 			defer podLog.Close()
 
 			reader := bufio.NewScanner(podLog)
-			f.WriteString(fmt.Sprintf(containerStartLog, contName, namespace, podName))
+			f.WriteString(SanitizeALine(fmt.Sprintf(containerStartLog, contName, namespace, podName)))
 			for reader.Scan() {
-				f.WriteString(reader.Text() + "\n")
+				f.WriteString(SanitizeALine(reader.Text() + "\n"))
 			}
-			f.WriteString(fmt.Sprintf(containerEndLog, contName, namespace, podName))
+			f.WriteString(SanitizeALine(fmt.Sprintf(containerEndLog, contName, namespace, podName)))
 			return nil
 		}
 		writeToFile(c.Name)
@@ -310,7 +309,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string) error
 	defer f.Close()
 
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
-	_, err = f.WriteString(string(resJSON))
+	_, err = f.WriteString(SanitizeALine(string(resJSON)))
 	if err != nil {
 		return fmt.Errorf("an error occurred while writing the file %s: %s", res, err.Error())
 	}

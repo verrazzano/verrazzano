@@ -5,6 +5,8 @@ package helpers
 
 import (
 	"bufio"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -12,16 +14,14 @@ import (
 	"regexp"
 )
 
-var regexList = []string{}
-var regexToReplacementMap = make(map[string]string)
+var regexToReplacementList = []string{}
 
-const redactIpAddress = "REDACTED-IP4-ADDRESS"
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
 
-// Initialize the regex string to replacement string map
+// InitRegexToReplacementMap Initialize the regex string to replacement string map
 // Append to this map for any future additions
-func initRegexToReplacementMap() {
-	regexToReplacementMap[ipv4Regex] = redactIpAddress
+func InitRegexToReplacementMap() {
+	regexToReplacementList = append(regexToReplacementList, ipv4Regex)
 }
 
 // GetMatchingFiles returns the filenames for files that match a regular expression.
@@ -51,10 +51,10 @@ func GetMatchingFiles(rootDirectory string, fileMatchRe *regexp.Regexp) (fileMat
 	return fileMatches, err
 }
 
-// This will iterate over the given root directory to sanitize each file
-// replaceFile is to whether replace the file with sanitized content or create a new file with _tmpfoo suffix
+// SanitizeDirectory will iterate over the given root directory to sanitize each file
+// ReplaceFile is to whether replace the file with sanitized content or create a new file with _tmpfoo suffix
 func SanitizeDirectory(rootDirectory string, replaceFile bool) {
-	initRegexToReplacementMap()
+	InitRegexToReplacementMap()
 	fileMatches, err := GetMatchingFiles(rootDirectory, regexp.MustCompile(".*"))
 	check(err)
 	for _, eachFile := range fileMatches {
@@ -62,7 +62,7 @@ func SanitizeDirectory(rootDirectory string, replaceFile bool) {
 	}
 }
 
-//Sanitize the given file, replaceFile boolean is to whether inplace replacement or to a new file
+// SanitizeFile the given file, replaceFile boolean is to whether inplace replacement or to a new file
 func SanitizeFile(path string, replaceFile bool) error {
 	fmt.Println("path provided is: ", path)
 	input, err := os.Open(path)
@@ -82,17 +82,9 @@ func SanitizeFile(path string, replaceFile bool) error {
 		}
 		check(err)
 
-		sanitizedLine := sanitizeEachLine(string(l))
+		sanitizedLine := SanitizeALine(string(l))
 		outFile.WriteString(sanitizedLine + "\n")
 	}
-
-	//originalFile, err := os.ReadFile(path)
-	//check(err)
-	//fmt.Println("Original file is: \n", string(originalFile))
-
-	//modifiedFile, err := os.ReadFile(path + "_tmpfoo")
-	//check(err)
-	//fmt.Println("Modified file is: \n", string(modifiedFile))
 
 	if replaceFile == true {
 		check(os.Remove(path))
@@ -102,11 +94,14 @@ func SanitizeFile(path string, replaceFile bool) error {
 	return nil
 }
 
-// Sanitize each line in a given file,
+// SanitizeALine sanitizes each line in a given file,
 // Sanitizes based on the regex map initialized above
-func sanitizeEachLine(l string) string {
-	for k, v := range regexToReplacementMap {
-		l = regexp.MustCompile(k).ReplaceAllString(l, v)
+func SanitizeALine(l string) string {
+	if len(regexToReplacementList) == 0 {
+		InitRegexToReplacementMap()
+	}
+	for _, eachRegex := range regexToReplacementList {
+		l = regexp.MustCompile(eachRegex).ReplaceAllString(l, getMd5Hash(l))
 	}
 	return l
 }
@@ -117,4 +112,12 @@ func check(e error) error {
 		return e
 	}
 	return nil
+}
+
+// getMd5Hash generates the one way hash for the input string
+func getMd5Hash(line string) string {
+	data := []byte(line)
+	hashedVal := md5.Sum(data)
+	hexString := hex.EncodeToString(hashedVal[:])
+	return hexString
 }
