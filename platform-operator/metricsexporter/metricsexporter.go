@@ -19,329 +19,329 @@ import (
 var (
 	reconcileIndex         int = 0
 	reconcileCounterMetric     = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "counter_for_reconcile_function",
-		Help: "The number of times the reconcile function has been called in the VPO",
+		Name: "vpo_reconcile_counter",
+		Help: "The number of times the reconcile function has been called in the Verrazzano-platform-operator",
 	})
 	reconcileLastDurationMetric = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "reconcileLastTime",
-		Help: "The duration of each reconcile call"},
+		Name: "vpo_reconcile_duration_seconds",
+		Help: "The duration of each reconcile call in the Verrazzano-platform-operator in seconds"},
 		[]string{"reconcile_index"},
 	)
 	verrazzanoAuthproxyInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "authproxy_component_install_time",
-		Help: "The install time for the authproxy component",
+		Name: "vz_authproxy_install_duration_seconds",
+		Help: "The duration of the latest installation of the authproxy component in seconds",
 	})
 	oamInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "oam_component_install_time",
-		Help: "The install time for the oam component",
+		Name: "vz_oam_install_duration_seconds",
+		Help: "The duration of the latest installation of the oam component in seconds",
 	})
-	apopperInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "apopper_component_install_time",
-		Help: "The install time for the apopper component",
+	appoperInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "vz_appoper_install_duration_seconds",
+		Help: "The duration of the latest installation of the appoper component in seconds",
 	})
 	istioInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "istio_component_install_time",
-		Help: "The install time for the istio component",
+		Name: "vz_istio_install_duration_seconds",
+		Help: "The duration of the latest installation of the istio component in seconds",
 	})
 	weblogicInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "weblogic_component_install_time",
-		Help: "The install time for the weblogic component",
+		Name: "vz_weblogic_install_duration_seconds",
+		Help: "The duration of the latest installation of the weblogic component in seconds",
 	})
 	nginxInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "nginx_component_install_time",
-		Help: "The install time for the nginx component",
+		Name: "vz_nginx_install_duration_seconds",
+		Help: "The duration of the latest installation of the nginx component in seconds",
 	})
 	certManagerInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "certManager_component_install_time",
-		Help: "The install time for the certManager component",
+		Name: "vz_certManager_install_duration_seconds",
+		Help: "The duration of the latest installation of the certManager component in seconds",
 	})
 	externalDNSInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "externalDNS_component_install_time",
-		Help: "The install time for the externalDNS component",
+		Name: "vz_externalDNS_install_duration_seconds",
+		Help: "The duration of the latest installation of the externalDNS component in seconds",
 	})
 	rancherInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "rancher_component_install_time",
-		Help: "The install time for the rancher component",
+		Name: "vz_rancher_install_duration_seconds",
+		Help: "The duration of the latest installation of the rancher component in seconds",
 	})
 	verrazzanoInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "verrazzano_component_install_time",
-		Help: "The install time for the verrazzano component",
+		Name: "verrazzano_install_duration_seconds",
+		Help: "The duration of the latest installation of the verrazzano component in seconds",
 	})
 	verrazzanoMonitoringOperatorInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "verrazzano_monitoring_operator_component_install_time",
-		Help: "The install time for the verrazzano-monitoring-operator component",
+		Name: "vmo_install_duration_seconds",
+		Help: "The duration of the latest installation of the verrazzano-monitoring-operator component in seconds",
 	})
 	openSearchInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "open_search_component_install_time",
-		Help: "The install time for the opensearch component",
+		Name: "vz_open_search_install_duration_seconds",
+		Help: "The duration of the latest installation of the opensearch component in seconds",
 	})
 	openSearchDashboardsInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "open_search_dashboards_component_install_time",
-		Help: "The install time for the opensearch-dashboards component",
+		Name: "vz_open_search_dashboards_install_duration_seconds",
+		Help: "The duration of the latest installation of the opensearch-dashboards component in seconds",
 	})
 	grafanaInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "grafana_component_install_time",
-		Help: "The install time for the grafana component",
+		Name: "vz_grafana_install_duration_seconds",
+		Help: "The duration of the latest installation of the grafana component in seconds",
 	})
 	coherenceInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "coherence_component_install_time",
-		Help: "The install time for the coherence component",
+		Name: "vz_coherence_install_duration_seconds",
+		Help: "The duration of the latest installation of the coherence component in seconds",
 	})
 	mySQLInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "my_sql_component_install_time",
-		Help: "The install time for the mysql component",
+		Name: "vz_my_sql_install_duration_seconds",
+		Help: "The duration of the latest installatio of nthe mysql component in seconds",
 	})
 	keycloakInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "keycloak_component_install_time",
-		Help: "The install time for the keycloak component",
+		Name: "vz_keycloak_install_duration_seconds",
+		Help: "The duration of the latest installation of the keycloak component in seconds",
 	})
 	kialiInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "kiali_component_install_time",
-		Help: "The install time for the kiali component",
+		Name: "vz_kiali_install_duration_seconds",
+		Help: "The duration of the latest installation of the kiali component in seconds",
 	})
 	prometheusOperatorInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_operator_install_time",
-		Help: "The install time for the prometheus-operator component",
+		Name: "vz_prometheus_operator_install_duration_seconds",
+		Help: "The duration of the latest installation of the prometheus-operator component in seconds",
 	})
 	prometheusAdapterInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_adapter_install_time",
-		Help: "The install time for the prometheus-adapter component",
+		Name: "vz_prometheus_adapter_latest_duration_seconds",
+		Help: "The duration of the latest installation of the prometheus-adapter component in seconds",
 	})
 	kubeStateMetricsInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "kube_state_metrics_install_time",
-		Help: "The install time for the kube-state-metrics component",
+		Name: "vz_kube_state_metrics_install_duration_seconds",
+		Help: "The duration of the latest installation of the kube-state-metrics component in seconds",
 	})
 	prometheusPushGatewayInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_push_gateway_install_time",
-		Help: "The install time for the prometheus-push-gateway component",
+		Name: "vz_prometheus_push_gateway_install_duration_seconds",
+		Help: "The duration of the latest installation of the prometheus-push-gateway component in seconds",
 	})
 	prometheusNodeExporterInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_node_exporter_install_time",
-		Help: "The install time for the prometheus-node-exporter component",
+		Name: "vz_prometheus_node_exporter_install_duration_seconds",
+		Help: "The duration of the latest installation of the prometheus-node-exporter component in seconds",
 	})
 	jaegerOperatorInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "jaeger_operator_install_time",
-		Help: "The install time for the jaeger-operator component",
+		Name: "vz_jaeger_operator_install_duration_seconds",
+		Help: "The duration of the latest installation of the jaeger-operator component in seconds",
 	})
 	verrazzanoConsoleInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "verrazzano_console_install_time",
-		Help: "The install time for the verrazzano-console component",
+		Name: "verrazzano_console_install_duration_seconds",
+		Help: "The duration of the latest installation of the verrazzano-console component in seconds",
 	})
 	fluentdInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "fluentd_install_time",
-		Help: "The install time for the fluentd component",
+		Name: "vz_fluentd_install_duration_secinds",
+		Help: "The duration of the latest installation of the fluentd component in seconds",
 	})
 	verrazzanoAuthproxyUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "authproxy_component_upgrade_time",
-		Help: "The upgrade time for the authproxy component",
+		Name: "vz_authproxy_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the authproxy component in seconds",
 	})
 	oamUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "oam_component_upgrade_time",
-		Help: "The upgrade time for the oam component",
+		Name: "vz_oam_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the oam component in seconds",
 	})
-	apopperUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "apopper_component_upgrade_time",
-		Help: "The upgrade time for the apopper component",
+	appoperUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "vz_appoper_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the appoper component in seconds",
 	})
 	istioUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "istio_component_upgrade_time",
-		Help: "The upgrade time for the istio component",
+		Name: "vz_istio_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the istio component in seconds",
 	})
 	weblogicUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "weblogic_component_upgrade_time",
-		Help: "The upgrade time for the weblogic component",
+		Name: "vz_weblogic_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the weblogic component in seconds",
 	})
 	nginxUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "nginx_component_upgrade_time",
-		Help: "The upgrade time for the nginx component",
+		Name: "vz_nginx_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the nginx component in seconds",
 	})
 	certManagerUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "certManager_component_upgrade_time",
-		Help: "The upgrade time for the certManager component",
+		Name: "vz_certManager_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the certManager component in seconds",
 	})
 	externalDNSUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "externalDNS_component_upgrade_time",
-		Help: "The upgrade time for the externalDNS component",
+		Name: "vz_externalDNS_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the externalDNS component in seconds",
 	})
 	rancherUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "rancher_component_upgrade_time",
-		Help: "The upgrade time for the rancher component",
+		Name: "vz_rancher_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the rancher component in seconds",
 	})
 	verrazzanoUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "verrazzano_component_upgrade_time",
-		Help: "The upgrade time for the verrazzano component",
+		Name: "verrazzano_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the verrazzano component in seconds",
 	})
 	verrazzanoMonitoringOperatorUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "verrazzano_monitoring_operator_component_upgrade_time",
-		Help: "The upgrade time for the verrazzano-monitoring-operator component",
+		Name: "vmo_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the verrazzano-monitoring-operator component in seconds",
 	})
 	openSearchUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "open_search_component_upgrade_time",
-		Help: "The upgrade time for the opensearch component",
+		Name: "vz_open_search_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the opensearch component in seconds",
 	})
 	openSearchDashboardsUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "open_search_dashboards_component_upgrade_time",
-		Help: "The upgrade time for the opensearch-dashboards component",
+		Name: "vz_open_search_dashboards_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the opensearch-dashboards component in seconds",
 	})
 	grafanaUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "grafana_component_upgrade_time",
-		Help: "The upgrade time for the grafana component",
+		Name: "vz_grafana_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the grafana component in seconds",
 	})
 	coherenceUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "coherence_component_upgrade_time",
-		Help: "The upgrade time for the coherence component",
+		Name: "vz_coherence_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the coherence component in seconds",
 	})
 	mySQLUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "my_sql_component_upgrade_time",
-		Help: "The upgrade time for the mysql component",
+		Name: "vz_my_sql_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the mysql component in seconds",
 	})
 	keycloakUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "keycloak_component_upgrade_time",
-		Help: "The upgrade time for the keycloak component",
+		Name: "vz_keycloak_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the keycloak component in seconds",
 	})
 	kialiUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "kiali_component_upgrade_time",
-		Help: "The upgrade time for the upgrade component",
+		Name: "vz_kiali_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the upgrade component in seconds",
 	})
 	prometheusOperatorUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_operator_upgrade_time",
-		Help: "The upgrade time for the prometheus-operator component",
+		Name: "vz_prometheus_operator_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the prometheus-operator component in seconds",
 	})
 	prometheusAdapterUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_adapter_upgrade_time",
-		Help: "The upgrade time for the prometheus-adapter component",
+		Name: "vz_prometheus_adapter_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the prometheus-adapter component in seconds",
 	})
 	kubeStateMetricsUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "kube_state_metrics_upgrade_time",
-		Help: "The upgrade time for the kube-state-metrics component",
+		Name: "vz_kube_state_metrics_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the kube-state-metrics component in seconds",
 	})
 	prometheusPushGatewayUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_push_gateway_upgrade_time",
-		Help: "The upgrade time for the prometheus-push-gateway component",
+		Name: "vz_prometheus_push_gateway_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the prometheus-push-gateway component in seconds",
 	})
 	prometheusNodeExporterUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_node_exporter_upgrade_time",
-		Help: "The upgrade time for the prometheus-node-exporter component",
+		Name: "vz_prometheus_node_exporter_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the prometheus-node-exporter component in seconds",
 	})
 	jaegerOperatorUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "jaeger_operator_upgrade_time",
-		Help: "The upgrade time for the jaeger-operator component",
+		Name: "vz_jaeger_operator_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the jaeger-operator component in seconds",
 	})
 	verrazzanoConsoleUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "verrazzano_console_upgrade_time",
-		Help: "The upgrade time for the verrazzano-console component",
+		Name: "verrazzano_console_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the verrazzano-console component in seconds",
 	})
 	fluentdUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "fluentd_upgrade_time",
-		Help: "The upgrade time for the fluentd component",
+		Name: "vz_fluentd_upgrade_duration_seconds",
+		Help: "The duration of the latest upgrade of the fluentd component in seconds",
 	})
 	verrazzanoAuthproxyUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "authproxy_component_update_time",
-		Help: "The update time for the authproxy component",
+		Name: "vz_authproxy_update_duration_seconds",
+		Help: "The duration of the latest update of the authproxy component in seconds",
 	})
 	oamUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "oam_component_update_time",
-		Help: "The update time for the oam component",
+		Name: "vz_oam_update_duration_seconds",
+		Help: "The duration of the latest update of the oam component in seconds",
 	})
-	apopperUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "apopper_component_update_time",
-		Help: "The update time for the apopper component",
+	appoperUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "vz_appoper_update_duration_seconds",
+		Help: "The duration of the latest update of the appoper component in seconds",
 	})
 	istioUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "istio_component_update_time",
-		Help: "The update time for the istio component",
+		Name: "vz_istio_update_duration_seconds",
+		Help: "The duration of the latest update of the istio component in seconds",
 	})
 	weblogicUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "weblogic_component_update_time",
-		Help: "The update time for the weblogic component",
+		Name: "vz_weblogic_update_duration_seconds",
+		Help: "The duration of the latest update of the weblogic component in seconds",
 	})
 	nginxUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "nginx_component_update_time",
-		Help: "The update time for the nginx component",
+		Name: "vz_nginx_update_duration_seconds",
+		Help: "The duration of the latest update of the nginx component in seconds",
 	})
 	certManagerUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "certManager_component_update_time",
-		Help: "The update time for the certManager component",
+		Name: "vz_certManager_update_duration_seconds",
+		Help: "The duration of the latest update of the certManager component in seconds",
 	})
 	externalDNSUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "externalDNS_component_update_time",
-		Help: "The update time for the externalDNS component",
+		Name: "vz_externalDNS_update_duration_seconds",
+		Help: "The duration of the latest update of the externalDNS component in seconds",
 	})
 	rancherUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "rancher_component_update_time",
-		Help: "The update time for the rancher component",
+		Name: "vz_rancher_update_duration_seconds",
+		Help: "The duration of the latest update of the rancher component in seconds",
 	})
 	verrazzanoUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "verrazzano_component_update_time",
-		Help: "The update time for the verrazzano component",
+		Name: "verrazzano_update_duration_seconds",
+		Help: "The duration of the latest update of the verrazzano component in seconds",
 	})
 	verrazzanoMonitoringOperatorUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "verrazzano_monitoring_operator_component_update_time",
-		Help: "The update time for the verrazzano-monitoring-operator component",
+		Name: "vmo_update_duration_seconds",
+		Help: "The duration of the latest update of the verrazzano-monitoring-operator component in seconds",
 	})
 	openSearchUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "open_search_component_update_time",
-		Help: "The update time for the opensearch component",
+		Name: "vz_open_search_update_duration_seconds",
+		Help: "The duration of the latest update of the opensearch component in seconds",
 	})
 	openSearchDashboardsUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "open_search_dashboards_component_update_time",
-		Help: "The update time for the opensearch-dashboards component",
+		Name: "vz_open_search_dashboards_update_duration_seconds",
+		Help: "The duration of the latest update of the opensearch-dashboards component in seconds",
 	})
 	grafanaUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "grafana_component_update_time",
-		Help: "The update time for the grafana component",
+		Name: "vz_grafana_update_duration_seconds",
+		Help: "The duration of the latest update of the grafana component in seconds",
 	})
 	coherenceUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "coherence_component_update_time",
-		Help: "The update time for the coherence component",
+		Name: "vz_coherence_update_duration_seconds",
+		Help: "The duration of the latest update of the coherence component in seconds",
 	})
 	mySQLUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "my_sql_component_update_time",
-		Help: "The update time for the mysql component",
+		Name: "vz_my_sql_update_duration_seconds",
+		Help: "The duration of the latest update of the mysql component in seconds",
 	})
 	keycloakUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "keycloak_component_update_time",
-		Help: "The update time for the keycloak component",
+		Name: "vz_keycloak_update_duration_seconds",
+		Help: "The duration of the latest update of the keycloak component in seconds",
 	})
 	kialiUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "kiali_component_update_time",
-		Help: "The update time for the kiali component",
+		Name: "vz_kiali_update_duration_seconds",
+		Help: "The duration of the latest update of the kiali component in seconds",
 	})
 	prometheusOperatorUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_operator_update_time",
-		Help: "The update time for the prometheus-operator component",
+		Name: "vz_prometheus_operator_update_duration_seconds",
+		Help: "The duration of the latest update of the prometheus-operator component in seconds",
 	})
 	prometheusAdapterUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_adapter_update_time",
-		Help: "The update time for the prometheus-adapter component",
+		Name: "vz_prometheus_adapter_update_duration_seconds",
+		Help: "The duration of the latest update of the prometheus-adapter component in seconds",
 	})
 	kubeStateMetricsUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "kube_state_metrics_update_time",
-		Help: "The update time for the kube-state-metrics component",
+		Name: "vz_kube_state_metrics_update_duration_seconds",
+		Help: "The duration of the latest update of the kube-state-metrics component in seconds",
 	})
 	prometheusPushGatewayUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_push_gateway_update_time",
-		Help: "The update time for the prometheus-push-gateway component",
+		Name: "vz_prometheus_push_gateway_update_duration_seconds",
+		Help: "The duration of the latest update of the prometheus-push-gateway component in seconds",
 	})
 	prometheusNodeExporterUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "prometheus_node_exporter_update_time",
-		Help: "The update time for the prometheus-node-exporter component",
+		Name: "vz_prometheus_node_exporter_update_duration_seconds",
+		Help: "The duration of the latest update of the prometheus-node-exporter component in seconds",
 	})
 	jaegerOperatorUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "jaeger_operator_update_time",
-		Help: "The update time for the jaeger-operator component",
+		Name: "vz_jaeger_operator_update_duration_seconds",
+		Help: "The duration of the latest update of the jaeger-operator component in seconds",
 	})
 	verrazzanoConsoleUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "verrazzano_console_update_time",
-		Help: "The update time for the verrazzano-console component",
+		Name: "verrazzano_console_update_duration_seconds",
+		Help: "The duration of the latest update of the verrazzano-console component in seconds",
 	})
 	fluentdUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "fluentd_update_time",
-		Help: "The update time for the fluentd component",
+		Name: "vz_fluentd_update_duration_seconds",
+		Help: "The duration of the latest update of the fluentd component in seconds",
 	})
 	allMetrics = []prometheus.Collector{verrazzanoAuthproxyInstallTimeMetric,
 		oamInstallTimeMetric,
-		apopperInstallTimeMetric,
+		appoperInstallTimeMetric,
 		istioInstallTimeMetric,
 		weblogicInstallTimeMetric,
 		nginxInstallTimeMetric,
@@ -367,7 +367,7 @@ var (
 		fluentdInstallTimeMetric,
 		verrazzanoAuthproxyUpgradeTimeMetric,
 		oamUpgradeTimeMetric,
-		apopperUpgradeTimeMetric,
+		appoperUpgradeTimeMetric,
 		istioUpgradeTimeMetric,
 		weblogicUpgradeTimeMetric,
 		nginxUpgradeTimeMetric,
@@ -393,7 +393,7 @@ var (
 		fluentdUpgradeTimeMetric,
 		verrazzanoAuthproxyUpdateTimeMetric,
 		oamUpdateTimeMetric,
-		apopperUpdateTimeMetric,
+		appoperUpdateTimeMetric,
 		istioUpdateTimeMetric,
 		weblogicUpdateTimeMetric,
 		nginxUpdateTimeMetric,
@@ -426,7 +426,7 @@ var (
 	installMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyInstallTimeMetric,
 		"oam-kubernetes-runtime":          oamInstallTimeMetric,
-		"verrazzano-application-operator": apopperInstallTimeMetric,
+		"verrazzano-application-operator": appoperInstallTimeMetric,
 		"istio":                           istioInstallTimeMetric,
 		"weblogic-operator":               weblogicInstallTimeMetric,
 		"ingress-controller":              nginxInstallTimeMetric,
@@ -454,7 +454,7 @@ var (
 	upgradeMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyUpgradeTimeMetric,
 		"oam-kubernetes-runtime":          oamUpgradeTimeMetric,
-		"verrazzano-application-operator": apopperUpgradeTimeMetric,
+		"verrazzano-application-operator": appoperUpgradeTimeMetric,
 		"istio":                           istioUpgradeTimeMetric,
 		"weblogic-operator":               weblogicUpgradeTimeMetric,
 		"ingress-controller":              nginxUpgradeTimeMetric,
@@ -482,7 +482,7 @@ var (
 	updateMetricsMap = map[string]prometheus.Gauge{
 		"verrazzano-authproxy":            verrazzanoAuthproxyUpdateTimeMetric,
 		"oam-kubernetes-runtime":          oamUpdateTimeMetric,
-		"verrazzano-application-operator": apopperUpdateTimeMetric,
+		"verrazzano-application-operator": appoperUpdateTimeMetric,
 		"istio":                           istioUpdateTimeMetric,
 		"weblogic-operator":               weblogicUpdateTimeMetric,
 		"ingress-controller":              nginxUpdateTimeMetric,
