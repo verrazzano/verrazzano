@@ -847,6 +847,12 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
+                if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${verrazzanoConfig}
+                fi
+
                 echo "Applying \$verrazzanoConfig"
                 kubectl apply -f ${verrazzanoConfig}
 
@@ -903,9 +909,12 @@ def upgradeVerrazzano() {
                 cd ${GO_REPO_PATH}/verrazzano
                 cp ${v8oInstallFile} ${v8oUpgradeFile}
                 ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
-                yq -i eval '.spec.components.prometheusAdapter.enabled = true'  ${v8oUpgradeFile}
-                yq -i eval '.spec.components.kubeStateMetrics.enabled = true'  ${v8oUpgradeFile}
-                yq -i eval '.spec.components.prometheusPushgateway.enabled = true'  ${v8oUpgradeFile}
+
+                if [ "true" == "${params.UPGRADE_VERRAZZANO}" ] ; then
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${verrazzanoConfig}
+                fi
 
                 # Do the upgrade
                 echo "Following is the verrazzano CR file with the new version:"
