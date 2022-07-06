@@ -97,6 +97,7 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 }
 
 //Uprade jaegeroperator component for upgrade processing.
-func (f jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
-	return f.HelmComponent.Install(ctx)
+func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
+
+	return c.HelmComponent.Install(ctx)
 }
