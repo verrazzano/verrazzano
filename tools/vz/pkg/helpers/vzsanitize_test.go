@@ -7,7 +7,9 @@ import (
 
 var testDir = "../../pkg/analysis/test/files"
 
-const testIP = "132.23.234.24"
+var (
+	testIP = "127.255.255.255"
+)
 
 func TestSanitizeALine(t *testing.T) {
 	assert.NotContains(t, SanitizeALine(testIP), testIP)
