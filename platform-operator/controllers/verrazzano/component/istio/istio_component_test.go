@@ -6,12 +6,13 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/istio"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/types"
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
@@ -727,7 +728,7 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
-			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+			if err := c.ValidateUpdate(tt.old, tt.new, nil); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -854,7 +855,7 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
-			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
+			if err := c.ValidateInstall(tt.vz, nil); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -881,5 +882,5 @@ func TestValidateUpdate(t *testing.T) {
 			},
 		},
 	}
-	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
+	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ, nil))
 }

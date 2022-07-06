@@ -123,16 +123,16 @@ func (c prometheusComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // ValidateInstall verifies the installation of the Verrazzano object
-func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return c.validatePrometheusOperator(vz)
+func (c prometheusComponent) ValidateInstall(effectiveCR *vzapi.Verrazzano, actualCR *vzapi.Verrazzano) error {
+	return c.validatePrometheusOperator(effectiveCR, actualCR)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
-func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, newActual *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return c.validatePrometheusOperator(new)
+	return c.validatePrometheusOperator(new, newActual)
 }
 
 // getIngressNames - gets the names of the ingresses associated with this component

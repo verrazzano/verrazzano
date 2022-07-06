@@ -23,7 +23,7 @@ func (c ComponentValidatorImpl) ValidateInstall(vz *v1alpha1.Verrazzano) []error
 	}
 
 	for _, comp := range registry.GetComponents() {
-		if err := comp.ValidateInstall(effectiveCR); err != nil {
+		if err := comp.ValidateInstall(effectiveCR, vz); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -46,7 +46,7 @@ func (c ComponentValidatorImpl) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1
 	}
 
 	for _, comp := range registry.GetComponents() {
-		if err := comp.ValidateUpdate(effectiveOld, effectiveNew); err != nil {
+		if err := comp.ValidateUpdate(effectiveOld, effectiveNew, new); err != nil {
 			errs = append(errs, err)
 		}
 	}

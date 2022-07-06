@@ -5,10 +5,11 @@ package mysql
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -84,7 +85,7 @@ func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, newActual *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
 
 	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
@@ -110,7 +111,7 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
 		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
 	}
-	return c.HelmComponent.ValidateUpdate(old, new)
+	return c.HelmComponent.ValidateUpdate(old, new, newActual)
 }
 
 func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {

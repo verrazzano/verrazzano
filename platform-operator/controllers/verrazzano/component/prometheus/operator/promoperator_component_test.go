@@ -100,7 +100,7 @@ func TestValidateUpdate(t *testing.T) {
 			},
 		},
 	}
-	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
+	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ, nil))
 }
 
 // TestPostInstall tests the component PostInstall function

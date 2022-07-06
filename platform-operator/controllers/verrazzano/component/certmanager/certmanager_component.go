@@ -72,7 +72,7 @@ func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, newActual *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
@@ -80,17 +80,17 @@ func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 	if _, err := validateConfiguration(new); err != nil {
 		return err
 	}
-	return c.HelmComponent.ValidateUpdate(old, new)
+	return c.HelmComponent.ValidateUpdate(old, new, newActual)
 }
 
 // ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
-func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano, actualVz *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(vz) {
 		_, err := validateConfiguration(vz)
 		return err
 	}
-	return c.HelmComponent.ValidateInstall(vz)
+	return c.HelmComponent.ValidateInstall(vz, actualVz)
 }
 
 // PreInstall runs before cert-manager components are installed

@@ -169,7 +169,7 @@ func (i istioComponent) Name() string {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	// Validate install overrides
 	if vz.Spec.Components.Istio != nil {
 		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.Istio.ValueOverrides); err != nil {
@@ -181,7 +181,7 @@ func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}

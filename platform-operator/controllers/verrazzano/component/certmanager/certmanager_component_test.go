@@ -10,6 +10,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"math/big"
+	"net"
+	"testing"
+	"time"
+
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -26,11 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"math/big"
-	"net"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
@@ -105,8 +106,8 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 	}
 	updatedVZ.Spec.Components.CertManager.Certificate.CA = newCA
 
-	//vzCertSecret := createCertSecret("verrazzano-ca-certificate-secret", constants2.CertManagerNamespace, "defaultVZConfig-cn")
-	//caSecret := createCertSecret("newsecret", "newnamespace", "defaultVZConfig-cn")
+	// vzCertSecret := createCertSecret("verrazzano-ca-certificate-secret", constants2.CertManagerNamespace, "defaultVZConfig-cn")
+	// caSecret := createCertSecret("newsecret", "newnamespace", "defaultVZConfig-cn")
 	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
 	getClientFunc = createClientFunc(updatedVZ.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
 
@@ -442,10 +443,10 @@ func createFakeClient(objs ...runtime.Object) *k8sfake.Clientset {
 }
 
 func createCertSecret(name string, namespace string, fakeCertBytes []byte) (*corev1.Secret, error) {
-	//fakeCertBytes, err := createFakeCertBytes(cn)
-	//if err != nil {
+	// fakeCertBytes, err := createFakeCertBytes(cn)
+	// if err != nil {
 	//	return nil, err
-	//}
+	// }
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -857,12 +858,12 @@ func validationTests(t *testing.T, isUpdate bool) {
 
 func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c spi.Component) {
 	if isUpdate {
-		if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+		if err := c.ValidateUpdate(tt.old, tt.new, nil); (err != nil) != tt.wantErr {
 			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 		}
 	} else {
 		wantErr := tt.name != "disable" && tt.wantErr // hack for disable validation, allowed on initial install but not on update
-		if err := c.ValidateInstall(tt.new); (err != nil) != wantErr {
+		if err := c.ValidateInstall(tt.new, nil); (err != nil) != wantErr {
 			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 		}
 	}

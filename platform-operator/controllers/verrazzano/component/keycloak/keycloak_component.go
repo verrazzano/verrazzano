@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"path/filepath"
+
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -23,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -197,7 +198,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, newActual *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
@@ -206,7 +207,7 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
 		return fmt.Errorf("Updates to InstallArgs not allowed for %s", ComponentJSONName)
 	}
-	return c.HelmComponent.ValidateUpdate(old, new)
+	return c.HelmComponent.ValidateUpdate(old, new, newActual)
 }
 
 func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {

@@ -4,6 +4,8 @@
 package console
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -13,7 +15,6 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var (
@@ -109,7 +110,7 @@ func TestValidateUpdate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.hasError {
+			if err := c.ValidateUpdate(tt.old, tt.new, nil); (err != nil) != tt.hasError {
 				t.Errorf("c.ValidateUpdate() error: %v", err)
 			}
 		})

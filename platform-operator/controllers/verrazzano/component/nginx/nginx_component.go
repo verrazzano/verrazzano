@@ -77,19 +77,19 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, newActual *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	if err := c.HelmComponent.ValidateUpdate(old, new); err != nil {
+	if err := c.HelmComponent.ValidateUpdate(old, new, newActual); err != nil {
 		return err
 	}
 	return c.validateForExternalIPSWithNodePort(&new.Spec)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := c.HelmComponent.ValidateInstall(vz); err != nil {
+func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano, actualVz *vzapi.Verrazzano) error {
+	if err := c.HelmComponent.ValidateInstall(vz, actualVz); err != nil {
 		return err
 	}
 	return c.validateForExternalIPSWithNodePort(&vz.Spec)

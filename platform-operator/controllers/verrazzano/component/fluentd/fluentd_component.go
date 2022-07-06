@@ -6,16 +6,17 @@ package fluentd
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 const (
@@ -70,15 +71,15 @@ func NewComponent() spi.Component {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (f fluentdComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (f fluentdComponent) ValidateInstall(vz *vzapi.Verrazzano, actualVz *vzapi.Verrazzano) error {
 	if err := validateFluentd(vz); err != nil {
 		return err
 	}
-	return f.HelmComponent.ValidateInstall(vz)
+	return f.HelmComponent.ValidateInstall(vz, actualVz)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, newActual *vzapi.Verrazzano) error {
 	// Do not allow disabling active components
 	if err := f.checkEnabled(old, new); err != nil {
 		return err
@@ -86,7 +87,7 @@ func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 	if err := validateFluentd(new); err != nil {
 		return err
 	}
-	return f.HelmComponent.ValidateUpdate(old, new)
+	return f.HelmComponent.ValidateUpdate(old, new, newActual)
 }
 
 func (f fluentdComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {

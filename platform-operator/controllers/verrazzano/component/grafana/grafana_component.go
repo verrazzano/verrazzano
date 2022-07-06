@@ -116,7 +116,7 @@ func (g grafanaComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (g grafanaComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
+func (g grafanaComponent) ValidateInstall(_ *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	return nil
 }
 
@@ -187,7 +187,7 @@ func (g grafanaComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	// do not allow disabling active components
 	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
 		return fmt.Errorf("Disabling component Grafana not allowed")

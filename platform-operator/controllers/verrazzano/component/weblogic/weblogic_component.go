@@ -59,12 +59,12 @@ func (c weblogicComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, newActual *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return c.HelmComponent.ValidateUpdate(old, new)
+	return c.HelmComponent.ValidateUpdate(old, new, newActual)
 }
 
 // IsReady component check

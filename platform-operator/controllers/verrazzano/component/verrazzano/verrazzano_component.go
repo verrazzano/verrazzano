@@ -169,7 +169,7 @@ func (c verrazzanoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, newActual *vzapi.Verrazzano) error {
 	// Do not allow disabling active components
 	if err := c.checkEnabled(old, new); err != nil {
 		return err
@@ -179,12 +179,12 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if err := common.CompareStorageOverrides(old, new, ComponentJSONName); err != nil {
 		return err
 	}
-	return c.HelmComponent.ValidateUpdate(old, new)
+	return c.HelmComponent.ValidateUpdate(old, new, newActual)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c verrazzanoComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return c.HelmComponent.ValidateInstall(vz)
+func (c verrazzanoComponent) ValidateInstall(effectiveVz *vzapi.Verrazzano, actualVz *vzapi.Verrazzano) error {
+	return c.HelmComponent.ValidateInstall(effectiveVz, actualVz)
 }
 
 func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {

@@ -6,6 +6,8 @@ package velero
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -14,7 +16,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 const (
@@ -125,12 +126,12 @@ func (v veleroHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isVeleroOperatorReady(ctx)
 }
 
-func (v veleroHelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
+func (v veleroHelmComponent) ValidateInstall(_ *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
-func (v veleroHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (v veleroHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	if v.IsEnabled(old) && !v.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}

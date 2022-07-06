@@ -4,6 +4,9 @@
 package fluentd
 
 import (
+	"os/exec"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -19,10 +22,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var (
@@ -190,7 +191,7 @@ func TestValidateUpdate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
-			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+			if err := c.ValidateUpdate(tt.old, tt.new, nil); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -245,7 +246,7 @@ func TestValidateInstall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
-			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
+			if err := c.ValidateInstall(tt.vz, nil); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

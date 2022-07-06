@@ -155,7 +155,7 @@ func (d opensearchDashboardsComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) 
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (d opensearchDashboardsComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (d opensearchDashboardsComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	// Do not allow disabling active components
 	if err := d.isOpenSearchDashboardEnabled(old, new); err != nil {
 		return err
@@ -169,7 +169,7 @@ func (d opensearchDashboardsComponent) ValidateUpdate(old *vzapi.Verrazzano, new
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (d opensearchDashboardsComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
+func (d opensearchDashboardsComponent) ValidateInstall(_ *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	return nil
 }
 

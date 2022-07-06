@@ -4,8 +4,9 @@
 package registry
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -637,11 +638,11 @@ func (f fakeComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespace
 	return []types.NamespacedName{}
 }
 
-func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano, actualVz *v1alpha1.Verrazzano) error {
 	return nil
 }
 
-func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano, _ *v1alpha1.Verrazzano) error {
 	return nil
 }
 

@@ -98,10 +98,12 @@ type ComponentUpgrader interface {
 
 // ComponentValidator interface defines validation operations for components that support it
 type ComponentValidator interface {
-	// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-	ValidateInstall(vz *vzapi.Verrazzano) error
+	// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed.
+	// The effectiveCR and the actualCR are passed to it, in case validation needs to distinguish
+	// between defaulted values and explicitly provided values.
+	ValidateInstall(effectiveCR *vzapi.Verrazzano, actualCR *vzapi.Verrazzano) error
 	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-	ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
+	ValidateUpdate(oldEffective *vzapi.Verrazzano, newEffective *vzapi.Verrazzano, newActual *vzapi.Verrazzano) error
 }
 
 // Generate mocs for the spi.Component interface for use in tests.

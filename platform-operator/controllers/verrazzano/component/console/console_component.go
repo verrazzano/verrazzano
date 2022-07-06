@@ -5,6 +5,8 @@ package console
 
 import (
 	"fmt"
+	"path/filepath"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
@@ -13,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"path/filepath"
 )
 
 const (
@@ -54,7 +55,7 @@ func (c consoleComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c consoleComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c consoleComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)

@@ -318,11 +318,11 @@ func TestValidateUpdate(t *testing.T) {
 		},
 	}
 
-	assert.Error(t, NewComponent().ValidateUpdate(oldVz, newVz))
+	assert.Error(t, NewComponent().ValidateUpdate(oldVz, newVz, nil))
 
 	// GIVEN an old VZ with Grafana enabled and a new VZ with Grafana enabled
 	// WHEN we call the ValidateUpdate function
 	// THEN the function does not return an error
 	newVz.Spec.Components.Grafana.Enabled = &trueValue
-	assert.NoError(t, NewComponent().ValidateUpdate(oldVz, newVz))
+	assert.NoError(t, NewComponent().ValidateUpdate(oldVz, newVz, nil))
 }

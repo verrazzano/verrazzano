@@ -160,7 +160,7 @@ func (o opensearchComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	// Do not allow disabling active components
 	if err := o.isOpenSearchEnabled(old, new); err != nil {
 		return err
@@ -175,7 +175,7 @@ func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (o opensearchComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (o opensearchComponent) ValidateInstall(vz *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	return validateNoDuplicatedConfiguration(vz)
 }
 

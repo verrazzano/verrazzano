@@ -5,8 +5,9 @@ package externaldns
 
 import (
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -65,12 +66,12 @@ func (e externalDNSComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, newActual *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if e.IsEnabled(old) && !e.IsEnabled(new) {
 		return fmt.Errorf("Disabling an existing OCI DNS configuration is not allowed")
 	}
-	return e.HelmComponent.ValidateUpdate(old, new)
+	return e.HelmComponent.ValidateUpdate(old, new, newActual)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

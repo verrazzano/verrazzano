@@ -226,7 +226,7 @@ func (h HelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(vz)); err != nil {
 		return err
 	}
@@ -234,7 +234,7 @@ func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(new)); err != nil {
 		return err
 	}

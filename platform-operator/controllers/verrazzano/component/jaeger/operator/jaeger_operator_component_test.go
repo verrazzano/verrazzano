@@ -4,8 +4,9 @@
 package operator
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -105,7 +106,7 @@ func TestValidateUpdate(t *testing.T) {
 			},
 		},
 	}
-	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
+	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ, nil))
 }
 
 // TestPostInstall tests the component PostInstall function

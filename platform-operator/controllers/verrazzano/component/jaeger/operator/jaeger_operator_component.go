@@ -84,12 +84,12 @@ func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 }
 
 // ValidateInstall verifies the installation of the Verrazzano object
-func (c jaegerOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (c jaegerOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	return c.validateJaegerOperator(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
-func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, _ *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}

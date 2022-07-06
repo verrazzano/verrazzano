@@ -370,40 +370,64 @@ func TestAppendIstioOverrides(t *testing.T) {
 func TestValidatePrometheusOperator(t *testing.T) {
 	tests := []struct {
 		name        string
-		vz          vzapi.Verrazzano
+		effectiveVz *vzapi.Verrazzano
+		actualVz    *vzapi.Verrazzano
 		expectError bool
 	}{
 		{
 			name:        "test nothing enabled",
-			vz:          vzapi.Verrazzano{},
+			effectiveVz: &vzapi.Verrazzano{},
+			actualVz:    nil,
 			expectError: false,
 		},
 		{
 			name: "test only Prometheus enabled",
-			vz: vzapi.Verrazzano{
+			effectiveVz: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Prometheus:         &vzapi.PrometheusComponent{Enabled: &trueValue},
 						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+					},
+				},
+			},
+			actualVz:    nil,
+			expectError: true,
+		},
+		{
+			name: "test Prometheus Operator disabled, Prometheus not specified (implicitly enabled)",
+			effectiveVz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+					},
+				},
+			},
+			actualVz:    nil,
+			expectError: false,
+		},
+		{
+			name: "test Prometheus Operator disabled, Prometheus explicitly enabled in actual CR",
+			effectiveVz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+						Prometheus:         &vzapi.PrometheusComponent{Enabled: &trueValue},
+					},
+				},
+			},
+			actualVz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+						Prometheus:         &vzapi.PrometheusComponent{Enabled: &trueValue},
 					},
 				},
 			},
 			expectError: true,
 		},
 		{
-			name: "test Prometheus Operator disabled, Prometheus not specified",
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
 			name: "test only Prometheus Operator enabled",
-			vz: vzapi.Verrazzano{
+			effectiveVz: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Prometheus:         &vzapi.PrometheusComponent{Enabled: &falseValue},
@@ -411,11 +435,12 @@ func TestValidatePrometheusOperator(t *testing.T) {
 					},
 				},
 			},
+			actualVz:    nil,
 			expectError: false,
 		},
 		{
 			name: "test all enabled",
-			vz: vzapi.Verrazzano{
+			effectiveVz: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Prometheus:         &vzapi.PrometheusComponent{Enabled: &trueValue},
@@ -423,11 +448,12 @@ func TestValidatePrometheusOperator(t *testing.T) {
 					},
 				},
 			},
+			actualVz:    nil,
 			expectError: false,
 		},
 		{
 			name: "test all disabled",
-			vz: vzapi.Verrazzano{
+			effectiveVz: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Prometheus:         &vzapi.PrometheusComponent{Enabled: &falseValue},
@@ -435,13 +461,18 @@ func TestValidatePrometheusOperator(t *testing.T) {
 					},
 				},
 			},
+			actualVz:    nil,
 			expectError: false,
 		},
 	}
 	c := prometheusComponent{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := c.validatePrometheusOperator(&tt.vz)
+			// if no actual VZ is specified, just assume it is same as effective VZ
+			if tt.actualVz == nil {
+				tt.actualVz = tt.effectiveVz
+			}
+			err := c.validatePrometheusOperator(tt.effectiveVz, tt.actualVz)
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {

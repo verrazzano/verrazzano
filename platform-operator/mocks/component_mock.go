@@ -841,29 +841,29 @@ func (mr *MockComponentMockRecorder) Upgrade(arg0 interface{}) *gomock.Call {
 }
 
 // ValidateInstall mocks base method.
-func (m *MockComponent) ValidateInstall(arg0 *v1alpha1.Verrazzano) error {
+func (m *MockComponent) ValidateInstall(arg0, arg1 *v1alpha1.Verrazzano) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateInstall", arg0)
+	ret := m.ctrl.Call(m, "ValidateInstall", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ValidateInstall indicates an expected call of ValidateInstall.
-func (mr *MockComponentMockRecorder) ValidateInstall(arg0 interface{}) *gomock.Call {
+func (mr *MockComponentMockRecorder) ValidateInstall(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateInstall", reflect.TypeOf((*MockComponent)(nil).ValidateInstall), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateInstall", reflect.TypeOf((*MockComponent)(nil).ValidateInstall), arg0, arg1)
 }
 
 // ValidateUpdate mocks base method.
-func (m *MockComponent) ValidateUpdate(arg0, arg1 *v1alpha1.Verrazzano) error {
+func (m *MockComponent) ValidateUpdate(arg0, arg1, arg2 *v1alpha1.Verrazzano) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateUpdate", arg0, arg1)
+	ret := m.ctrl.Call(m, "ValidateUpdate", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ValidateUpdate indicates an expected call of ValidateUpdate.
-func (mr *MockComponentMockRecorder) ValidateUpdate(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockComponentMockRecorder) ValidateUpdate(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateUpdate", reflect.TypeOf((*MockComponent)(nil).ValidateUpdate), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateUpdate", reflect.TypeOf((*MockComponent)(nil).ValidateUpdate), arg0, arg1, arg2)
 }

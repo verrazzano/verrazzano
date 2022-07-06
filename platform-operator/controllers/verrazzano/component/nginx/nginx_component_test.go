@@ -145,7 +145,7 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
-			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+			if err := c.ValidateUpdate(tt.old, tt.new, nil); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -268,7 +268,7 @@ func Test_nginxComponent_ValidateInstall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
-			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
+			if err := c.ValidateInstall(tt.vz, nil); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
