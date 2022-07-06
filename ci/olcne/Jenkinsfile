@@ -157,7 +157,7 @@ pipeline {
         GOPATH="$HOME/go"
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
         TF_REPO_PATH="$GOPATH/src/gitlab.com/terraform-oci-olcne"
-        TEST_CONFIG_FILE="$HOME/testConfigOlcne.yaml"
+        TEST_CONFIG_FILE="$WORKSPACE/testConfigOlcne.yaml"
         KUBECONFIG="$WORKSPACE/test_kubeconfig"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
@@ -307,8 +307,8 @@ pipeline {
                     """
 
                     sh """
-                        cp -f "$NETRC_FILE" $HOME/.netrc
-                        chmod 600 $HOME/.netrc
+                        cp -f "$NETRC_FILE" $WORKSPACE/.netrc
+                        chmod 600 $WORKSPACE/.netrc
                     """
 
                     script {
@@ -903,17 +903,9 @@ def setDisplayName() {
 
 def createImagePullSecrets() {
     sh """
-        ssh -o StrictHostKeyChecking=no opc@$API_SERVER_IP -i $TF_VAR_ssh_private_key_path '
-            rm -rf $HOME/verrazzano
-            mkdir -p $HOME/verrazzano
-        '
-        scp -i "$TF_VAR_ssh_private_key_path" $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh opc@"$API_SERVER_IP":$HOME/verrazzano/create-image-pull-secret.sh
-        ssh -o StrictHostKeyChecking=no opc@$API_SERVER_IP -i $TF_VAR_ssh_private_key_path '
-            chmod +x $HOME/verrazzano/create-image-pull-secret.sh
-            $HOME/verrazzano/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
-            $HOME/verrazzano/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
-            $HOME/verrazzano/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
-        '
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
     """
 }
 
