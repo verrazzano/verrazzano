@@ -207,6 +207,9 @@ func addAccessEndpoints(instance *vzapi.InstanceInfo, values map[string]string) 
 		if instance.KialiURL != nil {
 			values["kiali_url"] = *instance.KialiURL
 		}
+		if instance.JaegerURL != nil {
+			values["jaeger_url"] = *instance.JaegerURL
+		}
 	}
 }
 

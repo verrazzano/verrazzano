@@ -4035,6 +4035,8 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      monitorChanges:
+                        type: boolean
                       overrides:
                         items:
                           description: Overrides stores the specified overrides
@@ -4055,7 +4057,7 @@ spec:
                                     key must be defined
                                   type: boolean
                               required:
-                                - key
+                              - key
                               type: object
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
@@ -4074,7 +4076,7 @@ spec:
                                     must be defined
                                   type: boolean
                               required:
-                                - key
+                              - key
                               type: object
                             values:
                               x-kubernetes-preserve-unknown-fields: true
@@ -8290,6 +8292,9 @@ spec:
                     type: string
                   grafanaUrl:
                     description: GrafanaURL The Grafana URL for this Verrazzano installation
+                    type: string
+                  jaegerUrl:
+                    description: JaegerURL The Jaeger UI URL for this Verrazzano installation
                     type: string
                   keyCloakUrl:
                     description: KeyCloakURL The KeyCloak URL for this Verrazzano

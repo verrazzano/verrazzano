@@ -61,6 +61,7 @@ const kialiURL = "kiali." + dnsDomain
 const kibanaURL = "kibana." + dnsDomain
 const rancherURL = "rancher." + dnsDomain
 const consoleURL = "verrazzano." + dnsDomain
+const jaegerURL = "jaeger." + dnsDomain
 
 var istioEnabled = false
 
@@ -1718,6 +1719,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	assert.Equal(t, "https://"+kialiURL, *instanceInfo.KialiURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
+	assert.Equal(t, "https://"+jaegerURL, *instanceInfo.JaegerURL)
 }
 
 // TestInstanceRestoreWithPopulatedStatus tests the reconcileUpdate method for the following use case
