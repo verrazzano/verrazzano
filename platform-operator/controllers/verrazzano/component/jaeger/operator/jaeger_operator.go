@@ -8,17 +8,24 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"io/fs"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"text/template"
 )
 
@@ -37,6 +44,9 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
+	jaegerSecName        = "verrazzano-jaeger-secret"
+	openSearchURL        = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
+	jaegerCreateField    = "jaeger.create"
 )
 
 // Define the Jaeger images using extraEnv key.
@@ -52,12 +62,39 @@ const extraEnvValueTemplate = `extraEnv:
     value: "{{.IngesterImage}}"
 `
 
+// A template to define Jaeger override
+// As Jaeger Operator helm-chart does not use tpl in rendering Jaeger spec value, we can not use
+// jaeger-operator-values.yaml override file to define Jaeger value referencing other values.
+const jaegerValueTemplate = `jaeger:
+  create: true
+  spec:
+    annotations:
+      sidecar.istio.io/inject: "true"
+    strategy: production
+    storage:
+      # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
+      type: elasticsearch
+      esIndexCleaner:
+        enabled: false
+      options:
+        es:
+          server-urls: {{.OpenSearchURL}}
+          index-prefix: verrazzano-jaeger
+      secretName: {{.SecretName}}
+`
+
 // imageData needed for template rendering
 type imageData struct {
 	AgentImage     string
 	QueryImage     string
 	CollectorImage string
 	IngesterImage  string
+}
+
+// jaegerData needed for template rendering
+type jaegerData struct {
+	OpenSearchURL string
+	SecretName    string
 }
 
 // isjaegerOperatorReady checks if the Jaeger Operator deployment is ready
@@ -81,7 +118,19 @@ func preInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create the verrazzano-monitoring namespace if not already created
-	return ensureVerrazzanoMonitoringNamespace(ctx)
+	if err := ensureVerrazzanoMonitoringNamespace(ctx); err != nil {
+		return err
+	}
+
+	createInstance, err := isCreateJaegerInstance(ctx)
+	if err != nil {
+		return err
+	}
+	if createInstance {
+		// Create Jaeger secret with the credentials present in the verrazzano-es-internal secret
+		return createJaegerSecret(ctx)
+	}
+	return nil
 }
 
 // AppendOverrides appends Helm value overrides for the Jaeger Operator component's Helm chart
@@ -144,6 +193,23 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 
+	createInstance, err := isCreateJaegerInstance(compContext)
+	if err != nil {
+		return nil, err
+	}
+	if createInstance {
+		// use template to populate Jaeger spec data
+		template, err := template.New("jaeger").Parse(jaegerValueTemplate)
+		if err != nil {
+			return nil, err
+		}
+		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: jaegerSecName}
+		err = template.Execute(&b, data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Write the overrides file to a temp dir and add a helm file override argument
 	overridesFileName, err := generateOverridesFile(compContext, b.Bytes())
 	if err != nil {
@@ -200,4 +266,84 @@ func generateOverridesFile(ctx spi.ComponentContext, contents []byte) (string, e
 	ctx.Log().Debugf("Verrazzano jaeger-operator install overrides file %s contents: %s", overridesFileName,
 		string(contents))
 	return overridesFileName, nil
+}
+
+// createJaegerSecret creates a Jaeger secret for storing credentials needed to access OpenSearch.
+func createJaegerSecret(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", jaegerSecName)
+	esInternalSecret, err := getESInternalSecret(ctx)
+	if err != nil {
+		return err
+	}
+	if esInternalSecret.Data == nil {
+		return nil
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jaegerSecName,
+			Namespace: ComponentNamespace,
+		},
+	}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
+		}
+		if _, exists := esInternalSecret.Data["username"]; exists {
+			secret.Data["ES_USERNAME"] = esInternalSecret.Data["username"]
+		}
+		if _, exists := esInternalSecret.Data["password"]; exists {
+			secret.Data["ES_PASSWORD"] = esInternalSecret.Data["password"]
+		}
+		return nil
+	}); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v", jaegerSecName, err)
+	}
+	return nil
+}
+
+//getESInternalSecret checks whether verrazzano-es-internal secret exists. Return error if the secret does not exist.
+func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
+	secret := corev1.Secret{}
+	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+		// Check verrazzano-es-internal Secret. return error which will cause requeue
+		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      globalconst.VerrazzanoESInternal,
+		}, &secret)
+
+		if err != nil {
+			if errors.IsNotFound(err) {
+				ctx.Log().Progressf("Component Jaeger Operator waiting for the secret %s/%s to exist",
+					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
+				return secret, ctrlerrors.RetryableError{Source: ComponentName}
+			}
+			ctx.Log().Errorf("Component Jaeger Operator failed to get the secret %s/%s: %v",
+				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)
+			return secret, err
+		}
+		return secret, nil
+	}
+	return secret, nil
+}
+
+// isCreateJaegerInstance determines if the default Jaeger instance has to be created or not.
+func isCreateJaegerInstance(ctx spi.ComponentContext) (bool, error) {
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+		// Check if jaeger instance creation is disabled in the user defined Helm overrides
+		overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()))
+		if err != nil {
+			return false, err
+		}
+		for _, override := range overrides {
+			jaegerCreate, err := common.ExtractValueFromOverrideString(override, jaegerCreateField)
+			if err != nil {
+				return false, err
+			}
+			if jaegerCreate != nil && !jaegerCreate.(bool) {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+	return false, nil
 }
