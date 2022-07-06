@@ -6,6 +6,7 @@ package system
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"regexp"
 	"strings"
 	"time"
@@ -93,9 +94,14 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validateGrafanaLogs() && valid
 		valid = validateOpenSearchLogs() && valid
 		valid = validateWeblogicOperatorLogs() && valid
-		valid = validateJaegerCollectorLogs() && valid
-		valid = validateJaegerQueryLogs() && valid
-
+		kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+		Expect(err).To(BeNil())
+		isJaegerSupported, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeConfigPath)
+		Expect(err).To(BeNil())
+		if isJaegerSupported {
+			valid = validateJaegerCollectorLogs() && valid
+			valid = validateJaegerQueryLogs() && valid
+		}
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in verrazzano-system index")
@@ -524,7 +530,7 @@ func validateJaegerCollectorLogs() bool {
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(monitoringNamespace) },
 		"kubernetes.container_name",
 		"jaeger-collector",
-		"3d",
+		searchTimeWindow,
 		jaegerExceptions)
 }
 
@@ -534,7 +540,7 @@ func validateJaegerQueryLogs() bool {
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(monitoringNamespace) },
 		"kubernetes.container_name",
 		"jaeger-query",
-		"3d",
+		searchTimeWindow,
 		jaegerExceptions)
 }
 
