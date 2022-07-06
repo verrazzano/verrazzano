@@ -911,9 +911,9 @@ def upgradeVerrazzano() {
                 ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
 
                 if [ "true" == "${params.UPGRADE_VERRAZZANO}" ] ; then
-                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${verrazzanoConfig}
-                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${verrazzanoConfig}
-                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${v8oUpgradeFile}
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${v8oUpgradeFile}
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${v8oUpgradeFile}
                 fi
 
                 # Do the upgrade
