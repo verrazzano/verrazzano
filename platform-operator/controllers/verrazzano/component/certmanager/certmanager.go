@@ -846,7 +846,7 @@ func uninstallCertManager(compContext spi.ComponentContext) error {
 	controllerCM.SetName(controllerConfigMap)
 	controllerCM.SetNamespace(constants.KubeSystem)
 	err := compContext.Client().Delete(context.TODO(), &controllerCM)
-	if notFound := crtclient.IgnoreNotFound(err); notFound != nil {
+	if crtclient.IgnoreNotFound(err) != nil {
 		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s: %v", constants.KubeSystem, controllerConfigMap, err)
 	} else if err == nil {
 		compContext.Log().Oncef("Successfully deleted ConfigMap %s/%s", constants.KubeSystem, controllerConfigMap)
