@@ -109,6 +109,24 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 	return nil
 }
 
+// UpdateVMI Updates the system VMI instance IFF the VMO is enabled and it already exists
+func UpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error {
+	if !vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+		return nil
+	}
+	if err := ctx.Client().Get(context.TODO(), getSystemVMIName(), &vmov1.VerrazzanoMonitoringInstance{}); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	return CreateOrUpdateVMI(ctx, updateFunc)
+}
+
+func getSystemVMIName() types.NamespacedName {
+	return types.NamespacedName{Name: system, Namespace: globalconst.VerrazzanoSystemNamespace}
+}
+
 // EnsureVMISecret creates or updates the VMI secret
 func EnsureVMISecret(cli client.Client) error {
 	secret := &corev1.Secret{
@@ -155,6 +173,21 @@ func EnsureGrafanaAdminSecret(cli client.Client) error {
 		return nil
 	}); err != nil {
 		return err
+	}
+	return nil
+}
+
+func DeleteGrafanaAdminSecret(cli client.Client) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.GrafanaSecret,
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+	}
+	if err := cli.Delete(context.TODO(), secret); err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
 	}
 	return nil
 }
