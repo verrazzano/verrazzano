@@ -98,7 +98,7 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 						pkg.Log(pkg.Error, fmt.Sprintf("Unable to retrieve configmap %s in the namespace: %s, error: %v", veleroRestoreHelperConfigMap, constants.VeleroNameSpace, err))
 						return false
 					}
-					expectedResticHelperImage := fmt.Sprintf("%s/%s", imagePrefix, resticHelperImage)
+					expectedResticHelperImage := fmt.Sprintf("%s/verrazzano/%s", imagePrefix, resticHelperImage)
 					if !strings.HasPrefix(cfgMap.Data["image"], expectedResticHelperImage) {
 						pkg.Log(pkg.Error, fmt.Sprintf("Configmap %s does not have the expected image %s in the namespace: %s. Image found = %s ", veleroRestoreHelperConfigMap, expectedResticHelperImage, constants.VeleroNameSpace, cfgMap.Data["image"]))
 						return false
