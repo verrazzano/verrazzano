@@ -43,15 +43,16 @@ type prometheusComponent struct {
 func NewComponent() spi.Component {
 	return prometheusComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), chartDir),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
-			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), chartDir),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
+			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
 			// the dependency on the VMO is to ensure that a persistent volume is retained and the claim is released
 			// so that persistent storage can be migrated to the new Prometheus
 			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName, vmo.ComponentName},
