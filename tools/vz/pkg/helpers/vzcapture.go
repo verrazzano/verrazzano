@@ -30,17 +30,7 @@ var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
-func CreateReportArchive(captureDir, bugReportFile string) error {
-
-	// Create the bug report file
-	bugRepFile, err := os.Create(bugReportFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("parent directory for the bug report file doesn't exit")
-		}
-		return fmt.Errorf(errBugReport, err.Error())
-	}
-	defer bugRepFile.Close()
+func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 
 	// Create new Writers for gzip and tar
 	gzipWriter := gzip.NewWriter(bugRepFile)
