@@ -28,7 +28,7 @@ type ErrorsChannel struct {
 // - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from verrazzano-system namespace.
 
 // GenerateBugReport creates a bug report by including the resources selectively from the cluster, useful to analyze the issue.
-func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bugReportFile string, vzHelper pkghelpers.VZHelper) error {
+func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bugReportFile *os.File, vzHelper pkghelpers.VZHelper) error {
 
 	// Create a temporary directory to place the cluster data
 	bugReportDir, err := ioutil.TempDir("", constants.BugReportDir)
@@ -54,7 +54,7 @@ func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bu
 		return fmt.Errorf("there is an error in creating the bug report, %s", err.Error())
 	}
 
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully created the bug report: %s\n", bugReportFile))
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully created the bug report: %s\n", bugReportFile.Name()))
 
 	// Display a warning message to review the contents of the report
 	fmt.Fprint(vzHelper.GetOutputStream(), "WARNING: Please examine the contents of the bug report for sensitive data.\n")
