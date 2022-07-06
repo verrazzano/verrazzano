@@ -50,4 +50,4 @@ tests/e2e/**/*.test
 **/.DS_Store
 **/.vscodes
 ATTRIBUTION-HELPER-DEPS
-build_from_jenkins.sh
+
