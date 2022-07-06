@@ -5,6 +5,7 @@ package common
 
 import (
 	"context"
+	"github.com/Jeffail/gabs/v2"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -49,6 +50,19 @@ func GetInstallOverridesYAML(ctx spi.ComponentContext, overrides []v1alpha1.Over
 
 	}
 	return overrideStrings, nil
+}
+
+// ExtractValueFromOverrideString is a helper function to extract a given value from override.
+func ExtractValueFromOverrideString(overrideStr string, field string) (interface{}, error) {
+	jsonConfig, err := yaml.YAMLToJSON([]byte(overrideStr))
+	if err != nil {
+		return nil, err
+	}
+	jsonString, err := gabs.ParseJSON(jsonConfig)
+	if err != nil {
+		return nil, err
+	}
+	return jsonString.Path(field).Data(), nil
 }
 
 // getConfigMapOverrides takes a ConfigMap selector and returns the YAML data and handles k8s api errors appropriately

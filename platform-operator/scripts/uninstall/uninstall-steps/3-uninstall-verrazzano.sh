@@ -48,7 +48,7 @@ function delete_verrazzano() {
     || return $? # return on pipefail
 
   log "Deleting Verrazzano namespaces"
-  delete_k8s_resources namespace ":metadata.name,:metadata.labels" "Could not delete Verrazzano namespaces" '/k8s-app:verrazzano.io|verrazzano.io\/namespace:monitoring|verrazzano-system|verrazzano-mc/ {print $1}' \
+  delete_k8s_resources namespace ":metadata.name,:metadata.labels" "Could not delete Verrazzano namespaces" '/k8s-app:verrazzano.io|verrazzano.io\/namespace:monitoring|verrazzano-system/ {print $1}' \
     || return $? # return on pipefail
 
   # Delete CR'S from all Verrazzano managed namespaces
@@ -175,8 +175,8 @@ function delete_velero {
     kubectl delete namespace velero --ignore-not-found=true || err_return $? "Could not delete the velero namespace"
 }
 
-\action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
-\action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
+action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
+action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
