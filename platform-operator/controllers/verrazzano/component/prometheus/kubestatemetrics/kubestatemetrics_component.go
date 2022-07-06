@@ -34,18 +34,19 @@ type kubeStateMetricsComponent struct {
 func NewComponent() spi.Component {
 	return kubeStateMetricsComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), chartDir),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
-			ImagePullSecretKeyname:  "imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "kube-state-metrics-values.yaml"),
-			AppendOverridesFunc:     AppendOverrides,
-			Dependencies:            []string{promoperator.ComponentName},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), chartDir),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
+			ImagePullSecretKeyname:    "imagePullSecrets[0].name",
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "kube-state-metrics-values.yaml"),
+			AppendOverridesFunc:       AppendOverrides,
+			Dependencies:              []string{promoperator.ComponentName},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }

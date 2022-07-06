@@ -59,21 +59,6 @@ function delete_verrazzano() {
   delete_managed_k8s_resources scopedefinitions.core.oam.dev
 }
 
-function delete_oam_operator {
-  log "Uninstall the OAM Kubernetes operator"
-  if helm status oam-kubernetes-runtime --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall oam-kubernetes-runtime --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall the OAM Kubernetes operator."
-    fi
-  fi
-
-  # Delete the additional cluster roles we created during install
-  log "Deleting additional OAM cluster roles"
-  kubectl delete clusterrole oam-kubernetes-runtime-pvc --ignore-not-found
-  kubectl delete clusterrole oam-kubernetes-runtime-istio --ignore-not-found
-  kubectl delete clusterrole oam-kubernetes-runtime-certificate --ignore-not-found
-}
-
 function delete_vmo {
   log "Uninstall the Verrazzano Monitoring Operator"
   if helm status verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -108,17 +93,6 @@ function delete_weblogic_operator {
   fi
 }
 
-function delete_coherence_operator {
-  log "Uninstall the Coherence Kubernetes operator"
-  if helm status uninstall coherence-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall coherence-operator --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall the Coherence Kubernetes operator."
-    fi
-  fi
-  kubectl delete validatingwebhookconfigurations.admissionregistration.k8s.io coherence-operator-validating-webhook-configuration --ignore-not-found
-  kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io coherence-operator-mutating-webhook-configuration --ignore-not-found
-}
-
 function delete_kiali {
   KIALI_CHART_DIR=${CHARTS_DIR}/kiali-server
   log "Uninstall Kiali"
@@ -136,15 +110,6 @@ function delete_prometheus_adapter {
   if helm status prometheus-adapter --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
     if ! helm uninstall prometheus-adapter --namespace "${VERRAZZANO_MONITORING_NS}" ; then
       error "Failed to uninstall the Prometheus adapter."
-    fi
-  fi
-}
-
-function delete_kube_state_metrics {
-  log "Uninstall kube-state-metrics"
-  if helm status kube-state-metrics --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall kube-state-metrics --namespace "${VERRAZZANO_MONITORING_NS}" ; then
-      error "Failed to uninstall kube-state-metrics."
     fi
   fi
 }
@@ -221,11 +186,8 @@ action "Deleting Fluentd" delete_fluentd || exit 1
 action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
 action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
-action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
-action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
-action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
 action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
 action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Monitoring Operator" delete_vmo || exit 1

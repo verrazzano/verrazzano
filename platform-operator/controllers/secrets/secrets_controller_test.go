@@ -77,6 +77,15 @@ func TestCreateLocalCABundle(t *testing.T) {
 		mocker := gomock.NewController(t)
 		mock := mocks.NewMockClient(mocker)
 
+		mock.EXPECT().
+			List(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, vzList *vzapi.VerrazzanoList, opts ...client.ListOption) error {
+				vzList.Items = []vzapi.Verrazzano{{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.DefaultNamespace, Name: "verrazzano"},
+				}}
+				return nil
+			})
+
 		isAddnlTLSSecret := (tt.secretName == additionalTLSSecret.Name)
 
 		if !isAddnlTLSSecret {
@@ -310,6 +319,70 @@ func TestSecretNotFound(t *testing.T) {
 
 }
 
+// TestVerrazzanoResourcesNotFound tests the Reconcile method for the following use cases
+// GIVEN a request to reconcile
+// WHEN no verrazzano resources are found
+// THEN the secrets reconciler returns a result of ctrl.Result{}
+func TestVerrazzanoResourcesNotFound(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// Expect a call to get a list of verrazzano resources
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(vzTLSSecret.Namespace, vzTLSSecret.Name)
+	reconciler := newSecretsReconciler(mock)
+	result, err := reconciler.Reconcile(context.TODO(), request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.NotNil(result)
+	asserts.Equal(ctrl.Result{}, result)
+}
+
+// TestVerrazzanoVerrazzanoResourceBeingDeleted tests the Reconcile method for the following use cases
+// GIVEN a request to reconcile
+// WHEN the verrazzano resource is marked for deletion
+// THEN the secrets reconciler returns a result of ctrl.Result{}
+func TestVerrazzanoVerrazzanoResourceBeingDeleted(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// Expect a call to get a list of verrazzano resources
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vzList *vzapi.VerrazzanoList, opts ...client.ListOption) error {
+			vzList.Items = []vzapi.Verrazzano{{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:         constants.DefaultNamespace,
+					Name:              "verrazzano",
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				},
+			}}
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(vzTLSSecret.Namespace, vzTLSSecret.Name)
+	reconciler := newSecretsReconciler(mock)
+	result, err := reconciler.Reconcile(context.TODO(), request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.NotNil(result)
+	asserts.Equal(ctrl.Result{}, result)
+}
+
 // TestDeletion tests the Reconcile loop for the following use case
 // GIVEN a request to reconcile a Secret that qualifies as an override
 // WHEN we find that it is scheduled for deletion and contains overrides finalizer
@@ -394,6 +467,16 @@ func runNamespaceErrorTest(t *testing.T, expectedErr error) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
+
+	// Expect a call to get a list of verrazzano resources
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vzList *vzapi.VerrazzanoList, opts ...client.ListOption) error {
+			vzList.Items = []vzapi.Verrazzano{{
+				ObjectMeta: metav1.ObjectMeta{Namespace: constants.DefaultNamespace, Name: "verrazzano"},
+			}}
+			return nil
+		})
 
 	// Expect  a call to get the verrazzano-mc namespace
 	mock.EXPECT().
