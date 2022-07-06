@@ -523,7 +523,7 @@ func InitalizeMetricsEndpoint() {
 
 func CollectReconcileMetrics(startTime int64) {
 	reconcileCounterMetric.Add(float64(1))
-	durationTime := time.Now().UnixMilli() - startTime
+	durationTime := (time.Now().UnixMilli() - startTime) / 1000
 	reconcileLastDurationMetric.WithLabelValues(strconv.Itoa(reconcileIndex)).Set(float64(durationTime))
 	reconcileIndex = reconcileIndex + 1
 }
