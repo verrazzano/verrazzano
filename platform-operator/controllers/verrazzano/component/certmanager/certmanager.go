@@ -842,17 +842,23 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 // this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
 func uninstallCertManager(compContext spi.ComponentContext) error {
 	// Delete the kube-system cert-manager configMaps [controller, caInjector]
-	if err := deleteObject(compContext.Client(), controllerConfigMap, constants.KubeSystem, &v1.ConfigMap{}); err != nil {
+	var controllerCM v1.ConfigMap
+	controllerCM.SetName(controllerConfigMap)
+	controllerCM.SetNamespace(constants.KubeSystem)
+	if err := compContext.Client().Delete(context.TODO(), &controllerCM); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s for the cert-manager uninstall: %v", constants.KubeSystem, controllerConfigMap, err)
 	}
-	if err := deleteObject(compContext.Client(), caInjectorConfigMap, constants.KubeSystem, &v1.ConfigMap{}); err != nil {
+	var caCM v1.ConfigMap
+	caCM.SetName(caInjectorConfigMap)
+	caCM.SetNamespace(constants.KubeSystem)
+	if err := compContext.Client().Delete(context.TODO(), &caCM); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s for the cert-manager uninstall: %v", constants.KubeSystem, caInjectorConfigMap, err)
 	}
 
 	// Remove finalizers from the cert-manager namespace to avoid hanging namespace deletion
-	certNS := &v1.Namespace{}
+	certNS := v1.Namespace{}
 	certNS.Name = constants.CertManagerNamespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), certNS, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certNS, func() error {
 		certNS.Finalizers = []string{}
 		return nil
 	})
@@ -861,7 +867,7 @@ func uninstallCertManager(compContext spi.ComponentContext) error {
 	}
 
 	// Delete the cert-manager namespace now that the finalizers have been removed
-	if err := deleteObject(compContext.Client(), constants.CertManagerNamespace, constants.KubeSystem, &v1.Namespace{}); err != nil {
+	if err := compContext.Client().Delete(context.TODO(), &certNS); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to delete the cert-manager namespace %s: %v", constants.CertManagerNamespace, err)
 	}
 	return nil

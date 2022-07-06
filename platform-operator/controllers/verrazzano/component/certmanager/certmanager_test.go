@@ -5,6 +5,7 @@ package certmanager
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -463,6 +464,88 @@ func TestCustomCAConfigCleanupUnusedResources(t *testing.T) {
 	assertNotFound(t, client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{})
 	assertNotFound(t, client, caCertificateName, ComponentNamespace, &certv1.Certificate{})
 	assertNotFound(t, client, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{})
+}
+
+// TestUninstallCertManager tests the cert-manager uninstall process
+// GIVEN a call to uninstallCertManager
+// WHEN the objects exist in the cluster
+// THEN no error is returned and all objects are deleted
+func TestUninstallCertManager(t *testing.T) {
+	vz := defaultVZConfig.DeepCopy()
+
+	controllerCM := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.KubeSystem,
+			Name:      controllerConfigMap,
+		},
+	}
+	caCM := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.KubeSystem,
+			Name:      caInjectorConfigMap,
+		},
+	}
+	certNS := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.CertManagerNamespace,
+		},
+	}
+
+	tests := []struct {
+		name        string
+		expectError bool
+		objects     []clipkg.Object
+	}{
+		{
+			name:        "test no controller configmap",
+			expectError: true,
+		},
+		{
+			name:        "test no ca configmap",
+			expectError: true,
+			objects: []clipkg.Object{
+				&controllerCM,
+			},
+		},
+		{
+			name:        "test no namespace",
+			expectError: false,
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+			},
+		},
+		{
+			name:        "test all",
+			expectError: false,
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(tt.objects...).Build()
+			fakeContext := spi.NewFakeContext(c, vz, false, profileDir)
+			err := uninstallCertManager(fakeContext)
+			if tt.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			// expect the controller ConfigMap to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{})
+			assert.Error(t, err, "Expected the ConfigMap %s to be deleted", controllerConfigMap)
+			// expect the CA injector ConfigMap to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: caInjectorConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{})
+			assert.Error(t, err, "Expected the ConfigMap %s to be deleted", caInjectorConfigMap)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: constants.CertManagerNamespace}, &v1.Namespace{})
+			assert.Error(t, err, "Expected the Namespace %s to be deleted", constants.CertManagerNamespace)
+		})
+	}
 }
 
 func assertNotFound(t *testing.T, client clipkg.WithWatch, name string, namespace string, obj clipkg.Object) {

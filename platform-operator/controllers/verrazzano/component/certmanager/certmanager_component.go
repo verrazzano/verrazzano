@@ -154,12 +154,16 @@ func (c certManagerComponent) PostUpgrade(compContext spi.ComponentContext) erro
 }
 
 // Uninstall removes the resources related to the cert-manager component
-func (c certManagerComponent) Uninstall(context spi.ComponentContext) error {
-	err := c.HelmComponent.Uninstall(context)
+func (c certManagerComponent) Uninstall(compContext spi.ComponentContext) error {
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager Uninstall dry run")
+		return nil
+	}
+	err := c.HelmComponent.Uninstall(compContext)
 	if err != nil {
 		return err
 	}
-	return uninstallCertManager(context)
+	return uninstallCertManager(compContext)
 }
 
 func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.ComponentContext) error {
