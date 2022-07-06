@@ -21,7 +21,7 @@ def availableDomains=["hXgQ:US-ASHBURN-AD-1"]
 def kubernetesVersions=[ "v1.22.5", "v1.21.5", "v1.20.8" ]
 def olcneVersions=[ "1.5", "1.4", "1.3"]
 def osVersions=['8', '7']
-def dnsZoneSubdomainName=UUID.randomUUID().toString().substring(0,6).replace('-','')
+def uniquePrefix=UUID.randomUUID().toString().substring(0,6).replace('-','')
 // Currently the pipeline only supports GLOBAL DNS Zone
 def dnsScopes=['GLOBAL']
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=false
@@ -150,8 +150,9 @@ pipeline {
 
         // Verrazzano variables
         TEST_ENV="${params.TEST_ENV}"
-        VZ_ENVIRONMENT_NAME="${params.TEST_ENV == 'olcne' ? 'olcne' + env.BUILD_NUMBER : 'default'}"
-        CLUSTER_NAME='vz-olcne'
+        VZ_ENVIRONMENT_NAME="$TEST_ENV"
+        BRANCH_NAME_PREFIX="${env.BRANCH_NAME.equals('master') ? 'vz' : env.BRANCH_NAME.substring(0, 2)}"
+        CLUSTER_NAME="$BRANCH_NAME_PREFIX" + "$uniquePrefix"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         INSTALL_PROFILE="${params.INSTALL_PROFILE}"
         GOPATH="$HOME/go"
@@ -178,7 +179,7 @@ pipeline {
         TF_VAR_deploy_networking="true"
         TF_VAR_bastion_enabled="true"
         TF_VAR_bastion_private_key_path="$WORKSPACE/terraform-oci-olcne/id_rsa"
-        TF_VAR_prefix="vz-$TEST_ENV"
+        TF_VAR_prefix="$CLUSTER_NAME"
         TF_VAR_use_vault="false"
         TF_VAR_ssh_public_key_path="$WORKSPACE/terraform-oci-olcne/id_rsa.pub"
         TF_VAR_ssh_private_key_path="$WORKSPACE/terraform-oci-olcne/id_rsa"
@@ -201,7 +202,7 @@ pipeline {
         // OCI_DNS_COMPARTMENT_OCID and OCI_PRIVATE_KEY_FILE are needed for setting up DNS zone in OCI
         OCI_DNS_COMPARTMENT_OCID=credentials('oci-dns-compartment')
         OCI_DNS_SCOPE="${params.OCI_DNS_SCOPE}"
-        OCI_DNS_ZONE_SUBDOMAIN_NAME="vz$dnsZoneSubdomainName"
+        OCI_DNS_ZONE_SUBDOMAIN_NAME="$CLUSTER_NAME"
         OCI_DNS_ZONE_NAME="${OCI_DNS_ZONE_SUBDOMAIN_NAME}.v8o.io"
 
         // used for cluster dump
