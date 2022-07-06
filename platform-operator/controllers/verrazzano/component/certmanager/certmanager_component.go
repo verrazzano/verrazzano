@@ -42,18 +42,19 @@ var _ spi.Component = certManagerComponent{}
 func NewComponent() spi.Component {
 	return certManagerComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "cert-manager"),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
-			AppendOverridesFunc:     AppendOverrides,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
-			Dependencies:            []string{},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), "cert-manager"),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
+			AppendOverridesFunc:       AppendOverrides,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
+			Dependencies:              []string{},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
