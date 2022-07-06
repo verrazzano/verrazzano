@@ -379,7 +379,7 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 func (c prometheusComponent) validatePrometheusOperator(effectiveCR *vzapi.Verrazzano, actualCR *vzapi.Verrazzano) error {
 	// Validate if legacy Prometheus is explicitly enabled in the actual CR provided by the user - if it is, then Prometheus Operator cannot be disabled
 	if !c.IsEnabled(effectiveCR) && vzconfig.IsPrometheusExplicitlyEnabled(actualCR) {
-		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled.")
+		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled")
 	}
 	// Validate install overrides
 	if effectiveCR.Spec.Components.PrometheusOperator != nil {
