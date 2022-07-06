@@ -330,6 +330,37 @@ func TestIsPrometheusEnabled(t *testing.T) {
 		}}))
 }
 
+// TestIsPrometheusExplicitlyEnabled tests the IsPrometheusExplicitlyEnabled function
+// GIVEN a call to IsPrometheusExplicitlyEnabled
+//  THEN the value of the Enabled flag is returned if present, false otherwise (i.e. not explicitly specified)
+func TestIsPrometheusExplicitlyEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsPrometheusExplicitlyEnabled(nil))
+	asserts.False(IsPrometheusExplicitlyEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsPrometheusExplicitlyEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Prometheus: &vzapi.PrometheusComponent{},
+			},
+		}}))
+	asserts.True(IsPrometheusExplicitlyEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Prometheus: &vzapi.PrometheusComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsPrometheusExplicitlyEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Prometheus: &vzapi.PrometheusComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
 // TestIsKialiEnabled tests the IsKialiEnabled function
 // GIVEN a call to IsKialiEnabled
 //  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)

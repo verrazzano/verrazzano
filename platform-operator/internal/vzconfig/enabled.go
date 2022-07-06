@@ -15,6 +15,19 @@ func IsPrometheusEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
+// IsPrometheusExplicitlyEnabled returns true only if explicitly enabled in the
+// Verrazzano CR. If it is either explicitly disabled or unspecified, it returns false
+func IsPrometheusExplicitlyEnabled(vz *vzapi.Verrazzano) bool {
+	if vz == nil {
+		return false
+	}
+	comp := vz.Spec.Components.Prometheus
+	if comp == nil || comp.Enabled == nil {
+		return false
+	}
+	return *comp.Enabled
+}
+
 // IsKibanaEnabled - Returns false only if explicitly disabled in the CR
 func IsKibanaEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Kibana != nil && vz.Spec.Components.Kibana.Enabled != nil {
