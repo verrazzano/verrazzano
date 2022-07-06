@@ -5,8 +5,9 @@ package helm
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -14,13 +15,13 @@ import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/pkg/yaml"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -71,6 +72,9 @@ type HelmComponent struct {
 
 	// SupportsOperatorInstall Indicates whether or not the component supports install via the operator
 	SupportsOperatorInstall bool
+
+	// SupportsOperatorUninstall Indicates whether or not the component supports uninstall via the operator
+	SupportsOperatorUninstall bool
 
 	// WaitForInstall Indicates if the operator should wait for helm operations to complete (synchronous behavior)
 	WaitForInstall bool
@@ -161,6 +165,11 @@ func (h HelmComponent) IsOperatorInstallSupported() bool {
 	return h.SupportsOperatorInstall
 }
 
+// IsOperatorUninstallSupported Returns true if the component supports direct uninstall via the operator
+func (h HelmComponent) IsOperatorUninstallSupported() bool {
+	return h.SupportsOperatorUninstall
+}
+
 // GetCertificateNames returns the list of expected certificates used by this component
 func (h HelmComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
 	return h.Certificates
@@ -180,7 +189,7 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 		context.Log().Debugf("IsInstalled() dry run for %s", h.ReleaseName)
 		return true, nil
 	}
-	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace))
+	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context))
 	return installed, nil
 }
 
@@ -204,12 +213,11 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 
-	ns := h.resolveNamespace(context.EffectiveCR().Namespace)
-	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); !deployed {
-		return false
+	ns := h.resolveNamespace(context)
+	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); deployed {
+		return true
 	}
-
-	return true
+	return false
 }
 
 // IsEnabled Indicates whether a component is enabled for installation
@@ -241,7 +249,7 @@ func (h HelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// Resolve the namespace
-	resolvedNamespace := h.resolveNamespace(context.EffectiveCR().Namespace)
+	resolvedNamespace := h.resolveNamespace(context)
 
 	var kvs []bom.KeyValue
 	// check for global image pull secret
@@ -264,7 +272,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 	if h.PreInstallFunc != nil {
-		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace), h.ChartDir)
+		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context), h.ChartDir)
 		if err != nil {
 			return err
 		}
@@ -274,7 +282,7 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 
 func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	if h.PostInstallFunc != nil {
-		if err := h.PostInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace)); err != nil {
+		if err := h.PostInstallFunc(context, h.ReleaseName, h.resolveNamespace(context)); err != nil {
 			return err
 		}
 	}
@@ -299,6 +307,31 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	return nil
 }
 
+func (h HelmComponent) PreUninstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
+	installed, err := h.IsInstalled(context)
+	if err != nil {
+		return err
+	}
+	if !installed {
+		context.Log().Infof("%s already uninstalled", h.Name())
+		return nil
+	}
+	_, stderr, err := helmcli.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
+	if err != nil {
+		context.Log().Errorf("Error uninstalling %s, error: %s, stderr: %s", h.Name(), err.Error(), stderr)
+		return err
+	}
+	return nil
+}
+
+func (h HelmComponent) PostUninstall(context spi.ComponentContext) error {
+	return nil
+}
+
 // Upgrade is done by using the helm chart upgrade command.  This command will apply the latest chart
 // that is included in the operator image, while retaining any helm Value overrides that were applied during
 // install. Along with the override files in helm_config, we need to generate image overrides using the
@@ -309,8 +342,8 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return nil
 	}
 
-	// Resolve the resolvedNamespace
-	resolvedNamespace := h.resolveNamespace(context.EffectiveCR().Namespace)
+	// Resolve the namespace
+	resolvedNamespace := h.resolveNamespace(context)
 
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(h.ReleaseName, resolvedNamespace)
@@ -507,8 +540,8 @@ func (h HelmComponent) organizeHelmOverrides(kvs []bom.KeyValue) []helm.HelmOver
 //
 // The need for this stems from an issue with the Verrazzano component and the fact
 // that component charts underneath VZ component need to have the ns overridden
-func (h HelmComponent) resolveNamespace(ns string) string {
-	namespace := ns
+func (h HelmComponent) resolveNamespace(ctx spi.ComponentContext) string {
+	namespace := ctx.EffectiveCR().Namespace
 	if h.ResolveNamespaceFunc != nil {
 		namespace = h.ResolveNamespaceFunc(namespace)
 	}

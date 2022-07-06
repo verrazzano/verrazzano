@@ -32,8 +32,6 @@ prometheus:
     storage: ""
 rancher:
   enabled: false
-nodeExporter:
-  enabled: false
 prometheusOperator:
   enabled: true
 prometheusAdapter:
@@ -46,3 +44,6 @@ prometheusNodeExporter:
   enabled: true
 jaegerOperator:
   enabled: true
+istio:
+  enabled: true
+

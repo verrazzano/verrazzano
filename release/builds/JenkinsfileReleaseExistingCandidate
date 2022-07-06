@@ -42,7 +42,6 @@ pipeline {
         OCI_CLI_REGION = "us-phoenix-1"
         OCI_REGION = "${env.OCI_CLI_REGION}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-        RELEASABLE_IMAGES_OBJECT_STORE = "releasable-verrazzano-images.txt"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
     }
 
@@ -67,7 +66,7 @@ pipeline {
                             println("ERROR: No releasable commit found for dev version ${VERRAZZANO_DEV_VERSION}")
                             sh "exit 1"
                         }
-                        IMAGES_TO_PUBLISH_OBJECT_STORE_FILE="${env.CLEAN_BRANCH_NAME}/${env.RELEASABLE_IMAGES_OBJECT_STORE}"
+                        IMAGES_TO_PUBLISH_OBJECT_STORE_FILE="${env.CLEAN_BRANCH_NAME}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
                     }
                 }
             }

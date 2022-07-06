@@ -103,7 +103,7 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
 		return err
 	}
-	// Check MySQL Secret. return error which will cause reque
+	// Check MySQL Secret. return error which will cause requeue
 	secret = &corev1.Secret{}
 	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: ComponentNamespace,
@@ -204,7 +204,7 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	}
 	// Reject any other edits for now
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
-		return fmt.Errorf("Updates to istioInstallArgs not allowed for %s", ComponentJSONName)
+		return fmt.Errorf("Updates to InstallArgs not allowed for %s", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
 }

@@ -78,6 +78,44 @@ spec:
                         description: IngressPath specifies a specific path to be exposed
                           for an ingress trait.
                         properties:
+                          authorizationPolicy:
+                            description: AuthorizationPolicy defines the set of rules
+                              for authorizing a request.
+                            properties:
+                              rules:
+                                description: A list of rules to match the request.
+                                  A match occurs when at least one rule matches the
+                                  request.
+                                items:
+                                  description: AuthorizationRule matches requests
+                                    from a list of request principals that access
+                                    a specific path subject to a list of conditions.
+                                  properties:
+                                    from:
+                                      description: AuthorizationRuleFrom includes
+                                        a list of request principals.
+                                      properties:
+                                        requestPrincipals:
+                                          items:
+                                            type: string
+                                          type: array
+                                      type: object
+                                    when:
+                                      items:
+                                        description: AuthorizationRuleCondition specifies
+                                          additional required attributes.
+                                        properties:
+                                          key:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: string
+                                            type: array
+                                        type: object
+                                      type: array
+                                  type: object
+                                type: array
+                            type: object
                           path:
                             type: string
                           pathType:

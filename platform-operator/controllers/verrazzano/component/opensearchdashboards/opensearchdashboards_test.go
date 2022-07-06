@@ -94,10 +94,32 @@ func TestIsReady(t *testing.T) {
 				Name:      kibanaDeployment,
 				Labels:    map[string]string{"app": "system-kibana"},
 			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "system-kibana"},
+				},
+			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      kibanaDeployment,
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               "system-kibana",
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        kibanaDeployment + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",

@@ -7,7 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
@@ -28,7 +31,7 @@ func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label strin
 	if len(labelValue) == 0 {
 		return QueryMetric(metricsName, kubeconfigPath)
 	}
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", getPrometheusIngressHost(kubeconfigPath), metricsName,
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", GetPrometheusIngressHost(kubeconfigPath), metricsName,
 		label, labelValue)
 
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
@@ -48,7 +51,7 @@ func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label strin
 
 // QueryMetric queries a metric from the Prometheus host, derived from the kubeconfig
 func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(kubeconfigPath), metricsName)
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", GetPrometheusIngressHost(kubeconfigPath), metricsName)
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {
 		return "", err
@@ -64,8 +67,8 @@ func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
 	return string(resp.Body), nil
 }
 
-// getPrometheusIngressHost gest the host used for ingress to the system Prometheus in the given cluster
-func getPrometheusIngressHost(kubeconfigPath string) string {
+// GetPrometheusIngressHost gest the host used for ingress to the system Prometheus in the given cluster
+func GetPrometheusIngressHost(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
@@ -162,7 +165,7 @@ func ScrapeTargets() ([]interface{}, error) {
 		return nil, err
 	}
 
-	metricsURL := fmt.Sprintf("https://%s/api/v1/targets", getPrometheusIngressHost(kubeconfigPath))
+	metricsURL := fmt.Sprintf("https://%s/api/v1/targets", GetPrometheusIngressHost(kubeconfigPath))
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -241,4 +244,36 @@ func IsAppInPromConfig(configAppName string) bool {
 		Log(Error, fmt.Sprintf("scrap target %s not found in Prometheus configmap", configAppName))
 	}
 	return found
+}
+
+// getPromOperatorClient returns a client for fetching ServiceMonitor resources
+func getPromOperatorClient() (client.Client, error) {
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	scheme := runtime.NewScheme()
+	_ = promoperapi.AddToScheme(scheme)
+
+	cli, err := client.New(config, client.Options{Scheme: scheme})
+	if err != nil {
+		return nil, err
+	}
+	return cli, nil
+}
+
+// GetServiceMonitor returns the ServiceMonitor identified by namespace and name
+func GetServiceMonitor(namespace, name string) (*promoperapi.ServiceMonitor, error) {
+	cli, err := getPromOperatorClient()
+	if err != nil {
+		return nil, err
+	}
+
+	serviceMonitor := &promoperapi.ServiceMonitor{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, serviceMonitor)
+	if err != nil {
+		return nil, err
+	}
+	return serviceMonitor, nil
 }

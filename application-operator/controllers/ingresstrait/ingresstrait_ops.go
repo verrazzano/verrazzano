@@ -5,6 +5,12 @@ package ingresstrait
 
 import (
 	"context"
+	"fmt"
+	"istio.io/api/networking/v1alpha3"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strings"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
@@ -29,7 +35,47 @@ func cleanup(trait *vzapi.IngressTrait, client client.Client, log vzlog.Verrazza
 	if err != nil {
 		return
 	}
+	err = cleanupPolicies(trait, client, log)
+	if err != nil {
+		return
+	}
+	err = cleanupGateway(trait, client, log)
+	if err != nil {
+		return
+	}
 	return
+}
+
+func cleanupPolicies(trait *vzapi.IngressTrait, c client.Client, log vzlog.VerrazzanoLogger) error {
+	rules := trait.Spec.Rules
+	for index, rule := range rules {
+		namePrefix := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
+		for _, path := range rule.Paths {
+			if path.Policy != nil {
+				pathSuffix := strings.Replace(path.Path, "/", "", -1)
+				policyName := fmt.Sprintf("%s-%s", namePrefix, pathSuffix)
+				authzPolicy := &clisecurity.AuthorizationPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      policyName,
+						Namespace: constants.IstioSystemNamespace,
+					},
+				}
+				// Delete the authz policy, ignore not found
+				log.Debugf("Deleting authorization policy: %s", authzPolicy.Name)
+				err := c.Delete(context.TODO(), authzPolicy, &client.DeleteOptions{})
+				if err != nil {
+					if k8serrors.IsNotFound(err) || meta.IsNoMatchError(err) {
+						log.Debugf("NotFound deleting authorization policy %s", authzPolicy.Name)
+						return nil
+					}
+					log.Errorf("Failed deleting the authorization policy %s", authzPolicy.Name)
+				}
+				log.Debugf("Ingress rule path authorization policy %s deleted", authzPolicy.Name)
+			}
+		}
+	}
+
+	return nil
 }
 
 // cleanupCert deletes up the generated certificate for the given app config
@@ -79,4 +125,34 @@ func cleanupSecret(secretName string, c client.Client, log vzlog.VerrazzanoLogge
 	}
 	log.Debugf("Ingress secret %s deleted", nsn.Name)
 	return nil
+}
+
+// cleanupGateway deletes server associated with trait that is scheduled for deletion
+func cleanupGateway(trait *vzapi.IngressTrait, c client.Client, log vzlog.VerrazzanoLogger) error {
+	gwName, err := buildGatewayName(trait)
+	if err != nil {
+		return err
+	}
+	gateway := &istioclient.Gateway{}
+	err = c.Get(context.TODO(), types.NamespacedName{Name: gwName, Namespace: trait.Namespace}, gateway)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return log.ErrorfThrottledNewErr(fmt.Sprintf("Failed to fetch gateway: %v", err))
+	}
+
+	newServer := []*v1alpha3.Server{}
+	for _, server := range gateway.Spec.Servers {
+		if server.Name == trait.Name {
+			continue
+		}
+		newServer = append(newServer, server)
+	}
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), c, gateway, func() error {
+		gateway.Spec.Servers = newServer
+		return nil
+	})
+
+	return err
 }

@@ -12,7 +12,9 @@ import (
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -25,6 +27,7 @@ import (
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -52,6 +55,7 @@ func init() {
 	_ = oam.AddToScheme(scheme)
 
 	_ = vzapp.AddToScheme(scheme)
+	_ = vzappclusters.AddToScheme(scheme)
 
 	// Add cert-manager components to the scheme
 	_ = cmapiv1.AddToScheme(scheme)
@@ -162,6 +166,8 @@ func main() {
 	}
 
 	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
+
+	metricsexporter.InitalizeMetricsEndpoint()
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{

@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"text/template"
 
@@ -22,8 +23,7 @@ import (
 )
 
 const (
-	sep       = "---"
-	specField = "spec"
+	sep = "---"
 )
 
 type (
@@ -31,6 +31,7 @@ type (
 		client            crtpkg.Client
 		objects           []unstructured.Unstructured
 		namespaceOverride string
+		objectResultMsgs  []string
 	}
 
 	action func(obj *unstructured.Unstructured) error
@@ -41,12 +42,18 @@ func NewYAMLApplier(client crtpkg.Client, namespaceOverride string) *YAMLApplier
 		client:            client,
 		objects:           []unstructured.Unstructured{},
 		namespaceOverride: namespaceOverride,
+		objectResultMsgs:  []string{},
 	}
 }
 
 //Objects is the list of objects created using the ApplyX methods
 func (y *YAMLApplier) Objects() []unstructured.Unstructured {
 	return y.objects
+}
+
+// ObjectResultMsgs is the list of object result messages using the ApplyX methods
+func (y *YAMLApplier) ObjectResultMsgs() []string {
+	return y.objectResultMsgs
 }
 
 //ApplyD applies all YAML files in a directory to Kubernetes
@@ -143,23 +150,79 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 	if len(ns) > 0 {
 		obj.SetNamespace(ns)
 	}
-	clientSpec, _, err := unstructured.NestedFieldCopy(obj.Object, specField)
-	if err != nil {
-		return err
+
+	// Struct to store a copy of a client field
+	type clientField struct {
+		name       string
+		nestedCopy interface{}
+		typeOf     string
 	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), y.client, obj, func() error {
-		serverSpec, _, err := unstructured.NestedFieldCopy(obj.Object, specField)
+
+	// Make a nested copy of each client field.
+	var clientFields []clientField
+	var err error
+	for fieldName, fieldObj := range obj.Object {
+		if fieldName == "kind" || fieldName == "apiVersion" {
+			continue
+		}
+		cf := clientField{}
+		cf.name = fieldName
+		cf.nestedCopy, _, err = unstructured.NestedFieldCopy(obj.Object, fieldName)
 		if err != nil {
 			return err
 		}
-		if clientSpec != nil {
-			merge(serverSpec.(map[string]interface{}), clientSpec.(map[string]interface{}))
+		cf.typeOf = reflect.TypeOf(fieldObj).String()
+		clientFields = append(clientFields, cf)
+	}
+
+	result, err := controllerruntime.CreateOrUpdate(context.TODO(), y.client, obj, func() error {
+		// For each nested copy of a client field, determine if it needs to be added or merged
+		// with the server.
+		for _, clientField := range clientFields {
+
+			serverField, _, err := unstructured.NestedFieldCopy(obj.Object, clientField.name)
+			if err != nil {
+				return err
+			}
+
+			// See if merge needed on objects of type map[string]interface {}
+			if clientField.typeOf == "map[string]interface {}" {
+				if serverField != nil {
+					merge(serverField.(map[string]interface{}), clientField.nestedCopy.(map[string]interface{}))
+				}
+			}
+
+			// For objects of type []interface{}, e.g. secrets or imagePullSecrets, a replace will be
+			// done.  This appears to be consistent with the behavior of kubectl.
+			if clientField.typeOf == "[]interface {}" {
+				serverField = clientField.nestedCopy
+			}
+
+			// If serverSpec is nil, then the clientSpec field is being added
+			if serverField == nil {
+				serverField = clientField.nestedCopy
+			}
+
+			// Set the resulting value in the server object
+			err = unstructured.SetNestedField(obj.Object, serverField, clientField.name)
+			if err != nil {
+				return err
+			}
 		}
-		return unstructured.SetNestedField(obj.Object, serverSpec, specField)
-	}); err != nil {
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 	y.objects = append(y.objects, *obj)
+
+	// Add an informational message (to mimic what you see on a kubectl apply)
+	group := obj.GetObjectKind().GroupVersionKind().Group
+	if len(group) > 0 {
+		group = fmt.Sprintf(".%s", group)
+	}
+	y.objectResultMsgs = append(y.objectResultMsgs, fmt.Sprintf("%s%s/%s %s", obj.GetKind(), group, obj.GetName(), string(result)))
+
 	return nil
 }
 
@@ -240,16 +303,17 @@ func (y *YAMLApplier) unmarshall(reader *bufio.Reader) ([]unstructured.Unstructu
 		return nil
 	}
 
+	eofReached := false
 	for {
 		// Read the file line by line
 		line, err := reader.ReadBytes('\n')
 		if err != nil {
-			// if EOF, flush the buffer and return the objs
 			if err == io.EOF {
-				flushErr := flushBuffer()
-				return objs, flushErr
+				// EOF has been reached, but there may be some line data to process
+				eofReached = true
+			} else {
+				return objs, err
 			}
-			return objs, err
 		}
 		lineStr := string(line)
 		// Flush buffer at document break
@@ -264,6 +328,11 @@ func (y *YAMLApplier) unmarshall(reader *bufio.Reader) ([]unstructured.Unstructu
 					return objs, err
 				}
 			}
+		}
+		// if EOF, flush the buffer and return the objs
+		if eofReached {
+			flushErr := flushBuffer()
+			return objs, flushErr
 		}
 	}
 }

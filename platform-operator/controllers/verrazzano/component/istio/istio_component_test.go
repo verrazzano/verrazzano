@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/istio"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
 	"os/exec"
@@ -337,10 +338,32 @@ func TestIsReady(t *testing.T) {
 				Name:      IstiodDeployment,
 				Labels:    map[string]string{"app": IstiodDeployment},
 			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": IstiodDeployment},
+				},
+			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
+			},
+		},
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstiodDeployment + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               IstiodDeployment,
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   IstioNamespace,
+				Name:        IstiodDeployment + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
 		&appsv1.Deployment{
@@ -349,10 +372,32 @@ func TestIsReady(t *testing.T) {
 				Name:      IstioIngressgatewayDeployment,
 				Labels:    map[string]string{"app": IstioIngressgatewayDeployment},
 			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": IstioIngressgatewayDeployment},
+				},
+			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
+			},
+		},
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioIngressgatewayDeployment + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               IstioIngressgatewayDeployment,
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   IstioNamespace,
+				Name:        IstioIngressgatewayDeployment + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
 		&appsv1.Deployment{
@@ -361,17 +406,42 @@ func TestIsReady(t *testing.T) {
 				Name:      IstioEgressgatewayDeployment,
 				Labels:    map[string]string{"app": IstioEgressgatewayDeployment},
 			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": IstioEgressgatewayDeployment},
+				},
+			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioEgressgatewayDeployment + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               IstioEgressgatewayDeployment,
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   IstioNamespace,
+				Name:        IstioEgressgatewayDeployment + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
 	).Build()
-	var iComp istioComponent
-	iComp.monitor = &fakeMonitor{
-		istioctlSuccess: true,
+
+	isInstalledFunc = func(log vzlog.VerrazzanoLogger) (bool, error) {
+		return true, nil
 	}
+	defer func() { isInstalledFunc = istio.IsInstalled }()
+
+	var iComp istioComponent
 	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
 	assert.True(t, iComp.IsReady(compContext))
 }

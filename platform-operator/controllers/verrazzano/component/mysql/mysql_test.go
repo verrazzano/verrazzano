@@ -324,18 +324,42 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
-			Labels:    map[string]string{"app": ComponentName},
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
+				Labels:    map[string]string{"app": ComponentName},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": ComponentName},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
 		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			Replicas:          1,
-			UpdatedReplicas:   1,
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               ComponentName,
+				},
+			},
 		},
-	}).Build()
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        ComponentName + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+	).Build()
 	assert.True(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 

@@ -40,12 +40,24 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app: jaeger
+      ports:
+        - protocol: TCP
+          port: 8775
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
+          protocol: TCP
+        - port: 9113
           protocol: TCP
 {{- if .Values.console.enabled }}
 ---
@@ -78,10 +90,10 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
           protocol: TCP

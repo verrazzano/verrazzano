@@ -24,10 +24,10 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
           protocol: TCP
@@ -83,55 +83,12 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
-          protocol: TCP
-{{- end }}
-{{- if .Values.prometheus.enabled}}
----
-# Network policy for VMI System Prometheus
-# Ingress: allow connect from the ingress controller to oidc port 8775
-#          allow connect from Grafana to port 9090
-# Egress: allow all
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: vmi-system-prometheus
-  namespace: {{ .Release.Namespace }}
-spec:
-  podSelector:
-    matchLabels:
-      app: system-prometheus
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
-              app: verrazzano-authproxy
-      ports:
-        - port: 9090
-          protocol: TCP
-    - from:
-        - podSelector:
-            matchLabels:
-              app: system-grafana
-      ports:
-        - port: 9090
-          protocol: TCP
-    - from:
-        - podSelector:
-            matchLabels:
-              app: kiali
-      ports:
-        - port: 9090
           protocol: TCP
 {{- end }}
 ---
@@ -154,10 +111,10 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: {{ .Release.Namespace }}
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
       ports:
         - port: 9402
           protocol: TCP
@@ -177,34 +134,6 @@ spec:
       app.kubernetes.io/instance: external-dns
   policyTypes:
     - Ingress
-{{- end }}
-{{- if .Values.nodeExporter.enabled }}
----
-# Network policy for Node Exporter
-# Ingress: allow connect from Prometheus to scrape metrics
-# Egress: allow all
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: node-exporter
-  namespace: monitoring
-spec:
-  podSelector:
-    matchLabels:
-      app: node-exporter
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
-              app: system-prometheus
-      ports:
-        - port: 9100
-          protocol: TCP
 {{- end }}
 {{- if .Values.keycloak.enabled }}
 ---
@@ -244,10 +173,10 @@ spec:
     - from:
       - namespaceSelector:
           matchLabels:
-            verrazzano.io/namespace: verrazzano-system
+            verrazzano.io/namespace: verrazzano-monitoring
         podSelector:
           matchLabels:
-            app: system-prometheus
+            app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
           protocol: TCP
@@ -278,10 +207,10 @@ spec:
     - from:
       - namespaceSelector:
           matchLabels:
-            verrazzano.io/namespace: verrazzano-system
+            verrazzano.io/namespace: verrazzano-monitoring
         podSelector:
           matchLabels:
-            app: system-prometheus
+            app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
           protocol: TCP
@@ -379,8 +308,8 @@ spec:
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: verrazzano-system
-    # Allow ingress to port 10254 from system-prometheus to scrape metrics
-    # Allow ingress to port 15090 from system-prometheus to scrape Envoy stats
+    # Allow ingress to port 10254 from Prometheus to scrape metrics
+    # Allow ingress to port 15090 from Prometheus to scrape Envoy stats
     - ports:
         - port: 10254
           protocol: TCP
@@ -389,10 +318,10 @@ spec:
       from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
 ---
 # Network policy for NGINX Ingress default-backend
 # Egress: allow all
@@ -422,10 +351,11 @@ spec:
       from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
+{{- if .Values.istio.enabled}}
 ---
 # Network policy for istio-system pod communication
 # Ingress: allow all pod-to-pod communication within the namespace
@@ -468,10 +398,10 @@ spec:
       from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
 ---
 # Network policy for Istio egress gateway
 # Ingress: allow ingress to port 8443 from anywhere
@@ -497,10 +427,10 @@ spec:
       from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
 ---
 # Network policy for Istio coredns
 # Ingress: allow ingress to port 53 from kube-system DNS
@@ -534,7 +464,7 @@ spec:
 # Ingress: allow ingress to port 15012 from verrazzano-system prometheus and keycloak (for Istio proxy sidecar)
 #          allow ingress to port 15012 for application namespaces
 #          allow port 15017 for webhooks
-#          allow port 15014 from system-prometheus to scrape metrics
+#          allow port 15014 from Prometheus to scrape metrics
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -575,7 +505,7 @@ spec:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
             matchExpressions:
-              - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator, kiali]}
+              - {key: app, operator: In, values: [fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator, kiali]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
@@ -609,10 +539,10 @@ spec:
       from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
 ---
 # Network policy for Kiali
 # Ingress: allow connect from istio-system
@@ -644,12 +574,13 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-system
+              verrazzano.io/namespace: verrazzano-monitoring
           podSelector:
             matchLabels:
-              app: system-prometheus
+              app.kubernetes.io/name: prometheus
       ports:
         - port: 9090
           protocol: TCP
         - port: 15090
           protocol: TCP
+{{- end }}

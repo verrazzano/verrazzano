@@ -1,0 +1,295 @@
+{
+    "kind": "PodList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "21948"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator-865b47d7db-57rdt",
+                "generateName": "verrazzano-platform-operator-865b47d7db-",
+                "namespace": "verrazzano-install",
+                "uid": "c072b386-41d7-42e7-a643-ff072ad26fd8",
+                "resourceVersion": "2327",
+                "creationTimestamp": "2022-06-16T10:18:00Z",
+                "labels": {
+                    "app": "verrazzano-platform-operator",
+                    "pod-template-hash": "865b47d7db"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "ReplicaSet",
+                        "name": "verrazzano-platform-operator-865b47d7db",
+                        "uid": "ff1202db-711b-47ba-8ec0-d7bc8f06e404",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ]
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "webhook-certs",
+                        "emptyDir": {}
+                    },
+                    {
+                        "name": "varlog",
+                        "hostPath": {
+                            "path": "/var/log",
+                            "type": ""
+                        }
+                    },
+                    {
+                        "name": "kube-api-access-4twgb",
+                        "projected": {
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "name": "kube-root-ca.crt",
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "path": "namespace",
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    }
+                ],
+                "initContainers": [
+                    {
+                        "name": "webhook-init",
+                        "image": "ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:1.4.0-20220616094649-68574bd7",
+                        "args": [
+                            "--zap-log-level=info",
+                            "--init-webhooks=true"
+                        ],
+                        "env": [
+                            {
+                                "name": "MODE",
+                                "value": "RUN_OPERATOR"
+                            }
+                        ],
+                        "resources": {},
+                        "volumeMounts": [
+                            {
+                                "name": "webhook-certs",
+                                "mountPath": "/etc/webhook/certs"
+                            },
+                            {
+                                "name": "kube-api-access-4twgb",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "verrazzano-platform-operator",
+                        "image": "ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:1.4.0-20220616094649-68574bd7",
+                        "args": [
+                            "--zap-log-level=info",
+                            "--enable-webhook-validation=true"
+                        ],
+                        "ports": [
+                            {
+                                "name": "webhook",
+                                "containerPort": 9443,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "MODE",
+                                "value": "RUN_OPERATOR"
+                            },
+                            {
+                                "name": "VZ_INSTALL_IMAGE",
+                                "value": "ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:1.4.0-20220616094649-68574bd7"
+                            },
+                            {
+                                "name": "IMAGE_PULL_SECRETS",
+                                "value": "verrazzano-container-registry"
+                            }
+                        ],
+                        "resources": {
+                            "requests": {
+                                "memory": "72Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "webhook-certs",
+                                "readOnly": true,
+                                "mountPath": "/etc/webhook/certs"
+                            },
+                            {
+                                "name": "varlog",
+                                "readOnly": true,
+                                "mountPath": "/var/log"
+                            },
+                            {
+                                "name": "kube-api-access-4twgb",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "startupProbe": {
+                            "httpGet": {
+                                "path": "/validate-install-verrazzano-io-v1alpha1-verrazzano",
+                                "port": "webhook",
+                                "scheme": "HTTPS",
+                                "httpHeaders": [
+                                    {
+                                        "name": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ]
+                            },
+                            "timeoutSeconds": 3,
+                            "periodSeconds": 5,
+                            "successThreshold": 1,
+                            "failureThreshold": 15
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 0,
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "verrazzano-platform-operator",
+                "serviceAccount": "verrazzano-platform-operator",
+                "nodeName": "REDACTED-IP4-ADDRESS",
+                "securityContext": {},
+                "imagePullSecrets": [
+                    {
+                        "name": "verrazzano-container-registry"
+                    }
+                ],
+                "schedulerName": "default-scheduler",
+                "tolerations": [
+                    {
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "priority": 0,
+                "enableServiceLinks": true,
+                "preemptionPolicy": "PreemptLowerPriority"
+            },
+            "status": {
+                "phase": "Running",
+                "conditions": [
+                    {
+                        "type": "Initialized",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-06-16T10:18:34Z"
+                    },
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-06-16T10:18:40Z"
+                    },
+                    {
+                        "type": "ContainersReady",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-06-16T10:18:40Z"
+                    },
+                    {
+                        "type": "PodScheduled",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-06-16T10:18:00Z"
+                    }
+                ],
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
+                "podIPs": [
+                    {
+                        "ip": "REDACTED-IP4-ADDRESS"
+                    }
+                ],
+                "startTime": "2022-06-16T10:18:00Z",
+                "initContainerStatuses": [
+                    {
+                        "name": "webhook-init",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 0,
+                                "reason": "Completed",
+                                "startedAt": "2022-06-16T10:18:29Z",
+                                "finishedAt": "2022-06-16T10:18:33Z",
+                                "containerID": "cri-o://4aed7c388608567a44be6e519ccf158c19009704e9008f45c1dd0b2b739178c6"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:1.4.0-20220616094649-68574bd7",
+                        "imageID": "ghcr.io/verrazzano/verrazzano-platform-operator-jenkins@sha256:46856f0945015aa7ba80c2546c6d9cb95b2fdc9727a44a08002db369f41314e2",
+                        "containerID": "cri-o://4aed7c388608567a44be6e519ccf158c19009704e9008f45c1dd0b2b739178c6"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "name": "verrazzano-platform-operator",
+                        "state": {
+                            "running": {
+                                "startedAt": "2022-06-16T10:18:34Z"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:1.4.0-20220616094649-68574bd7",
+                        "imageID": "ghcr.io/verrazzano/verrazzano-platform-operator-jenkins@sha256:46856f0945015aa7ba80c2546c6d9cb95b2fdc9727a44a08002db369f41314e2",
+                        "containerID": "cri-o://bc578089d2f084549f4638ef498e0998e2a2f3aecd449e3ffac4898046fbd324",
+                        "started": true
+                    }
+                ],
+                "qosClass": "Burstable"
+            }
+        }
+    ]
+}

@@ -6,12 +6,13 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -154,6 +155,11 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 		return newRequeueWithDelay(), err
 	}
 
+	// Check if uninstalling
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
+	}
+
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.VzStateFailed:
@@ -162,14 +168,12 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 		return r.ProcInstallingState(vzctx)
 	case installv1alpha1.VzStateReady:
 		return r.ProcReadyState(vzctx)
-	case installv1alpha1.VzStateUninstalling:
-		return r.ProcUninstallingState(vzctx)
 	case installv1alpha1.VzStateUpgrading:
 		return r.ProcUpgradingState(vzctx)
 	case installv1alpha1.VzStatePaused:
 		return r.ProcPausedUpgradeState(vzctx)
 	default:
-		panic("Invalid Verrazzano contoller state")
+		panic("Invalid Verrazzano controller state")
 	}
 }
 
@@ -181,11 +185,6 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 	log.Debugf("Entering ProcReadyState")
 	ctx := context.TODO()
 
-	// Check if Verrazzano resource is being deleted
-	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, actualCR)
-	}
-
 	// Pre-populate the component status fields
 	result, err := r.initializeComponentStatus(log, actualCR)
 	if err != nil {
@@ -196,11 +195,23 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(actualCR.Status) {
-		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
-			// Transition to upgrade state
-			r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
-			return newRequeueWithDelay(), err
+		if len(actualCR.Spec.Version) > 0 {
+			specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			// if the spec version field is set and the SemVer spec field doesn't equal the SemVer status field
+			if specVersion.CompareTo(statusVersion) != 0 {
+				// Transition to upgrade state
+				r.updateVzState(log, actualCR, installv1alpha1.VzStateUpgrading)
+				return newRequeueWithDelay(), err
+			}
 		}
+
 		// Keep retrying to reconcile components until it completes
 		if result, err := r.reconcileComponents(vzctx); err != nil {
 			return newRequeueWithDelay(), err
@@ -255,14 +266,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 // ProcInstallingState processes the CR while in the installing state
 func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
 	log := vzctx.Log
-	actualCR := vzctx.ActualCR
 	log.Debug("Entering ProcInstallingState")
-	ctx := context.TODO()
-
-	// Check if Verrazzano resource is being deleted
-	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, actualCR)
-	}
 
 	if result, err := r.reconcileComponents(vzctx); err != nil {
 		return newRequeueWithDelay(), err
@@ -279,31 +283,11 @@ func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctr
 	return ctrl.Result{}, nil
 }
 
-// ProcUninstallingState processes the CR while in the uninstalling state
-func (r *Reconciler) ProcUninstallingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
-	vz := vzctx.ActualCR
-	log := vzctx.Log
-	log.Debug("Entering ProcUninstallingState")
-	ctx := context.TODO()
-
-	// Update uninstall status
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, vz)
-	}
-
-	return ctrl.Result{}, nil
-}
-
 // ProcUpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
 	actualCR := vzctx.ActualCR
 	log := vzctx.Log
 	log.Debug("Entering ProcUpgradingState")
-
-	// Check if Verrazzano resource is being deleted
-	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(context.TODO(), log, actualCR)
-	}
 
 	// check for need to pause the upgrade due to VPO update
 	if bomVersion, isNewer := isOperatorNewerVersionThanCR(actualCR.Spec.Version); isNewer {
@@ -591,8 +575,7 @@ func (r *Reconciler) createUninstallJob(log vzlog.VerrazzanoLogger, vz *installv
 
 	log.Progressf("Uninstall job %s is running", buildUninstallJobName(vz.Name))
 
-	err = r.setUninstallCondition(log, jobFound, vz)
-	if err != nil {
+	if err := r.setUninstallCondition(log, jobFound, vz); err != nil {
 		return err
 	}
 
@@ -748,7 +731,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	case installv1alpha1.CondUpgradePaused:
 		return installv1alpha1.CompStateUpgrading
 	case installv1alpha1.CondUninstallComplete:
-		return installv1alpha1.CompStateReady
+		return installv1alpha1.CompStateUninstalled
 	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
 		return installv1alpha1.CompStateFailed
 	}
@@ -870,7 +853,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 // setUninstallCondition sets the Verrazzano resource condition in status for uninstall
 func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
-	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
+	if job != nil && (job.Status.Succeeded != 0 || job.Status.Failed != 0) {
 		for _, condition := range vz.Status.Conditions {
 			if condition.Type == installv1alpha1.CondUninstallComplete || condition.Type == installv1alpha1.CondUninstallFailed {
 				return nil
@@ -985,67 +968,6 @@ func mergeMaps(to map[string]string, from map[string]string) (map[string]string,
 	return mergedMap, updated
 }
 
-func addFluentdExtraVolumeMounts(files []string, vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
-	for _, extraMount := range dirsOutsideVarLog(files) {
-		if vz.Spec.Components.Fluentd == nil {
-			vz.Spec.Components.Fluentd = &installv1alpha1.FluentdComponent{}
-		}
-		found := false
-		for _, vm := range vz.Spec.Components.Fluentd.ExtraVolumeMounts {
-			if isParentDir(extraMount, vm.Source) {
-				found = true
-			}
-		}
-		if !found {
-			vz.Spec.Components.Fluentd.ExtraVolumeMounts = append(vz.Spec.Components.Fluentd.ExtraVolumeMounts,
-				installv1alpha1.VolumeMount{Source: extraMount})
-		}
-	}
-	return vz
-}
-
-func dirsOutsideVarLog(paths []string) []string {
-	var results []string
-	for _, path := range paths {
-		if !strings.HasPrefix(path, "/var/log/") {
-			found := false
-			var temp []string
-			for _, res := range results {
-				commonPath := commonPath(res, path)
-				if commonPath != "/" {
-					temp = append(temp, commonPath)
-					found = true
-				} else {
-					temp = append(temp, res)
-				}
-			}
-			if !found {
-				temp = append(temp, path)
-			}
-			results = temp
-		}
-	}
-	return results
-}
-
-func isParentDir(path, dir string) bool {
-	if !strings.HasSuffix(dir, "/") {
-		dir = dir + "/"
-	}
-	return commonPath(path, dir) == dir
-}
-
-func commonPath(a, b string) string {
-	i := 0
-	s := 0
-	for ; i < len(a) && i < len(b) && a[i] == b[i]; i++ {
-		if a[i] == '/' {
-			s = i
-		}
-	}
-	return a[0 : s+1]
-}
-
 // Get the install namespace where this controller is running.
 func getInstallNamespace() string {
 	return vzconst.VerrazzanoInstallNamespace
@@ -1079,7 +1001,15 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 	}
 	log.Once("Deleting Verrazzano installation")
 
-	// Create the uninstall job if it doesn't exist
+	// Uninstall all components
+	log.Oncef("Uninstalling components")
+	if result, err := r.reconcileUninstall(log, vz); err != nil {
+		return newRequeueWithDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
+		return result, nil
+	}
+
+	// Run the uninstall and check for completion
 	if err := r.createUninstallJob(log, vz); err != nil {
 		if errors.IsConflict(err) {
 			log.Debug("Resource conflict creating the uninstall job, requeuing")
@@ -1100,12 +1030,13 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 
 			err := r.cleanup(ctx, log, vz)
 			if err != nil {
+				log.Oncef("Uninstall cleanup failed finalizer %s", finalizerName)
 				return newRequeueWithDelay(), err
 			}
 
 			// All install related resources have been deleted, delete the finalizer so that the Verrazzano
 			// resource can get removed from etcd.
-			log.Debugf("Removing finalizer %s", finalizerName)
+			log.Oncef("Removing finalizer %s", finalizerName)
 			vz.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(vz.ObjectMeta.Finalizers, finalizerName)
 			err = r.Update(ctx, vz)
 			if err != nil {
@@ -1113,6 +1044,10 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 			}
 
 			delete(initializedSet, vz.Name)
+
+			// Delete the uninstall tracker so the memory can be freed up
+			DeleteUninstallTracker(vz)
+
 			// Uninstall is done, all cleanup is finished, and finalizer removed.
 			return ctrl.Result{}, nil
 		}

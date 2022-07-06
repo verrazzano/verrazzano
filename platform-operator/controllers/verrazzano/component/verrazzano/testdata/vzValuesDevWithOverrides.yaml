@@ -12,8 +12,6 @@ monitoringOperator:
   enabled: false
 rancher:
   enabled: false
-nodeExporter:
-  enabled: false
 prometheusOperator:
   enabled: true
 prometheusAdapter:
@@ -25,4 +23,6 @@ prometheusPushgateway:
 prometheusNodeExporter:
   enabled: true
 jaegerOperator:
+  enabled: true
+istio:
   enabled: true

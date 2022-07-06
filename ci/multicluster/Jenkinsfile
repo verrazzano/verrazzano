@@ -35,7 +35,7 @@ pipeline {
 
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
-        booleanParam (description: 'Whether to upgrade Verrazzano', name: 'UPGRADE_VERRAZZANO', defaultValue: false)
+        booleanParam (description: 'Whether to upgrade Verrazzano', name: 'UPGRADE_VERRAZZANO', defaultValue: true)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
@@ -187,7 +187,7 @@ pipeline {
         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // sample app deployed before upgrade and UI console tests
-        SAMPLE_APP_NAME="hello-helidon-appconf"
+        SAMPLE_APP_NAME="hello-helidon"
         SAMPLE_APP_NAMESPACE="hello-helidon-sample"
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
         SAMPLE_APP_COMPONENT="hello-helidon-component"
@@ -464,6 +464,13 @@ pipeline {
                         runGinkgoAdmin('update/fluentdextes')
                     }
                 }
+                stage("verify-dns-update") {
+                    steps {
+                        script {
+                            parallel verifyDNSUpdate()
+                        }
+                    }
+                }
                 stage("verify-cert-manager-update") {
                     steps {
                         script {
@@ -474,6 +481,11 @@ pipeline {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
+                    }
+                }
+                stage('verify-rancher') {
+                    steps {
+                        runGinkgoRandomizeAdmin('multicluster/verify-rancher')
                     }
                 }
                 stage ('multicluster/verify-install') {
@@ -579,6 +591,45 @@ pipeline {
                 }
             }
         }
+        stage('Uninstall Verrazzano') {
+            stages {
+                stage('Uninstall') {
+                    steps {
+                        uninstallVerrazzano()
+                    }
+                }
+                stage('Verify Uninstall') {
+                    steps {
+                        verifyUninstall()
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                        dumpK8sCluster("${WORKSPACE}/multicluster-uninstall-dump")
+                    }
+                }
+                aborted {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                        dumpK8sCluster("${WORKSPACE}/multicluster-uninstall-dump")
+                    }
+                }
+                success {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster("${WORKSPACE}/multicluster-uninstall-dump")
+                        }
+                    }
+                }
+                always {
+                    archiveArtifacts artifacts: "**/*-cluster-dump*/**,**/test-cluster-dumps/**", allowEmptyArchive: true
+                }
+            }
+        }
     }
     post {
         failure {
@@ -614,39 +665,6 @@ pipeline {
             """
             archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
-
-            script {
-                 // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
-                 // - the first one will always be the Admin cluster
-                 // - clusters 2-max are managed clusters
-                 def verrazzanoUninstallStages = [:]
-                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                 for (int count = 1; count <= clusterCount; count++) {
-                     def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                     def key = "vz-mgd-${count - 1}"
-                     if (count == 1) {
-                         key = "vz-admin"
-                     }
-                     verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
-                 }
-                 parallel verrazzanoUninstallStages
-            }
-
-            script {
-                // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
-                // - the first one will always be the Admin cluster
-                // - clusters 2-max are managed clusters
-                def verifyUninstallStages = [:]
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                for (int count = 1; count <= clusterCount; count++) {
-                    def key = "vz-mgd-${count - 1}"
-                    if (count == 1) {
-                        key = "vz-admin"
-                    }
-                    verifyUninstallStages["${key}"] = verifyUninstall(count)
-                }
-                parallel verifyUninstallStages
-            }
 
             script {
                 if (params.EMIT_METRICS) {
@@ -759,8 +777,8 @@ def getVerrazzanoOperatorYaml() {
         echo "Platform Operator Configuration"
         cd ${GO_REPO_PATH}/verrazzano
         if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-            if [ "true" == "${params.EXTERNAL_ELASTICSEARCH}" ] || [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
-                echo "Using the latest branch operator.yaml from object storage because external ES is not supported in versions prior to v1.1"
+            if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
+                echo "Using the latest branch operator.yaml from object storage because upgrade is disabled for this job"
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                 cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
             else
@@ -907,10 +925,29 @@ def upgradeVerrazzano() {
     }
 }
 
+def uninstallVerrazzano() {
+    script {
+         // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
+         // - the first one will always be the Admin cluster
+         // - clusters 2-max are managed clusters
+         def verrazzanoUninstallStages = [:]
+         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+         for (int count = 1; count <= clusterCount; count++) {
+             def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
+             def key = "vz-mgd-${count - 1}"
+             if (count == 1) {
+                 key = "vz-admin"
+             }
+             verrazzanoUninstallStages["${key}"] = uninstallVerrazzanoOnCluster(count, installerPath)
+         }
+         parallel verrazzanoUninstallStages
+    }
+}
+
 // Uninstall Verrazzano
 // - count is the cluster index into the $KUBECONFIG_DIR
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
-def uninstallVerrazzano(count, verrazzanoConfig) {
+def uninstallVerrazzanoOnCluster(count, verrazzanoConfig) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
@@ -923,9 +960,28 @@ def uninstallVerrazzano(count, verrazzanoConfig) {
     }
 }
 
-// Verify uninstall Verrazzano
+// Verify uninstall on all clusters
+def verifyUninstall() {
+    script {
+        // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def verifyUninstallStages = [:]
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for (int count = 1; count <= clusterCount; count++) {
+            def key = "vz-mgd-${count - 1}"
+            if (count == 1) {
+                key = "vz-admin"
+            }
+            verifyUninstallStages["${key}"] = verifyUninstallOnCluster(count)
+        }
+        parallel verifyUninstallStages
+    }
+}
+
+// Verify uninstall Verrazzano on a single cluster
 // - count is the cluster index into the $KUBECONFIG_DIR
-def verifyUninstall(count) {
+def verifyUninstallOnCluster(count) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
@@ -1527,6 +1583,17 @@ def verifyUpgrade() {
         },
         "Verify Metrics": {
             runGinkgoRandomize('metrics/syscomponents')
+        },
+    ]
+}
+
+def verifyDNSUpdate() {
+    return [
+        "verify-admin-cluster-dns-update": {
+            runGinkgoAdmin('update/dnsac')
+        },
+        "verify-managed-cluster-dns-update": {
+            runGinkgoAdmin('update/dnsmc')
         },
     ]
 }

@@ -96,14 +96,18 @@ func (s *Syncer) ProcessAgentThread() error {
 	if managedClusterName != s.ManagedClusterName {
 		s.Log.Debugf("Found secret named %s in namespace %s, cluster name changed from %q to %q", secret.Name, secret.Namespace, s.ManagedClusterName, managedClusterName)
 		s.ManagedClusterName = managedClusterName
-
 	}
 
+	// Update all Prometheus monitors relabel configs in all namespaces with new cluster name if needed
+	err = s.updatePrometheusMonitorsClusterName()
+	if err != nil {
+		return fmt.Errorf("failed to update the cluster name to %s on Prometheus monitor resources with error %v", s.ManagedClusterName, err)
+	}
 	// Create the client for accessing the admin cluster when there is a change in the secret
 	if secret.ResourceVersion != s.SecretResourceVersion {
 		adminClient, err := getAdminClient(&secret)
 		if err != nil {
-			return fmt.Errorf("Failed to get the client for cluster %q with error %v", managedClusterName, err)
+			return fmt.Errorf("failed to get the client for cluster %q with error %v", managedClusterName, err)
 		}
 		s.AdminClient = adminClient
 		s.SecretResourceVersion = secret.ResourceVersion
@@ -431,13 +435,19 @@ func updateLoggingDaemonsetVolumes(isManaged bool, vzESSecret string, old []core
 		secretName = vzESSecret
 	}
 	var new []corev1.Volume
+	isOptional := false
+	if secretName == defaultSecretName {
+		// the default secret might not exist on a managed cluster until registration is completed.
+		// make it optional so that fluentd still comes up
+		isOptional = true
+	}
 	for _, vol := range old {
 		if vol.Name == "secret-volume" {
 			new = append(new, corev1.Volume{
 				Name: vol.Name,
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: secretName},
+						SecretName: secretName, Optional: &isOptional},
 				},
 			})
 		} else {

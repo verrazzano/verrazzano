@@ -6,8 +6,8 @@ package status
 import (
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -19,6 +19,12 @@ import (
 
 // DaemonSetsAreReady Check that the named daemonsets have the minimum number of specified nodes ready and available
 func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedNodes int32, prefix string) bool {
+	resticPodLabel := map[string]string{
+		"name": constants.ResticDaemonSetName,
+	}
+	resticPodSelector := &metav1.LabelSelector{
+		MatchLabels: resticPodLabel,
+	}
 	for _, namespacedName := range namespacedNames {
 		daemonset := appsv1.DaemonSet{}
 		if err := client.Get(context.TODO(), namespacedName, &daemonset); err != nil {
@@ -40,7 +46,15 @@ func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namesp
 				expectedNodes, daemonset.Status.NumberAvailable)
 			return false
 		}
-		if !podsReadyDaemonSet(log, client, namespacedName, daemonset.Spec.Selector, expectedNodes, prefix) {
+
+		// Velero install deploys a daemonset and deployment with common labels. The labels need to be adjusted so the pod fetch logic works
+		// as expected
+		podSelector := daemonset.Spec.Selector
+		if namespacedName.Namespace == constants.VeleroNameSpace {
+			podSelector = resticPodSelector
+		}
+
+		if !podsReadyDaemonSet(log, client, namespacedName, podSelector, expectedNodes, prefix) {
 			return false
 		}
 		log.Oncef("%s has enough nodes for daemonsets %v", prefix, namespacedName)
@@ -60,7 +74,7 @@ func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, namesp
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
 		log.Progressf("Found no pods with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
-		return true
+		return false
 	}
 
 	// Loop through pods identifying pods that are using the latest controllerRevision resource

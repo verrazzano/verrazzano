@@ -33,15 +33,17 @@ var _ spi.Component = consoleComponent{}
 func NewComponent() spi.Component {
 	return consoleComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			Dependencies:            []string{authproxy.ComponentName},
-			AppendOverridesFunc:     AppendOverrides,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			Dependencies:              []string{authproxy.ComponentName},
+			AppendOverridesFunc:       AppendOverrides,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
@@ -76,4 +78,23 @@ func (c consoleComponent) PreInstall(ctx spi.ComponentContext) error {
 // PreUpgrade performs any required pre upgrade operations
 func (c consoleComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return preHook(ctx)
+}
+
+// GetOverrides gets the install overrides for the console
+func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+	if effectiveCR.Spec.Components.Console != nil {
+		return effectiveCR.Spec.Components.Console.ValueOverrides
+	}
+	return []vzapi.Overrides{}
+}
+
+// MonitorOverrides checks whether monitoring of install overrides for the console is enabled or not
+func (c consoleComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.Console != nil {
+		if ctx.EffectiveCR().Spec.Components.Console.MonitorChanges != nil {
+			return *ctx.EffectiveCR().Spec.Components.Console.MonitorChanges
+		}
+		return true
+	}
+	return false
 }

@@ -4,15 +4,15 @@
 package operator
 
 import (
-	"context"
 	"fmt"
+	"path/filepath"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 const (
@@ -22,44 +22,31 @@ const (
 	ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 	// ComponentJSONName is the json name of the component in the CRD
 	ComponentJSONName = "jaegerOperator"
+	// ChartDir is the relative directory path for Jaeger Operator chart
+	ChartDir = "jaegertracing/jaeger-operator"
 )
 
-var (
-	componentPrefix          = fmt.Sprintf("Component %s", ComponentName)
-	jaegerOperatorDeployment = types.NamespacedName{
-		Name:      ComponentName,
-		Namespace: ComponentNamespace,
-	}
-	deployments = []types.NamespacedName{
-		jaegerOperatorDeployment,
-	}
-)
-
-//jaegerOperatorComponent is stubbed if any properties need to be added in the future
-type jaegerOperatorComponent struct{}
+type jaegerOperatorComponent struct {
+	helm.HelmComponent
+}
 
 func NewComponent() spi.Component {
-	return jaegerOperatorComponent{}
-}
-
-func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
-	return ensureVerrazzanoMonitoringNamespace(ctx)
-}
-
-func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
-	return componentInstall(ctx)
-}
-
-func (c jaegerOperatorComponent) Install(ctx spi.ComponentContext) error {
-	return componentInstall(ctx)
-}
-
-func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
-	return nil
-}
-
-func (c jaegerOperatorComponent) IsReady(context spi.ComponentContext) bool {
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
+	return jaegerOperatorComponent{
+		helm.HelmComponent{
+			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ChartDir),
+			ChartNamespace:          ComponentNamespace,
+			IgnoreNamespaceOverride: true,
+			SupportsOperatorInstall: true,
+			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
+			ImagePullSecretKeyname:  "image.imagePullSecrets[0].name",
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
+			Dependencies:            []string{certmanager.ComponentName},
+			AppendOverridesFunc:     AppendOverrides,
+			GetInstallOverridesFunc: GetOverrides,
+		},
+	}
 }
 
 // IsEnabled returns true only if the Jaeger Operator is explicitly enabled
@@ -72,75 +59,39 @@ func (c jaegerOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	return *comp.Enabled
 }
 
-func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	for _, nsn := range deployments {
-		if err := ctx.Client().Get(context.TODO(), nsn, &appsv1.Deployment{}); err != nil {
-			if errors.IsNotFound(err) {
-				return false, nil
-			}
-			// Unexpected error
-			return false, err
-		}
+// IsReady checks if the Jaeger Operator deployment is ready
+func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
+		return isJaegerOperatorReady(ctx)
 	}
-	return true, nil
+	return false
 }
 
-func (c jaegerOperatorComponent) Name() string {
-	return ComponentName
-}
-
-func (c jaegerOperatorComponent) GetDependencies() []string {
-	return []string{}
-}
-
-func (c jaegerOperatorComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion1_3_0
-}
-
-func (c jaegerOperatorComponent) GetJSONName() string {
-	return ComponentJSONName
-}
-
-// GetOverrides returns the Helm override sources for a component
-func (c jaegerOperatorComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
-	return []vzapi.Overrides{}
-}
-
-// MonitorOverrides indicates whether monitoring of Helm override sources is enabled for a component
-func (c jaegerOperatorComponent) MonitorOverrides(_ spi.ComponentContext) bool {
+// MonitorOverrides checks whether monitoring is enabled for install overrides sources
+func (c jaegerOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	if ctx.EffectiveCR().Spec.Components.JaegerOperator == nil {
+		return false
+	}
+	if ctx.EffectiveCR().Spec.Components.JaegerOperator.MonitorChanges != nil {
+		return *ctx.EffectiveCR().Spec.Components.JaegerOperator.MonitorChanges
+	}
 	return true
 }
 
-func (c jaegerOperatorComponent) IsOperatorInstallSupported() bool {
-	return true
+// PreInstall updates resources necessary for the Jaeger Operator Component installation
+func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
+	return preInstall(ctx)
 }
 
-// ##### Only interface stubs below #####
-
-func (c jaegerOperatorComponent) PostInstall(_ spi.ComponentContext) error {
-	return nil
+// ValidateInstall verifies the installation of the Verrazzano object
+func (c jaegerOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return c.validateJaegerOperator(vz)
 }
 
-func (c jaegerOperatorComponent) PreUpgrade(_ spi.ComponentContext) error {
-	return nil
-}
-
-func (c jaegerOperatorComponent) PostUpgrade(_ spi.ComponentContext) error {
-	return nil
-}
-
-func (c jaegerOperatorComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
-	return nil
-}
-
-func (c jaegerOperatorComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
-	return nil
-}
-
-func (c jaegerOperatorComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
-	return nil
-}
-
-func (c jaegerOperatorComponent) ValidateUpdate(_, _ *vzapi.Verrazzano) error {
-	return nil
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.validateJaegerOperator(new)
 }

@@ -3,9 +3,10 @@
 package verrazzano
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"reflect"
 	"strconv"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -31,6 +32,7 @@ type fakeComponent struct {
 	installed       string `default:"true"`
 	ready           string `default:"true"`
 	enabled         string `default:"true"`
+	monitorChanges  string `default:"true"`
 	minVersion      string
 }
 
@@ -44,6 +46,10 @@ func (f fakeComponent) GetSkipUpgrade() bool {
 
 func (f fakeComponent) IsOperatorInstallSupported() bool {
 	return f.SupportsOperatorInstall
+}
+
+func (f fakeComponent) IsOperatorUninstallSupported() bool {
+	return f.SupportsOperatorUninstall
 }
 
 func (f fakeComponent) GetDependencies() []string {
@@ -109,6 +115,10 @@ func (f fakeComponent) GetMinVerrazzanoVersion() string {
 		return f.minVersion
 	}
 	return constants.VerrazzanoVersion1_0_0
+}
+
+func (f fakeComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+	return getBool(f.monitorChanges, "monitorChanges")
 }
 
 // getBool implements defaults for boolean fields

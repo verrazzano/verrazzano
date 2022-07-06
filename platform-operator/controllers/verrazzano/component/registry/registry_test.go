@@ -4,17 +4,20 @@
 package registry
 
 import (
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -36,9 +39,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -61,7 +63,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 25, "Wrong number of components")
+	a.Len(comps, 27, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -87,6 +89,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[22].Name(), promnodeexporter.ComponentName)
 	a.Equal(comps[23].Name(), jaegeroperator.ComponentName)
 	a.Equal(comps[24].Name(), console.ComponentName)
+	a.Equal(comps[25].Name(), fluentd.ComponentName)
+	a.Equal(comps[26].Name(), velero.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -116,11 +120,34 @@ func TestComponentDependenciesMet(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconst.VerrazzanoSystemNamespace,
 				Name:      "coherence-operator",
+				Labels:    map[string]string{"control-plane": "coherence"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"control-plane": "coherence"},
+				},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconst.VerrazzanoSystemNamespace,
+				Name:      "coherence-operator" + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"control-plane":     "coherence",
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   vzconst.VerrazzanoSystemNamespace,
+				Name:        "coherence-operator" + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
 	).Build()
@@ -254,10 +281,18 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		Dependencies:   []string{oam.ComponentName, certmanager.ComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newReadyDeployment("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace),
-		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
-		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
-		newReadyDeployment(webhookDeploymentName, certManagerNamespace),
+		newReadyDeployment("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace, map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"}),
+		newPod("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace, map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"}),
+		newReplicaSet("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace),
+		newReadyDeployment(certManagerDeploymentName, certManagerNamespace, map[string]string{"app": certManagerDeploymentName}),
+		newPod(certManagerDeploymentName, certManagerNamespace, map[string]string{"app": certManagerDeploymentName}),
+		newReplicaSet(certManagerDeploymentName, certManagerNamespace),
+		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace, map[string]string{"app": "cainjector"}),
+		newPod(cainjectorDeploymentName, certManagerNamespace, map[string]string{"app": "cainjector"}),
+		newReplicaSet(cainjectorDeploymentName, certManagerNamespace),
+		newReadyDeployment(webhookDeploymentName, certManagerNamespace, map[string]string{"app": "webhook"}),
+		newPod(webhookDeploymentName, certManagerNamespace, map[string]string{"app": "webhook"}),
+		newReplicaSet(webhookDeploymentName, certManagerNamespace),
 	).Build()
 
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -293,10 +328,10 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		Dependencies:   []string{"istiod", "cert-manager", "istiod"},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newReadyDeployment("istiod", "istio-system"),
-		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
-		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
-		newReadyDeployment(webhookDeploymentName, certManagerNamespace)).Build()
+		newReadyDeployment("istiod", "istio-system", nil),
+		newReadyDeployment(certManagerDeploymentName, certManagerNamespace, nil),
+		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace, nil),
+		newReadyDeployment(webhookDeploymentName, certManagerNamespace, nil)).Build()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
@@ -460,16 +495,48 @@ func TestNoComponentDependencies(t *testing.T) {
 }
 
 // Create a new deployment object for testing
-func newReadyDeployment(name string, namespace string) *appsv1.Deployment {
+func newReadyDeployment(name string, namespace string, labels map[string]string) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
 			Replicas:          1,
 			UpdatedReplicas:   1,
+		},
+	}
+}
+
+func newPod(name string, namespace string, labelsIn map[string]string) *corev1.Pod {
+	lablels := make(map[string]string)
+	lablels["pod-template-hash"] = "95d8c5d96"
+	for key, element := range labelsIn {
+		lablels[key] = element
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name + "-95d8c5d96-m6mbr",
+			Labels:    lablels,
+		},
+	}
+	return pod
+}
+
+func newReplicaSet(name string, namespace string) *appsv1.ReplicaSet {
+	return &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   namespace,
+			Name:        name + "-95d8c5d96",
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
 }
@@ -531,6 +598,22 @@ func (f fakeComponent) Install(_ spi.ComponentContext) error {
 }
 
 func (f fakeComponent) PostInstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) IsOperatorUninstallSupported() bool {
+	return true
+}
+
+func (f fakeComponent) PreUninstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) Uninstall(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) PostUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 

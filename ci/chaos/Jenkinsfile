@@ -131,7 +131,11 @@ pipeline {
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_FOR_UPGRADE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
+                        def scmInfo = checkout([
+                                $class: 'GitSCM',
+                                branches: [[name: env.BRANCH_NAME]],
+                                extensions: [[$class: 'LocalBranch']],
+                                userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
@@ -142,7 +146,7 @@ pipeline {
                                 doGenerateSubmoduleConfigurations: false,
                                 extensions: [],
                                 submoduleCfg: [],
-                                userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                                userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
@@ -267,10 +271,21 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
+                sh """
+                    git fetch
+                """
                 script {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${SHORT_COMMIT_HASH}^1").trim()
-                    while (sh(returnStatus: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${INTERIM_UPGRADE_COMMIT}/operator.yaml --file ${WORKSPACE}/interim-operator.yaml") != 0) {
+                    // check if this commit is first in branch
+                    BRANCH_ORIGIN = sh(returnStdout: true, script: "git log origin/master..HEAD --oneline --pretty='%h' | tail -1").trim()
+                    BRANCH_TO_USE = "${env.BRANCH_NAME}"
+                    if (BRANCH_ORIGIN == null || BRANCH_ORIGIN.equals(SHORT_COMMIT_HASH)) {
+                        INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git log origin/master^1 -1 --pretty='%h' | tail -1").trim()
+                        BRANCH_TO_USE = "master"
+                    } else {
+                        INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${SHORT_COMMIT_HASH}^1").trim()
+                    }
+                    while (sh(returnStatus: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BRANCH_TO_USE}/${INTERIM_UPGRADE_COMMIT}/operator.yaml --file ${WORKSPACE}/interim-operator.yaml") != 0) {
                         INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${INTERIM_UPGRADE_COMMIT}^1").trim()
                     }
                 }
@@ -289,7 +304,7 @@ pipeline {
                     then
                         echo "Upgrading VPO to earlier version from branch"
                         echo "commit: ${INTERIM_UPGRADE_COMMIT}"
-                        curl -o ${WORKSPACE}/interim-upgrade-bom.json https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${env.BRANCH_NAME}/${INTERIM_UPGRADE_COMMIT}/generated-verrazzano-bom.json
+                        curl -o ${WORKSPACE}/interim-upgrade-bom.json https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${BRANCH_TO_USE}/${INTERIM_UPGRADE_COMMIT}/generated-verrazzano-bom.json
                         kubectl apply -f ${WORKSPACE}/interim-operator.yaml
 
                     else
@@ -487,8 +502,9 @@ pipeline {
                         # Make sure the upgrade is still in progress
                         vz_status=\$(kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}')
                         if [[ \${vz_status} == "UpgradeStarted" ]]; then
-                            # Uninstall VZ
-                            kubectl delete verrazzano my-verrazzano
+                            echo "Uninstalling Verrazzano"
+                            cd ${GO_REPO_PATH}/verrazzano/tools/vz
+                            GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go uninstall
 
                             ## dump out uninstall logs
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs

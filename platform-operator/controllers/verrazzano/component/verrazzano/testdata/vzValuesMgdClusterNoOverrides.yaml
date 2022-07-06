@@ -12,10 +12,8 @@ monitoringOperator:
   enabled: true
 rancher:
   enabled: false
-nodeExporter:
-  enabled: true
 prometheusOperator:
-  enabled: false
+  enabled: true
 prometheusAdapter:
   enabled: false
 kubeStateMetrics:
@@ -23,6 +21,8 @@ kubeStateMetrics:
 prometheusPushgateway:
   enabled: false
 prometheusNodeExporter:
-  enabled: false
+  enabled: true
 jaegerOperator:
   enabled: false
+istio:
+  enabled: true

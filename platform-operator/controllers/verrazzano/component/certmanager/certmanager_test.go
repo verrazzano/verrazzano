@@ -203,8 +203,14 @@ func TestCertManagerPreInstall(t *testing.T) {
 func TestIsCertManagerReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		newDeployment(certManagerDeploymentName, map[string]string{"app": certManagerDeploymentName}, true),
+		newPod(certManagerDeploymentName, map[string]string{"app": certManagerDeploymentName}),
+		newReplicaSet(certManagerDeploymentName),
 		newDeployment(cainjectorDeploymentName, map[string]string{"app": "cainjector"}, true),
+		newPod(cainjectorDeploymentName, map[string]string{"app": "cainjector"}),
+		newReplicaSet(cainjectorDeploymentName),
 		newDeployment(webhookDeploymentName, map[string]string{"app": "webhook"}, true),
+		newPod(webhookDeploymentName, map[string]string{"app": "webhook"}),
+		newReplicaSet(webhookDeploymentName),
 	).Build()
 	assert.True(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
 }
@@ -539,6 +545,11 @@ func newDeployment(name string, labels map[string]string, updated bool) *appsv1.
 			Name:      name,
 			Labels:    labels,
 		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+		},
 		Status: appsv1.DeploymentStatus{
 			Replicas:          1,
 			AvailableReplicas: 1,
@@ -554,6 +565,32 @@ func newDeployment(name string, labels map[string]string, updated bool) *appsv1.
 		}
 	}
 	return deployment
+}
+
+func newPod(name string, labelsIn map[string]string) *v1.Pod {
+	labels := make(map[string]string)
+	labels["pod-template-hash"] = "95d8c5d96"
+	for key, element := range labelsIn {
+		labels[key] = element
+	}
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      name + "-95d8c5d96-m6mbr",
+			Labels:    labels,
+		},
+	}
+	return pod
+}
+
+func newReplicaSet(name string) *appsv1.ReplicaSet {
+	return &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   ComponentNamespace,
+			Name:        name + "-95d8c5d96",
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
+	}
 }
 
 // Create a bool pointer
