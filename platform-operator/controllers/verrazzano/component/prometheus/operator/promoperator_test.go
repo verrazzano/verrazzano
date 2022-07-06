@@ -13,7 +13,6 @@ import (
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
 	asserts "github.com/stretchr/testify/assert"
-	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -332,7 +331,7 @@ func TestAppendIstioOverrides(t *testing.T) {
 				},
 				{
 					Key:   fmt.Sprintf("%s[0].mountPath", volumeMountKey),
-					Value: vmoconst.IstioCertsMountPath,
+					Value: istioCertMountPath,
 				},
 				{
 					Key:   fmt.Sprintf("%s[0].name", volumeKey),
