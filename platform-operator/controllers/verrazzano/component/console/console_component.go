@@ -33,16 +33,17 @@ var _ spi.Component = consoleComponent{}
 func NewComponent() spi.Component {
 	return consoleComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			Dependencies:            []string{authproxy.ComponentName},
-			AppendOverridesFunc:     AppendOverrides,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			Dependencies:              []string{authproxy.ComponentName},
+			AppendOverridesFunc:       AppendOverrides,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }

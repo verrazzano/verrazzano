@@ -17,61 +17,7 @@ func TestHandleMain(t *testing.T) {
 	// This is setting up the main.logger, do NOT set it as a var here (or you will get a nil reference running
 	// the test)
 	logger = log.GetDebugEnabledLogger()
-
-	// Calling handleMain without any flags/args set will print usage and return 1 exit code
-	//flagArgs = make([]string, 0)
-	//exitCode := handleMain()
-	//assert.True(t, exitCode == 1)
-
-	// Calling handleMain with help=true will print usage and return 0 exit code
-	//help = true
-	//exitCode = handleMain()
-	//assert.True(t, exitCode == 0)
-	//help = false
-
-	// Calling handleMain with a valid cluster root path will analyze and return 0 exit code
-	//flagArgs = make([]string, 1)
-	//flagArgs[0] = "test/cluster/image-pull-case1"
-	//analyzerType = "cluster"
-	//exitCode = handleMain()
-	//assert.True(t, exitCode == 0)
-
-	// Calling handleMain with a valid cluster root path and unknown analyzer type will print usage
-	// and return 1 exit code
-	//analyzerType = "BadAnalyzerType"
-	//exitCode = handleMain()
-	//assert.True(t, exitCode == 1)
-
-	// Calling handleMain with a valid cluster root path and bad minConfidence will print usage
-	// and return 1 exit code
-	//analyzerType = "cluster"
-	//minConfidence = -1
-	//exitCode = handleMain()
-	//assert.True(t, exitCode == 1)
-
-	// Calling handleMain with a valid cluster root path and bad minConfidence will print usage
-	// and return 1 exit code
-	//minConfidence = 11
-	//exitCode = handleMain()
-	//assert.True(t, exitCode == 1)
-
-	// Calling handleMain with a valid cluster root path and bad minImpact will print usage
-	// and return 1 exit code
-	//minImpact = -1
-	//exitCode = handleMain()
-	//assert.True(t, exitCode == 1)
-
-	// Calling handleMain with a valid cluster root path and bad minImpact will print usage
-	// and return 1 exit code
-	//minImpact = 11
-	//exitCode = handleMain()
-	//assert.True(t, exitCode == 1)
-	//
-	//minImpact = 0
-	//minConfidence = 0
-	//analyzerType = "cluster"
-	//exitCode = handleMain()
-	//assert.True(t, exitCode == 0)
+	analyzerType = "cluster"
 }
 
 // TestAnalyzeBad Tests the main Analyze function
@@ -132,11 +78,12 @@ func TestInsufficientMemory(t *testing.T) {
 	assert.True(t, issuesFound > 0)
 }
 
-// TestProblemPodsNotReported Tests that analysis of a cluster dump with pods that have unknown issues is handled
+// TestProblemPodsNotReportedUninstall Tests that analysis of a cluster dump with pods that have unknown issues during
+// uninstall, is handled
 // GIVEN a call to analyze a cluster-dump
 // WHEN the cluster-dump shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
-func TestProblemPodsNotReported(t *testing.T) {
+func TestProblemPodsNotReportedUninstall(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
 	err := Analyze(logger, "cluster", "test/cluster/problem-pods")
@@ -154,14 +101,66 @@ func TestProblemPodsNotReported(t *testing.T) {
 	assert.True(t, problemPodsFound > 0)
 }
 
+// TestProblemPodsNotReportedInstall Tests that analysis of a cluster dump with pods that have unknown issues during
+// install, is handled
+// GIVEN a call to analyze a cluster-dump
+// WHEN the cluster-dump shows pods with problems that are not known issues
+// THEN a report is generated with problem pod issues identified
+func TestProblemPodsNotReportedInstall(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/problem-pods-install")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemPodsFound := 0
+	exceededLBLimit := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.PodProblemsNotReported {
+			problemPodsFound++
+		} else if issue.Type == report.IngressLBLimitExceeded {
+			exceededLBLimit++
+		}
+
+	}
+	assert.True(t, problemPodsFound > 0)
+	assert.True(t, exceededLBLimit > 0)
+}
+
 // TestLBIpNotSet Tests that analysis of a cluster dump where LB issue occurred with no IP set is handled
 // GIVEN a call to analyze a cluster-dump
 // WHEN the cluster-dump shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
-func TestLBIpNotSet(t *testing.T) {
+// Note: With the latest changes to platform operator and analysis tool, the issue is reported differently.
+// Commenting the test for now, and added a new test TestLBIpNotFound
+//func TestLBIpNotSet(t *testing.T) {
+//	logger := log.GetDebugEnabledLogger()
+
+//	err := Analyze(logger, "cluster", "test/cluster/lb-ipnotset")
+//	assert.Nil(t, err)
+
+//	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+//	assert.NotNil(t, reportedIssues)
+//	assert.True(t, len(reportedIssues) > 0)
+//	problemsFound := 0
+//	for _, issue := range reportedIssues {
+//		if issue.Type == report.IngressNoLoadBalancerIP {
+//			problemsFound++
+//		}
+//	}
+//	assert.True(t, problemsFound > 0)
+//}
+
+// TestLBIpNotFound Tests that analysis of a cluster dump where no IP was found for load balancer
+// GIVEN a call to analyze a cluster-dump
+// WHEN the cluster-dump shows pods with problems that are not known issues
+// THEN a report is generated with problem pod issues identified
+func TestLBIpNotFound(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
-	err := Analyze(logger, "cluster", "test/cluster/lb-ipnotset")
+	err := Analyze(logger, "cluster", "test/cluster/ingress-ip-not-found")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -169,34 +168,35 @@ func TestLBIpNotSet(t *testing.T) {
 	assert.True(t, len(reportedIssues) > 0)
 	problemsFound := 0
 	for _, issue := range reportedIssues {
-		if issue.Type == report.IngressNoLoadBalancerIP {
+		if issue.Type == report.IngressNoIPFound {
 			problemsFound++
 		}
 	}
-	//assert.True(t, problemsFound > 0)
+	assert.True(t, problemsFound > 0)
 }
 
+// TODO: Enable this test once there is a cluster dump for this use case
 // TestIngressInstall Tests that analysis of a cluster dump where Ingress install failed without more info handled
 // GIVEN a call to analyze a cluster-dump
 // WHEN the cluster-dump shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
-func TestIngressInstall(t *testing.T) {
-	logger := log.GetDebugEnabledLogger()
+// func TestIngressInstall(t *testing.T) {
+//	logger := log.GetDebugEnabledLogger()
 
-	err := Analyze(logger, "cluster", "test/cluster/ingress-install-unknown")
-	assert.Nil(t, err)
+//	err := Analyze(logger, "cluster", "test/cluster/ingress-install-unknown")
+//	assert.Nil(t, err)
 
-	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.NotNil(t, reportedIssues)
-	assert.True(t, len(reportedIssues) > 0)
-	problemsFound := 0
-	for _, issue := range reportedIssues {
-		if issue.Type == report.IngressInstallFailure {
-			problemsFound++
-		}
-	}
-	//assert.True(t, problemsFound > 0)
-}
+//	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+//	assert.NotNil(t, reportedIssues)
+//	assert.True(t, len(reportedIssues) > 0)
+//	problemsFound := 0
+//	for _, issue := range reportedIssues {
+//		if issue.Type == report.IngressInstallFailure {
+//			problemsFound++
+//		}
+//	}
+//	assert.True(t, problemsFound > 0)
+//}
 
 // TestLBLimitExceeded Test that analysis of a cluster dump where Ingress install failed due to LoadBalancer service limit handled
 // GIVEN a call to analyze a cluster-dump
@@ -217,7 +217,7 @@ func TestLBLimitExceeded(t *testing.T) {
 			problemsFound++
 		}
 	}
-	//assert.True(t, problemsFound > 0)
+	assert.True(t, problemsFound > 0)
 }
 
 // TestOciIPLimitExceeded Tests that analysis of a cluster dump where Ingress install failed due to OCI limit handled
@@ -239,7 +239,29 @@ func TestOciIPLimitExceeded(t *testing.T) {
 			problemsFound++
 		}
 	}
-	//assert.True(t, problemsFound > 0)
+	assert.True(t, problemsFound > 0)
+}
+
+// TestOciLBInvalidShape Tests that analysis of a cluster dump where an invalid shape specified for OCI load balancer
+// GIVEN a call to analyze a cluster-dump
+// WHEN the cluster-dump shows pods with problems that are not known issues
+// THEN a report is generated with problem pod issues identified
+func TestOciLBInvalidShape(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/ingress-invalid-shape")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.IngressShapeInvalid {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
 }
 
 // TestPendingPods that analysis of a cluster dump where pending pods only is handled
@@ -268,20 +290,21 @@ func TestPendingPods(t *testing.T) {
 // GIVEN a call to analyze a cluster-dump
 // WHEN the cluster-dump shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
-func TestUnknownInstall(t *testing.T) {
-	logger := log.GetDebugEnabledLogger()
+// Commenting this test as there might not be an install issue like this now.
+//func TestUnknownInstall(t *testing.T) {
+//	logger := log.GetDebugEnabledLogger()
 
-	err := Analyze(logger, "cluster", "test/cluster/install-unknown")
-	assert.Nil(t, err)
+//	err := Analyze(logger, "cluster", "test/cluster/install-unknown")
+//	assert.Nil(t, err)
 
-	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
-	assert.NotNil(t, reportedIssues)
-	assert.True(t, len(reportedIssues) > 0)
-	problemsFound := 0
-	for _, issue := range reportedIssues {
-		if issue.Type == report.InstallFailure {
-			problemsFound++
-		}
-	}
-	//assert.True(t, problemsFound > 0)
-}
+//	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+//	assert.NotNil(t, reportedIssues)
+//	assert.True(t, len(reportedIssues) > 0)
+//	problemsFound := 0
+//	for _, issue := range reportedIssues {
+//		if issue.Type == report.InstallFailure {
+//			problemsFound++
+//		}
+//	}
+//	assert.True(t, problemsFound > 0)
+//}

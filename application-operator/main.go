@@ -34,6 +34,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
 	"go.uber.org/zap"
@@ -74,8 +75,6 @@ func init() {
 	_ = promoperapi.AddToScheme(scheme)
 }
 
-const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
-
 var (
 	metricsAddr           string
 	defaultMetricsScraper string
@@ -86,7 +85,7 @@ var (
 
 func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&defaultMetricsScraper, "default-metrics-scraper", defaultScraperName,
+	flag.StringVar(&defaultMetricsScraper, "default-metrics-scraper", constants.DefaultScraperName,
 		"The namespace/deploymentName of the prometheus deployment to be used as the default metrics scraper")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -338,6 +337,9 @@ func main() {
 
 	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
 	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
+
+	// Initialize the metricsExporter
+	metricsexporter.InitalizeMetricsEndpoint()
 
 	if err = (&multiclustersecret.Reconciler{
 		Client:       mgr.GetClient(),

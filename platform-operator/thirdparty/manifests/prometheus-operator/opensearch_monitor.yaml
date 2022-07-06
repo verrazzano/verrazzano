@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
+kind: ServiceMonitor
 metadata:
   name: opensearch
   namespace: {{ .monitoringNamespace }}
@@ -13,10 +13,13 @@ spec:
     matchNames:
       - {{ .systemNamespace }}
   selector: {}
-  podMetricsEndpoints:
-  - port: http
-    path: /_prometheus/metrics
+  endpoints:
+  - path: /_prometheus/metrics
+{{ if .isIstioEnabled }}
+    scheme: https
+{{ else }}
     scheme: http
+{{ end }}
     relabelings:
       - sourceLabels:
           - __meta_kubernetes_pod_name
@@ -34,3 +37,13 @@ spec:
           - __meta_kubernetes_pod_name
         action: replace
         targetLabel: kubernetes_pod_name
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local
+{{ if .isIstioEnabled }}
+    tlsConfig:
+      caFile: /etc/istio-certs/root-cert.pem
+      certFile: /etc/istio-certs/cert-chain.pem
+      keyFile: /etc/istio-certs/key.pem
+      insecureSkipVerify: true
+{{ end }}

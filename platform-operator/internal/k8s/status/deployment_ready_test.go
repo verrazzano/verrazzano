@@ -31,6 +31,12 @@ func TestDeploymentsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
 				Name:      "foo",
+				Labels:    map[string]string{"app": "foo"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "foo"},
+				},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -205,6 +211,12 @@ func TestMultipleReplicasReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
 				Name:      "foo",
+				Labels:    map[string]string{"app": "foo"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "foo"},
+				},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 2,
@@ -273,6 +285,12 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
 				Name:      "foo",
+				Labels:    map[string]string{"app": "foo"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "foo"},
+				},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 2,
@@ -498,5 +516,40 @@ func TestDeploymentsReadyReplicaSetNotFound(t *testing.T) {
 			},
 		},
 	)
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
+}
+
+// TestDeploymentsReadyPodNotFound tests a deployment ready status check
+// GIVEN a call validate DeploymentsReady
+// WHEN the target Pod object is not found
+// THEN false is returned
+func TestDeploymentsReadyPodNotFound(t *testing.T) {
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
+	namespacedName := []types.NamespacedName{
+		{
+			Name:      "foo",
+			Namespace: "bar",
+		},
+	}
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "bar",
+				Name:      "foo",
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: selector,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		})
+
 	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
 }

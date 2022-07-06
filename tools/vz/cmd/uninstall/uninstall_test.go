@@ -82,7 +82,9 @@ func TestUninstallCmd(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
-	assert.Equal(t, "Uninstalling Verrazzano\n\nfake logs\nSuccessfully uninstalled Verrazzano\n", buf.String())
+	assert.Contains(t, buf.String(), "Uninstalling Verrazzano\n")
+	assert.Contains(t, buf.String(), "Waiting for verrazzano-uninstall-verrazzano pod to be ready before starting uninstall")
+	assert.Contains(t, buf.String(), "Successfully uninstalled Verrazzano\n")
 
 	// Expect the Verrazzano resource to be deleted
 	v := vzapi.Verrazzano{}
@@ -147,13 +149,15 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
-	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ns")
+	_ = cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Timeout 2ns exceeded waiting for uninstall to complete")
+	// This must be less than the 1 second polling delay to pass
+	// since the Verrazzano resource gets deleted almost instantaneously
+	assert.Contains(t, buf.String(), "Timeout 2ms exceeded waiting for uninstall to complete")
 }
 
 // TestUninstallCmdDefaultNoWait

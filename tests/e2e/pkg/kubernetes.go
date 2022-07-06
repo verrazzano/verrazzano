@@ -138,7 +138,7 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	return deployments, nil
 }
 
-//GetReplicaCounts Builds a map of pod counts for a list of deployments
+// GetReplicaCounts Builds a map of pod counts for a list of deployments
 // expectedDeployments - a list of namespaced names for deployments to look for
 // optsBuilder - a callback func to build the right set of options to select pods for the deployment
 func GetReplicaCounts(expectedDeployments []types.NamespacedName, optsBuilder func(name types.NamespacedName) (metav1.ListOptions, error)) (map[string]uint32, error) {
@@ -538,26 +538,6 @@ func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, err
 	return !vzSemver.IsLessThan(minSemver), nil
 }
 
-// IsVerrazzanoBelowVersion returns true if the Verrazzano version < belowVersion
-func IsVerrazzanoBelowVersion(belowVersion string, kubeconfigpath string) (bool, error) {
-	vzVersion, err := GetVerrazzanoVersion(kubeconfigpath)
-	if err != nil {
-		return false, err
-	}
-	if len(vzVersion) == 0 {
-		return false, nil
-	}
-	vzSemver, err := semver.NewSemVersion(vzVersion)
-	if err != nil {
-		return false, err
-	}
-	maxSemver, err := semver.NewSemVersion(belowVersion)
-	if err != nil {
-		return false, err
-	}
-	return vzSemver.IsLessThan(maxSemver), nil
-}
-
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
 func IsProdProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -761,6 +741,19 @@ func IsGrafanaEnabled(kubeconfigPath string) bool {
 		return true
 	}
 	return *vz.Spec.Components.Grafana.Enabled
+}
+
+// IsVeleroEnabled returns false if the Velero component is not set, or the value of its Enabled field otherwise
+func IsVeleroEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Velero == nil || vz.Spec.Components.Velero.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.Velero.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.

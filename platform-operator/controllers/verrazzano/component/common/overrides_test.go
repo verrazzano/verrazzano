@@ -229,3 +229,61 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 		})
 	}
 }
+
+// TestExtractValueFromOverrideString tests ExtractValueFromOverrideString
+// GIVEN an override string
+//  WHEN I call ExtractValueFromOverrideString
+//  THEN I get a value of the specified json path from the override string
+func TestExtractValueFromOverrideString(t *testing.T) {
+	goodYAML := "foo:\n  foo: bar\n"
+	badYAML := "foo:\n  {foo: bar\n"
+
+	tests := []struct {
+		name         string
+		overrideStr  string
+		field        string
+		expectError  bool
+		expectValGet interface{}
+	}{
+		{
+			name:         "test invalid yaml string",
+			overrideStr:  badYAML,
+			expectError:  true,
+			expectValGet: nil,
+		},
+		{
+			name:         "test valid field",
+			overrideStr:  goodYAML,
+			field:        "foo",
+			expectError:  false,
+			expectValGet: map[string]interface{}{"foo": "bar"},
+		},
+		{
+			name:         "test valid nested field",
+			overrideStr:  goodYAML,
+			field:        "foo.foo",
+			expectError:  false,
+			expectValGet: "bar",
+		},
+		{
+			name:         "test valid field",
+			overrideStr:  goodYAML,
+			field:        "test",
+			expectError:  false,
+			expectValGet: nil,
+		},
+	}
+
+	a := assert.New(t)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := ExtractValueFromOverrideString(tt.overrideStr, tt.field)
+			if tt.expectError {
+				a.Error(err)
+			} else {
+				a.NoError(err)
+				a.Equal(tt.expectValGet, data)
+			}
+		})
+	}
+}

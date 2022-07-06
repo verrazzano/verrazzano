@@ -45,7 +45,7 @@ type componentUninstallContext struct {
 }
 
 // UninstallComponents will Uninstall the components as required
-func (r *Reconciler) UninstallComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, tracker *UninstallTracker) (ctrl.Result, error) {
+func (r *Reconciler) uninstallComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, tracker *UninstallTracker) (ctrl.Result, error) {
 	spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
@@ -55,7 +55,7 @@ func (r *Reconciler) UninstallComponents(log vzlog.VerrazzanoLogger, cr *install
 	// Don't move to the next component until the current one has been succcessfully Uninstalled
 	for _, comp := range registry.GetComponents() {
 		UninstallContext := tracker.getComponentUninstallContext(comp.Name())
-		result, err := r.UninstallSingleComponent(spiCtx, UninstallContext, comp)
+		result, err := r.uninstallSingleComponent(spiCtx, UninstallContext, comp)
 		if err != nil || result.Requeue {
 			return result, err
 		}
@@ -66,7 +66,7 @@ func (r *Reconciler) UninstallComponents(log vzlog.VerrazzanoLogger, cr *install
 }
 
 // UninstallSingleComponent Uninstalls a single component
-func (r *Reconciler) UninstallSingleComponent(spiCtx spi.ComponentContext, UninstallContext *componentUninstallContext, comp spi.Component) (ctrl.Result, error) {
+func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, UninstallContext *componentUninstallContext, comp spi.Component) (ctrl.Result, error) {
 	compName := comp.Name()
 	compContext := spiCtx.Init(compName).Operation(vzconst.UninstallOperation)
 	compLog := compContext.Log()
@@ -74,6 +74,11 @@ func (r *Reconciler) UninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 	for UninstallContext.state != compStateUninstallEnd {
 		switch UninstallContext.state {
 		case compStateUninstallStart:
+			// Check if operator based uninstall is supported
+			if !comp.IsOperatorUninstallSupported() {
+				UninstallContext.state = compStateUninstallEnd
+				continue
+			}
 			// Check if component is installed, if not continue
 			installed, err := comp.IsInstalled(compContext)
 			if err != nil {
@@ -113,10 +118,15 @@ func (r *Reconciler) UninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				compLog.Progressf("Waiting for the component to be uninstalled", compName)
 				return newRequeueWithDelay(), nil
 			}
+			if err := comp.PostUninstall(compContext); err != nil {
+				compLog.Errorf("PostUninstall for component %s failed, will retry: %v", compName, err)
+				// requeue for 30 to 60 seconds later
+				return controller.NewRequeueWithDelay(30, 60, time.Second), nil
+			}
 			UninstallContext.state = compStateUninstalledone
 
 		case compStateUninstalledone:
-			if err := r.updateComponentStatus(compContext, "Uninstall complete", vzapi.CondInstallComplete); err != nil {
+			if err := r.updateComponentStatus(compContext, "Uninstall complete", vzapi.CondUninstallComplete); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			compLog.Oncef("Component %s has successfully uninstalled", compName)

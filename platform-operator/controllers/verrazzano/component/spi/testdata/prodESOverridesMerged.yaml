@@ -118,6 +118,7 @@ spec:
     prometheus:
       enabled: true
     prometheusOperator:
+      enabled: true
       prometheusSpec:
         storageSpec:
           volumeClaimTemplate:

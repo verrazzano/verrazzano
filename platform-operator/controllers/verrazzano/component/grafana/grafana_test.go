@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -90,6 +89,12 @@ func TestIsGrafanaReady(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      grafanaDeployment,
+						Labels:    map[string]string{"app": "system-grafana"},
+					},
+					Spec: appsv1.DeploymentSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "system-grafana"},
+						},
 					},
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 1,
@@ -97,10 +102,27 @@ func TestIsGrafanaReady(t *testing.T) {
 						UpdatedReplicas:   1,
 					},
 				},
+				&v1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      grafanaDeployment + "-95d8c5d96-m6mbr",
+						Labels: map[string]string{
+							"pod-template-hash": "95d8c5d96",
+							"app":               "system-grafana",
+						},
+					},
+				},
+				&appsv1.ReplicaSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace:   ComponentNamespace,
+						Name:        grafanaDeployment + "-95d8c5d96",
+						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+					},
+				},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      constants.GrafanaSecret,
-						Namespace: globalconst.VerrazzanoSystemNamespace,
+						Namespace: ComponentNamespace,
 					},
 					Data: map[string][]byte{},
 				}),
