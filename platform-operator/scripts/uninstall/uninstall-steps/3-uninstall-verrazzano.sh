@@ -68,15 +68,6 @@ function delete_vmo {
   fi
 }
 
-function delete_authproxy {
-  log "Uninstall the Verrazzano AuthProxy"
-  if helm status verrazzano-authproxy --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall verrazzano-authproxy --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall the Verrazzano AuthProxy."
-    fi
-  fi
-}
-
 function delete_weblogic_operator {
   log "Uninstall the WebLogic Kubernetes operator"
   if helm status uninstall weblogic-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -168,23 +159,6 @@ function delete_prometheus_pushgateway {
   fi
 }
 
-function delete_jaeger_operator {
-  log "Uninstall the Jaeger operator"
-  local JAEGER_TEMPLATE_FILE=$MANIFESTS_DIR/jaeger/jaeger-operator.yaml
-  sed 's/{{.*}}/verrazzano-monitoring/g' "$JAEGER_TEMPLATE_FILE" > jaeger.yaml
-  kubectl delete -f jaeger.yaml --ignore-not-found || err_return $? "Could not delete Jaeger Operator"
-  rm -f jaeger.yaml
-}
-
-function delete_fluentd {
-  log "Uninstall the Fluentd"
-  if helm status fluentd --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall fluentd --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall the fluentd."
-    fi
-  fi
-}
-
 function delete_velero {
     log "Uninstall Velero"
     if helm status velero --namespace velero > /dev/null 2>&1 ; then
@@ -201,16 +175,13 @@ function delete_velero {
     kubectl delete namespace velero --ignore-not-found=true || err_return $? "Could not delete the velero namespace"
 }
 
-action "Deleting Fluentd" delete_fluentd || exit 1
-action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
-action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
-action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
+\action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
+\action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting kube-state-metrics " delete_kube_state_metrics || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
 action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
 action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
-action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Monitoring Operator" delete_vmo || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1

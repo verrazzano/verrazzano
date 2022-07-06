@@ -48,7 +48,7 @@ func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 }
 
 func (c jaegerOperatorComponent) IsOperatorUninstallSupported() bool {
-	return false
+	return true
 }
 
 func (c jaegerOperatorComponent) PreUninstall(context spi.ComponentContext) error {
