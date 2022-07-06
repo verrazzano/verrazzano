@@ -838,9 +838,9 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 	return nil
 }
 
-// uninstall is the implementation for the cert-manager uninstall step
+// uninstallCertManager is the implementation for the cert-manager uninstall step
 // this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
-func (g certManagerComponent) uninstall(compContext spi.ComponentContext) error {
+func uninstallCertManager(compContext spi.ComponentContext) error {
 	// Delete the kube-system cert-manager configMaps [controller, caInjector]
 	if err := deleteObject(compContext.Client(), controllerConfigMap, constants.KubeSystem, &v1.ConfigMap{}); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s for the cert-manager uninstall: %v", constants.KubeSystem, controllerConfigMap, err)
