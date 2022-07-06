@@ -626,7 +626,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: "**/*-cluster-dump*/**,**/test-cluster-dumps/**", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "**/*cluster-dump*/**,**/test-cluster-dumps/**", allowEmptyArchive: true
                 }
             }
         }
