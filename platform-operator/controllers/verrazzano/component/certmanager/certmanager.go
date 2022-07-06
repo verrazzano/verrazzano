@@ -78,6 +78,10 @@ const (
 
 	extraArgsKey  = "extraArgs[0]"
 	acmeSolverArg = "--acme-http01-solver-image="
+
+	// Uninstall resources
+	controllerConfigMap = "cert-manager-controller"
+	caInjectorConfigMap = "cert-manager-cainjector-leader-election"
 )
 
 type authenticationType string
@@ -830,6 +834,35 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 		if err := deleteObject(client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{}); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// uninstall is the implementation for the cert-manager uninstall step
+// this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
+func (g certManagerComponent) uninstall(compContext spi.ComponentContext) error {
+	// Delete the kube-system cert-manager configMaps [controller, caInjector]
+	if err := deleteObject(compContext.Client(), controllerConfigMap, constants.KubeSystem, &v1.ConfigMap{}); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s for the cert-manager uninstall: %v", constants.KubeSystem, controllerConfigMap, err)
+	}
+	if err := deleteObject(compContext.Client(), caInjectorConfigMap, constants.KubeSystem, &v1.ConfigMap{}); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s for the cert-manager uninstall: %v", constants.KubeSystem, caInjectorConfigMap, err)
+	}
+
+	// Remove finalizers from the cert-manager namespace to avoid hanging namespace deletion
+	certNS := &v1.Namespace{}
+	certNS.Name = constants.CertManagerNamespace
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), certNS, func() error {
+		certNS.Finalizers = []string{}
+		return nil
+	})
+	if err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to remove the finalizer for the namespace %s: %v", constants.CertManagerNamespace, err)
+	}
+
+	// Delete the cert-manager namespace now that the finalizers have been removed
+	if err := deleteObject(compContext.Client(), constants.CertManagerNamespace, constants.KubeSystem, &v1.Namespace{}); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to delete the cert-manager namespace %s: %v", constants.CertManagerNamespace, err)
 	}
 	return nil
 }
