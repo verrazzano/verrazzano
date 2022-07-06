@@ -5,6 +5,8 @@ package grafana
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"strings"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -58,6 +60,21 @@ func createGrafanaConfigMaps(ctx spi.ComponentContext) error {
 		return nil
 	})
 	return err
+}
+
+func deleteGrafanaConfigMaps(ctx spi.ComponentContext) error {
+	// Create the ConfigMap for Grafana Dashboards
+	dashboards := systemDashboardsCM()
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dashboards.Name, Namespace: dashboards.Namespace}, dashboards); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	if err := ctx.Client().Delete(context.TODO(), dashboards); err != nil {
+		return err
+	}
+	return nil
 }
 
 //dashboardName individual dashboards live in the configmap as files of the format:
