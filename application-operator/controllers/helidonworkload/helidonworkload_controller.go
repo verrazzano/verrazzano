@@ -75,8 +75,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
 
-	// Metric for number of times reconcile function is called
-	defer metricsexporter.HelidonworkloadIncrementEventsProcessed()
 	if req.Namespace == vzconst.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
 		log.Infof("Helidon workload resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
@@ -94,6 +92,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log, err := clusters.GetResourceLogger("verrazzanohelidonworkload", req.NamespacedName, &workload)
 	if err != nil {
 		zap.S().Errorf("Failed to create controller logger for Helidon workload resource: %v", err)
+		metricsexporter.HelidonworkloadIncrementFailedProcess()
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling Helidon workload resource %v, generation %v", req.NamespacedName, workload.Generation)
@@ -109,6 +108,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	log.Oncef("Finished reconciling Helidon workload %v", req.NamespacedName)
+
+	// Metric for number of times reconcile function is called
+	defer metricsexporter.HelidonworkloadIncrementEventsProcessed()
 
 	return ctrl.Result{}, nil
 }

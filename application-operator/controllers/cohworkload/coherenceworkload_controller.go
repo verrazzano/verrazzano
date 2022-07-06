@@ -136,9 +136,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
 
-	// Metric for number of times reconcile function is called
-	defer metricsexporter.CohworkloadIncrementEventsProcessed()
-
 	if req.Namespace == constants.KubeSystem {
 		log := zap.S().With(log2.FieldResourceNamespace, req.Namespace, log2.FieldResourceName, req.Name, log2.FieldController, controllerName)
 		log.Infof("Coherence workload resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
@@ -155,6 +152,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log, err := clusters.GetResourceLogger("verrazzanocoherenceworkload", req.NamespacedName, workload)
 	if err != nil {
 		zap.S().Errorf("Failed to create controller logger for Coherence workload resource: %v", err)
+		metricsexporter.CohworkloadIncrementFailedProcess()
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling Coherence workload resource %v, generation %v", req.NamespacedName, workload.Generation)
@@ -169,6 +167,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	log.Oncef("Finished reconciling Coherence workload %v", req.NamespacedName)
+
+	// Metric for number of times reconcile function is called
+	metricsexporter.CohworkloadIncrementEventsProcessed()
 
 	return ctrl.Result{}, nil
 }

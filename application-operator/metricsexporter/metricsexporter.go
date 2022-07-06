@@ -14,6 +14,7 @@ import (
 )
 
 var (
+	// Successfull reconcile process
 	appconfigReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "appconfig_reconcile_puller_events_total",
 		Help: "The total number of processed Reconcile events for appconfig",
@@ -32,6 +33,23 @@ var (
 	ingresstraitloadReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "ingresstrait_reconcile_puller_events_total",
 		Help: "The total number of processed Reconcile events for ingresstrait",
+	})
+	// Failed reconcile process
+	cohworkloadReconcileFailed = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "cohworkload_reconcile_failed_events_total",
+		Help: "The total number of failed Reconcile events for appconfig",
+	})
+	helidonworkloadReconcileFailed = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "helidonworkload_reconcile_failed_events_total",
+		Help: "The total number of failed Reconcile events for helidonworload",
+	})
+	ingresstraitReconcileFailed = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "ingresstrait_reconcile_failed_events_total",
+		Help: "The total number of failed Reconcile events for ingresstrait",
+	})
+	appconfigReconcileFailed = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "appconfig_reconcile_failed_events_total",
+		Help: "The total number of failed Reconcile events for appconfig",
 	})
 
 	allMetrics    = []prometheus.Collector{appconfigReconcileProcessed, cohworkloadReconcileProcessed, helidonworkloadReconcileProcessed}
@@ -80,6 +98,8 @@ func registerMetricsHandlersHelper() error {
 	return errorObserved
 }
 
+//Successfull process incrementation
+
 func AppconfigIncrementEventsProcessed() {
 
 	appconfigReconcileProcessed.Inc()
@@ -101,4 +121,18 @@ func IngresstraitloadIncrementEventsProcessed() {
 
 	ingresstraitloadReconcileProcessed.Inc()
 
+}
+
+// Failed processing incrementation
+func AppconfigIncrementFailedProcess() {
+	appconfigReconcileFailed.Inc()
+}
+func HelidonworkloadIncrementFailedProcess() {
+	helidonworkloadReconcileFailed.Inc()
+}
+func CohworkloadIncrementFailedProcess() {
+	cohworkloadReconcileFailed.Inc()
+}
+func IngresstraitIncrementFailedProcess() {
+	ingresstraitReconcileFailed.Inc()
 }
