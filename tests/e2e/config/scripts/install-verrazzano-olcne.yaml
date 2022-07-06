@@ -34,3 +34,5 @@ spec:
       - name: gateways.istio-ingressgateway.externalIPs
         valueList:
         - 
+    prometheusOperator:
+      enabled: true
