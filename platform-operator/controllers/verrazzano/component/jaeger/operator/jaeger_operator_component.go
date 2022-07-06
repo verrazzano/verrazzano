@@ -4,6 +4,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	appsv1 "k8s.io/api/apps/v1"
 )
 
 const (
@@ -100,4 +102,18 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
 
 	return c.HelmComponent.Install(ctx)
+}
+
+// IsInstalled checks if jaeger is installed
+func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	deployment := &appsv1.Deployment{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment)
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, ComponentName, err)
+		return false, err
+	}
+	return true, nil
 }
