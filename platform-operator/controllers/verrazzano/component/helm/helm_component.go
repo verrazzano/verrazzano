@@ -329,10 +329,6 @@ func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PostUninstall(context spi.ComponentContext) error {
-
-	//	kubectl delete validatingwebhookconfigurations.admissionregistration.k8s.io coherence-operator-validating-webhook-configuration --ignore-not-found
-	//	kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io coherence-operator-mutating-webhook-configuration --ignore-not-found
-
 	return nil
 }
 
