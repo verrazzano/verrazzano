@@ -1,0 +1,15 @@
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: velero-kind-backup-location
+  namespace: velero
+spec:
+  provider: aws
+  objectStorage:
+    bucket: myBucket
+  credential:
+    name: velero-backup-creds
+    key: cloud
+  config:
+    region: https://odsbuilddev.compat.objectstorage.us-ashburn-1.oraclecloud.com
+    profile: us-ashburn-1
