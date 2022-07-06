@@ -5,7 +5,7 @@ package helpers
 
 import (
 	"bufio"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -101,7 +101,7 @@ func SanitizeALine(l string) string {
 		InitRegexToReplacementMap()
 	}
 	for _, eachRegex := range regexToReplacementList {
-		l = regexp.MustCompile(eachRegex).ReplaceAllString(l, getMd5Hash(l))
+		l = regexp.MustCompile(eachRegex).ReplaceAllString(l, getSha256Hash(l))
 	}
 	return l
 }
@@ -113,10 +113,10 @@ func check(e error) error {
 	return nil
 }
 
-// getMd5Hash generates the one way hash for the input string
-func getMd5Hash(line string) string {
+// getSha256Hash generates the one way hash for the input string
+func getSha256Hash(line string) string {
 	data := []byte(line)
-	hashedVal := md5.Sum(data)
+	hashedVal := sha256.Sum256(data)
 	hexString := hex.EncodeToString(hashedVal[:])
 	return hexString
 }
