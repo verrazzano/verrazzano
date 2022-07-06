@@ -19,9 +19,9 @@ func InitRegexToReplacementMap() {
 	regexToReplacementList = append(regexToReplacementList, ipv4Regex)
 }
 
-// SanitizeALine sanitizes each line in a given file,
+// SanitizeString sanitizes each line in a given file,
 // Sanitizes based on the regex map initialized above
-func SanitizeALine(l string) string {
+func SanitizeString(l string) string {
 	if len(regexToReplacementList) == 0 {
 		InitRegexToReplacementMap()
 	}

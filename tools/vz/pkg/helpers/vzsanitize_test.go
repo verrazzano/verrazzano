@@ -10,6 +10,6 @@ var (
 )
 
 func TestSanitizeALine(t *testing.T) {
-	assert.NotContains(t, SanitizeALine(testIP), testIP)
-	assert.Contains(t, SanitizeALine("test.me.test.me"), "test")
+	assert.NotContains(t, SanitizeString(testIP), testIP)
+	assert.Contains(t, SanitizeString("test.me.test.me"), "test")
 }

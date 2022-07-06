@@ -137,7 +137,7 @@ func CaptureVZResource(client clipkg.Client, captureDir string, outStream io.Wri
 	if err != nil {
 		return fmt.Errorf("an error occurred while creating JSON encoding of %s: %s", vzRes, err.Error())
 	}
-	_, err = f.WriteString(SanitizeALine(string(vzJSON)))
+	_, err = f.WriteString(SanitizeString(string(vzJSON)))
 	if err != nil {
 		return fmt.Errorf("an error occurred while writing the file %s: %s", vzRes, err.Error())
 	}
@@ -269,11 +269,11 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 			defer podLog.Close()
 
 			reader := bufio.NewScanner(podLog)
-			f.WriteString(SanitizeALine(fmt.Sprintf(containerStartLog, contName, namespace, podName)))
+			f.WriteString(SanitizeString(fmt.Sprintf(containerStartLog, contName, namespace, podName)))
 			for reader.Scan() {
-				f.WriteString(SanitizeALine(reader.Text() + "\n"))
+				f.WriteString(SanitizeString(reader.Text() + "\n"))
 			}
-			f.WriteString(SanitizeALine(fmt.Sprintf(containerEndLog, contName, namespace, podName)))
+			f.WriteString(SanitizeString(fmt.Sprintf(containerEndLog, contName, namespace, podName)))
 			return nil
 		}
 		writeToFile(c.Name)
@@ -300,7 +300,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string) error
 	defer f.Close()
 
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
-	_, err = f.WriteString(SanitizeALine(string(resJSON)))
+	_, err = f.WriteString(SanitizeString(string(resJSON)))
 	if err != nil {
 		return fmt.Errorf("an error occurred while writing the file %s: %s", res, err.Error())
 	}
