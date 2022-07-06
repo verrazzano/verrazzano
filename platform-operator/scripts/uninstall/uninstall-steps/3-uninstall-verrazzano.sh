@@ -93,17 +93,6 @@ function delete_weblogic_operator {
   fi
 }
 
-function delete_coherence_operator {
-  log "Uninstall the Coherence Kubernetes operator"
-  if helm status uninstall coherence-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall coherence-operator --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall the Coherence Kubernetes operator."
-    fi
-  fi
-  kubectl delete validatingwebhookconfigurations.admissionregistration.k8s.io coherence-operator-validating-webhook-configuration --ignore-not-found
-  kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io coherence-operator-mutating-webhook-configuration --ignore-not-found
-}
-
 function delete_kiali {
   KIALI_CHART_DIR=${CHARTS_DIR}/kiali-server
   log "Uninstall Kiali"
@@ -199,7 +188,6 @@ action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
-action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
 action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
 action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Monitoring Operator" delete_vmo || exit 1
