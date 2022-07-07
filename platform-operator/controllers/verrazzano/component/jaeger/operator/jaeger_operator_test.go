@@ -20,7 +20,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -92,6 +91,17 @@ var vzEsInternalSecret = &corev1.Secret{
 	},
 }
 
+var vzEsInternalSecretWithData = &corev1.Secret{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      globalconst.VerrazzanoESInternal,
+		Namespace: constants.VerrazzanoSystemNamespace,
+	},
+	Data: map[string][]byte{
+		"username": []byte("verrazzano"),
+		"password": []byte("dummy"),
+	},
+}
+
 var vzIngressService = &corev1.Service{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      constants.NGINXControllerServiceName,
@@ -102,134 +112,24 @@ var vzIngressService = &corev1.Service{
 	},
 }
 
+type preInstallTestStruct struct {
+	name   string
+	spec   *vzapi.Verrazzano
+	client client.Client
+	err    error
+	dryRun bool
+}
+
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
 }
 
-// TestIsJaegerOperatorReady tests the isJaegerOperatorReady function for the Jaeger Operator
-func TestIsJaegerOperatorReady(t *testing.T) {
-	tests := []struct {
-		name       string
-		client     client.Client
-		expectTrue bool
-	}{
-		{
-			// GIVEN the Jaeger Operator deployment exists and there are available replicas
-			// WHEN we call isJaegerOperatorReady
-			// THEN the call returns true
-			name: "Test IsReady when Jaeger Operator is successfully deployed",
-			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-						Labels:    map[string]string{"name": "jaeger-operator"},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": "jaeger-operator"},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              "jaeger-operator",
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        deploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-			).Build(),
-			expectTrue: true,
-		},
-		{
-			// GIVEN the Jaeger Operator deployment exists and there are no available replicas
-			// WHEN we call isJaegerOperatorReady
-			// THEN the call returns false
-			name: "Test IsReady when Jaeger Operator deployment is not ready",
-			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 0,
-						Replicas:          1,
-						UpdatedReplicas:   0,
-					},
-				}).Build(),
-			expectTrue: false,
-		},
-		{
-			// GIVEN the Jaeger Operator deployment does not exist
-			// WHEN we call isJaegerOperatorReady
-			// THEN the call returns false
-			name:       "Test IsReady when Jaeger Operator deployment does not exist",
-			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
-			expectTrue: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
-			assert.Equal(t, tt.expectTrue, isJaegerOperatorReady(ctx))
-		})
-	}
-}
-
 // TestPreInstall tests the preInstall function for various scenarios.
-func TestPreInstall(t *testing.T) {
-	var tests = []struct {
-		name   string
-		spec   *vzapi.Verrazzano
-		client client.Client
-		err    error
-	}{
-		{
-			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
-			keycloakEnabledCR,
-			createFakeClient(),
-			ctrlerrors.RetryableError{Source: ComponentName},
-		},
-		{
-			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
-			keycloakEnabledCR,
-			createFakeClient(vzEsInternalSecret),
-			nil,
-		},
-		{
-			"always nil error when keycloak is disabled",
-			keycloakDisabledCR,
-			createFakeClient(),
-			nil,
-		},
-		{
-			"always nil error when jaeger instance creation is disabled",
-			jaegerDisabledCR,
-			createFakeClient(),
-			nil,
-		},
-	}
-
-	for _, tt := range tests {
+func TestPreInstallInternal(t *testing.T) {
+	for _, tt := range getPreInstallTests() {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, tt.dryRun)
 			err := preInstall(ctx)
 			if tt.err != nil {
 				assert.Error(t, err)
@@ -238,54 +138,8 @@ func TestPreInstall(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			ns := corev1.Namespace{}
-			err = tt.client.Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
-			assert.NoError(t, err)
-		})
-	}
-}
-
-// TestValidateJaegerOperator tests the validation of the Jaeger Operator installation and the Verrazzano CR
-func TestValidateJaegerOperator(t *testing.T) {
-	tests := []struct {
-		name        string
-		vz          vzapi.Verrazzano
-		expectError bool
-	}{
-		{
-			name:        "test nothing enabled",
-			vz:          vzapi.Verrazzano{},
-			expectError: false,
-		},
-		{
-			name: "test jaeger operator enabled",
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{Enabled: &trueValue},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "test jaeger operator disabled",
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{Enabled: &falseValue},
-					},
-				},
-			},
-			expectError: false,
-		},
-	}
-	c := jaegerOperatorComponent{}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := c.validateJaegerOperator(&tt.vz)
-			if tt.expectError {
-				assert.Error(t, err)
-			} else {
+			if !tt.dryRun {
+				err = tt.client.Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
 				assert.NoError(t, err)
 			}
 		})
@@ -425,4 +279,51 @@ func createFakeClient(extraObjs ...client.Object) client.Client {
 	objs = append(objs, extraObjs...)
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(objs...).Build()
 	return c
+}
+
+func getPreInstallTests() []preInstallTestStruct {
+	return []preInstallTestStruct{
+		{
+			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(),
+			ctrlerrors.RetryableError{Source: ComponentName},
+			false,
+		},
+		{
+			"should pass when verrazzano-es-internal secret does exist without data and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(vzEsInternalSecret),
+			nil,
+			false,
+		},
+		{
+			"should pass when verrazzano-es-internal secret does exist with valid data and keycloak is enabled",
+			keycloakEnabledCR,
+			createFakeClient(vzEsInternalSecretWithData),
+			nil,
+			false,
+		},
+		{
+			"always nil error when keycloak is disabled",
+			keycloakDisabledCR,
+			createFakeClient(),
+			nil,
+			false,
+		},
+		{
+			"always nil error when jaeger instance creation is disabled",
+			jaegerDisabledCR,
+			createFakeClient(),
+			nil,
+			false,
+		},
+		{
+			"always nil error when it is a dry run",
+			jaegerDisabledCR,
+			createFakeClient(),
+			nil,
+			true,
+		},
+	}
 }

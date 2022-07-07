@@ -14,6 +14,8 @@ jaeger:
   spec:
     annotations:
       sidecar.istio.io/inject: "true"
+    ingress:
+      enabled: false
     strategy: production
     storage:
       # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
