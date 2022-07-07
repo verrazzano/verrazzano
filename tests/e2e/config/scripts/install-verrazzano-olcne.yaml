@@ -3,7 +3,7 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
-  profile: dev
+  profile: prod
   environmentName: 
   components:
     dns:
@@ -34,5 +34,3 @@ spec:
       - name: gateways.istio-ingressgateway.externalIPs
         valueList:
         - 
-    prometheusOperator:
-      enabled: true

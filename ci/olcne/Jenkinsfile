@@ -568,13 +568,13 @@ pipeline {
 }
 
 def generateNonWLSAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='false') {
-    return generate_security_tests(dumpRoot) + generate_nonwls_tests(dumpRoot, skipDeploy, skipUndeploy)
+    return generateSecurityTests(dumpRoot) + generateNonWLSTests(dumpRoot, skipDeploy, skipUndeploy)
 }
 
 def generateAllAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='false') {
-    return generate_security_tests(dumpRoot) +
-        generate_nonwls_tests(dumpRoot, skipDeploy, skipUndeploy) +
-        generate_wls_tests(dumpRoot, skipDeploy, skipUndeploy)
+    return generateSecurityTests(dumpRoot) +
+        generateNonWLSTests(dumpRoot, skipDeploy, skipUndeploy) +
+        generateWLSTests(dumpRoot, skipDeploy, skipUndeploy)
 }
 
 def generateVerifyInfraStages(dumpRoot) {
@@ -597,7 +597,7 @@ def generateVerifyInfraStages(dumpRoot) {
     ]
 }
 
-def generate_security_tests(dumpRoot) {
+def generateSecurityTests(dumpRoot) {
     return [
         "istio authorization policy": {
             runGinkgo('istio/authz', "${dumpRoot}/istio-authz-policy")
@@ -615,7 +615,7 @@ def generate_security_tests(dumpRoot) {
     ]
 }
 
-def generate_nonwls_tests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
+def generateNonWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
     return [
         "k8s deployment workload metrics": {
             runGinkgo('metrics/deploymetrics', "${dumpRoot}/k8sdeploy-workload-metrics")
@@ -635,7 +635,7 @@ def generate_nonwls_tests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
     ]
 }
 
-def generate_wls_tests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
+def generateWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
     return [
         "weblogic workload": {
             runGinkgoAppTest('workloads/weblogic', "hello-wls", "${dumpRoot}/weblogic-workload", skipDeploy, skipUndeploy)
