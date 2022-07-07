@@ -7,19 +7,16 @@ import (
 	"context"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	adminv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // TestDeleteClusterResource tests the deletion of a cluster resource
@@ -67,7 +64,7 @@ func TestDeleteClusterResourceNotExists(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// Validate resource exists
+	// Validate resource does not exist
 	wh := adminv1.ValidatingWebhookConfiguration{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	err := c.Get(context.TODO(), types.NamespacedName{Name: name}, &wh)
 	asserts.True(errors.IsNotFound(err))
@@ -132,7 +129,7 @@ func TestDeleteNotExists(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// Validate resource exists
+	// Validate resource does not exist
 	pod := corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &pod)
 	asserts.True(errors.IsNotFound(err))
