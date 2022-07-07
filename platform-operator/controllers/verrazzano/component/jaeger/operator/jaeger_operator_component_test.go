@@ -119,8 +119,17 @@ func TestPostInstall(t *testing.T) {
 		VerrazzanoRootDir: "../../../../../..",
 	})
 
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profilesRelativePath)
+
+	client := createFakeClient(vzIngressService)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}, false, profilesRelativePath)
 	err := NewComponent().PostInstall(ctx)
 	assert.NoError(t, err)
 }

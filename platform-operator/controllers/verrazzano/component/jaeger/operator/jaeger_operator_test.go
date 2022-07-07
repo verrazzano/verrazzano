@@ -92,6 +92,16 @@ var vzEsInternalSecret = &corev1.Secret{
 	},
 }
 
+var vzIngressService = &corev1.Service{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      constants.NGINXControllerServiceName,
+		Namespace: constants.IngressNginxNamespace,
+	},
+	Spec: corev1.ServiceSpec{
+		ExternalIPs: []string{"127.0.0.1"},
+	},
+}
+
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
@@ -402,6 +412,12 @@ func TestEnsureMonitoringOperatorNamespace(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
 	err := ensureVerrazzanoMonitoringNamespace(ctx)
 	assert.NoError(t, err)
+}
+
+// TestBuildJaegerDNSNames asserts if the generated DNS name for Jaeger is correct.
+func TestBuildJaegerDNSNames(t *testing.T) {
+	jaegerDNSName := buildJaegerHostnameForDomain("default.nip.io")
+	assert.Equal(t, "jaeger.default.nip.io", jaegerDNSName)
 }
 
 func createFakeClient(extraObjs ...client.Object) client.Client {
