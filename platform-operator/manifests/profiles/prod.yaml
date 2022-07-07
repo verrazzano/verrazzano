@@ -83,3 +83,8 @@ spec:
                 resources:
                   requests:
                     memory: "128Mi"
+    keycloak:
+      overrides:
+        - values:
+            replicas: 2
+

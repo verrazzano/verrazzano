@@ -187,7 +187,22 @@ spec:
       enabled: true
       overrides:
         - values:
-            replicas: 2
+            replicas: 1
+            affinity: |
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app.kubernetes.io/instance: keycloak
+                          app.kubernetes.io/name: keycloak
+                        matchExpressions:
+                          - key: app.kubernetes.io/component
+                            operator: In
+                            values:
+                              - keycloak
+                      topologyKey: kubernetes.io/hostname
     kibana:
       enabled: true
       replicas: 1
