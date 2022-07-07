@@ -20,6 +20,8 @@ type Resource struct {
 
 // Delete deletes a resource if it exists, not found error is ignored
 func (r Resource) Delete() error {
+	r.Object.SetName(r.Name)
+	r.Object.SetNamespace(r.Namespace)
 	err := r.Client.Delete(context.TODO(), r.Object)
 	if client.IgnoreNotFound(err) != nil {
 		return r.Log.ErrorfNewErr("Failed to delete the %s %s/%s: %v", r.Object.GetObjectKind(), r.Object.GetNamespace(), r.Object.GetName(), err)
