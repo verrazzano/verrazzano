@@ -15,3 +15,9 @@ logging:
 
 fluentd:
   enabled: true
+
+istio:
+  enabled: true
+monitoring:
+  enabled: true
+  useIstioCerts: true
