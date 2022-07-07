@@ -6,9 +6,10 @@ package operator
 import (
 	"context"
 	"fmt"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"path"
 	"strconv"
+
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -379,7 +380,7 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 func (c prometheusComponent) validatePrometheusOperator(vz *vzapi.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
 	if !c.IsEnabled(vz) && vzconfig.IsPrometheusEnabled(vz) {
-		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled")
+		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
 	}
 	// Validate install overrides
 	if vz.Spec.Components.PrometheusOperator != nil {
