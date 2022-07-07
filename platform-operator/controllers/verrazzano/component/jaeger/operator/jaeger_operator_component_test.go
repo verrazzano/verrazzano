@@ -119,7 +119,6 @@ func TestPostInstall(t *testing.T) {
 		VerrazzanoRootDir: "../../../../../..",
 	})
 
-
 	client := createFakeClient(vzIngressService)
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
