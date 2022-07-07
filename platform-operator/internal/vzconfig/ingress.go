@@ -87,12 +87,15 @@ func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 	// - On MAC and Windows, container IP is not accessible.  Port forwarding from 127.0.0.1 to container IP is needed.
 	ingressIP := "127.0.0.1"
 	serviceType, err := GetServiceType(vz)
+	fmt.Println("serviceType : ", serviceType, " | error : ", err)
 	if err != nil {
 		return "", err
 	}
 	if serviceType == vzapi.LoadBalancer || serviceType == vzapi.NodePort {
 		svc := v1.Service{}
+		fmt.Println("svc : ", svc)
 		if err := client.Get(context.TODO(), types.NamespacedName{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace}, &svc); err != nil {
+			fmt.Println(" errorrr : ", err)
 			return "", err
 		}
 		// If externalIPs exists, use it; else use IP from status
