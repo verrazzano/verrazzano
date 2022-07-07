@@ -35,18 +35,19 @@ type prometheusPushgatewayComponent struct {
 func NewComponent() spi.Component {
 	return prometheusPushgatewayComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), chartName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-pushgateway-values.yaml"),
-			AppendOverridesFunc:     AppendOverrides,
-			Dependencies:            []string{promoperator.ComponentName},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), chartName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-pushgateway-values.yaml"),
+			AppendOverridesFunc:       AppendOverrides,
+			Dependencies:              []string{promoperator.ComponentName},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
