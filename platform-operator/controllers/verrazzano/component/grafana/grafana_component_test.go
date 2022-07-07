@@ -12,11 +12,8 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -328,95 +325,4 @@ func TestValidateUpdate(t *testing.T) {
 	// THEN the function does not return an error
 	newVz.Spec.Components.Grafana.Enabled = &trueValue
 	assert.NoError(t, NewComponent().ValidateUpdate(oldVz, newVz))
-}
-
-// TestUninstall tests the Uninstall method such that
-// GIVEN a call to Uninstall
-//  WHEN the Grafana component is disabled in the system VMI
-func TestUninstall(t *testing.T) {
-
-	client := fake.NewClientBuilder().WithScheme(testScheme).
-		WithObjects(
-			&vmov1.VerrazzanoMonitoringInstance{
-				ObjectMeta: metav1.ObjectMeta{Name: "system", Namespace: ComponentNamespace},
-				Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
-					Grafana: vmov1.Grafana{
-						Enabled: true,
-					},
-				},
-			}).
-		Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Ingress: &vzapi.IngressNginxComponent{
-					Enabled: &falseValue, // Skip the call to get the DNS suffix, not required for this test
-				},
-			},
-		},
-	},
-		false)
-	comp := NewComponent()
-	assert.NoError(t, comp.Uninstall(ctx))
-
-	updatedVMI := &vmov1.VerrazzanoMonitoringInstance{}
-	client.Get(context.TODO(), common.GetSystemVMIName(), updatedVMI)
-	assert.False(t, updatedVMI.Spec.Grafana.Enabled)
-}
-
-// TestUninstallNoSystemVMI tests the Uninstall method such that
-// GIVEN a call to Uninstall
-// WHEN the system VMI is not present
-// THEN no error is returned
-func TestUninstallNoSystemVMI(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	comp := NewComponent()
-	err := comp.Uninstall(ctx)
-	assert.NoError(t, err)
-}
-
-// TestPostUninstall tests the PostUninstall method such that
-// GIVEN a call to PostUninstall
-// WHEN the dashboards and Grafana secret still exist
-// THEN No error is returned and the dashboards and Grafana secret are deleted
-func TestPostUninstall(t *testing.T) {
-
-	dashboards := systemDashboardsCM()
-
-	client := fake.NewClientBuilder().WithScheme(testScheme).
-		WithObjects(
-			dashboards,
-			&v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      constants.GrafanaSecret,
-					Namespace: globalconst.VerrazzanoSystemNamespace,
-				},
-			}).
-		Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-
-	comp := NewComponent()
-	err := comp.PostUninstall(ctx)
-	assert.NoError(t, err)
-
-	err = client.Get(context.TODO(), types.NamespacedName{Name: dashboards.Name, Namespace: dashboards.Namespace}, &v1.ConfigMap{})
-	assert.Error(t, err)
-	assert.True(t, errors.IsNotFound(err))
-
-	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.GrafanaSecret, Namespace: globalconst.VerrazzanoSystemNamespace}, &v1.Secret{})
-	assert.Error(t, err)
-	assert.True(t, errors.IsNotFound(err))
-}
-
-// TestPostUninstallObjectsNotFound tests the PostUninstall method such that
-// GIVEN a call to PostUninstall
-// WHEN the dashboards and Grafana secret do not exist
-// THEN No error is returned
-func TestPostUninstallObjectsNotFound(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	comp := NewComponent()
-	err := comp.PostUninstall(ctx)
-	assert.NoError(t, err)
 }
