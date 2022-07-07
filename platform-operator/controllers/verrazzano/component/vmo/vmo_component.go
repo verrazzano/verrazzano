@@ -41,16 +41,15 @@ var _ spi.Component = vmoComponent{}
 func NewComponent() spi.Component {
 	return vmoComponent{
 		helm.HelmComponent{
-			ReleaseName:               ComponentName,
-			JSONName:                  ComponentJSONName,
-			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:            ComponentNamespace,
-			IgnoreNamespaceOverride:   true,
-			SupportsOperatorInstall:   true,
-			SupportsOperatorUninstall: true,
-			AppendOverridesFunc:       appendVMOOverrides,
-			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
-			Dependencies:              []string{nginx.ComponentName},
+			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
+			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace:          ComponentNamespace,
+			IgnoreNamespaceOverride: true,
+			SupportsOperatorInstall: true,
+			AppendOverridesFunc:     appendVMOOverrides,
+			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
+			Dependencies:            []string{nginx.ComponentName},
 		},
 	}
 }

@@ -70,6 +70,15 @@ function delete_weblogic_operator {
 
 }
 
+function delete_vmo {
+  log "Uninstall the Verrazzano Monitoring Operator"
+  if helm status verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the Verrazzano Monitoring Operator."
+    fi
+  fi
+}
+
 function delete_kiali {
   KIALI_CHART_DIR=${CHARTS_DIR}/kiali-server
   log "Uninstall Kiali"
@@ -125,6 +134,7 @@ function delete_velero {
 
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
+action "Deleting Verrazzano Monitoring Operator" delete_vmo || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
 action "Deleting Velero " delete_velero || exit 1
