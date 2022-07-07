@@ -397,6 +397,8 @@ func ReassociateResources(cli clipkg.Client) error {
 func GetHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
 		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator ", Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-metrics ", Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-webhook-service ", Namespace: ComponentNamespace}},
 		{Obj: &certv1.Certificate{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-serving-cert", Namespace: ComponentNamespace}},
 		{Obj: &certv1.Issuer{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-selfsigned-issuer", Namespace: ComponentNamespace}},
 		{Obj: &adminv1.ValidatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-validating-webhook-configuration", Namespace: ComponentNamespace}},
