@@ -168,7 +168,7 @@ func (g grafanaComponent) PostUninstall(context spi.ComponentContext) error {
 	if err := deleteGrafanaConfigMaps(context); err != nil {
 		return err
 	}
-	return common.DeleteGrafanaAdminSecret(context.Client())
+	return common.DeleteGrafanaAdminSecret(context.Client(), context.Log())
 }
 
 // PreUpgrade ensures that preconditions are met before upgrading the Grafana component
