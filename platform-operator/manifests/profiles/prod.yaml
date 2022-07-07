@@ -25,6 +25,19 @@ spec:
     authproxy:
       kubernetes:
         replicas: 2
+    console:
+      overrides:
+        - values:
+            replicas: 2
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: verrazzano-console
+                      topologyKey: failure-domain.beta.kubernetes.io/zone
+                    weight: 100
     istio:
       ingress:
         kubernetes:
