@@ -10,13 +10,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type Resource struct {
+	Namespace string
+	Name      string
+	Client    client.Client
+	Object    client.Object
+	Log       vzlog.VerrazzanoLogger
+}
+
 // Delete deletes a resource if it exists, not found error is ignored
-func Delete(log vzlog.VerrazzanoLogger, cli client.Client, o client.Object) error {
-	err := cli.Delete(context.TODO(), o)
+func (r Resource) Delete() error {
+	err := r.Client.Delete(context.TODO(), r.Object)
 	if client.IgnoreNotFound(err) != nil {
-		return log.ErrorfNewErr("Failed to delete the %s %s/%s: %v", o.GetObjectKind(), o.GetNamespace(), o.GetName(), err)
+		return r.Log.ErrorfNewErr("Failed to delete the %s %s/%s: %v", r.Object.GetObjectKind(), r.Object.GetNamespace(), r.Object.GetName(), err)
 	} else if err == nil {
-		log.Oncef("Successfully deleted %s %s/%s", o.GetObjectKind(), o.GetNamespace(), o.GetName())
+		r.Log.Oncef("Successfully deleted %s %s/%s", r.Object.GetObjectKind(), r.Object.GetNamespace(), r.Object.GetName())
 	}
 	return nil
 }

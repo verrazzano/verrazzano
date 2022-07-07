@@ -10,8 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -93,8 +91,12 @@ func (c weblogicComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 func (c weblogicComponent) PostUninstall(context spi.ComponentContext) error {
-	if err := resource.Delete(context.Log(), context.Client(), &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "weblogic-operator-sa"}}); err != nil {
-		return err
-	}
-	return nil
+	err := resource.Resource{
+		Namespace: constants.VerrazzanoSystemNamespace,
+		Name:      "weblogic-operator-sa",
+		Client:    context.Client(),
+		Object:    &corev1.ServiceAccount{},
+		Log:       context.Log(),
+	}.Delete()
+	return err
 }
