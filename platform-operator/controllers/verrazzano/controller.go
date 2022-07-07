@@ -123,6 +123,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 // doReconcile the Verrazzano CR
 func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
+	// Initialize once for this Verrazzano resource when the operator starts
+	result, err := r.initForVzResource(vz, log)
+	if err != nil {
+		return result, err
+	}
+	if vzctrl.ShouldRequeue(result) {
+		return result, nil
+	}
+
 	// Ensure the required resources needed for both install and uninstall exist
 	// This needs to be done for every state since the initForVzResource might have deleted
 	// role binding during old resource cleanup.
@@ -131,20 +140,6 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	}
 	if err := r.createClusterRoleBinding(ctx, log, vz); err != nil {
 		return newRequeueWithDelay(), err
-	}
-
-	// Check if uninstalling
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, vz)
-	}
-
-	// Initialize once for this Verrazzano resource when the operator starts
-	result, err := r.initForVzResource(vz, log)
-	if err != nil {
-		return result, err
-	}
-	if vzctrl.ShouldRequeue(result) {
-		return result, nil
 	}
 
 	// Init the state to Ready if this CR has never been processed
@@ -158,6 +153,11 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	if err != nil {
 		log.Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
+	}
+
+	// Check if uninstalling
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
 	}
 
 	// Process CR based on state
@@ -1196,6 +1196,7 @@ func createPredicate(f func(e event.CreateEvent) bool) predicate.Funcs {
 // Clean up old resources from a 1.0 release where jobs, etc were in the default namespace
 // Add a watch for each Verrazzano resource
 func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+
 	// Add our finalizer if not already added
 	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
 		log.Debugf("Adding finalizer %s", finalizerName)
