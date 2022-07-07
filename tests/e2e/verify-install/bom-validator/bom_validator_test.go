@@ -97,34 +97,6 @@ var _ = t.AfterSuite(func() {})
 var _ = t.BeforeSuite(func() {})
 var _ = t.AfterEach(func() {})
 
-/*
-var _ = t.Describe("Bom Validator", Label("f:platform-lcm.install"), func() {
-	t.Context("Post VZ Installations", func() {
-		t.It("Has Valid Kube Config", func() {
-			Eventually(validateKubeConfig).Should(BeTrue())
-		})
-		t.It("Has Successfully Downloaded BOM From Installed Platform Operator", func() {
-			getBOM()
-			Expect(vBom.Components).NotTo(BeNil())
-		})
-		t.It("Has Successfully Populated BOM Images into 'bomImages' Map", func() {
-			populateBomContainerImagesMap()
-			Expect(bomImages).NotTo(BeEmpty())
-		})
-		t.It("Has Successfully Populated Cluster Images into 'clusterImageArray' List", func() {
-			populateClusterContainerImages()
-			Expect(clusterImageArray).NotTo(BeEmpty())
-		})
-		t.It("Has Successfully Scanned Cluster Images with BOM Images", func() {
-			Eventually(scanClusterImagesWithBom).Should(BeTrue())
-		})
-		t.It("Has Successful BOM Validation Report", func() {
-			Eventually(BomValidationReport).Should(BeTrue())
-		})
-	})
-})
-*/
-
 var _ = t.Describe("Bom Validator", Label("f:platform-lcm.install"), func() {
 	t.Context("Post VZ Installations", func() {
 		t.It("Has Successful BOM Validation Report", func() {
