@@ -1,0 +1,47 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: jaeger-operator
+  namespace: {{ .monitoringNamespace }}
+  labels:
+    release: prometheus-operator
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .monitoringNamespace }}
+  selector: {}
+  endpoints:
+  - path: /metrics
+    scheme: http
+    relabelings:
+    - action: replace
+      replacement: local
+      targetLabel: verrazzano_cluster
+    - action: keep
+      regex: jaeger-operator-metrics;metrics
+      sourceLabels:
+      - __meta_kubernetes_service_name
+      - __meta_kubernetes_pod_container_port_name
+    - action: replace
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+      - __meta_kubernetes_namespace
+      targetLabel: namespace
+    - action: labelmap
+      regex: __meta_kubernetes_pod_label_(.+)
+    - action: replace
+      sourceLabels:
+      - __meta_kubernetes_pod_name
+      targetLabel: pod_name
+    - action: labeldrop
+      regex: (controller_revision_hash)
+    - action: replace
+      regex: .*/(.*)$
+      replacement: $1
+      sourceLabels:
+      - name
+      targetLabel: app
