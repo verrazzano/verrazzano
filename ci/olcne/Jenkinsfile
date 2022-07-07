@@ -13,7 +13,7 @@
 // -> Uninstall Verrazzano
 // -> Cleanup resources
 
-def testEnvironments=["olcne"]
+def testEnvironments=["OLCNE"]
 def agentLabel=env.JOB_NAME.contains('-olcne') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions=["us-ashburn-1"]
