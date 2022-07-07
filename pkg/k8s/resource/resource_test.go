@@ -67,7 +67,7 @@ func TestDeleteClusterResourceNotExists(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// Validate resource exists
+	// Validate resource does not exist
 	wh := adminv1.ValidatingWebhookConfiguration{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	err := c.Get(context.TODO(), types.NamespacedName{Name: name}, &wh)
 	asserts.True(errors.IsNotFound(err))
@@ -132,7 +132,7 @@ func TestDeleteNotExists(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// Validate resource exists
+	// Validate resource does not exist
 	pod := corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &pod)
 	asserts.True(errors.IsNotFound(err))
