@@ -114,7 +114,7 @@ func UpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error {
 	if !vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		return nil
 	}
-	if err := ctx.Client().Get(context.TODO(), getSystemVMIName(), &vmov1.VerrazzanoMonitoringInstance{}); err != nil {
+	if err := ctx.Client().Get(context.TODO(), GetSystemVMIName(), &vmov1.VerrazzanoMonitoringInstance{}); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}
@@ -123,7 +123,7 @@ func UpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error {
 	return CreateOrUpdateVMI(ctx, updateFunc)
 }
 
-func getSystemVMIName() types.NamespacedName {
+func GetSystemVMIName() types.NamespacedName {
 	return types.NamespacedName{Name: system, Namespace: globalconst.VerrazzanoSystemNamespace}
 }
 
