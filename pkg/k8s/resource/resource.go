@@ -7,6 +7,8 @@ import (
 	"context"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,6 +29,21 @@ func (r Resource) Delete() error {
 		return r.Log.ErrorfNewErr("Failed to delete the %s %s/%s: %v", r.Object.GetObjectKind(), r.Object.GetNamespace(), r.Object.GetName(), err)
 	} else if err == nil {
 		r.Log.Oncef("Successfully deleted %s %s/%s", r.Object.GetObjectKind(), r.Object.GetNamespace(), r.Object.GetName())
+	}
+	return nil
+}
+
+// Remove finializers from resource
+func (r Resource) RemoveFinializers() error {
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.Namespace, Name: r.Name}, r.Object)
+	if err != nil && !errors.IsNotFound(err) {
+		return r.Log.ErrorfNewErr("Failed to get the resource of type %s, named %s/%s: %v", r.Object.GetObjectKind(), r.Object.GetNamespace(), r.Object.GetName(), err)
+	} else if err == nil {
+		r.Object.SetFinalizers([]string{})
+		err = r.Client.Update(context.TODO(), r.Object)
+		if err != nil {
+			return r.Log.ErrorfNewErr("Failed to update the resource of type %s, named %s/%s: %v", r.Object.GetObjectKind(), r.Object.GetNamespace(), r.Object.GetName(), err)
+		}
 	}
 	return nil
 }

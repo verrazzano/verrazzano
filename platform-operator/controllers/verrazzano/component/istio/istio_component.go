@@ -9,17 +9,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -153,13 +152,33 @@ func (i istioComponent) PreUninstall(context spi.ComponentContext) error {
 	return nil
 }
 
+//
 func (i istioComponent) Uninstall(context spi.ComponentContext) error {
 	_, _, err := istioUninstallFunc(context.Log())
 	return err
 }
 
 func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
-	return nil
+	// Remove finalizers from the istio-system namespace to avoid hanging namespace deletion
+	err := resource.Resource{
+		Namespace: "",
+		Name:      IstioNamespace,
+		Client:    context.Client(),
+		Object:    &v1.Namespace{},
+		Log:       context.Log(),
+	}.RemoveFinializers()
+	if err != nil {
+		return err
+	}
+
+	// Delete the istio-system namespace now that the finalizers have been removed
+	return resource.Resource{
+		Namespace: "",
+		Name:      IstioNamespace,
+		Client:    context.Client(),
+		Object:    &v1.Namespace{},
+		Log:       context.Log(),
+	}.Delete()
 }
 
 // IsEnabled istio-specific enabled check for installation
