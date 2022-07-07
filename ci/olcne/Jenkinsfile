@@ -1118,7 +1118,7 @@ def installVerrazzanoPlatformOperator() {
         # --file $WORKSPACE/downloaded-operator.yaml
         
         # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands
-        wget -O $WORKSPACE/downloaded-operator.yaml https://github.com/verrazzano/verrazzano/releases/download/v1.3.1/operator.yaml
+        wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
         
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
