@@ -844,11 +844,11 @@ def metricTimerEnd(metricName, status) {
         // labels='\\"number\\"=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
         //          '\\"commit_sha\\"=\\"' + "${env.GIT_COMMIT}"+'\\",' +
         //          '\\"test_env\\"=\\"' + "$testEnv"+'\\"'
-        // OCI_MET=sh(returnStdout: true, script: "ci/scripts/oci_metric_emit.sh ${OCI_TELEMETRY_URL} ${OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        // OCI_MET=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/oci_metric_emit.sh ${OCI_TELEMETRY_URL} ${OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
 
         labels=getMetricLabels()
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-            EMIT=sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+            EMIT=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
             echo "[INFO] emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -877,7 +877,7 @@ def metricBuildDuration() {
         labels=getMetricLabels()
         labels=labels + ',result=\\"' + "${statusLabel}"+'\\"'
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-            METRIC_STATUS=sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+            METRIC_STATUS=sh(returnStdout: true, returnStatus: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "[INFO] Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
