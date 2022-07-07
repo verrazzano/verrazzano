@@ -36,12 +36,12 @@ func TestDeleteClusterResource(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: name},
 		}).Build()
 
-	// Validate webhook exists
+	// Validate resource exists
 	wh := adminv1.ValidatingWebhookConfiguration{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	err := c.Get(context.TODO(), types.NamespacedName{Name: name}, &wh)
 	asserts.NoError(err)
 
-	// Delete the webhook
+	// Delete the resource
 	err = Resource{
 		Name:   name,
 		Client: c,
@@ -49,7 +49,7 @@ func TestDeleteClusterResource(t *testing.T) {
 		Log:    vzlog.DefaultLogger(),
 	}.Delete()
 
-	// Validate that webhook is deleted
+	// Validate that resource is deleted
 	asserts.NoError(err)
 	err = c.Get(context.TODO(), types.NamespacedName{Name: name}, &wh)
 	asserts.Error(err)
@@ -67,13 +67,12 @@ func TestDeleteClusterResourceNotExists(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// Validate webhook exists
+	// Validate resource exists
 	wh := adminv1.ValidatingWebhookConfiguration{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	err := c.Get(context.TODO(), types.NamespacedName{Name: name}, &wh)
 	asserts.True(errors.IsNotFound(err))
 
-	// Delete the webhook
-	// Delete the webhook
+	// Delete the resource
 	err = Resource{
 		Name:   name,
 		Client: c,
@@ -96,15 +95,15 @@ func TestDelete(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
+			ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
 		}).Build()
 
-	// Validate webhook exists
-	pod := corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: name}}
-	err := c.Get(context.TODO(), types.NamespacedName{Name: name}, &pod)
+	// Validate resource exists
+	pod := corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &pod)
 	asserts.NoError(err)
 
-	// Delete the webhook
+	// Delete the resource
 	err = Resource{
 		Namespace: namespace,
 		Name:      name,
@@ -113,9 +112,9 @@ func TestDelete(t *testing.T) {
 		Log:       vzlog.DefaultLogger(),
 	}.Delete()
 
-	// Validate that webhook is deleted
+	// Validate that resource is deleted
 	asserts.NoError(err)
-	err = c.Get(context.TODO(), types.NamespacedName{Name: name}, &pod)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &pod)
 	asserts.Error(err)
 	asserts.True(errors.IsNotFound(err))
 }
@@ -133,13 +132,12 @@ func TestDeleteNotExists(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// Validate webhook exists
-	pod := corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: name}}
-	err := c.Get(context.TODO(), types.NamespacedName{Name: name}, &pod)
+	// Validate resource exists
+	pod := corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &pod)
 	asserts.True(errors.IsNotFound(err))
 
-	// Delete the webhook
-	// Delete the webhook
+	// Delete the resource
 	err = Resource{
 		Namespace: namespace,
 		Name:      name,
