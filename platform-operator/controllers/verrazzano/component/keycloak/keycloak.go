@@ -60,6 +60,7 @@ const (
 
 // Define the keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
+const kcIngressClassKey = "ingress.ingressClassName"
 const kcInitContainerKey = "extraInitContainers"
 const kcInitContainerValueTemplate = `
     - name: theme-provider
@@ -423,6 +424,11 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsSecret,
 		Value: keycloakCertificateName,
+	})
+
+	kvs = append(kvs, bom.KeyValue{
+		Key:   kcIngressClassKey,
+		Value: vzconfig.GetIngressClassName(compContext.EffectiveCR()),
 	})
 
 	return kvs, nil

@@ -10,7 +10,6 @@ import (
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"go.uber.org/zap"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,7 +89,7 @@ func assertPodMonitorLabel(t *testing.T, client client.WithWatch, pm *v1.PodMoni
 func assertRCLabels(t *testing.T, oldRCs []*v1.RelabelConfig, newRCs []*v1.RelabelConfig, clusterName string) {
 	assert.Equal(t, len(oldRCs), len(newRCs))
 	for _, rc := range newRCs {
-		if rc.TargetLabel == constants.PrometheusClusterNameLabel {
+		if rc.TargetLabel == prometheusClusterNameLabel {
 			assert.Equal(t, clusterName, rc.Replacement)
 		}
 	}
@@ -99,7 +98,7 @@ func assertRCLabels(t *testing.T, oldRCs []*v1.RelabelConfig, newRCs []*v1.Relab
 func createTestServiceMonitor(hasClusterNameRelabelConfig bool, clusterName string, monitorName string, monitorNS string) *v1.ServiceMonitor {
 	relabelConfigs := []*v1.RelabelConfig{}
 	if hasClusterNameRelabelConfig {
-		relabelConfigs = append(relabelConfigs, &v1.RelabelConfig{TargetLabel: constants.PrometheusClusterNameLabel, Replacement: clusterName})
+		relabelConfigs = append(relabelConfigs, &v1.RelabelConfig{TargetLabel: prometheusClusterNameLabel, Replacement: clusterName})
 	}
 	return &v1.ServiceMonitor{
 		ObjectMeta: v12.ObjectMeta{Name: monitorName, Namespace: monitorNS},
@@ -113,7 +112,7 @@ func createTestServiceMonitor(hasClusterNameRelabelConfig bool, clusterName stri
 func createTestPodMonitor(hasClusterNameRelabelConfig bool, clusterName string, monitorName string, monitorNS string) *v1.PodMonitor {
 	relabelConfigs := []*v1.RelabelConfig{}
 	if hasClusterNameRelabelConfig {
-		relabelConfigs = append(relabelConfigs, &v1.RelabelConfig{TargetLabel: constants.PrometheusClusterNameLabel, Replacement: clusterName})
+		relabelConfigs = append(relabelConfigs, &v1.RelabelConfig{TargetLabel: prometheusClusterNameLabel, Replacement: clusterName})
 	}
 	return &v1.PodMonitor{
 		ObjectMeta: v12.ObjectMeta{Name: monitorName, Namespace: monitorNS},

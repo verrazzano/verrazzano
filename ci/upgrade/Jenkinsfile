@@ -359,6 +359,9 @@ pipeline {
                     # Add some simple additional updates to validate update during an upgrade
                     yq -i eval '.spec.components.istio.ingress.kubernetes.replicas = 3' ${UPGRADE_CR}
                     yq -i eval '.spec.components.istio.egress.kubernetes.replicas = 3' ${UPGRADE_CR}
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true'  ${UPGRADE_CR}
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true'  ${UPGRADE_CR}
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true'  ${UPGRADE_CR}
 
                     # Copy upgrade CR where it will be archived
                     cp ${UPGRADE_CR} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs

@@ -77,6 +77,8 @@ const jaegerValueTemplate = `jaeger:
     storage:
       # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
       type: elasticsearch
+      dependencies:
+        enabled: false
       esIndexCleaner:
         enabled: false
       options:

@@ -28,7 +28,7 @@ func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, ingressName 
 		if err != nil {
 			return ctx.Log().ErrorfNewErr("Failed building DNS domain name: %v", err)
 		}
-
+		ingressClassName := vzconfig.GetIngressClassName(ctx.EffectiveCR())
 		qualifiedHostName := fmt.Sprintf("%s.%s", hostName, dnsSubDomain)
 		pathType := netv1.PathTypeImplementationSpecific
 
@@ -61,7 +61,7 @@ func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, ingressName 
 			},
 		}
 		ingress.Spec.Rules = []netv1.IngressRule{ingRule}
-
+		ingress.Spec.IngressClassName = &ingressClassName
 		if ingress.Annotations == nil {
 			ingress.Annotations = make(map[string]string)
 		}
@@ -71,7 +71,6 @@ func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, ingressName 
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = qualifiedHostName
-
 		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
