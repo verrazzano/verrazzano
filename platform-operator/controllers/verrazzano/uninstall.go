@@ -4,12 +4,23 @@
 package verrazzano
 
 import (
+	"context"
+
+	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -85,6 +96,9 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallMC
 
 		case vzStateUninstallMC:
+			if err := r.deleteMCResources(log); err != nil {
+				return ctrl.Result{}, err
+			}
 			tracker.vzState = vzStateUninstallComponents
 
 		case vzStateUninstallComponents:
@@ -131,4 +145,79 @@ func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 	if ok {
 		delete(UninstallTrackerMap, key)
 	}
+}
+
+// Delete multicluster related resources
+func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
+	// Return if this is not MC or if there is an error
+	if mc, err := r.isMC(log); err != nil || !mc {
+		return err
+	}
+
+	log.Oncef("Deleting all VMC resources")
+	vmcList := clustersapi.VerrazzanoManagedClusterList{}
+	if err := r.List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil {
+		return log.ErrorfNewErr("Failed listing VMCs: %v", err)
+	}
+	for i, vmc := range vmcList.Items {
+		if err := r.Delete(context.TODO(), &vmcList.Items[i]); err != nil {
+			return log.ErrorfNewErr("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
+		}
+	}
+
+	// Delete VMC namespace only if there are no projects
+	projects := vzappclusters.VerrazzanoProjectList{}
+	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil {
+		return log.ErrorfNewErr("Failed listing MC projects: %v", err)
+	}
+	if len(projects.Items) == 0 {
+		log.Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
+		if err := r.deleteNamespace(context.TODO(), log, vzconst.VerrazzanoMultiClusterNamespace); err != nil {
+			return err
+		}
+	}
+
+	// Delete secrets last. Don't delete MC agent secret until the end since it tells us this is MC install
+	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
+		return err
+	}
+	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, "verrazzano-cluster-elasticsearch"); err != nil {
+		return err
+	}
+	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
+	var secret corev1.Secret
+	secretNsn := types.NamespacedName{
+		Namespace: vzconst.VerrazzanoSystemNamespace,
+		Name:      vzconst.MCAgentSecret,
+	}
+
+	// Get the MC agent secret and return if not found
+	if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
+		if errors.IsNotFound(err) {
+			log.Once("Determined that this is not a managed cluster")
+			return false, nil
+		}
+		return false, log.ErrorfNewErr("Failed to fetch the multicluster secret %s/%s, %v", vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret, err)
+	}
+	return true, nil
+}
+
+func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
+	}
+	log.Oncef("Deleting multicluster secret %s:%s", namespace, name)
+	if err := r.Delete(context.TODO(), &secret); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return log.ErrorfNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
+	}
+	return nil
 }

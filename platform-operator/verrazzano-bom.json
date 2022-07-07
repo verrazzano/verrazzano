@@ -220,7 +220,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.4.0-20220629201026-b8f0679",
+              "tag": "1.4.0-20220701205726-94995ed",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -563,7 +563,7 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.34.1",
+              "tag": "1.34.1-20220705001411-cfb06635",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -575,7 +575,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.34.1",
+              "tag": "1.34.1-20220705041607-b81f3dc8",
               "helmFullImageKey": "jaegerAgentImage"
             }
           ]
@@ -586,7 +586,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.34.1",
+              "tag": "1.34.1-20220705041607-b81f3dc8",
               "helmFullImageKey": "jaegerCollectorImage"
             }
           ]
@@ -597,7 +597,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.34.1",
+              "tag": "1.34.1-20220705041607-b81f3dc8",
               "helmFullImageKey": "jaegerQueryImage"
             }
           ]
@@ -608,7 +608,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.34.1",
+              "tag": "1.34.1-20220705041607-b81f3dc8",
               "helmFullImageKey": "jaegerIngesterImage"
             }
           ]

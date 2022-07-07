@@ -32,6 +32,14 @@ spec:
       to:
         - operation:
             ports: ["{{ .Values.api.port }}"]
+    # verrazzano-authproxy:8775 <- jaeger
+    - from:
+        - source:
+            namespaces: ["{{ .Values.jaeger.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.jaeger.namespace }}/sa/{{ .Values.jaeger.serviceAccount }}"]
+      to:
+        - operation:
+            ports: ["{{ .Values.api.port }}"]
     # verrazzano-authproxy:9113,15090 <- prometheus
     - from:
         - source:

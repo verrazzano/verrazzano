@@ -19,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -95,6 +94,8 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 			vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
 			vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
 		}
+		ingressClassName := vzconfig.GetIngressClassName(effectiveCR)
+		vmi.Spec.IngressClassName = &ingressClassName
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
 		vmi.Spec.SecretsName = constants.VMISecret
@@ -105,6 +106,24 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 		return ctx.Log().ErrorfNewErr("failed to update VMI: %v", err)
 	}
 	return nil
+}
+
+// UpdateVMI Updates the system VMI instance IFF the VMO is enabled and it already exists
+func UpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error {
+	if !vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+		return nil
+	}
+	if err := ctx.Client().Get(context.TODO(), GetSystemVMIName(), &vmov1.VerrazzanoMonitoringInstance{}); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	return CreateOrUpdateVMI(ctx, updateFunc)
+}
+
+func GetSystemVMIName() types.NamespacedName {
+	return types.NamespacedName{Name: system, Namespace: globalconst.VerrazzanoSystemNamespace}
 }
 
 // EnsureVMISecret creates or updates the VMI secret
@@ -153,6 +172,21 @@ func EnsureGrafanaAdminSecret(cli client.Client) error {
 		return nil
 	}); err != nil {
 		return err
+	}
+	return nil
+}
+
+func DeleteGrafanaAdminSecret(cli client.Client) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.GrafanaSecret,
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+	}
+	if err := cli.Delete(context.TODO(), secret); err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
 	}
 	return nil
 }
