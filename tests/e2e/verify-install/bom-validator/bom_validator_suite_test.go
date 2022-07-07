@@ -9,7 +9,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestIstio(t *testing.T) {
+func TestBomValidator(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Bom Validator Suite")
 }
