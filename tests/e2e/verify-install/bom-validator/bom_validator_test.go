@@ -6,15 +6,15 @@ package bomvalidator
 import (
 	"encoding/json"
 	"fmt"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"log"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 const (
@@ -91,7 +91,6 @@ var clusterImageTagErrors = make(map[string]imageError) // Map of cluster image 
 var clusterImagesNotFound = make(map[string]string)     // Map of cluster image doesn't match with bom, hence a Failure Condition
 var clusterImageWarnings = make(map[string]string)      // Map of image names not found in cluster. Warning/ Known Issues/ Informational.  This may be valid based on profile
 
-
 var t = framework.NewTestFramework("bom validator")
 
 var _ = t.AfterSuite(func() {})
@@ -108,7 +107,7 @@ var _ = t.Describe("Bom Validator", Label("f:platform-lcm.install"), func() {
 			Expect(vBom.Components).NotTo(BeNil())
 		})
 		t.It("Has Successfully Populated BOM Images into 'bomImages' Map", func() {
-			populateBomContainerImagesMap()	
+			populateBomContainerImagesMap()
 			Expect(bomImages).NotTo(BeEmpty())
 		})
 		t.It("Has Successfully Populated Cluster Images into 'clusterImageArray' List", func() {
