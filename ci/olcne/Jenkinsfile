@@ -1161,6 +1161,13 @@ def installVerrazzano() {
         kubectl apply -f $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml
         # wait for Verrazzano install to complete
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+        # Print out the username and passwords
+        echo "Verrazzano username: verrazzano"
+        kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
+        echo "Rancher username: admin"
+        kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo
+        echo "Keycloak username: keycloakadmin"
+        kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo
         # Create acceptance test configuration file
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/common-test-setup-script.sh "$WORKSPACE" "$TEST_CONFIG_FILE" "$GHCR_REPO" "$KUBECONFIG" "$OCR_CREDS_USR" "$OCR_CREDS_PSW" "$VZ_ENVIRONMENT_NAME"
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_ingress_ip.sh "$TEST_CONFIG_FILE" "$OCI_DNS_ZONE_NAME"
