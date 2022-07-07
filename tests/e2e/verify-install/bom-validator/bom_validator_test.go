@@ -96,7 +96,7 @@ var t = framework.NewTestFramework("bom validator")
 var _ = t.AfterSuite(func() {})
 var _ = t.BeforeSuite(func() {})
 var _ = t.AfterEach(func() {})
-
+/*
 var _ = t.Describe("Bom Validator", Label("f:platform-lcm.install"), func() {
 	t.Context("Post VZ Installations", func() {
 		t.It("Has Valid Kube Config", func() {
@@ -122,7 +122,19 @@ var _ = t.Describe("Bom Validator", Label("f:platform-lcm.install"), func() {
 		})
 	})
 })
-
+*/
+var _ = t.Describe("Bom Validator", Label("f:platform-lcm.install"), func() {
+	t.Context("Post VZ Installations", func() {
+		t.It("Has Successful BOM Validation Report", func() {
+			validateKubeConfig()
+			getBOM()
+			populateBomContainerImagesMap()
+			populateClusterContainerImages()
+			scanClusterImagesWithBom()
+			Eventually(BomValidationReport).Should(BeTrue())
+		})
+	})
+})
 // Validate that KubeConfig is valued. This will point to the cluster being validated
 func validateKubeConfig() bool {
 	if kubeconfig == "" {
