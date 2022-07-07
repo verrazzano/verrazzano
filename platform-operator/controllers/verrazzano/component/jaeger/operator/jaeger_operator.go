@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -19,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"io/fs"
 	"io/ioutil"
+	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -388,4 +390,18 @@ func ReassociateResources(cli clipkg.Client) error {
 		}
 	}
 	return nil
+}
+
+// GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
+// jaeger helm chart
+func GetHelmManagedResources() []common.HelmManagedResource {
+	return []common.HelmManagedResource{
+		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator ", Namespace: ComponentNamespace}},
+		{Obj: &certv1.Certificate{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-serving-cert", Namespace: ComponentNamespace}},
+		{Obj: &certv1.Issuer{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-selfsigned-issuer", Namespace: ComponentNamespace}},
+		{Obj: &adminv1.ValidatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-validating-webhook-configuration", Namespace: ComponentNamespace}},
+		//{Obj: &rbacv1.RoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
+		//{Obj: &rbacv1.Role{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
+
+	}
 }

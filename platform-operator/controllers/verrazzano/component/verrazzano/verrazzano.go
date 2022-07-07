@@ -249,12 +249,12 @@ func associateJaegerResources(cli clipkg.Client) error {
 		}
 	}
 
-	/*	jaegerManagedResources := authproxy.GetHelmManagedResources()
-		for _, managedResource := range jaegerManagedResources {
-			if _, err := common.AssociateHelmObject(cli, managedResource.Obj, jaegerReleaseName, managedResource.NamespacedName, true); err != nil {
-				return err
-			}
-		}*/
+	jaegerManagedResources := jaegeroperator.GetHelmManagedResources()
+	for _, managedResource := range jaegerManagedResources {
+		if _, err := common.AssociateHelmObject(cli, managedResource.Obj, jaegerReleaseName, managedResource.NamespacedName, true); err != nil {
+			return err
+		}
+	}
 
 	// cluster resources
 	for _, obj := range noNamespaceObjects {
