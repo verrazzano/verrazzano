@@ -11,6 +11,8 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	k8sres "github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -176,19 +178,14 @@ func EnsureGrafanaAdminSecret(cli client.Client) error {
 	return nil
 }
 
-func DeleteGrafanaAdminSecret(cli client.Client) error {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.GrafanaSecret,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-	}
-	if err := cli.Delete(context.TODO(), secret); err != nil {
-		if !errors.IsNotFound(err) {
-			return err
-		}
-	}
-	return nil
+func DeleteGrafanaAdminSecret(cli client.Client, log vzlog.VerrazzanoLogger) error {
+	return k8sres.Resource{
+		Namespace: globalconst.VerrazzanoSystemNamespace,
+		Name:      constants.GrafanaSecret,
+		Client:    cli,
+		Object:    &corev1.Secret{},
+		Log:       log,
+	}.Delete()
 }
 
 // EnsureBackupSecret creates or updates the VMI backup secret

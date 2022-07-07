@@ -5,15 +5,14 @@ package grafana
 
 import (
 	"context"
+	k8sres "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"strings"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
@@ -63,18 +62,14 @@ func createGrafanaConfigMaps(ctx spi.ComponentContext) error {
 }
 
 func deleteGrafanaConfigMaps(ctx spi.ComponentContext) error {
-	// Create the ConfigMap for Grafana Dashboards
-	dashboards := systemDashboardsCM()
-	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dashboards.Name, Namespace: dashboards.Namespace}, dashboards); err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return err
-	}
-	if err := ctx.Client().Delete(context.TODO(), dashboards); err != nil {
-		return err
-	}
-	return nil
+	// Delete the ConfigMap for Grafana Dashboards
+	return k8sres.Resource{
+		Namespace: globalconst.VerrazzanoSystemNamespace,
+		Name:      "system-dashboards",
+		Client:    ctx.Client(),
+		Object:    &corev1.ConfigMap{},
+		Log:       ctx.Log(),
+	}.Delete()
 }
 
 //dashboardName individual dashboards live in the configmap as files of the format:
