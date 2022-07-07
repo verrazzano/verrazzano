@@ -347,3 +347,43 @@ func isCreateJaegerInstance(ctx spi.ComponentContext) (bool, error) {
 	}
 	return false, nil
 }
+
+// ReassociateResources updates the resources to ensure they are managed by this release/component.  The resource policy
+// annotation is removed to ensure that helm manages the lifecycle of the resources (the resource policy annotation is
+// added to ensure the resources are disassociated from the VZ chart which used to manage these resources)
+func ReassociateResources(cli clipkg.Client) error {
+	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
+	name := types.NamespacedName{Name: ComponentName}
+	objects := []clipkg.Object{
+		&corev1.ServiceAccount{},
+		&appsv1.DaemonSet{},
+	}
+
+	noNamespaceObjects := []clipkg.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+
+	// namespaced resources
+	for _, obj := range objects {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, obj, namespacedName); err != nil {
+			return err
+		}
+	}
+
+	/*	// additional namespaced resources managed by this helm chart
+		helmManagedResources := GetHelmManagedResources()
+		for _, managedResoure := range helmManagedResources {
+			if _, err := common.RemoveResourcePolicyAnnotation(cli, managedResoure.Obj, managedResoure.NamespacedName); err != nil {
+				return err
+			}
+		}*/
+
+	// cluster resources
+	for _, obj := range noNamespaceObjects {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, obj, name); err != nil {
+			return err
+		}
+	}
+	return nil
+}

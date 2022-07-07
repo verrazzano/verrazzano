@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -139,6 +140,11 @@ func exportFromHelmChart(cli clipkg.Client) error {
 		return err
 	}
 
+	err = associateJaegerResources(cli)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -218,6 +224,44 @@ func associateFluentdResources(cli clipkg.Client) error {
 		}
 	}
 
+	return nil
+}
+
+func associateJaegerResources(cli clipkg.Client) error {
+	jaegerReleaseName := types.NamespacedName{Name: jaeger.ComponentName, Namespace: jaeger.ComponentNamespace}
+	namespacedName := jaegerReleaseName
+	name := types.NamespacedName{Name: jaeger.ComponentName}
+	objects := []clipkg.Object{
+		&corev1.ServiceAccount{},
+		&corev1.Service{},
+		&appsv1.Deployment{},
+	}
+
+	noNamespaceObjects := []clipkg.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+
+	// namespaced resources
+	for _, obj := range objects {
+		if _, err := common.AssociateHelmObject(cli, obj, jaegerReleaseName, namespacedName, true); err != nil {
+			return err
+		}
+	}
+
+	/*	jaegerManagedResources := authproxy.GetHelmManagedResources()
+		for _, managedResource := range jaegerManagedResources {
+			if _, err := common.AssociateHelmObject(cli, managedResource.Obj, jaegerReleaseName, managedResource.NamespacedName, true); err != nil {
+				return err
+			}
+		}*/
+
+	// cluster resources
+	for _, obj := range noNamespaceObjects {
+		if _, err := common.AssociateHelmObject(cli, obj, jaegerReleaseName, name, true); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
