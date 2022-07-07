@@ -30,6 +30,8 @@ spec:
           env:
             - name: MODE
               value: RUN_OPERATOR
+            - name: VERRAZZANO_KUBECONFIG
+              value: /home/verrazzano/kubeconfig
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
