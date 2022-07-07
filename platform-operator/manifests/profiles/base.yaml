@@ -185,6 +185,9 @@ spec:
                       weight: 100
     keycloak:
       enabled: true
+      overrides:
+        - values:
+            replicas: 2
     kibana:
       enabled: true
       replicas: 1
