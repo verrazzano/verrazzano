@@ -33,6 +33,7 @@ config:
   envName:
   dnsSuffix:
   prometheusOperatorEnabled:
+  ingressClassName:
 
 dns:
   wildcard:

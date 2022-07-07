@@ -61,7 +61,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_4_0,
-			ImagePullSecretKeyname:  "image.imagePullSecrets[0].name",
+			ImagePullSecretKeyname:  imagePullSecretHelmKey,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "velero-override-static-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,

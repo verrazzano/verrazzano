@@ -1640,6 +1640,10 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      ingressClassName:
+                        description: Name of the ingress class used by the ingress
+                          controller. Defaults to verrazzano-nginx
+                        type: string
                       monitorChanges:
                         type: boolean
                       nginxInstallArgs:
@@ -4035,6 +4039,8 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      monitorChanges:
+                        type: boolean
                       overrides:
                         items:
                           description: Overrides stores the specified overrides
@@ -4055,7 +4061,7 @@ spec:
                                     key must be defined
                                   type: boolean
                               required:
-                                - key
+                              - key
                               type: object
                             secretRef:
                               description: SecretKeySelector selects a key of a Secret.
@@ -4074,7 +4080,7 @@ spec:
                                     must be defined
                                   type: boolean
                               required:
-                                - key
+                              - key
                               type: object
                             values:
                               x-kubernetes-preserve-unknown-fields: true

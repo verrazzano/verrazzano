@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	deploymentName      = "velero"
-	veleroAwsPluginName = "velero-plugin-for-aws"
+	deploymentName         = "velero"
+	veleroAwsPluginName    = "velero-plugin-for-aws"
+	imagePullSecretHelmKey = "image.imagePullSecrets[0]"
 )
 
 // isVeleroOperatorReady checks if the Velero deployment is ready
