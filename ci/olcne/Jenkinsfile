@@ -150,7 +150,7 @@ pipeline {
 
         // Verrazzano variables
         TEST_ENV="${params.TEST_ENV}"
-        VZ_ENVIRONMENT_NAME="$TEST_ENV"
+        VZ_ENVIRONMENT_NAME="${params.TEST_ENV.toLowerCase()}"
         BRANCH_NAME_PREFIX="${env.BRANCH_NAME.equals('master') ? 'vz' : env.BRANCH_NAME.substring(0, 2)}"
         CLUSTER_NAME="$BRANCH_NAME_PREFIX" + "$uniquePrefix"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
