@@ -10,6 +10,8 @@ postgresql:
   enabled: false
 
 extraEnv: |
+  - name: CACHE_OWNERS
+    value: "2"
   - name: DB_VENDOR
     value: mysql
   - name: DB_ADDR
