@@ -75,6 +75,19 @@ func Install(log vzlog.VerrazzanoLogger, overrideStrings string, overridesFiles 
 	return stdout, stderr, nil
 }
 
+// UnInstall does an Istio uninstall
+func UnInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, err error) {
+	args := []string{"x", "uninstall", "--revision", "default", "-y"}
+
+	// Perform istioctl call of type uninstall
+	stdout, stderr, err = runIstioctl(log, args, "uninstall")
+	if err != nil {
+		return stdout, stderr, errors.Wrapf(err, "uninstall failed, stderr: %s", stderr)
+	}
+
+	return stdout, stderr, nil
+}
+
 // IsInstalled returns true if Istio is installed
 func IsInstalled(log vzlog.VerrazzanoLogger) (bool, error) {
 	// Perform istioctl call of type upgrade

@@ -76,7 +76,7 @@ type istioComponent struct {
 	monitor installMonitor
 }
 
-// GetJsonName returns the josn name of the verrazzano component in CRD
+// GetJSONName returns the json name of the verrazzano component in CRD
 func (i istioComponent) GetJSONName() string {
 	return ComponentJSONName
 }
@@ -134,7 +134,7 @@ func NewComponent() spi.Component {
 }
 
 func (i istioComponent) IsOperatorUninstallSupported() bool {
-	return false
+	return true
 }
 
 func (i istioComponent) PreUninstall(context spi.ComponentContext) error {
