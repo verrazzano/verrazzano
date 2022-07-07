@@ -193,6 +193,15 @@ func TestIsNGINXReady(t *testing.T) {
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      vpoconst.NGINXControllerServiceName,
+				Namespace: vpoconst.IngressNginxNamespace,
+			},
+			Spec: corev1.ServiceSpec{
+				ExternalIPs: []string{"127.0.0.1"},
+			},
+		},
 	).Build()
 
 	vz := &vzapi.Verrazzano{
