@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	"strings"
 
@@ -159,26 +160,24 @@ func (i istioComponent) Uninstall(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
+	res := resource.Resource{
+		Name:   IstioNamespace,
+		Client: context.Client(),
+		Object: &v1.Namespace{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Namespace",
+			},
+		},
+		Log: context.Log(),
+	}
 	// Remove finalizers from the istio-system namespace to avoid hanging namespace deletion
-	err := resource.Resource{
-		Namespace: "",
-		Name:      IstioNamespace,
-		Client:    context.Client(),
-		Object:    &v1.Namespace{},
-		Log:       context.Log(),
-	}.RemoveFinializers()
+	err := res.RemoveFinalizers()
 	if err != nil {
 		return err
 	}
 
 	// Delete the istio-system namespace now that the finalizers have been removed
-	return resource.Resource{
-		Namespace: "",
-		Name:      IstioNamespace,
-		Client:    context.Client(),
-		Object:    &v1.Namespace{},
-		Log:       context.Log(),
-	}.Delete()
+	return res.Delete()
 }
 
 // IsEnabled istio-specific enabled check for installation
