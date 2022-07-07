@@ -490,33 +490,117 @@ func TestUninstallCertManager(t *testing.T) {
 			Name: constants.CertManagerNamespace,
 		},
 	}
+	vzCI := certv1.ClusterIssuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: verrazzanoClusterIssuerName,
+		},
+	}
+	ssIssuer := certv1.Issuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      caSelfSignedIssuerName,
+		},
+	}
+	caCert := certv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      caCertificateName,
+		},
+	}
+	caSecret := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      defaultCACertificateSecretName,
+		},
+	}
+	caAcmeSec := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      caAcmeSecretName,
+		},
+	}
 
 	tests := []struct {
 		name    string
 		objects []clipkg.Object
 	}{
 		{
-			name: "test no controller configmap",
+			name: "test empty cluster",
 		},
 		{
-			name: "test no ca configmap",
+			name: "test controller configmap",
 			objects: []clipkg.Object{
 				&controllerCM,
 			},
 		},
 		{
-			name: "test no namespace",
+			name: "test ca configmap",
 			objects: []clipkg.Object{
 				&controllerCM,
 				&caCM,
 			},
 		},
 		{
-			name: "test all",
+			name: "test namespace",
 			objects: []clipkg.Object{
 				&controllerCM,
 				&caCM,
 				&certNS,
+			},
+		},
+		{
+			name: "test cluster issuer",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+				&vzCI,
+			},
+		},
+		{
+			name: "test issuer",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+				&vzCI,
+				&ssIssuer,
+			},
+		},
+		{
+			name: "test ca cert",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+				&vzCI,
+				&ssIssuer,
+				&caCert,
+			},
+		},
+		{
+			name: "test ca secret",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+				&vzCI,
+				&ssIssuer,
+				&caCert,
+				&caSecret,
+			},
+		},
+		{
+			name: "test ca acme secret",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+				&vzCI,
+				&ssIssuer,
+				&caCert,
+				&caSecret,
+				&caAcmeSec,
 			},
 		},
 	}
@@ -534,7 +618,7 @@ func TestUninstallCertManager(t *testing.T) {
 			assert.Error(t, err, "Expected the ConfigMap %s to be deleted", caInjectorConfigMap)
 			// expect the Namespace to get deleted
 			err = c.Get(context.TODO(), types.NamespacedName{Name: constants.CertManagerNamespace}, &v1.Namespace{})
-			assert.Error(t, err, "Expected the Namespace %s to be deleted", constants.CertManagerNamespace)
+			assert.Error(t, err, "Expected the Namespace %s to be deleted", ComponentNamespace)
 		})
 	}
 }

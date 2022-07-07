@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"io"
 	"net/mail"
 	"os"
@@ -842,45 +843,49 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 // this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
 func uninstallCertManager(compContext spi.ComponentContext) error {
 	// Delete the kube-system cert-manager configMaps [controller, caInjector]
-	var controllerCM v1.ConfigMap
-	controllerCM.SetName(controllerConfigMap)
-	controllerCM.SetNamespace(constants.KubeSystem)
-	err := compContext.Client().Delete(context.TODO(), &controllerCM)
-	if crtclient.IgnoreNotFound(err) != nil {
-		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s: %v", constants.KubeSystem, controllerConfigMap, err)
-	} else if err == nil {
-		compContext.Log().Oncef("Successfully deleted ConfigMap %s/%s", constants.KubeSystem, controllerConfigMap)
+	if err := deleteObjectWithLog(compContext, controllerConfigMap, constants.KubeSystem, &v1.ConfigMap{}); err != nil {
+		return err
+	}
+	if err := deleteObjectWithLog(compContext, caInjectorConfigMap, constants.KubeSystem, &v1.ConfigMap{}); err != nil {
+		return err
 	}
 
-	var caCM v1.ConfigMap
-	caCM.SetName(caInjectorConfigMap)
-	caCM.SetNamespace(constants.KubeSystem)
-	err = compContext.Client().Delete(context.TODO(), &caCM)
-	if crtclient.IgnoreNotFound(err) != nil {
-		return compContext.Log().ErrorfNewErr("Failed to delete the ConfigMap %s/%s: %v", constants.KubeSystem, caInjectorConfigMap, err)
-	} else if err == nil {
-		compContext.Log().Oncef("Successfully deleted ConfigMap %s/%s", constants.KubeSystem, caInjectorConfigMap)
+	// Delete the ClusterIssuer created by Verrazzano
+	if err := deleteObjectWithLog(compContext, verrazzanoClusterIssuerName, vzconst.DefaultNamespace, &v1.ConfigMap{}); err != nil {
+		return err
+	}
+
+	// Delete the CA resources if necessary
+	if err := deleteObjectWithLog(compContext, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{}); err != nil {
+		return err
+	}
+	if err := deleteObjectWithLog(compContext, caCertificateName, ComponentNamespace, &certv1.Certificate{}); err != nil {
+		return err
+	}
+	if err := deleteObjectWithLog(compContext, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{}); err != nil {
+		return err
+	}
+
+	// Delete the ACME secret if present
+	if err := deleteObjectWithLog(compContext, caAcmeSecretName, ComponentNamespace, &v1.Secret{}); err != nil {
+		return err
 	}
 
 	// Remove finalizers from the cert-manager namespace to avoid hanging namespace deletion
-	certNS := v1.Namespace{}
-	certNS.Name = constants.CertManagerNamespace
-	_, err = controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certNS, func() error {
-		certNS.Finalizers = []string{}
-		return nil
-	})
-	if err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to remove the finalizer for the namespace %s: %v", constants.CertManagerNamespace, err)
+	certNs := v1.Namespace{}
+	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &certNs)
+	if crtclient.IgnoreNotFound(err) != nil {
+		return compContext.Log().ErrorfNewErr("Failed to get the %s %s: %v", certNs.GetObjectKind(), ComponentNamespace, err)
+	} else if err == nil {
+		certNs.SetFinalizers([]string{})
+		err = compContext.Client().Update(context.TODO(), &certNs)
+		if err != nil {
+			return compContext.Log().ErrorfNewErr("Failed to update the %s %s: %v", certNs.GetObjectKind(), ComponentNamespace, err)
+		}
 	}
 
 	// Delete the cert-manager namespace now that the finalizers have been removed
-	err = compContext.Client().Delete(context.TODO(), &certNS)
-	if crtclient.IgnoreNotFound(err) != nil {
-		return compContext.Log().ErrorfNewErr("Failed to delete the cert-manager namespace %s: %v", constants.CertManagerNamespace, err)
-	} else if err == nil {
-		compContext.Log().Oncef("Successfully deleted the namespace %s", constants.CertManagerNamespace)
-	}
-	return nil
+	return deleteObjectWithLog(compContext, ComponentNamespace, "", &v1.Namespace{})
 }
 
 func deleteObject(client crtclient.Client, name string, namespace string, object crtclient.Object) error {
@@ -888,6 +893,20 @@ func deleteObject(client crtclient.Client, name string, namespace string, object
 	object.SetNamespace(namespace)
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, object); err == nil {
 		return client.Delete(context.TODO(), object)
+	}
+	return nil
+}
+
+// deleteObjectWithLog deletes an object with a Oncef message if it is successfull
+// If the object is not found, we ignore and continue
+func deleteObjectWithLog(compContext spi.ComponentContext, name string, namespace string, object crtclient.Object) error {
+	object.SetName(name)
+	object.SetNamespace(namespace)
+	err := compContext.Client().Delete(context.TODO(), object)
+	if crtclient.IgnoreNotFound(err) != nil {
+		return compContext.Log().ErrorfNewErr("Failed to delete the %s %s/%s: %v", object.GetObjectKind(), namespace, name, err)
+	} else if err == nil {
+		compContext.Log().Oncef("Successfully deleted %s %s/%s", object.GetObjectKind(), namespace, name)
 	}
 	return nil
 }
