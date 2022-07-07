@@ -59,15 +59,6 @@ function delete_verrazzano() {
   delete_managed_k8s_resources scopedefinitions.core.oam.dev
 }
 
-function delete_vmo {
-  log "Uninstall the Verrazzano Monitoring Operator"
-  if helm status verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall verrazzano-monitoring-operator --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall the Verrazzano Monitoring Operator."
-    fi
-  fi
-}
-
 function delete_authproxy {
   log "Uninstall the Verrazzano AuthProxy"
   if helm status verrazzano-authproxy --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -190,7 +181,6 @@ action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || e
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
 action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
 action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
-action "Deleting Verrazzano Monitoring Operator" delete_vmo || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
 action "Deleting Velero " delete_velero || exit 1
