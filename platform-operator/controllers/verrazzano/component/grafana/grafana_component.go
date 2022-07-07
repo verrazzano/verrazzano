@@ -6,7 +6,6 @@ package grafana
 import (
 	"fmt"
 
-	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -150,7 +149,7 @@ func (g grafanaComponent) PostInstall(ctx spi.ComponentContext) error {
 }
 
 func (g grafanaComponent) IsOperatorUninstallSupported() bool {
-	return true
+	return false
 }
 
 func (g grafanaComponent) PreUninstall(context spi.ComponentContext) error {
@@ -158,17 +157,11 @@ func (g grafanaComponent) PreUninstall(context spi.ComponentContext) error {
 }
 
 func (g grafanaComponent) Uninstall(context spi.ComponentContext) error {
-	return common.UpdateVMI(context, func(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
-		vmi.Spec.Grafana.Enabled = false
-		return nil
-	})
+	return nil
 }
 
 func (g grafanaComponent) PostUninstall(context spi.ComponentContext) error {
-	if err := deleteGrafanaConfigMaps(context); err != nil {
-		return err
-	}
-	return common.DeleteGrafanaAdminSecret(context.Client())
+	return nil
 }
 
 // PreUpgrade ensures that preconditions are met before upgrading the Grafana component
