@@ -194,7 +194,18 @@ func TestIsNGINXReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
+
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				Ingress: &vzapi.IngressNginxComponent{
+					Type: vzapi.LoadBalancer,
+				},
+			},
+		},
+	}
+	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, false)))
 }
 
 // TestIsNGINXNotReady tests the IsReady function
