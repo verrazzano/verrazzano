@@ -1137,13 +1137,13 @@ def installVerrazzano() {
     sh """
         yq -i eval '.spec.environmentName = "$VZ_ENVIRONMENT_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
         yq -i eval '.spec.components.dns.external.suffix = "$OCI_DNS_ZONE_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.components.ingress.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
         yq -i eval '.spec.components.ingress.nginxInstallArgs[0].valueList[0] = "$OCI_LB_MGMT_IP"' "$INSTALL_CONFIG_FILE_OLCNE"
         yq -i eval '.spec.components.istio.istioInstallArgs[0].valueList[0] = "$OCI_LB_APP_IP"' "$INSTALL_CONFIG_FILE_OLCNE"
-        yq -i eval '.spec.components.prometheusOperator.enabled = false' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.kiali.enabled = false' $INSTALL_CONFIG_FILE_OLCNE
+        yq -i eval '.spec.components.prometheusOperator.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
+        yq -i eval '.spec.components.kiali.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
         yq -i eval '.spec.components.rancher.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
         yq -i eval '.spec.components.certManager.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.ingress.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
         yq -i eval '.spec.components.istio.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
         yq -i eval '.spec.components.keycloak.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
         yq -i eval '.spec.components.applicationOperator.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
