@@ -5,6 +5,7 @@ package certmanager
 
 import (
 	"context"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"testing"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -619,6 +620,21 @@ func TestUninstallCertManager(t *testing.T) {
 			// expect the Namespace to get deleted
 			err = c.Get(context.TODO(), types.NamespacedName{Name: constants.CertManagerNamespace}, &v1.Namespace{})
 			assert.Error(t, err, "Expected the Namespace %s to be deleted", ComponentNamespace)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: verrazzanoClusterIssuerName, Namespace: vzconst.DefaultNamespace}, &certv1.ClusterIssuer{})
+			assert.Error(t, err, "Expected the ClusterIssuer %s to be deleted", ComponentNamespace)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: caSelfSignedIssuerName, Namespace: ComponentNamespace}, &certv1.Issuer{})
+			assert.Error(t, err, "Expected the Issuer %s to be deleted", ComponentNamespace)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: caCertificateName, Namespace: ComponentNamespace}, &certv1.Certificate{})
+			assert.Error(t, err, "Expected the Certificate %s to be deleted", ComponentNamespace)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: defaultCACertificateSecretName, Namespace: ComponentNamespace}, &v1.Secret{})
+			assert.Error(t, err, "Expected the Secret %s to be deleted", ComponentNamespace)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: caAcmeSecretName, Namespace: ComponentNamespace}, &v1.Secret{})
+			assert.Error(t, err, "Expected the Secret %s to be deleted", ComponentNamespace)
 		})
 	}
 }
