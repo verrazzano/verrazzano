@@ -1,19 +1,19 @@
 github.com/verrazzano/verrazzano
 -------- Copyrights
+Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+Copyright (c) 2020, 2021, Oracle America, Inc. and its affiliates.
+Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (c) 2022, Oracle and/or its affiliates.
 Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
-Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
-Copyright (C) 2020, 2022, Oracle and/or its affiliates.
-Copyright (c) 2020, 2021, Oracle America, Inc. and its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
-Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
+Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
-Copyright (c) 2015-2021 Bitnami
 Copyright 2020, Oracle Corporation and/or its affiliates.
+Copyright (c) 2015-2021 Bitnami
 Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
 Copyright (c) 2020, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.")
@@ -47,10 +47,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -------- Dependency
 gopkg.in/yaml.v3
 -------- Copyrights
-Copyright (c) 2011-2019 Canonical Ltd
 Copyright (c) 2006-2010 Kirill Simonov
-Copyright 2011-2016 Canonical Ltd.
 Copyright (c) 2006-2011 Kirill Simonov
+Copyright (c) 2011-2019 Canonical Ltd
+Copyright 2011-2016 Canonical Ltd.
 -------- Notices
 Copyright 2011-2016 Canonical Ltd.
 
@@ -142,11 +142,11 @@ Copyright 2020, Google LLC
 Copyright 2009 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
 Copyright (c) 2020 The Go Authors. All rights reserved.
 Copyright 2012 Google, Inc. Package foo does bar.", 27, ""},
 Copyright 2020 The Go Authors. All rights reserved.
-Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2017, Google LLC
 
 -------- Dependency
@@ -166,8 +166,8 @@ Copyright 2019 The Kruise Authors.
 -------- Dependency
 github.com/go-logr/logr
 -------- Copyrights
-Copyright 2020 The logr Authors.
 Copyright 2021 The logr Authors.
+Copyright 2020 The logr Authors.
 Copyright 2019 The logr Authors.
 
 -------- Dependency
@@ -206,8 +206,8 @@ Copyright 2011 Google Inc.
 Copyright 2010 Google Inc.
 Copyright 2020 Google LLC
 Copyright 2020 Google Inc.
-Copyright 2019 Google LLC
 Copyright 2012 Google Inc.
+Copyright 2019 Google LLC
 
 -------- Dependency
 github.com/google/btree
@@ -227,9 +227,9 @@ Copyright 2012 Google Inc. All Rights Reserved.
 -------- Dependency
 github.com/googleapis/gnostic
 -------- Copyrights
+Copyright 2017-2020, Google LLC.
 Copyright 2019 Google LLC. All Rights Reserved.
 Copyright 2017 Google LLC. All Rights Reserved.
-Copyright 2017-2020, Google LLC.
 Copyright 2020 Google LLC. All Rights Reserved.
 Copyright 2018 Google LLC. All Rights Reserved.
 Copyright 2020 Google LLC. All Rights Reserved.\n" +
@@ -237,8 +237,8 @@ Copyright 2020 Google LLC. All Rights Reserved.\n" +
 -------- Dependency
 github.com/jetstack/cert-manager
 -------- Copyrights
-Copyright 2021 The cert-manager Authors.
 Copyright 2020 The cert-manager Authors.
+Copyright 2021 The cert-manager Authors.
 Copyright (c) 2014 Alex Saskevich
 Copyright (c) 2021 Microsoft
 Copyright (c) 2015 Microsoft Corporation
@@ -384,9 +384,9 @@ Copyright 2012 Matt T. Proud (matt.proud@gmail.com)
 github.com/moby/spdystream
 -------- Copyrights
 Copyright 2014-2021 Docker Inc.
-Copyright 2011 The Go Authors. All rights reserved.
-Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2013-2021 Docker, inc. Released under the [Apache 2.0 license](LICENSE).
+Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
 -------- Notices
 SpdyStream
 Copyright 2014-2021 Docker Inc.
@@ -408,27 +408,27 @@ github.com/modern-go/reflect2
 -------- Dependency
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring
 -------- Copyrights
-Copyright 2018 The prometheus-operator Authors
 Copyright 2017 The prometheus-operator Authors
+Copyright 2018 The prometheus-operator Authors
 Copyright 2020 The prometheus-operator Authors
 Copyright 2021 The prometheus-operator Authors
 
 -------- Dependency
 github.com/prometheus/client_golang
 -------- Copyrights
-Copyright 2018 The Prometheus Authors
+Copyright 2015 The Prometheus Authors
 Copyright 2012-2015 The Prometheus Authors
 Copyright 2013-2015 Blake Mizerany, Björn Rabenstein
 Copyright 2010 The Go Authors
 Copyright 2013 Matt T. Proud
-Copyright 2015 The Prometheus Authors
 Copyright 2014 The Prometheus Authors
+Copyright 2018 The Prometheus Authors
 Copyright 2021 The Prometheus Authors
 Copyright 2016 The Prometheus Authors
 Copyright 2019 The Prometheus Authors
-Copyright 2020 The Prometheus Authors
 Copyright 2017 The Prometheus Authors
 Copyright 2022 The Prometheus Authors
+Copyright 2020 The Prometheus Authors
 Copyright (c) 2013, The Prometheus Authors
 -------- Notices
 Prometheus instrumentation library for Go applications
@@ -459,8 +459,8 @@ Licensed under the Apache License, Version 2.0
 -------- Dependency
 github.com/prometheus/client_model
 -------- Copyrights
-Copyright 2013 Prometheus Team
 Copyright 2012-2015 The Prometheus Authors
+Copyright 2013 Prometheus Team
 -------- Notices
 Data model artifacts for Prometheus.
 Copyright 2012-2015 The Prometheus Authors
@@ -475,12 +475,12 @@ github.com/prometheus/common
 Copyright 2015 The Prometheus Authors
 Copyright 2018 The Prometheus Authors
 Copyright 2014 The Prometheus Authors
-Copyright 2020 The Prometheus Authors
 Copyright 2016 The Prometheus Authors
+Copyright 2020 The Prometheus Authors
 Copyright 2021 The Prometheus Authors
+Copyright (c) 2011, Open Knowledge Foundation Ltd.
 Copyright 2013 The Prometheus Authors
 Copyright 2019 The Prometheus Authors
-Copyright (c) 2011, Open Knowledge Foundation Ltd.
 Copyright 2017 The Prometheus Authors
 -------- Notices
 Common libraries shared by Prometheus Go components.
@@ -494,12 +494,12 @@ SoundCloud Ltd. (http://soundcloud.com/).
 github.com/prometheus/procfs
 -------- Copyrights
 Copyright 2019 The Prometheus Authors
-Copyright 2018 The Prometheus Authors
-Copyright 2021 The Prometheus Authors
-Copyright 2017 The Prometheus Authors
-Copyright 2020 The Prometheus Authors
-Copyright 2014 Prometheus Team
 Copyright 2014-2015 The Prometheus Authors
+Copyright 2018 The Prometheus Authors
+Copyright 2017 The Prometheus Authors
+Copyright 2021 The Prometheus Authors
+Copyright 2014 Prometheus Team
+Copyright 2020 The Prometheus Authors
 Copyright 2017 Prometheus Team
 -------- Notices
 procfs provides functions to retrieve system, kernel and process
@@ -514,13 +514,13 @@ SoundCloud Ltd. (http://soundcloud.com/).
 -------- Dependency
 github.com/spf13/cobra
 -------- Copyrights
-Copyright © 2015 Steve Francia <spf@spf13.com>.
 Copyright © 2020 Steve Francia <spf@spf13.com>
+Copyright © 2015 Steve Francia <spf@spf13.com>.
 Copyright © 2013 Steve Francia <spf@spf13.com>.
 Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
-Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
 Copyright 2015 Red Hat Inc. All rights reserved.
 Copyright 2016 French Ben. All rights reserved.
+Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
 
 -------- Dependency
 gomodules.xyz/jsonpatch/v2
@@ -533,8 +533,8 @@ google.golang.org/genproto
 Copyright 2020 Google LLC.
 Copyright 2020 Google LLC
 Copyright 2021 Google LLC
-Copyright 2018 Google LLC
 Copyright 2019 Google LLC.
+Copyright 2018 Google LLC
 Copyright 2015 Google LLC
 Copyright 2016 Google LLC
 Copyright 2017 Google Inc.
@@ -542,19 +542,19 @@ Copyright 2018 Google Inc.
 Copyright 2016 Google Inc.
 Copyright 2021 Google LLC.
 Copyright 2018 The Grafeas Authors. All rights reserved.
-Copyright 2019 The Grafeas Authors. All rights reserved.
 Copyright 2021 The Grafeas Authors. All rights reserved.
+Copyright 2019 The Grafeas Authors. All rights reserved.
 Copyright (c) 2015, Google Inc.
 
 -------- Dependency
 google.golang.org/grpc
 -------- Copyrights
-Copyright 2019 gRPC authors.
 Copyright 2014 gRPC authors.
 Copyright 2021 gRPC authors.
-Copyright 2017 gRPC authors.
+Copyright 2019 gRPC authors.
 Copyright 2020 gRPC authors.
 Copyright 2016 gRPC authors.
+Copyright 2017 gRPC authors.
 Copyright 2018 gRPC authors.
 Copyright 2015 The gRPC Authors
 Copyright 2018 The gRPC Authors
@@ -618,8 +618,8 @@ Copyright (c) 2012 The Go Authors. All rights reserved.
 Copyright (c) 2015-2017 Nick Galbreath
 Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
 Copyright (c) 2012 Elazar Leibovich. All rights reserved.
-Copyright (c) 2012,2013 Ernest Micklei
 Copyright 2014-2015 Docker, Inc.
+Copyright (c) 2012,2013 Ernest Micklei
 Copyright (c) 2014, Evan Phoenix
 Copyright (c) 2012 fsnotify Authors. All rights reserved.
 Copyright (c) 2014 Sam Ghods
@@ -629,79 +629,79 @@ Copyright (c) 2017 The Go Authors. All rights reserved.
 Copyright (c) 2009,2014 Google Inc. All rights reserved.
 Copyright 2015 Hewlett Packard Enterprise Development LP
 Copyright (c) 2014 ActiveState
+Copyright (C) 2013 99designs
 Copyright (c) 2016 json-iterator
 Copyright (c) 2013 Kamil Kisiel
 Copyright (c) 2013 Kamil Kisiel <kamil@kamilkisiel.net>
 Copyright 2012 Keith Rarick
 Copyright (c) 2011 Keith Rarick
-Copyright (C) 2013 99designs
+Copyright (c) 2016 Mail.Ru Group
 Copyright (c) 2014 The Go-FlowRate Authors. All rights reserved.
 Copyright (c) 2013-2014 Onsi Fakhouri
 Copyright (c) 2016 Yasuhiro Matsumoto
 Copyright (c) 2013, Patrick Mezard
-Copyright (c) 2016 Mail.Ru Group
-Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright (c) 2012 Alex Ogier. All rights reserved.
 Copyright (c) 2014 Stretchr, Inc.
 Copyright (c) 2017-2018 objx contributors
-Copyright (c) 2013 The Go Authors. All rights reserved.
 Copyright (c) 2012-2018 Mat Ryer and Tyler Bunnell
-Copyright (c) 2012 Alex Ogier. All rights reserved.
+Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright (c) 2013 The Go Authors. All rights reserved.
+Copyright (c) 2010-2013 Gustavo Niemeyer <gustavo@niemeyer.net>
 Copyright (c) 2012 Péter Surányi. Portions Copyright (c) 2009 The Go
 Copyright (c) 2010-2011 - Gustavo Niemeyer <gustavo@niemeyer.net>
-Copyright (c) 2010-2013 Gustavo Niemeyer <gustavo@niemeyer.net>
 Copyright (c) 2016 Dominik Honnef
 Copyright (c) 2016 Dominik Honnef. All rights reserved.
-Copyright 2014 The Kubernetes Authors.
 Copyright 2016-2019 Istio Authors
+Copyright 2014 The Kubernetes Authors.
 
 -------- Dependency
 istio.io/client-go
 -------- Copyrights
 Copyright 2019 Istio Authors
-Copyright 2015 Microsoft Corporation
 Copyright 2016-2020 Istio Authors
+Copyright 2015 Microsoft Corporation
 Copyright (c) 2013 TOML authors
 Copyright (c) 2015 The New York Times Company
 Copyright (c) 2012, Martin Angers
-Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
-Copyright (c) 2012 Elazar Leibovich. All rights reserved.
-Copyright (c) 2012,2013 Ernest Micklei
 Copyright (c) 2012 The Go Authors. All rights reserved.
-Copyright 2014-2015 Docker, Inc.
 Copyright (c) 2015-2017 Nick Galbreath
+Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
+Copyright (c) 2012 Dave Grijalva
+Copyright (c) 2012 Elazar Leibovich. All rights reserved.
+Copyright 2014-2015 Docker, Inc.
+Copyright (c) 2012,2013 Ernest Micklei
 Copyright (c) 2014, Evan Phoenix
 Copyright (c) 2012 fsnotify Authors. All rights reserved.
 Copyright (c) 2014 Sam Ghods
-Copyright (c) 2012 Dave Grijalva
 Copyright (c) 2013, The GoGo Authors. All rights reserved.
 Copyright 2010 The Go Authors.  All rights reserved.
 Copyright (c) 2017 The Go Authors. All rights reserved.
 Copyright 2010-2017 Mike Bostock
-Copyright (c) 2009,2014 Google Inc. All rights reserved.
-Copyright 2009-2017 Andrea Leofreddi <a.leofreddi@vleo.net>. All rights reserved.
 Copyright 2016, Google Inc.
+Copyright 2009-2017 Andrea Leofreddi <a.leofreddi@vleo.net>. All rights reserved.
+Copyright (c) 2009,2014 Google Inc. All rights reserved.
 Copyright 2012-2013 Rackspace, Inc.
-Copyright 2015 Hewlett Packard Enterprise Development LP
-Copyright (c) 2014 ActiveState
-Copyright (c) 2013 Dario Castañé. All rights reserved.
+Copyright © 2012 Greg Jones (greg.jones@gmail.com)
 Copyright (c) 2012 Joel Stemmer
-Copyright (c) 2016 json-iterator
-Copyright (c) 2011 Keith Rarick
-Copyright 2012 Keith Rarick
-Copyright (c) 2013 Kamil Kisiel <kamil@kamilkisiel.net>
-Copyright (c) 2013 Kamil Kisiel
 Copyright (c) 2014 The Go-FlowRate Authors. All rights reserved.
 Copyright (c) 2013-2014 Onsi Fakhouri
-Copyright (C) 2013 99designs
-Copyright © 2012 Greg Jones (greg.jones@gmail.com)
+Copyright (c) 2016 json-iterator
 Copyright (c) 2016 Yasuhiro Matsumoto
+Copyright (C) 2013 99designs
+Copyright 2015 Hewlett Packard Enterprise Development LP
+Copyright (c) 2014 ActiveState
+Copyright (c) 2011 Keith Rarick
+Copyright (c) 2012 Alex Ogier. All rights reserved.
+Copyright (c) 2013 Dario Castañé. All rights reserved.
+Copyright 2012 Keith Rarick
+Copyright (c) 2013 Kamil Kisiel
 Copyright (c) 2016 Mail.Ru Group
 Copyright (c) 2011-2012 Peter Bourgon
-Copyright (c) 2012 Alex Ogier. All rights reserved.
-Copyright (c) 2013, Patrick Mezard
 Copyright (c) 2014 Stretchr, Inc.
 Copyright (c) 2017-2018 objx contributors
 Copyright (c) 2012-2018 Mat Ryer and Tyler Bunnell
+Copyright (c) 2013 Kamil Kisiel <kamil@kamilkisiel.net>
+Copyright (c) 2013, Patrick Mezard
 Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright (c) 2013 The Go Authors. All rights reserved.
 Copyright (c) 2011 Google Inc. All rights reserved.
@@ -745,17 +745,17 @@ Copyright 2020 Google LLC
 -------- Dependency
 k8s.io/apimachinery
 -------- Copyrights
-Copyright 2017 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
+Copyright 2017 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 Copyright 2014 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2015 The Kubernetes Authors.
-Copyright 2019 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
-Copyright 2013 The Go Authors. All rights reserved.
 Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2009 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
 
 -------- Dependency
 k8s.io/cli-runtime
@@ -814,8 +814,8 @@ k8s.io/kube-openapi
 -------- Copyrights
 Copyright 2018 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
-Copyright 2021 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2015 go-swagger maintainers
@@ -824,26 +824,26 @@ Copyright 2017 go-swagger maintainers
 -------- Dependency
 k8s.io/utils
 -------- Copyrights
-Copyright 2017 The Kubernetes Authors.
-Copyright 2014 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
+Copyright 2017 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
+Copyright 2014 The Kubernetes Authors.
 Copyright 2015 The Kubernetes Authors.
-Copyright 2020 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
-Copyright 2010 The Go Authors. All rights reserved.
-Copyright 2009 The Go Authors. All rights reserved.
 Copyright (c) 2009 The Go Authors. All rights reserved.
-Copyright 2013 Google Inc.
+Copyright 2010 The Go Authors. All rights reserved.
 Copyright (c) 2012 The Go Authors. All rights reserved.
+Copyright 2013 Google Inc.
+Copyright 2009 The Go Authors. All rights reserved.
 
 -------- Dependency
 sigs.k8s.io/controller-runtime
 -------- Copyrights
+Copyright 2020 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
 Copyright 2018 The Kubernetes authors.
-Copyright 2020 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
@@ -855,8 +855,8 @@ Copyright 2014 The Kubernetes Authors.
 sigs.k8s.io/kustomize/api
 -------- Copyrights
 Copyright 2019 The Kubernetes Authors.
-Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
 
 -------- Dependency
@@ -865,10 +865,10 @@ sigs.k8s.io/kustomize/kyaml
 Copyright 2019 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
-Copyright (c) 2011-2019 Canonical Ltd
-Copyright (c) 2006-2010 Kirill Simonov
 Copyright 2011-2016 Canonical Ltd.
+Copyright (c) 2006-2010 Kirill Simonov
 Copyright (c) 2006-2011 Kirill Simonov
+Copyright (c) 2011-2019 Canonical Ltd
 Copyright (c) 2018 QRI, Inc.
 Copyright 2018 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
@@ -1181,14 +1181,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -------- Dependency
 github.com/oracle/oci-go-sdk/v53
 -------- Copyrights
-Copyright (c) 2016, 2018, 2021, Oracle and/or its affiliates.  All rights reserved.
+Copyright (c) 2016, 2018, 2020, Oracle and/or its affiliates.
 Copyright © 2012-2020 Mat Ryer, Tyler Bunnell and contributors.
 Copyright © 2013 The Go Authors. All rights reserved.
 Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors.
 Copyright (c) 2013 The Go Authors. All rights reserved.
+Copyright (c) 2016, 2018, 2021, Oracle and/or its affiliates.  All rights reserved.
 Copyright (c) 2016, 2018, 2020, Oracle and/or its affiliates.  All rights reserved.
 Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
-Copyright (c) 2016, 2018, 2020, Oracle and/or its affiliates.
 -------- Notices
 Copyright (c) 2016, 2018, 2020, Oracle and/or its affiliates.
 
@@ -1285,13 +1285,13 @@ END OF TERMS AND CONDITIONS
 sigs.k8s.io/json
 -------- Copyrights
 Copyright 2021 The Kubernetes Authors.
-Copyright 2019 The Go Authors. All rights reserved.
-Copyright 2011 The Go Authors. All rights reserved.
+Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2016 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
-Copyright 2013 The Go Authors. All rights reserved.
-Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.
 
 -------- Dependencies Summary
 sigs.k8s.io/json
@@ -1541,10 +1541,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -------- Dependency
 github.com/davecgh/go-spew
 -------- Copyrights
+Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
 Copyright (c) 2015-2016 Dave Collins <dave@davec.name>
 Copyright (c) 2013-2016 Dave Collins <dave@davec.name>
 Copyright (c) 2013 Dave Collins <dave@davec.name>
-Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
 
 -------- Dependencies Summary
 github.com/davecgh/go-spew
@@ -1947,8 +1947,8 @@ Copyright (c) 2016 json-iterator
 -------- Dependency
 github.com/mailru/easyjson
 -------- Copyrights
-Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright (c) 2016 Mail.Ru Group
+Copyright (c) 2009 The Go Authors. All rights reserved.
 
 -------- Dependency
 github.com/monochromegane/go-gitignore
@@ -2004,10 +2004,10 @@ Copyright (c) 2019 Uber Technologies, Inc.
 -------- Dependency
 go.uber.org/zap
 -------- Copyrights
+Copyright (c) 2016-2017 Uber Technologies, Inc.
 Copyright (c) 2016 Uber Technologies, Inc.
 Copyright (c) 2020 Uber Technologies, Inc.
 Copyright (c) 2017 Uber Technologies, Inc.
-Copyright (c) 2016-2017 Uber Technologies, Inc.
 Copyright (c) 2021 Uber Technologies, Inc.
 Copyright (c) 2016, 2017 Uber Technologies, Inc.
 Copyright (c) 2018 Uber Technologies, Inc.
@@ -2058,37 +2058,37 @@ SOFTWARE.
 -------- Dependency
 github.com/PuerkitoBio/urlesc
 -------- Copyrights
-Copyright 2009 The Go Authors. All rights reserved.
 Copyright (c) 2012 The Go Authors. All rights reserved.
+Copyright 2009 The Go Authors. All rights reserved.
 
 -------- Dependency
 github.com/fsnotify/fsnotify
 -------- Copyrights
 Copyright 2010 The Go Authors. All rights reserved.
-Copyright 2016 The Go Authors. All rights reserved.
-Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
+Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2015 The Go Authors. All rights reserved.
-Copyright 2011 The Go Authors. All rights reserved.
 Copyright (c) 2012 The Go Authors. All rights reserved.
 Copyright (c) 2012-2019 fsnotify Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
 
 -------- Dependency
 github.com/gogo/protobuf
 -------- Copyrights
 Copyright (c) 2013, The GoGo Authors. All rights reserved.
+Copyright 2010 The Go Authors.  All rights reserved.
 Copyright (c) 2015, The GoGo Authors. All rights reserved.
+Copyright 2010 The Go Authors.
 Copyright 2015 The Go Authors.  All rights reserved.
 Copyright 2016 The Go Authors.  All rights reserved.
-Copyright 2010 The Go Authors.  All rights reserved.
-Copyright 2010 The Go Authors.
-Copyright 2018 The Go Authors.  All rights reserved.
-Copyright 2012 The Go Authors.  All rights reserved.
+Copyright (c) 2018, The GoGo Authors. All rights reserved.
+Copyright 2017 The Go Authors.  All rights reserved.
+Copyright (c) 2016, The GoGo Authors. All rights reserved.
 Copyright 2011 The Go Authors.  All rights reserved.
 Copyright 2014 The Go Authors.  All rights reserved.
-Copyright (c) 2018, The GoGo Authors. All rights reserved.
-Copyright (c) 2016, The GoGo Authors. All rights reserved.
-Copyright 2017 The Go Authors.  All rights reserved.
+Copyright 2012 The Go Authors.  All rights reserved.
+Copyright 2018 The Go Authors.  All rights reserved.
 Copyright 2013 The Go Authors.  All rights reserved.
 Copyright (c) 2019, The GoGo Authors. All rights reserved.
 Copyright (c) 2017, The GoGo Authors. All rights reserved.
@@ -2098,35 +2098,35 @@ Copyright (c) 2015, The GoGo Authors.  rights reserved.
 github.com/golang/protobuf
 -------- Copyrights
 Copyright 2010 The Go Authors.  All rights reserved.
-Copyright 2019 The Go Authors. All rights reserved.
-Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
+Copyright 2016 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
+Copyright 2015 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
-Copyright 2014 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
-Copyright 2015 The Go Authors. All rights reserved.
+Copyright 2014 The Go Authors. All rights reserved.
 Copyright 2015 The Go Authors.  All rights reserved.
 
 -------- Dependency
 github.com/google/go-cmp
 -------- Copyrights
+Copyright (c) 2017 The Go Authors. All rights reserved.
 Copyright 2021, The Go Authors. All rights reserved.
 Copyright 2020, The Go Authors. All rights reserved.
-Copyright 2018, The Go Authors. All rights reserved.
 Copyright 2017, The Go Authors. All rights reserved.
+Copyright 2018, The Go Authors. All rights reserved.
 Copyright 2019, The Go Authors. All rights reserved.
-Copyright (c) 2017 The Go Authors. All rights reserved.
 
 -------- Dependency
 github.com/google/uuid
 -------- Copyrights
 Copyright 2016 Google Inc.  All rights reserved.
 Copyright 2021 Google Inc.  All rights reserved.
-Copyright 2017 Google Inc.  All rights reserved.
-Copyright 2018 Google Inc.  All rights reserved.
 Copyright (c) 2009,2014 Google Inc. All rights reserved.
+Copyright 2018 Google Inc.  All rights reserved.
+Copyright 2017 Google Inc.  All rights reserved.
 
 -------- Dependency
 github.com/imdario/mergo
@@ -2141,25 +2141,25 @@ Copyright (c) 2012 The Go Authors. All rights reserved.
 github.com/liggitt/tabwriter
 -------- Copyrights
 Copyright 2012 The Go Authors. All rights reserved.
-Copyright 2009 The Go Authors. All rights reserved.
 Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright 2009 The Go Authors. All rights reserved.
 
 -------- Dependency
 github.com/spf13/pflag
 -------- Copyrights
-Copyright 2009 The Go Authors. All rights reserved.
-Copyright 2012 The Go Authors. All rights reserved.
-Copyright 2010 The Go Authors.  All rights reserved.
 Copyright (c) 2012 Alex Ogier. All rights reserved.
 Copyright (c) 2012 The Go Authors. All rights reserved.
+Copyright 2009 The Go Authors. All rights reserved.
+Copyright 2010 The Go Authors.  All rights reserved.
+Copyright 2012 The Go Authors. All rights reserved.
 
 -------- Dependency
 golang.org/x/mod
 -------- Copyrights
+Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2021 The Go Authors. All rights reserved.
-Copyright 2019 The Go Authors. All rights reserved.
-Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
@@ -2194,13 +2194,13 @@ Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2014 The Go Authors. All rights reserved.
 Copyright 2015 The Go Authors. All rights reserved.
-Copyright 2012 The Go Authors. All rights reserved.
-Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
-Copyright 2011 The Go Authors. All rights reserved.
-Copyright 2018 The Go Authors. All rights reserved.
+Copyright 2012 The Go Authors. All rights reserved.
 Copyright 2009 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
 Copyright (C) 2009 Apple Inc. All rights reserved.
+Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
@@ -2232,14 +2232,14 @@ shall terminate as of the date such litigation is filed.
 -------- Dependency
 golang.org/x/oauth2
 -------- Copyrights
-Copyright 2021 The Go Authors. All rights reserved.
 Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2017 The oauth2 Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2015 The oauth2 Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2014 The Go Authors. All rights reserved.
-Copyright 2015 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
+Copyright 2015 The Go Authors. All rights reserved.
 Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
@@ -2253,15 +2253,15 @@ Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
-Copyright 2011 The Go Authors. All rights reserved.
 Copyright 2015 The Go Authors. All rights reserved.
-Copyright 2009 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
-Copyright 2021 The Go Authors. All rights reserved.
-Copyright 2014 The Go Authors. All rights reserved.
+Copyright 2009 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
-Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2014 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2009,2010 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All right reserved.
 -------- Patents
@@ -2292,11 +2292,11 @@ shall terminate as of the date such litigation is filed.
 -------- Dependency
 golang.org/x/term
 -------- Copyrights
+Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
-Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
 Copyright 2021 The Go Authors. All rights reserved.
-Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -2325,11 +2325,11 @@ shall terminate as of the date such litigation is filed.
 -------- Dependency
 golang.org/x/text
 -------- Copyrights
+Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2014 The Go Authors. All rights reserved.
 Copyright 2015 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
-Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
 Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
@@ -2364,8 +2364,8 @@ shall terminate as of the date such litigation is filed.
 -------- Dependency
 golang.org/x/time
 -------- Copyrights
-Copyright 2015 The Go Authors. All rights reserved.
 Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright 2015 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -2396,18 +2396,19 @@ golang.org/x/tools
 -------- Copyrights
 Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2014 The Go Authors. All rights reserved.
-Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2009 The Go Authors.  All rights reserved.
-Copyright 2019 The Go Authors. All rights reserved.
+Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2013 The Go Authors.  All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2015 The Go Authors. All rights reserved.
-Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2015 The Go Authors.  All rights reserved.
-Copyright 2017 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
 Copyright (c) 2017 The Go Authors. All rights reserved.
-Copyright 2016 The Go Authors. All rights reserved.
+Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
+Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2009 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
 Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
 Copyright © 1995-1997 C H Forsyth (forsyth@terzarima.net)
 Copyright © 1997-1999 Vita Nuova Limited
@@ -2416,7 +2417,6 @@ Copyright © 2004,2006 Bruce Ellis
 Copyright © 2005-2007 C H Forsyth (forsyth@terzarima.net)
 Copyright © 2000-2007 Lucent Technologies Inc. and others
 Copyright © 2009 The Go Authors. All rights reserved.
-Copyright 2011 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors.  All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
@@ -2449,11 +2449,11 @@ shall terminate as of the date such litigation is filed.
 -------- Dependency
 golang.org/x/xerrors
 -------- Copyrights
-Copyright 2011 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
-Copyright 2012 The Go Authors. All rights reserved.
 Copyright (c) 2019 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
+Copyright 2012 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -2608,10 +2608,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 go.starlark.net
 -------- Copyrights
 Copyright (c) 2017 The Bazel Authors.  All rights reserved.
+Copyright (c) 2018 The Bazel Authors.
 Copyright 2017 The Bazel Authors. All rights reserved.
 Copyright 2019 The Bazel Authors. All rights reserved.
 Copyright 2018 The Bazel Authors. All rights reserved.
-Copyright (c) 2018 The Bazel Authors.
 
 -------- Dependencies Summary
 go.starlark.net
@@ -2647,9 +2647,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -------- Dependency
 sigs.k8s.io/yaml
 -------- Copyrights
-Copyright 2013 The Go Authors. All rights reserved.
 Copyright (c) 2014 Sam Ghods
 Copyright (c) 2012 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
 
 -------- Dependencies Summary
 sigs.k8s.io/yaml
@@ -2720,8 +2720,8 @@ Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (c) 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
-Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 
 -------- Dependencies Summary
 github.com/verrazzano/verrazzano
@@ -2750,4 +2750,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 6761b0638f667309ea047fb2ca232947
+License file based on go.mod with md5 sum: 127fa5838cd679be65a0b9e17392037b

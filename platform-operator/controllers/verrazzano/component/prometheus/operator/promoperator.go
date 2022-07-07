@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"path"
 	"strconv"
 
@@ -33,7 +34,6 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/kustomize/kyaml/sliceutil"
 )
 
 const (
@@ -511,7 +511,7 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 					return nil
 				}
 				// Update the object principal with the Prometheus Operator service account if not found
-				if !sliceutil.Contains(targetFrom.Source.Principals, serviceAccount) {
+				if !vzstring.SliceContainsString(targetFrom.Source.Principals, serviceAccount) {
 					authPolicy.Spec.Rules[0].From[0].Source.Principals = append(targetFrom.Source.Principals, serviceAccount)
 				}
 				return nil

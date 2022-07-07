@@ -82,15 +82,6 @@ function delete_kiali {
   kubectl delete -f ${KIALI_CHART_DIR}/crds || true
 }
 
-function delete_prometheus_adapter {
-  log "Uninstall the Prometheus adapter"
-  if helm status prometheus-adapter --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall prometheus-adapter --namespace "${VERRAZZANO_MONITORING_NS}" ; then
-      error "Failed to uninstall the Prometheus adapter."
-    fi
-  fi
-}
-
 function delete_prometheus_node_exporter {
   log "Uninstall the Prometheus node-exporter"
   if helm status prometheus-node-exporter --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
@@ -116,15 +107,6 @@ function delete_prometheus_operator {
   kubectl delete namespace "${VERRAZZANO_MONITORING_NS}" --ignore-not-found=true || err_return $? "Could not delete the ${VERRAZZANO_MONITORING_NS} namespace"
 }
 
-function delete_prometheus_pushgateway {
-  log "Uninstall the Prometheus Pushgateway"
-  if helm status prometheus-pushgateway --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall prometheus-pushgateway --namespace "${VERRAZZANO_MONITORING_NS}" ; then
-      error "Failed to uninstall the Prometheus Pushgateway."
-    fi
-  fi
-}
-
 function delete_velero {
     log "Uninstall Velero"
     if helm status velero --namespace velero > /dev/null 2>&1 ; then
@@ -141,8 +123,6 @@ function delete_velero {
     kubectl delete namespace velero --ignore-not-found=true || err_return $? "Could not delete the velero namespace"
 }
 
-action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
-action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
