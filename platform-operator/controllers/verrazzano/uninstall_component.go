@@ -86,18 +86,18 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				return ctrl.Result{}, err
 			}
 			if !installed {
-				compLog.Oncef("Component %s is not installed, nothing to do for uninstall", compName)
+				compLog.Oncef("Component %s is not installed", compName)
 				UninstallContext.state = compStateUninstallEnd
 				continue
 			}
 			if err := r.updateComponentStatus(compContext, "Uninstall started", vzapi.CondUninstallStarted); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
-			compLog.Oncef("Component %s is starting to uninstall", compName)
+			compLog.Oncef("Component %s starting to uninstall", compName)
 			UninstallContext.state = compStatePreUninstall
 
 		case compStatePreUninstall:
-			compLog.Oncef("Component %s is calling pre-uninstall", compName)
+			compLog.Oncef("Component %s pre-uninstall running", compName)
 			if err := comp.PreUninstall(compContext); err != nil {
 				compLog.Errorf("Failed pre-uninstalling component %s: %v", compName, err)
 				return ctrl.Result{}, err
@@ -105,7 +105,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			UninstallContext.state = compStateUninstall
 
 		case compStateUninstall:
-			compLog.Progressf("Component %s is calling uninstall", compName)
+			compLog.Progressf("Component %s uninstall running", compName)
 			if err := comp.Uninstall(compContext); err != nil {
 				compLog.Errorf("Failed uninstalling component %s, will retry: %v", compName, err)
 				// requeue for 30 to 60 seconds later
@@ -114,20 +114,14 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			UninstallContext.state = compStateWaitUninstalled
 
 		case compStateWaitUninstalled:
-			installed, err := comp.IsInstalled(compContext)
-			if err != nil {
-				compLog.Errorf("Failed checking if component %s is installed: %v", compName, err)
-				return controller.NewRequeueWithDelay(10, 15, time.Second), nil
-			}
-			if installed {
-				compLog.Progressf("Waiting for component %s to be uninstalled", compName)
+			if installed, err := comp.IsInstalled(compContext); err != nil || installed {
+				compLog.Progressf("Waiting for the component to be uninstalled", compName)
 				return newRequeueWithDelay(), nil
 			}
-			compLog.Progressf("Component %s has been uninstalled, running post-uninstall", compName)
 			if err := comp.PostUninstall(compContext); err != nil {
-				compLog.Errorf("PostUninstall for component %s failed: %v", compName, err)
-				// requeue for 10 to 15 seconds later
-				return controller.NewRequeueWithDelay(10, 15, time.Second), nil
+				compLog.Errorf("PostUninstall for component %s failed, will retry: %v", compName, err)
+				// requeue for 30 to 60 seconds later
+				return controller.NewRequeueWithDelay(30, 60, time.Second), nil
 			}
 			UninstallContext.state = compStateUninstalledone
 
