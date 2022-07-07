@@ -269,11 +269,11 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 			defer podLog.Close()
 
 			reader := bufio.NewScanner(podLog)
-			f.WriteString(SanitizeString(fmt.Sprintf(containerStartLog, contName, namespace, podName)))
+			f.WriteString(fmt.Sprintf(containerStartLog, contName, namespace, podName))
 			for reader.Scan() {
 				f.WriteString(SanitizeString(reader.Text() + "\n"))
 			}
-			f.WriteString(SanitizeString(fmt.Sprintf(containerEndLog, contName, namespace, podName)))
+			f.WriteString(fmt.Sprintf(containerEndLog, contName, namespace, podName))
 			return nil
 		}
 		writeToFile(c.Name)
