@@ -4,21 +4,38 @@
 package rancher
 
 import (
-	osexec "os/exec"
-
+	"context"
 	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	corev1 "k8s.io/api/core/v1"
+	osexec "os/exec"
+	"regexp"
 )
 
 // postUninstall removes the objects after the Helm uninstall process finishes
 func postUninstall(ctx spi.ComponentContext) error {
 	ctx.Log().Oncef("Running the Rancher uninstall system tool")
 
-	cmd := osexec.Command("Rancher uninstall binary", "/usr/local/bin/system-tools", "remove", "-c", "/home/verrazzano/kubeconfig", "--force")
-	_, stdErr, err := os.DefaultRunner{}.Run(cmd)
+	// List all the namespaces that need to be cleaned from Rancher components
+	nsList := corev1.NamespaceList{}
+	err := ctx.Client().List(context.TODO(), &nsList)
 	if err != nil {
-		return ctx.Log().ErrorNewErr("Failed to run system tools  for Rancher deletion: %s: %v", stdErr, err)
+		return ctx.Log().ErrorfNewErr("Failed to list the Rancher namespaces: %v", err)
 	}
 
+	// For Rancher namespaces, run the system tools uninstaller
+	for _, ns := range nsList.Items {
+		matches, err := regexp.MatchString("^cattle-|^local|^p-|^user-|^fleet|^rancher", ns.Name)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to verify that namespace %s is a Rancher namespace: %v", ns.Name, err)
+		}
+		if matches {
+			cmd := osexec.Command("Rancher uninstall binary", "/usr/local/bin/system-tools", "remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force")
+			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
+			if err != nil {
+				return ctx.Log().ErrorNewErr("Failed to run system tools for Rancher deletion: %s: %v", stdErr, err)
+			}
+		}
+	}
 	return nil
 }
