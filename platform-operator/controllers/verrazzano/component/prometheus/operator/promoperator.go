@@ -380,7 +380,7 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 func (c prometheusComponent) validatePrometheusOperator(vz *vzapi.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
 	if !c.IsEnabled(vz) && vzconfig.IsPrometheusEnabled(vz) {
-		return fmt.Errorf("Prometheus must also be disabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
+		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
 	}
 	// Validate install overrides
 	if vz.Spec.Components.PrometheusOperator != nil {
