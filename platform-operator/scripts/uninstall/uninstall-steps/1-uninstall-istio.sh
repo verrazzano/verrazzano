@@ -124,8 +124,8 @@ function finalize() {
 
 }
 
-action "Deleting Istio Components" uninstall_istio || exit 1
-action "Deleting Istio Secrets" delete_secrets || exit 1
-action "Deleting Istio Namespace" delete_istio_namepsace || exit 1
+#action "Deleting Istio Components" uninstall_istio || exit 1
+#action "Deleting Istio Secrets" delete_secrets || exit 1
+#action "Deleting Istio Namespace" delete_istio_namepsace || exit 1
 action "Deleting External DNS Components" delete_external_dns || exit 1
 action "Finalizing Uninstall" finalize || exit 1

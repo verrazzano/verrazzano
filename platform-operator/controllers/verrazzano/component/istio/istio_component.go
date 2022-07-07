@@ -113,6 +113,18 @@ func SetDefaultIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
+type istioUninstallFuncSig func(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, err error)
+
+var istioUninstallFunc istioUninstallFuncSig = istio.Uninstall
+
+func SetIstioUninstallFunction(fn istioUninstallFuncSig) {
+	istioUninstallFunc = fn
+}
+
+func SetDefaultIstioUninstallFunction() {
+	istioUninstallFunc = istio.Uninstall
+}
+
 type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
 
 var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
@@ -142,7 +154,8 @@ func (i istioComponent) PreUninstall(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) Uninstall(context spi.ComponentContext) error {
-	return nil
+	_, _, err := istioUninstallFunc(context.Log())
+	return err
 }
 
 func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
