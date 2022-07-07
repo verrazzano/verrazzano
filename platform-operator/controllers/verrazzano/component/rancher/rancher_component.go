@@ -272,6 +272,11 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// PostUninstall handles the deletion of all Rancher resources after the Helm uninstall
+func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
+	return postUninstall(ctx)
+}
+
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
 func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.Rancher != nil {

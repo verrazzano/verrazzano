@@ -180,5 +180,4 @@ function delete_rancher() {
 
 }
 
-action "Deleting Rancher Components" delete_rancher || exit 1
 action "Deleting NGINX Components" delete_nginx || exit 1
