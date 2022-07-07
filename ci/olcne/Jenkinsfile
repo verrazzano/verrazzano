@@ -1192,7 +1192,7 @@ def deleteOCIFileSystem() {
 def deleteOCILoadBalancers() {
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
-        -o delete -n "$TF_VAR_prefix-mgnmt" \
+        -o delete -n "$TF_VAR_prefix-mgmt" \
         -c "$TF_VAR_compartment_id"
 
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
