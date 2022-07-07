@@ -67,12 +67,7 @@ function delete_weblogic_operator {
     fi
   fi
 
-  log "Delete the WebLogic Kubernetes operator service account"
-  if kubectl get serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa > /dev/null 2>&1 ; then
-    if ! kubectl delete serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa ; then
-      error "Failed to delete the WebLogic Kubernetes operator service account."
-    fi
-  fi
+
 }
 
 function delete_kiali {
@@ -150,7 +145,6 @@ action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 
 action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
-action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
 action "Deleting Velero " delete_velero || exit 1
