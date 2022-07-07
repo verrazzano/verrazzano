@@ -16,7 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -228,9 +228,9 @@ func associateFluentdResources(cli clipkg.Client) error {
 }
 
 func associateJaegerResources(cli clipkg.Client) error {
-	jaegerReleaseName := types.NamespacedName{Name: jaeger.ComponentName, Namespace: jaeger.ComponentNamespace}
+	jaegerReleaseName := types.NamespacedName{Name: jaegeroperator.ComponentName, Namespace: jaegeroperator.ComponentNamespace}
 	namespacedName := jaegerReleaseName
-	name := types.NamespacedName{Name: jaeger.ComponentName}
+	name := types.NamespacedName{Name: jaegeroperator.ComponentName}
 	objects := []clipkg.Object{
 		&corev1.ServiceAccount{},
 		&corev1.Service{},
