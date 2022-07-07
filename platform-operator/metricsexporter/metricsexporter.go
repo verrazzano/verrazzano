@@ -1,10 +1,10 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-// Copyright (c) 2022, Oracle and/or its affiliates.
-// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package metricsexporter
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -523,7 +523,8 @@ func InitalizeMetricsEndpoint() {
 
 func CollectReconcileMetrics(startTime int64) {
 	reconcileCounterMetric.Add(float64(1))
-	durationTime := (time.Now().UnixMilli() - startTime) / 1000
+	durationTime := (float64(time.Now().UnixMilli() - startTime)) / 1000.0
+	fmt.Println(durationTime)
 	reconcileLastDurationMetric.WithLabelValues(strconv.Itoa(reconcileIndex)).Set(float64(durationTime))
 	reconcileIndex = reconcileIndex + 1
 }
@@ -601,7 +602,7 @@ func registerMetricsHandlersHelper() error {
 	for metric, i := range failedMetrics {
 		err := registry.Register(metric)
 		if err != nil {
-			zap.S().Errorf("Failed to register metric index %v for VMI", i)
+			zap.S().Errorf("Failed to register metric index %v for VPO", i)
 			errorObserved = err
 		} else {
 			delete(failedMetrics, metric)
