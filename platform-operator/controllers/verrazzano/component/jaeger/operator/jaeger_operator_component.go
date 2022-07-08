@@ -31,7 +31,7 @@ const (
 	ChartDir = "jaegertracing/jaeger-operator"
 
 	//ComponentServiceName is the name of the service name.
-	ComponentServiceName = "jaeger-operator-metrics "
+	ComponentServiceName = "jaeger-operator-metrics"
 )
 
 type jaegerOperatorComponent struct {
