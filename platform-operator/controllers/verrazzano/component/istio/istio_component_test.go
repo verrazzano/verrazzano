@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"io/ioutil"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"os/exec"
@@ -898,6 +899,26 @@ func TestPostUninstall(t *testing.T) {
 				Finalizers: []string{"fake-finalizer"},
 			},
 		},
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: istioReaderIstioSystem,
+			},
+		},
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: istiodIstioSystem,
+			},
+		},
+		&rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: istioReaderIstioSystem,
+			},
+		},
+		&rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: istiodIstioSystem,
+			},
+		},
 	).Build()
 
 	var iComp istioComponent
@@ -905,8 +926,25 @@ func TestPostUninstall(t *testing.T) {
 	assert.NoError(t, iComp.PostUninstall(compContext))
 
 	// Validate that the namespace does not exist
-	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: IstioNamespace}}
+	ns := v1.Namespace{}
 	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: IstioNamespace}, &ns)
+	assert.True(t, errors.IsNotFound(err))
+
+	//Validate that clusterroles and clusterroles do not exist
+	cr := rbacv1.ClusterRole{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: istioReaderIstioSystem}, &cr)
+	assert.True(t, errors.IsNotFound(err))
+
+	cr = rbacv1.ClusterRole{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: istiodIstioSystem}, &cr)
+	assert.True(t, errors.IsNotFound(err))
+
+	crb := rbacv1.ClusterRoleBinding{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: istioReaderIstioSystem}, &crb)
+	assert.True(t, errors.IsNotFound(err))
+
+	crb = rbacv1.ClusterRoleBinding{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: istiodIstioSystem}, &crb)
 	assert.True(t, errors.IsNotFound(err))
 
 }
