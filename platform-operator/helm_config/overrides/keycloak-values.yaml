@@ -12,6 +12,8 @@ postgresql:
 extraEnv: |
   - name: CACHE_OWNERS
     value: "2"
+  - name: CACHE_OWNERS_AUTH_SESSIONS_COUNT
+    value: "2"
   - name: DB_VENDOR
     value: mysql
   - name: DB_ADDR
