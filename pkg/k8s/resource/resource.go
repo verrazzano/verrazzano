@@ -43,10 +43,12 @@ func (r Resource) RemoveFinalizers() error {
 	if client.IgnoreNotFound(err) != nil {
 		return r.Log.ErrorfNewErr("Failed to get the resource of type %s, named %s/%s: %v", kind, r.Object.GetNamespace(), r.Object.GetName(), err)
 	} else if err == nil {
-		r.Object.SetFinalizers([]string{})
-		err = r.Client.Update(context.TODO(), r.Object)
-		if err != nil {
-			return r.Log.ErrorfNewErr("Failed to update the resource of type %s, named %s/%s: %v", kind, r.Object.GetNamespace(), r.Object.GetName(), err)
+		if len(r.Object.GetFinalizers()) != 0 {
+			r.Object.SetFinalizers([]string{})
+			err = r.Client.Update(context.TODO(), r.Object)
+			if err != nil {
+				return r.Log.ErrorfNewErr("Failed to update the resource of type %s, named %s/%s: %v", kind, r.Object.GetNamespace(), r.Object.GetName(), err)
+			}
 		}
 	}
 	return nil
