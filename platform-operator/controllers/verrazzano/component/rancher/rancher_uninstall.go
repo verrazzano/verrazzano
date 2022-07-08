@@ -30,8 +30,8 @@ func postUninstall(ctx spi.ComponentContext) error {
 			return ctx.Log().ErrorfNewErr("Failed to verify that namespace %s is a Rancher namespace: %v", ns.Name, err)
 		}
 		if matches {
-			args := []string{"/usr/local/bin/system-tools", "remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
-			cmd := osexec.Command("Rancher uninstall binary", args...) //nolint:gosec //#nosec G204
+			args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
+			cmd := osexec.Command("/usr/local/bin/system-tools", args...) //nolint:gosec //#nosec G204
 			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
 			if err != nil {
 				return ctx.Log().ErrorNewErr("Failed to run system tools for Rancher deletion: %s: %v", stdErr, err)
