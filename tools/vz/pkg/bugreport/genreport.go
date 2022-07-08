@@ -4,8 +4,10 @@
 package bugreport
 
 import (
+	"context"
 	"fmt"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelpers "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io"
@@ -29,7 +31,6 @@ type ErrorsChannel struct {
 
 // GenerateBugReport creates a bug report by including the resources selectively from the cluster, useful to analyze the issue.
 func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bugReportFile *os.File, vzHelper pkghelpers.VZHelper) error {
-
 	// Create a temporary directory to place the cluster data
 	bugReportDir, err := ioutil.TempDir("", constants.BugReportDir)
 	if err != nil {
@@ -37,46 +38,52 @@ func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bu
 	}
 	defer os.RemoveAll(bugReportDir)
 
+	// Verrazzano as a list is required for the analysis tool
+	vz := vzapi.VerrazzanoList{}
+	err = client.List(context.TODO(), &vz)
+	if (err != nil && len(vz.Items) == 0) || len(vz.Items) == 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Verrazzano is not installed ...\n")
+	}
+
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
-	err = captureVerrazzanoResources(client, kubeClient, bugReportDir, vzHelper.GetOutputStream())
+	err = captureVerrazzanoResources(client, kubeClient, bugReportDir, vz, vzHelper)
 	if err != nil {
-		return fmt.Errorf("there is an error with capturing the resources: %s", err.Error())
+		fmt.Fprintf(vzHelper.GetOutputStream(), "There is an error with capturing the resources: %s", err.Error())
 	}
 
 	// Placeholder to call a method to capture the information from the namespaces/pods/containers
 	// explicitly provided by the end user, using flag(s) to be supported by the command
 
-	// Placeholder to call a function to redact sensitive information from all the files in bugReportDir
+	if isDirEmpty(bugReportDir) {
+		return fmt.Errorf("The bug-report command did not collect any file from the cluster. " +
+			"Please go through errors (if any), in the standard output.\n")
+	}
 
 	// Create the report file
 	err = pkghelpers.CreateReportArchive(bugReportDir, bugReportFile)
 	if err != nil {
 		return fmt.Errorf("there is an error in creating the bug report, %s", err.Error())
 	}
-
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully created the bug report: %s\n", bugReportFile.Name()))
-
-	// Display a warning message to review the contents of the report
-	fmt.Fprint(vzHelper.GetOutputStream(), "WARNING: Please examine the contents of the bug report for sensitive data.\n")
-
 	return nil
 }
 
 // captureVerrazzanoResources captures the resources from verrazzano-install and verrazzano-system namespaces
-func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, outputStream io.Writer) error {
+func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vz vzapi.VerrazzanoList, vzHelper pkghelpers.VZHelper) error {
 
 	// Capture Verrazzano resource as JSON
-	if err := pkghelpers.CaptureVZResource(client, bugReportDir, outputStream); err != nil {
-		return err
+	if len(vz.Items) > 0 {
+		if err := pkghelpers.CaptureVZResource(bugReportDir, vz, vzHelper); err != nil {
+			return err
+		}
 	}
 
 	// Capture logs from pods
-	if err := capturePodLogs(client, kubeClient, bugReportDir, outputStream); err != nil {
+	if err := capturePodLogs(client, kubeClient, bugReportDir, vzHelper); err != nil {
 		return err
 	}
 
 	// Capture workloads, pods, events, ingress and services in verrazzano-system namespace
-	if err := pkghelpers.CaptureK8SResources(kubeClient, vzconstants.VerrazzanoSystemNamespace, bugReportDir); err != nil {
+	if err := pkghelpers.CaptureK8SResources(kubeClient, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper); err != nil {
 		return err
 	}
 
@@ -85,8 +92,8 @@ func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Inte
 	return nil
 }
 
-// Captures logs from platform operator, application operator and monitoring operator
-func capturePodLogs(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, outStream io.Writer) error {
+// capturePodLogs captures logs from platform operator, application operator and monitoring operator
+func capturePodLogs(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vzHelper pkghelpers.VZHelper) error {
 
 	// Fixed list of pods for which, capture the log
 	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
@@ -97,9 +104,9 @@ func capturePodLogs(client clipkg.Client, kubeClient kubernetes.Interface, bugRe
 	wg.Add(3)
 	ec := make(chan ErrorsChannel, 1)
 
-	go captureLogsInParallel(wg, ec, kubeClient, vpoPod, vzconstants.VerrazzanoInstallNamespace, bugReportDir, outStream)
-	go captureLogsInParallel(wg, ec, kubeClient, vaoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, outStream)
-	go captureLogsInParallel(wg, ec, kubeClient, vmoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, outStream)
+	go captureLogsInParallel(wg, ec, kubeClient, vpoPod, vzconstants.VerrazzanoInstallNamespace, bugReportDir, vzHelper)
+	go captureLogsInParallel(wg, ec, kubeClient, vaoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper)
+	go captureLogsInParallel(wg, ec, kubeClient, vmoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper)
 
 	wg.Wait()
 	close(ec)
@@ -111,15 +118,28 @@ func capturePodLogs(client clipkg.Client, kubeClient kubernetes.Interface, bugRe
 	return nil
 }
 
-func captureLogsInParallel(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient kubernetes.Interface, pods []corev1.Pod, namespace, bugReportDir string, outStream io.Writer) {
+// captureLogsInParallel collects the log from pods in parallel
+func captureLogsInParallel(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient kubernetes.Interface, pods []corev1.Pod, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper) {
 	defer wg.Done()
 	if len(pods) == 0 {
 		return
 	}
 	// This won't work when there are more than one pods for the same app label
-	fmt.Fprintf(outStream, fmt.Sprintf("Capturing the log from pod %s in the namespace %s ...\n", pods[0].Name, namespace))
-	err := pkghelpers.CapturePodLog(kubeClient, pods[0], namespace, bugReportDir)
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Capturing log from pod %s in %s namespace ...\n", pods[0].Name, namespace))
+	err := pkghelpers.CapturePodLog(kubeClient, pods[0], namespace, bugReportDir, vzHelper)
 	if err != nil {
 		ec <- ErrorsChannel{PodName: pods[0].Name, ErrorMessage: err.Error()}
 	}
+}
+
+// isDirEmpty returns whether the directory is empty or not
+func isDirEmpty(directory string) bool {
+	d, err := os.Open(directory)
+	if err != nil {
+		return false
+	}
+	defer d.Close()
+
+	_, err = d.Readdirnames(1)
+	return err == io.EOF
 }
