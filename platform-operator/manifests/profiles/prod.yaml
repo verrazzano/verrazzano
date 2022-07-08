@@ -36,7 +36,7 @@ spec:
                       labelSelector:
                         matchLabels:
                           app: verrazzano-console
-                      topologyKey: failure-domain.beta.kubernetes.io/zone
+                      topologyKey: kubernetes.io/hostname
                     weight: 100
     istio:
       ingress:
