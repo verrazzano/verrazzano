@@ -5,3 +5,7 @@ rbac:
   create: true
   pspEnabled: false
   clusterRole: true
+
+extraLabels:
+  app.kubernetes.io/instance: jaeger-operator
+  app.kubernetes.io/name: jaeger-operator
