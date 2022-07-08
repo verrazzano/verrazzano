@@ -62,7 +62,7 @@ const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
 const istioManfiestNotInstalledError = "Istio present but verify-install needs an IstioOperator or manifest for comparison"
 
 const istioReaderIstioSystem = "istio-reader-istio-system"
-const istiodIstioSystem = "istip-istio-system"
+const istiodIstioSystem = "istiod-istio-system"
 
 // istioComponent represents an Istio component
 type istioComponent struct {
