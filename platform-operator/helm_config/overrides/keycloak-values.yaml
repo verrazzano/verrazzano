@@ -65,6 +65,11 @@ ingress:
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/upstream-vhost: "keycloak-http.${namespace}.svc.cluster.local"
     nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none: "true"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+    nginx.ingress.kubernetes.io/session-cookie-name: "keycloak"
+    nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
     external-dns.alpha.kubernetes.io/target: "{{ .Values.dnsTarget }}"
   rules:
     -
