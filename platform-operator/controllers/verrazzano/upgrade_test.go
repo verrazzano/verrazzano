@@ -64,6 +64,7 @@ const consoleURL = "verrazzano." + dnsDomain
 const jaegerURL = "jaeger." + dnsDomain
 
 var istioEnabled = false
+var jaegerEnabled = true
 
 // goodRunner is used to test helm success without actually running an OS exec command
 type goodRunner struct {
@@ -1571,6 +1572,9 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 				Istio: &vzapi.IstioComponent{
 					Enabled: &istioEnabled,
 				},
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &jaegerEnabled,
+				},
 			},
 		},
 		Status: vzapi.VerrazzanoStatus{
@@ -1649,6 +1653,14 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: consoleURL},
+				},
+			},
+		},
+		&networkingv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.JaegerIngress},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{Host: jaegerURL},
 				},
 			},
 		},
