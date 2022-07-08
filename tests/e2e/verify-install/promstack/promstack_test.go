@@ -236,7 +236,11 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 				var pods []corev1.Pod
 				Eventually(func() error {
 					var err error
-					pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "prometheus"}}, constants.VerrazzanoMonitoringNamespace)
+					selector := map[string]string{
+						"prometheus":             "prometheus-operator-kube-p-prometheus",
+						"app.kubernetes.io/name": "prometheus",
+					}
+					pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: selector}, constants.VerrazzanoMonitoringNamespace)
 					return err
 				}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
