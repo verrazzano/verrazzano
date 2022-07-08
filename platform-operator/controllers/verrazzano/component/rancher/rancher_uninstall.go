@@ -5,14 +5,23 @@ package rancher
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	admv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	osexec "os/exec"
 	"regexp"
 )
 
 var rancherSystemTool = "/usr/local/bin/system-tools"
+
+const (
+	webhookName      = "rancher.cattle.io"
+	controllerCMName = "cattle-controllers"
+	lockCMName       = "rancher-controller-lock"
+)
 
 // postUninstall removes the objects after the Helm uninstall process finishes
 func postUninstall(ctx spi.ComponentContext) error {
@@ -37,6 +46,109 @@ func postUninstall(ctx spi.ComponentContext) error {
 			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
 			if err != nil {
 				return ctx.Log().ErrorNewErr("Failed to run system tools for Rancher deletion: %s: %v", stdErr, err)
+			}
+		}
+	}
+
+	// Remove the Rancher webhooks
+	err = resource.Resource{
+		Name:   webhookName,
+		Client: ctx.Client(),
+		Object: &admv1.ValidatingWebhookConfiguration{},
+		Log:    ctx.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = resource.Resource{
+		Name:   webhookName,
+		Client: ctx.Client(),
+		Object: &admv1.MutatingWebhookConfiguration{},
+		Log:    ctx.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	// Delete the Rancher ClusterRoles and ClusterRoleBindings
+	err = deleteRoleResources(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Delete the remaining Rancher ConfigMaps
+	err = resource.Resource{
+		Name:   controllerCMName,
+		Client: ctx.Client(),
+		Object: &corev1.ConfigMap{},
+		Log:    ctx.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = resource.Resource{
+		Name:   lockCMName,
+		Client: ctx.Client(),
+		Object: &corev1.ConfigMap{},
+		Log:    ctx.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// deleteRoleResources delete the Rancher role objects: ClusterRole, ClusterRoleBinding
+func deleteRoleResources(ctx spi.ComponentContext) error {
+	clusterRoleMatch := "cattle.io|app:rancher|rancher-webhook|fleetworkspace-|fleet-|gitjob"
+
+	// Get the lists for the CR and CRB
+	crList := rbacv1.ClusterRoleList{}
+	err := ctx.Client().List(context.TODO(), &crList)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list the ClusterRoleBindings: %v", err)
+	}
+	crbList := rbacv1.ClusterRoleBindingList{}
+	err = ctx.Client().List(context.TODO(), &crbList)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list the ClusterRoleBindings: %v", err)
+	}
+
+	for _, cr := range crList.Items {
+		matches, err := regexp.MatchString(clusterRoleMatch, cr.Name)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to verify that Cluster Role is from Rancher: %v", cr.Name, err)
+		}
+		if matches {
+			err = resource.Resource{
+				Name:      cr.Name,
+				Namespace: cr.Namespace,
+				Client:    ctx.Client(),
+				Object:    &cr,
+				Log:       ctx.Log(),
+			}.Delete()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, crb := range crbList.Items {
+		matches, err := regexp.MatchString(clusterRoleMatch, crb.Name)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to verify that Cluster Role Binding is from Rancher: %v", crb.Name, err)
+		}
+		if matches {
+			err = resource.Resource{
+				Name:      crb.Name,
+				Namespace: crb.Namespace,
+				Client:    ctx.Client(),
+				Object:    &crb,
+				Log:       ctx.Log(),
+			}.Delete()
+			if err != nil {
+				return err
 			}
 		}
 	}
