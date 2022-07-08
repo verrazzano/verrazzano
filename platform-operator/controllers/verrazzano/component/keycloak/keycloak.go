@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -32,6 +31,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -452,6 +452,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 		dnsSuffix, _ := vzconfig.GetDNSSuffix(ctx.Client(), ctx.EffectiveCR())
 		ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s",
 			ComponentName, ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix)
+		ingress.Annotations["nginx.ingress.kubernetes.io/affinity"] = "cookie"
 		// update target annotation on Keycloak Ingress for external DNS
 		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
