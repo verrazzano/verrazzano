@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 	"sync"
 )
 
@@ -28,7 +29,7 @@ type ErrorsChannel struct {
 // - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from verrazzano-system namespace.
 
 // GenerateBugReport creates a bug report by including the resources selectively from the cluster, useful to analyze the issue.
-func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bugReportFile *os.File, vzHelper pkghelpers.VZHelper) error {
+func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bugReportFile *os.File, includes string, vzHelper pkghelpers.VZHelper) error {
 
 	// Create a temporary directory to place the cluster data
 	bugReportDir, err := ioutil.TempDir("", constants.BugReportDir)
@@ -45,6 +46,10 @@ func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bu
 
 	// Placeholder to call a method to capture the information from the namespaces/pods/containers
 	// explicitly provided by the end user, using flag(s) to be supported by the command
+	if includes != "" {
+		err = captureApplicationResources(client, kubeClient, bugReportDir, includes, vzHelper.GetOutputStream())
+	}
+
 
 	// Placeholder to call a function to redact sensitive information from all the files in bugReportDir
 
@@ -82,6 +87,20 @@ func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Inte
 
 	//TODO: Capture ingress from keycloak and cattle-system namespace
 	// Capture workloads, events, services, etc from those namespaces for the components which are not ready
+	return nil
+}
+
+func captureApplicationResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir, includes string, outputStream io.Writer) error {
+
+	includedRes := strings.ReplaceAll(includes, " ", "")
+	addtionalRes := strings.Split(includedRes, ",")
+
+	// For now, we know that the addtionalRes contains one or more namespaces
+	// No need to do anything, if the namespace is one of the namespaces created by the platform operator, as part of installation
+	for ns, _ := range addtionalRes {
+		fmt.Println("Namepsace ", addtionalRes[ns])
+	}
+
 	return nil
 }
 

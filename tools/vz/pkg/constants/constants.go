@@ -85,6 +85,11 @@ const (
 	BugReportFileFlagName  = "report-file"
 	BugReportFileFlagValue = ""
 	BugReportFileFlagUsage = "The report file to be created by bug-report command, as a .tar.gz file [Required]"
+
+	BugReportIncludeFlagName = "include"
+	BugReportIncludeFlagValue = ""
+	BugReportIncludeFlagUsage = "One or more application namespaces to collect information from the cluster"
+
 	BugReportFileExtn      = ".tar.gz"
 
 	BugReportDir = "bug-report"

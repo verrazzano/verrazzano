@@ -11,9 +11,11 @@ import (
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -21,7 +23,7 @@ const (
 	helpShort   = "Capture data from the cluster"
 	helpLong    = `Verrazzano command line utility to capture the data from the cluster, to report an issue`
 	helpExample = `# Run bug report tool by providing the name for the report file
-$vz bug-report --report-file <name of the file to include cluster data, a .tar.gz or .tgz file>
+$vz bug-report --report-file <name of the file to include cluster data, a .tar.gz or .tgz file> --include <one or more application namespaces to collect information>
 `
 )
 
@@ -33,7 +35,9 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.Example = helpExample
 	cmd.PersistentFlags().String(constants.BugReportFileFlagName, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
+	cmd.PersistentFlags().String(constants.BugReportIncludeFlagName, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage
 	cmd.MarkPersistentFlagRequired(constants.BugReportFileFlagName)
+
 	return cmd
 }
 
@@ -71,8 +75,14 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 	defer bugRepFile.Close()
 
+	includeFlag := cmd.PersistentFlags().Lookup(constants.BugReportIncludeFlagName)
+	includes := ""
+	if includeFlag == nil {
+		includes = includeFlag.Value.String()
+	}
+
 	// Generate the bug report
-	err = vzbugreport.GenerateBugReport(kubeClient, client, bugRepFile, vzHelper)
+	err = vzbugreport.GenerateBugReport(kubeClient, client, bugRepFile, includes, vzHelper)
 	if err != nil {
 		os.Remove(bugReportFile)
 	}
