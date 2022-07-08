@@ -1,0 +1,31 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+  {{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fluentd
+  labels:
+    release: prometheus-operator
+spec:
+  namespaceSelector:
+    matchNames:
+      - verrazzano-system
+  selector:
+    matchLabels:
+      app: fluentd
+  endpoints:
+    - path: /metrics
+      targetPort: http-metrics
+    {{ if .Values.monitoring.useIstioCerts }}
+      scheme: https
+      tlsConfig:
+        caFile: /etc/istio-certs/root-cert.pem
+        certFile: /etc/istio-certs/cert-chain.pem
+        keyFile: /etc/istio-certs/key.pem
+        insecureSkipVerify: true
+    {{ else }}
+      scheme: http
+    {{ end }}
+  {{- end }}

@@ -26,8 +26,9 @@ const (
 )
 
 type fluentdComponentValues struct {
-	Logging *loggingValues `json:"logging,omitempty"`
-	Fluentd *fluentdValues `json:"fluentd,omitempty"`
+	Logging    *loggingValues `json:"logging,omitempty"`
+	Fluentd    *fluentdValues `json:"fluentd,omitempty"`
+	Monitoring *Monitoring    `json:"monitoring,omitempty"`
 }
 
 type loggingValues struct {
@@ -53,6 +54,11 @@ type ociLoggingSettings struct {
 	DefaultAppLogID string `json:"defaultAppLogId"`
 	SystemLogID     string `json:"systemLogId"`
 	APISecret       string `json:"apiSecret,omitempty"`
+}
+
+type Monitoring struct {
+	Enabled       bool `json:"enabled,omitempty"`
+	UseIstioCerts bool `json:"useIstioCerts,omitempty"`
 }
 
 // appendOverrides appends the overrides for the component
@@ -141,6 +147,11 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *fluentdCom
 		if overrides.Logging.ElasticsearchSecret == globalconst.LegacyElasticsearchSecretName {
 			overrides.Logging.ElasticsearchSecret = globalconst.VerrazzanoESInternal
 		}
+	}
+
+	overrides.Monitoring = &Monitoring{
+		Enabled:       vzconfig.IsPrometheusOperatorEnabled(effectiveCR),
+		UseIstioCerts: vzconfig.IsIstioEnabled(effectiveCR),
 	}
 }
 
