@@ -59,15 +59,6 @@ function delete_verrazzano() {
   delete_managed_k8s_resources scopedefinitions.core.oam.dev
 }
 
-function delete_authproxy {
-  log "Uninstall the Verrazzano AuthProxy"
-  if helm status verrazzano-authproxy --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall verrazzano-authproxy --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall the Verrazzano AuthProxy."
-    fi
-  fi
-}
-
 function delete_weblogic_operator {
   log "Uninstall the WebLogic Kubernetes operator"
   if helm status uninstall weblogic-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -76,12 +67,7 @@ function delete_weblogic_operator {
     fi
   fi
 
-  log "Delete the WebLogic Kubernetes operator service account"
-  if kubectl get serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa > /dev/null 2>&1 ; then
-    if ! kubectl delete serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa ; then
-      error "Failed to delete the WebLogic Kubernetes operator service account."
-    fi
-  fi
+
 }
 
 function delete_kiali {
@@ -94,15 +80,6 @@ function delete_kiali {
   fi
   log "Deleting Kiali Custom Resource Definitions"
   kubectl delete -f ${KIALI_CHART_DIR}/crds || true
-}
-
-function delete_prometheus_adapter {
-  log "Uninstall the Prometheus adapter"
-  if helm status prometheus-adapter --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall prometheus-adapter --namespace "${VERRAZZANO_MONITORING_NS}" ; then
-      error "Failed to uninstall the Prometheus adapter."
-    fi
-  fi
 }
 
 function delete_prometheus_node_exporter {
@@ -130,33 +107,6 @@ function delete_prometheus_operator {
   kubectl delete namespace "${VERRAZZANO_MONITORING_NS}" --ignore-not-found=true || err_return $? "Could not delete the ${VERRAZZANO_MONITORING_NS} namespace"
 }
 
-function delete_prometheus_pushgateway {
-  log "Uninstall the Prometheus Pushgateway"
-  if helm status prometheus-pushgateway --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall prometheus-pushgateway --namespace "${VERRAZZANO_MONITORING_NS}" ; then
-      error "Failed to uninstall the Prometheus Pushgateway."
-    fi
-  fi
-}
-
-function delete_jaeger_operator {
-  log "Uninstall the Jaeger operator"
-  if helm status jaeger-operator --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall jaeger-operator --namespace "${VERRAZZANO_MONITORING_NS}" ; then
-      error "Failed to uninstall the Jaeger Operator."
-    fi
-  fi
-}
-
-function delete_fluentd {
-  log "Uninstall the Fluentd"
-  if helm status fluentd --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall fluentd --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall the fluentd."
-    fi
-  fi
-}
-
 function delete_velero {
     log "Uninstall Velero"
     if helm status velero --namespace velero > /dev/null 2>&1 ; then
@@ -173,14 +123,8 @@ function delete_velero {
     kubectl delete namespace velero --ignore-not-found=true || err_return $? "Could not delete the velero namespace"
 }
 
-action "Deleting Fluentd" delete_fluentd || exit 1
-action "Deleting Prometheus Pushgateway " delete_prometheus_pushgateway || exit 1
-action "Deleting Jaeger operator " delete_jaeger_operator || exit 1
-action "Deleting Prometheus adapter " delete_prometheus_adapter || exit 1
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
-action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
-action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
 action "Deleting Velero " delete_velero || exit 1
