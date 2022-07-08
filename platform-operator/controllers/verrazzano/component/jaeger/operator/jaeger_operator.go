@@ -397,12 +397,12 @@ func ReassociateResources(cli clipkg.Client) error {
 // jaeger helm chart
 func GetHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
-		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-metrics", Namespace: ComponentNamespace}},
+		//{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-metrics", Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-webhook-service", Namespace: ComponentNamespace}},
-		{Obj: &certv1.Certificate{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-serving-cert", Namespace: ComponentNamespace}},
+		//{Obj: &certv1.Certificate{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-serving-cert", Namespace: ComponentNamespace}},
 		{Obj: &certv1.Issuer{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-selfsigned-issuer", Namespace: ComponentNamespace}},
 		{Obj: &adminv1.ValidatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-validating-webhook-configuration", Namespace: ComponentNamespace}},
-		{Obj: &adminv1.MutatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-mutating-webhook-configuration", Namespace: ComponentNamespace}},
+		//{Obj: &adminv1.MutatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-mutating-webhook-configuration", Namespace: ComponentNamespace}},
 		//{Obj: &rbacv1.RoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
 		//{Obj: &rbacv1.Role{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
 
