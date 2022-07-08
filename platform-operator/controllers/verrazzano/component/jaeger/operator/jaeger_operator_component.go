@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -103,7 +104,7 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 // PreUpgrade Jaeger component pre-upgrade processing
 func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Jaeger pre-upgrade")
-	if err := removeDeployment(ctx); err != nil {
+	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -132,7 +133,7 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 // removeDeploymentAndService removes the Jaeger deployment during pre-upgrade.
 // The match selector for jaeger operator deployment was changed in 1.34.1 from the previous jaeger version (1.32.0) that Verrazzano installed.
 // The match selector is an immutable field so this was a workaround to avoid a failure during jaeger upgrade.
-func removeDeployment(ctx spi.ComponentContext) error {
+func removeDeploymentAndService(ctx spi.ComponentContext) error {
 	deployment := &appsv1.Deployment{}
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to get deployment %s/%s: %v", ComponentNamespace, ComponentName, err)
@@ -146,6 +147,13 @@ func removeDeployment(ctx spi.ComponentContext) error {
 				return nil
 			}
 		}
+	}
+	service := &corev1.Service{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, ComponentName, err)
+	}
+	if err := ctx.Client().Delete(context.TODO(), service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete service %s/%s: %v", ComponentNamespace, ComponentName, err)
 	}
 	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to delete deployment %s/%s: %v", ComponentNamespace, ComponentName, err)
