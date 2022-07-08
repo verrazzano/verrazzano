@@ -25,6 +25,7 @@ import (
 	certv1client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
@@ -841,37 +842,87 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 // this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
 func uninstallCertManager(compContext spi.ComponentContext) error {
 	// Delete the kube-system cert-manager configMaps [controller, caInjector]
-	if err := deleteObjectWithLog(compContext, controllerConfigMap, constants.KubeSystem, &v1.ConfigMap{}); err != nil {
+	err := vzresource.Resource{
+		Name:      controllerConfigMap,
+		Namespace: constants.KubeSystem,
+		Client:    compContext.Client(),
+		Object:    &v1.ConfigMap{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
 		return err
 	}
-	if err := deleteObjectWithLog(compContext, caInjectorConfigMap, constants.KubeSystem, &v1.ConfigMap{}); err != nil {
+
+	err = vzresource.Resource{
+		Name:      caInjectorConfigMap,
+		Namespace: constants.KubeSystem,
+		Client:    compContext.Client(),
+		Object:    &v1.ConfigMap{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
 		return err
 	}
 
 	// Delete the ClusterIssuer created by Verrazzano
-	if err := deleteObjectWithLog(compContext, verrazzanoClusterIssuerName, vzconst.DefaultNamespace, &v1.ConfigMap{}); err != nil {
+	err = vzresource.Resource{
+		Name:      verrazzanoClusterIssuerName,
+		Namespace: vzconst.DefaultNamespace,
+		Client:    compContext.Client(),
+		Object:    &certv1.ClusterIssuer{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
 		return err
 	}
 
 	// Delete the CA resources if necessary
-	if err := deleteObjectWithLog(compContext, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{}); err != nil {
+	err = vzresource.Resource{
+		Name:      caSelfSignedIssuerName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &certv1.Issuer{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
 		return err
 	}
-	if err := deleteObjectWithLog(compContext, caCertificateName, ComponentNamespace, &certv1.Certificate{}); err != nil {
+	err = vzresource.Resource{
+		Name:      caCertificateName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &certv1.Certificate{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
 		return err
 	}
-	if err := deleteObjectWithLog(compContext, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{}); err != nil {
+	err = vzresource.Resource{
+		Name:      defaultCACertificateSecretName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &v1.Secret{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
 		return err
 	}
 
 	// Delete the ACME secret if present
-	if err := deleteObjectWithLog(compContext, caAcmeSecretName, ComponentNamespace, &v1.Secret{}); err != nil {
+	err = vzresource.Resource{
+		Name:      caAcmeSecretName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &v1.Secret{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
 		return err
 	}
 
 	// Remove finalizers from the cert-manager namespace to avoid hanging namespace deletion
 	certNs := v1.Namespace{}
-	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &certNs)
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &certNs)
 	if crtclient.IgnoreNotFound(err) != nil {
 		return compContext.Log().ErrorfNewErr("Failed to get the %s %s: %v", certNs.GetObjectKind(), ComponentNamespace, err)
 	} else if err == nil {
@@ -883,7 +934,12 @@ func uninstallCertManager(compContext spi.ComponentContext) error {
 	}
 
 	// Delete the cert-manager namespace now that the finalizers have been removed
-	return deleteObjectWithLog(compContext, ComponentNamespace, "", &v1.Namespace{})
+	return vzresource.Resource{
+		Name:   ComponentNamespace,
+		Client: compContext.Client(),
+		Object: &v1.Namespace{},
+		Log:    compContext.Log(),
+	}.Delete()
 }
 
 func deleteObject(client crtclient.Client, name string, namespace string, object crtclient.Object) error {
@@ -891,20 +947,6 @@ func deleteObject(client crtclient.Client, name string, namespace string, object
 	object.SetNamespace(namespace)
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, object); err == nil {
 		return client.Delete(context.TODO(), object)
-	}
-	return nil
-}
-
-// deleteObjectWithLog deletes an object with a Oncef message if it is successfull
-// If the object is not found, we ignore and continue
-func deleteObjectWithLog(compContext spi.ComponentContext, name string, namespace string, object crtclient.Object) error {
-	object.SetName(name)
-	object.SetNamespace(namespace)
-	err := compContext.Client().Delete(context.TODO(), object)
-	if crtclient.IgnoreNotFound(err) != nil {
-		return compContext.Log().ErrorfNewErr("Failed to delete the %s %s/%s: %v", object.GetObjectKind(), namespace, name, err)
-	} else if err == nil {
-		compContext.Log().Oncef("Successfully deleted %s %s/%s", object.GetObjectKind(), namespace, name)
 	}
 	return nil
 }
