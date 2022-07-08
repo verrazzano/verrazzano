@@ -12,6 +12,8 @@ import (
 	"regexp"
 )
 
+var rancherSystemTool = "/usr/local/bin/system-tools"
+
 // postUninstall removes the objects after the Helm uninstall process finishes
 func postUninstall(ctx spi.ComponentContext) error {
 	ctx.Log().Oncef("Running the Rancher uninstall system tool")
@@ -31,7 +33,7 @@ func postUninstall(ctx spi.ComponentContext) error {
 		}
 		if matches {
 			args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
-			cmd := osexec.Command("/usr/local/bin/system-tools", args...) //nolint:gosec //#nosec G204
+			cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
 			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
 			if err != nil {
 				return ctx.Log().ErrorNewErr("Failed to run system tools for Rancher deletion: %s: %v", stdErr, err)
@@ -39,4 +41,9 @@ func postUninstall(ctx spi.ComponentContext) error {
 		}
 	}
 	return nil
+}
+
+// set function for the Rancher system tool used for unit tests
+func setRancherSystemTool(cmd string) {
+	rancherSystemTool = cmd
 }
