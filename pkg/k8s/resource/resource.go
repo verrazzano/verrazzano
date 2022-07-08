@@ -24,7 +24,7 @@ func (r Resource) Delete() error {
 	r.Object.SetNamespace(r.Namespace)
 	err := r.Client.Delete(context.TODO(), r.Object)
 	if client.IgnoreNotFound(err) != nil {
-		return r.Log.ErrorfNewErr("Failed to delete the %s %s/%s: %v", r.Object.GetObjectKind(), r.Object.GetNamespace(), r.Object.GetName(), err)
+		return r.Log.ErrorfNewErr("Failed to delete the resource of type %s, named %s/%s: %v", r.Object.GetObjectKind(), r.Object.GetNamespace(), r.Object.GetName(), err)
 	} else if err == nil {
 		r.Log.Oncef("Successfully deleted %s %s/%s", r.Object.GetObjectKind(), r.Object.GetNamespace(), r.Object.GetName())
 	}
