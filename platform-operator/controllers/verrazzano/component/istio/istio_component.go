@@ -148,7 +148,7 @@ func (i istioComponent) IsOperatorUninstallSupported() bool {
 	return true
 }
 
-func (i istioComponent) PreUninstall(context spi.ComponentContext) error {
+func (i istioComponent) PreUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
