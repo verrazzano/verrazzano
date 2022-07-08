@@ -28,5 +28,8 @@ func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.Kibana {
 			RequestMemory: "192Mi",
 		},
 	}
+	if kibanaValues.Replicas != nil {
+		opensearchDashboards.Replicas = *kibanaValues.Replicas
+	}
 	return opensearchDashboards
 }
