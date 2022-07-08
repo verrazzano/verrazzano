@@ -23,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -59,6 +60,9 @@ const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
 
 // istioManfiestNotInstalledError - Expected error during install when running verify-install before Istio CR is applied
 const istioManfiestNotInstalledError = "Istio present but verify-install needs an IstioOperator or manifest for comparison"
+
+const istioReaderIstioSystem = "istio-reader-istio-system"
+const istiodIstioSystem = "istip-istio-system"
 
 // istioComponent represents an Istio component
 type istioComponent struct {
@@ -152,13 +156,55 @@ func (i istioComponent) PreUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-//
+// Uninstall processing for Istio
 func (i istioComponent) Uninstall(context spi.ComponentContext) error {
 	_, _, err := istioUninstallFunc(context.Log())
 	return err
 }
 
+// PostUninstall processing for Istio
 func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
+	// Delete ClusterRoleBindings and ClusterRoles not removed with istioctl uninstall
+	err := resource.Resource{
+		Name:   istioReaderIstioSystem,
+		Client: context.Client(),
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    context.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	err = resource.Resource{
+		Name:   istioReaderIstioSystem,
+		Client: context.Client(),
+		Object: &rbacv1.ClusterRole{},
+		Log:    context.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	err = resource.Resource{
+		Name:   istiodIstioSystem,
+		Client: context.Client(),
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    context.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	err = resource.Resource{
+		Name:   istiodIstioSystem,
+		Client: context.Client(),
+		Object: &rbacv1.ClusterRole{},
+		Log:    context.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
 	res := resource.Resource{
 		Name:   IstioNamespace,
 		Client: context.Client(),
@@ -166,7 +212,7 @@ func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
 		Log:    context.Log(),
 	}
 	// Remove finalizers from the istio-system namespace to avoid hanging namespace deletion
-	err := res.RemoveFinalizers()
+	err = res.RemoveFinalizers()
 	if err != nil {
 		return err
 	}
