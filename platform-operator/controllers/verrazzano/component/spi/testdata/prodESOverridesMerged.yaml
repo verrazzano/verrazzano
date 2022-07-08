@@ -123,6 +123,14 @@ spec:
         - values:
             prometheus:
               prometheusSpec:
+                storageSpec:
+                  volumeClaimTemplate:
+                    spec:
+                      storageClassName:
+                        resources:
+                          requests:
+                            storage: "50Gi"
+                            memory: "128Mi"
                 replicas: 2
                 affinity:
                   podAntiAffinity:
@@ -133,14 +141,6 @@ spec:
                               app.kubernetes.io/name: prometheus
                           topologyKey: kubernetes.io/hostname
                         weight: 100
-                storageSpec:
-                  volumeClaimTemplate:
-                    spec:
-                      storageClassName:
-                        resources:
-                          requests:
-                            storage: "50Gi"
-                            memory: "128Mi"
     rancher:
       enabled: true
     verrazzano:
