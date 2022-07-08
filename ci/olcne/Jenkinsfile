@@ -1009,8 +1009,8 @@ def createOLCNECluster() {
 }
 
 def setupSSH() {
-    env.INSTANCE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0].replaceAll(" ", "").trim()
-    echo INSTANCE_IP
+    env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0].replaceAll(" ", "").trim()
+    echo CONTROL_PLANE_IP
     sh '''
         sudo yum -y install oracle-epel-release-el7
         sudo yum -y install sshuttle
@@ -1023,7 +1023,7 @@ def setupSSH() {
             echo "[ERROR] Failed to ssh tunnel to the bastion host $TF_VAR_prefix-bastion at $BASTION_USER@$BASTION_IP"
             exit 1
         fi
-        ssh -i "$TF_VAR_ssh_private_key_path" -fN4 -L 6443:$INSTANCE_IP:6443 "$BASTION_USER"@"$BASTION_IP"
+        ssh -i "$TF_VAR_ssh_private_key_path" -fN4 -L 6443:$CONTROL_PLANE_IP:6443 "$BASTION_USER"@"$BASTION_IP"
     '''
 }
 
@@ -1067,11 +1067,13 @@ def createOCIStorage() {
 }
 
 def mountOCIStorage() {
-    env.INSTANCE_IP=WORKER_NODES_IP.split(" ")[0]
-    echo INSTANCE_IP
+    env.WORKER_IP=WORKER_NODES_IP.split(" ")[0]
+    echo WORKER_IP
+    env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
+    echo CONTROL_PLANE_IP
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/mount_oci_storage.sh \
-        "$INSTANCE_IP" "$API_SERVER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
+        "$API_SERVER_IP" "$CONTROL_PLANE_IP" "$WORKER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
     """
 }
 

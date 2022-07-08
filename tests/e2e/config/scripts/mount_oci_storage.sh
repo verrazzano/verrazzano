@@ -5,14 +5,15 @@
 #
 # Script to mount OCI storage to ocne cluster
 set -x
-INSTANCE_IP="$1" 
-API_SERVER_IP="$2"
-OCI_MOUNT_IP="$3"
-PREFIX="$4"
-PRIVATE_KEY_PATH="$5"
-OCI_EXPORT_PATH="$6"
+API_SERVER_IP="$1"
+CONTROL_PLANE_IP="$2"
+WORKER_IP="$3"
+OCI_MOUNT_IP="$4"
+PREFIX="$5"
+PRIVATE_KEY_PATH="$6"
+OCI_EXPORT_PATH="$7"
 
-ssh -o StrictHostKeyChecking=no opc@$INSTANCE_IP -i $PRIVATE_KEY_PATH "
+ssh -o StrictHostKeyChecking=no opc@$WORKER_IP -i $PRIVATE_KEY_PATH "
     sudo yum install -y nfs-utils
     sudo mkdir -p /mnt/$OCI_EXPORT_PATH
     sudo mount $OCI_MOUNT_IP:/$OCI_EXPORT_PATH /mnt/$OCI_EXPORT_PATH
@@ -53,3 +54,38 @@ cat << EOF | kubectl apply -f -
         persistentVolumeReclaimPolicy: Recycle
 EOF
 done
+
+cat << EOF | kubectl apply -f -
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+        name: recycler-pod-config
+        namespace: kube-system
+    data:
+        recycler-pod.yaml: |
+            apiVersion: v1
+            kind: Pod
+            metadata:
+            name: pv-recycler
+            namespace: default
+            spec:
+            restartPolicy: Never
+            volumes:
+            - name: vol
+                hostPath:
+                path: /tmp
+            containers:
+            - name: pv-recycler
+                image: "busybox"
+                command: ["/bin/sh", "-c", "test -e /scrub && rm -rf /scrub/..?* /scrub/.[!.]* /scrub/*  && test -z \"$(ls -A /scrub)\" || exit 1"]
+                volumeMounts:
+                - name: vol
+                mountPath: /scrub
+EOF
+
+ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH '
+    K8S_CONTROLLER_MANAGER_PATH=/etc/kubernetes/manifests/kube-controller-manager.yaml
+    sudo yq -i eval \'.spec.containers[0].command += "--pv-recycler-pod-template-filepath-nfs=/etc/recycler-pod.yaml"\' "$K8S_CONTROLLER_MANAGER_PATH"
+    sudo yq -i eval \'.spec.containers[0].volumeMounts += [{"name": "recycler-config-volume", "mountPath": "/etc/recycler-pod.yaml", "subPath": "recycler-pod.yaml"}]\' "$K8S_CONTROLLER_MANAGER_PATH"
+    sudo yq -i eval \'.spec.volumes += [{"name": "recycler-config-volume", "configMap": {"name": "recycler-pod-config"}}]\' "$K8S_CONTROLLER_MANAGER_PATH"
+'
