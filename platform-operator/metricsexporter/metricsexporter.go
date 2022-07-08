@@ -529,6 +529,10 @@ func CollectReconcileMetrics(startTime int64) {
 	reconcileIndex = reconcileIndex + 1
 }
 
+//Reminder to take out this comment block later
+//Change this function to get the times for the upcoming update Condition Type
+//For each component go through the list
+//Can update current code to get rid of installnothappened and for update just change the condition to its repsective update condition
 func AnalyzeVZCR(CR vzapi.Verrazzano) {
 	//Get the VZ CR Component Map (Store it in this function, so the state does not change)
 	mapOfComponents := CR.Status.Components
