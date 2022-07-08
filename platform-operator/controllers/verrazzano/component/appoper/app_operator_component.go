@@ -38,16 +38,17 @@ type applicationOperatorComponent struct {
 func NewComponent() spi.Component {
 	return applicationOperatorComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
-			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
-			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			AppendOverridesFunc:       AppendApplicationOperatorOverrides,
+			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
+			Dependencies:              []string{oam.ComponentName, istio.ComponentName},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }

@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -31,6 +32,8 @@ const ComponentNamespace = common.CattleSystem
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "rancher"
+
+const rancherIngressClassNameKey = "ingress.ingressClassName"
 
 type rancherComponent struct {
 	helm.HelmComponent
@@ -82,6 +85,10 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Value: useBundledSystemChartValue,
 	})
 	kvs = appendRegistryOverrides(kvs)
+	kvs = append(kvs, bom.KeyValue{
+		Key:   rancherIngressClassNameKey,
+		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
+	})
 	return appendCAOverrides(log, kvs, ctx)
 }
 

@@ -17,6 +17,10 @@ spec:
         - secretRef:
             name: test-overrides
             key: test-overrides-secret.yaml
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 2
     prometheusAdapter:
       enabled: true
     kubeStateMetrics:

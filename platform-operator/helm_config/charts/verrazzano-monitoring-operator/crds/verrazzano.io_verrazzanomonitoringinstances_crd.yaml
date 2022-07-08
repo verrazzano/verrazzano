@@ -41,6 +41,9 @@ spec:
               description: VerrazzanoMonitoringInstanceSpec defines the attributes a
                 user can specify when creating a VerrazzanoMonitoringInstance
               properties:
+                IngressClassName:
+                  description: the ingress class for external endpoints
+                  type: string
                 alertmanager:
                   description: Prometheus details
                   properties:
