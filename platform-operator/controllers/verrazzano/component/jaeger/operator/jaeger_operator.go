@@ -378,8 +378,8 @@ func ReassociateResources(cli clipkg.Client) error {
 
 	// additional namespaced resources managed by this helm chart
 	helmManagedResources := GetHelmManagedResources()
-	for _, managedResoure := range helmManagedResources {
-		if _, err := common.RemoveResourcePolicyAnnotation(cli, managedResoure.Obj, managedResoure.NamespacedName); err != nil {
+	for _, managedResource := range helmManagedResources {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, managedResource.Obj, managedResource.NamespacedName); err != nil {
 			return err
 		}
 	}
@@ -397,7 +397,6 @@ func ReassociateResources(cli clipkg.Client) error {
 // jaeger helm chart
 func GetHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
-		//{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator", Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-metrics", Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-webhook-service", Namespace: ComponentNamespace}},
 		{Obj: &certv1.Certificate{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-serving-cert", Namespace: ComponentNamespace}},

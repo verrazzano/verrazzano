@@ -100,6 +100,15 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 	return c.validateJaegerOperator(new)
 }
 
+// PreUpgrade Jaeger component pre-upgrade processing
+func (f jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("Jaeger pre-upgrade")
+	if err := removeDeployment(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
 //Uprade jaegeroperator component for upgrade processing.
 func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
 
@@ -118,4 +127,28 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 		return false, err
 	}
 	return true, nil
+}
+
+// removeDeploymentAndService removes the Jaeger deployment during pre-upgrade.
+// The match selector for jaeger operator deployment was changed in 1.34.1 from the previous jaeger version (1.32.0) that Verrazzano installed.
+// The match selector is an immutable field so this was a workaround to avoid a failure during jaeger upgrade.
+func removeDeployment(ctx spi.ComponentContext) error {
+	deployment := &appsv1.Deployment{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get deployment %s/%s: %v", ComponentNamespace, ComponentName, err)
+	}
+	// Remove the jaeger deployment only if the match selector is not what is expected.
+	if deployment.Spec.Selector != nil && len(deployment.Spec.Selector.MatchExpressions) == 0 && len(deployment.Spec.Selector.MatchLabels) == 2 {
+		instance, ok := deployment.Spec.Selector.MatchLabels["app.kubernetes.io/instance"]
+		if ok && instance == ComponentName {
+			name, ok := deployment.Spec.Selector.MatchLabels["app.kubernetes.io/name"]
+			if ok && name == ComponentName {
+				return nil
+			}
+		}
+	}
+	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete deployment %s/%s: %v", ComponentNamespace, ComponentName, err)
+	}
+	return nil
 }
