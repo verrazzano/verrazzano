@@ -31,7 +31,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -866,11 +865,10 @@ func uninstallCertManager(compContext spi.ComponentContext) error {
 
 	// Delete the ClusterIssuer created by Verrazzano
 	err = vzresource.Resource{
-		Name:      verrazzanoClusterIssuerName,
-		Namespace: vzconst.DefaultNamespace,
-		Client:    compContext.Client(),
-		Object:    &certv1.ClusterIssuer{},
-		Log:       compContext.Log(),
+		Name:   verrazzanoClusterIssuerName,
+		Client: compContext.Client(),
+		Object: &certv1.ClusterIssuer{},
+		Log:    compContext.Log(),
 	}.Delete()
 	if err != nil {
 		return err
