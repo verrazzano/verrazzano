@@ -8,7 +8,6 @@ import (
 	"reflect"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -41,7 +40,7 @@ func (r Resource) RemoveFinalizers() error {
 	val := reflect.ValueOf(r.Object)
 	kind := val.Elem().Type().Name()
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.Namespace, Name: r.Name}, r.Object)
-	if err != nil && !errors.IsNotFound(err) {
+	if client.IgnoreNotFound(err) != nil {
 		return r.Log.ErrorfNewErr("Failed to get the resource of type %s, named %s/%s: %v", kind, r.Object.GetNamespace(), r.Object.GetName(), err)
 	} else if err == nil {
 		r.Object.SetFinalizers([]string{})
