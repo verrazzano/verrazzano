@@ -96,10 +96,5 @@ spec:
                         matchLabels:
                           app.kubernetes.io/instance: keycloak
                           app.kubernetes.io/name: keycloak
-                        matchExpressions:
-                          - key: app.kubernetes.io/component
-                            operator: In
-                            values:
-                              - keycloak
                       topologyKey: kubernetes.io/hostname
 
