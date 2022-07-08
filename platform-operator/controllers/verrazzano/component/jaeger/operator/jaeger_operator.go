@@ -360,6 +360,7 @@ func ReassociateResources(cli clipkg.Client) error {
 	name := types.NamespacedName{Name: ComponentName}
 	objects := []clipkg.Object{
 		&corev1.ServiceAccount{},
+		&corev1.Service{},
 		&appsv1.Deployment{},
 	}
 
@@ -375,13 +376,13 @@ func ReassociateResources(cli clipkg.Client) error {
 		}
 	}
 
-	/*	// additional namespaced resources managed by this helm chart
-		helmManagedResources := GetHelmManagedResources()
-		for _, managedResoure := range helmManagedResources {
-			if _, err := common.RemoveResourcePolicyAnnotation(cli, managedResoure.Obj, managedResoure.NamespacedName); err != nil {
-				return err
-			}
-		}*/
+	// additional namespaced resources managed by this helm chart
+	helmManagedResources := GetHelmManagedResources()
+	for _, managedResoure := range helmManagedResources {
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, managedResoure.Obj, managedResoure.NamespacedName); err != nil {
+			return err
+		}
+	}
 
 	// cluster resources
 	for _, obj := range noNamespaceObjects {
