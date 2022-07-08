@@ -29,6 +29,9 @@ const (
 	ComponentJSONName = "jaegerOperator"
 	// ChartDir is the relative directory path for Jaeger Operator chart
 	ChartDir = "jaegertracing/jaeger-operator"
+
+	//ComponentServiceName is the name of the service name.
+	ComponentServiceName = "jaeger-operator-metrics "
 )
 
 type jaegerOperatorComponent struct {
@@ -149,11 +152,11 @@ func removeDeploymentAndService(ctx spi.ComponentContext) error {
 		}
 	}
 	service := &corev1.Service{}
-	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, service); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, ComponentName, err)
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentServiceName}, service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, ComponentServiceName, err)
 	}
 	if err := ctx.Client().Delete(context.TODO(), service); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to delete service %s/%s: %v", ComponentNamespace, ComponentName, err)
+		return ctx.Log().ErrorfNewErr("Failed to delete service %s/%s: %v", ComponentNamespace, ComponentServiceName, err)
 	}
 	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to delete deployment %s/%s: %v", ComponentNamespace, ComponentName, err)
