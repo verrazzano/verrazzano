@@ -87,4 +87,19 @@ spec:
       overrides:
         - values:
             replicas: 2
+            affinity: |
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app.kubernetes.io/instance: keycloak
+                          app.kubernetes.io/name: keycloak
+                        matchExpressions:
+                          - key: app.kubernetes.io/component
+                            operator: In
+                            values:
+                              - keycloak
+                      topologyKey: kubernetes.io/hostname
 
