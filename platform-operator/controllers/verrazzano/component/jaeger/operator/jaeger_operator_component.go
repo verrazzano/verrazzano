@@ -114,12 +114,12 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
-	/*	if err := RemoveMutatingWebhookConfig(ctx); err != nil {
-			return err
-		}
-		if err := RemoveValidatingWebhookConfig(ctx); err != nil {
-			return err
-		}*/
+	if err := RemoveMutatingWebhookConfig(ctx); err != nil {
+		return err
+	}
+	if err := RemoveValidatingWebhookConfig(ctx); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -144,6 +144,9 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 
 func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	mutatingWebhookConfig := &adminv1.MutatingWebhookConfiguration{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, mutatingWebhookConfig); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get mutatingwebhookconfiguration %s/%s: %v", ComponentNamespace, ComponentMutatingWebhookConfigName, err)
+	}
 	if err := ctx.Client().Delete(context.TODO(), mutatingWebhookConfig); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to delete mutatingwebhookconfiguration %s/%s: %v", ComponentNamespace, ComponentMutatingWebhookConfigName, err)
 	}
@@ -152,6 +155,9 @@ func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
 
 func RemoveValidatingWebhookConfig(ctx spi.ComponentContext) error {
 	validatingWebhookConfig := &adminv1.ValidatingWebhookConfiguration{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, validatingWebhookConfig); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get validatingwebhookconfiguration %s/%s: %v", ComponentNamespace, ComponentValidatingWebhookConfigName, err)
+	}
 	if err := ctx.Client().Delete(context.TODO(), validatingWebhookConfig); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to delete validatingwebhookconfiguration %s/%s: %v", ComponentNamespace, ComponentValidatingWebhookConfigName, err)
 	}
