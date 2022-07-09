@@ -114,12 +114,12 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
-	if err := RemoveMutatingWebhookConfig(ctx); err != nil {
-		return err
-	}
-	if err := RemoveValidatingWebhookConfig(ctx); err != nil {
-		return err
-	}
+	/*	if err := RemoveMutatingWebhookConfig(ctx); err != nil {
+			return err
+		}
+		if err := RemoveValidatingWebhookConfig(ctx); err != nil {
+			return err
+		}*/
 	return nil
 }
 
