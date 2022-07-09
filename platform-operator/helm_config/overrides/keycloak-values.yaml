@@ -14,6 +14,8 @@ extraEnv: |
     value: "2"
   - name: CACHE_OWNERS_AUTH_SESSIONS_COUNT
     value: "2"
+  - name: JGROUPS_DISCOVERY_PROTOCOL
+    value: JDBC_PING
   - name: DB_VENDOR
     value: mysql
   - name: DB_ADDR
@@ -54,8 +56,17 @@ extraVolumeMounts: |
   - name: keycloak-http
     mountPath: /etc/keycloak-http
 
+extraPorts:
+  - name: jgroups
+    containerPort: 7600
+    protocol: TCP
+
 service:
   port: 8083
+  extraPorts:
+    - name: jgroups
+      port: 7600
+      targetPort: jgroups
 
 ingress:
   enabled: true
@@ -71,6 +82,8 @@ ingress:
     nginx.ingress.kubernetes.io/session-cookie-name: "keycloak"
     nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
     external-dns.alpha.kubernetes.io/target: "{{ .Values.dnsTarget }}"
+    traffic.sidecar.istio.io/excludeInboundPorts: "7600"
+    traffic.sidecar.istio.io/excludeOutboundPorts: "7600"
   rules:
     -
       paths:
