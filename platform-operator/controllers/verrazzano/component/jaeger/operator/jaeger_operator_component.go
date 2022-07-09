@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,9 +30,12 @@ const (
 	ComponentJSONName = "jaegerOperator"
 	// ChartDir is the relative directory path for Jaeger Operator chart
 	ChartDir = "jaegertracing/jaeger-operator"
-
 	//ComponentServiceName is the name of the service name.
 	ComponentServiceName = "jaeger-operator-metrics"
+	//ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
+	ComponentMutatingWebhookConfigName = "jaeger-operator-mutating-webhook-configuration"
+	//ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
+	ComponentValidatingWebhookConfigName = "jaeger-operator-validating-webhook-configuration"
 )
 
 type jaegerOperatorComponent struct {
@@ -105,13 +109,19 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 }
 
 // PreUpgrade Jaeger component pre-upgrade processing
-/*func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Jaeger pre-upgrade")
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
+	if err := RemoveMutatingWebhookConfig(ctx); err != nil {
+		return err
+	}
+	if err := RemoveValidatingWebhookConfig(ctx); err != nil {
+		return err
+	}
 	return nil
-}*/
+}
 
 //Uprade jaegeroperator component for upgrade processing.
 func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
@@ -130,6 +140,22 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 		return false, err
 	}
 	return true, nil
+}
+
+func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
+	mutatingWebhookConfig := &adminv1.MutatingWebhookConfiguration{}
+	if err := ctx.Client().Delete(context.TODO(), mutatingWebhookConfig); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete mutatingwebhookconfiguration %s/%s: %v", ComponentNamespace, ComponentMutatingWebhookConfigName, err)
+	}
+	return nil
+}
+
+func RemoveValidatingWebhookConfig(ctx spi.ComponentContext) error {
+	validatingWebhookConfig := &adminv1.ValidatingWebhookConfiguration{}
+	if err := ctx.Client().Delete(context.TODO(), validatingWebhookConfig); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete validatingwebhookconfiguration %s/%s: %v", ComponentNamespace, ComponentValidatingWebhookConfigName, err)
+	}
+	return nil
 }
 
 // removeDeploymentAndService removes the Jaeger deployment during pre-upgrade.
