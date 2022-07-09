@@ -105,17 +105,16 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 }
 
 // PreUpgrade Jaeger component pre-upgrade processing
-func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+/*func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Jaeger pre-upgrade")
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
 	return nil
-}
+}*/
 
 //Uprade jaegeroperator component for upgrade processing.
 func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
-
 	return c.HelmComponent.Install(ctx)
 }
 
