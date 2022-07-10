@@ -9,7 +9,8 @@ import (
 	"path"
 	"strconv"
 
-	vmoconst "github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -34,7 +35,6 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/kustomize/kyaml/sliceutil"
 )
 
 const (
@@ -44,6 +44,7 @@ const (
 
 	prometheusAuthPolicyName = "vmi-system-prometheus-authzpol"
 	networkPolicyName        = "vmi-system-prometheus"
+	istioCertMountPath       = "/etc/istio-certs"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -379,7 +380,7 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 func (c prometheusComponent) validatePrometheusOperator(vz *vzapi.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
 	if !c.IsEnabled(vz) && vzconfig.IsPrometheusEnabled(vz) {
-		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled")
+		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
 	}
 	// Validate install overrides
 	if vz.Spec.Components.PrometheusOperator != nil {
@@ -408,7 +409,7 @@ func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 	// Volume mount on the Prometheus container to mount the Istio-generated certificates
 	vm := corev1.VolumeMount{
 		Name:      istioVolumeName,
-		MountPath: vmoconst.IstioCertsMountPath,
+		MountPath: istioCertMountPath,
 	}
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].name", volumeMountKey), Value: vm.Name})
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("%s[0].mountPath", volumeMountKey), Value: vm.MountPath})
@@ -511,7 +512,7 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 					return nil
 				}
 				// Update the object principal with the Prometheus Operator service account if not found
-				if !sliceutil.Contains(targetFrom.Source.Principals, serviceAccount) {
+				if !vzstring.SliceContainsString(targetFrom.Source.Principals, serviceAccount) {
 					authPolicy.Spec.Rules[0].From[0].Source.Principals = append(targetFrom.Source.Principals, serviceAccount)
 				}
 				return nil

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -45,8 +45,6 @@ if [ "$FORCE" = false ] ; then
   done
 fi
 
-section "Uninstalling Verrazzano Applications"
-$SCRIPT_DIR/uninstall-steps/0-uninstall-applications.sh || exit 1
 section "Uninstalling Keycloak..."
 $SCRIPT_DIR/uninstall-steps/4-uninstall-keycloak.sh || exit 1
 section "Uninstalling Verrazzano..."

@@ -15,6 +15,7 @@ import (
 )
 
 const defaultWildcardDomain = "nip.io"
+const defaultIngressClassName = "verrazzano-nginx"
 
 // GetEnvName Returns the configured environment name, or "default" if not specified in the configuration
 func GetEnvName(vz *vzapi.Verrazzano) string {
@@ -117,4 +118,13 @@ func BuildDNSDomain(client client.Client, vz *vzapi.Verrazzano) (string, error) 
 	envName := GetEnvName(vz)
 	dnsDomain := fmt.Sprintf("%s.%s", envName, dnsSuffix)
 	return dnsDomain, nil
+}
+
+//GetIngressClassName gets the ingress class name or default of "nginx" if not specified
+func GetIngressClassName(vz *vzapi.Verrazzano) string {
+	ingressComponent := vz.Spec.Components.Ingress
+	if ingressComponent != nil && ingressComponent.IngressClassName != nil && *ingressComponent.IngressClassName != "" {
+		return *ingressComponent.IngressClassName
+	}
+	return defaultIngressClassName
 }
