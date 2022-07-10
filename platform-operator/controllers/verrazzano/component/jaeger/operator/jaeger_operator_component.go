@@ -147,6 +147,10 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 
 func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	config, err := ctrl.GetConfig()
+	if err != nil {
+		ctx.Log().ErrorfNewErr("Failed to get kubeconfig with error: %v", err)
+		return err
+	}
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		ctx.Log().ErrorfNewErr("Failed to get kubeClient with error: %v", err)
@@ -165,6 +169,10 @@ func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
 
 func RemoveValidatingWebhookConfig(ctx spi.ComponentContext) error {
 	config, err := ctrl.GetConfig()
+	if err != nil {
+		ctx.Log().ErrorfNewErr("Failed to get kubeconfig with error: %v", err)
+		return err
+	}
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		ctx.Log().ErrorfNewErr("Failed to get kubeClient with error: %v", err)
