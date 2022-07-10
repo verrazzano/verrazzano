@@ -6,9 +6,9 @@ package operator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -145,16 +146,17 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 }
 
 func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
-	clientset, err := k8sutil.GetKubernetesClientset()
+	config, err := ctrl.GetConfig()
+	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get clientset with error: %v", err)
+		ctx.Log().ErrorfNewErr("Failed to get kubeClient with error: %v", err)
 		return err
 	}
-	_, err = clientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), ComponentMutatingWebhookConfigName, metav1.GetOptions{})
+	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), ComponentMutatingWebhookConfigName, metav1.GetOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return ctx.Log().ErrorfNewErr("Failed to get mutatingwebhookconfiguration %s: %v", ComponentMutatingWebhookConfigName, err)
 	}
-	err = clientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), ComponentMutatingWebhookConfigName, metav1.DeleteOptions{})
+	err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), ComponentMutatingWebhookConfigName, metav1.DeleteOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return ctx.Log().ErrorfNewErr("Failed to delete mutatingwebhookconfiguration %s: %v", ComponentMutatingWebhookConfigName, err)
 	}
@@ -162,16 +164,17 @@ func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
 }
 
 func RemoveValidatingWebhookConfig(ctx spi.ComponentContext) error {
-	clientset, err := k8sutil.GetKubernetesClientset()
+	config, err := ctrl.GetConfig()
+	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get clientset with error: %v", err)
+		ctx.Log().ErrorfNewErr("Failed to get kubeClient with error: %v", err)
 		return err
 	}
-	_, err = clientset.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), ComponentValidatingWebhookConfigName, metav1.GetOptions{})
+	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), ComponentValidatingWebhookConfigName, metav1.GetOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return ctx.Log().ErrorfNewErr("Failed to get validatingwebhookconfiguration %s: %v", ComponentValidatingWebhookConfigName, err)
 	}
-	err = clientset.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), ComponentValidatingWebhookConfigName, metav1.DeleteOptions{})
+	err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), ComponentValidatingWebhookConfigName, metav1.DeleteOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return ctx.Log().ErrorfNewErr("Failed to delete validatingwebhookconfiguration %s: %v", ComponentValidatingWebhookConfigName, err)
 	}
