@@ -146,6 +146,10 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 
 func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		ctx.Log().ErrorfNewErr("Failed to get clientset with error: %v", err)
+		return err
+	}
 	_, err = clientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), ComponentMutatingWebhookConfigName, metav1.GetOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return ctx.Log().ErrorfNewErr("Failed to get mutatingwebhookconfiguration %s: %v", ComponentMutatingWebhookConfigName, err)
@@ -159,6 +163,10 @@ func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
 
 func RemoveValidatingWebhookConfig(ctx spi.ComponentContext) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		ctx.Log().ErrorfNewErr("Failed to get clientset with error: %v", err)
+		return err
+	}
 	_, err = clientset.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), ComponentValidatingWebhookConfigName, metav1.GetOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return ctx.Log().ErrorfNewErr("Failed to get validatingwebhookconfiguration %s: %v", ComponentValidatingWebhookConfigName, err)
