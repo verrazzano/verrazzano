@@ -83,9 +83,9 @@ cat << EOF | kubectl apply -f -
                 mountPath: /scrub
 EOF
 
-ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH '
+ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH "
     K8S_CONTROLLER_MANAGER_PATH=/etc/kubernetes/manifests/kube-controller-manager.yaml
-    sudo yq -i eval \'.spec.containers[0].command += "--pv-recycler-pod-template-filepath-nfs=/etc/recycler-pod.yaml"\' "$K8S_CONTROLLER_MANAGER_PATH"
-    sudo yq -i eval \'.spec.containers[0].volumeMounts += [{"name": "recycler-config-volume", "mountPath": "/etc/recycler-pod.yaml", "subPath": "recycler-pod.yaml"}]\' "$K8S_CONTROLLER_MANAGER_PATH"
-    sudo yq -i eval \'.spec.volumes += [{"name": "recycler-config-volume", "configMap": {"name": "recycler-pod-config"}}]\' "$K8S_CONTROLLER_MANAGER_PATH"
-'
+    sudo yq -i eval '.spec.containers[0].command += \"--pv-recycler-pod-template-filepath-nfs=/etc/recycler-pod.yaml\"' $K8S_CONTROLLER_MANAGER_PATH
+    sudo yq -i eval '.spec.containers[0].volumeMounts += [{\"name\": \"recycler-config-volume\", \"mountPath\": \"/etc/recycler-pod.yaml\", \"subPath\": \"recycler-pod.yaml\"}]' $K8S_CONTROLLER_MANAGER_PATH
+    sudo yq -i eval '.spec.volumes += [{\"name\": \"recycler-config-volume\", \"configMap\": {\"name\": \"recycler-pod-config\"}}]' $K8S_CONTROLLER_MANAGER_PATH
+"
