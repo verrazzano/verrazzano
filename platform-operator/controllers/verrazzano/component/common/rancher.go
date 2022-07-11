@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -51,14 +52,18 @@ const (
 
 	// RancherServerURLPath Path to update server URL, as in PUT during PostInstall
 	RancherServerURLPath = "/v3/settings/server-url"
-	// RancherDeleteHostURLPath Path to delete Rancher localhost
-	RancherDeleteHostURLPath = "/v3/clusters/local"
+	// rancherDeleteHostURLPath Path to delete Rancher localhost
+	rancherDeleteHostURLPath = "/v3/clusters/local"
 	// Template body to PUT a new server url
 	serverURLTmpl = `
 {
   "name": "server-url",
   "value": "https://%s"
 }`
+	// rancherActivateOCIDriverURLPath Path to activate Rancher OCI Driver
+	rancherActivateOCIDriverURLPath = "/v3/nodeDrivers/oci?action=activate"
+	// rancherActivateOKEDriverURLPath Path to activate Rancher OKE Driver
+	rancherActivateOKEDriverURLPath = "/v3/kontainerDrivers/oraclecontainerengine?action=activate"
 )
 
 type (
@@ -225,19 +230,12 @@ func (r *RESTClient) GetAccessToken() string {
 }
 
 func (r *RESTClient) PutServerURL() error {
-	url := fmt.Sprintf("https://%s%s", r.hostname, RancherServerURLPath)
 	serverURLBody := strings.NewReader(fmt.Sprintf(serverURLTmpl, r.hostname))
-	req, err := http.NewRequest("PUT", url, serverURLBody)
+	resp, err := r.invokeRancherEndpoint(RancherServerURLPath, http.MethodPut, serverURLBody)
 	if err != nil {
 		return err
 	}
-	req.Header.Set(contentTypeHeader, applicationJSON)
-	req.Header.Set(authorizationHeader, fmt.Sprintf("Bearer %s", r.accessToken))
-	resp, err := r.do(r.client, req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Failed to set server url: %s", resp.Status)
 	}
@@ -245,20 +243,13 @@ func (r *RESTClient) PutServerURL() error {
 }
 
 func (r *RESTClient) DeleteLocalHost() error {
-	url := fmt.Sprintf("https://%s%s", r.hostname, RancherDeleteHostURLPath)
-	req, err := http.NewRequest("DELETE", url, nil)
+	resp, err := r.invokeRancherEndpoint(rancherDeleteHostURLPath, http.MethodDelete, nil)
 	if err != nil {
 		return err
 	}
-	req.Header.Set(contentTypeHeader, applicationJSON)
-	req.Header.Set(authorizationHeader, fmt.Sprintf("Bearer %s", r.accessToken))
-	resp, err := r.do(r.client, req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Failed calling https DELETE url %s: %v", url, resp.Status)
+		return fmt.Errorf("Failed calling https DELETE url %s: %v", fmt.Sprintf("https://%s%s", r.hostname, rancherDeleteHostURLPath), resp.Status)
 	}
 	return nil
 }
@@ -273,4 +264,46 @@ func parseTokenResponse(resp *http.Response) (string, error) {
 		return "", errors.New("token not found in response")
 	}
 	return tokenResponse.Token, nil
+}
+
+func (r *RESTClient) ActivateOCIDriver() error {
+	resp, err := r.invokeRancherEndpoint(rancherActivateOCIDriverURLPath, http.MethodPost, nil)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed activating Rancher OCI Driver, url %s: %v", fmt.Sprintf("https://%s%s", r.hostname, rancherActivateOCIDriverURLPath), resp.Status)
+	}
+	return nil
+}
+
+func (r *RESTClient) ActivateOKEDriver() error {
+	resp, err := r.invokeRancherEndpoint(rancherActivateOKEDriverURLPath, http.MethodPost, nil)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed activating Rancher OKE Driver, url %s: %v", fmt.Sprintf("https://%s%s", r.hostname, rancherActivateOKEDriverURLPath), resp.Status)
+	}
+	return nil
+}
+
+func (r *RESTClient) invokeRancherEndpoint(path string, httpMethod string, requestBody io.Reader) (*http.Response, error) {
+	url := fmt.Sprintf("https://%s%s", r.hostname, path)
+	req, err := http.NewRequest(httpMethod, url, requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set(contentTypeHeader, applicationJSON)
+	req.Header.Set(authorizationHeader, fmt.Sprintf("Bearer %s", r.accessToken))
+	resp, err := r.do(r.client, req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	return resp, nil
 }
