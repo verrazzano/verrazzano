@@ -196,7 +196,7 @@ pipeline {
                 }
 
                 sh """
-                    ./ci/scripts/tag_instance.sh ${PIPELINE_TAG} ${JOB_SCENARIO_TAG}
+                    ./ci/scripts/tag_instance.sh ${params.PIPELINE_TAG} ${JOB_SCENARIO_TAG}
                 """
             }
         }
