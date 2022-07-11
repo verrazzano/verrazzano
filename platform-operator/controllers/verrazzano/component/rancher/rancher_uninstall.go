@@ -159,7 +159,7 @@ func deleteRoleResources(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// set function for the Rancher system tool used for unit tests
+// setRancherSystemTool sets the Rancher system tool to an arbitrary command
 func setRancherSystemTool(cmd string) {
 	rancherSystemTool = cmd
 }
