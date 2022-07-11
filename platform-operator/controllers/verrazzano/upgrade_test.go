@@ -1100,6 +1100,11 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).AnyTimes()
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
@@ -1183,6 +1188,11 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).AnyTimes()
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
