@@ -43,6 +43,7 @@ spec:
       overrides:
         - values:
             replicaCount: 2
+            affinity:
               podAntiAffinity:
                 preferredDuringSchedulingIgnoredDuringExecution:
                   - podAffinityTerm:
