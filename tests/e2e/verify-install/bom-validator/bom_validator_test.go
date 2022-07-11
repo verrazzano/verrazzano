@@ -10,9 +10,10 @@ import (
 	. "github.com/onsi/gomega"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -93,10 +94,6 @@ var clusterImageWarnings = make(map[string]string)      // Map of image names no
 
 var t = framework.NewTestFramework("BOM validator")
 
-var _ = t.AfterSuite(func() {})
-var _ = t.BeforeSuite(func() {})
-var _ = t.AfterEach(func() {})
-
 var _ = t.Describe("BOM Validator", Label("f:platform-lcm.install"), func() {
 	t.Context("Post VZ Installations", func() {
 		t.It("Has Successful BOM Validation Report", func() {
@@ -128,16 +125,13 @@ func validateKubeConfig() bool {
 // Get the BOM from the platform operator in the cluster and build the BOM structure from it
 func getBOM() {
 	var platformOperatorPodName string = ""
-	out, err := exec.Command("kubectl", "get", "pod", "-o", "name", "--no-headers=true", "-n", "verrazzano-install").Output()
+	pods, err := pkg.ListPods("verrazzano-install", metav1.ListOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	vzInstallPods := string(out)
-	vzInstallPodArray := strings.Split(vzInstallPods, "\n")
-	for _, podName := range vzInstallPodArray {
-		if strings.Contains(podName, platformOperatorPodNameSearchString) {
-			platformOperatorPodName = podName
+	for i := range pods.Items {
+		if strings.HasPrefix(pods.Items[i].Name, platformOperatorPodNameSearchString) {
+			platformOperatorPodName = pods.Items[i].Name
 			break
 		}
 	}
@@ -147,16 +141,16 @@ func getBOM() {
 
 	platformOperatorPodName = strings.TrimSuffix(platformOperatorPodName, "\n")
 	fmt.Printf("The platform operator pod name is %s\n", platformOperatorPodName)
-
 	//  Get the BOM from platform-operator
-	out, err = exec.Command("kubectl", "exec", "-it", platformOperatorPodName, "-n", "verrazzano-install", "--", "cat", "/verrazzano/platform-operator/verrazzano-bom.json").Output()
-	if err != nil {
+	var command = []string{"cat", "/verrazzano/platform-operator/verrazzano-bom.json"}
+	out, _, err := pkg.Execute(platformOperatorPodName, "", "verrazzano-install", command)
+	if err != nil  {
 		log.Fatal(err)
 	}
-	if len(string(out)) == 0 {
+	if len(out) == 0 {
 		log.Fatal("Error retrieving BOM from platform operator, zero length\n")
 	}
-	json.Unmarshal(out, &vBom)
+	json.Unmarshal([]byte(out), &vBom)
 }
 
 // Populate BOM images into Hashmap bomImages
@@ -173,12 +167,15 @@ func populateBomContainerImagesMap() {
 
 // Return all installed cluster namespaces
 func getAllNamespaces() []string {
-	cmd := "kubectl get namespaces | grep -v NAME | awk '{print $1}'"
-	out, err := exec.Command("bash", "-c", cmd).Output()
+	namespaces, err := pkg.ListNamespaces(metav1.ListOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	return strings.Split(strings.TrimSpace(string(out)), "\n")
+	var clusterNamespaces []string
+	for _, namespaceItem := range namespaces.Items {
+		clusterNamespaces = append(clusterNamespaces, namespaceItem.Name)
+	}
+	return clusterNamespaces
 }
 
 // Get the cluster namespaces and validate images of allowed namespaces only
@@ -187,26 +184,24 @@ func getAllNamespaces() []string {
 // Hashmap 'clusterImagesNotFound' are images found in allowed namespaces that are not declared in the BOM
 // Hashmap 'clusterImageTagErrors' are images in allowed namespaces without matching tags in the BOM
 func populateClusterContainerImages() {
-	var containerImages string
-	installedClusterNamespaces := getAllNamespaces()
-	for _, installedNamespace := range installedClusterNamespaces {
+	for _, installedNamespace := range getAllNamespaces() {
 		for _, whiteListedNamespace := range allowedNamespaces {
 			if ok, _ := regexp.MatchString(whiteListedNamespace, installedNamespace); ok {
-				out, err := exec.Command("kubectl", "get", "pods", "-n", installedNamespace, "-o", "jsonpath=\"{.items[*].spec.containers[*].image}\"").Output()
+				pods, err := pkg.ListPods(installedNamespace, metav1.ListOptions{})
 				if err != nil {
-					log.Fatal(err)
+						log.Fatal(err)
+        			}
+				for _, podList := range pods.Items {
+					for _, initContainer := range podList.Spec.InitContainers {
+						clusterImageArray = append(clusterImageArray, initContainer.Image)
+					}
+				for _, container := range podList.Spec.Containers {
+						clusterImageArray = append(clusterImageArray, container.Image)
+					}
 				}
-				containerImages += strings.TrimPrefix(strings.TrimSuffix(string(out), `"`), `"`)
-				out, err = exec.Command("kubectl", "get", "pods", "-n", installedNamespace, "-o", "jsonpath=\"{.items[*].spec.initContainers[*].image}\"").Output()
-				if err != nil {
-					log.Fatal(err)
-				}
-				containerImages += strings.TrimPrefix(strings.TrimSuffix(string(out), `"`), `"`)
 			}
 		}
 	}
-	// List of all the container & initContainer images found in the cluster
-	clusterImageArray = strings.Split(strings.TrimSpace(containerImages), " ")
 }
 
 // Report out the findings
