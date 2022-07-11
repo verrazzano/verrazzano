@@ -60,6 +60,10 @@ const extraEnvValueTemplate = `extraEnv:
     value: "{{.CollectorImage}}"
   - name: "JAEGER-INGESTER-IMAGE"
     value: "{{.IngesterImage}}"
+  - name: "JAEGER-ES-INDEX-CLEANER-IMAGE"
+    value: "{{.IndexCleanerImage}}"
+  - name: "JAEGER-ES-ROLLOVER-IMAGE"
+    value: "{{.RolloverImage}}"
 `
 
 // A template to define Jaeger override
@@ -70,6 +74,7 @@ const jaegerValueTemplate = `jaeger:
   spec:
     annotations:
       sidecar.istio.io/inject: "true"
+      proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
     strategy: production
     storage:
       # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
@@ -77,7 +82,10 @@ const jaegerValueTemplate = `jaeger:
       dependencies:
         enabled: false
       esIndexCleaner:
-        enabled: false
+        enabled: true
+        # Number of days to wait before deleting a record
+        numberOfDays: 7
+        schedule: "55 23 * * *"
       options:
         es:
           server-urls: {{.OpenSearchURL}}
@@ -87,10 +95,12 @@ const jaegerValueTemplate = `jaeger:
 
 // imageData needed for template rendering
 type imageData struct {
-	AgentImage     string
-	QueryImage     string
-	CollectorImage string
-	IngesterImage  string
+	AgentImage        string
+	QueryImage        string
+	CollectorImage    string
+	IngesterImage     string
+	IndexCleanerImage string
+	RolloverImage     string
 }
 
 // jaegerData needed for template rendering
@@ -180,6 +190,24 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Ingester, found %v", len(ingesterImages))
 	}
 
+	// Get jaeger-es-index-cleaner image
+	indexCleanerImages, err := bomFile.BuildImageOverrides("jaeger-es-index-cleaner")
+	if err != nil {
+		return nil, err
+	}
+	if len(indexCleanerImages) != 1 {
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Elasticsearch Index Cleaner, found %v", len(indexCleanerImages))
+	}
+
+	// Get jaeger-es-rollover image
+	rolloverImages, err := bomFile.BuildImageOverrides("jaeger-es-rollover")
+	if err != nil {
+		return nil, err
+	}
+	if len(rolloverImages) != 1 {
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Elasticsearch Rollover, found %v", len(rolloverImages))
+	}
+
 	// use template to populate Jaeger images
 	var b bytes.Buffer
 	t, err := template.New("images").Parse(extraEnvValueTemplate)
@@ -189,7 +217,8 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 
 	// Render the template
 	data := imageData{AgentImage: agentImages[0].Value, CollectorImage: collectorImages[0].Value,
-		QueryImage: queryImages[0].Value, IngesterImage: ingesterImages[0].Value}
+		QueryImage: queryImages[0].Value, IngesterImage: ingesterImages[0].Value,
+		IndexCleanerImage: indexCleanerImages[0].Value, RolloverImage: rolloverImages[0].Value}
 	err = t.Execute(&b, data)
 	if err != nil {
 		return nil, err
