@@ -5,6 +5,8 @@ package rancher
 
 import (
 	"context"
+	"regexp"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -12,7 +14,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	osexec "os/exec"
-	"regexp"
 )
 
 var rancherSystemTool = "/usr/local/bin/system-tools"
