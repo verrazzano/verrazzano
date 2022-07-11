@@ -9,6 +9,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -143,6 +148,37 @@ func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// Uninstall Fluentd to handle upgrade case where Fluentd was not its own helm chart.
+// In that case, we need to delete the Daemonset explicitly
+func (c fluentdComponent) Uninstall(context spi.ComponentContext) error {
+	installed, err := c.HelmComponent.IsInstalled(context)
+	if err != nil {
+		return err
+	}
+
+	// If the helm chart is installed, then uninstall
+	if installed {
+		return c.HelmComponent.Uninstall(context)
+	}
+
+	// Attempt to delete the VMO resources if the VMO helm chart is not installed.
+	rs := GetFluentdManagedResources()
+	for _, r := range rs {
+		err := resource.Resource{
+			Name:      r.NamespacedName.Name,
+			Namespace: r.NamespacedName.Namespace,
+			Client:    context.Client(),
+			Object:    r.Obj,
+			Log:       context.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Upgrade Fluentd component upgrade processing
 func (f fluentdComponent) Upgrade(ctx spi.ComponentContext) error {
 	return f.HelmComponent.Install(ctx)
@@ -196,4 +232,19 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 		return effectiveCR.Spec.Components.Fluentd.ValueOverrides
 	}
 	return []vzapi.Overrides{}
+}
+
+// GetFluentdManagedResources returns a list of resource types and their namespaced names that are managed by the
+// Fluent helm chart
+func GetFluentdManagedResources() []common.HelmManagedResource {
+	return []common.HelmManagedResource{
+		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: ComponentName}},
+		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: ComponentName}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-config", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-es-config", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-init", Namespace: ComponentNamespace}},
+		{Obj: &appsv1.DaemonSet{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
+		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
+	}
 }
