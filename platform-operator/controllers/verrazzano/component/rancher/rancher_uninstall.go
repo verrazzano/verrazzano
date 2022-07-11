@@ -116,7 +116,7 @@ func deleteRoleResources(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to list the ClusterRoleBindings: %v", err)
 	}
 
-	for _, cr := range crList.Items {
+	for i, cr := range crList.Items {
 		matches, err := regexp.MatchString(clusterRoleMatch, cr.Name)
 		if err != nil {
 			return ctx.Log().ErrorfNewErr("Failed to verify that Cluster Role is from Rancher: %v", cr.Name, err)
@@ -126,7 +126,7 @@ func deleteRoleResources(ctx spi.ComponentContext) error {
 				Name:      cr.Name,
 				Namespace: cr.Namespace,
 				Client:    ctx.Client(),
-				Object:    &cr,
+				Object:    &crList.Items[i],
 				Log:       ctx.Log(),
 			}.Delete()
 			if err != nil {
@@ -135,7 +135,7 @@ func deleteRoleResources(ctx spi.ComponentContext) error {
 		}
 	}
 
-	for _, crb := range crbList.Items {
+	for i, crb := range crbList.Items {
 		matches, err := regexp.MatchString(clusterRoleMatch, crb.Name)
 		if err != nil {
 			return ctx.Log().ErrorfNewErr("Failed to verify that Cluster Role Binding is from Rancher: %v", crb.Name, err)
@@ -145,7 +145,7 @@ func deleteRoleResources(ctx spi.ComponentContext) error {
 				Name:      crb.Name,
 				Namespace: crb.Namespace,
 				Client:    ctx.Client(),
-				Object:    &crb,
+				Object:    &crbList.Items[i],
 				Log:       ctx.Log(),
 			}.Delete()
 			if err != nil {
