@@ -468,21 +468,20 @@ pipeline {
             }
         }
 
-        // TODO: Need to deploy the test applications before running these tests
-        // stage('Post-install Acceptance Tests') {
-        //     steps {
-        //         // Run all acceptance tests after installation
-        //         script {
-        //             parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'true', 'false')
-        //         }
-        //     }
-        //     post {
-        //         always {
-        //             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-        //             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-        //         }
-        //     }
-        // }
+        stage('Post-install Acceptance Tests') {
+            steps {
+                // Run all acceptance tests after installation
+                script {
+                    parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'true', 'false')
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
     }
     post {
         always {
