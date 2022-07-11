@@ -9,7 +9,7 @@ metadata:
   name: {{ .Values.name }}
   namespace: {{ .Release.Namespace }}
 spec:
-  replicas: {{ .Values.replicas }}
+  replicas: 1
   selector:
     matchLabels:
       app: {{ .Values.name }}
@@ -25,9 +25,6 @@ spec:
       labels:
         app: {{ .Values.name }}
     spec:
-      {{- if .Values.affinity }}
-      affinity: {{ toYaml .Values.affinity | nindent 8 }}
-      {{- end }}
       containers:
         - image: {{ .Values.imageName }}:{{ .Values.imageTag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
