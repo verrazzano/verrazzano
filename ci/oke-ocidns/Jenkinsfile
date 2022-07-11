@@ -258,7 +258,7 @@ pipeline {
                             # set the ssh public key value for terraform
                             export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
                             export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
-                            if [ $env.BRANCH_NAME ==~ '/^release-.*/' ] || [ $env.BRANCH_NAME == 'master' ]; then
+                            if [[ $env.BRANCH_NAME =~ '/^release-.*/' ]] || [[ $env.BRANCH_NAME == 'master' ]]; then
                               export TF_VAR_pipeline_tag=${env.BRANCH_NAME}
                             else
                               export TF_VAR_pipeline_tag="feature-branch"
