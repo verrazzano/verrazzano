@@ -71,7 +71,7 @@ var knownImageIssues = map[string]knownIssues{
 	"shell":           {alternateTags: []string{"v0.1.6"}, message: rancherWarningMessage},
 }
 
-// Bom validations validates the images of below allowed namespaces only
+// BOM validations validates the images of below allowed namespaces only
 var allowedNamespaces = []string{
 	"^cattle-*",
 	"^fleet-*",
@@ -86,18 +86,18 @@ var allowedNamespaces = []string{
 
 var vBom verrazzanoBom                                  // BOM from platform operator in struct form
 var clusterImageArray []string                          // List of cluster installed images
-var bomImages = make(map[string][]string)               // Map of images mentioned into the bom with associated set of tags
-var clusterImageTagErrors = make(map[string]imageError) // Map of cluster image tags doesn't match with bom, hence a Failure Condition
-var clusterImagesNotFound = make(map[string]string)     // Map of cluster image doesn't match with bom, hence a Failure Condition
+var bomImages = make(map[string][]string)               // Map of images mentioned into the BOM with associated set of tags
+var clusterImageTagErrors = make(map[string]imageError) // Map of cluster image tags doesn't match with BOM, hence a Failure Condition
+var clusterImagesNotFound = make(map[string]string)     // Map of cluster image doesn't match with BOM, hence a Failure Condition
 var clusterImageWarnings = make(map[string]string)      // Map of image names not found in cluster. Warning/ Known Issues/ Informational.  This may be valid based on profile
 
-var t = framework.NewTestFramework("bom validator")
+var t = framework.NewTestFramework("BOM validator")
 
 var _ = t.AfterSuite(func() {})
 var _ = t.BeforeSuite(func() {})
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Bom Validator", Label("f:platform-lcm.install"), func() {
+var _ = t.Describe("BOM Validator", Label("f:platform-lcm.install"), func() {
 	t.Context("Post VZ Installations", func() {
 		t.It("Has Successful BOM Validation Report", func() {
 			Eventually(validateKubeConfig).Should(BeTrue())
@@ -159,8 +159,8 @@ func getBOM() {
 	json.Unmarshal(out, &vBom)
 }
 
-// Populate bom images into Hashmap bomImages
-// bomImages contains a map of "image" in the BOM to validate an image found in an allowed namespace exists in the bom
+// Populate BOM images into Hashmap bomImages
+// bomImages contains a map of "image" in the BOM to validate an image found in an allowed namespace exists in the BOM
 func populateBomContainerImagesMap() {
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
@@ -183,7 +183,7 @@ func getAllNamespaces() []string {
 
 // Get the cluster namespaces and validate images of allowed namespaces only
 // Populate an Array 'A' with all the container & initContainer images found in the cluster of allowed namespaces
-// Send Cluster's Images Array 'A' for BOM Validations against populated bom hashmap 'bomImages'
+// Send Cluster's Images Array 'A' for BOM Validations against populated BOM hashmap 'bomImages'
 // Hashmap 'clusterImagesNotFound' are images found in allowed namespaces that are not declared in the BOM
 // Hashmap 'clusterImageTagErrors' are images in allowed namespaces without matching tags in the BOM
 func populateClusterContainerImages() {
@@ -229,7 +229,7 @@ func BomValidationReport() bool {
 		fmt.Println("Image Errors: Images found in allowed namespaces not declared in BOM")
 		fmt.Println(textDivider)
 		for name, tag := range clusterImagesNotFound {
-			fmt.Printf("Found image in allowed namespace not declared in bom: %s:%s\n", name, tag)
+			fmt.Printf("Found image in allowed namespace not declared in BOM : %s:%s\n", name, tag)
 		}
 		return false
 	}
@@ -238,7 +238,7 @@ func BomValidationReport() bool {
 		fmt.Println("Image Errors: Images found in allowed namespace of cluster with unexpected tags")
 		fmt.Println(textDivider)
 		for name, tags := range clusterImageTagErrors {
-			fmt.Println("Check failed! Image Name = ", name, ", Tag from Cluster = ", tags.clusterImageTag, "Tags from Bom = ", tags.bomImageTags)
+			fmt.Println("Check failed! Image Name = ", name, ", Tag from Cluster = ", tags.clusterImageTag, "Tags from BOM = ", tags.bomImageTags)
 		}
 		return false
 	}
@@ -247,7 +247,7 @@ func BomValidationReport() bool {
 	return true
 }
 
-// Validate out the presence of cluster images and tags into vz bom
+// Validate out the presence of cluster images and tags into vz BOM
 func scanClusterImagesWithBom() bool {
 	for _, container := range clusterImageArray {
 		begin := strings.LastIndex(container, "/")
@@ -263,15 +263,15 @@ func scanClusterImagesWithBom() bool {
 			continue
 		}
 		// error scenarios,
-		// 1. if cluster's image not found into bom's image map
+		// 1. if cluster's image not found into BOM's image map
 		if _, ok := bomImages[nameTag[0]]; !ok {
-			// cluster's image not found into bom
+			// cluster's image not found into BOM
 			clusterImagesNotFound[nameTag[0]] = nameTag[1]
 			continue
 		}
-		// 2. if cluster's image's version (tag) mismatched to bom's image versions(tags)
+		// 2. if cluster's image's version (tag) mismatched to BOM's image versions(tags)
 		if !vzstring.SliceContainsString(bomImages[nameTag[0]], nameTag[1]) {
-			// cluster's image's version (tag) mismatched to bom image versions(tags)
+			// cluster's image's version (tag) mismatched to BOM image versions(tags)
 			clusterImageTagErrors[nameTag[0]] = imageError{nameTag[1], bomImages[nameTag[0]]}
 		}
 	}
