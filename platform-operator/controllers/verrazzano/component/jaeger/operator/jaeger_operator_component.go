@@ -115,6 +115,10 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 // PreUpgrade Jaeger component pre-upgrade processing
 func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Jaeger pre-upgrade")
+	createInstance, err := isCreateJaegerInstance(ctx)
+	if err != nil {
+		return err
+	}
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
@@ -123,6 +127,10 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	}
 	if err := RemoveValidatingWebhookConfig(ctx); err != nil {
 		return err
+	}
+	if createInstance {
+		// Create Jaeger secret with the credentials present in the verrazzano-es-internal secret
+		return createJaegerSecret(ctx)
 	}
 	return nil
 }
