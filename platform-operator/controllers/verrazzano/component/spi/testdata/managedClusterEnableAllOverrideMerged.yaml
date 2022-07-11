@@ -86,6 +86,7 @@ spec:
       enabled: true
     kibana:
       enabled: true
+      replicas: 1
     oam:
       enabled: true
     prometheus:

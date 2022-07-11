@@ -118,6 +118,7 @@ spec:
             value: "val2"
     kibana:
       enabled: true
+      replicas: 1
     oam:
       enabled: true
     prometheus:
