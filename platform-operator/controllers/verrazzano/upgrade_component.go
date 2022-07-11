@@ -84,9 +84,6 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			}
 			if installed {
 				compLog.Oncef("Component %s is installed and will be upgraded", compName)
-				if err := r.updateComponentStatus(compContext, "Upgrade started", installv1alpha1.CondUpgradeStarted); err != nil {
-					return ctrl.Result{Requeue: true}, err
-				}
 				upgradeContext.state = compStatePreUpgrade
 			} else {
 				compLog.Oncef("Component %s is not installed; upgrade being skipped", compName)
@@ -129,9 +126,6 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 
 		case compStateUpgradeDone:
 			compLog.Oncef("Component %s has successfully upgraded", compName)
-			if err := r.updateComponentStatus(compContext, "Upgrade complete", installv1alpha1.CondUpgradeComplete); err != nil {
-				return ctrl.Result{Requeue: true}, err
-			}
 			upgradeContext.state = compStateEnd
 		}
 	}
