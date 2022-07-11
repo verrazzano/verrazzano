@@ -183,21 +183,22 @@ func getAllNamespaces() []string {
 // Send Cluster's Images Array 'A' for BOM Validations against populated BOM hashmap 'bomImages'
 // Hashmap 'clusterImagesNotFound' are images found in allowed namespaces that are not declared in the BOM
 // Hashmap 'clusterImageTagErrors' are images in allowed namespaces without matching tags in the BOM
-func populateClusterContainerImages() {
-	populateClusterImages := func(installedNamespace string) {
-		podsList, err := pkg.ListPods(installedNamespace, metav1.ListOptions{})
-		if err != nil {
-			log.Fatal(err)
+func populateClusterImages(installedNamespace string) {
+	podsList, err := pkg.ListPods(installedNamespace, metav1.ListOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, podList := range podsList.Items {
+		for _, initContainer := range podList.Spec.InitContainers {
+			clusterImageArray = append(clusterImageArray, initContainer.Image)
 		}
-		for _, podList := range podsList.Items {
-			for _, initContainer := range podList.Spec.InitContainers {
-				clusterImageArray = append(clusterImageArray, initContainer.Image)
-			}
-			for _, container := range podList.Spec.Containers {
-				clusterImageArray = append(clusterImageArray, container.Image)
-			}
+		for _, container := range podList.Spec.Containers {
+			clusterImageArray = append(clusterImageArray, container.Image)
 		}
 	}
+}
+
+func populateClusterContainerImages() {
 	for _, installedNamespace := range getAllNamespaces() {
 		for _, whiteListedNamespace := range allowedNamespaces {
 			if ok, _ := regexp.MatchString(whiteListedNamespace, installedNamespace); ok {
