@@ -48,7 +48,7 @@ fi
 CURRENT_JOB_SCENARIO="$2"
 
 # Get the instance OCID (note that the grep is being used to trim it)
-INSTANCE_OCID=$(curl -s http://169.254.169.254/opc/v1/instance | jq '.id' | grep -o -e '[a-z, 0-9, A-Z, \.]*')
+INSTANCE_OCID=$(curl -s http://169.254.169.254/opc/v1/instance | jq '.id' | grep -o -e '[a-z, 0-9, A-Z, \., \-]*')
 
 # Add as free-form tags in the POC. We should define a namespace and use defined-tags if the POC progresses
 # to be an actual implementation.
