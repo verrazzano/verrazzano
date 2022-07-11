@@ -99,8 +99,8 @@ func TestUninstallCmd(t *testing.T) {
 	assert.True(t, errors.IsNotFound(err))
 
 	// Expect the install namespace to be deleted
-	ns := corev1.Namespace{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoInstallNamespace}, &ns)
+	//ns := corev1.Namespace{}
+	//err = c.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoInstallNamespace}, &ns)
 	//	assert.True(t, errors.IsNotFound(err))
 
 	// Expect the Validating Webhook Configuration to be deleted
