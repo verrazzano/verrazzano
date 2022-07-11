@@ -3,7 +3,11 @@
 
 package constants
 
-import "time"
+import (
+	PlatformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"time"
+)
 
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
@@ -137,3 +141,64 @@ const MetricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 
 // SecretKind is the kind for a secret
 const SecretKind = "Secret"
+
+// Components Names
+const (
+	oam_kubernetes_runtime          = "oam-kubernetes-runtime"
+	kiali_server                    = "kiali-server"
+	weblogic_operator               = "weblogic-operator"
+	verrazzano_authproxy            = "verrazzano-authproxy"
+	istio                           = "istio"
+	external_dns                    = "external-dns"
+	verrazzano_application_operator = "verrazzano-application-operator"
+	coherence_operator              = "coherence-operator"
+	ingress_controller              = "ingress-controller"
+	mysql                           = "mysql"
+	cert_manager                    = "cert-manager"
+	rancher                         = "rancher"
+	prometheus_pushgateway          = "prometheus-pushgateway"
+	prometheus_adapter              = "prometheus-adapter"
+	kube_state_metrics              = "kube-state-metrics"
+	prometheus_node_exporter        = "prometheus-node-exporter"
+	prometheus_operator             = "prometheus-operator"
+	keycloak                        = "keycloak"
+	verrazzano_monitoring_operator  = "verrazzano-monitoring-operator"
+	grafana                         = "grafana"
+	jaeger_operator                 = "jaeger-operator"
+	opensearch_dashboards           = "opensearch-dashboards"
+	opensearch                      = "opensearch"
+	velero                          = "velero"
+	verrazzano_console              = "verrazzano-console"
+	verrazzano                      = "verrazzano"
+	fluentd                         = "fluentd"
+)
+
+var ComponentNameToNamespacesMap = map[string][]string{
+	oam_kubernetes_runtime:          {VerrazzanoSystemNamespace},
+	kiali_server:                    {VerrazzanoSystemNamespace},
+	weblogic_operator:               {VerrazzanoSystemNamespace},
+	verrazzano_authproxy:            {VerrazzanoSystemNamespace},
+	istio:                           {IstioSystemNamespace},
+	external_dns:                    {CertManagerNamespace},
+	verrazzano_application_operator: {VerrazzanoSystemNamespace},
+	coherence_operator:              {VerrazzanoSystemNamespace},
+	ingress_controller:              {PlatformOperatorConstants.IngressNginxNamespace},
+	mysql:                           {KeycloakNamespace},
+	cert_manager:                    {CertManagerNamespace},
+	rancher:                         {common.CattleSystem}, // TODO vz-6833 add multiple namespaces
+	prometheus_pushgateway:          {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
+	prometheus_adapter:              {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
+	kube_state_metrics:              {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
+	prometheus_node_exporter:        {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
+	prometheus_operator:             {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
+	keycloak:                        {KeycloakNamespace},
+	verrazzano_monitoring_operator:  {VerrazzanoSystemNamespace},
+	grafana:                         {VerrazzanoSystemNamespace},
+	jaeger_operator:                 {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
+	opensearch_dashboards:           {VerrazzanoSystemNamespace},
+	opensearch:                      {VerrazzanoSystemNamespace},
+	velero:                          {PlatformOperatorConstants.VeleroNameSpace},
+	verrazzano_console:              {VerrazzanoSystemNamespace},
+	verrazzano:                      {VerrazzanoSystemNamespace},
+	fluentd:                         {VerrazzanoSystemNamespace},
+}
