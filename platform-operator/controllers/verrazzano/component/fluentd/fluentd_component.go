@@ -150,15 +150,15 @@ func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // Uninstall Fluentd to handle upgrade case where Fluentd was not its own helm chart.
 // In that case, we need to delete the Daemonset explicitly
-func (c fluentdComponent) Uninstall(context spi.ComponentContext) error {
-	installed, err := c.HelmComponent.IsInstalled(context)
+func (f fluentdComponent) Uninstall(context spi.ComponentContext) error {
+	installed, err := f.HelmComponent.IsInstalled(context)
 	if err != nil {
 		return err
 	}
 
 	// If the helm chart is installed, then uninstall
 	if installed {
-		return c.HelmComponent.Uninstall(context)
+		return f.HelmComponent.Uninstall(context)
 	}
 
 	// Attempt to delete the VMO resources if the VMO helm chart is not installed.
