@@ -10,10 +10,6 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -149,7 +145,7 @@ func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 }
 
 // Uninstall Fluentd to handle upgrade case where Fluentd was not its own helm chart.
-// In that case, we need to delete the Daemonset explicitly
+// In that case, we need to delete the Fluentd resources explicitly
 func (f fluentdComponent) Uninstall(context spi.ComponentContext) error {
 	installed, err := f.HelmComponent.IsInstalled(context)
 	if err != nil {
@@ -161,8 +157,8 @@ func (f fluentdComponent) Uninstall(context spi.ComponentContext) error {
 		return f.HelmComponent.Uninstall(context)
 	}
 
-	// Attempt to delete the VMO resources if the VMO helm chart is not installed.
-	rs := GetFluentdManagedResources()
+	// Attempt to delete the Fluentd resources
+	rs := getFluentdManagedResources()
 	for _, r := range rs {
 		err := resource.Resource{
 			Name:      r.NamespacedName.Name,
@@ -232,19 +228,4 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 		return effectiveCR.Spec.Components.Fluentd.ValueOverrides
 	}
 	return []vzapi.Overrides{}
-}
-
-// GetFluentdManagedResources returns a list of resource types and their namespaced names that are managed by the
-// Fluent helm chart
-func GetFluentdManagedResources() []common.HelmManagedResource {
-	return []common.HelmManagedResource{
-		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: ComponentName}},
-		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: ComponentName}},
-		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-config", Namespace: ComponentNamespace}},
-		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-es-config", Namespace: ComponentNamespace}},
-		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-init", Namespace: ComponentNamespace}},
-		{Obj: &appsv1.DaemonSet{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
-		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
-		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
-	}
 }
