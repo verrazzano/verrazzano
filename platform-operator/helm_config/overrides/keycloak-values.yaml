@@ -68,6 +68,10 @@ service:
       port: 7600
       targetPort: jgroups
 
+podAnnotations:
+  traffic.sidecar.istio.io/excludeInboundPorts: "7600"
+  traffic.sidecar.istio.io/excludeOutboundPorts: "7600"
+
 ingress:
   enabled: true
   annotations:
@@ -82,8 +86,6 @@ ingress:
     nginx.ingress.kubernetes.io/session-cookie-name: "keycloak"
     nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
     external-dns.alpha.kubernetes.io/target: "{{ .Values.dnsTarget }}"
-    traffic.sidecar.istio.io/excludeInboundPorts: "7600"
-    traffic.sidecar.istio.io/excludeOutboundPorts: "7600"
   rules:
     -
       paths:
