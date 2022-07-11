@@ -91,6 +91,3 @@ set -o pipefail
 DOMAIN_MGMT="ingress-mgmt.$ENV_NAME.$ZONE_NAME"
 DOMAIN_APP="ingress-verrazzano.$ENV_NAME.$ZONE_NAME"
 createVerrazzanoDNSRecords
-
-
-
