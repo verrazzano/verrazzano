@@ -1077,7 +1077,7 @@ func (r *Reconciler) cleanup(ctx context.Context, log vzlog.VerrazzanoLogger, vz
 	return nil
 }
 
-// cleanupOld deltes the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
+// cleanupOld deletes the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
 // also includes the ClusterRoleBinding, which is outside the scope of namespace
 func (r *Reconciler) cleanupOld(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Delete ClusterRoleBinding
