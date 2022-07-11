@@ -53,3 +53,12 @@ variable "operator_enabled" {
 variable "node_pool_image_id" {}
 variable "calico_enabled" {}
 variable "calico_version" {}
+variable "branch_tag" {
+  default = "unknown-branch"
+}
+variable "pipeline_tag" {
+  default = "unknown-pipeline"
+}
+variable "job_scenario_tag" {
+  default = "unknown-scenario"
+}

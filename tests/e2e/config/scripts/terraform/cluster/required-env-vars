@@ -9,3 +9,6 @@ TF_VAR_label_prefix
 TF_VAR_kubernetes_version
 TF_VAR_calico_enabled
 TF_VAR_calico_version
+TF_VAR_branch_tag
+TF_VAR_pipeline_tag
+TF_VAR_job_scenario_tag
