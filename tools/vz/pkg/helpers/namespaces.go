@@ -1,16 +1,11 @@
 package helpers
 
 import (
-	encjson "encoding/json"
-	"fmt"
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-
-	//files "github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
-	"io/ioutil"
-	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const verrazzanoResource = "verrazzano_resources.json"
@@ -46,49 +41,50 @@ var compMap = map[string][]string{
 }
 
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
-func GetComponentsNotReady(clusterRoot string) ([]string, error) {
+func GetComponentsNotReady(client client.Client) ([]string, error) {
+
 	var compsNotReady = make([]string, 0)
-	vzResourcesPath := fmt.Sprintf("%s/%s", clusterRoot, verrazzanoResource) //files.FindFileInClusterRoot(clusterRoot, verrazzanoResource)
-
-	fileInfo, e := os.Stat(vzResourcesPath)
-	if e != nil || fileInfo.Size() == 0 {
-		// The cluster dump taken by the latest script is expected to contain the verrazzano_resources.json.
-		// In order to support cluster dumps taken in earlier release, return nil rather than an error.
-		return nil, nil
-	}
-
-	file, err := os.Open(vzResourcesPath)
-	if err != nil {
-		return compsNotReady, err
-	}
-	defer file.Close()
-
-	fileBytes, err := ioutil.ReadAll(file)
+	// Get the controller runtime client
+	vzRes, err := FindVerrazzanoResource(client)
 	if err != nil {
 		return compsNotReady, err
 	}
 
-	var vzResourceList installv1alpha1.VerrazzanoList
-	err = encjson.Unmarshal(fileBytes, &vzResourceList)
-	if err != nil {
-		return compsNotReady, err
-	}
-
-	// There should be only one Verrazzano resource, so the first item from the list should be good enough
-	for _, vzRes := range vzResourceList.Items {
-		if vzRes.Status.State != installv1alpha1.VzStateReady {
-
-			// Verrazzano installation is not complete, find out the list of components which are not ready
-			for _, compStatusDetail := range vzRes.Status.Components {
-				if compStatusDetail.State != installv1alpha1.CompStateReady {
-					if compStatusDetail.State == installv1alpha1.CompStateDisabled {
-						continue
-					}
-					compsNotReady = append(compsNotReady, compStatusDetail.Name)
-				}
+	if vzRes.Status.State != installv1alpha1.VzStateReady {
+		// Verrazzano installation is not complete, find out the list of components which are not ready
+		for _, compStatusDetail := range vzRes.Status.Components {
+			if compStatusDetail.State != installv1alpha1.CompStateReady {
+				continue
 			}
-			return compsNotReady, nil
+			compsNotReady = append(compsNotReady, compStatusDetail.Name)
 		}
 	}
 	return compsNotReady, nil
+}
+
+func getNameSpacesByComponent(componentName string) []string {
+	value, exists := compMap[componentName]
+	if !exists {
+		return nil
+	}
+	return value
+}
+
+func GetAllUniqueNameSpacesForFailedComponents(client client.Client) ([]string, error) {
+	var nsList []string
+	var nsListMap map[string]bool
+	allComponents, err := GetComponentsNotReady(client)
+	if err != nil {
+		return nsList, err
+	}
+
+	for _, eachComp := range allComponents {
+		for _, eachNameSpace := range getNameSpacesByComponent(eachComp) {
+			if !nsListMap[eachNameSpace] {
+				nsListMap[eachNameSpace] = true
+				nsList = append(nsList, eachNameSpace)
+			}
+		}
+	}
+	return nsList, err
 }
