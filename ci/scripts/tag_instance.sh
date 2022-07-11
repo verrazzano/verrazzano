@@ -11,7 +11,7 @@ if [ -z "$env.BRANCH_NAME" ]; then
   echo "Script needs to be run in Jenkins environment where env.BRANCH_NAME is defined"
   exit 1
 fi
-if [ $env.BRANCH_NAME ==~ '/^release-.*/' ] || [ $env.BRANCH_NAME == 'master' ]; then
+if [[ $env.BRANCH_NAME =~ '/^release-.*/' ]] || [[ $env.BRANCH_NAME == 'master' ]]; then
   CURRENT_BRANCH_NAME=$env.BRANCH_NAME
 else
   CURRENT_BRANCH_NAME="feature-branch"
