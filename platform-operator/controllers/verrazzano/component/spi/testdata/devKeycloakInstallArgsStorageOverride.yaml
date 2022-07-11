@@ -41,7 +41,7 @@ spec:
           clusterResourceNamespace: "cert-manager"
       overrides:
         - values:
-            replicas: 1
+            replicaCount: 1
             affinity:
               podAntiAffinity:
                 preferredDuringSchedulingIgnoredDuringExecution:
@@ -52,7 +52,7 @@ spec:
                       topologyKey: kubernetes.io/hostname
                     weight: 100
             cainjector:
-              replicas: 1
+              replicaCount: 1
               affinity:
                 podAntiAffinity:
                   preferredDuringSchedulingIgnoredDuringExecution:
@@ -63,7 +63,7 @@ spec:
                         topologyKey: kubernetes.io/hostname
                       weight: 100
             webhook:
-              replicas: 1
+              replicaCount: 1
               affinity:
                 podAntiAffinity:
                   preferredDuringSchedulingIgnoredDuringExecution:
