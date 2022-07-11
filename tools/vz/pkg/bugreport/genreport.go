@@ -65,6 +65,8 @@ func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bu
 // captureVerrazzanoResources captures the resources from verrazzano-install and verrazzano-system namespaces
 func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, outputStream io.Writer) error {
 
+	var nameSpaces []string
+
 	// Capture Verrazzano resource as JSON
 	if err := pkghelpers.CaptureVZResource(client, bugReportDir, outputStream); err != nil {
 		return err
@@ -75,14 +77,26 @@ func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Inte
 		return err
 	}
 
+	//TODO vz-6338 1. GetProblemPods 2. GetNamespacesListFromProblemPods //Note to remove dup
+	nameSpaces = getProblemPodsNameSpacesList()
+	nameSpaces = append(nameSpaces, vzconstants.VerrazzanoSystemNamespace)
+
 	// Capture workloads, pods, events, ingress and services in verrazzano-system namespace
-	if err := pkghelpers.CaptureK8SResources(kubeClient, vzconstants.VerrazzanoSystemNamespace, bugReportDir); err != nil {
+	if err := pkghelpers.CaptureK8SResources(kubeClient, nameSpaces, bugReportDir); err != nil {
 		return err
 	}
 
 	//TODO: Capture ingress from keycloak and cattle-system namespace
 	// Capture workloads, events, services, etc from those namespaces for the components which are not ready
 	return nil
+}
+
+func getProblemPodsNameSpacesList() []string {
+	var nslist = make([]string, 0)
+	//for _, eachPod := problemPodsList {
+	//	nslist = append(nslist, getNameSpaceByPod(eachPod))
+	//}
+	return nslist
 }
 
 // Captures logs from platform operator, application operator and monitoring operator
