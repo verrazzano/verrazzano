@@ -11,6 +11,7 @@ import (
 	"time"
 
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
@@ -36,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // For unit testing
@@ -169,12 +171,16 @@ func TestInstall(t *testing.T) {
 			// Create and make the request
 			request := newRequest(namespace, name)
 			reconciler := newVerrazzanoReconciler(mock)
+			reconcileCountBefore := metricsexporter.GetReconcileCounterValueTesting()
 			result, err := reconciler.Reconcile(nil, request)
+			// Get the counter function for metrics here//
+			reconcileCountAfter := metricsexporter.GetReconcileCounterValueTesting()
 			asserts.NoError(err)
 
 			// Validate the results
 			mocker.Finish()
 			asserts.Equal(false, result.Requeue)
+			asserts.Equal(float64(reconcileCountAfter-float64(1)), float64(reconcileCountBefore))
 			asserts.Equal(time.Duration(0), result.RequeueAfter)
 		})
 	}
@@ -1616,4 +1622,21 @@ func TestNonIntersectingMergeNestedMap(t *testing.T) {
 	assert.True(t, updated)
 	assert.Len(t, myInstance.MyMap, 3)
 	assert.Equal(t, expectedMap, myInstance.MyMap)
+}
+
+// TestReconcileErrorCounter tests Reconcile function
+// GIVEN a faulty request
+// WHEN the reconcile function is called
+// THEN an error occurs and the metric that counts reconcile counter errors should increase
+func TestReconcileErrorCounter(t *testing.T) {
+	asserts := assert.New(t)
+	clientBuilder := fakes.NewClientBuilder()
+	fakeClient := clientBuilder.Build()
+	errorRequest := newRequest("bad namespace", "test")
+	reconciler := newVerrazzanoReconciler(fakeClient)
+	errorReconcileCounterBefore := metricsexporter.GetReconcileErrorCounterValueTesting()
+	reconciler.Reconcile(nil, errorRequest)
+	errorReconcileCounterAfter := metricsexporter.GetReconcileErrorCounterValueTesting()
+	asserts.Equal(errorReconcileCounterBefore, errorReconcileCounterAfter-1)
+
 }

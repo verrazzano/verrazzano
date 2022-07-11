@@ -4,13 +4,13 @@
 package metricsexporter
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -27,6 +27,10 @@ var (
 		Help: "The duration of each reconcile call in the Verrazzano-platform-operator in seconds"},
 		[]string{"reconcile_index"},
 	)
+	reconcileErrorCounterMetric = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "vpo_error_reconcile_counter",
+		Help: "The number of times the reconcile function has returned an error in the Verrazzano-platform-operator",
+	})
 	verrazzanoAuthproxyInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "vz_authproxy_install_duration_seconds",
 		Help: "The duration of the latest installation of the authproxy component in seconds",
@@ -521,12 +525,14 @@ func InitalizeMetricsEndpoint() {
 	}, time.Second*3, wait.NeverStop)
 }
 
-func CollectReconcileMetrics(startTime int64) {
+func CollectReconcileMetricsTime(startTime int64) {
 	reconcileCounterMetric.Add(float64(1))
 	durationTime := (float64(time.Now().UnixMilli() - startTime)) / 1000.0
-	fmt.Println(durationTime)
 	reconcileLastDurationMetric.WithLabelValues(strconv.Itoa(reconcileIndex)).Set(float64(durationTime))
 	reconcileIndex = reconcileIndex + 1
+}
+func CollectReconcileMetricsError() {
+	reconcileErrorCounterMetric.Add(1)
 }
 
 //Reminder to take out this comment block later
@@ -625,4 +631,10 @@ func initializeFailedMetricsArray() {
 	for i, metric := range allMetrics {
 		failedMetrics[metric] = i
 	}
+}
+func GetReconcileCounterValueTesting() float64 {
+	return testutil.ToFloat64(reconcileCounterMetric)
+}
+func GetReconcileErrorCounterValueTesting() float64 {
+	return testutil.ToFloat64(reconcileErrorCounterMetric)
 }
