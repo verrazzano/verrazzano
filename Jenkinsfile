@@ -112,6 +112,9 @@ pipeline {
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+
+        PIPELINE_TAG = "main"
+        JOB_SCENARIO_TAG = "${env.JOB_NAME}"
     }
 
     stages {
@@ -169,6 +172,10 @@ pipeline {
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
                 }
+
+                sh """
+                    ./ci/scripts/tag_instance.sh ${PIPELINE_TAG} ${JOB_SCENARIO_TAG}
+                """
             }
         }
 
@@ -423,6 +430,8 @@ pipeline {
                     metricTimerStart("${VZ_TEST_METRIC}")
                     build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
+                            string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
+                            string(name: 'SCENARIO_TAG', value: "main-job")
                             string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -909,4 +918,8 @@ def metricBuildDuration() {
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
+}
+
+def setRunnerTags() {
+    oci
 }

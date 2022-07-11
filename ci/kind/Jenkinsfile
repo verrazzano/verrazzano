@@ -60,6 +60,8 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to run JWT tests', name: 'ENABLE_JWT_TESTING', defaultValue: false)
+        string (name: 'PIPELINE_TAG', defaultValue: 'none', description: 'Tag representing the pipeline for tracking. Developers triggering test runs SHOULD NOT SET THIS, other pipelines will explicitly set this')
+        string (name: 'SCENARIO_TAG', defaultValue: 'ad-hoc', description: 'Tag representing the scenario for tracking. Pipelines will explicitly set this, developers can set this if the know the correct value (not described here) otherwise they should just leave it as the default')
     }
 
     environment {
@@ -118,6 +120,8 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+
+        JOB_SCENARIO_TAG = "${env.JOB_NAME}-${params.SCENARIO_TAG}"
     }
 
     stages {
@@ -190,6 +194,10 @@ pipeline {
                     setDisplayName()
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
+
+                sh """
+                    ./ci/scripts/tag_instance.sh ${PIPELINE_TAG} ${JOB_SCENARIO_TAG}
+                """
             }
         }
 
