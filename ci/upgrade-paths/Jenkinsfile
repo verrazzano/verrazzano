@@ -684,8 +684,8 @@ pipeline {
 // false : version parameter falls between vz to(current) and from(to be upgraded) version
 // true  : vz to(current) and from(to be upgraded) version falls below version parameter
 def checkUpgradeBelowVer(version) {
-    if(VERSION_FOR_UPGRADE != "NONE" && VERSION_FOR_UPGRADE != "current_branch"){
-        VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE
+    if(params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
+        VERRAZZANO_DEV_VERSION = VERSION_FOR_UPGRADE_ENV
     }
     return !(isMinVersion(params.VERSION_FOR_INSTALL, version) && !isMinVersion(VERRAZZANO_DEV_VERSION, version))
 }
