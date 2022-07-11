@@ -16,14 +16,3 @@ pullPolicy: IfNotPresent
 config:
   envName:
   dnsSuffix:
-
-# Examples to prefer scheduling on separate nodes
-#podAntiAffinity:
-#  preferredDuringSchedulingIgnoredDuringExecution:
-#    - podAffinityTerm:
-#        labelSelector:
-#          matchLabels:
-#            app: verrazzano-console
-#        topologyKey: kubernetes.io/hostname
-#      weight: 100
-affinity: {}
