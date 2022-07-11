@@ -288,7 +288,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 	select {
 	case result := <-resChan:
 		// Delete remaining Verrazzano resources, excluding CRDs
-		_ = cleanupResources(client, vzHelper)
+		//		_ = cleanupResources(client, vzHelper)
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
@@ -297,7 +297,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 		}
 	}
 	// Delete remaining Verrazzano resources, excluding CRDs
-	_ = cleanupResources(client, vzHelper)
+	//	_ = cleanupResources(client, vzHelper)
 	return nil
 }
 
