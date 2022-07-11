@@ -387,7 +387,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 	t.Describe("verrazzano-console", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
-			if isMinVersion110 {
+			if isMinVersion110 && !pkg.IsManagedClusterProfile() {
 				Eventually(func() (bool, error) {
 					return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, "verrazzano-console")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
@@ -397,7 +397,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		})
 
 		t.It("has affinity configured as expected", func() {
-			if isMinVersion140 {
+			if isMinVersion140 && !pkg.IsManagedClusterProfile() {
 				assertPodAntiAffinity(map[string]string{"app": "verrazzano-console"}, constants.VerrazzanoSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
