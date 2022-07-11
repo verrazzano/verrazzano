@@ -16,16 +16,15 @@ import (
 const verrazzanoResource = "verrazzano_resources.json"
 
 var compMap = map[string][]string{
-	//"third":                           []string{"quarter", "half"},
 	"oam-kubernetes-runtime":          {constants.VerrazzanoSystemNamespace},
 	"kiali-server":                    {constants.VerrazzanoSystemNamespace},
 	"weblogic-operator":               {constants.VerrazzanoSystemNamespace},
 	"verrazzano-authproxy":            {constants.VerrazzanoSystemNamespace},
-	"istio":                           {},
-	"external-dns":                    {"cert-manager"},
+	"istio":                           {constants.IstioSystemNamespace},
+	"external-dns":                    {constants2.CertManagerNamespace},
 	"verrazzano-application-operator": {constants.VerrazzanoSystemNamespace},
 	"coherence-operator":              {constants.VerrazzanoSystemNamespace},
-	"ingress-controller":              {"ingress-nginx"},
+	"ingress-controller":              {constants.IngressNginxNamespace},
 	"mysql":                           {constants.KeycloakNamespace},
 	"cert-manager":                    {constants2.CertManagerNamespace},
 	"rancher":                         {common.CattleSystem}, // TODO vz-6833 add multiple namespaces
@@ -36,23 +35,21 @@ var compMap = map[string][]string{
 	"prometheus-operator":             {constants.VerrazzanoMonitoringNamespace},
 	"keycloak":                        {constants.KeycloakNamespace},
 	"verrazzano-monitoring-operator":  {constants.VerrazzanoSystemNamespace},
-
-	/*
-	 "fluentd",
-	 "grafana",
-	 "jaeger-operator",
-	 "opensearch",
-	 "opensearch-dashboards",
-	 "velero",
-	 "verrazzano",
-	 "verrazzano-console",
-	*/
+	"grafana":                         {constants.VerrazzanoSystemNamespace},
+	"jaeger-operator":                 {constants.VerrazzanoMonitoringNamespace},
+	"opensearch-dashboards":           {constants.VerrazzanoSystemNamespace},
+	"opensearch":                      {constants.VerrazzanoSystemNamespace},
+	"velero":                          {constants.VeleroNameSpace},
+	"verrazzano-console":              {constants.VerrazzanoSystemNamespace},
+	"verrazzano":                      {constants.VerrazzanoSystemNamespace},
+	"fluentd":                         {constants.VerrazzanoSystemNamespace},
 }
 
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
 func GetComponentsNotReady(clusterRoot string) ([]string, error) {
 	var compsNotReady = make([]string, 0)
 	vzResourcesPath := fmt.Sprintf("%s/%s", clusterRoot, verrazzanoResource) //files.FindFileInClusterRoot(clusterRoot, verrazzanoResource)
+
 	fileInfo, e := os.Stat(vzResourcesPath)
 	if e != nil || fileInfo.Size() == 0 {
 		// The cluster dump taken by the latest script is expected to contain the verrazzano_resources.json.
@@ -65,6 +62,7 @@ func GetComponentsNotReady(clusterRoot string) ([]string, error) {
 		return compsNotReady, err
 	}
 	defer file.Close()
+
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
 		return compsNotReady, err
