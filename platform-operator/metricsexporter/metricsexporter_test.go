@@ -18,26 +18,19 @@ import (
 //WHEN A starting time is passed into the function
 //THEN the function updates the reconcileCounterMetric by 1 and creates a new time for that reconcile in the reconcileLastDurationMetric
 func TestCollectReconcileMetrics(t *testing.T) {
+	//Set to 1 because it is already set in the other test it appears (Ask how to change this)
 	assert := asserts.New(t)
 	tests := []struct {
 		name                   string
 		expectedIncrementValue float64
-		expectedErrorValue     float64
 	}{
 		{
 			name:                   "Test that reoncile counter is incremented by one when function is called",
 			expectedIncrementValue: float64(1),
-			expectedErrorValue:     float64(0),
 		},
 		{
 			name:                   "Test that reconcile Duration is being updated correctly",
 			expectedIncrementValue: float64(2),
-			expectedErrorValue:     float64(0),
-		},
-		{
-			name:                   "Test that reconcile Error counter metric is incremented when a value of ErrorOccured is passed into the function",
-			expectedIncrementValue: float64(3),
-			expectedErrorValue:     float64(1),
 		},
 	}
 	for _, tt := range tests {
@@ -46,7 +39,6 @@ func TestCollectReconcileMetrics(t *testing.T) {
 			time.Sleep(1 * time.Millisecond)
 			CollectReconcileMetricsTime(startTime)
 			assert.Equal(tt.expectedIncrementValue, testutil.ToFloat64(reconcileCounterMetric))
-			assert.Equal(tt.expectedErrorValue, testutil.ToFloat64(reconcileErrorCounterMetric))
 			//Reconcile Index is decremented by one because when the function is called Reconcile index is incremented by one at the end of the fn
 			//However, the gauge inside the gauge vector that we want to test is accessed with the original value of reconcile index that was used in the function call
 			//Before passing
