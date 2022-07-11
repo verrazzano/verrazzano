@@ -144,7 +144,7 @@ func getBOM() {
 	//  Get the BOM from platform-operator
 	var command = []string{"cat", "/verrazzano/platform-operator/verrazzano-bom.json"}
 	out, _, err := pkg.Execute(platformOperatorPodName, "", "verrazzano-install", command)
-	if err != nil  {
+	if err != nil {
 		log.Fatal(err)
 	}
 	if len(out) == 0 {
@@ -189,13 +189,13 @@ func populateClusterContainerImages() {
 			if ok, _ := regexp.MatchString(whiteListedNamespace, installedNamespace); ok {
 				pods, err := pkg.ListPods(installedNamespace, metav1.ListOptions{})
 				if err != nil {
-						log.Fatal(err)
-        			}
+					log.Fatal(err)
+				}
 				for _, podList := range pods.Items {
 					for _, initContainer := range podList.Spec.InitContainers {
 						clusterImageArray = append(clusterImageArray, initContainer.Image)
 					}
-				for _, container := range podList.Spec.Containers {
+					for _, container := range podList.Spec.Containers {
 						clusterImageArray = append(clusterImageArray, container.Image)
 					}
 				}
