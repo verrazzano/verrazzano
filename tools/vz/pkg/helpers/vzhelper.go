@@ -112,9 +112,10 @@ func GetAllUniqueNameSpacesForFailedComponents(client client.Client) ([]string, 
 
 	for _, eachComp := range allComponents {
 		for _, eachNameSpace := range getNameSpacesByComponent(eachComp) {
+			// Insert into list only if not found (to avoid duplicates)
 			if !nsListMap[eachNameSpace] {
-				nsListMap[eachNameSpace] = true
 				nsList = append(nsList, eachNameSpace)
+				nsListMap[eachNameSpace] = true
 			}
 		}
 	}
@@ -125,7 +126,6 @@ func GetAllUniqueNameSpacesForFailedComponents(client client.Client) ([]string, 
 func GetComponentsNotReady(client client.Client) ([]string, error) {
 
 	var compsNotReady = make([]string, 0)
-	// Get the controller runtime client
 	vzRes, err := FindVerrazzanoResource(client)
 	if err != nil {
 		return compsNotReady, err
@@ -135,9 +135,11 @@ func GetComponentsNotReady(client client.Client) ([]string, error) {
 		// Verrazzano installation is not complete, find out the list of components which are not ready
 		for _, compStatusDetail := range vzRes.Status.Components {
 			if compStatusDetail.State != vzapi.CompStateReady {
-				continue
+				if compStatusDetail.State == vzapi.CompStateDisabled {
+					continue
+				}
+				compsNotReady = append(compsNotReady, compStatusDetail.Name)
 			}
-			compsNotReady = append(compsNotReady, compStatusDetail.Name)
 		}
 	}
 	return compsNotReady, nil
