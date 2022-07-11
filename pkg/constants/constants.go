@@ -5,7 +5,6 @@ package constants
 
 import (
 	PlatformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"time"
 )
 
@@ -185,7 +184,7 @@ var ComponentNameToNamespacesMap = map[string][]string{
 	ingress_controller:              {PlatformOperatorConstants.IngressNginxNamespace},
 	mysql:                           {KeycloakNamespace},
 	cert_manager:                    {CertManagerNamespace},
-	rancher:                         {common.CattleSystem}, // TODO vz-6833 add multiple namespaces
+	rancher:                         {RancherSystemNamespace}, // TODO vz-6833 add multiple namespaces
 	prometheus_pushgateway:          {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
 	prometheus_adapter:              {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
 	kube_state_metrics:              {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
