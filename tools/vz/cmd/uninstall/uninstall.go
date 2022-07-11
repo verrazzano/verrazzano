@@ -127,13 +127,13 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 // Resources that fail to delete will log an error but will not return
 func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) error {
 	// Delete verrazzano-install namespace
-	err := deleteNamespace(client, constants.VerrazzanoInstall)
-	if err != nil {
-		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
-	}
+	//	err := deleteNamespace(client, constants.VerrazzanoInstall)
+	//	if err != nil {
+	//		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	//	}
 
 	// Delete other verrazzano resources
-	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperator)
+	err := deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperator)
 	if err != nil {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
 	}
@@ -288,7 +288,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 	select {
 	case result := <-resChan:
 		// Delete remaining Verrazzano resources, excluding CRDs
-		//		_ = cleanupResources(client, vzHelper)
+		_ = cleanupResources(client, vzHelper)
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
@@ -297,7 +297,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 		}
 	}
 	// Delete remaining Verrazzano resources, excluding CRDs
-	//	_ = cleanupResources(client, vzHelper)
+	_ = cleanupResources(client, vzHelper)
 	return nil
 }
 
