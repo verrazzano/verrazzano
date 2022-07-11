@@ -1156,10 +1156,10 @@ def installVerrazzano() {
         yq -i eval '.spec.components.grafana.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
         yq -i eval '.spec.components.console.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
         yq -i eval '.spec.components.verrazzano.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        
         cat "$INSTALL_CONFIG_FILE_OLCNE"
+
         # apply config to create cluster
-        kubectl apply -f $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml
+        kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
         # wait for Verrazzano install to complete
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
         # Print out the username and passwords
