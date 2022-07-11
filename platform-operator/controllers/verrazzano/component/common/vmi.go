@@ -95,6 +95,8 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 			vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
 			vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
 		}
+		ingressClassName := vzconfig.GetIngressClassName(effectiveCR)
+		vmi.Spec.IngressClassName = &ingressClassName
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
 		vmi.Spec.SecretsName = constants.VMISecret

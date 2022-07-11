@@ -4,13 +4,17 @@
 package bugreport
 
 import (
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"io/fs"
 	"os"
+	"path/filepath"
+	"time"
 )
 
 const (
@@ -35,15 +39,10 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+	start := time.Now()
 	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
 	if err != nil {
 		return fmt.Errorf("error fetching flag: %s", err.Error())
-	}
-
-	// Fail if the bugReportFile already exists
-	_, err = os.Stat(bugReportFile)
-	if !os.IsNotExist(err) {
-		return fmt.Errorf("file %s already exists", bugReportFile)
 	}
 
 	// Get the kubernetes clientset, which will validate that the kubeconfig and context are valid.
@@ -58,6 +57,59 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 
+	// Check whether the file already exists
+	err = checkExistingFile(bugReportFile)
+	if err != nil {
+		return err
+	}
+
+	// Create the bug report file
+	bugRepFile, err := os.Create(bugReportFile)
+	if err != nil {
+		if errors.Is(err, fs.ErrPermission) {
+			return fmt.Errorf("permission denied to create the bug report: %s", bugReportFile)
+		}
+		return fmt.Errorf("an error occurred while creating %s: %s", bugReportFile, err.Error())
+	}
+	defer bugRepFile.Close()
+
 	// Generate the bug report
-	return vzbugreport.GenerateBugReport(kubeClient, client, bugReportFile, vzHelper)
+	err = vzbugreport.GenerateBugReport(kubeClient, client, bugRepFile, vzHelper)
+	if err != nil {
+		os.Remove(bugReportFile)
+		return fmt.Errorf(err.Error())
+	}
+
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully created the bug report: %s in %s\n", bugReportFile, time.Since(start)))
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Please go through errors (if any), in the standard output.\n")
+
+	// Display a warning message to review the contents of the report
+	fmt.Fprint(vzHelper.GetOutputStream(), "WARNING: Please examine the contents of the bug report for sensitive data.\n")
+	return nil
+}
+
+// checkExistingFile determines whether a file / directory with the name bugReportFile already exists
+func checkExistingFile(bugReportFile string) error {
+	// Fail if the bugReportFile already exists or is a directory
+	fileInfo, err := os.Stat(bugReportFile)
+	if fileInfo != nil {
+		if fileInfo.IsDir() {
+			return fmt.Errorf("%s is an existing directory", bugReportFile)
+		}
+		return fmt.Errorf("file %s already exists", bugReportFile)
+	}
+
+	// check if the parent directory exists
+	if err != nil {
+		fi, fe := os.Stat(filepath.Dir(bugReportFile))
+		if fi != nil {
+			if !fi.IsDir() {
+				return fmt.Errorf("%s is not a directory", filepath.Dir(bugReportFile))
+			}
+		}
+		if fe != nil {
+			return fmt.Errorf("an error occurred while creating %s: %s", bugReportFile, fe.Error())
+		}
+	}
+	return nil
 }
