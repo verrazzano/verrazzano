@@ -118,15 +118,11 @@ spec:
         - values:
             prometheus:
               prometheusSpec:
-                storageSpec:
-                  volumeClaimTemplate:
-                    spec:
-                      storageClassName:
-                        resources:
-                          requests:
-                            storage: "50Gi"
-                            memory: "128Mi"
                 replicas: 2
+                resources:
+                  requests:
+                    storage: "50Gi"
+                    memory: "128Mi"
                 affinity:
                   podAntiAffinity:
                     preferredDuringSchedulingIgnoredDuringExecution:
