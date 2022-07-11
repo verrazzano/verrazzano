@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	admv1 "k8s.io/api/admissionregistration/v1"
@@ -82,12 +83,14 @@ func TestPostUninstall(t *testing.T) {
 	}
 	controllerCM := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: controllerCMName,
+			Name:      controllerCMName,
+			Namespace: constants.KubeSystem,
 		},
 	}
 	lockCM := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: lockCMName,
+			Name:      lockCMName,
+			Namespace: constants.KubeSystem,
 		},
 	}
 

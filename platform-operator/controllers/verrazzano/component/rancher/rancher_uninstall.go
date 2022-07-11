@@ -7,6 +7,7 @@ import (
 	"context"
 	"regexp"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -79,19 +80,21 @@ func postUninstall(ctx spi.ComponentContext) error {
 
 	// Delete the remaining Rancher ConfigMaps
 	err = resource.Resource{
-		Name:   controllerCMName,
-		Client: ctx.Client(),
-		Object: &corev1.ConfigMap{},
-		Log:    ctx.Log(),
+		Name:      controllerCMName,
+		Namespace: constants.KubeSystem,
+		Client:    ctx.Client(),
+		Object:    &corev1.ConfigMap{},
+		Log:       ctx.Log(),
 	}.Delete()
 	if err != nil {
 		return err
 	}
 	err = resource.Resource{
-		Name:   lockCMName,
-		Client: ctx.Client(),
-		Object: &corev1.ConfigMap{},
-		Log:    ctx.Log(),
+		Name:      lockCMName,
+		Namespace: constants.KubeSystem,
+		Client:    ctx.Client(),
+		Object:    &corev1.ConfigMap{},
+		Log:       ctx.Log(),
 	}.Delete()
 	if err != nil {
 		return err
