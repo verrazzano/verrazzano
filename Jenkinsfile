@@ -431,7 +431,7 @@ pipeline {
                     build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
                             string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                            string(name: 'SCENARIO_TAG', value: "main-job")
+                            string(name: 'SCENARIO_TAG', value: "main-job"),
                             string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),

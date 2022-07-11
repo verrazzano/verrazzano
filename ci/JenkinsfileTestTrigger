@@ -152,7 +152,7 @@ pipeline {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "triggered-1")
+                                        string(name: 'SCENARIO_TAG', value: "triggered-1"),
                                         booleanParam(name: 'UPGRADE_VERRAZZANO', value: true),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -174,7 +174,7 @@ pipeline {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "triggered-2")
+                                        string(name: 'SCENARIO_TAG', value: "triggered-2"),
                                         booleanParam(name: 'UPGRADE_VERRAZZANO', value: true),
                                         booleanParam(name: 'EXTERNAL_ELASTICSEARCH', value: true),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -198,7 +198,7 @@ pipeline {
                                 build job: "/verrazzano-uninstall-test/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "triggered-1")
+                                        string(name: 'SCENARIO_TAG', value: "triggered-1"),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -219,7 +219,7 @@ pipeline {
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "base")
+                                        string(name: 'SCENARIO_TAG', value: "base"),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
@@ -239,7 +239,7 @@ pipeline {
                                 build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "triggered-1")
+                                        string(name: 'SCENARIO_TAG', value: "triggered-1"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -261,7 +261,7 @@ pipeline {
                                 build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "triggered-2")
+                                        string(name: 'SCENARIO_TAG', value: "triggered-2"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.21'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -283,7 +283,7 @@ pipeline {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "triggered-3")
+                                        string(name: 'SCENARIO_TAG', value: "triggered-3"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -304,7 +304,7 @@ pipeline {
                                 build job: "/verrazzano-no-injection-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "triggered-4")
+                                        string(name: 'SCENARIO_TAG', value: "triggered-4"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -325,7 +325,7 @@ pipeline {
                                 build job: "/verrazzano-upgrade-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "triggered-1")
+                                        string(name: 'SCENARIO_TAG', value: "triggered-1"),
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),

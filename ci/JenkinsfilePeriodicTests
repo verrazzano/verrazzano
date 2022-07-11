@@ -203,7 +203,7 @@ pipeline {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-1")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         booleanParam(name: 'UPGRADE_VERRAZZANO', value: true),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -221,7 +221,7 @@ pipeline {
                                 build job: "/verrazzano-uninstall-test/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-1")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -238,7 +238,7 @@ pipeline {
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-1")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -256,7 +256,7 @@ pipeline {
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-2-instance-principal")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-2-instance-principal"),
                                         string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -277,7 +277,7 @@ pipeline {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-1")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -295,7 +295,7 @@ pipeline {
                             build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                    string(name: 'SCENARIO_TAG', value: "periodic-2")
+                                    string(name: 'SCENARIO_TAG', value: "periodic-2"),
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.21'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -313,7 +313,7 @@ pipeline {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                         parameters: [
                                                 string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                                string(name: 'SCENARIO_TAG', value: "periodic-3")
+                                                string(name: 'SCENARIO_TAG', value: "periodic-3"),
                                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -332,7 +332,7 @@ pipeline {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                         parameters: [
                                                 string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                                string(name: 'SCENARIO_TAG', value: "periodic-4")
+                                                string(name: 'SCENARIO_TAG', value: "periodic-4"),
                                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23'),
                                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -351,7 +351,7 @@ pipeline {
                                 build job: "/verrazzano-upgrade-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-1")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -369,7 +369,7 @@ pipeline {
                                 build job: "/verrazzano-upgrade-resiliency-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-1")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -388,7 +388,7 @@ pipeline {
                                 build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-5-noncalico")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-5-noncalico"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false),
@@ -415,7 +415,7 @@ pipeline {
                                 build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-6-sslip")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-6-sslip"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: 'sslip.io'),
@@ -441,7 +441,7 @@ pipeline {
                                 build job: "verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-1")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -466,7 +466,7 @@ pipeline {
                                 build job: "verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-3-acme")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-3-acme"),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'CERT_ISSUER', value: "acme"),
                                         string(name: 'ACME_ENVIRONMENT', value: "staging"),
@@ -493,7 +493,7 @@ pipeline {
                                 build job: "/verrazzano-oci-integration-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-1")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -517,7 +517,7 @@ pipeline {
                                 def builtExamples = build job: "/verrazzano-examples/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-1")
+                                        string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -571,8 +571,7 @@ pipeline {
                                 build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
-                                        string(name: 'SCENARIO_TAG', value: "periodic-1")
-                                        string(name: 'PIPELINE_TAG', value: PIPELINE_TAG),
+                                        string(name: 'SCENARIO_TAG', value: "periodic-1"),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'ZIPFILE_LOCATION', value: storeLocation)
                                     ], wait: true
