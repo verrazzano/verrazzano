@@ -5,13 +5,14 @@
 #
 # Script to mount OCI storage to ocne cluster
 set -x
-API_SERVER_IP="$1"
-CONTROL_PLANE_IP="$2"
-WORKER_IP="$3"
-OCI_MOUNT_IP="$4"
-PREFIX="$5"
-PRIVATE_KEY_PATH="$6"
-OCI_EXPORT_PATH="$7"
+WORKSPACE="$1"
+API_SERVER_IP="$2"
+CONTROL_PLANE_IP="$3"
+WORKER_IP="$4"
+OCI_MOUNT_IP="$5"
+PREFIX="$6"
+PRIVATE_KEY_PATH="$7"
+OCI_EXPORT_PATH="$8"
 
 ssh -o StrictHostKeyChecking=no opc@$WORKER_IP -i $PRIVATE_KEY_PATH "
     sudo yum install -y nfs-utils
@@ -89,3 +90,12 @@ ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH "
     sudo yq -i eval '.spec.containers[0].volumeMounts += [{\"name\": \"recycler-config-volume\", \"mountPath\": \"/etc/recycler-pod.yaml\", \"subPath\": \"recycler-pod.yaml\"}]' $K8S_CONTROLLER_MANAGER_PATH
     sudo yq -i eval '.spec.volumes += [{\"name\": \"recycler-config-volume\", \"configMap\": {\"name\": \"recycler-pod-config\"}}]' $K8S_CONTROLLER_MANAGER_PATH
 "
+
+K8S_CONTROLLER_MANAGER_PATH="/etc/kubernetes/manifests/kube-controller-manager.yaml"
+ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH "sudo cp $K8S_CONTROLLER_MANAGER_PATH /home/opc/kube-controller-manager.yaml"
+scp -o StrictHostKeyChecking=no -i $PRIVATE_KEY_PATH opc@$CONTROL_PLANE_IP:"/home/opc/kube-controller-manager.yaml" "$WORKSPACE/kube-controller-manager.yaml"
+yq -i eval '.spec.containers[0].command += "--pv-recycler-pod-template-filepath-nfs=/etc/recycler-pod.yaml"' "$WORKSPACE/kube-controller-manager.yaml"
+yq -i eval '.spec.containers[0].volumeMounts += [{"name": "recycler-config-volume", "mountPath": "/etc/recycler-pod.yaml", "subPath": "recycler-pod.yaml"}]' "$WORKSPACE/kube-controller-manager.yaml"
+yq -i eval '.spec.volumes += [{"name": "recycler-config-volume", "configMap": {"name": "recycler-pod-config"}}]' "$WORKSPACE/kube-controller-manager.yaml"
+scp -o StrictHostKeyChecking=no -i $PRIVATE_KEY_PATH "$WORKSPACE/kube-controller-manager.yaml" opc@$CONTROL_PLANE_IP:"/home/opc/kube-controller-manager.yaml"
+ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH "sudo mv /home/opc/kube-controller-manager.yaml $K8S_CONTROLLER_MANAGER_PATH"

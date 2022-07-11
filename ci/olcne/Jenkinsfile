@@ -1072,7 +1072,7 @@ def mountOCIStorage() {
     echo CONTROL_PLANE_IP
     sh """
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/mount_oci_storage.sh \
-        "$API_SERVER_IP" "$CONTROL_PLANE_IP" "$WORKER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
+        "$WORKSPACE" "$API_SERVER_IP" "$CONTROL_PLANE_IP" "$WORKER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
     """
 }
 
