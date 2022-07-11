@@ -11,7 +11,6 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"os"
@@ -185,7 +184,11 @@ func getAllNamespaces() []string {
 // Hashmap 'clusterImagesNotFound' are images found in allowed namespaces that are not declared in the BOM
 // Hashmap 'clusterImageTagErrors' are images in allowed namespaces without matching tags in the BOM
 func populateClusterContainerImages() {
-	populateClusterImages := func(podsList *corev1.PodList) {
+	populateClusterImages := func(installedNamespace string) {
+		podsList, err := pkg.ListPods(installedNamespace, metav1.ListOptions{})
+		if err != nil {
+			log.Fatal(err)
+		}
 		for _, podList := range podsList.Items {
 			for _, initContainer := range podList.Spec.InitContainers {
 				clusterImageArray = append(clusterImageArray, initContainer.Image)
@@ -198,11 +201,7 @@ func populateClusterContainerImages() {
 	for _, installedNamespace := range getAllNamespaces() {
 		for _, whiteListedNamespace := range allowedNamespaces {
 			if ok, _ := regexp.MatchString(whiteListedNamespace, installedNamespace); ok {
-				pods, err := pkg.ListPods(installedNamespace, metav1.ListOptions{})
-				if err != nil {
-					log.Fatal(err)
-				}
-				populateClusterImages(pods)
+				populateClusterImages(installedNamespace)
 			}
 		}
 	}
