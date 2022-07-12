@@ -402,38 +402,6 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
 
-	// Expect a call to get the ServiceAccount - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, buildServiceAccountName(name)))
-
-	// Expect a call to create the ServiceAccount - return success
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
-			asserts.Equalf(getInstallNamespace(), serviceAccount.Namespace, "ServiceAccount namespace did not match")
-			asserts.Equalf(buildServiceAccountName(name), serviceAccount.Name, "ServiceAccount name did not match")
-			asserts.Equalf(labels, serviceAccount.Labels, "ServiceAccount labels did not match")
-			return nil
-		})
-
-	// Expect a call to get the ClusterRoleBinding - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ClusterRoleBinding"}, buildClusterRoleBindingName(namespace, name)))
-
-	// Expect a call to create the ClusterRoleBinding - return success
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, clusterRoleBinding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
-			asserts.Equalf("", clusterRoleBinding.Namespace, "ClusterRoleBinding namespace did not match")
-			asserts.Equalf(buildClusterRoleBindingName(namespace, name), clusterRoleBinding.Name, "ClusterRoleBinding name did not match")
-			asserts.Equalf(labels, clusterRoleBinding.Labels, "ClusterRoleBinding labels did not match")
-			asserts.Equalf(buildServiceAccountName(name), clusterRoleBinding.Subjects[0].Name, "ClusterRoleBinding Subjects name did not match")
-			asserts.Equalf(getInstallNamespace(), clusterRoleBinding.Subjects[0].Namespace, "ClusterRoleBinding Subjects namespace did not match")
-			return nil
-		})
-
 	// Expect a call to get the DNS config secret and return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
@@ -993,20 +961,48 @@ func TestServiceAccountGetError(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	var verrazzanoToUse vzapi.Verrazzano
 	asserts.NotNil(mockStatus)
+	deleteTime := metav1.Time{
+		Time: time.Now(),
+	}
 
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{
+				HelmComponent: helm2.HelmComponent{
+					ReleaseName: "fake",
+				},
+				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
+					return false, nil
+				},
+			},
+		}
+	})
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
 	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Labels:     labels,
-		Finalizers: []string{finalizerName}}
+		Namespace:         namespace,
+		Name:              name,
+		Labels:            labels,
+		DeletionTimestamp: &deleteTime,
+		Finalizers:        []string{finalizerName}}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.VzStateReady}
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect a call to get the uninstall Job - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildUninstallJobName(name)))
 
 	// Expect a call to get the ServiceAccount - return a failure error
 	mock.EXPECT().
@@ -1014,6 +1010,7 @@ func TestServiceAccountGetError(t *testing.T) {
 		Return(errors.NewBadRequest("failed to get ServiceAccount"))
 
 	// Create and make the request
+	DeleteUninstallTracker(&verrazzanoToUse)
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconciler.Reconcile(nil, request)
@@ -1040,20 +1037,49 @@ func TestServiceAccountCreateError(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	var verrazzanoToUse vzapi.Verrazzano
 	asserts.NotNil(mockStatus)
+	deleteTime := metav1.Time{
+		Time: time.Now(),
+	}
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{
+				HelmComponent: helm2.HelmComponent{
+					ReleaseName: "fake",
+				},
+				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
+					return false, nil
+				},
+			},
+		}
+	})
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
 	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Labels:     labels,
-		Finalizers: []string{finalizerName}}
+		Namespace:         namespace,
+		Name:              name,
+		Labels:            labels,
+		DeletionTimestamp: &deleteTime,
+		Finalizers:        []string{finalizerName}}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.VzStateReady}
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect a call to get the uninstall Job - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildUninstallJobName(name)))
 
 	// Expect a call to get the ServiceAccount - return not found
 	mock.EXPECT().
@@ -1066,6 +1092,7 @@ func TestServiceAccountCreateError(t *testing.T) {
 		Return(errors.NewBadRequest("failed to create ServiceAccount"))
 
 	// Create and make the request
+	DeleteUninstallTracker(&verrazzanoToUse)
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconciler.Reconcile(nil, request)
@@ -1092,20 +1119,49 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	var verrazzanoToUse vzapi.Verrazzano
 	asserts.NotNil(mockStatus)
+	deleteTime := metav1.Time{
+		Time: time.Now(),
+	}
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{
+				HelmComponent: helm2.HelmComponent{
+					ReleaseName: "fake",
+				},
+				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
+					return false, nil
+				},
+			},
+		}
+	})
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
 	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Labels:     labels,
-		Finalizers: []string{finalizerName}}
+		Namespace:         namespace,
+		Name:              name,
+		Labels:            labels,
+		DeletionTimestamp: &deleteTime,
+		Finalizers:        []string{finalizerName}}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.VzStateReady}
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect a call to get the uninstall Job - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildUninstallJobName(name)))
 
 	// Expect a call to get the ServiceAccount - return that it exists
 	expectGetServiceAccountExists(mock, name, labels)
@@ -1116,6 +1172,7 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 		Return(errors.NewBadRequest("failed to get ClusterRoleBinding"))
 
 	// Create and make the request
+	DeleteUninstallTracker(&verrazzanoToUse)
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconciler.Reconcile(nil, request)
@@ -1142,20 +1199,49 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	var verrazzanoToUse vzapi.Verrazzano
 	asserts.NotNil(mockStatus)
+	deleteTime := metav1.Time{
+		Time: time.Now(),
+	}
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{
+				HelmComponent: helm2.HelmComponent{
+					ReleaseName: "fake",
+				},
+				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
+					return false, nil
+				},
+			},
+		}
+	})
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
 		Kind:       "Verrazzano"}
 	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Labels:     labels,
-		Finalizers: []string{finalizerName}}
+		Namespace:         namespace,
+		Name:              name,
+		Labels:            labels,
+		DeletionTimestamp: &deleteTime,
+		Finalizers:        []string{finalizerName}}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.VzStateReady}
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect a call to get the uninstall Job - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildUninstallJobName(name)))
 
 	// Expect a call to get the ServiceAccount - return that it exists
 	expectGetServiceAccountExists(mock, name, labels)
@@ -1171,6 +1257,7 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 		Return(errors.NewBadRequest("failed to create ClusterRoleBinding"))
 
 	// Create and make the request
+	DeleteUninstallTracker(&verrazzanoToUse)
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconciler.Reconcile(nil, request)

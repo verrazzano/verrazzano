@@ -179,6 +179,7 @@ pipeline {
                         }
                     }
                 }
+                /*
                 stage('Uninstall failed upgrade') {
                     steps {
                         script {
@@ -196,6 +197,7 @@ pipeline {
                         }
                     }
                 }
+                */
                 stage('Upgrade a failed 1.2.0 upgrade') {
                     steps {
                         script {
