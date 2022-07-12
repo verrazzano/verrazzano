@@ -109,6 +109,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if vzctrl.ShouldRequeue(res) {
 		return res, nil
 	}
+
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
