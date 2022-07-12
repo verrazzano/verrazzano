@@ -148,7 +148,7 @@ const (
 	WeblogicOperator              = "weblogic-operator"
 	VerrazzanoAuthproxy           = "verrazzano-authproxy"
 	Istio                         = "istio"
-	ExternalDns                   = "external-dns"
+	ExternalDNS                   = "external-dns"
 	VerrazzanoApplicationOperator = "verrazzano-application-operator"
 	CoherenceOperator             = "coherence-operator"
 	IngressController             = "ingress-controller"
@@ -183,7 +183,7 @@ var ComponentNameToNamespacesMap = map[string][]string{
 	WeblogicOperator:              {VerrazzanoSystemNamespace},
 	VerrazzanoAuthproxy:           {VerrazzanoSystemNamespace},
 	Istio:                         {IstioSystemNamespace},
-	ExternalDns:                   {CertManagerNamespace},
+	ExternalDNS:                   {CertManagerNamespace},
 	VerrazzanoApplicationOperator: {VerrazzanoSystemNamespace},
 	CoherenceOperator:             {VerrazzanoSystemNamespace},
 	IngressController:             {platformOperatorConstants.IngressNginxNamespace},
