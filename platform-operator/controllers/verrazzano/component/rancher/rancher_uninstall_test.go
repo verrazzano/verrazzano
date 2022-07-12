@@ -33,6 +33,10 @@ func TestPostUninstall(t *testing.T) {
 	rancherNSName := "cattle-system"
 	rancherNSName2 := "fleet-rancher"
 	rancherCrName := "fleet-system"
+	mwcName := "mutating-webhook-configuration"
+	vwcName := "validating-webhook-configuration"
+	pvName := "pvc-12345"
+	randPV := "randomPV"
 	randCR := "randomCR"
 	randCRB := "randomCRB"
 
@@ -56,9 +60,19 @@ func TestPostUninstall(t *testing.T) {
 			Name: webhookName,
 		},
 	}
+	mutWebhook2 := admv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: mwcName,
+		},
+	}
 	valWebhook := admv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookName,
+		},
+	}
+	valWebhook2 := admv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: vwcName,
 		},
 	}
 	crRancher := rbacv1.ClusterRole{
@@ -91,6 +105,16 @@ func TestPostUninstall(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      lockCMName,
 			Namespace: constants.KubeSystem,
+		},
+	}
+	rancherPV := v1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: pvName,
+		},
+	}
+	nonRancherPV := v1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: randPV,
 		},
 	}
 
@@ -130,6 +154,7 @@ func TestPostUninstall(t *testing.T) {
 				&rancherNs,
 				&rancherNs2,
 				&mutWebhook,
+				&mutWebhook2,
 			},
 		},
 		{
@@ -140,6 +165,7 @@ func TestPostUninstall(t *testing.T) {
 				&rancherNs2,
 				&mutWebhook,
 				&valWebhook,
+				&valWebhook2,
 			},
 		},
 		{
@@ -155,17 +181,12 @@ func TestPostUninstall(t *testing.T) {
 			},
 		},
 		{
-			name: "test non Rancher CR and CRB",
+			name: "test non Rancher components",
 			objects: []clipkg.Object{
 				&nonRancherNs,
-				&rancherNs,
-				&rancherNs2,
-				&mutWebhook,
-				&valWebhook,
-				&crRancher,
-				&crbRancher,
 				&crNotRancher,
 				&crbNotRancher,
+				&nonRancherPV,
 			},
 			nonRancherTest: true,
 		},
@@ -183,6 +204,24 @@ func TestPostUninstall(t *testing.T) {
 				&crbNotRancher,
 				&controllerCM,
 				&lockCM,
+			},
+		},
+		{
+			name: "test persistent volume",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+				&rancherNs2,
+				&mutWebhook,
+				&valWebhook,
+				&crRancher,
+				&crbRancher,
+				&crNotRancher,
+				&crbNotRancher,
+				&controllerCM,
+				&lockCM,
+				&rancherPV,
+				&nonRancherPV,
 			},
 		},
 	}
@@ -218,6 +257,7 @@ func TestPostUninstall(t *testing.T) {
 			assert.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: lockCMName}, &v1.ConfigMap{})
 			assert.True(apierrors.IsNotFound(err))
+			//
 		})
 	}
 }

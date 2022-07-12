@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"regexp"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -15,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	osexec "os/exec"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var rancherSystemTool = "/usr/local/bin/system-tools"
@@ -53,27 +55,10 @@ func postUninstall(ctx spi.ComponentContext) error {
 	}
 
 	// Remove the Rancher webhooks
-	err = resource.Resource{
-		Name:   webhookName,
-		Client: ctx.Client(),
-		Object: &admv1.ValidatingWebhookConfiguration{},
-		Log:    ctx.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
-	err = resource.Resource{
-		Name:   webhookName,
-		Client: ctx.Client(),
-		Object: &admv1.MutatingWebhookConfiguration{},
-		Log:    ctx.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
+	err = deleteWebhooks(ctx)
 
-	// Delete the Rancher ClusterRoles and ClusterRoleBindings
-	err = deleteRoleResources(ctx)
+	// Delete the Rancher resources that need to be matched by a string
+	err = deleteMatchingResources(ctx)
 	if err != nil {
 		return err
 	}
@@ -103,57 +88,123 @@ func postUninstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// deleteRoleResources delete the Rancher role objects: ClusterRole, ClusterRoleBinding
-func deleteRoleResources(ctx spi.ComponentContext) error {
-	clusterRoleMatch := "cattle.io|app:rancher|rancher-webhook|fleetworkspace-|fleet-|gitjob"
+// deleteWebhooks takes care of deleting the Webhook resources from Ranncher
+func deleteWebhooks(ctx spi.ComponentContext) error {
+	vwcNames := []string{webhookName, "validating-webhook-configuration"}
+	mwcNames := []string{webhookName, "mutating-webhook-configuration"}
 
-	// Get the lists for the CR and CRB
+	for _, name := range vwcNames {
+		err := resource.Resource{
+			Name:   name,
+			Client: ctx.Client(),
+			Object: &admv1.ValidatingWebhookConfiguration{},
+			Log:    ctx.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, name := range mwcNames {
+		err := resource.Resource{
+			Name:   name,
+			Client: ctx.Client(),
+			Object: &admv1.MutatingWebhookConfiguration{},
+			Log:    ctx.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// deleteMatchingResources delete the Rancher objects that need to match a string: ClusterRole, ClusterRoleBinding, RoleBinding, PersistentVolumes
+func deleteMatchingResources(ctx spi.ComponentContext) error {
+	// list of matching prefixes for cluster roles, cluster role bindings
+	roleMatch := []string{
+		"cattle.io",
+		"app:rancher",
+		"rancher-webhook",
+		"fleetworkspace-",
+		"fleet-",
+		"gitjob",
+		"cattle-",
+		"pod-impersonation-helm-op-",
+		"cattle-unauthenticated",
+		"default-admin-",
+	}
+
+	// Delete the Rancher Cluster Roles
 	crList := rbacv1.ClusterRoleList{}
 	err := ctx.Client().List(context.TODO(), &crList)
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to list the ClusterRoleBindings: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed to list the ClusterRoles: %v", err)
 	}
+	for i := range crList.Items {
+		err = deleteMatchingObject(ctx, roleMatch, &crList.Items[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Delete the Rancher Cluster Role Bindings
 	crbList := rbacv1.ClusterRoleBindingList{}
 	err = ctx.Client().List(context.TODO(), &crbList)
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to list the ClusterRoleBindings: %v", err)
 	}
-
-	for i, cr := range crList.Items {
-		matches, err := regexp.MatchString(clusterRoleMatch, cr.Name)
+	for i := range crbList.Items {
+		err = deleteMatchingObject(ctx, roleMatch, &crbList.Items[i])
 		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed to verify that Cluster Role is from Rancher: %v", cr.Name, err)
-		}
-		if matches {
-			err = resource.Resource{
-				Name:      cr.Name,
-				Namespace: cr.Namespace,
-				Client:    ctx.Client(),
-				Object:    &crList.Items[i],
-				Log:       ctx.Log(),
-			}.Delete()
-			if err != nil {
-				return err
-			}
+			return err
 		}
 	}
 
-	for i, crb := range crbList.Items {
-		matches, err := regexp.MatchString(clusterRoleMatch, crb.Name)
+	// Delete the Rancher Role Bindings
+	rblist := rbacv1.RoleBindingList{}
+	err = ctx.Client().List(context.TODO(), &rblist)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list the RoleBindings: %v", err)
+	}
+	for i := range rblist.Items {
+		err = deleteMatchingObject(ctx, []string{"rb"}, &rblist.Items[i])
 		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed to verify that Cluster Role Binding is from Rancher: %v", crb.Name, err)
+			return err
 		}
-		if matches {
-			err = resource.Resource{
-				Name:      crb.Name,
-				Namespace: crb.Namespace,
-				Client:    ctx.Client(),
-				Object:    &crbList.Items[i],
-				Log:       ctx.Log(),
-			}.Delete()
-			if err != nil {
-				return err
-			}
+	}
+
+	// Delete the Rancher Persistent Volumes
+	pvList := corev1.PersistentVolumeList{}
+	err = ctx.Client().List(context.TODO(), &pvList)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list the PersistentVolumes: %v", err)
+	}
+	for i := range pvList.Items {
+		err = deleteMatchingObject(ctx, roleMatch, &pvList.Items[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// deleteMatchingObjects is a helper function that deletes objects in an object list that match any of the object names using regex
+func deleteMatchingObject(ctx spi.ComponentContext, matches []string, obj client.Object) error {
+	objectMatch, err := regexp.MatchString(strings.Join(matches, "|"), obj.GetName())
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to verify that the %s %s is from Rancher: %v", obj.GetObjectKind().GroupVersionKind().String(), obj.GetName(), err)
+	}
+	if objectMatch {
+		err = resource.Resource{
+			Name:      obj.GetName(),
+			Namespace: obj.GetNamespace(),
+			Client:    ctx.Client(),
+			Object:    obj,
+			Log:       ctx.Log(),
+		}.Delete()
+		if err != nil {
+			return err
 		}
 	}
 	return nil
