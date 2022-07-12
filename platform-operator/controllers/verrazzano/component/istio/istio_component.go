@@ -212,13 +212,8 @@ func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
 		Log:    context.Log(),
 	}
 	// Remove finalizers from the istio-system namespace to avoid hanging namespace deletion
-	err = res.RemoveFinalizers()
-	if err != nil {
-		return err
-	}
-
-	// Delete the istio-system namespace now that the finalizers have been removed
-	return res.Delete()
+	// and delete the namespace
+	return res.RemoveFinalizersAndDelete()
 }
 
 // IsEnabled istio-specific enabled check for installation
