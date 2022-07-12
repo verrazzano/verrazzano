@@ -7,7 +7,7 @@ set -x
 set -o pipefail
 
 if [ -z "$BACKUP_OPENSEARCH" ] ||  [ -z "$VELERO_NAMESPACE" ] || [ -z "$VELERO_SECRET_NAME" ]
-   [ -z "$BACKUP_STORAGE" ] || [ -z "$VELERO_BUCKET_NAME" ] || [ -z "$OCI_OS_NAMESPACE" ] ; then
+   [ -z "$BACKUP_STORAGE" ] || [ -z "$OCI_OS_NAMESPACE" ] ; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi

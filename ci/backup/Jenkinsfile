@@ -4,7 +4,7 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def VELERO_BUCKET_NAME = UUID.randomUUID().toString().substring(0,6).replace('-','')
+def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
 
 pipeline {
     options {
@@ -93,10 +93,11 @@ pipeline {
         OCI_OS_ACCESS_KEY = credentials('velero-key')
         OCI_OS_ACCESS_SECRET_KEY = credentials('velero-key-id')
         OCI_OS_COMPARTMENT_ID = credentials('v8o-velero-test')
-        BACKUP_NAME = "backup-${VELERO_BUCKET_NAME}"
-        BACKUP_RESOURCE = "opensearch-resource-${VELERO_BUCKET_NAME}"
-        BACKUP_OPENSEARCH = "opensearch-${VELERO_BUCKET_NAME}"
-        BACKUP_STORAGE = "storage-${VELERO_BUCKET_NAME}"
+        OCI_OS_BUCKET_NAME = "${ociOsBucketName}"
+        BACKUP_NAME = "backup-${OCI_OS_BUCKET_NAME}"
+        BACKUP_RESOURCE = "opensearch-resource-${OCI_OS_BUCKET_NAME}"
+        BACKUP_OPENSEARCH = "opensearch-${OCI_OS_BUCKET_NAME}"
+        BACKUP_STORAGE = "storage-${OCI_OS_BUCKET_NAME}"
         BACKUP_ID = "dummy"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
@@ -304,7 +305,7 @@ pipeline {
 
                 stage('Create bucket') {
                      steps {
-                        createBucket("${VELERO_BUCKET_NAME}")
+                        createBucket("${OCI_OS_BUCKET_NAME}")
                      }
                 }
 
@@ -332,7 +333,7 @@ pipeline {
 
                 stage('Delete bucket') {
                     steps {
-                       deleteBucket("${VELERO_BUCKET_NAME}")
+                       deleteBucket("${OCI_OS_BUCKET_NAME}")
                     }
                 }
 
@@ -420,7 +421,6 @@ pipeline {
 def createBucket(bucketName) {
     sh """
         oci --region us-phoenix-1 os bucket create -c ${OCI_OS_COMPARTMENT_ID} --namespace ${OCI_OS_NAMESPACE} --name ${bucketName}
-
     """
 }
 
