@@ -301,112 +301,15 @@ pipeline {
 
                 stage('Setup backup prerequisites') {
                     createBucket(${VELERO_BUCKET_NAME})
-                    sh """
-
-                    cat <<EOF >> velero-creds.ini
-                    [default]
-                    aws_access_key_id=${OCI_OS_ACCESS_KEY_PSW}
-                    aws_secret_access_key=${OCI_OS_ACCESS_SECRET_KEY_PSW}
-                    EOF
-
-                    kubectl create secret generic -n ${VELERO_NAMESPACE} ${VELERO_SECRET_NAME} --from-file=cloud=velero-creds.ini
-
-kubectl apply -f - <<EOF
-    apiVersion: velero.io/v1
-    kind: BackupStorageLocation
-    metadata:
-      name: ${BACKUP_STORAGE}
-      namespace: ${VELERO_NAMESPACE}
-    spec:
-      provider: aws
-      objectStorage:
-        bucket: ${VELERO_BUCKET_NAME}
-        prefix: opensearch
-      credential:
-        name: ${VELERO_SECRET_NAME}
-        key: cloud
-      config:
-        region: us-phoenix-1
-        s3ForcePathStyle: "true"
-        s3Url: https://${OCI_OS_NAMESPACE}.compat.objectstorage.us-phoenix-1.oraclecloud.com
-EOF
-
-                    kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE}
-                    """
-
-                    println("Backup prerequisites done!")
+                    BACKUP_STORAGE_LOCATION_CREATE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_prerequisites.sh").trim()
+                    println("Backup prerequisites done! ${OKE_CLUSTER_PREFIX}")
                 }
-
-
-
 
                 stage('Start Opensearch Backup') {
-                sh """
-
-kubectl apply -f - <<EOF
-    apiVersion: velero.io/v1
-    kind: Backup
-    metadata:
-      name: ${BACKUP_OPENSEARCH}
-      namespace: ${VELERO_NAMESPACE}
-    spec:
-      includedNamespaces:
-        - verrazzano-system
-      labelSelector:
-        matchLabels:
-          verrazzano-component: opensearch
-      defaultVolumesToRestic: false
-      storageLocation: ${BACKUP_STORAGE}
-      hooks:
-        resources:
-          -
-            name: ${BACKUP_RESOURCE}
-            includedNamespaces:
-              - verrazzano-system
-            labelSelector:
-              matchLabels:
-                statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
-            post:
-              -
-                exec:
-                  container: es-master
-                  command:
-                    - /usr/share/opensearch/bin/verrazzano-backup-hook
-                    - -operation
-                    - backup
-                    - -velero-backup-name
-                    - ${BACKUP_OPENSEARCH}
-                  onError: Fail
-                  timeout: 10m
-EOF
-                 ES_URL=$(kubectl get vz -o jsonpath={.items[].status.instance.elasticUrl})
-                 VZ_PASSWD=$(kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo)
-                 BACKUP_ID=`(curl -ks ${ES_URL}/verrazzano-system/_search?from=0&size=1 -u verrazzano:${VZ_PASSWORD} | jq -r '.hits.hits[0]._id')`
-                 RETRY_COUNT=0
-                 CHECK_DONE=true
-                 while ${CHECK_DONE};
-                  do
-                    RESPONSE=`(kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_NAME}-opensearch -o jsonpath={.status.phase)`
-                    if [ "${RESPONSE}" == "InProgress" ];then
-                      if [ "${RETRY_COUNT}" -gt 50 ];then
-                         echo "Backup failed. retry count exceeded !!"
-                         CHECK_DONE=false
-                      fi
-                      echo "Backup in progress. Check after 10 seconds"
-                      sleep 10
-                    else
-                        log "Snapshot progress changed to  $RESPONSE"
-                        CHECK_DONE=false
-                    fi
-                    RETRY_COUNT=$((RETRY_COUNT + 1))
-                  done
-                 """
-                 println("Opensearch backup done")
-
+                    BACKUP_ID = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_start.sh").trim()
+                    println("Opensearch backup done ${BACKUP_ID}")
                 }
-
-
-
+                
 
                 stage('Delete bucket') {
                     deleteBucket(${VELERO_BUCKET_NAME})
