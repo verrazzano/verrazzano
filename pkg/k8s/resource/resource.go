@@ -35,8 +35,17 @@ func (r Resource) Delete() error {
 	return nil
 }
 
-// RemoveFinalizers remove all finalizers from a resource
-func (r Resource) RemoveFinalizers() error {
+// RemoveFinializersAndDelete removes all finalizers from a resource and deletes the resource
+func (r Resource) RemoveFinalizersAndDelete() error {
+	err := r.removeFinalizers()
+	if err != nil {
+		return err
+	}
+	return r.Delete()
+}
+
+// removeFinalizers remove all finalizers from a resource
+func (r Resource) removeFinalizers() error {
 	val := reflect.ValueOf(r.Object)
 	kind := val.Elem().Type().Name()
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.Namespace, Name: r.Name}, r.Object)
