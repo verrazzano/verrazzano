@@ -308,7 +308,7 @@ pipeline {
 
                     kubectl create secret generic -n ${VELERO_NAMESPACE} ${VELERO_SECRET_NAME} --from-file=cloud=velero-creds.ini
 
-                    kubectl apply -f - <<EOF
+kubectl apply -f - <<EOF
     apiVersion: velero.io/v1
     kind: BackupStorageLocation
     metadata:
@@ -329,14 +329,18 @@ pipeline {
 EOF
 
                     kubectl get bsl ${BACKUP_NAME}-storage -n ${VELERO_NAMESPACE}
+                    """
 
                     println("Backup prerequisites done!")
-
                 }
 
-                stage('Start Opensearch Backup') {
 
-                   kubectl apply -f - <<EOF
+
+
+                stage('Start Opensearch Backup') {
+                sh """
+
+kubectl apply -f - <<EOF
     apiVersion: velero.io/v1
     kind: Backup
     metadata:
@@ -372,39 +376,38 @@ EOF
                   onError: Fail
                   timeout: 10m
 EOF
-                    ES_URL=$(kubectl get vz -o jsonpath={.items[].status.instance.elasticUrl})
-                    VZ_PASSWD=$(kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo)
-                    BACKUP_ID=`(curl -ks ${ES_URL}/verrazzano-system/_search?from=0&size=1 -u verrazzano:${VZ_PASSWORD} | jq -r '.hits.hits[0]._id')`
-
-                    RETRY_COUNT=0
-                    CHECK_DONE=true
-                    while ${CHECK_DONE};
-                    do
-                      RESPONSE=`(kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_NAME}-opensearch -o jsonpath={.status.phase)`
-                      if [ "${RESPONSE}" == "InProgress" ];then
-                        if [ "${RETRY_COUNT}" -gt 50 ];then
-                           echo "Backup failed. retry count exceeded !!"
-                           CHECK_DONE=false
-                        fi
-                        echo "Backup in progress. Check after 10 seconds"
-                        sleep 10
-                      else
+                 ES_URL=$(kubectl get vz -o jsonpath={.items[].status.instance.elasticUrl})
+                 VZ_PASSWD=$(kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo)
+                 BACKUP_ID=`(curl -ks ${ES_URL}/verrazzano-system/_search?from=0&size=1 -u verrazzano:${VZ_PASSWORD} | jq -r '.hits.hits[0]._id')`
+                 RETRY_COUNT=0
+                 CHECK_DONE=true
+                 while ${CHECK_DONE};
+                  do
+                    RESPONSE=`(kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_NAME}-opensearch -o jsonpath={.status.phase)`
+                    if [ "${RESPONSE}" == "InProgress" ];then
+                      if [ "${RETRY_COUNT}" -gt 50 ];then
+                         echo "Backup failed. retry count exceeded !!"
+                         CHECK_DONE=false
+                      fi
+                      echo "Backup in progress. Check after 10 seconds"
+                      sleep 10
+                    else
                         log "Snapshot progress changed to  $RESPONSE"
                         CHECK_DONE=false
-                      fi
-                      RETRY_COUNT=$((RETRY_COUNT + 1))
-                    done
-                    """
-                     println("Opensearch backup done")
+                    fi
+                    RETRY_COUNT=$((RETRY_COUNT + 1))
+                  done
+                 """
+                 println("Opensearch backup done")
 
                 }
+
+
+
 
                 stage('Delete bucket') {
                     deleteBucket(${VELERO_BUCKET_NAME})
                 }
-
-
-
 
             }
 
