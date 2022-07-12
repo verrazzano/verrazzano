@@ -271,8 +271,9 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 				// name of the managed cluster is added to the metrics
 				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == clusterName {
 					return true
+				} else {
+					GinkgoWriter.Write([]byte(fmt.Sprintf("lol %s, %s, %s, %s", ns, pod, clusterName, pkg.Jq(metric, "metric", getClusterNameMetricLabel()))))
 				}
-				GinkgoWriter.Write([]byte(fmt.Sprintf("lol %s, %s, %s, %s", ns, pod, clusterName, pkg.Jq(metric, "metric", getClusterNameMetricLabel()))))
 			} else {
 
 				// the metrics for the admin cluster or in the single cluster installation should contain the label
