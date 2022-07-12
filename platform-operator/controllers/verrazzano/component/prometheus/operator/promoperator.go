@@ -9,6 +9,8 @@ import (
 	"path"
 	"strconv"
 
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -33,7 +35,6 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/kustomize/kyaml/sliceutil"
 )
 
 const (
@@ -379,7 +380,7 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 func (c prometheusComponent) validatePrometheusOperator(vz *vzapi.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
 	if !c.IsEnabled(vz) && vzconfig.IsPrometheusEnabled(vz) {
-		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled")
+		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
 	}
 	// Validate install overrides
 	if vz.Spec.Components.PrometheusOperator != nil {
@@ -511,7 +512,7 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 					return nil
 				}
 				// Update the object principal with the Prometheus Operator service account if not found
-				if !sliceutil.Contains(targetFrom.Source.Principals, serviceAccount) {
+				if !vzstring.SliceContainsString(targetFrom.Source.Principals, serviceAccount) {
 					authPolicy.Spec.Rules[0].From[0].Source.Principals = append(targetFrom.Source.Principals, serviceAccount)
 				}
 				return nil

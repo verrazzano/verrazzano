@@ -65,6 +65,20 @@ const VerrazzanoManagedCluster = "verrazzano-managed-cluster"
 
 const VerrazzanoPlatformOperatorWait = 1
 
+const OAMAppConfigurations = "applicationconfigurations"
+
+const OAMMCAppConfigurations = "multiclusterapplicationConfigurations"
+
+const OAMComponents = "components"
+
+const OAMMetricsTraits = "metricstraits"
+
+const OAMIngressTraits = "ingresstraits"
+
+const OAMProjects = "verrazzanoprojects"
+
+const OAMManagedClusters = "verrazzanomanagedclusters"
+
 // Analysis tool flags
 const (
 	DirectoryFlagName  = "capture-dir"
@@ -84,13 +98,13 @@ const (
 const (
 	BugReportFileFlagName  = "report-file"
 	BugReportFileFlagValue = ""
+	BugReportFileFlagShort = "r"
 	BugReportFileFlagUsage = "The report file to be created by bug-report command, as a .tar.gz file [Required]"
 
-	BugReportIncludeFlagName = "include"
-	BugReportIncludeFlagValue = ""
-	BugReportIncludeFlagUsage = "One or more application namespaces to collect information from the cluster"
-
-	BugReportFileExtn      = ".tar.gz"
+	BugReportIncludeNSFlagName  = "include-namespaces"
+	BugReportIncludeNSFlagValue = ""
+	BugReportIncludeNSFlagShort = "i"
+	BugReportIncludeNSFlagUsage = "One or more namespaces to collect information from the cluster"
 
 	BugReportDir = "bug-report"
 
@@ -107,6 +121,12 @@ const (
 	DaemonSetsJSON   = "daemonsets.json"
 	IngressJSON      = "ingress.json"
 	StatefulSetsJSON = "statefulsets.json"
+	AppConfigJSON    = "appconfig.json"
+	ComponentJSON    = "component.json"
+	IngressTraitJSON = "ingresstrait.json"
+	MetricsTraitJSON = "metricstrait.json"
+	McAppConfigJSON  = "mcappconfig.json"
+	VzProjectsJSON   = "projects.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "

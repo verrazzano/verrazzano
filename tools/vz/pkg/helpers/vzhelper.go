@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"k8s.io/client-go/dynamic"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -30,6 +31,7 @@ type VZHelper interface {
 	GetClient(cmd *cobra.Command) (client.Client, error)
 	GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error)
 	GetHTTPClient() *http.Client
+	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource

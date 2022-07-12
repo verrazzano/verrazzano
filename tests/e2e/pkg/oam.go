@@ -29,6 +29,6 @@ func getOamAppConfigScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    "core.oam.dev",
 		Version:  "v1alpha2",
-		Resource: "ApplicationConfiguration",
+		Resource: "applicationconfigurations",
 	}
 }

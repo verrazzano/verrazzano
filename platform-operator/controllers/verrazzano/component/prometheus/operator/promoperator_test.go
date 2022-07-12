@@ -425,6 +425,17 @@ func TestValidatePrometheusOperator(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name: "test Prometheus Operator disabled, Prometheus not specified (implicitly enabled)",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+					},
+				},
+			},
+			expectError: true,
+		},
 	}
 	c := prometheusComponent{}
 	for _, tt := range tests {
