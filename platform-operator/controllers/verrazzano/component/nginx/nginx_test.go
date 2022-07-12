@@ -218,6 +218,101 @@ func TestIsNGINXReady(t *testing.T) {
 	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, false)))
 }
 
+//  TestIsNGINXNotReadyWithoutIP tests the IsReady function
+//  GIVEN a call to IsReady
+//  WHEN the deployment object has enough replicas available but there's no nginx container ip
+//  THEN false is returned
+func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ControllerName,
+				Labels:    map[string]string{"app.kubernetes.io/component": "controller"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app.kubernetes.io/component": "controller"},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ControllerName + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash":           "95d8c5d96",
+					"app.kubernetes.io/component": "controller",
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        ControllerName + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      backendName,
+				Labels:    map[string]string{"app.kubernetes.io/component": "default-backend"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app.kubernetes.io/component": "default-backend"},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      backendName + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash":           "95d8c5d96",
+					"app.kubernetes.io/component": "default-backend",
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        backendName + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      vpoconst.NGINXControllerServiceName,
+				Namespace: vpoconst.IngressNginxNamespace,
+			},
+		},
+	).Build()
+
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				Ingress: &vzapi.IngressNginxComponent{
+					Type: vzapi.LoadBalancer,
+				},
+			},
+		},
+	}
+	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, false)))
+}
+
 // TestIsNGINXNotReady tests the IsReady function
 // GIVEN a call to IsReady
 //  WHEN the deployment object does NOT have enough replicas available
