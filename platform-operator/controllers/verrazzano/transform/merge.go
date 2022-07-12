@@ -86,10 +86,9 @@ func GetEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
 	return effectiveCR, nil
 }
 
-//appendComponentOverrides copies the profile overrides over to the actual overrides.
-// Because overrides lacks a proper merge key, a strategic merge will replace the array instead of merging it.
-// This function stops that replacement from occurring.
-// Any component that has overrides should be included here.
+//appendComponentOverrides copies the profile overrides over to the actual overrides. Any component that has overrides should be included here.
+// Because overrides lacks a proper merge key, a strategic merge will replace the array instead of merging it. This function stops that replacement from occurring.
+// The profile CR overrides must be appended to the actual CR overrides to preserve the precedence order in the way HelmComponent consumes them.
 func appendComponentOverrides(actual, profile *vzapi.Verrazzano) {
 	actualKubeStateMetrics := actual.Spec.Components.KubeStateMetrics
 	profileKubeStateMetrics := profile.Spec.Components.KubeStateMetrics
