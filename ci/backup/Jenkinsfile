@@ -92,6 +92,7 @@ pipeline {
         VELERO_SECRET_NAME = "velero-backup-creds"
         OCI_OS_ACCESS_KEY = credentials('velero-key')
         OCI_OS_ACCESS_SECRET_KEY = credentials('velero-key-id')
+        OCI_OS_COMPARTMENT_ID = credentials('v8o-velero-test compartment')
         BACKUP_NAME = "backup-${VELERO_BUCKET_NAME}"
         BACKUP_RESOURCE = "opensearch-resource-${VELERO_BUCKET_NAME}"
         BACKUP_OPENSEARCH = "opensearch-${VELERO_BUCKET_NAME}"
@@ -284,6 +285,7 @@ pipeline {
                     }
                 }
 
+                /*
                 stage('Verify Install') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
@@ -298,6 +300,7 @@ pipeline {
                         }
                     }
                 }
+                */
 
                 stage('Create bucket') {
                      steps {
@@ -416,7 +419,7 @@ pipeline {
 
 def createBucket(bucketName) {
     sh """
-        oci --region us-phoenix-1 os bucket create --namespace ${OCI_OS_NAMESPACE} --name ${bucketName}
+        oci --region us-phoenix-1 os bucket create -c ${OCI_OS_COMPARTMENT_ID} --namespace ${OCI_OS_NAMESPACE} --name ${bucketName}
 
     """
 }
