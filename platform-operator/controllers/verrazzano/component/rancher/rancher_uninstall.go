@@ -27,8 +27,8 @@ const (
 	lockCMName       = "rancher-controller-lock"
 )
 
-// postUninstall removes the objects after the Helm uninstall process finishes
-func postUninstall(ctx spi.ComponentContext) error {
+// PostUninstall removes the objects after the Helm uninstall process finishes
+func PostUninstall(ctx spi.ComponentContext) error {
 	ctx.Log().Oncef("Running the Rancher uninstall system tool")
 
 	// List all the namespaces that need to be cleaned from Rancher components

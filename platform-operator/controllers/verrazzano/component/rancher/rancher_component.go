@@ -279,7 +279,7 @@ func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("Rancher PostUninstall dry run")
 		return nil
 	}
-	return postUninstall(ctx)
+	return PostUninstall(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

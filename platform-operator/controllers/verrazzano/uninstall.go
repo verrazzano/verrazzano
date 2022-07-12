@@ -6,16 +6,9 @@ package verrazzano
 import (
 	"context"
 
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -23,8 +16,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -116,7 +111,11 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallCleanup
 
 		case vzStateUninstallCleanup:
-			err := r.uninstallCleanup(log)
+			spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			err = r.uninstallCleanup(spiCtx, log)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -220,9 +219,9 @@ func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
 	return true, nil
 }
 
-//uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individal component uninstalls
-func (r *Reconciler) uninstallCleanup(log vzlog.VerrazzanoLogger) error {
-	return r.deleteNamespaces(log)
+// uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individal component uninstalls
+func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, log vzlog.VerrazzanoLogger) error {
+	return rancher.PostUninstall(ctx)
 }
 
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
@@ -237,9 +236,4 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 		return log.ErrorfNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
 	}
 	return nil
-}
-
-//deleteNamespaces Cleans up any namespaces shared by multiple components
-func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
-	return namespace.DeleteNamespace(log, r.Client, promoperator.ComponentNamespace)
 }
