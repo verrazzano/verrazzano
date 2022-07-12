@@ -128,7 +128,7 @@ func (c nginxComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 // PostUninstall processing for NGINX
-func (v nginxComponent) PostUninstall(context spi.ComponentContext) error {
+func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
 	res := resource.Resource{
 		Name:   ComponentNamespace,
 		Client: context.Client(),
