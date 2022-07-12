@@ -59,7 +59,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
 
-	//declare error variable
+	reconcileMetrics := metricsexporter.GetReconcileMetricsObject(controllerName)
+	var err error
+	defer reconcileMetrics.VerifyReconcileResult(err)
+	reconcileMetrics.GetDurationMetrics().DurationTimerStart()
+	defer reconcileMetrics.GetDurationMetrics().DurationTimerStop()
 
 	if req.Namespace == constants.KubeSystem {
 		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)
@@ -71,16 +75,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	var appConfig oamv1.ApplicationConfiguration
-	if err := r.Client.Get(ctx, req.NamespacedName, &appConfig); err != nil {
+	if err = r.Client.Get(ctx, req.NamespacedName, &appConfig); err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())
 	}
 	log, err := clusters.GetResourceLogger("applicationconfiguration", req.NamespacedName, &appConfig)
 	if err != nil {
 		log.Errorf("Failed to create controller logger for application configuration resource: %v", err)
-		metricsexporter.AppconfigIncrementFailedProcess()
-
 		return clusters.NewRequeueWithDelay(), nil
-
 	}
 
 	log.Oncef("Reconciling application configuration resource %v, generation %v", req.NamespacedName, appConfig.Generation)
@@ -97,9 +98,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// The Verrazzano resource has been reconciled.
 	log.Oncef("Finished reconciling application configuration %v", req.NamespacedName)
-
-	// Metric for number of times reconcile function is successful
-	metricsexporter.AppconfigIncrementEventsProcessed()
 
 	return ctrl.Result{}, nil
 

@@ -18,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
-	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	log2 "github.com/verrazzano/verrazzano/pkg/log"
@@ -152,7 +151,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log, err := clusters.GetResourceLogger("verrazzanocoherenceworkload", req.NamespacedName, workload)
 	if err != nil {
 		zap.S().Errorf("Failed to create controller logger for Coherence workload resource: %v", err)
-		metricsexporter.CohworkloadIncrementFailedProcess()
+
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling Coherence workload resource %v, generation %v", req.NamespacedName, workload.Generation)
@@ -167,9 +166,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	log.Oncef("Finished reconciling Coherence workload %v", req.NamespacedName)
-
-	// Metric for number of times reconcile function is called
-	metricsexporter.CohworkloadIncrementEventsProcessed()
 
 	return ctrl.Result{}, nil
 }

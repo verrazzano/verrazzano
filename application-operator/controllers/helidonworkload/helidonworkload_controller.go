@@ -16,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
-	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -92,7 +91,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log, err := clusters.GetResourceLogger("verrazzanohelidonworkload", req.NamespacedName, &workload)
 	if err != nil {
 		zap.S().Errorf("Failed to create controller logger for Helidon workload resource: %v", err)
-		metricsexporter.HelidonworkloadIncrementFailedProcess()
+
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling Helidon workload resource %v, generation %v", req.NamespacedName, workload.Generation)
@@ -108,9 +107,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	log.Oncef("Finished reconciling Helidon workload %v", req.NamespacedName)
-
-	// Metric for number of times reconcile function is called
-	defer metricsexporter.HelidonworkloadIncrementEventsProcessed()
 
 	return ctrl.Result{}, nil
 }

@@ -6,10 +6,10 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"net/http"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/admission/v1"
@@ -48,6 +48,7 @@ var appconfigMarshalFunc = json.Marshal
 
 // Handle handles appconfig mutate Request
 func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
+	//var err error
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "appconfig-defaulter")
 
 	dryRun := req.DryRun != nil && *req.DryRun
@@ -93,6 +94,7 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
+
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledAppConfig)
 }
 

@@ -17,7 +17,6 @@ import (
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
-	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -142,7 +141,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log, err := clusters.GetResourceLogger("ingresstrait", req.NamespacedName, trait)
 	if err != nil {
 		zap.S().Errorf("Failed to create controller logger for ingress trait resource: %v", err)
-		metricsexporter.IngresstraitIncrementFailedProcess()
+
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling ingress trait resource %v, generation %v", req.NamespacedName, trait.Generation)
@@ -158,9 +157,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	log.Oncef("Finished reconciling ingress trait %v", req.NamespacedName)
-
-	// Metric for number of times reconcile function is called
-	defer metricsexporter.IngresstraitloadIncrementEventsProcessed()
 
 	return ctrl.Result{}, nil
 }
