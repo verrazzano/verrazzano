@@ -20,7 +20,15 @@ cat <<EOF >> ${SECRETS_FILE}
    aws_secret_access_key=${OCI_OS_ACCESS_SECRET_KEY}
 EOF
 
+echo "List secrets under '${VELERO_NAMESPACE}' namespace"
+kubectl get secrets -n ${VELERO_NAMESPACE}
+
 kubectl create secret generic -n ${VELERO_NAMESPACE} ${VELERO_SECRET_NAME} --from-file=${SECRETS_FILE}
+
+echo "List secrets under '${VELERO_NAMESPACE}' namespace after secret is created"
+kubectl get secrets -n ${VELERO_NAMESPACE}
+
+rm -rf ${SECRETS_FILE}
 
 kubectl apply -f - <<EOF
     apiVersion: velero.io/v1
