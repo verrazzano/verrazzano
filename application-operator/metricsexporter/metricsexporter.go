@@ -92,13 +92,13 @@ var (
 		},
 	}
 
-	// Successfull reconcile process
-	// appcinfigControllerMetrics = ReconcileMetrics{
-	// 	reconcileSuccessful: prometheus.NewCounter(prometheus.CounterOpts{
-	// 		Name: "appconfig_reconcile_puller_events_total",
-	// 		Help: "The total number of processed Reconcile events for appconfig",
-	// 	}),
-	// }
+	//Successfull reconcile process
+	appcinfigControllerMetrics = ReconcileMetrics{
+		reconcileSuccessful: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "appconfig_reconcile_puller_events_total",
+			Help: "The total number of processed Reconcile events for appconfig",
+		}),
+	}
 	appconfigReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "appconfig_reconcile_puller_events_total",
 		Help: "The total number of processed Reconcile events for appconfig",
@@ -188,9 +188,7 @@ var (
 		Help: "The total number of failed Reconcile events for appconfig",
 	})
 
-	allMetrics = []prometheus.Collector{appconfigReconcileProcessed, cohworkloadReconcileProcessed, helidonworkloadReconcileProcessed, ingresstraitloadReconcileProcessed,
-		cohworkloadReconcileFailed, helidonworkloadReconcileFailed, ingresstraitReconcileFailed, appconfigReconcileFailed,
-		cohworkloadRequeProcessed, helidonworkloadRequeProcessed, ingresstraitRequeProcessed, appconfigRequeProcessed}
+	allMetrics    = []prometheus.Collector{appconfigReconcileDuration, appconfigReconcileProcessed}
 	failedMetrics = map[prometheus.Collector]int{}
 	registry      = prometheus.DefaultRegisterer
 )
@@ -226,82 +224,82 @@ func (d DurationMetrics) DurationTimerStop() {
 
 // Old code for metric functions --------------------------------
 
-// func AppconfigIncrementEventsProcessed() {
+func AppconfigIncrementEventsProcessed() {
 
-// 	appconfigReconcileProcessed.Inc()
-// }
+	appconfigReconcileProcessed.Inc()
+}
 
-// func CohworkloadIncrementEventsProcessed() {
+func CohworkloadIncrementEventsProcessed() {
 
-// 	cohworkloadReconcileProcessed.Inc()
-// }
+	cohworkloadReconcileProcessed.Inc()
+}
 
-// func HelidonworkloadIncrementEventsProcessed() {
+func HelidonworkloadIncrementEventsProcessed() {
 
-// 	helidonworkloadReconcileProcessed.Inc()
-// }
-// func IngresstraitloadIncrementEventsProcessed() {
+	helidonworkloadReconcileProcessed.Inc()
+}
+func IngresstraitloadIncrementEventsProcessed() {
 
-// 	ingresstraitloadReconcileProcessed.Inc()
-// }
+	ingresstraitloadReconcileProcessed.Inc()
+}
 
-// //Successfull Webhook process incrementation
+//Successfull Webhook process incrementation
 
-// func AppconfigIncrementWebhookProcessed() {
+func AppconfigIncrementWebhookProcessed() {
 
-// 	appconfigWebhookProcessed.Inc()
-// }
+	appconfigWebhookProcessed.Inc()
+}
 
-// func IstioIncrementWebhookProcessed() {
+func IstioIncrementWebhookProcessed() {
 
-// 	istioWebhookProcessed.Inc()
-// }
+	istioWebhookProcessed.Inc()
+}
 
-// func HelidonworkloadIncrementWebhookProcessed() {
+func HelidonworkloadIncrementWebhookProcessed() {
 
-// 	helidonworkloadWebhookProcessed.Inc()
-// }
-// func IngresstraitloadIncrementWebhookProcessed() {
+	helidonworkloadWebhookProcessed.Inc()
+}
+func IngresstraitloadIncrementWebhookProcessed() {
 
-// 	ingresstraitloadWebhookProcessed.Inc()
-// }
+	ingresstraitloadWebhookProcessed.Inc()
+}
 
-// // Failed processing incrementation
+// Failed processing incrementation
 
-// func AppconfigIncrementFailedProcess() {
-// 	appconfigReconcileFailed.Inc()
-// }
-// func HelidonworkloadIncrementFailedProcess() {
-// 	helidonworkloadReconcileFailed.Inc()
-// }
-// func CohworkloadIncrementFailedProcess() {
-// 	cohworkloadReconcileFailed.Inc()
-// }
-// func IngresstraitIncrementFailedProcess() {
-// 	ingresstraitReconcileFailed.Inc()
-// }
+func AppconfigIncrementFailedProcess() {
+	appconfigReconcileFailed.Inc()
+}
+func HelidonworkloadIncrementFailedProcess() {
+	helidonworkloadReconcileFailed.Inc()
+}
+func CohworkloadIncrementFailedProcess() {
+	cohworkloadReconcileFailed.Inc()
+}
+func IngresstraitIncrementFailedProcess() {
+	ingresstraitReconcileFailed.Inc()
+}
 
-// // Reque process incrementation
+// Reque process incrementation
 
-// func AppconfigIncrementRequeProcess() {
-// 	appconfigRequeProcessed.Inc()
-// }
-// func HelidonworkloadIncrementRequeProcess() {
-// 	helidonworkloadRequeProcessed.Inc()
-// }
-// func CohworkloadIncrementRequeProcess() {
-// 	cohworkloadRequeProcessed.Inc()
-// }
-// func IngresstraitIncrementRequeProcess() {
-// 	ingresstraitRequeProcessed.Inc()
-// }
+func AppconfigIncrementRequeProcess() {
+	appconfigRequeProcessed.Inc()
+}
+func HelidonworkloadIncrementRequeProcess() {
+	helidonworkloadRequeProcessed.Inc()
+}
+func CohworkloadIncrementRequeProcess() {
+	cohworkloadRequeProcessed.Inc()
+}
+func IngresstraitIncrementRequeProcess() {
+	ingresstraitRequeProcessed.Inc()
+}
 
-// // Reconcile Duration
+// Reconcile Duration
 
-// func AppconfigReconcileTimerStart() {
-// 	reconcileTimer = prometheus.NewTimer(appconfigReconcileDuration)
+func AppconfigReconcileTimerStart() {
+	reconcileTimer = prometheus.NewTimer(appconfigReconcileDuration)
 
-// }
-// func AppconfigReconcileTimerEnd() {
-// 	reconcileTimer.ObserveDuration()
-//}
+}
+func AppconfigReconcileTimerEnd() {
+	reconcileTimer.ObserveDuration()
+}
