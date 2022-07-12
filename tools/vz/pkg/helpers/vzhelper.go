@@ -102,6 +102,7 @@ func NewScheme() *runtime.Scheme {
 	return scheme
 }
 
+// GetAllUniqueNameSpacesForFailedComponents gets the list of all namespaces for the failed components
 func GetAllUniqueNameSpacesForFailedComponents(client client.Client) ([]string, error) {
 	var nsList []string
 	var nsListMap map[string]bool
@@ -111,7 +112,7 @@ func GetAllUniqueNameSpacesForFailedComponents(client client.Client) ([]string, 
 	}
 
 	for _, eachComp := range allComponents {
-		for _, eachNameSpace := range getNameSpacesByComponent(eachComp) {
+		for _, eachNameSpace := range constants.ComponentNameToNamespacesMap[eachComp] {
 			// Insert into list only if not found (to avoid duplicates)
 			if !nsListMap[eachNameSpace] {
 				nsList = append(nsList, eachNameSpace)
@@ -122,7 +123,7 @@ func GetAllUniqueNameSpacesForFailedComponents(client client.Client) ([]string, 
 	return nsList, err
 }
 
-// Read the Verrazzano resource and return the list of components which did not reach Ready state
+// GetComponentsNotReady reads the Verrazzano resource and return the list of components which did not reach Ready state
 func GetComponentsNotReady(client client.Client) ([]string, error) {
 
 	var compsNotReady = make([]string, 0)
@@ -143,12 +144,4 @@ func GetComponentsNotReady(client client.Client) ([]string, error) {
 		}
 	}
 	return compsNotReady, nil
-}
-
-func getNameSpacesByComponent(componentName string) []string {
-	value, exists := constants.ComponentNameToNamespacesMap[componentName]
-	if !exists {
-		return nil
-	}
-	return value
 }

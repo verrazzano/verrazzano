@@ -4,7 +4,7 @@
 package constants
 
 import (
-	PlatformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
+	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"time"
 )
 
@@ -143,61 +143,66 @@ const SecretKind = "Secret"
 
 // Components Names
 const (
-	oam_kubernetes_runtime          = "oam-kubernetes-runtime"
-	kiali_server                    = "kiali-server"
-	weblogic_operator               = "weblogic-operator"
-	verrazzano_authproxy            = "verrazzano-authproxy"
-	istio                           = "istio"
-	external_dns                    = "external-dns"
-	verrazzano_application_operator = "verrazzano-application-operator"
-	coherence_operator              = "coherence-operator"
-	ingress_controller              = "ingress-controller"
-	mysql                           = "mysql"
-	cert_manager                    = "cert-manager"
-	rancher                         = "rancher"
-	prometheus_pushgateway          = "prometheus-pushgateway"
-	prometheus_adapter              = "prometheus-adapter"
-	kube_state_metrics              = "kube-state-metrics"
-	prometheus_node_exporter        = "prometheus-node-exporter"
-	prometheus_operator             = "prometheus-operator"
-	keycloak                        = "keycloak"
-	verrazzano_monitoring_operator  = "verrazzano-monitoring-operator"
-	grafana                         = "grafana"
-	jaeger_operator                 = "jaeger-operator"
-	opensearch_dashboards           = "opensearch-dashboards"
-	opensearch                      = "opensearch"
-	velero                          = "velero"
-	verrazzano_console              = "verrazzano-console"
-	verrazzano                      = "verrazzano"
-	fluentd                         = "fluentd"
+	OamKubernetesRuntime          = "oam-kubernetes-runtime"
+	KialiServer                   = "kiali-server"
+	WeblogicOperator              = "weblogic-operator"
+	VerrazzanoAuthproxy           = "verrazzano-authproxy"
+	Istio                         = "istio"
+	ExternalDns                   = "external-dns"
+	VerrazzanoApplicationOperator = "verrazzano-application-operator"
+	CoherenceOperator             = "coherence-operator"
+	IngressController             = "ingress-controller"
+	Mysql                         = "mysql"
+	CertManager                   = "cert-manager"
+	Rancher                       = "rancher"
+	PrometheusPushgateway         = "prometheus-pushgateway"
+	PrometheusAdapter             = "prometheus-adapter"
+	KubeStateMetrics              = "kube-state-metrics"
+	PrometheusNodeExporter        = "prometheus-node-exporter"
+	PrometheusOperator            = "prometheus-operator"
+	Keycloak                      = "keycloak"
+	VerrazzanoMonitoringOperator  = "verrazzano-monitoring-operator"
+	Grafana                       = "grafana"
+	JaegerOperator                = "jaeger-operator"
+	OpensearchDashboards          = "opensearch-dashboards"
+	Opensearch                    = "opensearch"
+	Velero                        = "velero"
+	VerrazzanoConsole             = "verrazzano-console"
+	Verrazzano                    = "verrazzano"
+	Fluentd                       = "fluentd"
+)
+
+const (
+	RancherFleetSystemNamespace      = "cattle-fleet-system"
+	RancherFleetLocalSystemNamespace = "cattle-fleet-local-system"
 )
 
 var ComponentNameToNamespacesMap = map[string][]string{
-	oam_kubernetes_runtime:          {VerrazzanoSystemNamespace},
-	kiali_server:                    {VerrazzanoSystemNamespace},
-	weblogic_operator:               {VerrazzanoSystemNamespace},
-	verrazzano_authproxy:            {VerrazzanoSystemNamespace},
-	istio:                           {IstioSystemNamespace},
-	external_dns:                    {CertManagerNamespace},
-	verrazzano_application_operator: {VerrazzanoSystemNamespace},
-	coherence_operator:              {VerrazzanoSystemNamespace},
-	ingress_controller:              {PlatformOperatorConstants.IngressNginxNamespace},
-	mysql:                           {KeycloakNamespace},
-	cert_manager:                    {CertManagerNamespace},
-	rancher:                         {RancherSystemNamespace}, // TODO vz-6833 add multiple namespaces
-	prometheus_pushgateway:          {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
-	prometheus_adapter:              {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
-	kube_state_metrics:              {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
-	prometheus_node_exporter:        {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
-	prometheus_operator:             {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
-	keycloak:                        {KeycloakNamespace},
-	verrazzano_monitoring_operator:  {VerrazzanoSystemNamespace},
-	grafana:                         {VerrazzanoSystemNamespace},
-	jaeger_operator:                 {PlatformOperatorConstants.VerrazzanoMonitoringNamespace},
-	opensearch_dashboards:           {VerrazzanoSystemNamespace},
-	opensearch:                      {VerrazzanoSystemNamespace},
-	velero:                          {PlatformOperatorConstants.VeleroNameSpace},
-	verrazzano_console:              {VerrazzanoSystemNamespace},
-	verrazzano:                      {VerrazzanoSystemNamespace},
-	fluentd:                         {VerrazzanoSystemNamespace},
+	OamKubernetesRuntime:          {VerrazzanoSystemNamespace},
+	KialiServer:                   {VerrazzanoSystemNamespace},
+	WeblogicOperator:              {VerrazzanoSystemNamespace},
+	VerrazzanoAuthproxy:           {VerrazzanoSystemNamespace},
+	Istio:                         {IstioSystemNamespace},
+	ExternalDns:                   {CertManagerNamespace},
+	VerrazzanoApplicationOperator: {VerrazzanoSystemNamespace},
+	CoherenceOperator:             {VerrazzanoSystemNamespace},
+	IngressController:             {platformOperatorConstants.IngressNginxNamespace},
+	Mysql:                         {KeycloakNamespace},
+	CertManager:                   {CertManagerNamespace},
+	Rancher:                       {RancherSystemNamespace, RancherFleetSystemNamespace, RancherFleetLocalSystemNamespace}, // TODO VZ-6388 add multiple namespaces
+	PrometheusPushgateway:         {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	PrometheusAdapter:             {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	KubeStateMetrics:              {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	PrometheusNodeExporter:        {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	PrometheusOperator:            {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	Keycloak:                      {KeycloakNamespace},
+	VerrazzanoMonitoringOperator:  {VerrazzanoSystemNamespace},
+	Grafana:                       {VerrazzanoSystemNamespace},
+	JaegerOperator:                {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	OpensearchDashboards:          {VerrazzanoSystemNamespace},
+	Opensearch:                    {VerrazzanoSystemNamespace},
+	Velero:                        {platformOperatorConstants.VeleroNameSpace},
+	VerrazzanoConsole:             {VerrazzanoSystemNamespace},
+	Verrazzano:                    {VerrazzanoSystemNamespace},
+	Fluentd:                       {VerrazzanoSystemNamespace},
 }

@@ -77,7 +77,6 @@ func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Inte
 		return err
 	}
 
-	//TODO vz-6338 1. GetProblemPods 2. GetNamespacesListFromProblemPods //Note to remove dup
 	nameSpaces, err := pkghelpers.GetAllUniqueNameSpacesForFailedComponents(client)
 	if err != nil {
 		return err
