@@ -6,6 +6,9 @@ package verrazzano
 import (
 	"context"
 
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -36,6 +39,9 @@ const (
 
 	// vzStateUninstallComponents is the state where the components are being uninstalled
 	vzStateUninstallComponents uninstallState = "vzStateUninstallComponents"
+
+	// vzStateUninstallCleanup is the state where the final cleanup is performed for a full uninstall
+	vzStateUninstallCleanup uninstallState = "vzStateUninstallCleanup"
 
 	// vzStateUninstallDone is the state when uninstall is done
 	vzStateUninstallDone uninstallState = "vzStateUninstallDone"
@@ -107,8 +113,14 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			if err != nil || res.Requeue {
 				return res, err
 			}
-			tracker.vzState = vzStateUninstallDone
+			tracker.vzState = vzStateUninstallCleanup
 
+		case vzStateUninstallCleanup:
+			err := r.uninstallCleanup(log)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			tracker.vzState = vzStateUninstallDone
 		case vzStateUninstallDone:
 			log.Once("Successfully uninstalled all Verrazzano components")
 			tracker.vzState = vzStateUninstallEnd
@@ -208,6 +220,11 @@ func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
 	return true, nil
 }
 
+//uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individal component uninstalls
+func (r *Reconciler) uninstallCleanup(log vzlog.VerrazzanoLogger) error {
+	return r.deleteNamespaces(log)
+}
+
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
@@ -220,4 +237,9 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 		return log.ErrorfNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
 	}
 	return nil
+}
+
+//deleteNamespaces Cleans up any namespaces shared by multiple components
+func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
+	return namespace.DeleteNamespace(log, r.Client, promoperator.ComponentNamespace)
 }
