@@ -307,8 +307,8 @@ pipeline {
 
                 stage('Setup backup prerequisites') {
                     steps {
-                        BACKUP_STORAGE_LOCATION_CREATE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_prerequisites.sh").trim()
                         script {
+                           BACKUP_STORAGE_LOCATION_CREATE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_prerequisites.sh").trim()
                            println("Backup prerequisites done! ${OKE_CLUSTER_PREFIX}")
                         }
                     }
@@ -318,8 +318,8 @@ pipeline {
 
                 stage('Start Opensearch Backup') {
                     steps {
-                        BACKUP_ID = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_start.sh").trim()
                         script {
+                          BACKUP_ID = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_start.sh").trim()
                           println("Opensearch backup done ${BACKUP_ID}")
                         }
                     }
