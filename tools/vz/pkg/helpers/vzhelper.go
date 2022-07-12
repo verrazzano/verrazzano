@@ -102,8 +102,8 @@ func NewScheme() *runtime.Scheme {
 	return scheme
 }
 
-// GetAllUniqueNameSpacesForFailedComponents gets the list of all namespaces for the failed components
-func GetAllUniqueNameSpacesForFailedComponents(client client.Client) ([]string, error) {
+// GetAllUniqueNameSpacesForComponentsNotReady gets the list of all namespaces for the failed components
+func GetAllUniqueNameSpacesForComponentsNotReady(client client.Client) ([]string, error) {
 	var nsList []string
 	var nsListMap map[string]bool
 	allComponents, err := GetComponentsNotReady(client)
