@@ -185,7 +185,6 @@ func getNamespaces(kubeClient kubernetes.Interface, includes string, vzHelper pk
 				includedNS = append(includedNS, ns)
 			}
 		}
-		includedNS = pkghelpers.RemoveDuplicate(includedNS)
 	}
 	return includedNS
 }

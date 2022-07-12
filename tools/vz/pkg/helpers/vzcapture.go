@@ -354,7 +354,11 @@ func CaptureOAMResources(dynamicClient dynamic.Interface, nsList []string, captu
 // CaptureMultiClusterResources captures resources useful to debug issues in multi-cluster environment
 func CaptureMultiClusterResources(dynamicClient dynamic.Interface, nsList []string, captureDir string, vzHelper VZHelper) error {
 	for _, ns := range nsList {
-		// capture MultiClusterApplicationConfiguration
+		// Capture multi-cluster components and application configurations
+		if err := captureMCComponents(dynamicClient, ns, captureDir, vzHelper); err != nil {
+			return err
+		}
+
 		if err := captureMCAppConfigurations(dynamicClient, ns, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -480,7 +484,26 @@ func captureMetricsTraits(dynamicClient dynamic.Interface, namespace, captureDir
 	return nil
 }
 
-// captureAppConfigurations captures the OAM application configurations in the given namespace, as a JSON file
+// captureMCComponents captures the MulticlusterComponent in the given namespace, as a JSON file
+func captureMCComponents(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	mcComps, err := dynamicClient.Resource(getMCComponentScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the MulticlusterComponent in namespace %s: %s\n", namespace, err.Error())
+		return nil
+	}
+	if len(mcComps.Items) > 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing MulticlusterComponent in namespace: %s ...\n", namespace)
+		if err = createFile(mcComps, namespace, constants.McComponentJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureMCComponents captures the MultiClusterApplicationConfiguration in the given namespace, as a JSON file
 func captureMCAppConfigurations(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	mcAppConfigs, err := dynamicClient.Resource(getMCAppConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
@@ -570,6 +593,15 @@ func getIngressTraitConfigScheme() schema.GroupVersionResource {
 		Group:    vzoamapi.SchemeGroupVersion.Group,
 		Version:  vzoamapi.SchemeGroupVersion.Version,
 		Resource: constants.OAMIngressTraits,
+	}
+}
+
+// getMCComponentScheme returns GroupVersionResource for MulticlusterComponent
+func getMCComponentScheme() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
+		Resource: constants.OAMMCCompConfigurations,
 	}
 }
 

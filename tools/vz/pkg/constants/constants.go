@@ -67,7 +67,9 @@ const VerrazzanoPlatformOperatorWait = 1
 
 const OAMAppConfigurations = "applicationconfigurations"
 
-const OAMMCAppConfigurations = "multiclusterapplicationConfigurations"
+const OAMMCAppConfigurations = "multiclusterapplicationconfigurations"
+
+const OAMMCCompConfigurations = "multiclustercomponents"
 
 const OAMComponents = "components"
 
@@ -121,13 +123,14 @@ const (
 	DaemonSetsJSON   = "daemonsets.json"
 	IngressJSON      = "ingress.json"
 	StatefulSetsJSON = "statefulsets.json"
-	AppConfigJSON    = "appconfig.json"
-	ComponentJSON    = "component.json"
-	IngressTraitJSON = "ingresstrait.json"
-	MetricsTraitJSON = "metricstrait.json"
-	McAppConfigJSON  = "mcappconfig.json"
-	VzProjectsJSON   = "projects.json"
-	VmcJSON          = "managedcluster.json"
+	AppConfigJSON    = "application-configurations.json"
+	ComponentJSON    = "components.json"
+	IngressTraitJSON = "ingress-traits.json"
+	MetricsTraitJSON = "metrics-traits.json"
+	McAppConfigJSON  = "multicluster-application-configurations.json"
+	McComponentJSON  = "multicluster-components.json"
+	VzProjectsJSON   = "verrazzano-projects.json"
+	VmcJSON          = "verrazzano-managed-clusters.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "
