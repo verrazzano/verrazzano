@@ -121,7 +121,9 @@ pipeline {
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
 
-        JOB_SCENARIO_TAG = "${env.JOB_NAME}-${params.SCENARIO_TAG}"
+        // Used for tagging
+        TRIMMED_JOB = """${sh(returnStdout: true, script: "echo ${env.JOB_NAME} | cut -d / -f 1")}"""
+        JOB_SCENARIO_TAG = "${TRIMMED_JOB}-${params.SCENARIO_TAG}"
     }
 
     stages {

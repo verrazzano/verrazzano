@@ -114,7 +114,7 @@ pipeline {
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
 
         PIPELINE_TAG = "main"
-        JOB_SCENARIO_TAG = "${env.JOB_NAME}"
+        JOB_SCENARIO_TAG = """${sh(returnStdout: true, script: "echo ${env.JOB_NAME} | cut -d / -f 1")}"""
     }
 
     stages {

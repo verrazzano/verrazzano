@@ -72,7 +72,7 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
         PIPELINE_TAG = "main"
-        JOB_SCENARIO_TAG = "${env.JOB_NAME}"
+        JOB_SCENARIO_TAG = """${sh(returnStdout: true, script: "echo ${env.JOB_NAME} | cut -d / -f 1")}"""
     }
 
     stages {

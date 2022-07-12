@@ -175,7 +175,8 @@ pipeline {
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
 
         // Used for tagging
-        JOB_SCENARIO_TAG = "${env.JOB_NAME}-${params.SCENARIO_TAG}"
+        TRIMMED_JOB = """${sh(returnStdout: true, script: "echo ${env.JOB_NAME} | cut -d / -f 1")}"""
+        JOB_SCENARIO_TAG = "${TRIMMED_JOB}-${params.SCENARIO_TAG}"
     }
 
     stages {
@@ -259,9 +260,9 @@ pipeline {
                             export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
                             export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
                             if [[ $env.BRANCH_NAME =~ '/^release-.*/' ]] || [[ $env.BRANCH_NAME == 'master' ]]; then
-                              export TF_VAR_pipeline_tag=${env.BRANCH_NAME}
+                              export TF_VAR_branch_tag=${env.BRANCH_NAME}
                             else
-                              export TF_VAR_pipeline_tag="feature-branch"
+                              export TF_VAR_branch_tag="feature-branch"
                             fi
                             export TF_VAR_pipeline_tag=${params.PIPELINE_TAG}
                             export TF_VAR_job_scenario_tag=${JOB_SCENARIO_TAG}

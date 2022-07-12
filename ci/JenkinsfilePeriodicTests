@@ -78,7 +78,8 @@ pipeline {
         CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
 
         PIPELINE_TAG = "periodic"
-        JOB_SCENARIO_TAG = "${env.JOB_NAME}"
+        JOB_SCENARIO_TAG = """${sh(returnStdout: true, script: "echo ${env.JOB_NAME} | cut -d / -f 1")}"""
+
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
