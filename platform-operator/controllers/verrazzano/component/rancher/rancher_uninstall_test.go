@@ -233,11 +233,15 @@ func TestPostUninstall(t *testing.T) {
 			err := postUninstall(ctx)
 			assert.NoError(err)
 
-			// MutatingWebhookConfiguration should not exist
+			// MutatingWebhookConfigurations should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.MutatingWebhookConfiguration{})
 			assert.True(apierrors.IsNotFound(err))
-			// ValidatingWebhookConfiguration should not exist
+			err = c.Get(context.TODO(), types.NamespacedName{Name: mwcName}, &admv1.MutatingWebhookConfiguration{})
+			assert.True(apierrors.IsNotFound(err))
+			// ValidatingWebhookConfigurations should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.ValidatingWebhookConfiguration{})
+			assert.True(apierrors.IsNotFound(err))
+			err = c.Get(context.TODO(), types.NamespacedName{Name: vwcName}, &admv1.ValidatingWebhookConfiguration{})
 			assert.True(apierrors.IsNotFound(err))
 			// ClusterRole should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: rancherCrName}, &rbacv1.ClusterRole{})
@@ -251,13 +255,17 @@ func TestPostUninstall(t *testing.T) {
 				assert.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: randCRB}, &rbacv1.ClusterRoleBinding{})
 				assert.Nil(err)
+				err = c.Get(context.TODO(), types.NamespacedName{Name: randPV}, &v1.PersistentVolume{})
+				assert.Nil(err)
 			}
 			// ConfigMaps should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerCMName}, &v1.ConfigMap{})
 			assert.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: lockCMName}, &v1.ConfigMap{})
 			assert.True(apierrors.IsNotFound(err))
-			//
+			// Persistent volume should not exist
+			err = c.Get(context.TODO(), types.NamespacedName{Name: pvName}, &v1.PersistentVolume{})
+			assert.True(apierrors.IsNotFound(err))
 		})
 	}
 }
