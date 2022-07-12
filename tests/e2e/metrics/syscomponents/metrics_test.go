@@ -5,7 +5,6 @@ package syscomponents
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"os"
 	"strings"
 	"time"
@@ -267,15 +266,15 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
 	for _, metric := range metrics {
 		if pkg.Jq(metric, "metric", namespace) == ns && pkg.Jq(metric, "metric", podName) == pod {
-			zap.S().Infof("NS and Pod match")
 			if isManagedClusterProfile {
 				// when the admin cluster scrapes the metrics from a managed cluster, as label verrazzano_cluster with value
 				// name of the managed cluster is added to the metrics
 				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == clusterName {
 					return true
 				}
-				zap.S().Infof("%s %s", pkg.Jq(metric, "metric", getClusterNameMetricLabel()), clusterName)
+				GinkgoWriter.Write([]byte(fmt.Sprintf("lol %s, %s, %s, %s", ns, pod, clusterName, pkg.Jq(metric, "metric", getClusterNameMetricLabel()))))
 			} else {
+
 				// the metrics for the admin cluster or in the single cluster installation should contain the label
 				// verrazzano_cluster with the value "local" when version 1.1 or higher.
 				if isMinVersion110 {
@@ -288,6 +287,9 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 					}
 				}
 			}
+		}
+		if isManagedClusterProfile {
+			GinkgoWriter.Write([]byte(fmt.Sprintf("lol %s, %s", ns, pod)))
 		}
 	}
 	return false
