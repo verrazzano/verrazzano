@@ -56,6 +56,9 @@ func postUninstall(ctx spi.ComponentContext) error {
 
 	// Remove the Rancher webhooks
 	err = deleteWebhooks(ctx)
+	if err != nil {
+		return err
+	}
 
 	// Delete the Rancher resources that need to be matched by a string
 	err = deleteMatchingResources(ctx)
