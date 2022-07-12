@@ -455,7 +455,7 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log vzlog.Ver
 	log.Debugf("Checking if install cluster role binding %s exist", binding.Name)
 	err := r.Get(ctx, types.NamespacedName{Name: binding.Name, Namespace: binding.Namespace}, bindingFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating install cluster role binding %s", binding.Name)
+		log.Debugf("Creating install cluster role binding %s", binding.Name)
 		err = r.Create(ctx, binding)
 		if err != nil {
 			log.Errorf("Failed to create install cluster role binding %s: %v", binding.Name, err)
@@ -476,7 +476,6 @@ func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log vzlog.Ver
 			Name: buildClusterRoleBindingName(vz.Namespace, vz.Name),
 		},
 	}
-	log.Infof("Deleting install cluster role binding %s", binding.Name)
 	err := r.Delete(ctx, binding, &client.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		log.Errorf("Failed deleting ClusterRoleBinding %s: %v", binding.Name, err)
