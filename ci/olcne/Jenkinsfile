@@ -149,7 +149,6 @@ pipeline {
         // Verrazzano variables
         TEST_ENV="${params.TEST_ENV}"
         VZ_ENVIRONMENT_NAME="${params.TEST_ENV.toLowerCase()}"
-        KEEP_RESOURCES_AFTER_RUN="${params.KEEP_RESOURCES_AFTER_RUN}"
         BRANCH_NAME_PREFIX="${env.BRANCH_NAME.equals('master') ? 'vz' : env.BRANCH_NAME.substring(0, 2)}"
         CLUSTER_NAME="$BRANCH_NAME_PREFIX" + "$uniquePrefix"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
@@ -508,7 +507,7 @@ pipeline {
             }
             
             script {
-                if (env.KEEP_RESOURCES_AFTER_RUN == false) {
+                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
                     if (env.createdOCIDNSZone && env.createdOCIDNSZone == "true") {
                         echo "[INFO] Deleting OCI DNS Zone"
                         deleteOCIDNSZone()
