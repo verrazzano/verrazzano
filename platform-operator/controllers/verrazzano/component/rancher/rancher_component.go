@@ -5,10 +5,11 @@ package rancher
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -265,6 +266,12 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
+	}
+	if err := rest.ActivateOCIDriver(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed activating OCI Driver: %s", err.Error())
+	}
+	if err := rest.ActivateOKEDriver(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed activating OKE Driver: %s", err.Error())
 	}
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
