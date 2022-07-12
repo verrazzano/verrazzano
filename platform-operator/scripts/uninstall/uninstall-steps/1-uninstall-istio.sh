@@ -18,65 +18,6 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 CONFIG_DIR=$INSTALL_DIR/config
 
-function uninstall_istio() {
-
-  # Make attempt at calling helm to cleanup.  Do you fail on error, we cleanup manually below
-  helm uninstall -n istio-system istiod || true
-  helm uninstall -n istio-system istio-egress || true
-  helm uninstall -n istio-system istio-ingress || true
-  helm uninstall -n istio-system istiod || true
-
-  # Make attempt to delete using istioctl
-  istioctl x uninstall --purge -y || true
-
-  # delete webhook configurations
-  log "Removing Istio Webhook Configurations"
-  kubectl delete MutatingWebhookConfiguration istio-sidecar-injector --ignore-not-found=true || err_return $? "Could not delete MutatingWebhookConfiguration from Istio" || return $?
-  kubectl delete ValidatingWebhookConfiguration istiod-istio-system  --ignore-not-found=true || err_return $? "Could not delete ValidatingWebhookConfiguration from Istio" || return $?
-
-  # delete istio api services
-  log "Deleting Istio API Services"
-  delete_k8s_resources apiservice ":metadata.name" "Could not delete APIServices from Istio" '/istio.io/ {print $1}' \
-    || return $? # return on pipefail
-
-  # delete istio cluster role bindings
-  log "Deleting Istio Cluster Role Bindings"
-  delete_k8s_resources clusterrolebinding ":metadata.name" "Could not delete ClusterRoleBindings from Istio" '/istio-system|istio-multi/ {print $1}' \
-    || return $? # return on pipefail
-
-  # delete istio cluster roles
-  log "Deleting Istio Cluster Roles"
-  delete_k8s_resources clusterrole ":metadata.name" "Could not delete ClusterRoles from Istio" '/istio-system|istio-reader|istiocoredns/ {print $1}' \
-    || return $? # return on pipefail
-
-      # delete istio crds
-  log "Deleting Istio Custom Resource Definitions"
-  delete_k8s_resources crd ":metadata.name" "Could not delete CustomResourceDefinition from Istio" '/istio.io/ {print $1}' \
-    || return $? # return on pipefail
-
-}
-
-function delete_secrets() {
-  # Delete istio.default in all namespaces
-  log "Retrieving istio secrets for deletion"
-  kubectl delete secret istio.default --ignore-not-found=true || err_return $? "Could not delete secret from Istio in namespace default" || return $?
-  kubectl delete secret istio.default -n kube-public --ignore-not-found=true || err_return $? "Could not delete secret from Istio in namespace kube-public" || return $?
-  kubectl delete secret istio.default -n kube-node-lease --ignore-not-found=true || err_return $? "Could not delete secret from Istio in namespace kube-node-lease" || return $?
-
-  # delete secrets left over in kube-system
-  delete_k8s_resources secrets ":metadata.name,:metadata.annotations" "Could not delete secrets from Istio in namespace kube-system" '/istio./ {print $1}' "kube-system" \
-    || return $? # return on pipefail
-}
-
-function delete_istio_namepsace() {
-  log "Deleting istio-system finalizers"
-  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespace istio-system" '/istio-system/ {print $1}' '{"metadata":{"finalizers":null}}' \
-    || return $? # return on pipefail
-
-  log "Deleting istio-system namespace"
-  kubectl delete namespace istio-system --ignore-not-found=true || err_return $? "Could not delete namespace istio-system" || return $?
-}
-
 function delete_external_dns() {
   log "Deleting external-dns"
 
@@ -124,8 +65,5 @@ function finalize() {
 
 }
 
-action "Deleting Istio Components" uninstall_istio || exit 1
-action "Deleting Istio Secrets" delete_secrets || exit 1
-action "Deleting Istio Namespace" delete_istio_namepsace || exit 1
 action "Deleting External DNS Components" delete_external_dns || exit 1
 action "Finalizing Uninstall" finalize || exit 1
