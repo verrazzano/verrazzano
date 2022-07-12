@@ -7,15 +7,15 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // ComponentName is the name of the component
@@ -42,19 +42,20 @@ var _ spi.Component = nginxComponent{}
 func NewComponent() spi.Component {
 	return nginxComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), ValuesFileOverride),
-			PreInstallFunc:          PreInstall,
-			AppendOverridesFunc:     AppendOverrides,
-			PostInstallFunc:         PostInstall,
-			Dependencies:            []string{istio.ComponentName},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), ValuesFileOverride),
+			PreInstallFunc:            PreInstall,
+			AppendOverridesFunc:       AppendOverrides,
+			PostInstallFunc:           PostInstall,
+			Dependencies:              []string{istio.ComponentName},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
@@ -124,4 +125,22 @@ func (c nginxComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return false
+}
+
+// PostUninstall processing for NGINX
+func (v nginxComponent) PostUninstall(context spi.ComponentContext) error {
+	res := resource.Resource{
+		Name:   ComponentNamespace,
+		Client: context.Client(),
+		Object: &corev1.Namespace{},
+		Log:    context.Log(),
+	}
+	// Remove finalizers from the ingress-nginx namespace to avoid hanging namespace deletion
+	err := res.RemoveFinalizers()
+	if err != nil {
+		return err
+	}
+
+	// Delete the ingress-nginx namespace now that the finalizers have been removed
+	return res.Delete()
 }
