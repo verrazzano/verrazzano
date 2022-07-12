@@ -136,11 +136,6 @@ func (v nginxComponent) PostUninstall(context spi.ComponentContext) error {
 		Log:    context.Log(),
 	}
 	// Remove finalizers from the ingress-nginx namespace to avoid hanging namespace deletion
-	err := res.RemoveFinalizers()
-	if err != nil {
-		return err
-	}
-
-	// Delete the ingress-nginx namespace now that the finalizers have been removed
-	return res.Delete()
+	// and delete the namespace
+	return res.RemoveFinalizersAndDelete()
 }
