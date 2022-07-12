@@ -88,15 +88,15 @@ pipeline {
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         // Backup parameters
-        VELERO_NAMESPACE=velero
-        VELERO_SECRET_NAME=velero-backup-creds
+        VELERO_NAMESPACE = "velero"
+        VELERO_SECRET_NAME = "velero-backup-creds"
         OCI_OS_ACCESS_KEY = credentials('velero-key')
         OCI_OS_ACCESS_SECRET_KEY = credentials('velero-key-id')
-        BACKUP_NAME=backup-${VELERO_BUCKET_NAME}
-        BACKUP_RESOURCE=opensearch-resource-${VELERO_BUCKET_NAME}
-        BACKUP_OPENSEARCH=opensearch-${VELERO_BUCKET_NAME}
-        BACKUP_STORAGE=storage-${VELERO_BUCKET_NAME}
-        BACKUP_ID="dummy"
+        BACKUP_NAME = "backup-${VELERO_BUCKET_NAME}"
+        BACKUP_RESOURCE = "opensearch-resource-${VELERO_BUCKET_NAME}"
+        BACKUP_OPENSEARCH = "opensearch-${VELERO_BUCKET_NAME}"
+        BACKUP_STORAGE = "storage-${VELERO_BUCKET_NAME}"
+        BACKUP_ID = "dummy"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
@@ -309,7 +309,7 @@ pipeline {
                     BACKUP_ID = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_start.sh").trim()
                     println("Opensearch backup done ${BACKUP_ID}")
                 }
-                
+
 
                 stage('Delete bucket') {
                     deleteBucket(${VELERO_BUCKET_NAME})
