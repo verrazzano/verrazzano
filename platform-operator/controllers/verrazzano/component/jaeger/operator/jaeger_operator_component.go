@@ -98,6 +98,7 @@ func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }
 
+// PostInstall creates the ingress resource for exposing Jaeger UI service.
 func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := c.createOrUpdateJaegerResources(ctx); err != nil {
 		return err
@@ -105,6 +106,7 @@ func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PostInstall(ctx)
 }
 
+// PostUpgrade creates or updates the ingress of Jaeger UI service after a Verrazzano upgrade
 func (c jaegerOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
@@ -112,12 +114,12 @@ func (c jaegerOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return c.createOrUpdateJaegerResources(ctx)
 }
 
-// ValidateInstall verifies the installation of the Verrazzano object
+// ValidateInstall validates the installation of the Verrazzano CR
 func (c jaegerOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return c.validateJaegerOperator(vz)
 }
 
-// ValidateUpgrade verifies the upgrade of the Verrazzano object
+// ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
 func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)

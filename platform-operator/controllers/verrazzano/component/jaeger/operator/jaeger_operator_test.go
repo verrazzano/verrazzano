@@ -263,6 +263,9 @@ func cleanTempFiles(ctx spi.ComponentContext) {
 
 // TestEnsureMonitoringOperatorNamespace asserts the verrazzano-monitoring namespaces can be created
 func TestEnsureMonitoringOperatorNamespace(t *testing.T) {
+	// GIVEN a Verrazzano CR with Jaeger Component enabled,
+	// WHEN we call the ensureVerrazzanoMonitoringNamespace function,
+	// THEN no error is returned.
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
 	err := ensureVerrazzanoMonitoringNamespace(ctx)
 	assert.NoError(t, err)
@@ -270,6 +273,9 @@ func TestEnsureMonitoringOperatorNamespace(t *testing.T) {
 
 // TestBuildJaegerDNSNames asserts if the generated DNS name for Jaeger is correct.
 func TestBuildJaegerDNSNames(t *testing.T) {
+	// GIVEN a Verrazzano CR with Jaeger Component enabled,
+	// WHEN we call the buildJaegerHostnameForDomain function,
+	// THEN correct FQDN for Jaeger is returned.
 	jaegerDNSName := buildJaegerHostnameForDomain("default.nip.io")
 	assert.Equal(t, "jaeger.default.nip.io", jaegerDNSName)
 }
@@ -283,6 +289,9 @@ func createFakeClient(extraObjs ...client.Object) client.Client {
 
 func getPreInstallTests() []preInstallTestStruct {
 	return []preInstallTestStruct{
+		// GIVEN a Verrazzano CR with Keycloak Component enabled,
+		// WHEN we call the PreInstall function with no secret to access the storage,
+		// THEN an error is returned.
 		{
 			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
 			keycloakEnabledCR,
@@ -290,6 +299,9 @@ func getPreInstallTests() []preInstallTestStruct {
 			ctrlerrors.RetryableError{Source: ComponentName},
 			false,
 		},
+		// GIVEN a Verrazzano CR with Keycloak Component enabled,
+		// WHEN we call the PreInstall function with a valid secret to access the storage,
+		// THEN no error is returned.
 		{
 			"should pass when verrazzano-es-internal secret does exist without data and keycloak is enabled",
 			keycloakEnabledCR,
@@ -297,6 +309,9 @@ func getPreInstallTests() []preInstallTestStruct {
 			nil,
 			false,
 		},
+		// GIVEN a Verrazzano CR with Keycloak Component enabled,
+		// WHEN we call the PreInstall function with a valid secret to access the storage,
+		// THEN no error is returned.
 		{
 			"should pass when verrazzano-es-internal secret does exist with valid data and keycloak is enabled",
 			keycloakEnabledCR,
@@ -304,6 +319,9 @@ func getPreInstallTests() []preInstallTestStruct {
 			nil,
 			false,
 		},
+		// GIVEN a Verrazzano CR with Keycloak Component enabled,
+		// WHEN we call the PreInstall function with/without a valid secret to access the storage,
+		// THEN no error is returned.
 		{
 			"always nil error when keycloak is disabled",
 			keycloakDisabledCR,
@@ -311,6 +329,9 @@ func getPreInstallTests() []preInstallTestStruct {
 			nil,
 			false,
 		},
+		// GIVEN a Verrazzano CR with Jaeger Component disabled and dry run is false,
+		// WHEN we call the PreInstall function with a valid secret to access the storage,
+		// THEN no error is returned.
 		{
 			"always nil error when jaeger instance creation is disabled",
 			jaegerDisabledCR,
@@ -318,6 +339,9 @@ func getPreInstallTests() []preInstallTestStruct {
 			nil,
 			false,
 		},
+		// GIVEN a Verrazzano CR with Jaeger Component disabled and dry run is true,
+		// WHEN we call the PreInstall function with a valid secret to access the storage,
+		// THEN no error is returned.
 		{
 			"always nil error when it is a dry run",
 			jaegerDisabledCR,

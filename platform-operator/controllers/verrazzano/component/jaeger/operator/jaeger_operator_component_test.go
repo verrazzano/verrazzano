@@ -123,11 +123,11 @@ func TestIsReady(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      deploymentName,
-						Labels:    map[string]string{"name": "jaeger-operator"},
+						Labels:    map[string]string{"name": ComponentName},
 					},
 					Spec: appsv1.DeploymentSpec{
 						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": "jaeger-operator"},
+							MatchLabels: map[string]string{"name": ComponentName},
 						},
 					},
 					Status: appsv1.DeploymentStatus{
@@ -142,7 +142,7 @@ func TestIsReady(t *testing.T) {
 						Name:      deploymentName + "-95d8c5d96-m6mbr",
 						Labels: map[string]string{
 							"pod-template-hash": "95d8c5d96",
-							"name":              "jaeger-operator",
+							"name":              ComponentName,
 						},
 					},
 				},
@@ -206,44 +206,6 @@ func TestIsReady(t *testing.T) {
 
 // TestPreInstall tests the PreInstall function for various scenarios.
 func TestPreInstall(t *testing.T) {
-	//var tests = []struct {
-	//	name   string
-	//	spec   *vzapi.Verrazzano
-	//	client client.Client
-	//	err    error
-	//}{
-	//	{
-	//		"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
-	//		keycloakEnabledCR,
-	//		createFakeClient(),
-	//		ctrlerrors.RetryableError{Source: ComponentName},
-	//	},
-	//	{
-	//		"should pass when verrazzano-es-internal secret does exist without data and keycloak is enabled",
-	//		keycloakEnabledCR,
-	//		createFakeClient(vzEsInternalSecret),
-	//		nil,
-	//	},
-	//	{
-	//		"should pass when verrazzano-es-internal secret does exist with valid data and keycloak is enabled",
-	//		keycloakEnabledCR,
-	//		createFakeClient(vzEsInternalSecretWithData),
-	//		nil,
-	//	},
-	//	{
-	//		"always nil error when keycloak is disabled",
-	//		keycloakDisabledCR,
-	//		createFakeClient(),
-	//		nil,
-	//	},
-	//	{
-	//		"always nil error when jaeger instance creation is disabled",
-	//		jaegerDisabledCR,
-	//		createFakeClient(),
-	//		nil,
-	//	},
-	//}
-
 	for _, tt := range getPreInstallTests() {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
@@ -263,9 +225,6 @@ func TestPreInstall(t *testing.T) {
 
 // TestPostInstall tests the component PostInstall function
 func TestPostInstall(t *testing.T) {
-	// GIVEN the Jaeger Operator is being installed
-	// WHEN we call the PostInstall function
-	// THEN no error is returned
 	oldConfig := config.Get()
 	defer config.Set(oldConfig)
 	config.Set(config.OperatorConfig{
@@ -292,11 +251,17 @@ func TestValidateInstall(t *testing.T) {
 		vz          vzapi.Verrazzano
 		expectError bool
 	}{
+		// GIVEN a default Verrazzano CR,
+		// WHEN we call the ValidateInstall function,
+		// THEN no error is returned.
 		{
 			name:        "test nothing enabled",
 			vz:          vzapi.Verrazzano{},
 			expectError: false,
 		},
+		// GIVEN a Verrazzano CR with Jaeger Component enabled,
+		// WHEN we call the ValidateInstall function
+		// THEN no error is returned.
 		{
 			name: "test jaeger operator enabled",
 			vz: vzapi.Verrazzano{
@@ -308,6 +273,9 @@ func TestValidateInstall(t *testing.T) {
 			},
 			expectError: false,
 		},
+		// GIVEN a Verrazzano CR with Jaeger Component disabled,
+		// WHEN we call the ValidateInstall function
+		// THEN no error is returned.
 		{
 			name: "test jaeger operator disabled",
 			vz: vzapi.Verrazzano{
@@ -353,16 +321,18 @@ func TestValidateUpdate(t *testing.T) {
 			},
 		},
 	}
+	// GIVEN a default Verrazzano custom resource with Jaeger Operator component enabled,
+	// WHEN we try to update Verrazzano CR to disable Jaeger Component,
+	// THEN an error is returned.
 	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
-	assert.NoError(t, NewComponent().ValidateUpdate(&newVZ, &newVZ))
+	// GIVEN a default Verrazzano custom resource with Jaeger Operator component enabled,
+	// WHEN we try to update Verrazzano CR with no changes,
+	// THEN no error is returned.
 	assert.NoError(t, NewComponent().ValidateUpdate(&oldVZ, &oldVZ))
 }
 
 // TestPostUpgrade tests the component PostUpgrade function
 func TestPostUpgrade(t *testing.T) {
-	// GIVEN the Jaeger Operator is being upgraded
-	// WHEN we call the PostUpgrade function
-	// THEN no error is returned
 	oldConfig := config.Get()
 	defer config.Set(oldConfig)
 	config.Set(config.OperatorConfig{
@@ -384,32 +354,83 @@ func TestPostUpgrade(t *testing.T) {
 
 // TestMonitorOverrides tests the monitor overrides function
 func TestMonitorOverrides(t *testing.T) {
-	client := createFakeClient()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profilesRelativePath)
-	monitorFlag := NewComponent().MonitorOverrides(ctx)
-	assert.False(t, monitorFlag, "Should be false by default")
-	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				JaegerOperator: &vzapi.JaegerOperatorComponent{
-					InstallOverrides: vzapi.InstallOverrides{
-						MonitorChanges: &trueValue,
+	tests := []struct {
+		name string
+		actualCR *vzapi.Verrazzano
+		expectTrue bool
+	} {
+		// GIVEN a default Verrazzano custom resource,
+		// WHEN we call MonitorOverrides on the Jaeger component,
+		// THEN it returns false
+		{
+			"Monitor changes should be false by default when VZ spec does not have a Jaeger Component section",
+			&vzapi.Verrazzano{},
+			false,
+		},
+		// GIVEN a Verrazzano custom resource with a Jaeger Component in the spec section,
+		// WHEN we call MonitorOverrides on the Jaeger component,
+		// THEN it returns true
+		{
+			"Monitor changes should be true by default when VZ spec has a Jaeger Component section",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{},
 					},
 				},
 			},
+			true,
 		},
-	}, false, profilesRelativePath)
-	monitorFlag = NewComponent().MonitorOverrides(ctx)
-	assert.True(t, monitorFlag, "Should be true when set explicitly")
-	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				JaegerOperator: &vzapi.JaegerOperatorComponent{},
+		// GIVEN a Verrazzano custom resource with a Jaeger Component in the spec section
+		//       with monitor changes flag explicitly set to true,
+		// WHEN we call MonitorOverrides on the Jaeger component,
+		// THEN it returns true
+		{
+			"Monitor changes should be true when set explicitly in the VZ CR",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+							},
+						},
+					},
+				},
 			},
+			true,
 		},
-	}, false, profilesRelativePath)
-	monitorFlag = NewComponent().MonitorOverrides(ctx)
-	assert.True(t, monitorFlag, "Should be true when Jaeger component is specified in CR")
+		// GIVEN a Verrazzano custom resource with a Jaeger Component in the spec section
+		//       with monitor changes flag explicitly set to false,
+		// WHEN we call MonitorOverrides on the Jaeger component,
+		// THEN it returns false
+		{
+			"Monitor changes should be false when set explicitly in the VZ CR",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &falseValue,
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+	client := createFakeClient()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(client, tt.actualCR, false, profilesRelativePath)
+			if tt.expectTrue {
+				assert.True(t, NewComponent().MonitorOverrides(ctx), tt.name)
+			} else {
+				assert.False(t, NewComponent().MonitorOverrides(ctx), tt.name)
+			}
+		})
+	}
 }
 
 func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
@@ -423,21 +444,29 @@ func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
 	if isUpgradeOperation {
 		certificateErr = nil
 	}
-
 	return []ingressTestStruct{
 		{
+			// GIVEN a default Verrazzano custom resource with ingress controller running,
+			// WHEN we call PostInstall/PostUpgrade on the Jaeger component,
+			// THEN an error is returned as the ingress resource cannot be created.
 			"should return error when ingress service is not up",
 			&vzapi.Verrazzano{},
 			createFakeClient(),
 			fmt.Errorf("Failed create/update Jaeger ingress: Failed building DNS domain name: services \"ingress-controller-ingress-nginx-controller\" not found"),
 		},
 		{
+			// GIVEN a default Verrazzano custom resource, with ingress controller running,
+			// WHEN we call PostInstall/PostUpgrade on the Jaeger component,
+			// THEN an error is returned as the certificates cannot be created.
 			"should return error when ingress service is up and cert manager is enabled",
 			&vzapi.Verrazzano{},
 			createFakeClient(vzIngressService),
 			certificateErr,
 		},
 		{
+			// GIVEN a default Verrazzano custom resource, with ingress controller running and cert manager disabled,
+			// WHEN we call PostInstall/PostUpgrade on the Jaeger component,
+			// THEN no error is returned.
 			"should not return error when ingress service is up and cert manager is disabled",
 			&vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
@@ -452,6 +481,10 @@ func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
 			nil,
 		},
 		{
+			// GIVEN a default Verrazzano custom resource using an external DNS configuration, with ingress controller
+			//       running and cert manager disabled,
+			// WHEN we call PostInstall/PostUpgrade on the Jaeger component,
+			// THEN no error is returned.
 			"should not return error when ingress service is up, cert manager is disabled and external OCI DNS is used",
 			&vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
