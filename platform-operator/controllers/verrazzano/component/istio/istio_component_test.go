@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"io/ioutil"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"os/exec"
 	"strings"
@@ -882,4 +884,84 @@ func TestValidateUpdate(t *testing.T) {
 		},
 	}
 	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
+}
+
+// TestPostUninstall tests the PostUninstall function
+// GIVEN a call to PostUninstall
+//  WHEN the istio-system namespace exists with a finalizer
+//  THEN true is returned and istio-system namespace is deleted
+func TestPostUninstall(t *testing.T) {
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       IstioNamespace,
+				Finalizers: []string{"fake-finalizer"},
+			},
+		},
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: istioReaderIstioSystem,
+			},
+		},
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: istiodIstioSystem,
+			},
+		},
+		&rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: istioReaderIstioSystem,
+			},
+		},
+		&rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: istiodIstioSystem,
+			},
+		},
+	).Build()
+
+	var iComp istioComponent
+	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
+	assert.NoError(t, iComp.PostUninstall(compContext))
+
+	// Validate that the namespace does not exist
+	ns := v1.Namespace{}
+	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: IstioNamespace}, &ns)
+	assert.True(t, errors.IsNotFound(err))
+
+	//Validate that clusterroles and clusterroles do not exist
+	cr := rbacv1.ClusterRole{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: istioReaderIstioSystem}, &cr)
+	assert.True(t, errors.IsNotFound(err))
+
+	cr = rbacv1.ClusterRole{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: istiodIstioSystem}, &cr)
+	assert.True(t, errors.IsNotFound(err))
+
+	crb := rbacv1.ClusterRoleBinding{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: istioReaderIstioSystem}, &crb)
+	assert.True(t, errors.IsNotFound(err))
+
+	crb = rbacv1.ClusterRoleBinding{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: istiodIstioSystem}, &crb)
+	assert.True(t, errors.IsNotFound(err))
+
+}
+
+// TestUninstall tests the Uninstall function is working
+// GIVEN a call to Uninstall
+//  WHEN the uninstall function is called
+//  THEN success is returned
+func TestUninstall(t *testing.T) {
+
+	fakeUnInstallFunc := func(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), nil
+	}
+	SetIstioUninstallFunction(fakeUnInstallFunc)
+	defer SetDefaultIstioUninstallFunction()
+
+	var iComp istioComponent
+	compContext := spi.NewFakeContext(nil, nil, false)
+	assert.NoError(t, iComp.Uninstall(compContext))
 }

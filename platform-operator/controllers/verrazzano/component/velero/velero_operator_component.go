@@ -6,12 +6,14 @@ package velero
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
@@ -54,18 +56,19 @@ type veleroHelmComponent struct {
 func NewComponent() spi.Component {
 	return veleroHelmComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ChartDir),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_4_0,
-			ImagePullSecretKeyname:  imagePullSecretHelmKey,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "velero-override-static-values.yaml"),
-			AppendOverridesFunc:     AppendOverrides,
-			GetInstallOverridesFunc: GetOverrides,
-			Dependencies:            []string{},
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ChartDir),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
+			ImagePullSecretKeyname:    imagePullSecretHelmKey,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "velero-override-static-values.yaml"),
+			AppendOverridesFunc:       AppendOverrides,
+			GetInstallOverridesFunc:   GetOverrides,
+			Dependencies:              []string{},
 		},
 	}
 }
@@ -135,4 +138,22 @@ func (v veleroHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
 	return v.validateVelero(new)
+}
+
+// PostUninstall processing for Velero
+func (v veleroHelmComponent) PostUninstall(context spi.ComponentContext) error {
+	res := resource.Resource{
+		Name:   ComponentNamespace,
+		Client: context.Client(),
+		Object: &corev1.Namespace{},
+		Log:    context.Log(),
+	}
+	// Remove finalizers from the velero namespace to avoid hanging namespace deletion
+	err := res.RemoveFinalizers()
+	if err != nil {
+		return err
+	}
+
+	// Delete the velero namespace now that the finalizers have been removed
+	return res.Delete()
 }
