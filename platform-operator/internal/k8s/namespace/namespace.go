@@ -4,10 +4,9 @@ package namespace
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -48,16 +47,16 @@ func CreateVerrazzanoMultiClusterNamespace(client client.Client) error {
 
 //DeleteNamespace Patch out any finalizers and delete the specified namespace
 func DeleteNamespace(log vzlog.VerrazzanoLogger, cli client.Client, nsName string) error {
-	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), cli, &ns, func() error {
-		ns.Finalizers = []string{}
-		return nil
-	})
-	if err != nil {
-		return log.ErrorfNewErr("Failed to remove the finalizer for the namespace %s: %v", nsName, err)
+	res := resource.Resource{
+		Name:   nsName,
+		Client: cli,
+		Object: &corev1.Namespace{},
+		Log:    log,
 	}
-	// Delete the namespace now that the finalizers have been removed
-	return cli.Delete(context.TODO(), &ns)
+	if err := res.RemoveFinalizers(); err != nil {
+		return err
+	}
+	return res.Delete()
 }
 
 // MergeMaps Merge one map into another, creating new one if necessary; returns the updated map and true if it was modified
