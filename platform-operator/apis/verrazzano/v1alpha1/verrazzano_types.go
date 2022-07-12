@@ -416,7 +416,8 @@ type OpenSearchNodeStorage struct {
 // KibanaComponent specifies the Kibana configuration.
 type KibanaComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled  *bool  `json:"enabled,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 }
 
 // KubeStateMetricsComponent specifies the kube-state-metrics configuration.

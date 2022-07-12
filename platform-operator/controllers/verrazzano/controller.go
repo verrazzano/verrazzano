@@ -122,17 +122,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 // doReconcile the Verrazzano CR
 func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-
-	// Ensure the required resources needed for both install and uninstall exist
-	// This needs to be done for every state since the initForVzResource might have deleted
-	// role binding during old resource cleanup.
-	if err := r.createServiceAccount(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	}
-	if err := r.createClusterRoleBinding(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	}
-
 	// Check if uninstalling
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.procDelete(ctx, log, vz)
@@ -564,6 +553,16 @@ func (r *Reconciler) createUninstallJob(log vzlog.VerrazzanoLogger, vz *installv
 	log.Debugf("Checking if uninstall job %s exist", buildUninstallJobName(vz.Name))
 	err := r.Get(context.TODO(), types.NamespacedName{Name: buildUninstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
+		// Ensure the required resources needed for both install and uninstall exist
+		// This needs to be done for every state since the initForVzResource might have deleted
+		// role binding during old resource cleanup.
+		if err := r.createServiceAccount(context.TODO(), log, vz); err != nil {
+			return err
+		}
+		if err := r.createClusterRoleBinding(context.TODO(), log, vz); err != nil {
+			return err
+		}
+
 		log.Infof("Creating uninstall job %s, dry-run=%v", buildUninstallJobName(vz.Name), r.DryRun)
 		err = r.Create(context.TODO(), job)
 		if err != nil {
@@ -709,8 +708,9 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 }
 
 func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
-	for _, existingCondition := range compStatus.Conditions {
+	for i, existingCondition := range compStatus.Conditions {
 		if existingCondition.Type == newCondition.Type {
+			compStatus.Conditions[i] = newCondition
 			return compStatus.Conditions
 		}
 	}
@@ -1077,7 +1077,7 @@ func (r *Reconciler) cleanup(ctx context.Context, log vzlog.VerrazzanoLogger, vz
 	return nil
 }
 
-// cleanupOld deltes the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
+// cleanupOld deletes the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
 // also includes the ClusterRoleBinding, which is outside the scope of namespace
 func (r *Reconciler) cleanupOld(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Delete ClusterRoleBinding
