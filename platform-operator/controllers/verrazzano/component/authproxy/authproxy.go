@@ -270,3 +270,20 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 	}
 	return []vzapi.Overrides{}
 }
+
+// getAuthproxyManagedResources returns a list of resource types and their namespaced names that are managed by the
+// Authproxy helm chart
+func getAuthproxyManagedResources() []common.HelmManagedResource {
+	return []common.HelmManagedResource{
+		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "impersonate-api-user"}},
+		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "impersonate-api-user"}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-config", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-es-config", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-init", Namespace: ComponentNamespace}},
+		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
+		{Obj: &corev1.Secret{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: "impersonate-api-user", Namespace: ComponentNamespace}},
+	}
+}

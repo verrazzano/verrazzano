@@ -125,6 +125,7 @@ func TestReconcileUninstalling(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 
 	reconciler := newVerrazzanoReconciler(c)
+	DeleteUninstallTracker(vzcr)
 	result, err := reconciler.reconcileUninstall(vzlog.DefaultLogger(), vzcr)
 
 	// Validate the results
@@ -236,6 +237,7 @@ func TestReconcileUninstall(t *testing.T) {
 
 	// call reconcile once with installed true, then again with installed false
 	reconciler := newVerrazzanoReconciler(c)
+	DeleteUninstallTracker(vzcr)
 	result, err := reconciler.reconcileUninstall(vzlog.DefaultLogger(), vzcr)
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
