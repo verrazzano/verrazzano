@@ -588,6 +588,9 @@ pipeline {
                 if [ "${TEST_ENV}" == "kind" ]; then
                   ${WORKSPACE}/tests/e2e/config/scripts/delete-kind-cluster.sh
                 elif [ "${keepOKEClusterOnFailure}" == "false" ]; then
+                  export TF_VAR_branch_tag=${BRANCH_TAG}
+                  export TF_VAR_pipeline_tag=${params.PIPELINE_TAG}
+                  export TF_VAR_job_scenario_tag=${JOB_SCENARIO_TAG}
                   TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
                 fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
