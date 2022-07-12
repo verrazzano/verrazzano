@@ -12,13 +12,15 @@ if [ -z "$OCI_OS_ACCESS_KEY" ] || [ -z "$OCI_OS_ACCESS_SECRET_KEY" ] || [ -z "$V
   exit 1
 fi
 
-cat <<EOF >> velero-creds.ini
+SECRETS_FILE=/tmp/os-creds.ini
+
+cat <<EOF >> ${SECRETS_FILE}
    [default]
    aws_access_key_id=${OCI_OS_ACCESS_KEY}
    aws_secret_access_key=${OCI_OS_ACCESS_SECRET_KEY}
 EOF
 
-kubectl create secret generic -n ${VELERO_NAMESPACE} ${VELERO_SECRET_NAME} --from-file=cloud=velero-creds.ini
+kubectl create secret generic -n ${VELERO_NAMESPACE} ${VELERO_SECRET_NAME} --from-file=${SECRETS_FILE}
 
 kubectl apply -f - <<EOF
     apiVersion: velero.io/v1
@@ -41,8 +43,8 @@ kubectl apply -f - <<EOF
 EOF
 
 RESULT=Failed
-BSL=$(kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE})
-if [ $BSL != "" ]; then
+BSL=$(kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE} --no-headers -o custom-columns=":metadata.name")
+if [ $BSL == ${BACKUP_STORAGE} ]; then
   RESULT=Sucess
 fi
 echo "$RESULT"
