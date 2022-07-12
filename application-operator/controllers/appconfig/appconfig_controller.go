@@ -59,11 +59,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
 
+	// Metric to tracj successful/failed Reconcile Process
 	reconcileMetrics := metricsexporter.GetReconcileMetricsObject(controllerName)
 	var err error
 	defer reconcileMetrics.VerifyReconcileResult(err)
-	reconcileMetrics.GetDurationMetrics().DurationTimerStart()
-	defer reconcileMetrics.GetDurationMetrics().DurationTimerStop()
+	//reconcileMetrics.GetDurationMetrics().DurationTimerStart()
+	//defer reconcileMetrics.GetDurationMetrics().DurationTimerStop()
 
 	if req.Namespace == constants.KubeSystem {
 		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)

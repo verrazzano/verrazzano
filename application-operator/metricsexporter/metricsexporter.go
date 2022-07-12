@@ -58,13 +58,13 @@ type ReconcileMetrics struct {
 	reconcileSuccessful prometheus.Counter
 	reconcileFailed     prometheus.Counter
 	//reconcileRequeue    prometheus.Counter
-	reconcileDuration DurationMetrics
+	//reconcileDuration DurationMetrics
 }
 
-type DurationMetrics struct {
-	durationStartTime *prometheus.Timer
-	//	processDuration   prometheus.Summary
-}
+// type DurationMetrics struct {
+// 	durationStartTime *prometheus.Timer
+// 	processDuration   prometheus.Summary
+// }
 
 // type WebhookMetrics struct {
 // 	webhookSuccessful prometheus.Counter
@@ -73,6 +73,7 @@ type DurationMetrics struct {
 // }
 
 var (
+	// Reconcile Metrics
 	reconcileMap = map[string]ReconcileMetrics{
 		"appconfig": {
 			reconcileSuccessful: prometheus.NewCounter(prometheus.CounterOpts{
@@ -212,16 +213,16 @@ func (r ReconcileMetrics) VerifyReconcileResult(err error) {
 
 // Duration metrics function
 
-func (r ReconcileMetrics) GetDurationMetrics() DurationMetrics {
-	return r.reconcileDuration
-}
+// func (r ReconcileMetrics) GetDurationMetrics() DurationMetrics {
+// 	return r.reconcileDuration
+// }
 
 // func (d DurationMetrics) DurationTimerStart() {
 // 	d.durationStartTime = prometheus.NewTimer(d.processDuration)
 // }
-func (d DurationMetrics) DurationTimerStop() {
-	d.durationStartTime.ObserveDuration()
-}
+// func (d DurationMetrics) DurationTimerStop() {
+// 	d.durationStartTime.ObserveDuration()
+// }
 
 // Old code for metric functions --------------------------------
 
