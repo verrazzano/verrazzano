@@ -30,6 +30,9 @@ type ErrorsChannel struct {
 // - Verrazzano resource
 // - Logs from verrazzano-platform-operator, verrazzano-monitoring-operator and verrazzano-application-operator pods
 // - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from verrazzano-system namespace.
+// - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from the namespaces specified by flag --include-namespaces
+// - OAM resources like ApplicationConfiguration, Component, IngressTrait, MetricsTrait from namespaces specified by flag --include-namespaces
+// - VerrazzanoManagedCluster, VerrazzanoProject and MultiClusterApplicationConfiguration in a multi-clustered environment
 
 // GenerateBugReport creates a bug report by including the resources selectively from the cluster, useful to analyze the issue.
 func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportFile *os.File, moreNS string, vzHelper pkghelpers.VZHelper) error {
@@ -59,13 +62,13 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
 	err = captureVerrazzanoResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "There is an error with capturing the resources: %s", err.Error())
+		fmt.Fprintf(vzHelper.GetOutputStream(), "There is an error with capturing the Verrazzano resources: %s", err.Error())
 	}
 
 	// Capture OAM resources from the namespaces specified using --include-namespaces
 	if len(additionalNS) > 0 {
 		if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "There is an error with capturing the resources: %s", err.Error())
+			fmt.Fprintf(vzHelper.GetOutputStream(), "There is an error in capturing the resources : %s", err.Error())
 		}
 	}
 

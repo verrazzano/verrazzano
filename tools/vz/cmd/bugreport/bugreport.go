@@ -22,7 +22,7 @@ const (
 	helpShort   = "Capture data from the cluster"
 	helpLong    = `Verrazzano command line utility to capture the data from the cluster, to report an issue`
 	helpExample = `# Run bug report tool by providing the name for the report file
-$vz bug-report --report-file <name of the file to include cluster data, a .tar.gz or .tgz file> --include-namespaces <one or more application namespaces to collect information>
+$vz bug-report --report-file <name of the file to include cluster data, a .tar.gz or .tgz file> --include-namespaces <one or more namespaces to collect information>
 `
 )
 

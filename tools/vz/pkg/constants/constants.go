@@ -127,6 +127,7 @@ const (
 	MetricsTraitJSON = "metricstrait.json"
 	McAppConfigJSON  = "mcappconfig.json"
 	VzProjectsJSON   = "projects.json"
+	VmcJSON          = "managedcluster.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "

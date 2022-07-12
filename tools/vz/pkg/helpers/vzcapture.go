@@ -81,10 +81,31 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 	return nil
 }
 
+// captureVZResource captures Verrazzano resources as a JSON file
+func CaptureVZResource(captureDir string, vz vzapi.VerrazzanoList, vzHelper VZHelper) error {
+	var vzRes = captureDir + string(os.PathSeparator) + constants.VzResource
+	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf(createFileError, vzRes, err.Error())
+	}
+	defer f.Close()
+
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Verrazzano resource ...\n")
+	vzJSON, err := json.MarshalIndent(vz, constants.JSONPrefix, constants.JSONIndent)
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while creating JSON encoding of %s: %s\n", vzRes, err.Error())
+		return nil
+	}
+	_, err = f.WriteString(SanitizeString(string(vzJSON)))
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while writing the file %s: %s\n", vzRes, err.Error())
+	}
+	return nil
+}
+
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
 // and services from the specified namespace, as JSON files
 func CaptureK8SResources(kubeClient kubernetes.Interface, nsList []string, captureDir string, vzHelper VZHelper) error {
-	// Run in parallel
 	for _, ns := range nsList {
 		if err := captureWorkLoads(kubeClient, ns, captureDir, vzHelper); err != nil {
 			return err
@@ -105,25 +126,6 @@ func CaptureK8SResources(kubeClient kubernetes.Interface, nsList []string, captu
 	return nil
 }
 
-// DoesNamespaceExists checks whether the namespace exists in the cluster
-func DoesNamespaceExists(kubeClient kubernetes.Interface, namespace string, vzHelper VZHelper) (bool, error) {
-	if namespace == "" {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Ignoring empty namespace\n")
-		return false, nil
-	}
-	ns, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
-
-	if err != nil && errors.IsNotFound(err) {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Namespace %s not found in the cluster\n", namespace)
-		return false, err
-	}
-	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the namespace %s: %s\n", namespace, err.Error())
-		return false, err
-	}
-	return ns != nil && len(ns.Name) > 0, nil
-}
-
 // CaptureOAMResources captures OAM resources in the given list of namespaces
 func CaptureOAMResources(dynamicClient dynamic.Interface, nsList []string, captureDir string, vzHelper VZHelper) error {
 	for _, ns := range nsList {
@@ -140,13 +142,12 @@ func CaptureOAMResources(dynamicClient dynamic.Interface, nsList []string, captu
 			return err
 		}
 
-		// for multi-cluster resources
+		// capture MultiClusterApplicationConfiguration
 		if err := captureMCAppConfigurations(dynamicClient, ns, captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
 
-	// The following resources need to captured only on admin cluster. For now, attempt to get them on all the clusters
 	// Capture Verrazzano projects in verrazzano-mc namespace
 	if err := captureVerrazzanoProjects(dynamicClient, captureDir, vzHelper); err != nil {
 		return err
@@ -156,7 +157,59 @@ func CaptureOAMResources(dynamicClient dynamic.Interface, nsList []string, captu
 	if err := captureVerrazzanoManagedCluster(dynamicClient, captureDir, vzHelper); err != nil {
 		return err
 	}
+	return nil
+}
 
+// captureLog captures the log from the pod in the captureDir
+func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper) error {
+	podName := pod.Name
+	if len(podName) == 0 {
+		return nil
+	}
+
+	// Create directory for the namespace and the pod, under the root level directory containing the bug report
+	var folderPath = captureDir + string(os.PathSeparator) + namespace + string(os.PathSeparator) + podName
+	err := os.MkdirAll(folderPath, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("an error occurred while creating the directory %s: %s", folderPath, err.Error())
+	}
+
+	// Create logs.txt under the directory for the namespace
+	var logPath = folderPath + string(os.PathSeparator) + constants.LogFile
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf(createFileError, logPath, err.Error())
+	}
+	defer f.Close()
+
+	// Capture logs for both init containers and containers
+	var cs []corev1.Container
+	cs = append(cs, pod.Spec.InitContainers...)
+	cs = append(cs, pod.Spec.Containers...)
+
+	// Write the log from all the containers to a single file, with lines differentiating the logs from each of the containers
+	for _, c := range cs {
+		writeToFile := func(contName string) error {
+			podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
+				Container:                    contName,
+				InsecureSkipTLSVerifyBackend: true,
+			}).Stream(context.TODO())
+			if err != nil {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while reading the logs from pod %s: %s\n", podName, err.Error())
+				return nil
+			}
+			defer podLog.Close()
+
+			reader := bufio.NewScanner(podLog)
+			f.WriteString(fmt.Sprintf(containerStartLog, contName, namespace, podName))
+			for reader.Scan() {
+				f.WriteString(SanitizeString(reader.Text() + "\n"))
+			}
+			f.WriteString(fmt.Sprintf(containerEndLog, contName, namespace, podName))
+			return nil
+		}
+		writeToFile(c.Name)
+	}
 	return nil
 }
 
@@ -179,26 +232,36 @@ func GetPodList(client clipkg.Client, appLabel, appName, namespace string) ([]co
 	return podList.Items, nil
 }
 
-// captureVZResource captures Verrazzano resources as a JSON file
-func CaptureVZResource(captureDir string, vz vzapi.VerrazzanoList, vzHelper VZHelper) error {
-	var vzRes = captureDir + string(os.PathSeparator) + constants.VzResource
-	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return fmt.Errorf(createFileError, vzRes, err.Error())
+// DoesNamespaceExists checks whether the namespace exists in the cluster
+func DoesNamespaceExists(kubeClient kubernetes.Interface, namespace string, vzHelper VZHelper) (bool, error) {
+	if namespace == "" {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Ignoring empty namespace\n")
+		return false, nil
 	}
-	defer f.Close()
+	ns, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
 
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Verrazzano resource ...\n")
-	vzJSON, err := json.MarshalIndent(vz, constants.JSONPrefix, constants.JSONIndent)
-	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while creating JSON encoding of %s: %s\n", vzRes, err.Error())
-		return nil
+	if err != nil && errors.IsNotFound(err) {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Namespace %s not found in the cluster\n", namespace)
+		return false, err
 	}
-	_, err = f.WriteString(SanitizeString(string(vzJSON)))
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while writing the file %s: %s\n", vzRes, err.Error())
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the namespace %s: %s\n", namespace, err.Error())
+		return false, err
 	}
-	return nil
+	return ns != nil && len(ns.Name) > 0, nil
+}
+
+// RemoveDuplicate removes duplicates from origSlice
+func RemoveDuplicate(origSlice []string) []string {
+	allKeys := make(map[string]bool)
+	returnSlice := []string{}
+	for _, item := range origSlice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			returnSlice = append(returnSlice, item)
+		}
+	}
+	return returnSlice
 }
 
 // captureEvents captures the events in the given namespace, as a JSON file
@@ -425,7 +488,7 @@ func captureVerrazzanoProjects(dynamicClient dynamic.Interface, captureDir strin
 
 // captureVerrazzanoManagedCluster captures VerrazzanoManagedCluster in verrazzano-mc namespace, as a JSON file
 func captureVerrazzanoManagedCluster(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
-	vzProjectConfigs, err := dynamicClient.Resource(getManagedClusterConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
+	vmcConfigs, err := dynamicClient.Resource(getManagedClusterConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil
 	}
@@ -433,64 +496,11 @@ func captureVerrazzanoManagedCluster(dynamicClient dynamic.Interface, captureDir
 		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the VerrazzanoManagedClusters in namespace %s: %s\n", vzconstants.VerrazzanoMultiClusterNamespace, err.Error())
 		return nil
 	}
-	if len(vzProjectConfigs.Items) > 0 {
+	if len(vmcConfigs.Items) > 0 {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing VerrazzanoManagedClusters in namespace: %s ...\n", vzconstants.VerrazzanoMultiClusterNamespace)
-		if err = createFile(vzProjectConfigs, vzconstants.VerrazzanoMultiClusterNamespace, constants.VzProjectsJSON, captureDir, vzHelper); err != nil {
+		if err = createFile(vmcConfigs, vzconstants.VerrazzanoMultiClusterNamespace, constants.VmcJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-// captureLog captures the log from the pod in the captureDir
-func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper) error {
-	podName := pod.Name
-	if len(podName) == 0 {
-		return nil
-	}
-
-	// Create directory for the namespace and the pod, under the root level directory containing the bug report
-	var folderPath = captureDir + string(os.PathSeparator) + namespace + string(os.PathSeparator) + podName
-	err := os.MkdirAll(folderPath, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("an error occurred while creating the directory %s: %s", folderPath, err.Error())
-	}
-
-	// Create logs.txt under the directory for the namespace
-	var logPath = folderPath + string(os.PathSeparator) + constants.LogFile
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return fmt.Errorf(createFileError, logPath, err.Error())
-	}
-	defer f.Close()
-
-	// Capture logs for both init containers and containers
-	var cs []corev1.Container
-	cs = append(cs, pod.Spec.InitContainers...)
-	cs = append(cs, pod.Spec.Containers...)
-
-	// Write the log from all the containers to a single file, with lines differentiating the logs from each of the containers
-	for _, c := range cs {
-		writeToFile := func(contName string) error {
-			podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
-				Container:                    contName,
-				InsecureSkipTLSVerifyBackend: true,
-			}).Stream(context.TODO())
-			if err != nil {
-				fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while reading the logs from pod %s: %s\n", podName, err.Error())
-				return nil
-			}
-			defer podLog.Close()
-
-			reader := bufio.NewScanner(podLog)
-			f.WriteString(fmt.Sprintf(containerStartLog, contName, namespace, podName))
-			for reader.Scan() {
-				f.WriteString(SanitizeString(reader.Text() + "\n"))
-			}
-			f.WriteString(fmt.Sprintf(containerEndLog, contName, namespace, podName))
-			return nil
-		}
-		writeToFile(c.Name)
 	}
 	return nil
 }
@@ -519,19 +529,6 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while writing the file %s: %s", res, err.Error())
 	}
 	return nil
-}
-
-// RemoveDuplicate removes duplicates from origSlice
-func RemoveDuplicate(origSlice []string) []string {
-	allKeys := make(map[string]bool)
-	returnSlice := []string{}
-	for _, item := range origSlice {
-		if _, value := allKeys[item]; !value {
-			allKeys[item] = true
-			returnSlice = append(returnSlice, item)
-		}
-	}
-	return returnSlice
 }
 
 // getAppConfigScheme returns GroupVersionResource for ApplicationConfiguration
