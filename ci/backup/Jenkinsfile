@@ -301,24 +301,26 @@ pipeline {
 
                 stage('Setup backup prerequisites') {
                     steps {
-                        createBucket(${VELERO_BUCKET_NAME})
-                        BACKUP_STORAGE_LOCATION_CREATE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_prerequisites.sh").trim()
-                        println("Backup prerequisites done! ${OKE_CLUSTER_PREFIX}")
+                        createBucket("${VELERO_BUCKET_NAME}")
                     }
+                    steps {
+                        BACKUP_STORAGE_LOCATION_CREATE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_prerequisites.sh").trim()
+                    }
+                    println("Backup prerequisites done! ${OKE_CLUSTER_PREFIX}")
 
                 }
 
                 stage('Start Opensearch Backup') {
                     steps {
                         BACKUP_ID = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_start.sh").trim()
-                        println("Opensearch backup done ${BACKUP_ID}")
                     }
+                    println("Opensearch backup done ${BACKUP_ID}")
                 }
 
 
                 stage('Delete bucket') {
                     steps {
-                       deleteBucket(${VELERO_BUCKET_NAME})
+                       deleteBucket("${VELERO_BUCKET_NAME}")
                     }
                 }
 
