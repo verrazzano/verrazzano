@@ -59,29 +59,6 @@ function delete_verrazzano() {
   delete_managed_k8s_resources scopedefinitions.core.oam.dev
 }
 
-function delete_weblogic_operator {
-  log "Uninstall the WebLogic Kubernetes operator"
-  if helm status uninstall weblogic-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall weblogic-operator --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall the WebLogic Kubernetes operator."
-    fi
-  fi
-
-
-}
-
-function delete_kiali {
-  KIALI_CHART_DIR=${CHARTS_DIR}/kiali-server
-  log "Uninstall Kiali"
-  if helm status kiali-server  --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall kiali-server  --namespace "${VERRAZZANO_NS}" ; then
-      error "Failed to uninstall Kiali."
-    fi
-  fi
-  log "Deleting Kiali Custom Resource Definitions"
-  kubectl delete -f ${KIALI_CHART_DIR}/crds || true
-}
-
 function delete_prometheus_node_exporter {
   log "Uninstall the Prometheus node-exporter"
   if helm status prometheus-node-exporter --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
@@ -110,4 +87,3 @@ function delete_prometheus_operator {
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
-action "Deleting Kiali " delete_kiali || exit 1
