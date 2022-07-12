@@ -7,15 +7,11 @@
 # The branch names which we put into the tag are: master, release-*, and feature
 # We do not differentiate between feature branches currently, the values of these change frequently and the overall
 # usage related to feature branch testing is good enough granularity to start with here.
-if [ -z "$env.BRANCH_NAME" ]; then
-  echo "Script needs to be run in Jenkins environment where env.BRANCH_NAME is defined"
+if [ -z "$1" ]; then
+  echo "Branch name must be specified"
   exit 1
 fi
-if [[ $env.BRANCH_NAME =~ '/^release-.*/' ]] || [[ $env.BRANCH_NAME == 'master' ]]; then
-  CURRENT_BRANCH_NAME=$env.BRANCH_NAME
-else
-  CURRENT_BRANCH_NAME="feature-branch"
-fi
+CURRENT_BRANCH_NAME="$1"
 
 # The pipeline names we put into the tag are: none, main, periodic, release, scan, oscs, bfs, doc, ...)
 # These get set/propagated, "none" generally means that the parameter was not set/propagated for the job run,
@@ -26,11 +22,11 @@ fi
 # end goal (ie: same job scenario/branch could be run in the push triggered or periodics, etc...).
 # For some this is somewhat redundant as the jobscenario may be enough to identify when it is run (scan, oscs, bfs)
 # but having it defined here may help simplify the differentiation for dashboard purposes
-if [ -z "$1" ]; then
+if [ -z "$2" ]; then
   echo "Pipeline name must be specified"
   exit 1
 fi
-CURRENT_PIPELINE="$1"
+CURRENT_PIPELINE="$2"
 
 # This is used to identify the Job Scenario: jobname+scenario
 # The intention here is that we can differentiate between a job being run with different parameters
@@ -41,11 +37,11 @@ CURRENT_PIPELINE="$1"
 # is being told it.
 # NOTE: We want to be able to differentiate these, and these are most likely to be changing over time as
 # Job names change and what we test changes.
-if [ -z "$2" ]; then
+if [ -z "$3" ]; then
   echo "Test job scenario must be specified"
   exit 1
 fi
-CURRENT_JOB_SCENARIO="$2"
+CURRENT_JOB_SCENARIO="$3"
 
 # Get the instance OCID (note that the grep is being used to trim it)
 INSTANCE_OCID=$(curl -s http://169.254.169.254/opc/v1/instance | jq '.id' | grep -o -e '[a-z, 0-9, A-Z, \., \-]*')

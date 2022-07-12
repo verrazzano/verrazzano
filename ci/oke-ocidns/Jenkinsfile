@@ -26,6 +26,9 @@ def keepOKEClusterOnFailure = "false"
 def OKE_CLUSTER_PREFIX = ""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
+def BRANCH_TAG = env.BRANCH_NAME.contains('master') || env.BRANCH_NAME.startsWith('release') ? env.BRANCH_NAME : "feature-branch"
+def TRIMMED_JOB = env.JOB_NAME.split('/')[0]
+
 pipeline {
     options {
         skipDefaultCheckout true
@@ -175,7 +178,6 @@ pipeline {
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
 
         // Used for tagging
-        TRIMMED_JOB = """${sh(returnStdout: true, script: "echo ${env.JOB_NAME} | cut -d / -f 1")}"""
         JOB_SCENARIO_TAG = "${TRIMMED_JOB}-${params.SCENARIO_TAG}"
     }
 
@@ -234,7 +236,8 @@ pipeline {
                 }
 
                 sh """
-                    ./ci/scripts/tag_instance.sh ${params.PIPELINE_TAG} ${JOB_SCENARIO_TAG}
+                    echo ${BRANCH_TAG} ${params.PIPELINE_TAG} ${JOB_SCENARIO_TAG}
+                    ./ci/scripts/tag_instance.sh ${BRANCH_TAG} ${params.PIPELINE_TAG} ${JOB_SCENARIO_TAG}
                 """
             }
         }
@@ -259,11 +262,7 @@ pipeline {
                             # set the ssh public key value for terraform
                             export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
                             export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
-                            if [[ $env.BRANCH_NAME =~ '/^release-.*/' ]] || [[ $env.BRANCH_NAME == 'master' ]]; then
-                              export TF_VAR_branch_tag=${env.BRANCH_NAME}
-                            else
-                              export TF_VAR_branch_tag="feature-branch"
-                            fi
+                            export TF_VAR_branch_tag=${BRANCH_TAG}
                             export TF_VAR_pipeline_tag=${params.PIPELINE_TAG}
                             export TF_VAR_job_scenario_tag=${JOB_SCENARIO_TAG}
                             # call create_oke_cluster with cluster access private

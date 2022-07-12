@@ -11,6 +11,8 @@ def tarfilePrefix=""
 def storeLocation=""
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def BRANCH_TAG = env.BRANCH_NAME.contains('master') || env.BRANCH_NAME.startsWith('release') ? env.BRANCH_NAME : "feature-branch"
+def JOB_SCENARIO_TAG = env.JOB_NAME.split('/')[0]
 
 pipeline {
     options {
@@ -114,7 +116,6 @@ pipeline {
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
 
         PIPELINE_TAG = "main"
-        JOB_SCENARIO_TAG = """${sh(returnStdout: true, script: "echo ${env.JOB_NAME} | cut -d / -f 1")}"""
     }
 
     stages {
@@ -174,7 +175,7 @@ pipeline {
                 }
 
                 sh """
-                    ./ci/scripts/tag_instance.sh ${PIPELINE_TAG} ${JOB_SCENARIO_TAG}
+                    ./ci/scripts/tag_instance.sh ${BRANCH_TAG} ${PIPELINE_TAG} ${JOB_SCENARIO_TAG}
                 """
             }
         }
