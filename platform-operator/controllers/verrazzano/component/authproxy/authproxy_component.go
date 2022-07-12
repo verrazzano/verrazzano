@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -106,6 +108,37 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	if installed {
 		ctx.Log().Oncef("Component %s already installed, skipping PreInstall checks", ComponentName)
 		return nil
+	}
+
+	return nil
+}
+
+// Uninstall Authproxy to handle upgrade case where Authproxy was not its own helm chart.
+// In that case, we need to delete the Authproxy resources explicitly
+func (c authProxyComponent) Uninstall(context spi.ComponentContext) error {
+	installed, err := c.HelmComponent.IsInstalled(context)
+	if err != nil {
+		return err
+	}
+
+	// If the helm chart is installed, then uninstall
+	if installed {
+		return c.HelmComponent.Uninstall(context)
+	}
+
+	// Attempt to delete the Authproxy resources
+	rs := getAuthproxyManagedResources()
+	for _, r := range rs {
+		err := resource.Resource{
+			Name:      r.NamespacedName.Name,
+			Namespace: r.NamespacedName.Namespace,
+			Client:    context.Client(),
+			Object:    r.Obj,
+			Log:       context.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
