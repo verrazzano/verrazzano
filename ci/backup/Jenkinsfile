@@ -93,6 +93,9 @@ pipeline {
         OCI_OS_ACCESS_KEY = credentials('velero-key')
         OCI_OS_ACCESS_SECRET_KEY = credentials('velero-key-id')
         BACKUP_NAME=backup-${VELERO_BUCKET_NAME}
+        BACKUP_RESOURCE=opensearch-resource-${VELERO_BUCKET_NAME}
+        BACKUP_OPENSEARCH=opensearch-${VELERO_BUCKET_NAME}
+        BACKUP_STORAGE=storage-${VELERO_BUCKET_NAME}
         BACKUP_ID="dummy"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
@@ -312,23 +315,23 @@ kubectl apply -f - <<EOF
     apiVersion: velero.io/v1
     kind: BackupStorageLocation
     metadata:
-      name: ${BACKUP_NAME}-storage
+      name: ${BACKUP_STORAGE}
       namespace: ${VELERO_NAMESPACE}
     spec:
       provider: aws
       objectStorage:
         bucket: ${VELERO_BUCKET_NAME}
-        prefix: opensearch-${BACKUP_NAME}
+        prefix: opensearch
       credential:
-        name: <secret name created in previous step>
+        name: ${VELERO_SECRET_NAME}
         key: cloud
       config:
-        region: ${VELERO_SECRET_NAME}
+        region: us-phoenix-1
         s3ForcePathStyle: "true"
         s3Url: https://${OCI_OS_NAMESPACE}.compat.objectstorage.us-phoenix-1.oraclecloud.com
 EOF
 
-                    kubectl get bsl ${BACKUP_NAME}-storage -n ${VELERO_NAMESPACE}
+                    kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE}
                     """
 
                     println("Backup prerequisites done!")
@@ -344,7 +347,7 @@ kubectl apply -f - <<EOF
     apiVersion: velero.io/v1
     kind: Backup
     metadata:
-      name: ${BACKUP_NAME}-opensearch
+      name: ${BACKUP_OPENSEARCH}
       namespace: ${VELERO_NAMESPACE}
     spec:
       includedNamespaces:
@@ -353,11 +356,11 @@ kubectl apply -f - <<EOF
         matchLabels:
           verrazzano-component: opensearch
       defaultVolumesToRestic: false
-      storageLocation: ${BACKUP_NAME}-storage
+      storageLocation: ${BACKUP_STORAGE}
       hooks:
         resources:
           -
-            name: ${BACKUP_NAME}-opensearch-resource
+            name: ${BACKUP_RESOURCE}
             includedNamespaces:
               - verrazzano-system
             labelSelector:
@@ -372,7 +375,7 @@ kubectl apply -f - <<EOF
                     - -operation
                     - backup
                     - -velero-backup-name
-                    - ${BACKUP_NAME}-opensearch
+                    - ${BACKUP_OPENSEARCH}
                   onError: Fail
                   timeout: 10m
 EOF
