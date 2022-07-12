@@ -55,7 +55,7 @@ module "oke" {
 
   node_pool_image_id = var.node_pool_image_id
 
-  freeform_tags = {
+  tags = {
     vcn = { "verrazzano-infra/Branch" = var.branch_tag, "verrazzano-infra/Pipeline" = var.pipeline_tag, "verrazzano-infra/JobScenario" = var.job_scenario_tag }
     bastion = { "verrazzano-infra/Branch" = var.branch_tag, "verrazzano-infra/Pipeline" = var.pipeline_tag, "verrazzano-infra/JobScenario" = var.job_scenario_tag }
     operator = { "verrazzano-infra/Branch" = var.branch_tag, "verrazzano-infra/Pipeline" = var.pipeline_tag, "verrazzano-infra/JobScenario" = var.job_scenario_tag }
