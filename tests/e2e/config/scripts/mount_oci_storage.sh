@@ -84,18 +84,12 @@ cat << EOF | kubectl apply -f -
                 mountPath: /scrub
 EOF
 
-ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH "
-    K8S_CONTROLLER_MANAGER_PATH=/etc/kubernetes/manifests/kube-controller-manager.yaml
-    sudo yq -i eval '.spec.containers[0].command += \"--pv-recycler-pod-template-filepath-nfs=/etc/recycler-pod.yaml\"' $K8S_CONTROLLER_MANAGER_PATH
-    sudo yq -i eval '.spec.containers[0].volumeMounts += [{\"name\": \"recycler-config-volume\", \"mountPath\": \"/etc/recycler-pod.yaml\", \"subPath\": \"recycler-pod.yaml\"}]' $K8S_CONTROLLER_MANAGER_PATH
-    sudo yq -i eval '.spec.volumes += [{\"name\": \"recycler-config-volume\", \"configMap\": {\"name\": \"recycler-pod-config\"}}]' $K8S_CONTROLLER_MANAGER_PATH
-"
-
 K8S_CONTROLLER_MANAGER_PATH="/etc/kubernetes/manifests/kube-controller-manager.yaml"
-ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH "sudo cp $K8S_CONTROLLER_MANAGER_PATH /home/opc/kube-controller-manager.yaml"
-scp -o StrictHostKeyChecking=no -i $PRIVATE_KEY_PATH opc@$CONTROL_PLANE_IP:"/home/opc/kube-controller-manager.yaml" "$WORKSPACE/kube-controller-manager.yaml"
+TEMP_FILE_PATH="/home/opc/kube-controller-manager.yaml"
+ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH "sudo cp $K8S_CONTROLLER_MANAGER_PATH $TEMP_FILE_PATH && sudo chmod 766 $TEMP_FILE_PATH"
+scp -o StrictHostKeyChecking=no -i $PRIVATE_KEY_PATH opc@$CONTROL_PLANE_IP:$TEMP_FILE_PATH "$WORKSPACE/kube-controller-manager.yaml"
 yq -i eval '.spec.containers[0].command += "--pv-recycler-pod-template-filepath-nfs=/etc/recycler-pod.yaml"' "$WORKSPACE/kube-controller-manager.yaml"
 yq -i eval '.spec.containers[0].volumeMounts += [{"name": "recycler-config-volume", "mountPath": "/etc/recycler-pod.yaml", "subPath": "recycler-pod.yaml"}]' "$WORKSPACE/kube-controller-manager.yaml"
 yq -i eval '.spec.volumes += [{"name": "recycler-config-volume", "configMap": {"name": "recycler-pod-config"}}]' "$WORKSPACE/kube-controller-manager.yaml"
-scp -o StrictHostKeyChecking=no -i $PRIVATE_KEY_PATH "$WORKSPACE/kube-controller-manager.yaml" opc@$CONTROL_PLANE_IP:"/home/opc/kube-controller-manager.yaml"
-ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH "sudo mv /home/opc/kube-controller-manager.yaml $K8S_CONTROLLER_MANAGER_PATH"
+scp -o StrictHostKeyChecking=no -i $PRIVATE_KEY_PATH "$WORKSPACE/kube-controller-manager.yaml" opc@$CONTROL_PLANE_IP:$TEMP_FILE_PATH
+ssh -o StrictHostKeyChecking=no opc@$CONTROL_PLANE_IP -i $PRIVATE_KEY_PATH "sudo mv $TEMP_FILE_PATH $K8S_CONTROLLER_MANAGER_PATH"

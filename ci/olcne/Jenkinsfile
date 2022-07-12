@@ -25,7 +25,6 @@ def uniquePrefix=UUID.randomUUID().toString().substring(0,6).replace('-','')
 // Currently the pipeline only supports GLOBAL DNS Zone
 def dnsScopes=['GLOBAL']
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=false
-def keepOLCNEClusterOnFailure=false
 
 pipeline {
     options {
@@ -100,11 +99,6 @@ pipeline {
             description: 'Verrazzano install profile name',
             trim: true)
         string (
-            name: 'VERRAZZANO_OPERATOR_IMAGE', 
-            description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', 
-            defaultValue: 'NONE', 
-            trim: true)
-        string (
             name: 'GIT_COMMIT_TO_USE',
             description: 'This is the full git commit hash from the source build to be used for all jobs',
             defaultValue: 'NONE',
@@ -133,6 +127,10 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 defaultValue: '_excluded_test',
                 trim: true)
+        booleanParam (
+            name: 'KEEP_RESOURCES_AFTER_RUN', 
+            description: 'Whether to keep the k8s cluster and the other OCI resources alive after the run', 
+            defaultValue: false)
     }
 
     environment {
@@ -151,6 +149,7 @@ pipeline {
         // Verrazzano variables
         TEST_ENV="${params.TEST_ENV}"
         VZ_ENVIRONMENT_NAME="${params.TEST_ENV.toLowerCase()}"
+        KEEP_RESOURCES_AFTER_RUN="${params.KEEP_RESOURCES_AFTER_RUN)}"
         BRANCH_NAME_PREFIX="${env.BRANCH_NAME.equals('master') ? 'vz' : env.BRANCH_NAME.substring(0, 2)}"
         CLUSTER_NAME="$BRANCH_NAME_PREFIX" + "$uniquePrefix"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
@@ -509,7 +508,7 @@ pipeline {
             }
             
             script {
-                if (keepOLCNEClusterOnFailure == false) {
+                if (env.KEEP_RESOURCES_AFTER_RUN == false) {
                     if (env.createdOCIDNSZone && env.createdOCIDNSZone == "true") {
                         echo "[INFO] Deleting OCI DNS Zone"
                         deleteOCIDNSZone()
@@ -1137,6 +1136,7 @@ def installVerrazzanoPlatformOperator() {
 def installVerrazzano() {
     sh """
         yq -i eval '.spec.environmentName = "$VZ_ENVIRONMENT_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.profile = "$INSTALL_PROFILE"' "$INSTALL_CONFIG_FILE_OLCNE"
         yq -i eval '.spec.components.dns.external.suffix = "$OCI_DNS_ZONE_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
         yq -i eval '.spec.components.ingress.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
         yq -i eval '.spec.components.ingress.nginxInstallArgs[0].valueList[0] = "$OCI_LB_MGMT_IP"' "$INSTALL_CONFIG_FILE_OLCNE"
