@@ -416,14 +416,14 @@ pipeline {
 
 def createBucket(bucketName) {
     sh """
-        oci --region us-phoenix-1 os object create --namespace ${OCI_OS_NAMESPACE} --name ${bucketName}
+        oci --region us-phoenix-1 os bucket create --namespace ${OCI_OS_NAMESPACE} --name ${bucketName}
 
     """
 }
 
 def deleteBucket(bucketName) {
     sh """
-        oci --region us-phoenix-1 os object delete -bn ${bucketName} --empty --force
+        oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
     """
 }
 
