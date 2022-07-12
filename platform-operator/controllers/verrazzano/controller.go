@@ -708,8 +708,9 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 }
 
 func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
-	for _, existingCondition := range compStatus.Conditions {
+	for i, existingCondition := range compStatus.Conditions {
 		if existingCondition.Type == newCondition.Type {
+			compStatus.Conditions[i] = newCondition
 			return compStatus.Conditions
 		}
 	}
