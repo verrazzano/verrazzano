@@ -70,6 +70,9 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 		if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "There is an error in capturing the resources : %s", err.Error())
 		}
+		if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "There is an error in capturing the multi-cluster resources : %s", err.Error())
+		}
 	}
 
 	// Return an error when the command fails to collect anything from the cluster
