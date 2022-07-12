@@ -34,6 +34,18 @@ spec:
       enabled: true
     console:
       enabled: true
+      overrides:
+        - values:
+            replicas: 1
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: verrazzano-console
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
     dns:
       wildcard:
         domain: "nip.io"
@@ -86,6 +98,7 @@ spec:
       enabled: true
     kibana:
       enabled: true
+      replicas: 1
     oam:
       enabled: true
     prometheus:
