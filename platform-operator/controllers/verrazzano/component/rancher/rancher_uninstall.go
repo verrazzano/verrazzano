@@ -39,8 +39,16 @@ func postUninstall(ctx spi.ComponentContext) error {
 	}
 
 	// For Rancher namespaces, run the system tools uninstaller
+	namespaceNames := []string{
+		"^cattle-",
+		"^local",
+		"^p-",
+		"^user-",
+		"^fleet",
+		"^rancher",
+	}
 	for _, ns := range nsList.Items {
-		matches, err := regexp.MatchString("^cattle-|^local|^p-|^user-|^fleet|^rancher", ns.Name)
+		matches, err := regexp.MatchString(strings.Join(namespaceNames, "|"), ns.Name)
 		if err != nil {
 			return ctx.Log().ErrorfNewErr("Failed to verify that namespace %s is a Rancher namespace: %v", ns.Name, err)
 		}
