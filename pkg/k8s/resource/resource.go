@@ -44,7 +44,7 @@ func (r Resource) RemoveFinalizersAndDelete() error {
 	return r.Delete()
 }
 
-// removeFinalizers remove all finalizers from a resource
+// removeFinalizers removes all finalizers from a resource
 func (r Resource) removeFinalizers() error {
 	val := reflect.ValueOf(r.Object)
 	kind := val.Elem().Type().Name()
