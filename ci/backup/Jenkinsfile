@@ -313,7 +313,7 @@ pipeline {
                     steps {
                         script {
                            BACKUP_STORAGE_LOCATION_CREATE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_prerequisites.sh").trim()
-                           println("Backup prerequisites done! ${OKE_CLUSTER_PREFIX}")
+                           println("Backup prerequisites done! ${BACKUP_STORAGE_LOCATION_CREATE}")
                         }
                     }
 
