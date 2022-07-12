@@ -355,10 +355,10 @@ func TestPostUpgrade(t *testing.T) {
 // TestMonitorOverrides tests the monitor overrides function
 func TestMonitorOverrides(t *testing.T) {
 	tests := []struct {
-		name string
-		actualCR *vzapi.Verrazzano
+		name       string
+		actualCR   *vzapi.Verrazzano
 		expectTrue bool
-	} {
+	}{
 		// GIVEN a default Verrazzano custom resource,
 		// WHEN we call MonitorOverrides on the Jaeger component,
 		// THEN it returns false
