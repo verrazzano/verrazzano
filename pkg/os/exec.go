@@ -41,3 +41,15 @@ func (r DefaultRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err err
 	}
 	return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), nil
 }
+
+// GenericTestRunner is used to run generic OS commands with expected results
+type GenericTestRunner struct {
+	StdOut []byte
+	StdErr []byte
+	Err    error
+}
+
+// Run GenericTestRunner executor
+func (r GenericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return r.StdOut, r.StdErr, r.Err
+}
