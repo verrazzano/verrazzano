@@ -77,7 +77,7 @@ func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Inte
 		return err
 	}
 
-	nameSpaces, err := pkghelpers.GetAllUniqueNameSpacesForComponentsNotReady(client)
+	nameSpaces, err := pkghelpers.GetNamespacesForNotReadyComponents(client)
 	if err != nil {
 		return err
 	}
