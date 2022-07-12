@@ -107,24 +107,7 @@ function delete_prometheus_operator {
   kubectl delete namespace "${VERRAZZANO_MONITORING_NS}" --ignore-not-found=true || err_return $? "Could not delete the ${VERRAZZANO_MONITORING_NS} namespace"
 }
 
-function delete_velero {
-    log "Uninstall Velero"
-    if helm status velero --namespace velero > /dev/null 2>&1 ; then
-      if ! helm uninstall velero --namespace velero ; then
-        error "Failed to uninstall the Velero."
-      fi
-    fi
-
-    log "Deleting velero namespace finalizers"
-    patch_k8s_resources namespace ":metadata.name" "Could not remove finalizers from namespace velero" "/velero/ {print \$1}" '{"metadata":{"finalizers":null}}' \
-        || return $? # return on pipefail
-
-    log "Deleting the velero namespace"
-    kubectl delete namespace velero --ignore-not-found=true || err_return $? "Could not delete the velero namespace"
-}
-
 action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
-action "Deleting Velero " delete_velero || exit 1
