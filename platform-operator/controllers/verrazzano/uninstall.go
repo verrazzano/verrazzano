@@ -5,11 +5,10 @@ package verrazzano
 
 import (
 	"context"
-
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -241,5 +240,10 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 
 //deleteNamespaces Cleans up any namespaces shared by multiple components
 func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
-	return namespace.DeleteNamespace(log, r.Client, promoperator.ComponentNamespace)
+	return resource.Resource{
+		Name:   promoperator.ComponentNamespace,
+		Client: r.Client,
+		Object: &corev1.Namespace{},
+		Log:    log,
+	}.RemoveFinalizersAndDelete()
 }
