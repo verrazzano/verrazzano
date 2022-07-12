@@ -5937,6 +5937,9 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      replicas:
+                        format: int32
+                        type: integer
                     type: object
                   kubeStateMetrics:
                     description: KubeStateMetrics configuration
