@@ -13,8 +13,8 @@ fi
 
 cat <<EOF >> velero-creds.ini
    [default]
-   aws_access_key_id=${OCI_OS_ACCESS_KEY_PSW}
-   aws_secret_access_key=${OCI_OS_ACCESS_SECRET_KEY_PSW}
+   aws_access_key_id=${OCI_OS_ACCESS_KEY}
+   aws_secret_access_key=${OCI_OS_ACCESS_SECRET_KEY}
 EOF
 
 kubectl create secret generic -n ${VELERO_NAMESPACE} ${VELERO_SECRET_NAME} --from-file=cloud=velero-creds.ini
