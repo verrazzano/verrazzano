@@ -354,18 +354,16 @@ pipeline {
             }
         }
 
-        stage("Setup OCI Storage") {
+        stage("Create OCI Storage") {
             steps {
                 script {
                     echo "[INFO] Creating OCI Storage"
                     createOCIStorage()
-                    echo "[INFO] Mounting OCI Storage"
-                    mountOCIStorage()
                 }
             }
         }
 
-        stage("Setup OCI Load Balancers") {
+        stage("Create OCI Load Balancers") {
             steps {
                 script {
                     echo "[INFO] Creating OCI LoadBalancers"
@@ -374,7 +372,7 @@ pipeline {
             }
         }
 
-       stage("Setup OCI DNS Zone") {
+       stage("Create OCI DNS Zone") {
             steps {
                 script {
                     echo "[INFO] Creating OCI DNS Zone"
@@ -399,6 +397,15 @@ pipeline {
                 script {
                     echo "[INFO] Enable External IP access"
                     enableOLCNEExternalIPService()
+                }
+            }
+        }
+
+        stage("Mount OCI Storage") {
+            steps {
+                script {
+                    echo "[INFO] Mounting OCI Storage"
+                    mountOCIStorage()
                 }
             }
         }
