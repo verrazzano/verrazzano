@@ -52,4 +52,4 @@ INSTANCE_OCID=$(curl -s http://169.254.169.254/opc/v1/instance | jq '.id' | grep
 
 # Add as free-form tags in the POC. We should define a namespace and use defined-tags if the POC progresses
 # to be an actual implementation.
-oci compute instance update --force --instance-id $INSTANCE_OCID --freeform-tags "{ \"verrazzano-infra/Branch\" : \"$CURRENT_BRANCH_NAME\", \"verrazzano-infra/Pipeline\" : \"$CURRENT_PIPELINE\", \"verrazzano-infra/JobScenario\" : \"$CURRENT_JOB_SCENARIO\"}"
+oci compute instance update --force --instance-id $INSTANCE_OCID --auth instance_principal --freeform-tags "{ \"verrazzano-infra/Branch\" : \"$CURRENT_BRANCH_NAME\", \"verrazzano-infra/Pipeline\" : \"$CURRENT_PIPELINE\", \"verrazzano-infra/JobScenario\" : \"$CURRENT_JOB_SCENARIO\"}"
