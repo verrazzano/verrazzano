@@ -74,6 +74,7 @@ const jaegerValueTemplate = `jaeger:
   spec:
     annotations:
       sidecar.istio.io/inject: "true"
+      proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
     strategy: production
     storage:
       # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
