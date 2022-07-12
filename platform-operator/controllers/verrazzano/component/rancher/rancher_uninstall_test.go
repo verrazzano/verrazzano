@@ -230,7 +230,7 @@ func TestPostUninstall(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
 			ctx := spi.NewFakeContext(c, &vz, false)
-			err := postUninstall(ctx)
+			err := PostUninstall(ctx)
 			assert.NoError(err)
 
 			// MutatingWebhookConfigurations should not exist
