@@ -125,7 +125,7 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 	return c.validateJaegerOperator(new)
 }
 
-// createOrUpdateKialiResources create or update related Kiali resources
+// createOrUpdateJaegerResources create or update related Jaeger resources
 func (c jaegerOperatorComponent) createOrUpdateJaegerResources(ctx spi.ComponentContext) error {
 	jaegerCREnabled, err := isCreateJaegerInstance(ctx)
 	if err != nil {
