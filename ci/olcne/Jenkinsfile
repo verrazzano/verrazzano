@@ -95,7 +95,7 @@ pipeline {
             choices: dnsScopes)
         string (
             name: "INSTALL_PROFILE",
-            defaultValue: 'dev',
+            defaultValue: 'prod',
             description: 'Verrazzano install profile name',
             trim: true)
         string (
