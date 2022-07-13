@@ -37,6 +37,7 @@ spec:
       ports:
         - protocol: TCP
           port: 8775
+{{- if .Values.jaegerOperator.enabled }}
     - from:
         - namespaceSelector:
             matchLabels:
@@ -47,6 +48,7 @@ spec:
       ports:
         - protocol: TCP
           port: 8775
+{{- end }}
     - from:
         - namespaceSelector:
             matchLabels:
@@ -132,3 +134,28 @@ spec:
       app.kubernetes.io/name: oam-kubernetes-runtime
   policyTypes:
     - Ingress
+{{- if .Values.jaegerOperator.enabled }}
+---
+# Network policy for Jaeger
+# Ingress: allow access to connect to Jaeger Collector ports 9411 and 14250
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: jaeger
+  namespace: verrazzano-monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app: jaeger
+      app.kubernetes.io/component: collector
+      app.kubernetes.io/managed-by: jaeger-operator
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 9411
+          protocol: TCP
+        - port: 14250
+          protocol: TCP
+{{- end }}
