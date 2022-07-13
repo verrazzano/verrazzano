@@ -90,6 +90,7 @@ func preInstall(compContext spi.ComponentContext) error {
 	return nil
 }
 
+// postUninstall Clean up the cluster role/bindings
 func postUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 	log.Progressf("Deleting ClusterRoles and ClusterRoleBindings for external-dns")
 	err := resource.Resource{

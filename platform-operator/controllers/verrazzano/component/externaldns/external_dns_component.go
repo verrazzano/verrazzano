@@ -65,9 +65,8 @@ func (e externalDNSComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	return false
 }
 
+// PostUninstall Clean up external-dns resources not removed by Uninstall()
 func (e externalDNSComponent) PostUninstall(ctx spi.ComponentContext) error {
-	//   # delete all ExternalDNS ingresses before deleting ExternalDNS
-	//  delete_k8s_resources ingress ":metadata.name,:metadata.annotations" "Could not delete Ingresses managed by ExternalDNS" '/external-dns/ {print $1}' \
 	return postUninstall(ctx.Log(), ctx.Client())
 }
 
