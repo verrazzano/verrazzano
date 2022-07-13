@@ -52,6 +52,10 @@ EOF
 
 RESULT=Failed
 BSL=$(kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE} --no-headers -o custom-columns=":metadata.name")
+
+# debug
+kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE} -o yaml
+
 if [ $BSL == ${BACKUP_STORAGE} ]; then
   RESULT=Success
 fi
