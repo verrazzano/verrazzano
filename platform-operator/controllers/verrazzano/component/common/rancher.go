@@ -266,6 +266,7 @@ func parseTokenResponse(resp *http.Response) (string, error) {
 	return tokenResponse.Token, nil
 }
 
+//ActivateOCIDriver activates the OCI Node Driver in Rancher by invoking the /v3/nodeDrivers rest api.
 func (r *RESTClient) ActivateOCIDriver() error {
 	resp, err := r.invokeRancherEndpoint(rancherActivateOCIDriverURLPath, http.MethodPost, nil)
 	if err != nil {
@@ -273,11 +274,12 @@ func (r *RESTClient) ActivateOCIDriver() error {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed activating Rancher OCI Driver, url %s: %v", fmt.Sprintf("https://%s%s", r.hostname, rancherActivateOCIDriverURLPath), resp.Status)
+		return fmt.Errorf("failed activating rancher oci driver, url %s: %v", fmt.Sprintf("https://%s%s", r.hostname, rancherActivateOCIDriverURLPath), resp.Status)
 	}
 	return nil
 }
 
+//ActivateOKEDriver activates the OKE Kubernetes Driver in Rancher by invoking the /v3/kontainerDrivers rest api.
 func (r *RESTClient) ActivateOKEDriver() error {
 	resp, err := r.invokeRancherEndpoint(rancherActivateOKEDriverURLPath, http.MethodPost, nil)
 	if err != nil {
@@ -285,7 +287,7 @@ func (r *RESTClient) ActivateOKEDriver() error {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed activating Rancher OKE Driver, url %s: %v", fmt.Sprintf("https://%s%s", r.hostname, rancherActivateOKEDriverURLPath), resp.Status)
+		return fmt.Errorf("failed activating rancher oke driver, url %s: %v", fmt.Sprintf("https://%s%s", r.hostname, rancherActivateOKEDriverURLPath), resp.Status)
 	}
 	return nil
 }

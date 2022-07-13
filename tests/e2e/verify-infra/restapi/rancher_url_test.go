@@ -128,13 +128,13 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				start = time.Now()
 				Eventually(func() (string, error) {
 					return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/nodeDrivers/oci", token, httpClient, "state")
-				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher OCI Driver not activated")
+				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oci driver not activated")
 				metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 
 				start = time.Now()
 				Eventually(func() (string, error) {
 					return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/kontainerDrivers/oraclecontainerengine", token, httpClient, "state")
-				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher OKE Driver not activated")
+				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oke driver not activated")
 				metrics.Emit(t.Metrics.With("get_oke_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 
 			}
@@ -145,7 +145,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 func getFieldOrErrorFromRancherAPIResponse(rancherURL string, apiPath string, token string, httpClient *retryablehttp.Client, field string) (string, error) {
 	req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, apiPath), nil)
 	if err != nil {
-		t.Logs.Error(fmt.Sprintf("Error creating rancher api request for %s: %v", apiPath, err))
+		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", apiPath, err))
 		return "", err
 	}
 
@@ -153,7 +153,7 @@ func getFieldOrErrorFromRancherAPIResponse(rancherURL string, apiPath string, to
 	req.Header.Set("Accept", "application/json")
 	response, err := httpClient.Do(req)
 	if err != nil {
-		t.Logs.Error(fmt.Sprintf("Error invoking rancher api request %s: %v", apiPath, err))
+		t.Logs.Error(fmt.Sprintf("error invoking rancher api request %s: %v", apiPath, err))
 		return "", err
 	}
 
@@ -170,7 +170,7 @@ func getFieldOrErrorFromRancherAPIResponse(rancherURL string, apiPath string, to
 		return "", err
 	}
 
-	return httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), field, fmt.Sprintf("unable to find %s in Rancher api response for %s", field, apiPath))
+	return httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), field, fmt.Sprintf("unable to find %s in rancher api response for %s", field, apiPath))
 }
 
 var _ = t.AfterEach(func() {})
