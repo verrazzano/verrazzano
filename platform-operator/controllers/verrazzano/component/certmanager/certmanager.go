@@ -917,27 +917,7 @@ func uninstallCertManager(compContext spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-
-	// Remove finalizers from the cert-manager namespace to avoid hanging namespace deletion
-	certNs := v1.Namespace{}
-	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &certNs)
-	if crtclient.IgnoreNotFound(err) != nil {
-		return compContext.Log().ErrorfNewErr("Failed to get the %s %s: %v", certNs.GetObjectKind(), ComponentNamespace, err)
-	} else if err == nil {
-		certNs.SetFinalizers([]string{})
-		err = compContext.Client().Update(context.TODO(), &certNs)
-		if err != nil {
-			return compContext.Log().ErrorfNewErr("Failed to update the %s %s: %v", certNs.GetObjectKind(), ComponentNamespace, err)
-		}
-	}
-
-	// Delete the cert-manager namespace now that the finalizers have been removed
-	return vzresource.Resource{
-		Name:   ComponentNamespace,
-		Client: compContext.Client(),
-		Object: &v1.Namespace{},
-		Log:    compContext.Log(),
-	}.Delete()
+	return nil
 }
 
 func deleteObject(client crtclient.Client, name string, namespace string, object crtclient.Object) error {
