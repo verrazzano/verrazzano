@@ -213,21 +213,21 @@ pipeline {
         stage('Backup Acceptance Tests') {
             stages {
                 stage('Prepare AT environment') {
-                    environment {
-                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                        OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
-                        REALM_USER_PASSWORD = credentials('todo-mysql-password')
-                        REALM_NAME = "test-realm"
-                    }
-                    steps {
-                        sh """
-                            cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
-                        """
-                    }                    
+                   environment {
+                       KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                       OCI_CLI_AUTH="instance_principal"
+                       OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                       OCI_OS_BUCKET="verrazzano-builds"
+                       OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                       REALM_USER_PASSWORD = credentials('todo-mysql-password')
+                       REALM_NAME = "test-realm"
+                   }
+                   steps {
+                       sh """
+                           cd ${GO_REPO_PATH}/verrazzano
+                           ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                       """
+                   }
                 }
 
 
@@ -260,8 +260,6 @@ pipeline {
                            println("Backup prerequisites done! ${BACKUP_STORAGE_LOCATION_CREATE}")
                         }
                     }
-
-
                 }
 
                 stage('Start Opensearch Backup') {
@@ -269,9 +267,16 @@ pipeline {
                         script {
                           backup_id = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_start.sh").trim()
                           println("Opensearch backup done ${backup_id}")
+
                         }
                     }
-
+                    post {
+                      always {
+                         script {
+                            dumpK8sCluster('velero-backup-tshoot-cluster-dump')
+                         }
+                      }
+                    }
                 }
 
                  stage('Start Opensearch Backup Logs') {
