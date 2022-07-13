@@ -32,7 +32,7 @@ func TestPostUninstall(t *testing.T) {
 	nonRanNSName := "not-rancher"
 	rancherNSName := "cattle-system"
 	rancherNSName2 := "fleet-rancher"
-	rancherCrName := "fleet-system"
+	rancherCrName := "proxy-1234"
 	mwcName := "mutating-webhook-configuration"
 	vwcName := "validating-webhook-configuration"
 	pvName := "pvc-12345"

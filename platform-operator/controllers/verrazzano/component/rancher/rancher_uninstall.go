@@ -144,6 +144,7 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 		"pod-impersonation-helm-op-",
 		"cattle-unauthenticated",
 		"default-admin-",
+		"proxy-",
 	}
 
 	// Delete the Rancher Cluster Roles
