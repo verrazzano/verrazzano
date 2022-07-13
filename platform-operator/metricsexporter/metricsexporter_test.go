@@ -47,7 +47,8 @@ func TestCollectReconcileMetrics(t *testing.T) {
 			//Reconcile Index is decremented by one because when the function is called Reconcile index is incremented by one at the end of the fn
 			//However, the gauge inside the gauge vector that we want to test is accessed with the original value of reconcile index that was used in the function call
 			//Before passing
-			assert.Greater(testutil.ToFloat64(reconcileLastDurationMetric.WithLabelValues(strconv.Itoa(reconcileIndex-1))), float64(0))
+			metric, _ := reconcileLastDurationMetric.GetMetricWithLabelValues(strconv.Itoa(reconcileIndex - 1))
+			assert.Greater(testutil.ToFloat64(metric), float64(0))
 		})
 	}
 }
@@ -68,10 +69,6 @@ func TestErrorCounterMetric(t *testing.T) {
 			CollectReconcileMetricsError()
 			errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric)
 			assert.Equal(tt.expectedErrorIncrementValue, errorCounterAfter-errorCounterBefore)
-			//Reconcile Index is decremented by one because when the function is called Reconcile index is incremented by one at the end of the fn
-			//However, the gauge inside the gauge vector that we want to test is accessed with the original value of reconcile index that was used in the function call
-			//Before passing
-			assert.Greater(testutil.ToFloat64(reconcileLastDurationMetric.WithLabelValues(strconv.Itoa(reconcileIndex-1))), float64(0))
 		})
 	}
 }
