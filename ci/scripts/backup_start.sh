@@ -50,7 +50,7 @@ kubectl apply -f - <<EOF
 EOF
 
  ES_URL=$(kubectl get vz -o jsonpath={.items[].status.instance.elasticUrl})
- VZ_PASSWD=$(kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo)
+ VZ_PASSWORD=$(kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode)
  BACKUP_ID=$(curl -ks "${ES_URL}/verrazzano-system/_search?from=0&size=1" -u verrazzano:${VZ_PASSWORD} | jq -r '.hits.hits[0]._id')
  RETRY_COUNT=0
  CHECK_DONE=true
@@ -65,7 +65,7 @@ EOF
       echo "Backup in progress. Check after 10 seconds"
       sleep 10
     else
-        log "Snapshot progress changed to  $RESPONSE"
+        echo "Snapshot progress changed to  $RESPONSE"
         CHECK_DONE=false
     fi
     RETRY_COUNT=$((RETRY_COUNT + 1))
