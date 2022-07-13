@@ -332,49 +332,36 @@ pipeline {
 
                 }
 
-                stage('Start Opensearch Backup Logs') {
-                    script {
-                       println("Opensearch backup logs")
-                    }
+                 stage('Start Opensearch Backup Logs') {
                     steps {
-                        sh """
-                        BACKUP_FILE_NAME=$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -al /tmp/ | grep verrazzano | awk 'NF{ print $NF }')
-                        kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- cat /tmp/${BACKUP_FILE_NAME}
-                        """
+                         script {
+                            println("Opensearch backup logs")
+                            printHookLogs()
+                         }
                     }
                 }
 
                 stage('Delete Opensearch cluster for restore') {
-                    script {
-                       println("Nuking opensearch")
-                    }
                     steps {
-                        sh """
-                        kubectl scale deploy -n verrazzano-system verrazzano-monitoring-operator --replicas=0
-                        kubectl delete sts -n verrazzano-system vmi-system-es-master
-                        kubectl delete deploy -n verrazzano-system vmi-system-es-data-0
-                        kubectl delete deploy -n verrazzano-system vmi-system-es-data-1
-                        kubectl delete deploy -n verrazzano-system vmi-system-es-data-2
-                        kubectl delete deploy -n verrazzano-system vmi-system-es-ingest
-                        kubectl delete pvc -n verrazzano-system vmi-system-es-data
-                        kubectl delete pvc -n verrazzano-system vmi-system-es-data-1
-                        kubectl delete pvc -n verrazzano-system vmi-system-es-data-2
+                        script {
+                           println("Nuking opensearch")
+                           sh """
+                               kubectl scale deploy -n verrazzano-system verrazzano-monitoring-operator --replicas=0
+                               kubectl delete sts -n verrazzano-system vmi-system-es-master
+                               kubectl delete deploy -n verrazzano-system vmi-system-es-data-0
+                               kubectl delete deploy -n verrazzano-system vmi-system-es-data-1
+                               kubectl delete deploy -n verrazzano-system vmi-system-es-data-2
+                               kubectl delete deploy -n verrazzano-system vmi-system-es-ingest
+                               kubectl delete pvc -n verrazzano-system vmi-system-es-data
+                               kubectl delete pvc -n verrazzano-system vmi-system-es-data-1
+                               kubectl delete pvc -n verrazzano-system vmi-system-es-data-2
 
-                        echo "Wait for all pods to be cleaned up"
-                        sleep 10
-                        """
+                               echo "Wait for all pods to be cleaned up"
+                               sleep 10
+                           """
+                        }
                     }
                 }
-
-                stage('Start Opensearch Backup Logs') {
-                    script {
-                       println("Opensearch backup logs")
-                    }
-                    steps {
-                        printHookLogs()
-                    }
-                }
-
 
                 stage('Start Opensearch Restore') {
                     environment {
@@ -389,11 +376,11 @@ pipeline {
                 }
 
                 stage('Start Opensearch Restore Logs') {
-                    script {
-                       println("Opensearch restore logs")
-                    }
                     steps {
-                        printHookLogs()
+                        script {
+                            println("Opensearch restore logs")
+                            printHookLogs()
+                        }
                     }
                 }
 
