@@ -367,7 +367,7 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		}
 
 		jaegerHostName := buildJaegerHostnameForDomain(dnsSubDomain)
-
+		ingressClassName := vzconfig.GetIngressClassName(ctx.EffectiveCR())
 		// Overwrite the existing Jaeger service definition to point to the Verrazzano authproxy
 		pathType := networkv1.PathTypeImplementationSpecific
 		ingRule := networkv1.IngressRule{
@@ -399,7 +399,7 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 			},
 		}
 		ingress.Spec.Rules = []networkv1.IngressRule{ingRule}
-
+		ingress.Spec.IngressClassName = &ingressClassName
 		if ingress.Annotations == nil {
 			ingress.Annotations = make(map[string]string)
 		}
