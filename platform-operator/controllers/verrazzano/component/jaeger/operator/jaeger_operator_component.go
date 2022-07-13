@@ -33,8 +33,10 @@ const (
 	ComponentJSONName = "jaegerOperator"
 	// ChartDir is the relative directory path for Jaeger Operator chart
 	ChartDir = "jaegertracing/jaeger-operator"
-	//ComponentServiceName is the name of the service name.
+	//ComponentServiceName is the name of the service.
 	ComponentServiceName = "jaeger-operator-metrics"
+	//ComponentWebhookServiceName is the name of the webhook service.
+	ComponentWebhookServiceName = "jaeger-operator-webhook-service"
 	//ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
 	ComponentMutatingWebhookConfigName = "jaeger-operator-mutating-webhook-configuration"
 	//ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
@@ -126,6 +128,9 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := RemoveValidatingWebhookConfig(ctx); err != nil {
+		return err
+	}
+	if err := removeJaegerWebhookService(ctx); err != nil {
 		return err
 	}
 	if createInstance {
@@ -225,6 +230,18 @@ func removeDeploymentAndService(ctx spi.ComponentContext) error {
 	}
 	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to delete deployment %s/%s: %v", ComponentNamespace, ComponentName, err)
+	}
+	return nil
+}
+
+func removeJaegerWebhookService(ctx spi.ComponentContext) error {
+
+	service := &corev1.Service{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentWebhookServiceName}, service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get webhook service %s/%s: %v", ComponentNamespace, ComponentWebhookServiceName, err)
+	}
+	if err := ctx.Client().Delete(context.TODO(), service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete webhook service %s/%s: %v", ComponentNamespace, ComponentWebhookServiceName, err)
 	}
 	return nil
 }
