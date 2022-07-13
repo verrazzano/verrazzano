@@ -24,11 +24,11 @@ function delete_mysql() {
 
 function delete_keycloak() {
   # delete helm installation of Keycloak
-  log "Deleting Keycloak"
-  helm ls -A \
-    | awk '/keycloak/ {print $1}' \
-    | xargsr helm delete -n keycloak \
-    || err_return $? "Could not delete keycloak from helm" || return $? # return on pipefail
+#  log "Deleting Keycloak"
+#  helm ls -A \
+#    | awk '/keycloak/ {print $1}' \
+#    | xargsr helm delete -n keycloak \
+#    || err_return $? "Could not delete keycloak from helm" || return $? # return on pipefail
 
   # delete keycloak namespace
   log "Deleting keycloak namespace finalizers"
@@ -49,7 +49,3 @@ function delete_resources() {
   delete_k8s_resources clusterrole ":metadata.name" "Could not delete ClusterRoles from Keycloak" '/cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver/' \
     || return $? # return on pipefail
 }
-
-action "Deleting MySQL Components" delete_mysql || exit 1
-action "Deleting Keycloak Components" delete_keycloak || exit 1
-action "Deleting Leftover Resources" delete_resources || exit 1

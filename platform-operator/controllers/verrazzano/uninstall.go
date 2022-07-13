@@ -52,6 +52,7 @@ const (
 var sharedNamespaces = []string{
 	vzconst.VerrazzanoMonitoringNamespace,
 	constants.CertManagerNamespace,
+	vzconst.KeycloakNamespace,
 }
 
 // uninstallState identifies the state of a Verrazzano uninstall operation
