@@ -290,7 +290,7 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 			}
 		} else {
 			if isManagedClusterProfile {
-				GinkgoWriter.Write([]byte(fmt.Sprintf("lol0 %s, %s", ns, pod)))
+				GinkgoWriter.Write([]byte(fmt.Sprintf("lol0 %s, %s, %s, %s \n", ns, pkg.Jq(metric, "metric", namespace), pod, pkg.Jq(metric, "metric", podName))))
 			}
 		}
 	}
