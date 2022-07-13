@@ -108,13 +108,6 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
 func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType vzapi.ConditionType, lastTransitionTime metav1.Time) (string, error) {
-	deployments := []types.NamespacedName{
-		{
-			Name:      constants.VerrazzanoPlatformOperator,
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-		},
-	}
-
 	// Provide the user with feedback while waiting for the verrazzano-platform-operator to be ready
 	feedbackChan := make(chan bool)
 	defer close(feedbackChan)
@@ -132,6 +125,13 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 			}
 		}
 	}(vzHelper.GetOutputStream())
+
+	deployments := []types.NamespacedName{
+		{
+			Name:      constants.VerrazzanoPlatformOperator,
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+		},
+	}
 
 	// Wait for the verrazzano-platform-operator pod to be found
 	seconds := 0
