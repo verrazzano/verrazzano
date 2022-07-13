@@ -123,7 +123,7 @@ func GetNamespacesForNotReadyComponents(client client.Client) ([]string, error) 
 	return nsList, err
 }
 
-// GetComponentsNotReady reads the Verrazzano resource and return the list of components which did not reach Ready state
+// GetComponentsNotReady returns the list of components which did not reach Ready state from the Verrazzano resource
 func GetComponentsNotReady(client client.Client) ([]string, error) {
 
 	var compsNotReady = make([]string, 0)

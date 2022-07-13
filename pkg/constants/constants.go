@@ -189,7 +189,7 @@ var ComponentNameToNamespacesMap = map[string][]string{
 	IngressController:             {platformOperatorConstants.IngressNginxNamespace},
 	Mysql:                         {KeycloakNamespace},
 	CertManager:                   {CertManagerNamespace},
-	Rancher:                       {RancherSystemNamespace, RancherFleetSystemNamespace, RancherFleetLocalSystemNamespace}, // TODO VZ-6388 add multiple namespaces
+	Rancher:                       {RancherSystemNamespace, RancherFleetSystemNamespace, RancherFleetLocalSystemNamespace},
 	PrometheusPushgateway:         {platformOperatorConstants.VerrazzanoMonitoringNamespace},
 	PrometheusAdapter:             {platformOperatorConstants.VerrazzanoMonitoringNamespace},
 	KubeStateMetrics:              {platformOperatorConstants.VerrazzanoMonitoringNamespace},
