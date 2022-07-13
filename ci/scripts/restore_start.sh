@@ -53,7 +53,7 @@ RETRY_COUNT=0
 CHECK_DONE=true
 while ${CHECK_DONE};
 do
-  RESPONSE=`(kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME}-opensearch -o jsonpath={.status.phase})`
+  RESPONSE=`(kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME} -o jsonpath={.status.phase})`
   if [ "${RESPONSE}" == "InProgress" ];then
     if [ "${RETRY_COUNT}" -gt 50 ];then
        echo "Restore failed. retry count exceeded !!"

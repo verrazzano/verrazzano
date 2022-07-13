@@ -336,7 +336,7 @@ pipeline {
                     steps {
                          script {
                             println("Opensearch backup logs")
-                            printHookLogs()
+                            hookLogs = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/display_hook_logs.sh").trim()
                          }
                     }
                 }
@@ -379,7 +379,7 @@ pipeline {
                     steps {
                         script {
                             println("Opensearch restore logs")
-                            printHookLogs()
+                            hookLogs = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/display_hook_logs.sh").trim()
                         }
                     }
                 }
@@ -482,13 +482,6 @@ def deleteBucket(bucketName) {
     sh """
         oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
     """
-}
-
-def printHookLogs() {
-   sh """
-     hookLogFile=\$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -al /tmp/ | grep verrazzano | cut -d ' ' -f9)
-     kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- cat /tmp/\$hookLogFile
-   """
 }
 
 
