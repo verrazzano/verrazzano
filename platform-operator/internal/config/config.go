@@ -23,6 +23,7 @@ const (
 	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
+	helmJaegerChartsDirSuffix    = "/platform-operator/thirdparty/charts/jaegertracing/jaeger-operator"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -127,6 +128,14 @@ func GetHelmKialiChartsDir() string {
 		return filepath.Join(TestHelmConfigDir, "/charts/kiali-server")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmKialiChartsDirSuffix)
+}
+
+// GetHelmJaegerChartsDir returns the Kiali helm charts dir
+func GetJaegerChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/jaegertracing/jaeger-operator")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmJaegerChartsDirSuffix)
 }
 
 // GetHelmOamChartsDir returns the oam-kubernetes-runtime helm charts dir

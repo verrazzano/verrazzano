@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -132,7 +133,7 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		// Create Jaeger secret with the credentials present in the verrazzano-es-internal secret
 		return createJaegerSecret(ctx)
 	}
-	return nil
+	return common.ApplyCRDYaml(ctx, config.GetJaegerChartsDir())
 }
 
 //Uprade jaegeroperator component for upgrade processing.
