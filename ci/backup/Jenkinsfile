@@ -273,17 +273,17 @@ pipeline {
                           """
                         }
                     }
-                    #post {
-                    #  always {
-                    #     script {
-                    #        sh """
-                    #          # debug
-                    #          kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
-                    #        """
-                    #        dumpK8sCluster('velero-backup-tshoot-cluster-dump')
-                    #     }
-                    #  }
-                    #}
+                    //post {
+                    //  always {
+                    //     script {
+                    //       sh """
+                    //          # debug
+                    //         kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
+                    //        """
+                    //        dumpK8sCluster('velero-backup-tshoot-cluster-dump')
+                    //     }
+                    //  }
+                    //}
                 }
 
                  stage('Start Opensearch Backup Logs') {
