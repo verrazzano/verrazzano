@@ -316,8 +316,9 @@ pipeline {
                     }
                     steps {
                             script {
-                              restoreStatus = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/restore_start.sh").trim()
-                              println("Opensearch backup done ${restoreStatus}")
+                              sh """
+                                ${WORKSPACE}/ci/scripts/restore_start.sh
+                              """
                          }
                     }
                 }
