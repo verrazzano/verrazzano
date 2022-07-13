@@ -43,6 +43,9 @@ Verrazzano Status
 {{- if .grafana_url}}
     Grafana URL: {{.grafana_url}}
 {{- end}}
+{{- if .jaeger_url}}
+    Jaeger URL: {{.jaeger_url}}
+{{- end}}
 {{- if .keycloak_url}}
     Keycloak URL: {{.keycloak_url}}
 {{- end}}
