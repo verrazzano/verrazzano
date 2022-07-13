@@ -52,6 +52,10 @@ EOF
  ES_URL=$(kubectl get vz -o jsonpath={.items[].status.instance.elasticUrl})
  VZ_PASSWORD=$(kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode)
  BACKUP_ID=$(curl -ks "${ES_URL}/verrazzano-system/_search?from=0&size=1" -u verrazzano:${VZ_PASSWORD} | jq -r '.hits.hits[0]._id')
+
+ backup=$(kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml)
+ echo ${backup}
+
  RETRY_COUNT=0
  CHECK_DONE=true
  while ${CHECK_DONE};

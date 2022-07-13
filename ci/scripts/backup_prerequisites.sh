@@ -50,6 +50,9 @@ kubectl apply -f - <<EOF
         s3Url: https://${OCI_OS_NAMESPACE}.compat.objectstorage.us-phoenix-1.oraclecloud.com
 EOF
 
+backup_sl=$(kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE} -o yaml)
+echo ${backup_sl}
+
 RESULT=Failed
 BSL=$(kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE} --no-headers -o custom-columns=":metadata.name")
 if [ $BSL == ${BACKUP_STORAGE} ]; then
