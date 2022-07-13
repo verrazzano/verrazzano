@@ -36,6 +36,7 @@ func TestPostUninstall(t *testing.T) {
 	mwcName := "mutating-webhook-configuration"
 	vwcName := "validating-webhook-configuration"
 	pvName := "pvc-12345"
+	pv2Name := "ocid1.volume.oc1.ca-toronto-1.12345"
 	randPV := "randomPV"
 	randCR := "randomCR"
 	randCRB := "randomCRB"
@@ -110,6 +111,11 @@ func TestPostUninstall(t *testing.T) {
 	rancherPV := v1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: pvName,
+		},
+	}
+	rancherPV2 := v1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: pv2Name,
 		},
 	}
 	nonRancherPV := v1.PersistentVolume{
@@ -221,7 +227,7 @@ func TestPostUninstall(t *testing.T) {
 				&controllerCM,
 				&lockCM,
 				&rancherPV,
-				&nonRancherPV,
+				&rancherPV2,
 			},
 		},
 	}
@@ -265,6 +271,8 @@ func TestPostUninstall(t *testing.T) {
 			assert.True(apierrors.IsNotFound(err))
 			// Persistent volume should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: pvName}, &v1.PersistentVolume{})
+			assert.True(apierrors.IsNotFound(err))
+			err = c.Get(context.TODO(), types.NamespacedName{Name: pv2Name}, &v1.PersistentVolume{})
 			assert.True(apierrors.IsNotFound(err))
 		})
 	}
