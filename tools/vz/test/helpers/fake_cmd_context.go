@@ -118,7 +118,7 @@ func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
 	}
 }
 
-// GetDynamicClient - return a dynamic clientset for use with the fake go-client
+// GetDynamicClient - return a dynamic client for use with the fake go-client
 func (rc *FakeRootCmdContext) GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error) {
 	return rc.dynamicClient, nil
 }

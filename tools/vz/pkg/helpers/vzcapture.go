@@ -410,7 +410,7 @@ func RemoveDuplicate(origSlice []string) []string {
 
 // captureAppConfigurations captures the OAM application configurations in the given namespace, as a JSON file
 func captureAppConfigurations(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	appConfigs, err := dynamicClient.Resource(getAppConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	appConfigs, err := dynamicClient.Resource(GetAppConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil
 	}
@@ -429,7 +429,7 @@ func captureAppConfigurations(dynamicClient dynamic.Interface, namespace, captur
 
 // captureComponents captures the OAM components in the given namespace, as a JSON file
 func captureComponents(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	comps, err := dynamicClient.Resource(getComponentConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	comps, err := dynamicClient.Resource(GetComponentConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil
 	}
@@ -448,7 +448,7 @@ func captureComponents(dynamicClient dynamic.Interface, namespace, captureDir st
 
 // captureIngressTraits captures the ingress traits in the given namespace, as a JSON file
 func captureIngressTraits(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	ingTraits, err := dynamicClient.Resource(getIngressTraitConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	ingTraits, err := dynamicClient.Resource(GetIngressTraitConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil
 	}
@@ -467,7 +467,7 @@ func captureIngressTraits(dynamicClient dynamic.Interface, namespace, captureDir
 
 // captureMetricsTraits captures the metrics traits in the given namespace, as a JSON file
 func captureMetricsTraits(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	metricsTraits, err := dynamicClient.Resource(getMetricsTraitConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	metricsTraits, err := dynamicClient.Resource(GetMetricsTraitConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil
 	}
@@ -486,7 +486,7 @@ func captureMetricsTraits(dynamicClient dynamic.Interface, namespace, captureDir
 
 // captureMCComponents captures the MulticlusterComponent in the given namespace, as a JSON file
 func captureMCComponents(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	mcComps, err := dynamicClient.Resource(getMCComponentScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	mcComps, err := dynamicClient.Resource(GetMCComponentScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil
 	}
@@ -505,7 +505,7 @@ func captureMCComponents(dynamicClient dynamic.Interface, namespace, captureDir 
 
 // captureMCComponents captures the MultiClusterApplicationConfiguration in the given namespace, as a JSON file
 func captureMCAppConfigurations(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	mcAppConfigs, err := dynamicClient.Resource(getMCAppConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	mcAppConfigs, err := dynamicClient.Resource(GetMCAppConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil
 	}
@@ -524,7 +524,7 @@ func captureMCAppConfigurations(dynamicClient dynamic.Interface, namespace, capt
 
 // captureAppConfigurations captures the Verrazzano projects in the verrazzano-mc namespace, as a JSON file
 func captureVerrazzanoProjects(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
-	vzProjectConfigs, err := dynamicClient.Resource(getVzProjectsConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
+	vzProjectConfigs, err := dynamicClient.Resource(GetVzProjectsConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil
 	}
@@ -543,7 +543,7 @@ func captureVerrazzanoProjects(dynamicClient dynamic.Interface, captureDir strin
 
 // captureVerrazzanoManagedCluster captures VerrazzanoManagedCluster in verrazzano-mc namespace, as a JSON file
 func captureVerrazzanoManagedCluster(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
-	vmcConfigs, err := dynamicClient.Resource(getManagedClusterConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
+	vmcConfigs, err := dynamicClient.Resource(GetManagedClusterConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		return nil
 	}
@@ -560,8 +560,8 @@ func captureVerrazzanoManagedCluster(dynamicClient dynamic.Interface, captureDir
 	return nil
 }
 
-// getAppConfigScheme returns GroupVersionResource for ApplicationConfiguration
-func getAppConfigScheme() schema.GroupVersionResource {
+// GetAppConfigScheme returns GroupVersionResource for ApplicationConfiguration
+func GetAppConfigScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    oamcore.Group,
 		Version:  oamcore.Version,
@@ -569,8 +569,8 @@ func getAppConfigScheme() schema.GroupVersionResource {
 	}
 }
 
-// getComponentConfigScheme returns GroupVersionResource for Component
-func getComponentConfigScheme() schema.GroupVersionResource {
+// GetComponentConfigScheme returns GroupVersionResource for Component
+func GetComponentConfigScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    oamcore.Group,
 		Version:  oamcore.Version,
@@ -578,8 +578,8 @@ func getComponentConfigScheme() schema.GroupVersionResource {
 	}
 }
 
-// getMetricsTraitConfigScheme returns GroupVersionResource for MetricsTrait
-func getMetricsTraitConfigScheme() schema.GroupVersionResource {
+// GetMetricsTraitConfigScheme returns GroupVersionResource for MetricsTrait
+func GetMetricsTraitConfigScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    vzoamapi.SchemeGroupVersion.Group,
 		Version:  vzoamapi.SchemeGroupVersion.Version,
@@ -587,8 +587,8 @@ func getMetricsTraitConfigScheme() schema.GroupVersionResource {
 	}
 }
 
-// getIngressTraitConfigScheme returns GroupVersionResource for IngressTrait
-func getIngressTraitConfigScheme() schema.GroupVersionResource {
+// GetIngressTraitConfigScheme returns GroupVersionResource for IngressTrait
+func GetIngressTraitConfigScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    vzoamapi.SchemeGroupVersion.Group,
 		Version:  vzoamapi.SchemeGroupVersion.Version,
@@ -596,8 +596,8 @@ func getIngressTraitConfigScheme() schema.GroupVersionResource {
 	}
 }
 
-// getMCComponentScheme returns GroupVersionResource for MulticlusterComponent
-func getMCComponentScheme() schema.GroupVersionResource {
+// GetMCComponentScheme returns GroupVersionResource for MulticlusterComponent
+func GetMCComponentScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
@@ -605,8 +605,8 @@ func getMCComponentScheme() schema.GroupVersionResource {
 	}
 }
 
-// getMCAppConfigScheme returns GroupVersionResource for MulticlusterApplicationConfiguration
-func getMCAppConfigScheme() schema.GroupVersionResource {
+// GetMCAppConfigScheme returns GroupVersionResource for MulticlusterApplicationConfiguration
+func GetMCAppConfigScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
@@ -614,8 +614,8 @@ func getMCAppConfigScheme() schema.GroupVersionResource {
 	}
 }
 
-// getVzProjectsConfigScheme returns GroupVersionResource for VerrazzanoProject
-func getVzProjectsConfigScheme() schema.GroupVersionResource {
+// GetVzProjectsConfigScheme returns GroupVersionResource for VerrazzanoProject
+func GetVzProjectsConfigScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
@@ -623,8 +623,8 @@ func getVzProjectsConfigScheme() schema.GroupVersionResource {
 	}
 }
 
-// getManagedClusterConfigScheme returns GroupVersionResource for VerrazzanoManagedCluster
-func getManagedClusterConfigScheme() schema.GroupVersionResource {
+// GetManagedClusterConfigScheme returns GroupVersionResource for VerrazzanoManagedCluster
+func GetManagedClusterConfigScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
