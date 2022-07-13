@@ -12,6 +12,7 @@ import (
 
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -1575,6 +1576,11 @@ func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
 		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil())).
 		Return(nil)
 	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: constants.VerrazzanoMonitoringNamespace}, gomock.Any()).Return(nil)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: vzconst.CertManagerNamespace}, gomock.Not(gomock.Nil())).
+		Return(nil)
+	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: vzconst.CertManagerNamespace}, gomock.Any()).Return(nil)
 }
 
 // TestMergeMapsNilSourceMap tests mergeMaps function
