@@ -35,11 +35,6 @@ RUN yum update -y \
     && yum clean all \
     && rm -rf /var/cache/yum
 
-# Pull in bitnami helm dependencies for MySQL chart
-WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator/thirdparty/charts/mysql/
-RUN helm dependency build
-WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
-
 RUN groupadd -r verrazzano \
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
@@ -66,6 +61,11 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/out/generated-verrazzano-bom.json ./platform-operator/verrazzano-bom.json
 
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/THIRD_PARTY_LICENSES.txt /licenses/
+
+# Pull in bitnami helm dependencies for MySQL chart
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator/thirdparty/charts/mysql/
+RUN helm dependency build
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
 
 USER 1000
 
