@@ -6,6 +6,7 @@ package fluentd
 import (
 	"context"
 	"fmt"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -263,5 +264,20 @@ func GetHelmManagedResources() []common.HelmManagedResource {
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: fluentdInit, Namespace: ComponentNamespace}},
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: fluentdConfig, Namespace: ComponentNamespace}},
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: fluentdEsConfig, Namespace: ComponentNamespace}},
+	}
+}
+
+// getFluentdManagedResources returns a list of resource types and their namespaced names that are managed by the
+// Fluent helm chart
+func getFluentdManagedResources() []common.HelmManagedResource {
+	return []common.HelmManagedResource{
+		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: ComponentName}},
+		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: ComponentName}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-config", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-es-config", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-init", Namespace: ComponentNamespace}},
+		{Obj: &appsv1.DaemonSet{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
+		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 	}
 }

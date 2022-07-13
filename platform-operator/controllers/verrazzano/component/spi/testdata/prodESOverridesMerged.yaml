@@ -40,6 +40,40 @@ spec:
         ca:
           secretName: "verrazzano-ca-certificate-secret"
           clusterResourceNamespace: "cert-manager"
+      overrides:
+        - values:
+            replicaCount: 2
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: cert-manager
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
+            cainjector:
+              replicaCount: 2
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: cainjector
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+            webhook:
+              replicaCount: 2
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: webhook
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
     coherenceOperator:
       enabled: true
     console:
@@ -125,6 +159,7 @@ spec:
       enabled: true
     kibana:
       enabled: true
+      replicas: 2
     oam:
       enabled: true
     prometheus:

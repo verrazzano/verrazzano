@@ -37,18 +37,19 @@ type prometheusNodeExporterComponent struct {
 func NewComponent() spi.Component {
 	return prometheusNodeExporterComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), chartDir),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
-			ImagePullSecretKeyname:  "serviceAccount.imagePullSecrets[0].name",
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), valuesFile),
-			Dependencies:            []string{promoperator.ComponentName},
-			AppendOverridesFunc:     AppendOverrides,
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), chartDir),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
+			ImagePullSecretKeyname:    "serviceAccount.imagePullSecrets[0].name",
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), valuesFile),
+			Dependencies:              []string{promoperator.ComponentName},
+			AppendOverridesFunc:       AppendOverrides,
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
