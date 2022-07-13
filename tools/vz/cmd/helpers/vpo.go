@@ -31,6 +31,8 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const VpoSimpleLogFormatRegexp = `"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`
+
 // Number of retries after waiting a second for VPO to be ready
 const vpoDefaultWaitRetries = 60 * 5
 
@@ -106,12 +108,6 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
 func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType vzapi.ConditionType, lastTransitionTime metav1.Time) (string, error) {
-	// Find the verrazzano-platform-operator using the app label selector
-	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{constants.VerrazzanoPlatformOperator})
-	labelSelector := labels.NewSelector()
-	labelSelector = labelSelector.Add(*appLabel)
-	podList := corev1.PodList{}
-
 	deployments := []types.NamespacedName{
 		{
 			Name:      constants.VerrazzanoPlatformOperator,
@@ -157,6 +153,15 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	feedbackChan <- true
 
 	// Return the platform operator pod name
+	return GetVerrazzanoPlatformOperatorPodName(client)
+}
+
+// GetVerrazzanoPlatformOperatorPodName returns the VPO pod name
+func GetVerrazzanoPlatformOperatorPodName(client clipkg.Client) (string, error) {
+	appLabel, _ := labels.NewRequirement("app", selection.Equals, []string{constants.VerrazzanoPlatformOperator})
+	labelSelector := labels.NewSelector()
+	labelSelector = labelSelector.Add(*appLabel)
+	podList := corev1.PodList{}
 	err := client.List(
 		context.TODO(),
 		&podList,
@@ -180,21 +185,10 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 // WaitForOperationToComplete waits for the Verrazzano install/upgrade to complete and
 // shows the logs of the ongoing Verrazzano install/upgrade.
 func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat LogFormat, condType vzapi.ConditionType) error {
-	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
-	//
-	// The stream is intentionally not closed due to not being able to cancel a blocking read.  The calls to
-	// read input from this stream (sc.Scan) are blocking.  If you try to close the stream, it hangs until the
-	// next read is satisfied, which may never occur if there is no more log output.
-	sinceTime := metav1.Now()
-	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(vpoPodName, &corev1.PodLogOptions{
-		Container: constants.VerrazzanoPlatformOperator,
-		Follow:    true,
-		SinceTime: &sinceTime,
-	}).Stream(context.TODO())
+	rc, err := GetLogStream(kubeClient, vpoPodName)
 	if err != nil {
-		return fmt.Errorf("Failed to read the %s log file: %s", constants.VerrazzanoPlatformOperator, err.Error())
+		return err
 	}
-
 	resChan := make(chan error, 1)
 	defer close(resChan)
 
@@ -203,22 +197,14 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 
 	// goroutine to stream log file output - this goroutine will be left running when this
 	// function is exited because there is no way to cancel the blocking read to the input stream.
-	re := regexp.MustCompile(`"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`)
+	re := regexp.MustCompile(VpoSimpleLogFormatRegexp)
 	go func(outputStream io.Writer) {
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for {
 			sc.Scan()
 			if logFormat == LogFormatSimple {
-				res := re.FindAllStringSubmatch(sc.Text(), -1)
-				// res[0][2] is the timestamp
-				// res[0][1] is the level
-				// res[0][4] is the message
-				if res != nil {
-					// Print each log message in the form "timestamp level message".
-					// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
-					fmt.Fprintf(outputStream, fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
-				}
+				PrintSimpleLogFormat(sc, outputStream, re)
 			} else if logFormat == LogFormatJSON {
 				fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
 			}
@@ -261,6 +247,38 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	}
 
 	return nil
+}
+
+// GetLogStream returns the stream to the verrazzano-platform-operator log file
+func GetLogStream(kubeClient kubernetes.Interface, vpoPodName string) (io.ReadCloser, error) {
+	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
+	//
+	// The stream is intentionally not closed due to not being able to cancel a blocking read.  The calls to
+	// read input from this stream (sc.Scan) are blocking.  If you try to close the stream, it hangs until the
+	// next read is satisfied, which may never occur if there is no more log output.
+	sinceTime := metav1.Now()
+	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(vpoPodName, &corev1.PodLogOptions{
+		Container: constants.VerrazzanoPlatformOperator,
+		Follow:    true,
+		SinceTime: &sinceTime,
+	}).Stream(context.TODO())
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read the %s log file: %s", constants.VerrazzanoPlatformOperator, err.Error())
+	}
+	return rc, nil
+}
+
+// PrintSimpleLogFormat display a VPO log message with the simple log format
+func PrintSimpleLogFormat(sc *bufio.Scanner, outputStream io.Writer, regexp *regexp.Regexp) {
+	res := regexp.FindAllStringSubmatch(sc.Text(), -1)
+	// res[0][2] is the timestamp
+	// res[0][1] is the level
+	// res[0][4] is the message
+	if res != nil {
+		// Print each log message in the form "timestamp level message".
+		// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
+		fmt.Fprintf(outputStream, fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
+	}
 }
 
 // return the operation string to display

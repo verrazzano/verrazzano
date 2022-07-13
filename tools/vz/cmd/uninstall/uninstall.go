@@ -8,10 +8,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"regexp"
 	"time"
 
 	"github.com/spf13/cobra"
-	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -20,8 +20,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,6 +50,8 @@ var uninstallWaitRetries = uninstallDefaultWaitRetries
 var propagationPolicy = metav1.DeletePropagationBackground
 var deleteOptions = &clipkg.DeleteOptions{PropagationPolicy: &propagationPolicy}
 
+var logsEnum = cmdhelpers.LogFormatSimple
+
 func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -61,6 +61,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
+	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 
 	// Remove CRD's flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(crdsFlag, false, crdsFlagHelp)
@@ -99,6 +100,12 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 
+	// Get the log format value
+	logFormat, err := cmdhelpers.GetLogFormat(cmd)
+	if err != nil {
+		return err
+	}
+
 	// Delete the Verrazzano custom resource.
 	err = client.Delete(context.TODO(), vz)
 	if err != nil {
@@ -106,15 +113,11 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
 
-	// Get the uninstall job to stream the logs.
-	jobName := constants.VerrazzanoUninstall + "-" + vz.Name
-	uninstallPodName, err := getUninstallPodName(client, vzHelper, jobName)
-	if err != nil {
-		return err
-	}
+	// Get the VPO pod to stream the logs from.
+	vpoPodName, err := cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
 
 	// Wait for the Verrazzano uninstall to complete.
-	err = waitForUninstallToComplete(client, kubeClient, vzHelper, uninstallPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout)
+	err = waitForUninstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
 	if err != nil {
 		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
 	}
@@ -150,103 +153,11 @@ func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) error {
 	return nil
 }
 
-// getUninstallPodName returns the name of the pod for the verrazzano-uninstall job
-// The uninstall job is triggered by deleting the Verrazzano custom resource
-func getUninstallPodName(c client.Client, vzHelper helpers.VZHelper, jobName string) (string, error) {
-	// Find the verrazzano-uninstall pod using the job-name label selector
-	jobNameLabel, _ := labels.NewRequirement("job-name", selection.Equals, []string{jobName})
-	labelSelector := labels.NewSelector()
-	labelSelector = labelSelector.Add(*jobNameLabel)
-	podList := corev1.PodList{}
-
-	// Provide the user with feedback while waiting for the verrazzano-uninstall pod to be ready
-	feedbackChan := make(chan bool)
-	defer close(feedbackChan)
-	go func(outputStream io.Writer) {
-		seconds := 0
-		for {
-			select {
-			case <-feedbackChan:
-				fmt.Fprint(outputStream, "\n")
-				return
-			default:
-				time.Sleep(verrazzanoUninstallJobDetectWait * time.Second)
-				seconds += verrazzanoUninstallJobDetectWait
-				fmt.Fprintf(outputStream, fmt.Sprintf("\rWaiting for %s pod to be ready before starting uninstall - %d seconds", jobName, seconds))
-			}
-		}
-	}(vzHelper.GetOutputStream())
-
-	// Wait for the verrazzano-uninstall pod to be found
-	seconds := 0
-	retryCount := 0
-	for {
-		retryCount++
-		if retryCount > uninstallWaitRetries {
-			return "", fmt.Errorf("Waiting for %s, %s pod not found in namespace %s", jobName, jobName, vzconstants.VerrazzanoInstallNamespace)
-		}
-		time.Sleep(verrazzanoUninstallJobDetectWait * time.Second)
-		seconds += verrazzanoUninstallJobDetectWait
-
-		err := c.List(
-			context.TODO(),
-			&podList,
-			&client.ListOptions{
-				Namespace:     vzconstants.VerrazzanoInstallNamespace,
-				LabelSelector: labelSelector,
-			})
-		if err != nil {
-			return "", fmt.Errorf("Waiting for %s, failed to list pods: %s", jobName, err.Error())
-		}
-		if len(podList.Items) == 0 {
-			continue
-		}
-		if len(podList.Items) > 1 {
-			return "", fmt.Errorf("Waiting for %s, more than one %s pod was found in namespace %s", jobName, jobName, vzconstants.VerrazzanoInstallNamespace)
-		}
-		feedbackChan <- true
-		break
-	}
-
-	// We found the verrazzano-uninstall pod. Wait until it's containers are ready.
-	pod := &corev1.Pod{}
-	seconds = 0
-	for {
-		time.Sleep(verrazzanoUninstallJobDetectWait * time.Second)
-		seconds += verrazzanoUninstallJobDetectWait
-
-		err := c.Get(context.TODO(), types.NamespacedName{Namespace: podList.Items[0].Namespace, Name: podList.Items[0].Name}, pod)
-		if err != nil {
-			return "", err
-		}
-
-		ready := true
-		for _, container := range pod.Status.ContainerStatuses {
-			if !container.Ready {
-				ready = false
-				break
-			}
-		}
-
-		if ready {
-			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "\n")
-			break
-		}
-	}
-	return pod.Name, nil
-}
-
 // waitForUninstallToComplete waits for the Verrazzano resource to no longer exist
-func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, uninstallPodName string, namespacedName types.NamespacedName, timeout time.Duration) error {
-	// Stream the logs from the uninstall job starting at the current time.
-	sinceTime := metav1.Now()
-	rc, err := kubeClient.CoreV1().Pods(vzconstants.VerrazzanoInstallNamespace).GetLogs(uninstallPodName, &corev1.PodLogOptions{
-		Container: "uninstall",
-		Follow:    true,
-		SinceTime: &sinceTime,
-	}).Stream(context.TODO())
+func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
+	rc, err := cmdhelpers.GetLogStream(kubeClient, vpoPodName)
 	if err != nil {
-		return fmt.Errorf("Failed to read the %s log file: %s", uninstallPodName, err.Error())
+		return nil
 	}
 
 	resChan := make(chan error, 1)
@@ -255,11 +166,16 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 	feedbackChan := make(chan bool)
 	defer close(feedbackChan)
 
+	re := regexp.MustCompile(cmdhelpers.VpoSimpleLogFormatRegexp)
 	go func(outputStream io.Writer) {
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for sc.Scan() {
-			_, _ = fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
+			if logFormat == cmdhelpers.LogFormatSimple {
+				cmdhelpers.PrintSimpleLogFormat(sc, outputStream, re)
+			} else if logFormat == cmdhelpers.LogFormatJSON {
+				_, _ = fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
+			}
 		}
 	}(vzHelper.GetOutputStream())
 
