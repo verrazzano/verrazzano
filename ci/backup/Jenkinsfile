@@ -486,8 +486,8 @@ def deleteBucket(bucketName) {
 
 def printHookLogs() {
    sh """
-       HOOK_LOG_FILE=$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -al /tmp/ | grep verrazzano | cut -d ' ' -f9)
-       kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- cat /tmp/${HOOK_LOG_FILE}
+     HOOK_LOG_FILE=$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -al /tmp/ | grep verrazzano | cut -d ' ' -f9)
+     kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- cat /tmp/${HOOK_LOG_FILE}
    """
 }
 
