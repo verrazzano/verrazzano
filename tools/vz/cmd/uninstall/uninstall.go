@@ -40,13 +40,6 @@ vz uninstall
 vz uninstall --timeout 30m`
 )
 
-// Number of retries after waiting a second for uninstall pod to be ready
-const uninstallDefaultWaitRetries = 300
-
-const verrazzanoUninstallJobDetectWait = 1
-
-var uninstallWaitRetries = uninstallDefaultWaitRetries
-
 var propagationPolicy = metav1.DeletePropagationBackground
 var deleteOptions = &clipkg.DeleteOptions{PropagationPolicy: &propagationPolicy}
 
