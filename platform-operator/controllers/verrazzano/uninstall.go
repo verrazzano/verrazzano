@@ -7,10 +7,12 @@ import (
 	"context"
 
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -219,9 +221,12 @@ func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
 	return true, nil
 }
 
-// uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individal component uninstalls
+// uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
 func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, log vzlog.VerrazzanoLogger) error {
-	return rancher.PostUninstall(ctx)
+	if err := rancher.PostUninstall(ctx); err != nil {
+		return err
+	}
+	return r.deleteNamespaces(log)
 }
 
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
@@ -236,4 +241,14 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 		return log.ErrorfNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
 	}
 	return nil
+}
+
+//deleteNamespaces Cleans up any namespaces shared by multiple components
+func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
+	return resource.Resource{
+		Name:   promoperator.ComponentNamespace,
+		Client: r.Client,
+		Object: &corev1.Namespace{},
+		Log:    log,
+	}.RemoveFinalizersAndDelete()
 }

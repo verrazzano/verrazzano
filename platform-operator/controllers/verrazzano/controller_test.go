@@ -47,6 +47,22 @@ const testBomFilePath = "testdata/test_bom.json"
 const installPrefix = "verrazzano-install-"
 const uninstallPrefix = "verrazzano-uninstall-"
 
+type nsMatcher struct {
+	Name string
+}
+
+func (nm nsMatcher) Matches(i interface{}) bool {
+	ns, ok := i.(*corev1.Namespace)
+	if !ok {
+		return false
+	}
+	return ns.Name == nm.Name
+}
+
+func (nsMatcher) String() string {
+	return "namespace matcher"
+}
+
 // TestGetClusterRoleBindingName tests generating a ClusterRoleBinding name
 // GIVEN a name and namespace
 // WHEN the method is called
@@ -464,21 +480,8 @@ func TestUninstallComplete(t *testing.T) {
 		Time: time.Now(),
 	}
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
-				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
-				},
-				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
-					return false, nil
-				},
-			},
-		}
-	})
-
-	config.TestProfilesDir = "../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
+	setFakeComponentsDisabled()
+	defer registry.ResetGetComponentsFn()
 
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -519,6 +522,9 @@ func TestUninstallComplete(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect calls to delete the shared namespaces
+	expectSharedNamespaceDeletes(mock)
 
 	// Expect a call to get the uninstall Job - return that it exists
 	mock.EXPECT().
@@ -595,6 +601,9 @@ func TestUninstallStarted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	setFakeComponentsDisabled()
+	defer registry.ResetGetComponentsFn()
+
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -628,6 +637,9 @@ func TestUninstallStarted(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect calls to delete the shared namespaces
+	expectSharedNamespaceDeletes(mock)
 
 	// Expect a call to get the uninstall Job - return that it does not exist
 	mock.EXPECT().
@@ -663,6 +675,21 @@ func TestUninstallStarted(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+}
+
+func setFakeComponentsDisabled() {
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{
+				HelmComponent: helm2.HelmComponent{
+					ReleaseName: "fake",
+				},
+				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
+					return false, nil
+				},
+			},
+		}
+	})
 }
 
 // TestUninstallFailed tests the Reconcile method for the following use case
@@ -781,18 +808,8 @@ func TestUninstallSucceeded(t *testing.T) {
 		Time: time.Now(),
 	}
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
-				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
-				},
-				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
-					return false, nil
-				},
-			},
-		}
-	})
+	setFakeComponentsDisabled()
+	defer registry.ResetGetComponentsFn()
 
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -826,6 +843,9 @@ func TestUninstallSucceeded(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect calls to delete the shared namespaces
+	expectSharedNamespaceDeletes(mock)
 
 	// Expect a call to get the uninstall Job - return that it exists and the job succeeded
 	mock.EXPECT().
@@ -999,6 +1019,9 @@ func TestServiceAccountGetError(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
+	// Expect calls to delete the shared namespaces
+	expectSharedNamespaceDeletes(mock)
+
 	// Expect a call to get the uninstall Job - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
@@ -1044,18 +1067,8 @@ func TestServiceAccountCreateError(t *testing.T) {
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
-				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
-				},
-				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
-					return false, nil
-				},
-			},
-		}
-	})
+	setFakeComponentsDisabled()
+	defer registry.ResetGetComponentsFn()
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
@@ -1090,6 +1103,9 @@ func TestServiceAccountCreateError(t *testing.T) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		Return(errors.NewBadRequest("failed to create ServiceAccount"))
+
+	// Expect calls to delete the shared namespaces
+	expectSharedNamespaceDeletes(mock)
 
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
@@ -1126,18 +1142,8 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
-				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
-				},
-				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
-					return false, nil
-				},
-			},
-		}
-	})
+	setFakeComponentsDisabled()
+	defer registry.ResetGetComponentsFn()
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
@@ -1170,6 +1176,9 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest("failed to get ClusterRoleBinding"))
+
+	// Expect calls to delete the shared namespaces
+	expectSharedNamespaceDeletes(mock)
 
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
@@ -1206,18 +1215,8 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
-				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
-				},
-				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
-					return false, nil
-				},
-			},
-		}
-	})
+	setFakeComponentsDisabled()
+	defer registry.ResetGetComponentsFn()
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
@@ -1255,6 +1254,9 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		Return(errors.NewBadRequest("failed to create ClusterRoleBinding"))
+
+	// Expect calls to delete the shared namespaces
+	expectSharedNamespaceDeletes(mock)
 
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
@@ -1566,6 +1568,13 @@ func expectDeleteClusterRoleBinding(mock *mocks.MockClient, namespace string, na
 	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 	//	mock.EXPECT().Delete(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Any()).Return(nil)
+}
+
+func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil())).
+		Return(nil)
+	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: constants.VerrazzanoMonitoringNamespace}, gomock.Any()).Return(nil)
 }
 
 // TestMergeMapsNilSourceMap tests mergeMaps function
