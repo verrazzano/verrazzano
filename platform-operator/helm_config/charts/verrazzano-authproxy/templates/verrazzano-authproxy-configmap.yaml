@@ -491,8 +491,8 @@ data:
         return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
     end
 
-    function me.makePrometheusBackendUrl(port)
-        return 'http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local'..':'..port
+    function me.makeMonitoringComponentBackendUrl(serviceName, port)
+        return 'http://'..serviceName..'.verrazzano-monitoring.svc.cluster.local'..':'..port
     end
 
     function me.getBackendServerUrlFromName(backend)
@@ -507,7 +507,7 @@ data:
         elseif backend == 'grafana' then
             serverUrl = me.makeVmiBackendUrl(backend, '3000')
         elseif backend == 'prometheus' then
-            serverUrl = me.makePrometheusBackendUrl('9090')
+            serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '9090')
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl(backend, '5601')
         elseif backend == 'elasticsearch' then
@@ -515,7 +515,7 @@ data:
         elseif backend == 'kiali' then
             serverUrl = me.makeVmiBackendUrl(backend, '20001')
         elseif backend == 'jaeger' then
-            serverUrl = 'http://jaeger-operator-jaeger-query.verrazzano-monitoring.svc.cluster.local:16686'
+            serverUrl = me.makeMonitoringComponentBackendUrl('jaeger-operator-jaeger-query', '16686')
         else
             me.not_found("Invalid backend name '"..backend.."'")
         end
