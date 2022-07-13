@@ -79,14 +79,17 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Get the Verrazzano resource
-	startTime := time.Now().UnixMilli()
-	defer metricsexporter.CollectReconcileMetricsTime(startTime)
+	//Add error as true each time it returns
+	startTime := metricsexporter.GetUTCFunction()()
+	var err error
+	defer func() {
+		metricsexporter.CollectReconcileMetrics(startTime, err)
+	}()
 	if ctx == nil {
 		ctx = context.TODO()
 	}
 	vz := &installv1alpha1.Verrazzano{}
-	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
-		metricsexporter.CollectReconcileMetricsError()
+	if err = r.Get(ctx, req.NamespacedName, vz); err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
 		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
@@ -105,7 +108,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		ControllerName: "verrazzano",
 	})
 	if err != nil {
-		metricsexporter.CollectReconcileMetricsError()
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
@@ -117,7 +119,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
-		metricsexporter.CollectReconcileMetricsError()
 		return newRequeueWithDelay(), nil
 	}
 	// The Verrazzano resource has been reconciled.

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 
@@ -171,16 +172,13 @@ func TestInstall(t *testing.T) {
 			// Create and make the request
 			request := newRequest(namespace, name)
 			reconciler := newVerrazzanoReconciler(mock)
-			reconcileCountBefore := metricsexporter.GetReconcileCounterValueTesting()
 			result, err := reconciler.Reconcile(nil, request)
 			// Get the counter function for metrics here//
-			reconcileCountAfter := metricsexporter.GetReconcileCounterValueTesting()
 			asserts.NoError(err)
 
 			// Validate the results
 			mocker.Finish()
 			asserts.Equal(false, result.Requeue)
-			asserts.Equal(float64(reconcileCountAfter-float64(1)), float64(reconcileCountBefore))
 			asserts.Equal(time.Duration(0), result.RequeueAfter)
 		})
 	}
@@ -1627,16 +1625,17 @@ func TestNonIntersectingMergeNestedMap(t *testing.T) {
 // TestReconcileErrorCounter tests Reconcile function
 // GIVEN a faulty request
 // WHEN the reconcile function is called
-// THEN an error occurs and the metric that counts reconcile counter errors should increase
+// THEN an error occurs and an additional label should be added that indicates an error occured
 func TestReconcileErrorCounter(t *testing.T) {
 	asserts := assert.New(t)
 	clientBuilder := fakes.NewClientBuilder()
 	fakeClient := clientBuilder.Build()
 	errorRequest := newRequest("bad namespace", "test")
 	reconciler := newVerrazzanoReconciler(fakeClient)
-	errorReconcileCounterBefore := metricsexporter.GetReconcileErrorCounterValueTesting()
+	metricsexporter.SetUTCFunction(func() int64 { return int64(111122232832934343) })
 	reconciler.Reconcile(nil, errorRequest)
-	errorReconcileCounterAfter := metricsexporter.GetReconcileErrorCounterValueTesting()
-	asserts.Equal(errorReconcileCounterBefore, errorReconcileCounterAfter-1)
-
+	metricsexporter.SetUTCFunction(func() int64 { return time.Now().UnixMilli() })
+	gaugeVectorForTesting := metricsexporter.GetReconcileDurationMetricGaugeVector()
+	metricTest, _ := gaugeVectorForTesting.GetMetricWithLabelValues("111122232832934343_error:true")
+	asserts.NotEqual(float64(0), testutil.ToFloat64(metricTest))
 }

@@ -4,6 +4,7 @@
 package metricsexporter
 
 import (
+	"errors"
 	"strconv"
 	"testing"
 	"time"
@@ -14,38 +15,41 @@ import (
 )
 
 //TestCollectReconcileMetrics tests the CollectReconcileMetrics fn
-//GIVEN a call to CollectReconcileMetrics
-//WHEN A starting time is passed into the function
-//THEN the function updates the reconcileCounterMetric by 1 and creates a new time for that reconcile in the reconcileLastDurationMetric
+//GIVEN a call to CollectReconcileMetricsTime
+//WHEN A starting time is passed into the function and an boolean value indicating that an error occured
+//THEN the function adds a new label to the metric and the value of the metric with that label is greater than zero
 func TestCollectReconcileMetrics(t *testing.T) {
-	//Set to 1 because it is already set in the other test it appears (Ask how to change this)
 	assert := asserts.New(t)
 	tests := []struct {
-		name                   string
-		expectedIncrementValue float64
+		name                        string
+		errorValue                  error
+		expectedErrorStringToAppend string
 	}{
 		{
-			name:                   "Test that reoncile counter is incremented by one when function is called",
-			expectedIncrementValue: float64(1),
+			name:                        "Test that reoncile counter is incremented by one when function is called",
+			errorValue:                  nil,
+			expectedErrorStringToAppend: "",
 		},
 		{
-			name:                   "Test that reconcile Duration is being updated correctly",
-			expectedIncrementValue: float64(2),
+			name:                        "Test that reconcile Duration is being updated correctly",
+			errorValue:                  errors.New("Test Error For Unit Test"),
+			expectedErrorStringToAppend: "_error:true",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			startTime := time.Now().UnixMilli()
 			time.Sleep(1 * time.Millisecond)
-			CollectReconcileMetricsTime(startTime)
-			assert.Equal(tt.expectedIncrementValue, testutil.ToFloat64(reconcileCounterMetric))
-			//Reconcile Index is decremented by one because when the function is called Reconcile index is incremented by one at the end of the fn
-			//However, the gauge inside the gauge vector that we want to test is accessed with the original value of reconcile index that was used in the function call
-			//Before passing
-			assert.Greater(testutil.ToFloat64(reconcileLastDurationMetric.WithLabelValues(strconv.Itoa(reconcileIndex-1))), float64(0))
-		})
-	}
+			CollectReconcileMetrics(startTime, tt.errorValue)
+			gaugeVector := GetReconcileDurationMetricGaugeVector()
+			labelString := strconv.Itoa(int(startTime)) + tt.expectedErrorStringToAppend
+			gaugeMetric, err := gaugeVector.GetMetricWithLabelValues(labelString)
+			assert.NoError(err)
+			assert.Greater(testutil.ToFloat64(gaugeMetric), float64(0))
 
+		})
+
+	}
 }
 
 // TestAnalyzeVZCR tests the AnalyzeVZCR fn
@@ -94,6 +98,24 @@ func TestAnalyzeVZCR(t *testing.T) {
 						{
 							Type:               installv1alpha1.CondUpgradeStarted,
 							LastTransitionTime: "2022-07-06T13:58:59Z",
+						},
+					},
+				},
+			},
+		},
+	}
+	upgradeStartTimeisAfterUpgradeCompletedTimeVZCR := installv1alpha1.Verrazzano{
+		Status: installv1alpha1.VerrazzanoStatus{
+			Components: installv1alpha1.ComponentStatusMap{
+				"unregistered test component": &installv1alpha1.ComponentStatusDetails{
+					Conditions: []installv1alpha1.Condition{
+						{
+							Type:               installv1alpha1.CondUpgradeStarted,
+							LastTransitionTime: "2022-07-06T13:55:45Z",
+						},
+						{
+							Type:               installv1alpha1.CondUpgradeComplete,
+							LastTransitionTime: "2022-07-06T13:54:59Z",
 						},
 					},
 				},
@@ -152,6 +174,24 @@ func TestAnalyzeVZCR(t *testing.T) {
 			},
 		},
 	}
+	installStartTimeisAfterInstallCompletedTimeVZCR := installv1alpha1.Verrazzano{
+		Status: installv1alpha1.VerrazzanoStatus{
+			Components: installv1alpha1.ComponentStatusMap{
+				"unregistered test component": &installv1alpha1.ComponentStatusDetails{
+					Conditions: []installv1alpha1.Condition{
+						{
+							Type:               installv1alpha1.CondInstallStarted,
+							LastTransitionTime: "2022-07-06T13:55:45Z",
+						},
+						{
+							Type:               installv1alpha1.CondInstallComplete,
+							LastTransitionTime: "2022-07-06T13:54:59Z",
+						},
+					},
+				},
+			},
+		},
+	}
 
 	tests := []struct {
 		name                          string
@@ -184,6 +224,12 @@ func TestAnalyzeVZCR(t *testing.T) {
 			expectedValueForUpdateMetric:  float64(0),
 		},
 		{
+			name:                          "test that a VZ CR with an upgrade start time after its upgrade completion time does not update the update duration metric for that component",
+			vzcr:                          upgradeStartTimeisAfterUpgradeCompletedTimeVZCR,
+			expectedValueForInstallMetric: float64(46),
+			expectedValueForUpdateMetric:  float64(0),
+		},
+		{
 			name:                          "test populated Verrazzano where both install and upgrade have started and completed",
 			vzcr:                          upgradeAndInstallPopulatedVZCR,
 			expectedValueForInstallMetric: float64(46),
@@ -192,6 +238,12 @@ func TestAnalyzeVZCR(t *testing.T) {
 		{
 			name:                          "test that an unrecognized component does not cause a seg fault, the analyze VZCR function keeps going on",
 			vzcr:                          componentNameNotInDictionaryVZCR,
+			expectedValueForInstallMetric: float64(46),
+			expectedValueForUpdateMetric:  float64(1),
+		},
+		{
+			name:                          "test that a VZ CR with an install start time after its install completion time does not update the install duration metric for that component",
+			vzcr:                          installStartTimeisAfterInstallCompletedTimeVZCR,
 			expectedValueForInstallMetric: float64(46),
 			expectedValueForUpdateMetric:  float64(1),
 		},
