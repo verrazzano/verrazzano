@@ -52,6 +52,11 @@ func TestCollectReconcileMetrics(t *testing.T) {
 		})
 	}
 }
+
+//TestErrorCounterMetric tests the TestErrorCounterMetric fn
+//GIVEN a call to TestErrorCounterMetric
+//WHEN the function is called
+//THEN the function increments the reconcile error counter metric
 func TestErrorCounterMetric(t *testing.T) {
 	assert := asserts.New(t)
 	tests := []struct {

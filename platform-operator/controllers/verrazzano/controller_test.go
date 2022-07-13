@@ -1730,7 +1730,7 @@ func TestNonIntersectingMergeNestedMap(t *testing.T) {
 // TestReconcileErrorCounter tests Reconcile function
 // GIVEN a faulty request
 // WHEN the reconcile function is called
-// THEN an error occurs and an additional label should be added that indicates an error occured
+// THEN an error occurs and the error counter metric is incremented
 func TestReconcileErrorCounter(t *testing.T) {
 	asserts := assert.New(t)
 	clientBuilder := fakes.NewClientBuilder()
