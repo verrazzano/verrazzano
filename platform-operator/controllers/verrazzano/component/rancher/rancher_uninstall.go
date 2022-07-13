@@ -192,7 +192,7 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to list the PersistentVolumes: %v", err)
 	}
 	for i := range pvList.Items {
-		err = deleteMatchingObject(ctx, []string{"pvc-"}, &pvList.Items[i])
+		err = deleteMatchingObject(ctx, []string{"pvc-", "ocid1.volume"}, &pvList.Items[i])
 		if err != nil {
 			return err
 		}
