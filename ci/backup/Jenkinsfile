@@ -91,8 +91,8 @@ pipeline {
         // Backup parameters
         VELERO_NAMESPACE = "velero"
         VELERO_SECRET_NAME = "velero-backup-creds"
-        OCI_OS_ACCESS_KEY = credentials('velero-key')
-        OCI_OS_ACCESS_SECRET_KEY = credentials('velero-key-id')
+        OCI_OS_ACCESS_KEY = credentials('velero-key-id')
+        OCI_OS_ACCESS_SECRET_KEY = credentials('velero-key')
         OCI_OS_COMPARTMENT_ID = credentials('v8o-velero-test')
         OCI_OS_BUCKET_ID = "${ociOsBucketName}"
         OCI_OS_BUCKET_NAME = "bucket-${OCI_OS_BUCKET_ID}"
@@ -267,12 +267,15 @@ pipeline {
                         script {
                           backup_id = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_start.sh").trim()
                           println("Opensearch backup done ${backup_id}")
-
                         }
                     }
                     post {
                       always {
                          script {
+                            sh """
+                              # debug
+                              kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
+                            """
                             dumpK8sCluster('velero-backup-tshoot-cluster-dump')
                          }
                       }
@@ -328,6 +331,10 @@ pipeline {
                         script {
                             println("Opensearch restore logs")
                             hookLogs = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/display_hook_logs.sh").trim()
+                            sh """
+                             # debug
+                             kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME} -o yaml
+                            """
                         }
                     }
                 }
