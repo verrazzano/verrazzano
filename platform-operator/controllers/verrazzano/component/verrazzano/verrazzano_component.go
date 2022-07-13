@@ -160,11 +160,6 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 
-// PostUninstall Verrazzano post-uninstall processing
-func (c verrazzanoComponent) PostUninstall(ctx spi.ComponentContext) error {
-
-}
-
 // IsEnabled verrazzano-specific enabled check for installation
 func (c verrazzanoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Verrazzano
