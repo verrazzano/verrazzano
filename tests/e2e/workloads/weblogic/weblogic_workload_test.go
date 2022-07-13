@@ -21,7 +21,6 @@ import (
 const (
 	shortWaitTimeout         = 10 * time.Minute
 	shortPollingInterval     = 10 * time.Second
-	longWaitTimeout          = 20 * time.Minute
 	longPollingInterval      = 20 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
@@ -63,7 +62,7 @@ var _ = BeforeSuite(func() {
 			AbortSuite(fmt.Sprintf("WebLogic admin server pod is not running in the namespace: %v, error: %v", namespace, err))
 		}
 		return result
-	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application")
+	}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Failed to deploy the WebLogic Application")
 
 	var err error
 	// Get the host from the Istio gateway resource.
@@ -193,17 +192,17 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", wlDomain)
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", wlDomain)
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_server_state_val", "weblogic_domainName", wlDomain)
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 			)
 		})
@@ -223,7 +222,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 					func() {
 						Eventually(func() bool {
 							return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", wlsAdminServer)
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+						}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 					},
 				)
 			})
@@ -287,7 +286,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 								{Key: "serverName2.keyword", Value: "AdminServer"},
 								{Key: "message", Value: "standby threads"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
@@ -304,7 +303,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 								{Key: "serverName2", Value: "AdminServer"},
 								{Key: "message", Value: "Self-tuning"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
 			},
 		)
