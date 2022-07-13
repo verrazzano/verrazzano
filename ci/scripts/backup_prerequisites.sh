@@ -23,7 +23,7 @@ EOF
 echo "List secrets under '${VELERO_NAMESPACE}' namespace"
 kubectl get secrets -n ${VELERO_NAMESPACE}
 
-kubectl create secret generic -n ${VELERO_NAMESPACE} ${VELERO_SECRET_NAME} --from-file=${SECRETS_FILE}
+kubectl create secret generic -n ${VELERO_NAMESPACE} ${VELERO_SECRET_NAME} --from-file=cloud=${SECRETS_FILE}
 
 echo "List secrets under '${VELERO_NAMESPACE}' namespace after secret is created"
 kubectl get secrets -n ${VELERO_NAMESPACE}
