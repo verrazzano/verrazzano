@@ -22,22 +22,18 @@ func TestCollectReconcileMetrics(t *testing.T) {
 	tests := []struct {
 		name                   string
 		expectedIncrementValue float64
-		expectedErrorValue     float64
 	}{
 		{
 			name:                   "Test that reoncile counter is incremented by one when function is called",
 			expectedIncrementValue: float64(1),
-			expectedErrorValue:     float64(0),
 		},
 		{
 			name:                   "Test that reconcile Duration is being updated correctly",
-			expectedIncrementValue: float64(2),
-			expectedErrorValue:     float64(0),
+			expectedIncrementValue: float64(1),
 		},
 		{
 			name:                   "Test that reconcile Error counter metric is incremented when a value of ErrorOccured is passed into the function",
-			expectedIncrementValue: float64(3),
-			expectedErrorValue:     float64(1),
+			expectedIncrementValue: float64(1),
 		},
 	}
 	for _, tt := range tests {
@@ -45,12 +41,33 @@ func TestCollectReconcileMetrics(t *testing.T) {
 			startTime := time.Now().UnixMilli()
 			time.Sleep(1 * time.Millisecond)
 			reconcileCounterBefore := testutil.ToFloat64(reconcileCounterMetric)
-			errorCounterBefore := testutil.ToFloat64(reconcileErrorCounterMetric)
 			CollectReconcileMetricsTime(startTime)
 			reconcileCounterAfter := testutil.ToFloat64(reconcileCounterMetric)
-			errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric)
 			assert.Equal(tt.expectedIncrementValue, reconcileCounterAfter-reconcileCounterBefore)
-			assert.Equal(tt.expectedErrorValue, errorCounterAfter-errorCounterBefore)
+			//Reconcile Index is decremented by one because when the function is called Reconcile index is incremented by one at the end of the fn
+			//However, the gauge inside the gauge vector that we want to test is accessed with the original value of reconcile index that was used in the function call
+			//Before passing
+			assert.Greater(testutil.ToFloat64(reconcileLastDurationMetric.WithLabelValues(strconv.Itoa(reconcileIndex-1))), float64(0))
+		})
+	}
+}
+func TestErrorCounterMetric(t *testing.T) {
+	assert := asserts.New(t)
+	tests := []struct {
+		name                        string
+		expectedErrorIncrementValue float64
+	}{
+		{
+			name:                        "Test that reoncile counter is incremented by one when function is called",
+			expectedErrorIncrementValue: float64(1),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errorCounterBefore := testutil.ToFloat64(reconcileErrorCounterMetric)
+			CollectReconcileMetricsError()
+			errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric)
+			assert.Equal(tt.expectedErrorIncrementValue, errorCounterAfter-errorCounterBefore)
 			//Reconcile Index is decremented by one because when the function is called Reconcile index is incremented by one at the end of the fn
 			//However, the gauge inside the gauge vector that we want to test is accessed with the original value of reconcile index that was used in the function call
 			//Before passing

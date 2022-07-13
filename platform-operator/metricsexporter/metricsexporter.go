@@ -378,19 +378,6 @@ func CollectReconcileMetricsTime(startTime int64) {
 func CollectReconcileMetricsError() {
 	reconcileErrorCounterMetric.Add(1)
 }
-func CollectReconcileMetrics(startTime int64, err error) {
-	durationTime := (float64(time.Now().UnixMilli() - startTime)) / 1000.0
-	// timestamp_error:true
-	labelForReconcile := ""
-	if err != nil {
-		labelForReconcile = strconv.Itoa(int(startTime)) + "_error:true"
-	}
-	if err == nil {
-		labelForReconcile = strconv.Itoa(int(startTime))
-	}
-	metric, _ := reconcileLastDurationMetric.GetMetricWithLabelValues(labelForReconcile)
-	metric.Set(float64(durationTime))
-}
 
 func AnalyzeVZCR(CR vzapi.Verrazzano) {
 	//Get the VZ CR Component Map (Store it in this function, so the state does not change)

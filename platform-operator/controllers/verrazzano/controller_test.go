@@ -192,7 +192,7 @@ func TestInstall(t *testing.T) {
 			result, err := reconciler.Reconcile(nil, request)
 			reconcileCounterAfter := metricsexporter.GetReconcileCounterMetric()
 			// Test the counter function here
-			asserts.Equal(reconcileCounterBefore, reconcileCounterAfter)
+			asserts.Equal(reconcileCounterBefore, reconcileCounterAfter-1)
 
 			asserts.NoError(err)
 
