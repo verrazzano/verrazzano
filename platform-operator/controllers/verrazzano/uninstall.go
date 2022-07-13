@@ -5,10 +5,9 @@ package verrazzano
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -48,6 +47,12 @@ const (
 	// vzStateUninstallEnd is the terminal state
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
 )
+
+// sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
+var sharedNamespaces = []string{
+	vzconst.VerrazzanoMonitoringNamespace,
+	constants.CertManagerNamespace,
+}
 
 // uninstallState identifies the state of a Verrazzano uninstall operation
 type uninstallState string
@@ -240,10 +245,17 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 
 //deleteNamespaces Cleans up any namespaces shared by multiple components
 func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
-	return resource.Resource{
-		Name:   promoperator.ComponentNamespace,
-		Client: r.Client,
-		Object: &corev1.Namespace{},
-		Log:    log,
-	}.RemoveFinalizersAndDelete()
+	for _, ns := range sharedNamespaces {
+		log.Progressf("Deleting namespace %s", ns)
+		err := resource.Resource{
+			Name:   ns,
+			Client: r.Client,
+			Object: &corev1.Namespace{},
+			Log:    log,
+		}.RemoveFinalizersAndDelete()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
