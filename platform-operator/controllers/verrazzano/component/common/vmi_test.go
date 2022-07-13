@@ -7,10 +7,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -312,59 +313,4 @@ func Test_SetStorageSize(t *testing.T) {
 	storageRequest := &ResourceRequestValues{Storage: storageSize}
 	SetStorageSize(storageRequest, storageObject)
 	assert.Equal(t, storageSize, storageObject.Size)
-}
-
-// TestUpdateVMINoVMIPresent tests the VMO UpdateVMI function
-// GIVEN a call to update the system VMI component
-//  WHEN I call UpdateVMI and no VMI instance is present
-//  THEN no error is returned and the update callback func is not called
-func TestUpdateVMINoVMIPresent(t *testing.T) {
-
-	asserts := assert.New(t)
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	_ = vmov1.AddToScheme(scheme)
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
-
-	updatedCalled := false
-	ctx := spi.NewFakeContext(client, nil, false)
-	err := UpdateVMI(ctx, func(ctx spi.ComponentContext, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
-		updatedCalled = true
-		return nil
-	})
-	asserts.NoError(err)
-	asserts.False(updatedCalled)
-}
-
-// TestUpdateVMI tests the VMO UpdateVMI function
-// GIVEN a call to update the system VMI component
-//  WHEN I call UpdateVMI and the system VMI instance is present
-//  THEN no error is returned and the update callback func IS called
-func TestUpdateVMI(t *testing.T) {
-
-	asserts := assert.New(t)
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	_ = vmov1.AddToScheme(scheme)
-	client := fake.NewClientBuilder().WithScheme(scheme).
-		WithObjects(&vmov1.VerrazzanoMonitoringInstance{ObjectMeta: metav1.ObjectMeta{Name: system, Namespace: vmoComponentNamespace}}).
-		Build()
-
-	falseValue := false
-	updatedCalled := false
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Ingress: &vzapi.IngressNginxComponent{
-					Enabled: &falseValue, // Skip the call to get the DNS suffix, not required for this test
-				},
-			},
-		},
-	}, false)
-	err := UpdateVMI(ctx, func(ctx spi.ComponentContext, storage *ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
-		updatedCalled = true
-		return nil
-	})
-	asserts.NoError(err)
-	asserts.True(updatedCalled)
 }

@@ -425,6 +425,17 @@ func TestValidatePrometheusOperator(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name: "test Prometheus Operator disabled, Prometheus not specified (implicitly enabled)",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
+					},
+				},
+			},
+			expectError: true,
+		},
 	}
 	c := prometheusComponent{}
 	for _, tt := range tests {
@@ -469,7 +480,7 @@ func TestApplySystemMonitors(t *testing.T) {
 	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
-	assert.Len(t, monitors.Items, 6)
+	assert.Len(t, monitors.Items, 7)
 }
 
 // TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR

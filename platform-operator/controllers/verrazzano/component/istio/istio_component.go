@@ -9,21 +9,21 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -61,6 +61,9 @@ const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
 // istioManfiestNotInstalledError - Expected error during install when running verify-install before Istio CR is applied
 const istioManfiestNotInstalledError = "Istio present but verify-install needs an IstioOperator or manifest for comparison"
 
+const istioReaderIstioSystem = "istio-reader-istio-system"
+const istiodIstioSystem = "istiod-istio-system"
+
 // istioComponent represents an Istio component
 type istioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
@@ -76,7 +79,7 @@ type istioComponent struct {
 	monitor installMonitor
 }
 
-// GetJsonName returns the josn name of the verrazzano component in CRD
+// GetJSONName returns the json name of the verrazzano component in CRD
 func (i istioComponent) GetJSONName() string {
 	return ComponentJSONName
 }
@@ -113,6 +116,18 @@ func SetDefaultIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
+type istioUninstallFuncSig func(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, err error)
+
+var istioUninstallFunc istioUninstallFuncSig = istio.Uninstall
+
+func SetIstioUninstallFunction(fn istioUninstallFuncSig) {
+	istioUninstallFunc = fn
+}
+
+func SetDefaultIstioUninstallFunction() {
+	istioUninstallFunc = istio.Uninstall
+}
+
 type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
 
 var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
@@ -134,19 +149,71 @@ func NewComponent() spi.Component {
 }
 
 func (i istioComponent) IsOperatorUninstallSupported() bool {
-	return false
+	return true
 }
 
-func (i istioComponent) PreUninstall(context spi.ComponentContext) error {
+func (i istioComponent) PreUninstall(_ spi.ComponentContext) error {
 	return nil
 }
 
+// Uninstall processing for Istio
 func (i istioComponent) Uninstall(context spi.ComponentContext) error {
-	return nil
+	_, _, err := istioUninstallFunc(context.Log())
+	return err
 }
 
+// PostUninstall processing for Istio
 func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
-	return nil
+	// Delete ClusterRoleBindings and ClusterRoles not removed with istioctl uninstall
+	err := resource.Resource{
+		Name:   istioReaderIstioSystem,
+		Client: context.Client(),
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    context.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	err = resource.Resource{
+		Name:   istioReaderIstioSystem,
+		Client: context.Client(),
+		Object: &rbacv1.ClusterRole{},
+		Log:    context.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	err = resource.Resource{
+		Name:   istiodIstioSystem,
+		Client: context.Client(),
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    context.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	err = resource.Resource{
+		Name:   istiodIstioSystem,
+		Client: context.Client(),
+		Object: &rbacv1.ClusterRole{},
+		Log:    context.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	res := resource.Resource{
+		Name:   IstioNamespace,
+		Client: context.Client(),
+		Object: &v1.Namespace{},
+		Log:    context.Log(),
+	}
+	// Remove finalizers from the istio-system namespace to avoid hanging namespace deletion
+	// and delete the namespace
+	return res.RemoveFinalizersAndDelete()
 }
 
 // IsEnabled istio-specific enabled check for installation

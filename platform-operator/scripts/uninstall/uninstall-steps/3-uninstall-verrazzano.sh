@@ -67,12 +67,7 @@ function delete_weblogic_operator {
     fi
   fi
 
-  log "Delete the WebLogic Kubernetes operator service account"
-  if kubectl get serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa > /dev/null 2>&1 ; then
-    if ! kubectl delete serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa ; then
-      error "Failed to delete the WebLogic Kubernetes operator service account."
-    fi
-  fi
+
 }
 
 function delete_kiali {
@@ -87,50 +82,5 @@ function delete_kiali {
   kubectl delete -f ${KIALI_CHART_DIR}/crds || true
 }
 
-function delete_prometheus_node_exporter {
-  log "Uninstall the Prometheus node-exporter"
-  if helm status prometheus-node-exporter --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall prometheus-node-exporter --namespace "${VERRAZZANO_MONITORING_NS}" ; then
-      error "Failed to uninstall the Prometheus node-exporter."
-    fi
-  fi
-}
-
-function delete_prometheus_operator {
-  log "Uninstall the Prometheus operator"
-  if helm status prometheus-operator --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall prometheus-operator --namespace "${VERRAZZANO_MONITORING_NS}" ; then
-      error "Failed to uninstall the Prometheus operator."
-    fi
-  fi
-
-  log "Deleting ${VERRAZZANO_MONITORING_NS} namespace finalizers"
-  patch_k8s_resources namespace ":metadata.name" "Could not remove finalizers from namespace ${VERRAZZANO_MONITORING_NS}" "/${VERRAZZANO_MONITORING_NS}/ {print \$1}" '{"metadata":{"finalizers":null}}' \
-    || return $? # return on pipefail
-
-  log "Deleting the ${VERRAZZANO_MONITORING_NS} namespace"
-  kubectl delete namespace "${VERRAZZANO_MONITORING_NS}" --ignore-not-found=true || err_return $? "Could not delete the ${VERRAZZANO_MONITORING_NS} namespace"
-}
-
-function delete_velero {
-    log "Uninstall Velero"
-    if helm status velero --namespace velero > /dev/null 2>&1 ; then
-      if ! helm uninstall velero --namespace velero ; then
-        error "Failed to uninstall the Velero."
-      fi
-    fi
-
-    log "Deleting velero namespace finalizers"
-    patch_k8s_resources namespace ":metadata.name" "Could not remove finalizers from namespace velero" "/velero/ {print \$1}" '{"metadata":{"finalizers":null}}' \
-        || return $? # return on pipefail
-
-    log "Deleting the velero namespace"
-    kubectl delete namespace velero --ignore-not-found=true || err_return $? "Could not delete the velero namespace"
-}
-
-action "Deleting Prometheus node-exporter " delete_prometheus_node_exporter || exit 1
-action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
-action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
-action "Deleting Velero " delete_velero || exit 1
