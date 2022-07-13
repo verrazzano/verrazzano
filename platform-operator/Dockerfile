@@ -35,7 +35,10 @@ RUN yum update -y \
     && yum clean all \
     && rm -rf /var/cache/yum
 
-RUN helm repo add common https://charts.bitnami.com/bitnami
+# Pull in bitnami helm dependencies for MySQL chart
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator/thirdparty/charts/mysql/
+RUN helm dependency build
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
 
 RUN groupadd -r verrazzano \
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
