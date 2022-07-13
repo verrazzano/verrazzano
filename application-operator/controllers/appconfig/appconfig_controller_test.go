@@ -9,16 +9,18 @@ import (
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	appsv1 "k8s.io/api/apps/v1"
-
 	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	appsv1 "k8s.io/api/apps/v1"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/stretchr/testify/assert"
 	asserts "github.com/stretchr/testify/assert"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -728,4 +730,19 @@ func TestReconcileKubeSystem(t *testing.T) {
 	mocker.Finish()
 	assert.Nil(err)
 	assert.True(result.IsZero())
+}
+func TestReconcileFailed(t *testing.T) {
+
+	reconcileMetrics := metricsexporter.GetReconcileMetricsObject(controllerName)
+	assert := assert.New(t)
+	clientBuilder := fake.NewClientBuilder()
+	fakeClient := clientBuilder.Build()
+	errorBuild := newRequest("failed namespace", "test")
+	reconciler := newReconciler(fakeClient)
+
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileMetrics.GetReconcileFailed())
+	reconciler.Reconcile(nil, errorBuild)
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileMetrics.GetReconcileFailed())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
+
 }

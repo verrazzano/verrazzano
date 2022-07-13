@@ -57,14 +57,14 @@ func registerMetricsHandlersHelper() error {
 type ReconcileMetrics struct {
 	reconcileSuccessful prometheus.Counter
 	reconcileFailed     prometheus.Counter
-	//reconcileRequeue    prometheus.Counter
-	//reconcileDuration DurationMetrics
+	//reconcileRequeue  prometheus.Counter
+	reconcileDuration DurationMetrics
 }
 
-// type DurationMetrics struct {
-// 	durationStartTime *prometheus.Timer
-// 	processDuration   prometheus.Summary
-// }
+type DurationMetrics struct {
+	durationStartTime *prometheus.Timer
+	processDuration   prometheus.Summary
+}
 
 // type WebhookMetrics struct {
 // 	webhookSuccessful prometheus.Counter
@@ -77,13 +77,19 @@ var (
 	reconcileMap = map[string]ReconcileMetrics{
 		"appconfig": {
 			reconcileSuccessful: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "appconfig_reconcile_successful_events_total",
+				Name: "vao_appconfig_reconcile_successful_events_total",
 				Help: "The total number of processed Reconcile events for appconfig",
 			}),
 			reconcileFailed: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "appconfig_reconcile_failed_events_total",
+				Name: "vao_appconfig_reconcile_failed_events_total",
 				Help: "The total number of failed Reconcile events for appconfig",
 			}),
+			reconcileDuration: DurationMetrics{
+				processDuration: prometheus.NewSummary(prometheus.SummaryOpts{
+					Name: "vao_appconfig_reconcile_duration",
+					Help: "The duration in seconds of appconfig reconcile process",
+				}),
+			},
 		},
 		"coherenceworkload": {
 			reconcileSuccessful: prometheus.NewCounter(prometheus.CounterOpts{
@@ -93,103 +99,7 @@ var (
 		},
 	}
 
-	//Successfull reconcile process
-	// appconfigControllerMetrics = ReconcileMetrics{
-	// 	reconcileSuccessful: prometheus.NewCounter(prometheus.CounterOpts{
-	// 		Name: "appconfig_reconcile_puller_events_total",
-	// 		Help: "The total number of processed Reconcile events for appconfig",
-	// 	}),
-	// }
-	// appconfigReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "appconfig_reconcile_puller_events_total",
-	// 	Help: "The total number of processed Reconcile events for appconfig",
-	// })
-
-	// cohworkloadReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "cohworkload_reconcile_puller_events_total",
-	// 	Help: "The total number of processed Reconcile events for cohworkload",
-	// })
-
-	// helidonworkloadReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "helidonworkload_reconcile_puller_events_total",
-	// 	Help: "The total number of processed Reconcile events for helidonworkload",
-	// })
-
-	// ingresstraitloadReconcileProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "ingresstrait_reconcile_puller_events_total",
-	// 	Help: "The total number of processed Reconcile events for ingresstrait",
-	// })
-
-	// // Successfull Webhook process
-
-	// appconfigWebhookProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "appconfig_webhook_puller_events_total",
-	// 	Help: "The total number of processed webhook events for appconfig",
-	// })
-
-	// istioWebhookProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "istio_webhook_puller_events_total",
-	// 	Help: "The total number of processed webhook events for cohworkload",
-	// })
-	// //multiclustercomponent
-	// //multiclusterconfigmap
-	// //multiclustersecret
-	// //verrazzanoproject
-	// helidonworkloadWebhookProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "helidonworkload_webhook_puller_events_total",
-	// 	Help: "The total number of processed webhook events for helidonworkload",
-	// })
-
-	// ingresstraitloadWebhookProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "ingresstrait_webhook_puller_events_total",
-	// 	Help: "The total number of processed webhook events for ingresstrait",
-	// })
-
-	// // Failed reconcile process
-	// cohworkloadReconcileFailed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "cohworkload_reconcile_failed_events_total",
-	// 	Help: "The total number of failed Reconcile events for appconfig",
-	// })
-	// helidonworkloadReconcileFailed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "helidonworkload_reconcile_failed_events_total",
-	// 	Help: "The total number of failed Reconcile events for helidonworload",
-	// })
-	// ingresstraitReconcileFailed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "ingresstrait_reconcile_failed_events_total",
-	// 	Help: "The total number of failed Reconcile events for ingresstrait",
-	// })
-	// appconfigReconcileFailed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "appconfig_reconcile_failed_events_total",
-	// 	Help: "The total number of failed Reconcile events for appconfig",
-	// })
-
-	// // Duration Metrics
-	// reconcileTimer *prometheus.Timer
-
-	// appconfigReconcileDuration = prometheus.NewSummary(prometheus.SummaryOpts{
-	// 	Name: "vao_appconfig_reconcile_duration",
-	// 	Help: "Duration of Reconcile process for appconfig",
-	// })
-
-	// // Reque process
-	// cohworkloadRequeProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "cohworkload_reconcile_reque_events_total",
-	// 	Help: "The total number of failed Reconcile events for appconfig",
-	// })
-	// helidonworkloadRequeProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "helidonworkload_reconcile_reque_events_total",
-	// 	Help: "The total number of failed Reconcile events for helidonworload",
-	// })
-	// ingresstraitRequeProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "ingresstrait_reconcile_reque_events_total",
-	// 	Help: "The total number of failed Reconcile events for ingresstrait",
-	// })
-	// appconfigRequeProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "appconfig_reconcile_reque_events_total",
-	// 	Help: "The total number of failed Reconcile events for appconfig",
-	// })
-
-	allMetrics    = []prometheus.Collector{reconcileMap["appconfig"].reconcileSuccessful, reconcileMap["coherenceworkload"].reconcileSuccessful}
+	allMetrics    = []prometheus.Collector{reconcileMap["appconfig"].reconcileSuccessful, reconcileMap["appconfig"].reconcileFailed, reconcileMap["coherenceworkload"].reconcileSuccessful}
 	failedMetrics = map[prometheus.Collector]int{}
 	registry      = prometheus.DefaultRegisterer
 )
@@ -210,98 +120,25 @@ func (r ReconcileMetrics) VerifyReconcileResult(err error) {
 		r.reconcileFailed.Inc()
 	}
 }
+func (r ReconcileMetrics) GetReconcileFailed() prometheus.Counter {
+	return r.reconcileFailed
+}
+func (r ReconcileMetrics) GetReconcileSuccessful() prometheus.Counter {
+	return r.reconcileSuccessful
+}
+func (r ReconcileMetrics) IncreaseFailedReconcileMetric() {
+	r.reconcileFailed.Inc()
+}
 
 // Duration metrics function
 
-// func (r ReconcileMetrics) GetDurationMetrics() DurationMetrics {
-// 	return r.reconcileDuration
-// }
+func (r ReconcileMetrics) GetDurationMetrics() DurationMetrics {
+	return r.reconcileDuration
+}
 
-// func (d DurationMetrics) DurationTimerStart() {
-// 	d.durationStartTime = prometheus.NewTimer(d.processDuration)
-// }
-// func (d DurationMetrics) DurationTimerStop() {
-// 	d.durationStartTime.ObserveDuration()
-// }
-
-// Old code for metric functions --------------------------------
-
-// func AppconfigIncrementEventsProcessed() {
-
-// 	appconfigReconcileProcessed.Inc()
-// }
-
-// func CohworkloadIncrementEventsProcessed() {
-
-// 	cohworkloadReconcileProcessed.Inc()
-// }
-
-// func HelidonworkloadIncrementEventsProcessed() {
-
-// 	helidonworkloadReconcileProcessed.Inc()
-// }
-// func IngresstraitloadIncrementEventsProcessed() {
-
-// 	ingresstraitloadReconcileProcessed.Inc()
-// }
-
-// //Successfull Webhook process incrementation
-
-// func AppconfigIncrementWebhookProcessed() {
-
-// 	appconfigWebhookProcessed.Inc()
-// }
-
-// func IstioIncrementWebhookProcessed() {
-
-// 	istioWebhookProcessed.Inc()
-// }
-
-// func HelidonworkloadIncrementWebhookProcessed() {
-
-// 	helidonworkloadWebhookProcessed.Inc()
-// }
-// func IngresstraitloadIncrementWebhookProcessed() {
-
-// 	ingresstraitloadWebhookProcessed.Inc()
-// }
-
-// // Failed processing incrementation
-
-// func AppconfigIncrementFailedProcess() {
-// 	appconfigReconcileFailed.Inc()
-// }
-// func HelidonworkloadIncrementFailedProcess() {
-// 	helidonworkloadReconcileFailed.Inc()
-// }
-// func CohworkloadIncrementFailedProcess() {
-// 	cohworkloadReconcileFailed.Inc()
-// }
-// func IngresstraitIncrementFailedProcess() {
-// 	ingresstraitReconcileFailed.Inc()
-// }
-
-// // Reque process incrementation
-
-// func AppconfigIncrementRequeProcess() {
-// 	appconfigRequeProcessed.Inc()
-// }
-// func HelidonworkloadIncrementRequeProcess() {
-// 	helidonworkloadRequeProcessed.Inc()
-// }
-// func CohworkloadIncrementRequeProcess() {
-// 	cohworkloadRequeProcessed.Inc()
-// }
-// func IngresstraitIncrementRequeProcess() {
-// 	ingresstraitRequeProcessed.Inc()
-// }
-
-// // Reconcile Duration
-
-// func AppconfigReconcileTimerStart() {
-// 	reconcileTimer = prometheus.NewTimer(appconfigReconcileDuration)
-
-// }
-// func AppconfigReconcileTimerEnd() {
-// 	reconcileTimer.ObserveDuration()
-// }
+func (d DurationMetrics) DurationTimerStart() {
+	d.durationStartTime = prometheus.NewTimer(d.processDuration)
+}
+func (d DurationMetrics) DurationTimerStop() {
+	d.durationStartTime.ObserveDuration()
+}

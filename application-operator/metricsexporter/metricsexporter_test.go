@@ -10,42 +10,34 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 )
 
-func TestCollectReconcileSuccessfulMetric(t *testing.T) {
+func TestCollectReconcileMetrics(t *testing.T) {
 	assert := asserts.New(t)
 	tests := []struct {
 		name string
 	}{
 		{
-			name: "Test that reoncile counter is incremented by one when function is Successful",
+			name: "Test that reoncile counter is incremented by one when function is Successful & reoncile counter is incremented by one when function is Failed",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := reconcileMap["appconfig"]
+
 			reconcileSuccessfulCounterBefore := testutil.ToFloat64(r.reconcileSuccessful)
 			r.reconcileSuccessful.Inc()
 			reconcileSuccessfulCounterAfter := testutil.ToFloat64(r.reconcileSuccessful)
 			assert.Equal(reconcileSuccessfulCounterBefore, reconcileSuccessfulCounterAfter-1)
+
+			reconcileFailedCounterBefore := testutil.ToFloat64(r.reconcileFailed)
+			r.reconcileFailed.Inc()
+			reconcileFailedCounterAfter := testutil.ToFloat64(r.reconcileFailed)
+			assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
+
+			//Duration Metric test
+
+			// r.GetDurationMetrics().DurationTimerStart()
+			// time.Sleep(time.Second)
+			// r.GetDurationMetrics().DurationTimerStop()
 		})
 	}
 }
-
-// func TestCollectReconcileErrorMetric(t *testing.T) {
-// 	assert := asserts.New(t)
-// 	tests := []struct {
-// 		name string
-// 	}{
-// 		{
-// 			name: "Test that reoncile counter is incremented by one when function has failed",
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			r := reconcileMap["appconfig"]
-// 			reconcileFailedCounterBefore := testutil.ToFloat64(r.reconcileFailed)
-// 			r.reconcileSuccessful.Inc()
-// 			reconcileFailedCounterAfter := testutil.ToFloat64(r.reconcileFailed)
-// 			assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
-// 		})
-// 	}
-// }

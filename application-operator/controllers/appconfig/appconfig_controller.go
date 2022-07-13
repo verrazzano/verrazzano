@@ -11,6 +11,7 @@ import (
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
+	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -20,15 +21,13 @@ import (
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -62,9 +61,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Metric to tracj successful/failed Reconcile Process
 	reconcileMetrics := metricsexporter.GetReconcileMetricsObject(controllerName)
 	var err error
-	defer reconcileMetrics.VerifyReconcileResult(err)
-	//reconcileMetrics.GetDurationMetrics().DurationTimerStart()
-	//defer reconcileMetrics.GetDurationMetrics().DurationTimerStop()
+	defer func() {
+		reconcileMetrics.VerifyReconcileResult(err)
+	}()
+	reconcileMetrics.GetDurationMetrics().DurationTimerStart()
+	defer reconcileMetrics.GetDurationMetrics().DurationTimerStop()
 
 	if req.Namespace == constants.KubeSystem {
 		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)
