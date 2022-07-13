@@ -117,7 +117,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			err = r.uninstallCleanup(spiCtx, log)
+			err = r.uninstallCleanup(spiCtx)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -222,11 +222,11 @@ func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
 }
 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
-func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext, log vzlog.VerrazzanoLogger) error {
+func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) error {
 	if err := rancher.PostUninstall(ctx); err != nil {
 		return err
 	}
-	return r.deleteNamespaces(log)
+	return r.deleteNamespaces(ctx.Log())
 }
 
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
