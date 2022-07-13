@@ -6,24 +6,7 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
-  profile: dev
+  profile: prod
   components:
-    prometheusOperator:
-      enabled: true
-      overrides:
-        - configMapRef:
-            name: test-overrides
-            key: test-overrides-configmap.yaml
-        - secretRef:
-            name: test-overrides
-            key: test-overrides-secret.yaml
-    prometheusAdapter:
-      enabled: true
-    kubeStateMetrics:
-      enabled: true
-    prometheusPushgateway:
-      enabled: true
-    prometheusNodeExporter:
-      enabled: true
     velero:
       enabled: true
