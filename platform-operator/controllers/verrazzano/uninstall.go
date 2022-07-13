@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"context"
+
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -165,8 +166,9 @@ func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 
 // Delete multicluster related resources
 func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
-	// Return if this is not MC or if there is an error
-	if mc, err := r.isMC(log); err != nil || !mc {
+	// Return if this is not managed cluster or if there is an error
+	managed, err := r.isManagedCluster(log)
+	if err != nil {
 		return err
 	}
 
@@ -193,20 +195,24 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 		}
 	}
 
-	// Delete secrets last. Don't delete MC agent secret until the end since it tells us this is MC install
-	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
-		return err
+	// Delete secrets on managed cluster
+	if managed {
+		// Delete secrets last. Don't delete MC agent secret until the end since it tells us this is MC install
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
+			return err
+		}
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, "verrazzano-cluster-elasticsearch"); err != nil {
+			return err
+		}
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
+			return err
+		}
 	}
-	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, "verrazzano-cluster-elasticsearch"); err != nil {
-		return err
-	}
-	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
-		return err
-	}
+
 	return nil
 }
 
-func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
+func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) {
 	var secret corev1.Secret
 	secretNsn := types.NamespacedName{
 		Namespace: vzconst.VerrazzanoSystemNamespace,
