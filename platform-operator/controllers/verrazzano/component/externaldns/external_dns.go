@@ -32,6 +32,9 @@ const (
 	imagePullSecretHelmKey = "global.imagePullSecrets[0]"
 	ownerIDHelmKey         = "txtOwnerId"
 	prefixKey              = "txtPrefix"
+
+	clusterRoleName        = ComponentName
+	clusterRoleBindingName = ComponentName
 )
 
 func preInstall(compContext spi.ComponentContext) error {
@@ -90,7 +93,7 @@ func preInstall(compContext spi.ComponentContext) error {
 func postUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 	log.Progressf("Deleting ClusterRoles and ClusterRoleBindings for external-dns")
 	err := resource.Resource{
-		Name:   "external-dns",
+		Name:   clusterRoleName,
 		Client: cli,
 		Object: &rbacv1.ClusterRole{},
 		Log:    log,
@@ -99,7 +102,7 @@ func postUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 		return err
 	}
 	return resource.Resource{
-		Name:   "external-dns",
+		Name:   clusterRoleBindingName,
 		Client: cli,
 		Object: &rbacv1.ClusterRoleBinding{},
 		Log:    log,
