@@ -618,9 +618,6 @@ func TestUninstallCertManager(t *testing.T) {
 			err = c.Get(context.TODO(), types.NamespacedName{Name: caInjectorConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{})
 			assert.Error(t, err, "Expected the ConfigMap %s to be deleted", caInjectorConfigMap)
 			// expect the Namespace to get deleted
-			err = c.Get(context.TODO(), types.NamespacedName{Name: constants.CertManagerNamespace}, &v1.Namespace{})
-			assert.Error(t, err, "Expected the Namespace %s to be deleted", ComponentNamespace)
-			// expect the Namespace to get deleted
 			err = c.Get(context.TODO(), types.NamespacedName{Name: verrazzanoClusterIssuerName, Namespace: vzconst.DefaultNamespace}, &certv1.ClusterIssuer{})
 			assert.Error(t, err, "Expected the ClusterIssuer %s to be deleted", ComponentNamespace)
 			// expect the Namespace to get deleted
