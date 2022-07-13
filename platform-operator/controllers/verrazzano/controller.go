@@ -109,6 +109,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if vzctrl.ShouldRequeue(res) {
 		return res, nil
 	}
+
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
@@ -708,8 +709,9 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 }
 
 func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
-	for _, existingCondition := range compStatus.Conditions {
+	for i, existingCondition := range compStatus.Conditions {
 		if existingCondition.Type == newCondition.Type {
+			compStatus.Conditions[i] = newCondition
 			return compStatus.Conditions
 		}
 	}
@@ -1076,7 +1078,7 @@ func (r *Reconciler) cleanup(ctx context.Context, log vzlog.VerrazzanoLogger, vz
 	return nil
 }
 
-// cleanupOld deltes the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
+// cleanupOld deletes the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
 // also includes the ClusterRoleBinding, which is outside the scope of namespace
 func (r *Reconciler) cleanupOld(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Delete ClusterRoleBinding
