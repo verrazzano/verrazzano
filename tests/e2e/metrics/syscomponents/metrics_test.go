@@ -271,8 +271,6 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 				// name of the managed cluster is added to the metrics
 				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == clusterName {
 					return true
-				} else {
-					GinkgoWriter.Write([]byte(fmt.Sprintf("lol1 %s, %s, %s, %s", ns, pod, clusterName, pkg.Jq(metric, "metric", getClusterNameMetricLabel()))))
 				}
 			} else {
 
@@ -288,12 +286,9 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 					}
 				}
 			}
-		} else {
-			if isManagedClusterProfile {
-				GinkgoWriter.Write([]byte(fmt.Sprintf("lol0 %s, %s, %s, %s \n", ns, pkg.Jq(metric, "metric", namespace), pod, pkg.Jq(metric, "metric", podName))))
-			}
 		}
 	}
+	GinkgoWriter.Write([]byte(fmt.Sprintf("lol1 %s, %s \n", ns, pod)))
 	return false
 }
 
