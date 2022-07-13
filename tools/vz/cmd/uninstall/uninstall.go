@@ -115,6 +115,9 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 	// Get the VPO pod to stream the logs from.
 	vpoPodName, err := cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
+	if err != nil {
+		return err
+	}
 
 	// Wait for the Verrazzano uninstall to complete.
 	err = waitForUninstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
