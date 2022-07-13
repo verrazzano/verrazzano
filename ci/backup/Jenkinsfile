@@ -5,6 +5,7 @@ def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
+def backup_id = 'dummy'
 
 pipeline {
     options {
@@ -96,10 +97,10 @@ pipeline {
         OCI_OS_BUCKET_ID = "${ociOsBucketName}"
         OCI_OS_BUCKET_NAME = "bucket-${OCI_OS_BUCKET_ID}"
         BACKUP_NAME = "backup-${OCI_OS_BUCKET_ID}"
+        RESTORE_NAME = "restore-${OCI_OS_BUCKET_ID}"
         BACKUP_RESOURCE = "opensearch-resource-${OCI_OS_BUCKET_ID}"
         BACKUP_OPENSEARCH = "opensearch-${OCI_OS_BUCKET_ID}"
         BACKUP_STORAGE = "storage-${OCI_OS_BUCKET_ID}"
-        BACKUP_ID = "dummy"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
@@ -324,11 +325,76 @@ pipeline {
                 stage('Start Opensearch Backup') {
                     steps {
                         script {
-                          BACKUP_ID = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_start.sh").trim()
-                          println("Opensearch backup done ${BACKUP_ID}")
+                          backup_id = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup_start.sh").trim()
+                          println("Opensearch backup done ${backup_id}")
                         }
                     }
 
+                }
+
+                stage('Start Opensearch Backup Logs') {
+                    script {
+                       println("Opensearch backup logs")
+                    }
+                    steps {
+                        sh """
+                        BACKUP_FILE_NAME=$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -al /tmp/ | grep verrazzano | awk 'NF{ print $NF }')
+                        kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- cat /tmp/${BACKUP_FILE_NAME}
+                        """
+                    }
+                }
+
+                stage('Delete Opensearch cluster for restore') {
+                    script {
+                       println("Nuking opensearch")
+                    }
+                    steps {
+                        sh """
+                        kubectl scale deploy -n verrazzano-system verrazzano-monitoring-operator --replicas=0
+                        kubectl delete sts -n verrazzano-system vmi-system-es-master
+                        kubectl delete deploy -n verrazzano-system vmi-system-es-data-0
+                        kubectl delete deploy -n verrazzano-system vmi-system-es-data-1
+                        kubectl delete deploy -n verrazzano-system vmi-system-es-data-2
+                        kubectl delete deploy -n verrazzano-system vmi-system-es-ingest
+                        kubectl delete pvc -n verrazzano-system vmi-system-es-data
+                        kubectl delete pvc -n verrazzano-system vmi-system-es-data-1
+                        kubectl delete pvc -n verrazzano-system vmi-system-es-data-2
+
+                        echo "Wait for all pods to be cleaned up"
+                        sleep 10
+                        """
+                    }
+                }
+
+                stage('Start Opensearch Backup Logs') {
+                    script {
+                       println("Opensearch backup logs")
+                    }
+                    steps {
+                        printHookLogs()
+                    }
+                }
+
+
+                stage('Start Opensearch Restore') {
+                    environment {
+                        BACKUP_ID = "${backup_id}"
+                    }
+                    steps {
+                            script {
+                              restoreStatus = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/restore_start.sh").trim()
+                              println("Opensearch backup done ${restoreStatus}")
+                         }
+                    }
+                }
+
+                stage('Start Opensearch Restore Logs') {
+                    script {
+                       println("Opensearch restore logs")
+                    }
+                    steps {
+                        printHookLogs()
+                    }
                 }
 
 
@@ -429,6 +495,13 @@ def deleteBucket(bucketName) {
     sh """
         oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
     """
+}
+
+def printHookLogs() {
+   sh """
+       HOOK_LOG_FILE=$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -al /tmp/ | grep verrazzano | awk 'NF{ print $NF }')
+       kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- cat /tmp/${HOOK_LOG_FILE}
+   """
 }
 
 

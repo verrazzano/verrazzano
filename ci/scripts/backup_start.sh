@@ -56,11 +56,11 @@ EOF
  CHECK_DONE=true
  while ${CHECK_DONE};
   do
-    RESPONSE=`(kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_NAME}-opensearch -o jsonpath={.status.phase)`
+    RESPONSE=`(kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_NAME}-opensearch -o jsonpath={.status.phase})`
     if [ "${RESPONSE}" == "InProgress" ];then
       if [ "${RETRY_COUNT}" -gt 50 ];then
          echo "Backup failed. retry count exceeded !!"
-         CHECK_DONE=false
+         exit 1
       fi
       echo "Backup in progress. Check after 10 seconds"
       sleep 10
@@ -71,8 +71,5 @@ EOF
     RETRY_COUNT=$((RETRY_COUNT + 1))
   done
 
-if [ $CHECK_DONE == "true" ]; then
-  echo "$BACKUP_ID"
-  exit 0
-fi
-echo "$CHECK_DONE"
+echo "$BACKUP_ID"
+
