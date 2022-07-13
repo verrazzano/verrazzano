@@ -295,9 +295,9 @@ func TestPostUninstall(t *testing.T) {
 		},
 	).Build()
 
-	var iComp nginxComponent
+	var nComp nginxComponent
 	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
-	assert.NoError(t, iComp.PostUninstall(compContext))
+	assert.NoError(t, nComp.PostUninstall(compContext))
 
 	// Validate that the namespace does not exist
 	ns := corev1.Namespace{}
