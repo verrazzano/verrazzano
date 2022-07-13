@@ -76,21 +76,23 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
 // and services from the specified namespace, as JSON files
-func CaptureK8SResources(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
-	if err := captureWorkLoads(kubeClient, namespace, captureDir, vzHelper); err != nil {
-		return err
-	}
-	if err := capturePods(kubeClient, namespace, captureDir, vzHelper); err != nil {
-		return err
-	}
-	if err := captureEvents(kubeClient, namespace, captureDir, vzHelper); err != nil {
-		return err
-	}
-	if err := captureIngress(kubeClient, namespace, captureDir, vzHelper); err != nil {
-		return err
-	}
-	if err := captureServices(kubeClient, namespace, captureDir, vzHelper); err != nil {
-		return err
+func CaptureK8SResources(kubeClient kubernetes.Interface, namespacesList []string, captureDir string, vzHelper VZHelper) error {
+	for _, namespace := range namespacesList {
+		if err := captureWorkLoads(kubeClient, namespace, captureDir, vzHelper); err != nil {
+			return err
+		}
+		if err := capturePods(kubeClient, namespace, captureDir, vzHelper); err != nil {
+			return err
+		}
+		if err := captureEvents(kubeClient, namespace, captureDir, vzHelper); err != nil {
+			return err
+		}
+		if err := captureIngress(kubeClient, namespace, captureDir, vzHelper); err != nil {
+			return err
+		}
+		if err := captureServices(kubeClient, namespace, captureDir, vzHelper); err != nil {
+			return err
+		}
 	}
 	return nil
 }

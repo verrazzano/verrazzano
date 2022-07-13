@@ -117,6 +117,21 @@ func TestMergeProfiles(t *testing.T) {
 	}
 }
 
+// TestAppendComponentOverrides tests the appendComponentOverrides
+// GIVEN  actual and profile CRs
+// WHEN appendComponentOverrides is called
+// THEN the compoent overrides from the profile CR should be appended to the component overrides of the actual CR.
+func TestAppendComponentOverrides(t *testing.T) {
+	actual, err := readProfile("./testdata/actual.yaml")
+	assert.NoError(t, err)
+	profile, err := readProfile("./testdata/profile.yaml")
+	assert.NoError(t, err)
+	appendComponentOverrides(actual, profile)
+	merged, err := readProfile("./testdata/merged.yaml")
+	assert.NoError(t, err)
+	assert.Equal(t, merged, actual)
+}
+
 // Create VerrazzanoSpec from profile
 func readProfile(filename string) (*vzapi.Verrazzano, error) {
 	specYaml, err := ioutil.ReadFile(filepath.Join(filename))

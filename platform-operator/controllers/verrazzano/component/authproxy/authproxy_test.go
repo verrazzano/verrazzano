@@ -4,13 +4,21 @@
 package authproxy
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"context"
+	"fmt"
 	"io/fs"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strings"
 	"testing"
+
+	netv1 "k8s.io/api/networking/v1"
+
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -289,6 +297,64 @@ func TestRemoveResourcePolicyAnnotation(t *testing.T) {
 	assert.Equal(t, globalconst.VerrazzanoSystemNamespace, res.GetAnnotations()["meta.helm.sh/release-namespace"])
 	_, ok := res.GetAnnotations()["helm.sh/resource-policy"]
 	assert.False(t, ok)
+}
+
+// TestUninstallResources tests the Fluentd Uninstall call
+// GIVEN a Fluentd component
+//  WHEN I call Uninstall with the Fluentd helm chart not installed
+//  THEN ensure that all Fluentd resources are explicity deleted
+func TestUninstallResources(t *testing.T) {
+	helmcli.SetCmdRunner(vzos.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte{},
+		Err:    fmt.Errorf("Not installed"),
+	})
+	defer helmcli.SetDefaultRunner()
+
+	clusterRole := &rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "impersonate-api-user"}}
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "impersonate-api-user"}}
+	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "verrazzano-authproxy-config"}}
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: ComponentName}}
+	ingress := &netv1.Ingress{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "verrazzano-ingress"}}
+	secret := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "verrazzano-authproxy-secret"}}
+	service1 := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: ComponentName}}
+	service2 := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "verrazzano-authproxy-elasticsearch"}}
+	serviceAccount := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "impersonate-api-user"}}
+
+	c := fake.NewClientBuilder().WithScheme(clientgoscheme.Scheme).WithObjects(
+		clusterRole,
+		clusterRoleBinding,
+		configMap,
+		deployment,
+		ingress,
+		secret,
+		service1,
+		service2,
+		serviceAccount,
+	).Build()
+
+	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, false))
+	assert.NoError(t, err)
+
+	// Assert that the resources have been deleted
+	err = c.Get(context.TODO(), types.NamespacedName{Name: ComponentName}, clusterRole)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Name: ComponentName}, clusterRoleBinding)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, configMap)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, ingress)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, secret)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, service1)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, service2)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, serviceAccount)
+	assert.True(t, errors.IsNotFound(err))
 }
 
 func createFakeClientWithIngress() client.Client {

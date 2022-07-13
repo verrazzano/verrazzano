@@ -11,21 +11,36 @@ import (
 
 var enabled = true
 
+var enabledCR = vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Profile: vzapi.Prod,
+		Components: vzapi.ComponentSpec{
+			DNS: dnsComponents.DNS,
+			Kibana: &vzapi.KibanaComponent{
+				Enabled: &enabled,
+			},
+		},
+	},
+}
+
 // TestNewVMIResources tests that new VMI resources can be created from a CR
 // GIVEN a Verrazzano CR
 //  WHEN I create new VMI resources
 //  THEN the configuration in the CR is respected
 func TestNewVMIResources(t *testing.T) {
-	opensearchDashboards := newOpenSearchDashboards(&vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Profile: vzapi.Prod,
-			Components: vzapi.ComponentSpec{
-				DNS: dnsComponents.DNS,
-				Kibana: &vzapi.KibanaComponent{
-					Enabled: &enabled,
-				},
-			},
-		},
-	})
+	opensearchDashboards := newOpenSearchDashboards(enabledCR.DeepCopy())
 	assert.Equal(t, "192Mi", opensearchDashboards.Resources.RequestMemory)
+}
+
+// TestNewVMIResourcesWithReplicas tests that new VMI resources can be created from a CR with replicas configured
+// GIVEN a Verrazzano CR
+//  WHEN I create new VMI resources
+//  THEN the configuration in the CR is respected with replicas configured
+func TestNewVMIResourcesWithReplicas(t *testing.T) {
+	cr := enabledCR.DeepCopy()
+	var replicas int32 = 2
+	cr.Spec.Components.Kibana.Replicas = &replicas
+	osd := newOpenSearchDashboards(cr)
+	assert.Equal(t, replicas, osd.Replicas)
+
 }

@@ -5,8 +5,9 @@ package verrazzano
 
 import (
 	"context"
-
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -37,12 +38,21 @@ const (
 	// vzStateUninstallComponents is the state where the components are being uninstalled
 	vzStateUninstallComponents uninstallState = "vzStateUninstallComponents"
 
+	// vzStateUninstallCleanup is the state where the final cleanup is performed for a full uninstall
+	vzStateUninstallCleanup uninstallState = "vzStateUninstallCleanup"
+
 	// vzStateUninstallDone is the state when uninstall is done
 	vzStateUninstallDone uninstallState = "vzStateUninstallDone"
 
 	// vzStateUninstallEnd is the terminal state
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
 )
+
+// sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
+var sharedNamespaces = []string{
+	vzconst.VerrazzanoMonitoringNamespace,
+	constants.CertManagerNamespace,
+}
 
 // uninstallState identifies the state of a Verrazzano uninstall operation
 type uninstallState string
@@ -107,8 +117,14 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			if err != nil || res.Requeue {
 				return res, err
 			}
-			tracker.vzState = vzStateUninstallDone
+			tracker.vzState = vzStateUninstallCleanup
 
+		case vzStateUninstallCleanup:
+			err := r.uninstallCleanup(log)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			tracker.vzState = vzStateUninstallDone
 		case vzStateUninstallDone:
 			log.Once("Successfully uninstalled all Verrazzano components")
 			tracker.vzState = vzStateUninstallEnd
@@ -208,6 +224,11 @@ func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
 	return true, nil
 }
 
+//uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individal component uninstalls
+func (r *Reconciler) uninstallCleanup(log vzlog.VerrazzanoLogger) error {
+	return r.deleteNamespaces(log)
+}
+
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
@@ -218,6 +239,23 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 			return nil
 		}
 		return log.ErrorfNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
+	}
+	return nil
+}
+
+//deleteNamespaces Cleans up any namespaces shared by multiple components
+func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
+	for _, ns := range sharedNamespaces {
+		log.Progressf("Deleting namespace %s", ns)
+		err := resource.Resource{
+			Name:   ns,
+			Client: r.Client,
+			Object: &corev1.Namespace{},
+			Log:    log,
+		}.RemoveFinalizersAndDelete()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

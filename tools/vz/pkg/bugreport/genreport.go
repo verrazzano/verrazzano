@@ -70,6 +70,8 @@ func GenerateBugReport(kubeClient kubernetes.Interface, client clipkg.Client, bu
 // captureVerrazzanoResources captures the resources from verrazzano-install and verrazzano-system namespaces
 func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vz vzapi.VerrazzanoList, vzHelper pkghelpers.VZHelper) error {
 
+	var nameSpaces []string
+
 	// Capture Verrazzano resource as JSON
 	if len(vz.Items) > 0 {
 		if err := pkghelpers.CaptureVZResource(bugReportDir, vz, vzHelper); err != nil {
@@ -82,8 +84,14 @@ func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Inte
 		return err
 	}
 
+	nameSpaces, err := pkghelpers.GetNamespacesForNotReadyComponents(client)
+	if err != nil {
+		return err
+	}
+	nameSpaces = append(nameSpaces, vzconstants.VerrazzanoSystemNamespace)
+
 	// Capture workloads, pods, events, ingress and services in verrazzano-system namespace
-	if err := pkghelpers.CaptureK8SResources(kubeClient, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper); err != nil {
+	if err := pkghelpers.CaptureK8SResources(kubeClient, nameSpaces, bugReportDir, vzHelper); err != nil {
 		return err
 	}
 
