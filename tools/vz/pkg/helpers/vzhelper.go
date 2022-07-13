@@ -6,6 +6,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"io"
 	"net/http"
 
@@ -99,4 +100,48 @@ func NewScheme() *runtime.Scheme {
 	_ = rbacv1.SchemeBuilder.AddToScheme(scheme)
 	_ = appv1.SchemeBuilder.AddToScheme(scheme)
 	return scheme
+}
+
+// GetNamespacesForNotReadyComponents gets the list of all namespaces for the failed components
+func GetNamespacesForNotReadyComponents(client client.Client) ([]string, error) {
+	var nsList []string
+	var nsListMap map[string]bool
+	allComponents, err := GetComponentsNotReady(client)
+	if err != nil {
+		return nsList, err
+	}
+
+	for _, eachComp := range allComponents {
+		for _, eachNameSpace := range constants.ComponentNameToNamespacesMap[eachComp] {
+			// Insert into list only if not found (to avoid duplicates)
+			if !nsListMap[eachNameSpace] {
+				nsList = append(nsList, eachNameSpace)
+				nsListMap[eachNameSpace] = true
+			}
+		}
+	}
+	return nsList, err
+}
+
+// GetComponentsNotReady returns the list of components which did not reach Ready state from the Verrazzano resource
+func GetComponentsNotReady(client client.Client) ([]string, error) {
+
+	var compsNotReady = make([]string, 0)
+	vzRes, err := FindVerrazzanoResource(client)
+	if err != nil {
+		return compsNotReady, err
+	}
+
+	if vzRes.Status.State != vzapi.VzStateReady {
+		// Verrazzano installation is not complete, find out the list of components which are not ready
+		for _, compStatusDetail := range vzRes.Status.Components {
+			if compStatusDetail.State != vzapi.CompStateReady {
+				if compStatusDetail.State == vzapi.CompStateDisabled {
+					continue
+				}
+				compsNotReady = append(compsNotReady, compStatusDetail.Name)
+			}
+		}
+	}
+	return compsNotReady, nil
 }

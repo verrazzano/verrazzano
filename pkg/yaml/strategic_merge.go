@@ -61,7 +61,7 @@ func StrategicMerge(strategy PatchStrategy, yamls ...string) (string, error) {
 			return "", err
 		}
 	}
-	mergedYaml, err := yaml.JSONToYAML([]byte(mergedJSON))
+	mergedYaml, err := yaml.JSONToYAML(mergedJSON)
 	if err != nil {
 		return "", err
 	}
