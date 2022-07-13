@@ -35,6 +35,8 @@ RUN yum update -y \
     && yum clean all \
     && rm -rf /var/cache/yum
 
+RUN helm repo add bitnami https://charts.bitnami.com/bitnami
+
 RUN groupadd -r verrazzano \
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
