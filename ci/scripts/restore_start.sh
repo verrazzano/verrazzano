@@ -55,7 +55,7 @@ while ${CHECK_DONE};
 do
   RESPONSE=`(kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME} -o jsonpath={.status.phase})`
   if [ "${RESPONSE}" == "InProgress" ];then
-    if [ "${RETRY_COUNT}" -gt 50 ];then
+    if [ "${RETRY_COUNT}" -gt 100 ];then
        echo "Restore failed. retry count exceeded !!"
        exit 1
     fi
@@ -81,13 +81,20 @@ cat <<EOF >> ${REQUEST_JSON_BODY}
         }
       }
 EOF
+
+cat /tmp/input.json
+
 CHECK_BACKUP_ID=$(curl -ks "${ES_URL}/verrazzano-system/_search?" -u verrazzano:${VZ_PASSWORD} -d @${REQUEST_JSON_BODY} | jq -r '.hits.hits[0]._id')
+
+rm -rf /tmp/input.json
 
 if [ ${CHECK_BACKUP_ID} == ${BACKUP_ID} ]; then
   echo "True"
-else
-  echo "False"
+  exit 0
 fi
+echo "False"
+exit 1
+
 
 
 
