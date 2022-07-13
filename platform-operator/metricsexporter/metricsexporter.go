@@ -10,6 +10,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -238,113 +239,7 @@ var (
 		Name: "vz_fluentd_upgrade_duration_seconds",
 		Help: "The duration of the latest upgrade of the fluentd component in seconds",
 	})
-	getUTCFunction = time.Now().UnixMilli
-	/*
-		verrazzanoAuthproxyUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_authproxy_update_duration_seconds",
-			Help: "The duration of the latest update of the authproxy component in seconds",
-		})
-		oamUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_oam_update_duration_seconds",
-			Help: "The duration of the latest update of the oam component in seconds",
-		})
-		appoperUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_appoper_update_duration_seconds",
-			Help: "The duration of the latest update of the appoper component in seconds",
-		})
-		istioUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_istio_update_duration_seconds",
-			Help: "The duration of the latest update of the istio component in seconds",
-		})
-		weblogicUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_weblogic_update_duration_seconds",
-			Help: "The duration of the latest update of the weblogic component in seconds",
-		})
-		nginxUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_nginx_update_duration_seconds",
-			Help: "The duration of the latest update of the nginx component in seconds",
-		})
-		certManagerUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_certManager_update_duration_seconds",
-			Help: "The duration of the latest update of the certManager component in seconds",
-		})
-		externalDNSUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_externalDNS_update_duration_seconds",
-			Help: "The duration of the latest update of the externalDNS component in seconds",
-		})
-		rancherUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_rancher_update_duration_seconds",
-			Help: "The duration of the latest update of the rancher component in seconds",
-		})
-		verrazzanoUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "verrazzano_update_duration_seconds",
-			Help: "The duration of the latest update of the verrazzano component in seconds",
-		})
-		verrazzanoMonitoringOperatorUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vmo_update_duration_seconds",
-			Help: "The duration of the latest update of the verrazzano-monitoring-operator component in seconds",
-		})
-		openSearchUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_open_search_update_duration_seconds",
-			Help: "The duration of the latest update of the opensearch component in seconds",
-		})
-		openSearchDashboardsUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_open_search_dashboards_update_duration_seconds",
-			Help: "The duration of the latest update of the opensearch-dashboards component in seconds",
-		})
-		grafanaUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_grafana_update_duration_seconds",
-			Help: "The duration of the latest update of the grafana component in seconds",
-		})
-		coherenceUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_coherence_update_duration_seconds",
-			Help: "The duration of the latest update of the coherence component in seconds",
-		})
-		mySQLUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_my_sql_update_duration_seconds",
-			Help: "The duration of the latest update of the mysql component in seconds",
-		})
-		keycloakUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_keycloak_update_duration_seconds",
-			Help: "The duration of the latest update of the keycloak component in seconds",
-		})
-		kialiUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_kiali_update_duration_seconds",
-			Help: "The duration of the latest update of the kiali component in seconds",
-		})
-		prometheusOperatorUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_prometheus_operator_update_duration_seconds",
-			Help: "The duration of the latest update of the prometheus-operator component in seconds",
-		})
-		prometheusAdapterUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_prometheus_adapter_update_duration_seconds",
-			Help: "The duration of the latest update of the prometheus-adapter component in seconds",
-		})
-		kubeStateMetricsUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_kube_state_metrics_update_duration_seconds",
-			Help: "The duration of the latest update of the kube-state-metrics component in seconds",
-		})
-		prometheusPushGatewayUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_prometheus_push_gateway_update_duration_seconds",
-			Help: "The duration of the latest update of the prometheus-push-gateway component in seconds",
-		})
-		prometheusNodeExporterUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_prometheus_node_exporter_update_duration_seconds",
-			Help: "The duration of the latest update of the prometheus-node-exporter component in seconds",
-		})
-		jaegerOperatorUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_jaeger_operator_update_duration_seconds",
-			Help: "The duration of the latest update of the jaeger-operator component in seconds",
-		})
-		verrazzanoConsoleUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "verrazzano_console_update_duration_seconds",
-			Help: "The duration of the latest update of the verrazzano-console component in seconds",
-		})
-		fluentdUpdateTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "vz_fluentd_update_duration_seconds",
-			Help: "The duration of the latest update of the fluentd component in seconds",
-		})
-	*/
+
 	allMetrics = []prometheus.Collector{verrazzanoAuthproxyInstallTimeMetric,
 		oamInstallTimeMetric,
 		appoperInstallTimeMetric,
@@ -397,34 +292,6 @@ var (
 		jaegerOperatorUpgradeTimeMetric,
 		verrazzanoConsoleUpgradeTimeMetric,
 		fluentdUpgradeTimeMetric,
-		/*
-			verrazzanoAuthproxyUpdateTimeMetric,
-			oamUpdateTimeMetric,
-			appoperUpdateTimeMetric,
-			istioUpdateTimeMetric,
-			weblogicUpdateTimeMetric,
-			nginxUpdateTimeMetric,
-			certManagerUpdateTimeMetric,
-			externalDNSUpdateTimeMetric,
-			rancherUpdateTimeMetric,
-			verrazzanoUpdateTimeMetric,
-			verrazzanoMonitoringOperatorUpdateTimeMetric,
-			openSearchUpdateTimeMetric,
-			openSearchDashboardsUpdateTimeMetric,
-			grafanaUpdateTimeMetric,
-			coherenceUpdateTimeMetric,
-			mySQLUpdateTimeMetric,
-			keycloakUpdateTimeMetric,
-			kialiUpdateTimeMetric,
-			prometheusOperatorUpdateTimeMetric,
-			prometheusAdapterUpdateTimeMetric,
-			kubeStateMetricsUpdateTimeMetric,
-			prometheusPushGatewayUpdateTimeMetric,
-			prometheusNodeExporterUpdateTimeMetric,
-			jaegerOperatorUpdateTimeMetric,
-			verrazzanoConsoleUpdateTimeMetric,
-			fluentdUpdateTimeMetric,
-		*/
 		reconcileCounterMetric,
 		reconcileLastDurationMetric,
 		reconcileErrorCounterMetric,
@@ -488,36 +355,6 @@ var (
 		"verrazzano-console":              verrazzanoConsoleUpgradeTimeMetric,
 		"fluentd":                         fluentdUpgradeTimeMetric,
 	}
-	/*
-		updateMetricsMap = map[string]prometheus.Gauge{
-			"verrazzano-authproxy":            verrazzanoAuthproxyUpdateTimeMetric,
-			"oam-kubernetes-runtime":          oamUpdateTimeMetric,
-			"verrazzano-application-operator": appoperUpdateTimeMetric,
-			"istio":                           istioUpdateTimeMetric,
-			"weblogic-operator":               weblogicUpdateTimeMetric,
-			"ingress-controller":              nginxUpdateTimeMetric,
-			"cert-manager":                    certManagerUpdateTimeMetric,
-			"external-dns":                    externalDNSUpdateTimeMetric,
-			"rancher":                         rancherUpdateTimeMetric,
-			"verrazzano":                      verrazzanoUpdateTimeMetric,
-			"verrazzano-monitoring-operator":  verrazzanoMonitoringOperatorUpdateTimeMetric,
-			"opensearch":                      openSearchUpdateTimeMetric,
-			"opensearch-dashboards":           openSearchDashboardsUpdateTimeMetric,
-			"grafana":                         grafanaUpdateTimeMetric,
-			"coherence-operator":              coherenceUpdateTimeMetric,
-			"mysql":                           mySQLUpdateTimeMetric,
-			"keycloak":                        keycloakUpdateTimeMetric,
-			"kiali-server":                    kialiUpdateTimeMetric,
-			"prometheus-operator":             prometheusOperatorUpdateTimeMetric,
-			"prometheus-adapter":              prometheusAdapterUpdateTimeMetric,
-			"kube-state-metrics":              kubeStateMetricsUpdateTimeMetric,
-			"prometheus-pushgateway":          prometheusPushGatewayUpdateTimeMetric,
-			"prometheus-node-exporter":        prometheusNodeExporterUpdateTimeMetric,
-			"jaeger-operator":                 jaegerOperatorUpdateTimeMetric,
-			"verrazzano-console":              verrazzanoConsoleUpdateTimeMetric,
-			"fluentd":                         fluentdUpdateTimeMetric,
-		}
-	*/
 )
 
 //InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
@@ -555,10 +392,6 @@ func CollectReconcileMetrics(startTime int64, err error) {
 	metric.Set(float64(durationTime))
 }
 
-//Reminder to take out this comment block later
-//Change this function to get the times for the upcoming update Condition Type
-//For each component go through the list
-//Can update current code to get rid of installnothappened and for update just change the condition to its repsective update condition
 func AnalyzeVZCR(CR vzapi.Verrazzano) {
 	//Get the VZ CR Component Map (Store it in this function, so the state does not change)
 	mapOfComponents := CR.Status.Components
@@ -641,12 +474,9 @@ func initializeFailedMetricsArray() {
 		failedMetrics[metric] = i
 	}
 }
-func GetReconcileDurationMetricGaugeVector() *prometheus.GaugeVec {
-	return reconcileLastDurationMetric
+func GetErrorCounterMetric() float64 {
+	return testutil.ToFloat64(reconcileErrorCounterMetric)
 }
-func GetUTCFunction() func() int64 {
-	return getUTCFunction
-}
-func SetUTCFunction(label func() int64) {
-	getUTCFunction = label
+func GetReconcileCounterMetric() float64 {
+	return testutil.ToFloat64(reconcileCounterMetric)
 }

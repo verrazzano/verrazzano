@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus/testutil"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 
@@ -172,8 +171,12 @@ func TestInstall(t *testing.T) {
 			// Create and make the request
 			request := newRequest(namespace, name)
 			reconciler := newVerrazzanoReconciler(mock)
+			reconcileCounterBefore := metricsexporter.GetReconcileCounterMetric()
 			result, err := reconciler.Reconcile(nil, request)
-			// Get the counter function for metrics here//
+			reconcileCounterAfter := metricsexporter.GetReconcileCounterMetric()
+			// Test the counter function here
+			asserts.Equal(reconcileCounterBefore, reconcileCounterAfter)
+
 			asserts.NoError(err)
 
 			// Validate the results
@@ -1632,10 +1635,8 @@ func TestReconcileErrorCounter(t *testing.T) {
 	fakeClient := clientBuilder.Build()
 	errorRequest := newRequest("bad namespace", "test")
 	reconciler := newVerrazzanoReconciler(fakeClient)
-	metricsexporter.SetUTCFunction(func() int64 { return int64(111122232832934343) })
+	errorCounterBefore := metricsexporter.GetErrorCounterMetric()
 	reconciler.Reconcile(nil, errorRequest)
-	metricsexporter.SetUTCFunction(func() int64 { return time.Now().UnixMilli() })
-	gaugeVectorForTesting := metricsexporter.GetReconcileDurationMetricGaugeVector()
-	metricTest, _ := gaugeVectorForTesting.GetMetricWithLabelValues("111122232832934343_error:true")
-	asserts.NotEqual(float64(0), testutil.ToFloat64(metricTest))
+	errorCounterAfter := metricsexporter.GetErrorCounterMetric()
+	asserts.Equal(errorCounterBefore, errorCounterAfter-1)
 }
