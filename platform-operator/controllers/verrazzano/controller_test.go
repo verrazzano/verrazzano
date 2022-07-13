@@ -1602,6 +1602,11 @@ func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
 		Get(gomock.Any(), types.NamespacedName{Name: vzconst.CertManagerNamespace}, gomock.Not(gomock.Nil())).
 		Return(nil)
 	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: vzconst.CertManagerNamespace}, gomock.Any()).Return(nil)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
+		Return(nil)
+	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: constants.VerrazzanoSystemNamespace}, gomock.Any()).Return(nil)
 }
 
 // expectRancherPostUninstall creates the expects for the Rancher post-install client calls
