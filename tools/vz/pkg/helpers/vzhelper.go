@@ -6,6 +6,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"io"
 	"k8s.io/client-go/dynamic"
 	"net/http"
@@ -101,4 +102,32 @@ func NewScheme() *runtime.Scheme {
 	_ = rbacv1.SchemeBuilder.AddToScheme(scheme)
 	_ = appv1.SchemeBuilder.AddToScheme(scheme)
 	return scheme
+}
+
+// GetNamespacesForNotReadyComponents gets the list of all namespaces for the failed components
+func GetNamespacesForNotReadyComponents(vz vzapi.Verrazzano) []string {
+	allComponents := GetComponentsNotReady(vz)
+	var nsList []string
+	for _, eachComp := range allComponents {
+		nsList = append(nsList, constants.ComponentNameToNamespacesMap[eachComp]...)
+	}
+	return nsList
+}
+
+// GetComponentsNotReady returns the list of components which did not reach Ready state from the Verrazzano resource
+func GetComponentsNotReady(vzRes vzapi.Verrazzano) []string {
+	var compsNotReady = make([]string, 0)
+	if vzRes.Status.State != vzapi.VzStateReady {
+		// Verrazzano installation is not complete, find out the list of components which are not ready
+		for _, compStatusDetail := range vzRes.Status.Components {
+			if compStatusDetail.State != vzapi.CompStateReady {
+				if compStatusDetail.State == vzapi.CompStateDisabled {
+					continue
+				}
+				compsNotReady = append(compsNotReady, compStatusDetail.Name)
+			}
+		}
+	}
+	compsNotReady = RemoveDuplicate(compsNotReady)
+	return compsNotReady
 }

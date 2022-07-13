@@ -29,8 +29,8 @@ type ErrorsChannel struct {
 // The bug-report command captures the following resources from the cluster by default
 // - Verrazzano resource
 // - Logs from verrazzano-platform-operator, verrazzano-monitoring-operator and verrazzano-application-operator pods
-// - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from verrazzano-system namespace.
-// - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from the namespaces specified by flag --include-namespaces
+// - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from namespace verrazzano-system,
+//   namespaces specified by flag --include-namespaces and the namespaces for each of the components which are not in Ready state
 // - OAM resources like ApplicationConfiguration, Component, IngressTrait, MetricsTrait from namespaces specified by flag --include-namespaces
 // - VerrazzanoManagedCluster, VerrazzanoProject and MultiClusterApplicationConfiguration in a multi-clustered environment
 
@@ -53,11 +53,20 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 	// Get the list of namespaces, to capture information
 	var additionalNS []string
 	var nsList = []string{vzconstants.VerrazzanoSystemNamespace}
+
+	// Get the list of components not in Ready state, if Verrazzano resource is not in Ready state
+	if len(vz.Items) != 0 && vz.Items[0].Status.State != vzapi.VzStateReady {
+		failedCompNS := pkghelpers.GetNamespacesForNotReadyComponents(vz.Items[0])
+		nsList = append(nsList, failedCompNS...)
+	}
+
 	if moreNS != "" {
 		additionalNS = getNamespaces(kubeClient, moreNS, vzHelper)
 		nsList = append(nsList, additionalNS...)
-		nsList = pkghelpers.RemoveDuplicate(nsList)
 	}
+
+	// Remove the duplicates from nsList
+	nsList = pkghelpers.RemoveDuplicate(nsList)
 
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
 	err = captureVerrazzanoResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
@@ -91,7 +100,6 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 
 // captureVerrazzanoResources captures the resources from verrazzano-install and verrazzano-system namespaces
 func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vz vzapi.VerrazzanoList, vzHelper pkghelpers.VZHelper, namespaces []string) error {
-
 	// Capture Verrazzano resource as JSON
 	if len(vz.Items) > 0 {
 		if err := pkghelpers.CaptureVZResource(bugReportDir, vz, vzHelper); err != nil {
@@ -105,7 +113,7 @@ func captureVerrazzanoResources(client clipkg.Client, kubeClient kubernetes.Inte
 	}
 
 	// Capture workloads, pods, events, ingress and services in verrazzano-system namespace
-	if err := pkghelpers.CaptureK8SResources(kubeClient, namespaces, bugReportDir, vzHelper); err != nil {
+	if err := captureK8SResources(kubeClient, bugReportDir, namespaces, vzHelper); err != nil {
 		return err
 	}
 
@@ -151,6 +159,37 @@ func captureLogsInParallel(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient
 	err := pkghelpers.CapturePodLog(kubeClient, pods[0], namespace, bugReportDir, vzHelper)
 	if err != nil {
 		ec <- ErrorsChannel{PodName: pods[0].Name, ErrorMessage: err.Error()}
+	}
+}
+
+// captureK8SResources captures Kubernetes workloads, pods, events, ingresses and services from the list of namespaces
+func captureK8SResources(kubeClient kubernetes.Interface, bugReportDir string, namespaces []string, vzHelper pkghelpers.VZHelper) error {
+	// it will never be the case, just to make the method resilient, adding this condition
+	if len(namespaces) == 0 {
+		return nil
+	}
+	wg := &sync.WaitGroup{}
+	wg.Add(len(namespaces))
+	ec := make(chan ErrorsChannel, 1)
+
+	for _, ns := range namespaces {
+		go captureK8SResourcesInParallel(wg, ec, kubeClient, ns, bugReportDir, vzHelper)
+	}
+	wg.Wait()
+	close(ec)
+
+	// Report error, if any
+	for err := range ec {
+		return fmt.Errorf("an error occurred while capturing the resource, error: %s", err.ErrorMessage)
+	}
+	return nil
+}
+
+// captureK8SResources captures Kubernetes workloads, pods, events, ingresses and services from the list of namespaces in parallel
+func captureK8SResourcesInParallel(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient kubernetes.Interface, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper) {
+	defer wg.Done()
+	if err := pkghelpers.CaptureK8SResources(kubeClient, namespace, bugReportDir, vzHelper); err != nil {
+		ec <- ErrorsChannel{ErrorMessage: err.Error()}
 	}
 }
 
