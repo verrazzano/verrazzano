@@ -53,17 +53,18 @@ type verrazzanoComponent struct {
 func NewComponent() spi.Component {
 	return verrazzanoComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			ResolveNamespaceFunc:    resolveVerrazzanoNamespace,
-			AppendOverridesFunc:     appendVerrazzanoOverrides,
-			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
-			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			ResolveNamespaceFunc:      resolveVerrazzanoNamespace,
+			AppendOverridesFunc:       appendVerrazzanoOverrides,
+			ImagePullSecretKeyname:    vzImagePullSecretKeyName,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
@@ -157,6 +158,11 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	}
 	removeNodeExporterResources(ctx)
 	return c.HelmComponent.PostUpgrade(ctx)
+}
+
+// PostUninstall Verrazzano post-uninstall processing
+func (c verrazzanoComponent) PostUninstall(ctx spi.ComponentContext) error {
+
 }
 
 // IsEnabled verrazzano-specific enabled check for installation

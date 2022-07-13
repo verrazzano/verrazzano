@@ -58,4 +58,4 @@ function delete_verrazzano() {
   delete_managed_k8s_resources scopedefinitions.core.oam.dev
 }
 
-action "Deleting Verrazzano Components" delete_verrazzano || exit 1
+#action "Deleting Verrazzano Components" delete_verrazzano || exit 1
