@@ -132,7 +132,7 @@ pipeline {
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
                     if (lastCleanPeriodicCommit != null) {
-                       COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/\\{$lastCleanPeriodicCommit}..{$GIT_COMMIT_TO_USE}"
+                       COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${lastCleanPeriodicCommit}..${GIT_COMMIT_TO_USE}"
                     }
                     echo "URL if fails: ${COMPARISON_URL_ON_FAILURE}"
                 }
