@@ -275,7 +275,7 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
 			return err
 		}
 		waiting = true
-		log.Progressf("Waiting for ns %s to clean up")
+		log.Progressf("Waiting for ns %s to clean up", ns)
 	}
 	if waiting {
 		return log.ErrorfThrottledNewErr("Namespace deletes still in progress")
