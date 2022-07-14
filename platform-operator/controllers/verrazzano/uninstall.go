@@ -133,9 +133,9 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			err = r.uninstallCleanup(spiCtx)
-			if err != nil {
-				return ctrl.Result{}, err
+			result, err := r.uninstallCleanup(spiCtx)
+			if err != nil || !result.IsZero() {
+				return result, err
 			}
 			tracker.vzState = vzStateUninstallDone
 		case vzStateUninstallDone:
@@ -238,9 +238,9 @@ func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
 }
 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
-func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) error {
+func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, error) {
 	if err := rancher.PostUninstall(ctx); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
 		return err
@@ -288,7 +288,8 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 }
 
 //deleteNamespaces Cleans up any namespaces shared by multiple components
-func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
+// - returns an error or a requeue with delay result
+func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	for _, ns := range sharedNamespaces {
 		log.Progressf("Deleting namespace %s", ns)
 		err := resource.Resource{
@@ -298,7 +299,7 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
 			Log:    log,
 		}.RemoveFinalizersAndDelete()
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 	waiting := false
@@ -308,13 +309,15 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
 			if errors.IsNotFound(err) {
 				continue
 			}
-			return err
+			return ctrl.Result{}, err
 		}
 		waiting = true
 		log.Progressf("Waiting for namespace %s to terminate", ns)
 	}
 	if waiting {
-		return log.ErrorfThrottledNewErr("Namespace terminations still in progress")
+		log.Progressf("Namespace terminations still in progress")
+		return newRequeueWithDelay(), nil
 	}
-	return nil
+	log.Once("Namespaces terminated successfully")
+	return ctrl.Result{}, nil
 }
