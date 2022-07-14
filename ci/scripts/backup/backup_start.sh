@@ -59,7 +59,7 @@ EOF
   do
     RESPONSE=`(kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o jsonpath={.status.phase})`
     if [ "${RESPONSE}" == "InProgress" ];then
-      if [ "${RETRY_COUNT}" -gt 50 ];then
+      if [ "${RETRY_COUNT}" -gt 100 ];then
          echo "Backup failed. retry count exceeded !!"
          exit 1
       fi
