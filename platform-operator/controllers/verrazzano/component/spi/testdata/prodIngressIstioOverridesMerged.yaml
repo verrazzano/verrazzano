@@ -146,6 +146,11 @@ spec:
         - values:
             controller:
               replicaCount: 2
+            defaultBackend:
+              replicaCount: 2
+        - values:
+            controller:
+              replicaCount: 1
               affinity:
                 podAntiAffinity:
                   preferredDuringSchedulingIgnoredDuringExecution:
@@ -156,7 +161,7 @@ spec:
                         topologyKey: kubernetes.io/hostname
                       weight: 100
             defaultBackend:
-              replicaCount: 2
+              replicaCount: 1
               affinity:
                 podAntiAffinity:
                   preferredDuringSchedulingIgnoredDuringExecution:
