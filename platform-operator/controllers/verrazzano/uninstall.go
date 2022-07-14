@@ -302,10 +302,11 @@ func (r *Reconciler) deleteCARootCert(ctx spi.ComponentContext) error {
 	for _, ns := range namespaces.Items {
 		ctx.Log().Progressf("Deleting Istio root cert in namespace %s", ns)
 		err := resource.Resource{
-			Name:   istioRootCertName,
-			Client: r.Client,
-			Object: &corev1.ConfigMap{},
-			Log:    ctx.Log(),
+			Name:      istioRootCertName,
+			Namespace: ns.GetName(),
+			Client:    r.Client,
+			Object:    &corev1.ConfigMap{},
+			Log:       ctx.Log(),
 		}.Delete()
 		if err != nil {
 			return err
