@@ -269,4 +269,4 @@ func removeOldCertAndSecret(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to delete secret %s/%s: %v", ComponentNamespace, ComponentSecretName, err)
 	}
 	return nil
-}g
+}
