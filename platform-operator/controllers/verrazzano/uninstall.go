@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -45,9 +46,13 @@ const (
 
 	// vzStateUninstallEnd is the terminal state
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
+)
 
-	// The name of the Istio root certificate
-	istioRootCertName = "istio-ca-root-cert"
+// old node-exporter constants replaced with prometheus-operator node-exporter
+const (
+	monitoringNamespace = "monitoring"
+	nodeExporterName    = "node-exporter"
+	istioRootCertName   = "istio-ca-root-cert"
 )
 
 // sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
@@ -56,6 +61,7 @@ var sharedNamespaces = []string{
 	constants.CertManagerNamespace,
 	constants.VerrazzanoSystemNamespace,
 	vzconst.KeycloakNamespace,
+	monitoringNamespace,
 }
 
 // uninstallState identifies the state of a Verrazzano uninstall operation
@@ -242,7 +248,36 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
+		return err
+	}
+
 	return r.deleteNamespaces(ctx.Log())
+}
+
+// nodeExporterCleanup cleans up any resources from the old node-exporter that was
+// replaced with the node-exporter from the prometheus-operator
+func (r *Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
+	err := resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRole{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
