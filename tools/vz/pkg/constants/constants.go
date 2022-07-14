@@ -105,7 +105,7 @@ const (
 
 	BugReportIncludeNSFlagName  = "include-namespaces"
 	BugReportIncludeNSFlagShort = "i"
-	BugReportIncludeNSFlagUsage = "A comma separated list of namespaces to collect information from the cluster. This flag can be specified multiple times like --include-namespaces ns1 --include-namespaces ns..."
+	BugReportIncludeNSFlagUsage = "A comma separated list of additional namespaces to collect information from the cluster. This flag can be specified multiple times like --include-namespaces ns1 --include-namespaces ns..."
 
 	BugReportDir = "bug-report"
 

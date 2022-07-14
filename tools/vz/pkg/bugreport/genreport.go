@@ -142,7 +142,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 	return nil
 }
 
-// captureVZResource collects the Verrazzano resource as a JSON
+// captureVZResource collects the Verrazzano resource as a JSON, in parallel
 func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz vzapi.VerrazzanoList, bugReportDir string, vzHelper pkghelpers.VZHelper) {
 	defer wg.Done()
 	err := pkghelpers.CaptureVZResource(bugReportDir, vz, vzHelper)
