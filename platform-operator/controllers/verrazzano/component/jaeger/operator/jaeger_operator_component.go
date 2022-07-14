@@ -43,9 +43,9 @@ const (
 	//ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
 	ComponentValidatingWebhookConfigName = "jaeger-operator-validating-webhook-configuration"
 	//ComponentMutatingWebhookConfigName is the name of the Certificate.
-	ComponentCertificateName = "jaeger-operator-validating-webhook-configuration"
+	ComponentCertificateName = "jaeger-operator-serving-cert"
 	//ComponentMutatingWebhookConfigName is the name of the secret.
-	ComponentSecretName = "jaeger-operator-validating-webhook-configuration"
+	ComponentSecretName = "jaeger-operator-service-cert"
 )
 
 type jaegerOperatorComponent struct {
@@ -136,6 +136,9 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := removeJaegerWebhookService(ctx); err != nil {
+		return err
+	}
+	if err := removeOldCertAndSecret(ctx); err != nil {
 		return err
 	}
 	if createInstance {
@@ -254,16 +257,15 @@ func removeJaegerWebhookService(ctx spi.ComponentContext) error {
 func removeOldCertAndSecret(ctx spi.ComponentContext) error {
 	cert := &certv1.Certificate{}
 	ctx.Log().Info("Removing old jaeger certificate if it exists %s/%s: %v", ComponentNamespace, ComponentCertificateName)
-	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentCertificateName}, cert); err != nil {
-		return nil
-	}
-	if err := ctx.Client().Delete(context.TODO(), cert); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to delete Jaeger cert %s/%s: %v", ComponentNamespace, ComponentCertificateName, err)
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentCertificateName}, cert); err == nil {
+		if err := ctx.Client().Delete(context.TODO(), cert); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to delete Jaeger cert %s/%s: %v", ComponentNamespace, ComponentCertificateName, err)
+		}
 	}
 	secret := &corev1.Secret{}
 	ctx.Log().Info("Removing old secret if it exists %s/%s: %v", ComponentNamespace, ComponentSecretName)
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentSecretName}, secret); err != nil {
-		return nil
+		return ctx.Log().ErrorfNewErr("Failed to get secret %s/%s: %v", ComponentNamespace, ComponentSecretName, err)
 	}
 	if err := ctx.Client().Delete(context.TODO(), secret); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to delete secret %s/%s: %v", ComponentNamespace, ComponentSecretName, err)
