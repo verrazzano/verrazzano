@@ -225,6 +225,7 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 	return nil
 }
 
+// isManagedCluster returns true if this is a managed cluster
 func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) {
 	var secret corev1.Secret
 	secretNsn := types.NamespacedName{
@@ -279,6 +280,7 @@ func (r *Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
 	return nil
 }
 
+// deleteSecret deletes a Kubernetes secret
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},

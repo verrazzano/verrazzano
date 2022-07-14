@@ -1634,14 +1634,14 @@ func expectMCCleanup(mock *mocks.MockClient) {
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		List(gomock.Any(), &clustersapi.VerrazzanoManagedClusterList{}, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmcList *clustersapi.VerrazzanoManagedClusterList, options ...*client.ListOptions) error {
 			vmcList.Items = []clustersapi.VerrazzanoManagedCluster{}
 			return nil
 		})
 
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		List(gomock.Any(), &vzappclusters.VerrazzanoProjectList{}, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, projects *vzappclusters.VerrazzanoProjectList, options ...*client.ListOptions) error {
 			projects.Items = []vzappclusters.VerrazzanoProject{}
 			return nil
