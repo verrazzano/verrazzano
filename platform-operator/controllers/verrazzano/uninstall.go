@@ -282,5 +282,6 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) (ctrl.Result, 
 		log.Progressf("Namespace terminations still in progress")
 		return newRequeueWithDelay(), nil
 	}
+	log.Once("Namespaces terminated successfully")
 	return ctrl.Result{}, nil
 }

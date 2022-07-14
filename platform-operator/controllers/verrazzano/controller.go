@@ -1024,7 +1024,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 	for _, condition := range vz.Status.Conditions {
 		if condition.Type == installv1alpha1.CondUninstallComplete || condition.Type == installv1alpha1.CondUninstallFailed {
 			if condition.Type == installv1alpha1.CondUninstallComplete {
-				log.Once("Successfully uninstalled Verrrazzano")
+				log.Once("Successfully uninstalled Verrazzano")
 			} else {
 				log.Once("Failed uninstalling Verraazzano")
 			}
