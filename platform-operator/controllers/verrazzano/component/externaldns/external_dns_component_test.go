@@ -4,10 +4,52 @@
 package externaldns
 
 import (
+	"context"
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
+
+// TestExternalDNSPostUninstall tests the PostUninstall fn
+// GIVEN a call to PostUninstall
+// WHEN ExternalDNS is installed
+// THEN no errors are returned and the related resources are cleaned up
+func TestExternalDNSPostUninstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+		WithObjects(
+			&rbacv1.ClusterRole{
+				ObjectMeta: metav1.ObjectMeta{Name: clusterRoleName},
+			},
+			&rbacv1.ClusterRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{Name: clusterRoleBindingName},
+			},
+		).
+		Build()
+
+	// Verify they're there before PostInstall
+	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRole{}))
+	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRoleBinding{}))
+
+	ednsComp := NewComponent()
+	err := ednsComp.PostUninstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
+	assert.NoError(t, err)
+
+	// Verify they're gone after PostInstall
+	err = client.Get(context.TODO(), types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRole{})
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+	err = client.Get(context.TODO(), types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRoleBinding{})
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+}
 
 func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 	tests := []struct {

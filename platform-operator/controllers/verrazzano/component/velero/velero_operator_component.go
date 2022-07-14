@@ -149,11 +149,6 @@ func (v veleroHelmComponent) PostUninstall(context spi.ComponentContext) error {
 		Log:    context.Log(),
 	}
 	// Remove finalizers from the velero namespace to avoid hanging namespace deletion
-	err := res.RemoveFinalizers()
-	if err != nil {
-		return err
-	}
-
-	// Delete the velero namespace now that the finalizers have been removed
-	return res.Delete()
+	// and delete the namespace
+	return res.RemoveFinalizersAndDelete()
 }

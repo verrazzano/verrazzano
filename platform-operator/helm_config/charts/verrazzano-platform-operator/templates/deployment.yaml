@@ -61,6 +61,8 @@ spec:
           env:
             - name: MODE
               value: RUN_OPERATOR
+            - name: VERRAZZANO_KUBECONFIG
+              value: /home/verrazzano/kubeconfig
             - name: VZ_INSTALL_IMAGE
               value: {{ .Values.image }}
             {{- if .Values.global.registry }}

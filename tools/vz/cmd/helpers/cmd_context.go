@@ -5,6 +5,7 @@ package helpers
 
 import (
 	"io"
+	"k8s.io/client-go/dynamic"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -77,6 +78,28 @@ func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interfac
 	}
 
 	return kubernetes.NewForConfig(config)
+}
+
+// GetDynamicClient - return a dynamic clientset for use with the go-client
+func (rc *RootCmdContext) GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error) {
+	// Get command line value of --kubeconfig
+	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get command line value of --context
+	context, err := cmd.Flags().GetString(constants.GlobalFlagContext)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := k8sutil.GetKubeConfigGivenPathAndContext(kubeConfigLoc, context)
+	if err != nil {
+		return nil, err
+	}
+
+	return dynamic.NewForConfig(config)
 }
 
 // GetHTTPClient - return an HTTP client

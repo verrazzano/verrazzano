@@ -46,17 +46,18 @@ var certificates = []types.NamespacedName{
 func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
-			ReleaseName:             common.RancherName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
-			AppendOverridesFunc:     AppendOverrides,
-			Certificates:            certificates,
-			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
+			ReleaseName:               common.RancherName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), common.RancherName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
+			AppendOverridesFunc:       AppendOverrides,
+			Certificates:              certificates,
+			Dependencies:              []string{nginx.ComponentName, certmanager.ComponentName},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -270,6 +271,15 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
 	return nil
+}
+
+// PostUninstall handles the deletion of all Rancher resources after the Helm uninstall
+func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("Rancher PostUninstall dry run")
+		return nil
+	}
+	return PostUninstall(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

@@ -18,32 +18,7 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 CONFIG_DIR=$INSTALL_DIR/config
 
-function delete_external_dns() {
-  log "Deleting external-dns"
-
-  # delete all ExternalDNS ingresses before deleting ExternalDNS
-  delete_k8s_resources ingress ":metadata.name,:metadata.annotations" "Could not delete Ingresses managed by ExternalDNS" '/external-dns/ {print $1}' \
-
-  helm ls -n cert-manager \
-    | awk '/external-dns/ {print $1}' \
-    | xargsr helm uninstall -n cert-manager \
-    || err_return $? "Could not delete external-dns from helm" || return $? # return on pipefail
-
-  # delete clusterrole and clusterrolebinding
-  log "Deleting ClusterRoles and ClusterRoleBindings for external-dns"
-  kubectl delete clusterrole external-dns --ignore-not-found=true || err_return $? "Could not delete ClusterRole external-dns" || return $?
-  kubectl delete clusterrolebinding external-dns --ignore-not-found=true || err_return $? "Could not delete ClusterRoleBinding external-dns" || return $?
-}
-
 function finalize() {
-  # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
-  log "Removing Verrazzano ClusterRoles and ClusterRoleBindings"
-  delete_k8s_resources clusterrolebinding ":metadata.name" "Could not delete ClusterRoleBindings" '/verrazzano/ && ! /verrazzano-platform-operator/ && ! /verrazzano-install/ && ! /verrazzano-managed-cluster/' \
-    || return $? # return on pipefail
-
-  delete_k8s_resources clusterrole ":metadata.name" "Could not delete ClusterRoles" '/verrazzano/ && ! /verrazzano-managed-cluster/' \
-    || return $? # return on pipefail
-
   log "Deleting configmap istio-ca-root-cert from all namespaces"
   IFS=$'\n' read -r -d '' -a namespaces < <( kubectl get namespaces --no-headers -o custom-columns=":metadata.name" && printf '\0' )
   for ns in "${namespaces[@]}" ; do
@@ -65,5 +40,4 @@ function finalize() {
 
 }
 
-action "Deleting External DNS Components" delete_external_dns || exit 1
 action "Finalizing Uninstall" finalize || exit 1
