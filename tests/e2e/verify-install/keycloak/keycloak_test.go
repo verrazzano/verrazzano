@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -13,11 +13,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	common "github.com/verrazzano/verrazzano/tests/e2e/verify-install"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -100,30 +98,14 @@ type Client struct {
 
 var volumeClaims map[string]*corev1.PersistentVolumeClaim
 
-var isMinVersion110 bool
-var isMinVersion140 bool
-
 var t = framework.NewTestFramework("keycloak")
 
 var _ = t.BeforeSuite(func() {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		var err error
 		volumeClaims, err = pkg.GetPersistentVolumeClaims(keycloakNamespace)
 		return volumeClaims, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
-	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
-	if err != nil {
-		Fail(err.Error())
-	}
-	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	if err != nil {
-		Fail(err.Error())
-	}
 })
 
 var _ = t.AfterEach(func() {})
@@ -202,35 +184,6 @@ var _ = t.Describe("Verify Keycloak", Label("f:platform-lcm.install"), func() {
 				}
 			})
 	})
-
-	t.Describe("keycloak", Label("f:platform-lcm.install"), func() {
-		t.It("has expected statefulset", func() {
-			if isMinVersion110 {
-				Eventually(func() (bool, error) {
-					return pkg.DoesStatefulSetExist(constants.KeycloakNamespace, constants.Keycloak)
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			} else {
-				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
-			}
-		})
-
-		t.It("has correct number of pods running", func() {
-			if isMinVersion110 {
-				common.ValidateCorrectNumberOfPodsRunningSts(constants.Keycloak, constants.KeycloakNamespace, "app.kubernetes.io/name")
-			} else {
-				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
-			}
-		})
-
-		t.It("has affinity configured as expected", func() {
-			if isMinVersion140 {
-				common.AssertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": constants.Keycloak}, constants.KeycloakNamespace)
-			} else {
-				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
-			}
-		})
-	})
-
 })
 
 func verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect() bool {
