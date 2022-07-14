@@ -57,17 +57,12 @@ spec:
             deployment:
               replicas: 2
     prometheusOperator:
-      overrides:
-        - values:
-            prometheus:
-              prometheusSpec:
-                storageSpec:
-                  volumeClaimTemplate:
-                    spec:
-                      resources:
-                        requests:
-                          storage: "50Gi"
-                replicas: 2
+      prometheusSpec:
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName:
                 resources:
                   requests:
+                    storage: "50Gi"
                     memory: "128Mi"
