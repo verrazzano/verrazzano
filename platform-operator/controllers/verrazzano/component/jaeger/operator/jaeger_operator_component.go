@@ -128,6 +128,10 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 // PreUpgrade Jaeger component pre-upgrade processing
 func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Jaeger pre-upgrade")
+	// Create the verrazzano-monitoring namespace if not already created
+	if err := ensureVerrazzanoMonitoringNamespace(ctx); err != nil {
+		return err
+	}
 	createInstance, err := isCreateJaegerInstance(ctx)
 	if err != nil {
 		return err
