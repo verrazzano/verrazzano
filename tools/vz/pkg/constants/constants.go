@@ -59,6 +59,8 @@ const VerrazzanoMonitoringOperator = "verrazzano-monitoring-operator"
 
 const VerrazzanoUninstall = "verrazzano-uninstall"
 
+const VerrazzanoUninstallExampleVerrazzano = "verrazzano-uninstall-example-verrazzano"
+
 const VerrazzanoInstall = "verrazzano-install"
 
 const VerrazzanoManagedCluster = "verrazzano-managed-cluster"
@@ -113,6 +115,7 @@ const (
 	BugReportRoot = "cluster-dump"
 
 	// Label for application
-	AppLabel    = "app"
-	K8SAppLabel = "k8s-app"
+	AppLabel     = "app"
+	K8SAppLabel  = "k8s-app"
+	JobNameLabel = "job-name"
 )
