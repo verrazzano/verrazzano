@@ -572,6 +572,8 @@ func TestUninstallComplete(t *testing.T) {
 	// Expect the Rancher Post install
 	expectRancherPostUninstall(mock, 5, 3, 3)
 
+	expectIstioCertRemoval(mock, 1)
+
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
@@ -674,6 +676,8 @@ func TestUninstallStarted(t *testing.T) {
 
 	// Expect the Rancher Post install
 	expectRancherPostUninstall(mock, 5, 3, 3)
+
+	expectIstioCertRemoval(mock, 1)
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -906,6 +910,8 @@ func TestUninstallSucceeded(t *testing.T) {
 	// Expect the Rancher Post install
 	expectRancherPostUninstall(mock, 5, 3, 3)
 
+	expectIstioCertRemoval(mock, 1)
+
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
@@ -1053,6 +1059,8 @@ func TestServiceAccountGetError(t *testing.T) {
 	// Expect the Rancher Post install
 	expectRancherPostUninstall(mock, 5, 3, 3)
 
+	expectIstioCertRemoval(mock, 1)
+
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
 	request := newRequest(namespace, name)
@@ -1132,6 +1140,8 @@ func TestServiceAccountCreateError(t *testing.T) {
 	// Expect the Rancher Post install
 	expectRancherPostUninstall(mock, 5, 3, 3)
 
+	expectIstioCertRemoval(mock, 1)
+
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
 	request := newRequest(namespace, name)
@@ -1208,6 +1218,8 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 
 	// Expect Rancher Post Uninstall
 	expectRancherPostUninstall(mock, 5, 3, 3)
+
+	expectIstioCertRemoval(mock, 1)
 
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
@@ -1290,6 +1302,8 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 
 	// Expect Rancher Post Uninstall
 	expectRancherPostUninstall(mock, 5, 3, 3)
+
+	expectIstioCertRemoval(mock, 1)
 
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
@@ -1622,10 +1636,14 @@ func expectRancherPostUninstall(mock *mocks.MockClient, numList, numDelete2, num
 	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(numDelete3)
 }
 
+// expectIstioCertRemoval creates the expects for the Istio cert removal
+func expectIstioCertRemoval(mock *mocks.MockClient, numList int) {
+	mock.EXPECT().List(gomock.Any(), gomock.Any()).Return(nil).Times(numList)
+}
+
 // expectNodeExporterCleanup creates the expects for the node-exporter cleanup
 func expectNodeExporterCleanup(mock *mocks.MockClient) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil)
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil)
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 }
 
 func expectMCCleanup(mock *mocks.MockClient) {

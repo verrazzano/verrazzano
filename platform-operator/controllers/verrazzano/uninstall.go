@@ -53,6 +53,7 @@ const (
 	monitoringNamespace = "monitoring"
 	nodeExporterName    = "node-exporter"
 	mcElasticSearchScrt = "verrazzano-cluster-elasticsearch"
+	istioRootCertName   = "istio-ca-root-cert"
 )
 
 // sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
@@ -249,9 +250,15 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) error {
 	if err := rancher.PostUninstall(ctx); err != nil {
 		return err
 	}
+
+	if err := r.deleteIstioCARootCert(ctx); err != nil {
+		return err
+	}
+
 	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
 		return err
 	}
+
 	return r.deleteNamespaces(ctx.Log())
 }
 
@@ -323,6 +330,30 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
 	}
 	if waiting {
 		return log.ErrorfThrottledNewErr("Namespace terminations still in progress")
+	}
+	return nil
+}
+
+// deleteIstioCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster
+func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
+	namespaces := corev1.NamespaceList{}
+	err := ctx.Client().List(context.TODO(), &namespaces)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list the cluster namespaces: %v", err)
+	}
+
+	for _, ns := range namespaces.Items {
+		ctx.Log().Progressf("Deleting Istio root cert in namespace %s", ns.GetName())
+		err := resource.Resource{
+			Name:      istioRootCertName,
+			Namespace: ns.GetName(),
+			Client:    r.Client,
+			Object:    &corev1.ConfigMap{},
+			Log:       ctx.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
