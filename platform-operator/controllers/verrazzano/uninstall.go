@@ -166,7 +166,7 @@ func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 
 // Delete multicluster related resources
 func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
-	// Return if this is not managed cluster or if there is an error
+	// Check if this is not managed cluster
 	managed, err := r.isManagedCluster(log)
 	if err != nil {
 		return err
@@ -177,6 +177,7 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 	if err := r.List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil {
 		return log.ErrorfNewErr("Failed listing VMCs: %v", err)
 	}
+
 	for i, vmc := range vmcList.Items {
 		if err := r.Delete(context.TODO(), &vmcList.Items[i]); err != nil {
 			return log.ErrorfNewErr("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)

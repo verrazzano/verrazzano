@@ -6,6 +6,11 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+
+	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+
+	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+
 	"sync"
 	"testing"
 	"time"
@@ -520,9 +525,7 @@ func TestUninstallComplete(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+	expectMCCleanup(mock)
 
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
@@ -635,9 +638,7 @@ func TestUninstallStarted(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+	expectMCCleanup(mock)
 
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
@@ -841,9 +842,7 @@ func TestUninstallSucceeded(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+	expectMCCleanup(mock)
 
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
@@ -1016,9 +1015,7 @@ func TestServiceAccountGetError(t *testing.T) {
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+	expectMCCleanup(mock)
 
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
@@ -1086,9 +1083,7 @@ func TestServiceAccountCreateError(t *testing.T) {
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+	expectMCCleanup(mock)
 
 	// Expect a call to get the uninstall Job - return that it does not exist
 	mock.EXPECT().
@@ -1161,9 +1156,7 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+	expectMCCleanup(mock)
 
 	// Expect a call to get the uninstall Job - return that it does not exist
 	mock.EXPECT().
@@ -1234,9 +1227,7 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+	expectMCCleanup(mock)
 
 	// Expect a call to get the uninstall Job - return that it does not exist
 	mock.EXPECT().
@@ -1581,6 +1572,28 @@ func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
 		Get(gomock.Any(), types.NamespacedName{Name: vzconst.CertManagerNamespace}, gomock.Not(gomock.Nil())).
 		Return(nil)
 	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: vzconst.CertManagerNamespace}, gomock.Any()).Return(nil)
+}
+
+func expectMCCleanup(mock *mocks.MockClient) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmcList *clustersapi.VerrazzanoManagedClusterList, options ...*client.ListOptions) error {
+			vmcList.Items = []clustersapi.VerrazzanoManagedCluster{}
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, projects *vzappclusters.VerrazzanoProjectList, options ...*client.ListOptions) error {
+			projects.Items = []vzappclusters.VerrazzanoProject{}
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 }
 
 // TestMergeMapsNilSourceMap tests mergeMaps function
