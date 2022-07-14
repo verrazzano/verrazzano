@@ -6,6 +6,8 @@ package kiali
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -83,6 +85,27 @@ var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 				return result
 			}
 			Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		WhenKialiInstalledIt("should have a pod with affinity configured", func() {
+			var pods []corev1.Pod
+			var err error
+			Eventually(func() bool {
+				pods, err = pkg.GetPodsFromSelector(&v1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, constants.VerrazzanoSystemNamespace)
+				if err != nil {
+					t.Logs.Errorf("Failed to get Kiali pods: %v", err)
+					return false
+				}
+				return true
+			}, waitTimeout, pollingInterval)
+			for _, pod := range pods {
+				affinity := pod.Spec.Affinity
+				Expect(affinity).ToNot(BeNil())
+				Expect(affinity.PodAffinity).To(BeNil())
+				Expect(affinity.NodeAffinity).To(BeNil())
+				Expect(affinity.PodAntiAffinity).ToNot(BeNil())
+				Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
+			}
 		})
 
 		t.Context("should", func() {

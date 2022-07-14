@@ -9,21 +9,20 @@ import (
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -49,12 +48,20 @@ const (
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
 )
 
-const MCElasticSearchSecret = "verrazzano-cluster-elasticsearch"
+// old node-exporter constants replaced with prometheus-operator node-exporter
+const (
+	monitoringNamespace   = "monitoring"
+	nodeExporterName      = "node-exporter"
+	mcElasticSearchSecret = "verrazzano-cluster-elasticsearch"
+)
 
 // sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
 var sharedNamespaces = []string{
 	vzconst.VerrazzanoMonitoringNamespace,
 	constants.CertManagerNamespace,
+	constants.VerrazzanoSystemNamespace,
+	vzconst.KeycloakNamespace,
+	monitoringNamespace,
 }
 
 // uninstallState identifies the state of a Verrazzano uninstall operation
@@ -123,7 +130,11 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallCleanup
 
 		case vzStateUninstallCleanup:
-			err := r.uninstallCleanup(log)
+			spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			err = r.uninstallCleanup(spiCtx)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -203,7 +214,7 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
 			return err
 		}
-		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, MCElasticSearchSecret); err != nil {
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, mcElasticSearchSecret); err != nil {
 			return err
 		}
 		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
@@ -232,9 +243,40 @@ func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) 
 	return true, nil
 }
 
-//uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individal component uninstalls
-func (r *Reconciler) uninstallCleanup(log vzlog.VerrazzanoLogger) error {
-	return r.deleteNamespaces(log)
+// uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
+func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) error {
+	if err := rancher.PostUninstall(ctx); err != nil {
+		return err
+	}
+	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
+		return err
+	}
+	return r.deleteNamespaces(ctx.Log())
+}
+
+// nodeExporterCleanup cleans up any resources from the old node-exporter that was
+// replaced with the node-exporter from the prometheus-operator
+func (r *Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
+	err := resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRole{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
@@ -264,6 +306,21 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
 		if err != nil {
 			return err
 		}
+	}
+	waiting := false
+	for _, ns := range sharedNamespaces {
+		err := r.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return err
+		}
+		waiting = true
+		log.Progressf("Waiting for namespace %s to terminate", ns)
+	}
+	if waiting {
+		return log.ErrorfThrottledNewErr("Namespace terminations still in progress")
 	}
 	return nil
 }

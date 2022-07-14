@@ -33,6 +33,12 @@ spec:
       overrides:
         - values:
             replicaCount: 2
+            cainjector:
+              replicaCount: 2
+            webhook:
+              replicaCount: 2
+        - values:
+            replicaCount: 1
             affinity:
               podAntiAffinity:
                 preferredDuringSchedulingIgnoredDuringExecution:
@@ -43,7 +49,7 @@ spec:
                       topologyKey: kubernetes.io/hostname
                     weight: 100
             cainjector:
-              replicaCount: 2
+              replicaCount: 1
               affinity:
                 podAntiAffinity:
                   preferredDuringSchedulingIgnoredDuringExecution:
@@ -54,7 +60,7 @@ spec:
                         topologyKey: kubernetes.io/hostname
                       weight: 100
             webhook:
-              replicaCount: 2
+              replicaCount: 1
               affinity:
                 podAntiAffinity:
                   preferredDuringSchedulingIgnoredDuringExecution:
@@ -71,6 +77,8 @@ spec:
       overrides:
         - values:
             replicas: 2
+        - values:
+            replicas: 1
             affinity:
               podAntiAffinity:
                 preferredDuringSchedulingIgnoredDuringExecution:
@@ -176,6 +184,22 @@ spec:
                     topologyKey: kubernetes.io/hostname
     kiali:
       enabled: true
+      overrides:
+        - values:
+            deployment:
+              replicas: 2
+        - values:
+            deployment:
+              replicas: 1
+              affinity:
+                pod_anti:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: kiali
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
     keycloak:
       enabled: true
     kibana:
