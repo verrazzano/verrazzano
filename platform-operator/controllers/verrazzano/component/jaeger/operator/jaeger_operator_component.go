@@ -46,6 +46,12 @@ const (
 	ComponentCertificateName = "jaeger-operator-serving-cert"
 	//ComponentMutatingWebhookConfigName is the name of the secret.
 	ComponentSecretName = "jaeger-operator-service-cert"
+	//JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
+	JaegerCollectorDeploymentName = "jaeger-operator-jaeger-collector"
+	//JaegerQueryDeploymentName is the name of the Jaeger instance query deployment.
+	JaegerQueryDeploymentName = "jaeger-operator-jaeger-query"
+	//JaegerInstanceName is the name of the jaeger instance
+	JaegerInstanceName = "jaeger-operator-jaeger"
 )
 
 type jaegerOperatorComponent struct {
@@ -126,6 +132,13 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+	/*	installed, err := c.IsInstalled(ctx)
+		if err != nil {
+			return err
+		}
+		if installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
+			return ctx.Log().ErrorfNewErr("The jaeger resource %s/%s need to be removed before continuing the upgrade, After the upgrade by default an Jaeger instance will be created in %s namespace: %v", ComponentNamespace, JaegerInstanceName, ComponentNamespace, err)
+		}*/
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
@@ -166,6 +179,28 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 	}
 	return true, nil
 }
+
+//Verifies if Jaeger instance deployments exists
+/*func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
+	client := ctx.Client()
+	deployments := []types.NamespacedName{
+		{
+			Name:      JaegerCollectorDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      JaegerQueryDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	jaegerInstance := status.DoDeploymentsExist(ctx.Log(), client, deployments, 1, prefix)
+
+	if jaegerInstance {
+
+	}
+	return true
+}*/
 
 func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	config, err := ctrl.GetConfig()
