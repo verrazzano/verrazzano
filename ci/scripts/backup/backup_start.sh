@@ -63,10 +63,10 @@ EOF
          echo "Backup failed. retry count exceeded !!"
          exit 1
       fi
-      echo "Backup in progress. Check after 10 seconds"
+      echo "Backup operation is in progress. Check after 10 seconds"
       sleep 10
     else
-        echo "Snapshot progress changed to  $RESPONSE"
+        echo "Backup progress changed to  $RESPONSE"
         CHECK_DONE=false
     fi
     RETRY_COUNT=$((RETRY_COUNT + 1))

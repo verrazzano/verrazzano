@@ -19,14 +19,7 @@ cat <<EOF >> ${SECRETS_FILE}
    aws_secret_access_key=${OCI_OS_ACCESS_SECRET_KEY}
 EOF
 
-echo "List secrets under '${VELERO_NAMESPACE}' namespace"
-kubectl get secrets -n ${VELERO_NAMESPACE}
-
 kubectl create secret generic -n ${VELERO_NAMESPACE} ${VELERO_SECRET_NAME} --from-file=cloud=${SECRETS_FILE}
-
-echo "List secrets under '${VELERO_NAMESPACE}' namespace after secret is created"
-kubectl get secrets -n ${VELERO_NAMESPACE}
-
 rm -rf ${SECRETS_FILE}
 
 kubectl apply -f - <<EOF
@@ -51,9 +44,6 @@ EOF
 
 RESULT=Failed
 BSL=$(kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE} --no-headers -o custom-columns=":metadata.name")
-
-# debug
-kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE} -o yaml
 
 if [ $BSL == ${BACKUP_STORAGE} ]; then
   RESULT=Success
