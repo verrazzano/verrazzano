@@ -319,16 +319,6 @@ pipeline {
                               """
                          }
                     }
-                    post {
-                        always {
-                            script {
-                                 sh """
-                                 kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME} -o yaml
-                                 "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
-                                 """
-                            }
-                        }
-                     }
                 }
 
             }
@@ -336,6 +326,10 @@ pipeline {
             post {
                 always {
                     script {
+                         sh """
+                             kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME} -o yaml
+                             "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
+                          """
                          if (params.DELETE_BUCKET) {
                               println("Delete object store bucket.")
                               deleteBucket("${OCI_OS_BUCKET_NAME}")
