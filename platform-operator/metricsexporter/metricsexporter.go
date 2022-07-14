@@ -92,7 +92,7 @@ var (
 		Help: "The duration of the latest installation of the coherence component in seconds",
 	})
 	mySQLInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "vz_my_sql_install_duration_seconds",
+		Name: "vz_mysql_install_duration_seconds",
 		Help: "The duration of the latest installatio of nthe mysql component in seconds",
 	})
 	keycloakInstallTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -196,7 +196,7 @@ var (
 		Help: "The duration of the latest upgrade of the coherence component in seconds",
 	})
 	mySQLUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "vz_my_sql_upgrade_duration_seconds",
+		Name: "vz_mysql_upgrade_duration_seconds",
 		Help: "The duration of the latest upgrade of the mysql component in seconds",
 	})
 	keycloakUpgradeTimeMetric = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -384,29 +384,29 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 	//Get the VZ CR Component Map (Store it in this function, so the state does not change)
 	mapOfComponents := CR.Status.Components
 	for componentName, componentStatusDetails := range mapOfComponents {
-		possibleInstallCompletionTime := ""
-		possibleUpgradeCompletionTime := ""
-		possibleUpgradeStartTime := ""
-		possibleInstallStartTime := ""
+		var InstallCompletionTime string = ""
+		var UpgradeCompletionTime string = ""
+		var UpgradeStartTime string = ""
+		var InstallStartTime string = ""
 		for _, status := range componentStatusDetails.Conditions {
 			if status.Type == vzapi.CondInstallStarted {
-				possibleInstallStartTime = status.LastTransitionTime
+				InstallStartTime = status.LastTransitionTime
 			}
 			if status.Type == vzapi.CondInstallComplete {
-				possibleInstallCompletionTime = status.LastTransitionTime
+				InstallCompletionTime = status.LastTransitionTime
 
 			}
 			if status.Type == vzapi.CondUpgradeStarted {
-				possibleUpgradeStartTime = status.LastTransitionTime
+				UpgradeStartTime = status.LastTransitionTime
 			}
 			if status.Type == vzapi.CondUpgradeComplete {
-				possibleUpgradeCompletionTime = status.LastTransitionTime
+				UpgradeCompletionTime = status.LastTransitionTime
 			}
 		}
-		if possibleInstallStartTime != "" && possibleInstallCompletionTime != "" {
-			installStartInSeconds, _ := time.Parse(time.RFC3339, possibleInstallStartTime)
+		if InstallStartTime != "" && InstallCompletionTime != "" {
+			installStartInSeconds, _ := time.Parse(time.RFC3339, InstallStartTime)
 			installStartInSecondsUnix := installStartInSeconds.Unix()
-			installCompletionInSeconds, _ := time.Parse(time.RFC3339, possibleInstallCompletionTime)
+			installCompletionInSeconds, _ := time.Parse(time.RFC3339, InstallCompletionTime)
 			installCompletionInSecondsUnix := installCompletionInSeconds.Unix()
 			if installStartInSecondsUnix <= installCompletionInSecondsUnix {
 				totalDurationOfInstall := (installCompletionInSecondsUnix - installStartInSecondsUnix)
@@ -419,10 +419,10 @@ func AnalyzeVZCR(CR vzapi.Verrazzano) {
 				}
 			}
 		}
-		if possibleUpgradeStartTime != "" && possibleUpgradeCompletionTime != "" {
-			upgradeStartInSeconds, _ := time.Parse(time.RFC3339, possibleUpgradeStartTime)
+		if UpgradeStartTime != "" && UpgradeCompletionTime != "" {
+			upgradeStartInSeconds, _ := time.Parse(time.RFC3339, UpgradeStartTime)
 			upgradeStartInSecondsUnix := upgradeStartInSeconds.Unix()
-			upgradeCompletionInSeconds, _ := time.Parse(time.RFC3339, possibleUpgradeCompletionTime)
+			upgradeCompletionInSeconds, _ := time.Parse(time.RFC3339, UpgradeCompletionTime)
 			upgradeCompletionInSecondsUnix := upgradeCompletionInSeconds.Unix()
 			if upgradeStartInSecondsUnix <= upgradeCompletionInSecondsUnix {
 				totalDurationOfUpgrade := (upgradeCompletionInSecondsUnix - upgradeStartInSecondsUnix)

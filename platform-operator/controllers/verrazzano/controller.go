@@ -79,8 +79,7 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Get the Verrazzano resource
-	startTime := time.Now().UnixMilli()
-	defer metricsexporter.CollectReconcileMetricsTime(startTime)
+	defer metricsexporter.CollectReconcileMetricsTime(time.Now().UnixMilli())
 	if ctx == nil {
 		ctx = context.TODO()
 	}
@@ -717,7 +716,6 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	return r.updateVerrazzanoStatus(log, cr)
 }
 
-//Test Comment
 func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
 	for i, existingCondition := range compStatus.Conditions {
 		if existingCondition.Type == newCondition.Type {

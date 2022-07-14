@@ -1084,11 +1084,6 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(fmt.Errorf("Upgrade in progress")).AnyTimes()
 	mockComp.EXPECT().Name().Return("testcomp").Times(1).AnyTimes()
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			return nil
-		}).AnyTimes()
 
 	// expect a call to list any secrets with a status other than "deployed" for the component
 	statuses := []string{"unknown", "uninstalled", "superseded", "failed", "uninstalling", "pending-install", "pending-upgrade", "pending-rollback"}
