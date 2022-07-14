@@ -41,7 +41,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: verrazzano-monitoring
+              verrazzano.io/namespace: {{ .Values.jaegerOperator.namespace }}
           podSelector:
             matchLabels:
               app: jaeger
@@ -143,7 +143,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: jaeger
-  namespace: verrazzano-monitoring
+  namespace: {{ .Values.jaegerOperator.namespace }}
 spec:
   podSelector:
     matchLabels:
