@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,11 +48,18 @@ const (
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
 )
 
+// old node-exporter constants replaced with prometheus-operator node-exporter
+const (
+	monitoringNamespace = "monitoring"
+	nodeExporterName    = "node-exporter"
+)
+
 // sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
 var sharedNamespaces = []string{
 	vzconst.VerrazzanoMonitoringNamespace,
 	constants.CertManagerNamespace,
 	constants.VerrazzanoSystemNamespace,
+	monitoringNamespace,
 }
 
 // uninstallState identifies the state of a Verrazzano uninstall operation
@@ -233,7 +241,35 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) error {
 	if err := rancher.PostUninstall(ctx); err != nil {
 		return err
 	}
+	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
+		return err
+	}
 	return r.deleteNamespaces(ctx.Log())
+}
+
+// nodeExporterCleanup cleans up any resources from the old node-exporter that was
+// replaced with the node-exporter from the prometheus-operator
+func (r *Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
+	err := resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRole{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
