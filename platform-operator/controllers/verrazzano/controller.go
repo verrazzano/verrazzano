@@ -514,8 +514,7 @@ func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log v
 func (r *Reconciler) deleteNamespace(ctx context.Context, log vzlog.VerrazzanoLogger, namespace string) error {
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      namespace, // required by the controller Delete call
+			Name: namespace, // required by the controller Delete call
 		},
 	}
 	err := r.Delete(ctx, &ns, &client.DeleteOptions{})

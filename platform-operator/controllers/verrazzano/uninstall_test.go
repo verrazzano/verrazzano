@@ -5,8 +5,13 @@ package verrazzano
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 
@@ -14,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -29,6 +35,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -279,13 +286,43 @@ func TestReconcileUninstall(t *testing.T) {
 
 func TestUninstallVariations(t *testing.T) {
 	tests := []struct {
-		name     string
-		createMC bool
-		secrets  []types.NamespacedName
+		name              string
+		managed           bool
+		createMCNamespace bool
+		createProject     bool
+		secrets           []corev1.Secret
 	}{
 		{
-			name:     "1",
-			createMC: false,
+			name:              "no-mc",
+			createMCNamespace: false,
+		},
+		// Admin cluster test
+		{
+			name:              "admin-cluster",
+			managed:           false,
+			createMCNamespace: true,
+			secrets: []corev1.Secret{
+				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCRegistrationSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano-cluster-elasticsearch", Namespace: vzconst.VerrazzanoSystemNamespace}},
+			},
+		},
+		// Admin cluster test with project
+		{
+			name:              "admin-cluster-with-projects",
+			managed:           false,
+			createMCNamespace: true,
+			createProject:     true,
+		},
+		// Managed cluster test
+		{
+			name:              "managed-cluster",
+			managed:           true,
+			createMCNamespace: true,
+			secrets: []corev1.Secret{
+				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCAgentSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
+				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCRegistrationSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano-cluster-elasticsearch", Namespace: vzconst.VerrazzanoSystemNamespace}},
+			},
 		},
 	}
 	for _, test := range tests {
@@ -340,7 +377,8 @@ func TestUninstallVariations(t *testing.T) {
 			_ = clustersv1alpha1.AddToScheme(k8scheme.Scheme)
 			_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
-			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+			// Add core resources
+			cb := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 				vzcr,
 				rbac.NewServiceAccount(namespace, name, []string{}, labels),
 				rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
@@ -355,8 +393,24 @@ func TestUninstallVariations(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
-				},
-			).Build()
+				})
+
+			// Add MC related resources
+			objects := []client.Object{}
+			for i, _ := range test.secrets {
+				objects = append(objects, &test.secrets[i])
+			}
+			if test.createMCNamespace {
+				objects = append(objects,
+					&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: vzconst.VerrazzanoMultiClusterNamespace}})
+			}
+			if test.createProject {
+				objects = append(objects,
+					&vzappclusters.VerrazzanoProject{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: vzconst.VerrazzanoMultiClusterNamespace}})
+			}
+			cb.WithObjects(objects...)
+
+			c := cb.Build()
 
 			// Sample bom file for version validation functions
 			config.SetDefaultBomFilePath(testBomFilePath)
@@ -416,6 +470,23 @@ func TestUninstallVariations(t *testing.T) {
 			asserts.Equal("Uninstalled", string(vzcr.Status.Components["fake"].State), "Invalid component state")
 			asserts.NotZero(len(UninstallTrackerMap), "UninstallTrackerMap should have no entries")
 
+			// assert the MC secrets have been deleted
+			for _, s := range test.secrets {
+				err = c.Get(context.TODO(), types.NamespacedName{Namespace: s.Namespace, Name: s.Name}, &s)
+				if test.managed {
+					asserts.True(errors.IsNotFound(err), fmt.Sprintf("Secret %s should not exist", s.Name))
+				} else {
+					asserts.NoError(err, fmt.Sprintf("Secret %s should exist", s.Name))
+				}
+			}
+			// Assert that MC namespace exists if there is a project
+			ns := corev1.Namespace{}
+			err = c.Get(context.TODO(), types.NamespacedName{Name: vzconst.VerrazzanoMultiClusterNamespace}, &ns)
+			if test.createProject {
+				asserts.NoError(err, fmt.Sprintf("Namespace %s should exist since it has projects", ns.Name))
+			} else {
+				asserts.True(errors.IsNotFound(err), fmt.Sprintf("Namespace %s should not exist since there are no projects", ns.Name))
+			}
 		})
 	}
 }
