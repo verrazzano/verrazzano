@@ -43,6 +43,15 @@ spec:
         - values:
             replicas: 2
     istio:
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    replicaCount: 2
       ingress:
         kubernetes:
           replicas: 2

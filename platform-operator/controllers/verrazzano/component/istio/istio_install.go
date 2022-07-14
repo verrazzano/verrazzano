@@ -285,7 +285,8 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 		if err != nil {
 			return files, err
 		}
-		for _, overrideYAML := range overrideYAMLs {
+		for idx := range overrideYAMLs {
+			overrideYAML := overrideYAMLs[len(overrideYAMLs)-1-idx]
 			overrideFile, err := createTempFile(log, overrideYAML)
 			if err != nil {
 				return files, err
