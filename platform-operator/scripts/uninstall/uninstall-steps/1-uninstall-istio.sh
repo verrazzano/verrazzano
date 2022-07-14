@@ -19,14 +19,6 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 CONFIG_DIR=$INSTALL_DIR/config
 
 function finalize() {
-  # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
-  log "Removing Verrazzano ClusterRoles and ClusterRoleBindings"
-  delete_k8s_resources clusterrolebinding ":metadata.name" "Could not delete ClusterRoleBindings" '/verrazzano/ && ! /verrazzano-platform-operator/ && ! /verrazzano-install/ && ! /verrazzano-managed-cluster/' \
-    || return $? # return on pipefail
-
-  delete_k8s_resources clusterrole ":metadata.name" "Could not delete ClusterRoles" '/verrazzano/ && ! /verrazzano-managed-cluster/' \
-    || return $? # return on pipefail
-
   log "Deleting configmap istio-ca-root-cert from all namespaces"
   IFS=$'\n' read -r -d '' -a namespaces < <( kubectl get namespaces --no-headers -o custom-columns=":metadata.name" && printf '\0' )
   for ns in "${namespaces[@]}" ; do
