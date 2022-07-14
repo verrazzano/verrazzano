@@ -195,9 +195,8 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 		}
 	}
 
-	// Delete secrets on managed cluster
+	// Delete secrets on managed cluster.  Don't delete MC agent secret until the end since it tells us this is MC install
 	if managed {
-		// Delete secrets last. Don't delete MC agent secret until the end since it tells us this is MC install
 		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
 			return err
 		}
