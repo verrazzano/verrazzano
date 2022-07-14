@@ -248,8 +248,18 @@ pipeline {
                 stage('Start Opensearch Backup') {
                     steps {
                         script {
-                          backup_id = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup/backup_start.sh").trim()
-                          println("Opensearch backup done. Backup ID for verification -  ${backup_id}")
+                          sh """
+                             "${WORKSPACE}/ci/scripts/backup/backup_start.sh"
+                          """
+                        }
+                    }
+                }
+
+                stage('Check Opensearch Backup Progress') {
+                    steps {
+                        script {
+                          backup_id = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup/backup_check.sh").trim()
+                          println("Opensearch backup done. Backup ID for verification - ${backup_id}")
                         }
                     }
                 }
