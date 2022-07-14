@@ -49,6 +49,8 @@ const (
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
 )
 
+const MCElasticSearchSecret = "verrazzano-cluster-elasticsearch"
+
 // sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
 var sharedNamespaces = []string{
 	vzconst.VerrazzanoMonitoringNamespace,
@@ -201,7 +203,7 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
 			return err
 		}
-		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, "verrazzano-cluster-elasticsearch"); err != nil {
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, MCElasticSearchSecret); err != nil {
 			return err
 		}
 		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {

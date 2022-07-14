@@ -26,7 +26,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/pkg/helm"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
@@ -53,11 +52,11 @@ func TestReconcileUninstalling(t *testing.T) {
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
@@ -110,32 +109,6 @@ func TestReconcileUninstalling(t *testing.T) {
 			},
 		},
 	).Build()
-
-	// Sample bom file for version validation functions
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	// Stub out the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
-	// Sample bom file for version validation functions
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-
-	config.TestProfilesDir = "../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
-
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	reconciler := newVerrazzanoReconciler(c)
 	DeleteUninstallTracker(vzcr)
@@ -166,11 +139,11 @@ func TestReconcileUninstall(t *testing.T) {
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
@@ -224,32 +197,6 @@ func TestReconcileUninstall(t *testing.T) {
 			},
 		},
 	).Build()
-
-	// Sample bom file for version validation functions
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-	// Stub out the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
-	// Sample bom file for version validation functions
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer func() {
-		config.SetDefaultBomFilePath("")
-	}()
-
-	config.TestProfilesDir = "../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
-
-	// Stubout the call to check the chart status
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
 
 	// call reconcile once with installed true, then again with installed false
 	reconciler := newVerrazzanoReconciler(c)
@@ -284,6 +231,10 @@ func TestReconcileUninstall(t *testing.T) {
 	asserts.NotZero(len(UninstallTrackerMap), "UninstallTrackerMap should have no entries")
 }
 
+// TestUninstallVariations tests the reconcileUninstall method for the following use case
+// GIVEN a request to reconcile a verrazzano resource to uninstall
+// WHEN reconcileUninstall is called
+// THEN ensure the reconcileUninstall cleans up all resources, including MC resources
 func TestUninstallVariations(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -296,17 +247,17 @@ func TestUninstallVariations(t *testing.T) {
 			name:              "no-mc",
 			createMCNamespace: false,
 		},
-		// Admin cluster test
+		// Admin cluster test, MC namespace should get deleted
 		{
 			name:              "admin-cluster",
 			managed:           false,
 			createMCNamespace: true,
 			secrets: []corev1.Secret{
 				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCRegistrationSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano-cluster-elasticsearch", Namespace: vzconst.VerrazzanoSystemNamespace}},
+				{ObjectMeta: metav1.ObjectMeta{Name: MCElasticSearchSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
 			},
 		},
-		// Admin cluster test with project
+		// Admin cluster test with project, MC namespace should NOT get deleted
 		{
 			name:              "admin-cluster-with-projects",
 			managed:           false,
@@ -321,26 +272,25 @@ func TestUninstallVariations(t *testing.T) {
 			secrets: []corev1.Secret{
 				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCAgentSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
 				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCRegistrationSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano-cluster-elasticsearch", Namespace: vzconst.VerrazzanoSystemNamespace}},
+				{ObjectMeta: metav1.ObjectMeta{Name: MCElasticSearchSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			initUnitTesing()
 			namespace := "verrazzano"
 			name := "test"
-			var verrazzanoToUse vzapi.Verrazzano
-			labels := map[string]string{}
+
+			initUnitTesing()
 
 			config.SetDefaultBomFilePath(unitTestBomFile)
 			asserts := assert.New(t)
 
-			defer config.Set(config.Get())
-			config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
 			config.TestProfilesDir = "../../manifests/profiles"
 			defer func() { config.TestProfilesDir = "" }()
+
+			defer config.Set(config.Get())
+			config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 			registry.OverrideGetComponentsFn(func() []spi.Component {
 				return []spi.Component{
@@ -352,91 +302,13 @@ func TestUninstallVariations(t *testing.T) {
 					},
 				}
 			})
-
 			defer registry.ResetGetComponentsFn()
 
-			vzcr := &vzapi.Verrazzano{
-				ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{},
-				},
-				Status: vzapi.VerrazzanoStatus{
-					State: vzapi.VzStateReady,
-					Conditions: []vzapi.Condition{
-						{
-							Type: vzapi.CondInstallComplete,
-						},
-					},
-					Components: func() vzapi.ComponentStatusMap {
-						statusMap := makeVerrazzanoComponentStatusMap()
-						return statusMap
-					}(),
-				},
-			}
 			_ = vzapi.AddToScheme(k8scheme.Scheme)
 			_ = clustersv1alpha1.AddToScheme(k8scheme.Scheme)
 			_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
-			// Add core resources
-			cb := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-				vzcr,
-				rbac.NewServiceAccount(namespace, name, []string{}, labels),
-				rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: keycloak.ComponentNamespace,
-						Name:      keycloak.ComponentName,
-						Labels:    map[string]string{"app": keycloak.ComponentName},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				})
-
-			// Add MC related resources
-			objects := []client.Object{}
-			for i, _ := range test.secrets {
-				objects = append(objects, &test.secrets[i])
-			}
-			if test.createMCNamespace {
-				objects = append(objects,
-					&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: vzconst.VerrazzanoMultiClusterNamespace}})
-			}
-			if test.createProject {
-				objects = append(objects,
-					&vzappclusters.VerrazzanoProject{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: vzconst.VerrazzanoMultiClusterNamespace}})
-			}
-			cb.WithObjects(objects...)
-
-			c := cb.Build()
-
-			// Sample bom file for version validation functions
-			config.SetDefaultBomFilePath(testBomFilePath)
-			defer func() {
-				config.SetDefaultBomFilePath("")
-			}()
-			// Stub out the call to check the chart status
-			helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-				return helm.ChartStatusDeployed, nil
-			})
-			defer helm.SetDefaultChartStatusFunction()
-
-			// Sample bom file for version validation functions
-			config.SetDefaultBomFilePath(testBomFilePath)
-			defer func() {
-				config.SetDefaultBomFilePath("")
-			}()
-
-			config.TestProfilesDir = "../../manifests/profiles"
-			defer func() { config.TestProfilesDir = "" }()
-
-			// Stubout the call to check the chart status
-			helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-				return helm.ChartStatusDeployed, nil
-			})
-			defer helm.SetDefaultChartStatusFunction()
+			c, vzcr := buildFakeClientAndObjects(test.createMCNamespace, test.createProject, test.secrets)
 
 			// call reconcile once with installed true, then again with installed false
 			reconciler := newVerrazzanoReconciler(c)
@@ -489,4 +361,66 @@ func TestUninstallVariations(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Build a fake client and load it with the test Kubernetes resources
+func buildFakeClientAndObjects(createMCNamespace bool, createProject bool, secrets []corev1.Secret) (client.Client, *vzapi.Verrazzano) {
+	namespace := "verrazzano"
+	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
+	labels := map[string]string{}
+
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{},
+		},
+		Status: vzapi.VerrazzanoStatus{
+			State: vzapi.VzStateReady,
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondInstallComplete,
+				},
+			},
+			Components: func() vzapi.ComponentStatusMap {
+				statusMap := makeVerrazzanoComponentStatusMap()
+				return statusMap
+			}(),
+		},
+	}
+
+	// Add core resources
+	cb := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		vzcr,
+		rbac.NewServiceAccount(namespace, name, []string{}, labels),
+		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: keycloak.ComponentNamespace,
+				Name:      keycloak.ComponentName,
+				Labels:    map[string]string{"app": keycloak.ComponentName},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		})
+
+	// Add MC related resources
+	objects := []client.Object{}
+	for i, _ := range secrets {
+		objects = append(objects, &secrets[i])
+	}
+	if createMCNamespace {
+		objects = append(objects,
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: vzconst.VerrazzanoMultiClusterNamespace}})
+	}
+	if createProject {
+		objects = append(objects,
+			&vzappclusters.VerrazzanoProject{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: vzconst.VerrazzanoMultiClusterNamespace}})
+	}
+	cb.WithObjects(objects...)
+
+	return cb.Build(), vzcr
 }
