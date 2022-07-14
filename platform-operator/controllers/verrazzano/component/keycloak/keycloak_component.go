@@ -52,17 +52,18 @@ var certificates = []types.NamespacedName{
 func NewComponent() spi.Component {
 	return KeycloakComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
-			SupportsOperatorInstall: true,
-			AppendOverridesFunc:     AppendKeycloakOverrides,
-			Certificates:            certificates,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
+			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			AppendOverridesFunc:       AppendKeycloakOverrides,
+			Certificates:              certificates,
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
