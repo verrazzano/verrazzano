@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
 	"os/exec"
 	"path/filepath"
@@ -35,7 +36,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -386,7 +386,6 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
-	var verrazzanoToUse vzapi.Verrazzano
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -416,8 +415,6 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 				},
 				Components: makeVerrazzanoComponentStatusMap()},
 		},
-		rbac.NewServiceAccount(namespace, name, []string{}, nil),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -430,26 +427,14 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 
 	// Validate the results
 	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(2)*time.Second, result.RequeueAfter)
-
-	// check that an uninstall job was created
-	uninstallJob := batchv1.Job{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, &uninstallJob)
-	asserts.NoError(err)
+	asserts.False(result.Requeue)
+	asserts.Equal(time.Duration(0)*time.Second, result.RequeueAfter)
 
 	// check for uninstall started condition
 	verrazzano := vzapi.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
-	asserts.NoError(err)
-	found := false
-	for _, condition := range verrazzano.Status.Conditions {
-		if condition.Type == vzapi.CondUninstallStarted {
-			found = true
-			break
-		}
-	}
-	asserts.True(found, "expected uninstall started to be true")
+	asserts.Error(err)
+	asserts.True(errors2.IsNotFound(err))
 }
 
 // TestUpgradeStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
