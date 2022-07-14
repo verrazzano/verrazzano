@@ -252,7 +252,7 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 	}
 
 	if err := r.deleteIstioCARootCert(ctx); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
