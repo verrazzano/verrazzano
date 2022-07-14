@@ -71,12 +71,3 @@ spec:
                 resources:
                   requests:
                     memory: "128Mi"
-                affinity:
-                  podAntiAffinity:
-                    preferredDuringSchedulingIgnoredDuringExecution:
-                      - podAffinityTerm:
-                          labelSelector:
-                            matchLabels:
-                              app.kubernetes.io/name: prometheus
-                          topologyKey: kubernetes.io/hostname
-                        weight: 100
