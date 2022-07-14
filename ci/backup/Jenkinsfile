@@ -240,7 +240,7 @@ pipeline {
                     steps {
                         script {
                            BACKUP_STORAGE_LOCATION_CREATE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup/backup_prerequisites.sh").trim()
-                           println("Backup prerequisites done! ${BACKUP_STORAGE_LOCATION_CREATE}")
+                           println("Backup prerequisites done!")
                         }
                     }
                 }
@@ -249,7 +249,7 @@ pipeline {
                     steps {
                         script {
                           backup_id = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup/backup_start.sh").trim()
-                          println("Opensearch backup done ${backup_id}")
+                          println("Opensearch backup done. Backup ID for verification -  ${backup_id}")
                         }
                     }
                 }
