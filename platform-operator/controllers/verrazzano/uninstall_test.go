@@ -254,7 +254,7 @@ func TestUninstallVariations(t *testing.T) {
 			createMCNamespace: true,
 			secrets: []corev1.Secret{
 				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCRegistrationSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
-				{ObjectMeta: metav1.ObjectMeta{Name: mcElasticSearchSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
+				{ObjectMeta: metav1.ObjectMeta{Name: mcElasticSearchScrt, Namespace: vzconst.VerrazzanoSystemNamespace}},
 			},
 		},
 		// Admin cluster test with project, MC namespace should NOT get deleted
@@ -272,7 +272,7 @@ func TestUninstallVariations(t *testing.T) {
 			secrets: []corev1.Secret{
 				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCAgentSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
 				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCRegistrationSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
-				{ObjectMeta: metav1.ObjectMeta{Name: mcElasticSearchSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
+				{ObjectMeta: metav1.ObjectMeta{Name: mcElasticSearchScrt, Namespace: vzconst.VerrazzanoSystemNamespace}},
 			},
 		},
 	}
@@ -344,7 +344,8 @@ func TestUninstallVariations(t *testing.T) {
 
 			// assert the MC secrets have been deleted
 			for _, s := range test.secrets {
-				err = c.Get(context.TODO(), types.NamespacedName{Namespace: s.Namespace, Name: s.Name}, &s)
+				newSecret := &corev1.Secret{}
+				err = c.Get(context.TODO(), types.NamespacedName{Namespace: s.Namespace, Name: s.Name}, newSecret)
 				if test.managed {
 					asserts.True(errors.IsNotFound(err), fmt.Sprintf("Secret %s should not exist", s.Name))
 				} else {

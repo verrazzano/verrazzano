@@ -50,9 +50,9 @@ const (
 
 // old node-exporter constants replaced with prometheus-operator node-exporter
 const (
-	monitoringNamespace   = "monitoring"
-	nodeExporterName      = "node-exporter"
-	mcElasticSearchSecret = "verrazzano-cluster-elasticsearch"
+	monitoringNamespace = "monitoring"
+	nodeExporterName    = "node-exporter"
+	mcElasticSearchScrt = "verrazzano-cluster-elasticsearch"
 )
 
 // sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
@@ -214,7 +214,7 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
 			return err
 		}
-		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, mcElasticSearchSecret); err != nil {
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, mcElasticSearchScrt); err != nil {
 			return err
 		}
 		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
