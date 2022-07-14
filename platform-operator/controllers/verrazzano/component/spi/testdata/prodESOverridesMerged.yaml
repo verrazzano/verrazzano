@@ -244,6 +244,8 @@ spec:
       overrides:
         - values:
             replicas: 2
+        - values:
+            replicas: 1
             affinity: |
               podAntiAffinity:
                 preferredDuringSchedulingIgnoredDuringExecution:
