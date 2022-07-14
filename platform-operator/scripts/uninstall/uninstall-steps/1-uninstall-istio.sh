@@ -40,4 +40,4 @@ function finalize() {
 
 }
 
-action "Finalizing Uninstall" finalize || exit 1
+# action "Finalizing Uninstall" finalize || exit 1
