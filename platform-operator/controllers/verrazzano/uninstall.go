@@ -275,10 +275,10 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
 			return err
 		}
 		waiting = true
-		log.Progressf("Waiting for ns %s to clean up", ns)
+		log.Progressf("Waiting for namespace %s to terminate", ns)
 	}
 	if waiting {
-		return log.ErrorfThrottledNewErr("Namespace deletes still in progress")
+		return log.ErrorfThrottledNewErr("Namespace terminations still in progress")
 	}
 	return nil
 }
