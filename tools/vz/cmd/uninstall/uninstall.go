@@ -153,7 +153,7 @@ func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) error {
 func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
 	rc, err := cmdhelpers.GetLogStream(kubeClient, vpoPodName)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	resChan := make(chan error, 1)
