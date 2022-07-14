@@ -38,6 +38,8 @@ vz install --version v1.3.0 --set profile=dev --timeout 20m
 vz install --version v1.3.0 --set profile=dev --set components.kiali.enabled=false
 
 # Install the latest version of Verrazzano using CR overlays and explicit value sets.  Output the logs in json format.
+# The overlay files can be a comma separated list or a series of -f options.  Both formats are shown.
+vz install -f base.yaml,custom.yaml --set profile=prod --log-format json
 vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json
 
 # Install the latest version of Verrazzano using a Verrazzano CR specified with stdin.
