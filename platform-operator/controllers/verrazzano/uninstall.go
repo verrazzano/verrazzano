@@ -265,5 +265,20 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
 			return err
 		}
 	}
+	waiting := false
+	for _, ns := range sharedNamespaces {
+		err := r.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return err
+		}
+		waiting = true
+		log.Progressf("Waiting for ns %s to clean up")
+	}
+	if waiting {
+		return log.ErrorfThrottledNewErr("Namespace deletes still in progress")
+	}
 	return nil
 }
