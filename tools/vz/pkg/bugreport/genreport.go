@@ -105,6 +105,7 @@ func capturePodLogs(client clipkg.Client, kubeClient kubernetes.Interface, bugRe
 
 	// Fixed list of pods for which, capture the log
 	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
+	vuoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoUninstall, vzconstants.VerrazzanoInstallNamespace)
 	vaoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoApplicationOperator, vzconstants.VerrazzanoSystemNamespace)
 	vmoPod, _ := pkghelpers.GetPodList(client, constants.K8SAppLabel, constants.VerrazzanoMonitoringOperator, vzconstants.VerrazzanoSystemNamespace)
 
@@ -113,6 +114,7 @@ func capturePodLogs(client clipkg.Client, kubeClient kubernetes.Interface, bugRe
 	ec := make(chan ErrorsChannel, 1)
 
 	go captureLogsInParallel(wg, ec, kubeClient, vpoPod, vzconstants.VerrazzanoInstallNamespace, bugReportDir, vzHelper)
+	go captureLogsInParallel(wg, ec, kubeClient, vuoPod, vzconstants.VerrazzanoInstallNamespace, bugReportDir, vzHelper)
 	go captureLogsInParallel(wg, ec, kubeClient, vaoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper)
 	go captureLogsInParallel(wg, ec, kubeClient, vmoPod, vzconstants.VerrazzanoSystemNamespace, bugReportDir, vzHelper)
 
