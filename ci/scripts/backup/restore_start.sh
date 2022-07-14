@@ -58,8 +58,8 @@ do
        echo "Restore failed. retry count exceeded !!"
        exit 1
     fi
-    echo "Restore operation in progress. Check after 10 seconds"
-    sleep 10
+    echo "Restore operation in progress. Check after 30 seconds"
+    sleep 30
   else
       echo "Restore progress changed to  $RESPONSE"
       CHECK_DONE=false
