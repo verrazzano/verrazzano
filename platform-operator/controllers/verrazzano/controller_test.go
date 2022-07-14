@@ -523,6 +523,9 @@ func TestUninstallComplete(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
@@ -640,6 +643,9 @@ func TestUninstallStarted(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
 
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
@@ -850,6 +856,9 @@ func TestUninstallSucceeded(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
@@ -1028,6 +1037,9 @@ func TestServiceAccountGetError(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
@@ -1116,6 +1128,9 @@ func TestServiceAccountCreateError(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		Return(errors.NewBadRequest("failed to create ServiceAccount"))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
@@ -1191,6 +1206,9 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest("failed to get ClusterRoleBinding"))
+
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
 
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
@@ -1272,6 +1290,9 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		Return(errors.NewBadRequest("failed to create ClusterRoleBinding"))
+
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
 
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
@@ -1608,6 +1629,12 @@ func expectRancherPostUninstall(mock *mocks.MockClient, numList, numDelete2, num
 	mock.EXPECT().List(gomock.Any(), gomock.Any()).Return(nil).Times(numList)
 	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(numDelete2)
 	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(numDelete3)
+}
+
+// expectNodeExporterCleanup creates the expects for the node-exporter cleanup
+func expectNodeExporterCleanup(mock *mocks.MockClient) {
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil)
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil)
 }
 
 // TestMergeMapsNilSourceMap tests mergeMaps function
