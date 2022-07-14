@@ -279,7 +279,7 @@ pipeline {
                                kubectl delete pvc -n verrazzano-system vmi-system-es-data-2
 
                                echo "Wait for all pods to be cleaned up"
-                               sleep 10
+                               sleep 60
                            """
                         }
                     }
