@@ -91,6 +91,30 @@ spec:
     ingress:
       enabled: true
       type: LoadBalancer
+      overrides:
+        - values:
+            controller:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+            defaultBackend:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
     istio:
       enabled: true
       ingress:

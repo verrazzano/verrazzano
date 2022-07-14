@@ -142,6 +142,30 @@ spec:
           port: 443
           protocol: TCP
           targetPort: 0
+      overrides:
+        - values:
+            controller:
+              replicaCount: 2
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+            defaultBackend:
+              replicaCount: 2
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
     istio:
       enabled: true
       istioInstallArgs:
