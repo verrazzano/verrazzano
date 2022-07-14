@@ -453,6 +453,50 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
+	t.Describe("ingess-nginx", Label("f:platform-lcm.install"), func() {
+		t.It("has expected controller deployment", func() {
+			if isMinVersion110 {
+				Eventually(func() (bool, error) {
+					return pkg.DoesDeploymentExist(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+		t.It("has expected defaultBackend deployment", func() {
+			if isMinVersion110 {
+				Eventually(func() (bool, error) {
+					return pkg.DoesDeploymentExist(constants.IngressNamespace, "ingress-controller-ingress-nginx-defaultbackend")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+
+		t.It("has correct number of controller pods running", func() {
+			if isMinVersion110 {
+				validateCorrectNumberOfPodsRunning("ingress-controller-ingress-nginx-controller", constants.IngressNamespace)
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+		t.It("has correct number of defaultBackend pods running", func() {
+			if isMinVersion110 {
+				validateCorrectNumberOfPodsRunning("ingress-controller-ingress-nginx-defaultbackend", constants.IngressNamespace)
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+
+		t.It("has affinity configured as expected", func() {
+			if isMinVersion140 {
+				assertPodAntiAffinity(map[string]string{"app": "ingress-nginx"}, constants.IngressNamespace)
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+			}
+		})
+	})
+
 	t.Describe("istio-ingressgateway", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
 			if isMinVersion110 {
