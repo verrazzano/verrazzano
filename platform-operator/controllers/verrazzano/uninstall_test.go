@@ -410,7 +410,7 @@ func buildFakeClientAndObjects(createMCNamespace bool, createProject bool, secre
 
 	// Add MC related resources
 	objects := []client.Object{}
-	for i, _ := range secrets {
+	for i := range secrets {
 		objects = append(objects, &secrets[i])
 	}
 	if createMCNamespace {
