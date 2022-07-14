@@ -52,6 +52,7 @@ var sharedNamespaces = []string{
 	vzconst.VerrazzanoMonitoringNamespace,
 	constants.CertManagerNamespace,
 	constants.VerrazzanoSystemNamespace,
+	vzconst.KeycloakNamespace,
 }
 
 // uninstallState identifies the state of a Verrazzano uninstall operation
@@ -263,6 +264,21 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
 		if err != nil {
 			return err
 		}
+	}
+	waiting := false
+	for _, ns := range sharedNamespaces {
+		err := r.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return err
+		}
+		waiting = true
+		log.Progressf("Waiting for namespace %s to terminate", ns)
+	}
+	if waiting {
+		return log.ErrorfThrottledNewErr("Namespace terminations still in progress")
 	}
 	return nil
 }
