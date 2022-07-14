@@ -5,6 +5,7 @@ package transform
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"os"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -23,7 +24,11 @@ const (
 // The profiles must be in the Verrazzano CR format
 func MergeProfiles(actualCR *vzapi.Verrazzano, profileFiles ...string) (*vzapi.Verrazzano, error) {
 	// First merge the profiles
-	merged, err := vzyaml.StrategicMergeFiles(vzapi.Verrazzano{}, profileFiles...)
+	profileStrings, err := appendProfileComponentOverrides(profileFiles...)
+	if err != nil {
+		return nil, err
+	}
+	merged, err := vzyaml.StrategicMerge(vzapi.Verrazzano{}, profileStrings...)
 	if err != nil {
 		return nil, err
 	}
@@ -41,6 +46,7 @@ func MergeProfiles(actualCR *vzapi.Verrazzano, profileFiles ...string) (*vzapi.V
 		return nil, err
 	}
 
+	// merge all profiles together into a single yaml
 	merged, err = vzyaml.StrategicMerge(vzapi.Verrazzano{}, merged, string(crYAML))
 	if err != nil {
 		return nil, err
@@ -51,6 +57,35 @@ func MergeProfiles(actualCR *vzapi.Verrazzano, profileFiles ...string) (*vzapi.V
 	yaml.Unmarshal([]byte(merged), &newCR)
 
 	return &newCR, nil
+}
+
+func appendProfileComponentOverrides(profileFiles ...string) ([]string, error) {
+	var profileCR *vzapi.Verrazzano
+	var profileStrings []string
+	for i := range profileFiles {
+		profileFile := profileFiles[len(profileFiles)-1-i]
+		data, err := os.ReadFile(profileFile)
+		if err != nil {
+			return nil, err
+		}
+		cr := &vzapi.Verrazzano{}
+		if err := yaml.Unmarshal(data, cr); err != nil {
+			return nil, err
+		}
+		if profileCR == nil {
+			profileCR = cr
+		} else {
+			appendComponentOverrides(profileCR, cr)
+			profileStrings = append(profileStrings, string(data))
+		}
+
+	}
+	data, err := yaml.Marshal(profileCR)
+	if err != nil {
+		return nil, err
+	}
+	profileStrings = append(profileStrings, string(data))
+	return profileStrings, nil
 }
 
 // GetEffectiveCR Creates an "effective" Verrazzano CR based on the user defined resource merged with the profile definitions
