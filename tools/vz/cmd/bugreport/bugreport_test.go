@@ -42,7 +42,7 @@ func TestBugReportHelp(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-	assert.Contains(t, buf.String(), "Verrazzano command line utility to capture the data from the cluster, to report an issue")
+	assert.Contains(t, buf.String(), "Verrazzano command line utility to collect data from the cluster, to report an issue")
 }
 
 // TestBugReportWithoutAnyFlag
