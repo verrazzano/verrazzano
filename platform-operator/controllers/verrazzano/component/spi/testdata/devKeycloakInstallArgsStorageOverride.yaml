@@ -211,6 +211,19 @@ spec:
           value: "val1"
         - name: some.keycloak.arg2
           value: "val2"
+      overrides:
+        - values:
+            replicas: 1
+            affinity: |
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app.kubernetes.io/instance: keycloak
+                          app.kubernetes.io/name: keycloak
+                      topologyKey: kubernetes.io/hostname
       mysql:
         volumeSource:
           persistentVolumeClaim:
