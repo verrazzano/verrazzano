@@ -21,10 +21,8 @@ function create-kubeconfig {
   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 }
 
-# The same docker image is shared between the verrazzano-platform-operator and
-# the installation jobs that the operator creates.  The default mode is to run
-# the verrazzano-platform-operator.
+# Set up a valid Kubeconfig for tools that require them
+create-kubeconfig
 
 # Run the operator
-create-kubeconfig
 /usr/local/bin/verrazzano-platform-operator $*
