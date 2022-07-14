@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	appsv1 "k8s.io/api/apps/v1"
+	common "github.com/verrazzano/verrazzano/tests/e2e/verify-install"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -398,7 +398,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion140 && !pkg.IsManagedClusterProfile() {
-				assertPodAntiAffinity(map[string]string{"app": "verrazzano-console"}, constants.VerrazzanoSystemNamespace)
+				common.AssertPodAntiAffinity(map[string]string{"app": "verrazzano-console"}, constants.VerrazzanoSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 			}
@@ -418,7 +418,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion110 {
-				validateCorrectNumberOfPodsRunning("verrazzano-authproxy", constants.VerrazzanoSystemNamespace)
+				common.ValidateCorrectNumberOfPodsRunning("verrazzano-authproxy", constants.VerrazzanoSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
@@ -426,7 +426,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion120 {
-				assertPodAntiAffinity(map[string]string{"app": "verrazzano-authproxy"}, constants.VerrazzanoSystemNamespace)
+				common.AssertPodAntiAffinity(map[string]string{"app": "verrazzano-authproxy"}, constants.VerrazzanoSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
@@ -446,7 +446,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion140 {
-				assertPodAntiAffinity(map[string]string{"app": "cert-manager"}, constants.CertManagerNamespace)
+				common.AssertPodAntiAffinity(map[string]string{"app": "cert-manager"}, constants.CertManagerNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 			}
@@ -503,7 +503,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion110 {
-				validateCorrectNumberOfPodsRunning("istio-ingressgateway", constants.IstioSystemNamespace)
+				common.ValidateCorrectNumberOfPodsRunning("istio-ingressgateway", constants.IstioSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
@@ -531,7 +531,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion110 {
-				validateCorrectNumberOfPodsRunning("istio-egressgateway", constants.IstioSystemNamespace)
+				common.ValidateCorrectNumberOfPodsRunning("istio-egressgateway", constants.IstioSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
@@ -673,23 +673,4 @@ func validateVerrazzanoSystemServicePorts() error {
 		}
 	}
 	return nil
-}
-
-func assertPodAntiAffinity(matchLabels map[string]string, namespace string) {
-	var pods []corev1.Pod
-	Eventually(func() error {
-		var err error
-		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: matchLabels}, namespace)
-		return err
-	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-
-	// Check the affinity configuration. Verify only a pod anti-affinity definition exists.
-	for _, pod := range pods {
-		affinity := pod.Spec.Affinity
-		Expect(affinity).ToNot(BeNil())
-		Expect(affinity.PodAffinity).To(BeNil())
-		Expect(affinity.NodeAffinity).To(BeNil())
-		Expect(affinity.PodAntiAffinity).ToNot(BeNil())
-		Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
-	}
 }

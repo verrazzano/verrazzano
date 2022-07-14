@@ -138,6 +138,22 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	return deployments, nil
 }
 
+// ListStatefulSets returns the list of StatefulSets in a given namespace for the cluster
+func ListStatefulSets(namespace string) (*appsv1.StatefulSetList, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+
+	statefulsets, err := clientset.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list StatefulSets in namespace %s: %v", namespace, err))
+		return nil, err
+	}
+	return statefulsets, nil
+}
+
 // GetReplicaCounts Builds a map of pod counts for a list of deployments
 // expectedDeployments - a list of namespaced names for deployments to look for
 // optsBuilder - a callback func to build the right set of options to select pods for the deployment
@@ -185,6 +201,21 @@ func GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment,
 		return nil, err
 	}
 	return deployment, nil
+}
+
+// DoesStatefulSetExist returns whether a StatefulSet with the given name and namespace exists for the cluster
+func DoesStatefulSetExist(namespace string, name string) (bool, error) {
+	statefulsets, err := ListStatefulSets(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed listing StatefulSets in cluster for namespace %s: %v", namespace, err))
+		return false, err
+	}
+	for i := range statefulsets.Items {
+		if strings.HasPrefix(statefulsets.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // GetStatefulSet returns a StatefulSet with the given name and namespace
