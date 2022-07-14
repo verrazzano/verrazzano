@@ -99,21 +99,7 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	props := common.IngressProperties{
-		IngressName:   constants.PrometheusIngress,
-		HostName:      prometheusHostName,
-		TLSSecretName: prometheusCertificateName,
-		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
-		ExtraAnnotations: map[string]string{
-			"nginx.ingress.kubernetes.io/affinity":                                 "cookie",
-			"nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none": "true",
-			"nginx.ingress.kubernetes.io/session-cookie-expires":                   "86400",
-			"nginx.ingress.kubernetes.io/session-cookie-max-age":                   "86400",
-			"nginx.ingress.kubernetes.io/session-cookie-name":                      "prometheus",
-			"nginx.ingress.kubernetes.io/session-cookie-samesite":                  "Strict",
-		},
-	}
-	if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
+	if err := common.CreateOrUpdateSystemComponentIngress(ctx, constants.PrometheusIngress, prometheusHostName, prometheusCertificateName); err != nil {
 		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
