@@ -25,7 +25,6 @@ cat <<EOF >> ${REQUEST_JSON_BODY}
       }
 EOF
 
-cat /tmp/input.json
 
 CHECK_BACKUP_ID=$(curl -ks -H "Content-Type: application/json" "${ES_URL}/verrazzano-system/_search?" -u verrazzano:${VZ_PASSWORD} -d @${REQUEST_JSON_BODY} | jq -r '.hits.hits[0]._id')
 

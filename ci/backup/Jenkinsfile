@@ -301,6 +301,7 @@ pipeline {
                               sh """
                                 ${WORKSPACE}/ci/scripts/backup/restore_start.sh
                                 kubectl wait --namespace verrazzano-system --for=condition=ready pod --all --timeout=300s
+                                kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME}
                               """
                          }
                     }
