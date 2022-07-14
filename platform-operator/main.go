@@ -167,7 +167,7 @@ func main() {
 
 	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
 
-	metricsexporter.InitalizeMetricsEndpoint()
+	metricsexporter.InitalizeMetricsEndpoint(log)
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{

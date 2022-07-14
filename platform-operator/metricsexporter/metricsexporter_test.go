@@ -10,72 +10,58 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"go.uber.org/zap"
 )
 
-//TestCollectReconcileMetrics tests the CollectReconcileMetrics fn
-//GIVEN a call to CollectReconcileMetrics
-//WHEN A starting time is passed into the function
-//THEN the function updates the reconcileCounterMetric by 1 and creates a new time for that reconcile in the reconcileLastDurationMetric
+// TestCollectReconcileMetricsTime tests the CollectReconcileMetricsTime fn
+// GIVEN a call to CollectReconcileMetricsTime
+// WHEN A starting time is passed into the function
+// THEN the function updates the reconcileCounterMetric by 1 and creates a new time for that reconcile in the reconcileLastDurationMetric
 func TestCollectReconcileMetrics(t *testing.T) {
 	assert := asserts.New(t)
-	tests := []struct {
+	test := struct {
 		name                   string
 		expectedIncrementValue float64
 	}{
-		{
-			name:                   "Test that reoncile counter is incremented by one when function is called",
-			expectedIncrementValue: float64(1),
-		},
-		{
-			name:                   "Test that reconcile Duration is being updated correctly",
-			expectedIncrementValue: float64(1),
-		},
-		{
-			name:                   "Test that reconcile Error counter metric is incremented when a value of ErrorOccured is passed into the function",
-			expectedIncrementValue: float64(1),
-		},
+		name:                   "Test that reoncile counter is incremented by one when function is called",
+		expectedIncrementValue: float64(1),
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			startTime := time.Now().UnixMilli()
-			time.Sleep(1 * time.Millisecond)
-			reconcileCounterBefore := testutil.ToFloat64(reconcileCounterMetric)
-			CollectReconcileMetricsTime(startTime)
-			reconcileCounterAfter := testutil.ToFloat64(reconcileCounterMetric)
-			assert.Equal(tt.expectedIncrementValue, reconcileCounterAfter-reconcileCounterBefore)
-			//Reconcile Index is decremented by one because when the function is called Reconcile index is incremented by one at the end of the fn
-			//However, the gauge inside the gauge vector that we want to test is accessed with the original value of reconcile index that was used in the function call
-			//Before passing
-			metric, _ := reconcileLastDurationMetric.GetMetricWithLabelValues(strconv.Itoa(reconcileIndex - 1))
-			assert.Greater(testutil.ToFloat64(metric), float64(0))
-		})
-	}
+	t.Run(test.name, func(t *testing.T) {
+		startTime := time.Now().UnixMilli()
+		time.Sleep(1 * time.Millisecond)
+		reconcileCounterBefore := testutil.ToFloat64(reconcileCounterMetric)
+		CollectReconcileMetricsTime(startTime, zap.S())
+		reconcileCounterAfter := testutil.ToFloat64(reconcileCounterMetric)
+		assert.Equal(test.expectedIncrementValue, reconcileCounterAfter-reconcileCounterBefore)
+		// Reconcile Index is decremented by one because when the function is called Reconcile index is incremented by one at the end of the fn
+		// However, the gauge inside the gauge vector that we want to test is accessed with the original value of reconcile index that was used in the function call
+		metric, _ := reconcileLastDurationMetric.GetMetricWithLabelValues(strconv.Itoa(reconcileIndex - 1))
+		assert.Greater(testutil.ToFloat64(metric), float64(0))
+	})
 }
 
-//TestErrorCounterMetric tests the TestErrorCounterMetric fn
-//GIVEN a call to TestErrorCounterMetric
-//WHEN the function is called
-//THEN the function increments the reconcile error counter metric
+// TestErrorCounterMetric tests the TestErrorCounterMetric fn
+// GIVEN a call to TestErrorCounterMetric
+// WHEN the function is called
+// THEN the function increments the reconcile error counter metric
 func TestErrorCounterMetric(t *testing.T) {
 	assert := asserts.New(t)
-	tests := []struct {
+	test := struct {
 		name                        string
 		expectedErrorIncrementValue float64
 	}{
-		{
-			name:                        "Test that reoncile counter is incremented by one when function is called",
-			expectedErrorIncrementValue: float64(1),
-		},
+
+		name:                        "Test that reoncile counter is incremented by one when function is called",
+		expectedErrorIncrementValue: float64(1),
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			errorCounterBefore := testutil.ToFloat64(reconcileErrorCounterMetric)
-			CollectReconcileMetricsError()
-			errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric)
-			assert.Equal(tt.expectedErrorIncrementValue, errorCounterAfter-errorCounterBefore)
-		})
-	}
+	t.Run(test.name, func(t *testing.T) {
+		errorCounterBefore := testutil.ToFloat64(reconcileErrorCounterMetric)
+		CollectReconcileMetricsError(zap.S())
+		errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric)
+		assert.Equal(test.expectedErrorIncrementValue, errorCounterAfter-errorCounterBefore)
+	})
 }
 
 // TestAnalyzeVZCR tests the AnalyzeVZCR fn
@@ -274,12 +260,19 @@ func TestAnalyzeVZCR(t *testing.T) {
 			expectedValueForUpdateMetric:  float64(1),
 		},
 	}
+	testLog, _ := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+		Name:           "Test",
+		Namespace:      "Test namespace",
+		ID:             "Test ID",
+		Generation:     int64(1),
+		ControllerName: "test controller",
+	})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			AnalyzeVZCR(tt.vzcr)
-			assert.Equal(tt.expectedValueForInstallMetric, testutil.ToFloat64(grafanaInstallTimeMetric))
-			assert.Equal(tt.expectedValueForUpdateMetric, testutil.ToFloat64(grafanaUpgradeTimeMetric))
+			AnalyzeVerrazzanoResourceMetrics(testLog, tt.vzcr)
+			assert.Equal(tt.expectedValueForInstallMetric, GetValueOfInstallMetricForTesting("grafana"))
+			assert.Equal(tt.expectedValueForUpdateMetric, GetValueOfUpgradeMetricForTesting("grafana"))
 		})
 	}
 }
