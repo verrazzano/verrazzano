@@ -61,7 +61,7 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
-        booleanParam (description: 'Whether to run JWT tests', name: 'ENABLE_JWT_TESTING', defaultValue: false)
+        booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
     }
 
     environment {
@@ -269,17 +269,6 @@ pipeline {
                           println("Opensearch backup done ${backup_id}")
                         }
                     }
-                    //post {
-                    //  always {
-                    //     script {
-                    //       sh """
-                    //          # debug
-                    //         kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
-                    //        """
-                    //        dumpK8sCluster('velero-backup-tshoot-cluster-dump')
-                    //     }
-                    //  }
-                    //}
                 }
 
                  stage('Start Opensearch Backup Logs') {
@@ -346,18 +335,17 @@ pipeline {
                     }
                 }
 
-
-                stage('Delete bucket') {
-                    steps {
-                       deleteBucket("${OCI_OS_BUCKET_NAME}")
-                    }
-                }
-
             }
 
             post {
                 always {
                     script {
+                         if (params.DELETE_BUCKET) {
+                              println("Delete object store bucket.")
+                              deleteBucket("${OCI_OS_BUCKET_NAME}")
+                         } else {
+                              println("Object store bucket not deleted!")
+                         }
                          dumpK8sCluster('velero-backup-tests-cluster-dump')
                     }
                 }
