@@ -4,28 +4,12 @@
 package metricsexporter
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-// InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
-func InitalizeMetricsEndpoint() {
-	go registerMetricsHandlers()
-
-	go wait.Until(func() {
-		http.Handle("/metrics", promhttp.Handler())
-		err := http.ListenAndServe(":9100", nil)
-		if err != nil {
-			zap.S().Errorf("Failed to start metrics server for VAO: %v", err)
-		}
-	}, time.Second*3, wait.NeverStop)
-
-}
 func initializeFailedMetricsArray() {
 	for i, metric := range allMetrics {
 		failedMetrics[metric] = i
@@ -35,7 +19,7 @@ func initializeFailedMetricsArray() {
 func registerMetricsHandlers() {
 	initializeFailedMetricsArray()
 	for err := registerMetricsHandlersHelper(); err != nil; err = registerMetricsHandlersHelper() {
-		zap.S().Errorf("Failed to register some metrics for VMI: %v", err)
+		zap.S().Errorf("Failed to register some metrics for VAO: %v", err)
 		time.Sleep(time.Second)
 	}
 }
@@ -99,46 +83,7 @@ var (
 		},
 	}
 
-	allMetrics    = []prometheus.Collector{reconcileMap["appconfig"].reconcileSuccessful, reconcileMap["appconfig"].reconcileFailed, reconcileMap["coherenceworkload"].reconcileSuccessful}
+	allMetrics    = []prometheus.Collector{reconcileMap["appconfig"].reconcileDuration.processDuration, reconcileMap["appconfig"].reconcileSuccessful, reconcileMap["appconfig"].reconcileFailed, reconcileMap["coherenceworkload"].reconcileSuccessful}
 	failedMetrics = map[prometheus.Collector]int{}
 	registry      = prometheus.DefaultRegisterer
 )
-
-// Metric Functions --------------------------------
-
-func GetReconcileMetricsObject(s string) ReconcileMetrics {
-	return reconcileMap[s]
-}
-
-// Successfull/Failed reconcile process incrementation
-
-func (r ReconcileMetrics) VerifyReconcileResult(err error) {
-	if err == nil {
-		r.reconcileSuccessful.Inc()
-	}
-	if err != nil {
-		r.reconcileFailed.Inc()
-	}
-}
-func (r ReconcileMetrics) GetReconcileFailed() prometheus.Counter {
-	return r.reconcileFailed
-}
-func (r ReconcileMetrics) GetReconcileSuccessful() prometheus.Counter {
-	return r.reconcileSuccessful
-}
-func (r ReconcileMetrics) IncreaseFailedReconcileMetric() {
-	r.reconcileFailed.Inc()
-}
-
-// Duration metrics function
-
-func (r ReconcileMetrics) GetDurationMetrics() DurationMetrics {
-	return r.reconcileDuration
-}
-
-func (d DurationMetrics) DurationTimerStart() {
-	d.durationStartTime = prometheus.NewTimer(d.processDuration)
-}
-func (d DurationMetrics) DurationTimerStop() {
-	d.durationStartTime.ObserveDuration()
-}

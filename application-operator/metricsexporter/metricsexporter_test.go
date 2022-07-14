@@ -5,9 +5,11 @@ package metricsexporter
 
 import (
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	asserts "github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestCollectReconcileMetrics(t *testing.T) {
@@ -35,9 +37,9 @@ func TestCollectReconcileMetrics(t *testing.T) {
 
 			//Duration Metric test
 
-			// r.GetDurationMetrics().DurationTimerStart()
-			// time.Sleep(time.Second)
-			// r.GetDurationMetrics().DurationTimerStop()
+			r.GetDurationMetrics().DurationTimerStart(zap.S())
+			time.Sleep(time.Second)
+			r.GetDurationMetrics().DurationTimerStop(zap.S())
 		})
 	}
 }

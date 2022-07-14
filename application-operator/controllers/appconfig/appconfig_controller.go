@@ -62,10 +62,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	reconcileMetrics := metricsexporter.GetReconcileMetricsObject(controllerName)
 	var err error
 	defer func() {
-		reconcileMetrics.VerifyReconcileResult(err)
+		reconcileMetrics.VerifyReconcileResult(err, zap.S())
 	}()
-	reconcileMetrics.GetDurationMetrics().DurationTimerStart()
-	defer reconcileMetrics.GetDurationMetrics().DurationTimerStop()
+	reconcileMetrics.GetDurationMetrics().DurationTimerStart(zap.S())
+	defer reconcileMetrics.GetDurationMetrics().DurationTimerStop(zap.S())
 
 	if req.Namespace == constants.KubeSystem {
 		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)

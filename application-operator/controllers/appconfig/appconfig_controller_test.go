@@ -87,7 +87,7 @@ func TestReconcileApplicationConfigurationNotFound(t *testing.T) {
 	reconciler := newReconciler(c)
 	request := newRequest(testNamespace, testAppConfigName)
 
-	_, err := reconciler.Reconcile(nil, request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 }
 
@@ -102,7 +102,7 @@ func TestReconcileNoRestartVersion(t *testing.T) {
 	err := c.Create(context.TODO(), newAppConfig())
 	assert.NoError(err)
 
-	_, err = reconciler.Reconcile(nil, request)
+	_, err = reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 }
 
@@ -119,7 +119,7 @@ func TestReconcileRestartVersion(t *testing.T) {
 	err := c.Create(context.TODO(), appConfig)
 	assert.NoError(err)
 
-	_, err = reconciler.Reconcile(nil, request)
+	_, err = reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	err = c.Get(context.TODO(), request.NamespacedName, appConfig)
@@ -139,7 +139,7 @@ func TestReconcileEmptyRestartVersion(t *testing.T) {
 	err := c.Create(context.TODO(), appConfig)
 	assert.NoError(err)
 
-	_, err = reconciler.Reconcile(nil, request)
+	_, err = reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	err = c.Get(context.TODO(), request.NamespacedName, appConfig)
@@ -187,7 +187,7 @@ func TestReconcileRestartWeblogic(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -235,7 +235,7 @@ func TestReconcileRestartCoherence(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -283,7 +283,7 @@ func TestReconcileRestartHelidon(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -347,7 +347,7 @@ func TestReconcileDeploymentRestart(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -395,7 +395,7 @@ func TestFailedReconcileDeploymentRestart(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -457,7 +457,7 @@ func TestReconcileDeploymentNoRestart(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -521,7 +521,7 @@ func TestReconcileDaemonSetRestartDaemonSet(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -582,7 +582,7 @@ func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -646,7 +646,7 @@ func TestReconcileStatefulSetRestart(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -707,7 +707,7 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -724,24 +724,26 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(vzconst.KubeSystem, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
 	assert.Nil(err)
 	assert.True(result.IsZero())
 }
+
 func TestReconcileFailed(t *testing.T) {
 
 	reconcileMetrics := metricsexporter.GetReconcileMetricsObject(controllerName)
 	assert := assert.New(t)
-	clientBuilder := fake.NewClientBuilder()
-	fakeClient := clientBuilder.Build()
-	errorBuild := newRequest("failed namespace", "test")
-	reconciler := newReconciler(fakeClient)
+	_ = oamcore.AddToScheme(k8scheme.Scheme)
+	clientBuilder := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newReconciler(clientBuilder)
+	request := newRequest(testNamespace, testAppConfigName)
+	//fakeClient := clientBuilder.Build()
 
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileMetrics.GetReconcileFailed())
-	reconciler.Reconcile(nil, errorBuild)
+	reconciler.Reconcile(context.TODO(), request)
 	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileMetrics.GetReconcileFailed())
 	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 
