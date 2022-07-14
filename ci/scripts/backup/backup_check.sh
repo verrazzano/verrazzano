@@ -34,5 +34,8 @@ do
   RETRY_COUNT=$((RETRY_COUNT + 1))
 done
 
+if [ "${RESPONSE}" != "Completed" ]; then
+    exit 1
+fi
 echo "$BACKUP_ID"
 exit 0

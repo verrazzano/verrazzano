@@ -262,15 +262,16 @@ pipeline {
                           println("Opensearch backup done. Backup ID for verification - ${backup_id}")
                         }
                     }
-                }
-
-                 stage('Start Opensearch Backup Logs') {
-                    steps {
-                         script {
-                            println("Opensearch backup logs")
-                            hookLogs = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh").trim()
-                         }
-                    }
+                    post {
+                        always {
+                            script {
+                                 sh """
+                                 kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
+                                 "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
+                                 """
+                            }
+                        }
+                     }
                 }
 
                 stage('Delete Opensearch cluster for restore') {
@@ -301,10 +302,10 @@ pipeline {
                               sh """
                                 ${WORKSPACE}/ci/scripts/backup/restore_start.sh
                                 kubectl wait --namespace verrazzano-system --for=condition=ready pod --all --timeout=300s
-                                kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME}
                               """
                          }
                     }
+
                 }
 
                 stage('Verify Opensearch Restore') {
@@ -318,15 +319,16 @@ pipeline {
                               """
                          }
                     }
-                }
-
-                stage('Start Opensearch Restore Logs') {
-                    steps {
-                        script {
-                            println("Opensearch restore logs")
-                            hookLogs = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh").trim()
+                    post {
+                        always {
+                            script {
+                                 sh """
+                                 kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME} -o yaml
+                                 "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
+                                 """
+                            }
                         }
-                    }
+                     }
                 }
 
             }

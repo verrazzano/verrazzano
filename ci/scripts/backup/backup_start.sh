@@ -48,6 +48,4 @@ kubectl apply -f - <<EOF
                   timeout: 10m
 EOF
 
-kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH}
-
 
