@@ -29,8 +29,8 @@ func TestPostUninstall(t *testing.T) {
 	assert := asserts.New(t)
 	vz := v1alpha1.Verrazzano{}
 
-	nonRanNSName := "not-rancher"
-	rancherNSName := "cattle-system"
+	nonRanNSName := "local-not-rancher"
+	rancherNSName := "local"
 	rancherNSName2 := "fleet-rancher"
 	rancherCrName := "proxy-1234"
 	mwcName := "mutating-webhook-configuration"

@@ -22,7 +22,7 @@ const (
 	helpShort   = "Capture data from the cluster"
 	helpLong    = `Verrazzano command line utility to capture the data from the cluster, to report an issue`
 	helpExample = `# Run bug report tool by providing the name for the report file
-$vz bug-report --report-file <name of the file to include cluster data, a .tar.gz or .tgz file>
+$vz bug-report --report-file <name of the file to include cluster data, a .tar.gz or .tgz file> --include-namespaces <one or more namespaces to collect information>
 `
 )
 
@@ -33,8 +33,10 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	}
 
 	cmd.Example = helpExample
-	cmd.PersistentFlags().String(constants.BugReportFileFlagName, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
+	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
+	cmd.PersistentFlags().StringP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, constants.BugReportIncludeNSFlagValue, constants.BugReportIncludeNSFlagUsage)
 	cmd.MarkPersistentFlagRequired(constants.BugReportFileFlagName)
+
 	return cmd
 }
 
@@ -57,6 +59,12 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 
+	// Get the dynamic client to retrieve OAM resources
+	dynamicClient, err := vzHelper.GetDynamicClient(cmd)
+	if err != nil {
+		return err
+	}
+
 	// Check whether the file already exists
 	err = checkExistingFile(bugReportFile)
 	if err != nil {
@@ -73,8 +81,15 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 	defer bugRepFile.Close()
 
+	// Read and parse the additional namespaces provided using --include-namespaces
+	includeNSFlag := cmd.PersistentFlags().Lookup(constants.BugReportIncludeNSFlagName)
+	moreNS := ""
+	if includeNSFlag != nil {
+		moreNS = includeNSFlag.Value.String()
+	}
+
 	// Generate the bug report
-	err = vzbugreport.GenerateBugReport(kubeClient, client, bugRepFile, vzHelper)
+	err = vzbugreport.GenerateBugReport(kubeClient, dynamicClient, client, bugRepFile, moreNS, vzHelper)
 	if err != nil {
 		os.Remove(bugReportFile)
 		return fmt.Errorf(err.Error())

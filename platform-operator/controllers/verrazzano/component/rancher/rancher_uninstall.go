@@ -41,7 +41,7 @@ func PostUninstall(ctx spi.ComponentContext) error {
 	// For Rancher namespaces, run the system tools uninstaller
 	namespaceNames := []string{
 		"^cattle-",
-		"^local",
+		"^local$",
 		"^p-",
 		"^user-",
 		"^fleet",

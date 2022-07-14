@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"io"
+	"k8s.io/client-go/dynamic"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -31,6 +32,7 @@ type VZHelper interface {
 	GetClient(cmd *cobra.Command) (client.Client, error)
 	GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error)
 	GetHTTPClient() *http.Client
+	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource
@@ -103,35 +105,18 @@ func NewScheme() *runtime.Scheme {
 }
 
 // GetNamespacesForNotReadyComponents gets the list of all namespaces for the failed components
-func GetNamespacesForNotReadyComponents(client client.Client) ([]string, error) {
+func GetNamespacesForNotReadyComponents(vz vzapi.Verrazzano) []string {
+	allComponents := GetComponentsNotReady(vz)
 	var nsList []string
-	var nsListMap map[string]bool
-	allComponents, err := GetComponentsNotReady(client)
-	if err != nil {
-		return nsList, err
-	}
-
 	for _, eachComp := range allComponents {
-		for _, eachNameSpace := range constants.ComponentNameToNamespacesMap[eachComp] {
-			// Insert into list only if not found (to avoid duplicates)
-			if !nsListMap[eachNameSpace] {
-				nsList = append(nsList, eachNameSpace)
-				nsListMap[eachNameSpace] = true
-			}
-		}
+		nsList = append(nsList, constants.ComponentNameToNamespacesMap[eachComp]...)
 	}
-	return nsList, err
+	return nsList
 }
 
 // GetComponentsNotReady returns the list of components which did not reach Ready state from the Verrazzano resource
-func GetComponentsNotReady(client client.Client) ([]string, error) {
-
+func GetComponentsNotReady(vzRes vzapi.Verrazzano) []string {
 	var compsNotReady = make([]string, 0)
-	vzRes, err := FindVerrazzanoResource(client)
-	if err != nil {
-		return compsNotReady, err
-	}
-
 	if vzRes.Status.State != vzapi.VzStateReady {
 		// Verrazzano installation is not complete, find out the list of components which are not ready
 		for _, compStatusDetail := range vzRes.Status.Components {
@@ -143,5 +128,6 @@ func GetComponentsNotReady(client client.Client) ([]string, error) {
 			}
 		}
 	}
-	return compsNotReady, nil
+	compsNotReady = RemoveDuplicate(compsNotReady)
+	return compsNotReady
 }
