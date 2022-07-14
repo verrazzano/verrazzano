@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -41,6 +42,10 @@ const (
 	ComponentMutatingWebhookConfigName = "jaeger-operator-mutating-webhook-configuration"
 	//ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
 	ComponentValidatingWebhookConfigName = "jaeger-operator-validating-webhook-configuration"
+	//ComponentMutatingWebhookConfigName is the name of the Certificate.
+	ComponentCertificateName = "jaeger-operator-validating-webhook-configuration"
+	//ComponentMutatingWebhookConfigName is the name of the secret.
+	ComponentSecretName = "jaeger-operator-validating-webhook-configuration"
 )
 
 type jaegerOperatorComponent struct {
@@ -245,3 +250,23 @@ func removeJaegerWebhookService(ctx spi.ComponentContext) error {
 	}
 	return nil
 }
+
+func removeOldCertAndSecret(ctx spi.ComponentContext) error {
+	cert := &certv1.Certificate{}
+	ctx.Log().Info("Removing old jaeger certificate if it exists %s/%s: %v", ComponentNamespace, ComponentCertificateName)
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentCertificateName}, cert); err != nil {
+		return nil
+	}
+	if err := ctx.Client().Delete(context.TODO(), cert); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete Jaeger cert %s/%s: %v", ComponentNamespace, ComponentCertificateName, err)
+	}
+	secret := &corev1.Secret{}
+	ctx.Log().Info("Removing old secret if it exists %s/%s: %v", ComponentNamespace, ComponentSecretName)
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentSecretName}, secret); err != nil {
+		return nil
+	}
+	if err := ctx.Client().Delete(context.TODO(), secret); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete secret %s/%s: %v", ComponentNamespace, ComponentSecretName, err)
+	}
+	return nil
+}g
