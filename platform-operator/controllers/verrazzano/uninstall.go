@@ -244,7 +244,7 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := r.deleteCARootCert(ctx); err != nil {
+	if err := r.deleteIstioCARootCert(ctx); err != nil {
 		return err
 	}
 
@@ -326,8 +326,8 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
 	return nil
 }
 
-// deleteCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster
-func (r *Reconciler) deleteCARootCert(ctx spi.ComponentContext) error {
+// deleteIstioCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster
+func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
 	namespaces := corev1.NamespaceList{}
 	err := ctx.Client().List(context.TODO(), &namespaces)
 	if err != nil {
