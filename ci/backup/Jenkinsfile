@@ -230,23 +230,6 @@ pipeline {
                    }
                 }
 
-
-                stage('Verify Install') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
-                    }
-                    steps {
-                        runGinkgoRandomize('verify-install')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-
-
                 stage('Create bucket') {
                      steps {
                         createBucket("${OCI_OS_BUCKET_NAME}")
