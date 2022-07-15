@@ -215,3 +215,6 @@ const VeleroNameSpace = "velero"
 
 // ResticDaemonSetName indicates name of the daemonset that is installed as part of component velero
 const ResticDaemonSetName = "restic"
+
+// RancherBackupNamesSpace indicates the namespace to be used for velero installation
+const RancherBackupNamesSpace = "cattle-resources-system"
