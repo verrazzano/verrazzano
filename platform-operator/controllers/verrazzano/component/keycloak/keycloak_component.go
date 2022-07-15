@@ -6,6 +6,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -23,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -161,6 +161,12 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	return c.HelmComponent.PostInstall(ctx)
+}
+
+// Upgrade - component level processing for upgrade
+func (c KeycloakComponent) Upgrade(ctx spi.ComponentContext) error {
+	// Determine if additional processing is required for the upgrade of the StatefulSet
+	return upgradeStatefulSet(ctx.Client(), ctx.EffectiveCR())
 }
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress

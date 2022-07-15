@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -28,10 +27,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -1350,4 +1351,35 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 		return effectiveCR.Spec.Components.Keycloak.ValueOverrides
 	}
 	return []vzapi.Overrides{}
+}
+
+func upgradeStatefulSet(client client.Client, vz *vzapi.Verrazzano) error {
+	// Get the StatefulSet for Keycloak
+	statefulSet := appv1.StatefulSet{}
+	err := client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &statefulSet)
+	if err != nil {
+		return err
+	}
+
+	// Nothing to do if the replica count is less than 2
+	if statefulSet.Spec.Replicas == nil || *statefulSet.Spec.Replicas < 2 {
+		return nil
+	}
+
+	// Scale replica count to 0 to cause all pods to terminate, then restore replica count
+	savedCount := *statefulSet.Spec.Replicas
+	*statefulSet.Spec.Replicas = 0
+	err = client.Update(context.TODO(), &statefulSet)
+	if err != nil {
+		return err
+	}
+
+	// Restore replica count
+	*statefulSet.Spec.Replicas = savedCount
+	err = client.Update(context.TODO(), &statefulSet)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
