@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"strings"
 	"text/template"
@@ -51,6 +52,7 @@ const (
 	nginxTestAnnotationValue = "value-n"
 	istioTestAnnotationName  = "name-i"
 	istioTestAnnotationValue = "value-i"
+	newReplicas              = 3
 )
 
 var testNginxIngressPorts = []corev1.ServicePort{
@@ -107,10 +109,17 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
 	// update nginx
-	nginxInstallArgs := cr.Spec.Components.Ingress.NGINXInstallArgs
-	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.autoscaling.enabled", Value: "true"})
-	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.autoscaling.minReplicas", Value: fmt.Sprint(m.nginxReplicas)})
-	cr.Spec.Components.Ingress.NGINXInstallArgs = nginxInstallArgs
+	//nginxInstallArgs := cr.Spec.Components.Ingress.NGINXInstallArgs
+	//nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.autoscaling.enabled", Value: "true"})
+	//nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.autoscaling.minReplicas", Value: fmt.Sprint(m.nginxReplicas)})
+	overrides := []vzapi.Overrides{
+		{
+			Values: &apiextensionsv1.JSON{
+				Raw: []byte(fmt.Sprintf("{\"controller\": {\"autoscaling\": {\"enabled\": \"true\", \"minReplicas\": %v}}}", m.nginxReplicas)),
+			},
+		},
+	}
+	cr.Spec.Components.Ingress.ValueOverrides = overrides
 	// update istio ingress
 	if cr.Spec.Components.Istio.Ingress == nil {
 		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
@@ -264,10 +273,6 @@ var systemExternalIP, applicationExternalIP string
 
 var _ = t.BeforeSuite(func() {
 	var err error
-	nodeCount, err = pkg.GetNodeCount()
-	if err != nil {
-		Fail(err.Error())
-	}
 	systemExternalIP, applicationExternalIP, err = deployExternalLBs()
 	if err != nil {
 		Fail(err.Error())
@@ -280,10 +285,12 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 			cr := update.GetCR()
 
 			expectedIstioRunning := uint32(1)
+			expectedNGINXRunning := uint32(1)
 			if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 				expectedIstioRunning = 2
+				expectedNGINXRunning = 2
 			}
-			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, uint32(1), false)
+			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, expectedNGINXRunning, false)
 			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 		})
@@ -303,19 +310,15 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 
 	t.Describe("verrazzano-nginx-istio update replicas", Label("f:platform-lcm.nginx-istio-update-replicas"), func() {
 		t.It("nginx-istio update replicas", func() {
-			istioCount := nodeCount - 1
-			if nodeCount == 1 {
-				istioCount = nodeCount
-			}
-			m := NginxAutoscalingIstioRelicasAffintyModifier{nginxReplicas: nodeCount, istioIngressReplicas: istioCount, istioEgressReplicas: istioCount}
+			m := NginxAutoscalingIstioRelicasAffintyModifier{nginxReplicas: newReplicas, istioIngressReplicas: newReplicas, istioEgressReplicas: newReplicas}
 			err := update.UpdateCR(m)
 			if err != nil {
 				Fail(err.Error())
 			}
 
-			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, nodeCount, false)
-			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, istioCount, false)
-			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, istioCount, false)
+			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, newReplicas, false)
+			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, newReplicas, false)
+			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, newReplicas, false)
 		})
 	})
 
