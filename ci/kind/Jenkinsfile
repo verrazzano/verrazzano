@@ -22,6 +22,10 @@ pipeline {
         }
     }
 
+    environment {
+        IS_BUG_REPORT_CLI_USED = true
+    }
+
     parameters {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
@@ -91,7 +95,7 @@ pipeline {
 
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
-        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        DUMP_COMMAND="go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
@@ -638,7 +642,11 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}.tar.gz
+        tar -xvf ${dumpDirectory}.tar.gz
+        echo 'Extracted from dumpdirectory: '$dumpDirectory
+        dumpDirectory=$(dirname "$dumpDirectory")/cluster-dump
+        echo 'dump directory is changed to: '$dumpDirectory
     """
 }
 
