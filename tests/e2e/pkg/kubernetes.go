@@ -207,7 +207,7 @@ func GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment,
 func DoesStatefulSetExist(namespace string, name string) (bool, error) {
 	statefulsets, err := ListStatefulSets(namespace)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed listing StatefulSets in cluster for namespace %s: %v", namespace, err))
+		Log(Error, fmt.Sprintf("Failed to list StatefulSets from namespace %s: %v", namespace, err))
 		return false, err
 	}
 	for i := range statefulsets.Items {
