@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"k8s.io/client-go/dynamic"
 	"net/http"
 	"strings"
 	"time"
@@ -24,8 +25,9 @@ import (
 )
 
 type FakeRootCmdContext struct {
-	client     client.Client
-	kubeClient kubernetes.Interface
+	client        client.Client
+	kubeClient    kubernetes.Interface
+	dynamicClient dynamic.Interface
 	genericclioptions.IOStreams
 }
 
@@ -114,6 +116,11 @@ func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
 			}
 		}),
 	}
+}
+
+// GetDynamicClient - return a dynamic client for use with the fake go-client
+func (rc *FakeRootCmdContext) GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error) {
+	return rc.dynamicClient, nil
 }
 
 func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdContext {

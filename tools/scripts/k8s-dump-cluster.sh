@@ -226,6 +226,8 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get secrets -n $NAMESPACE -o json |jq 'del(.items[].data)' 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/secrets.json || true
         kubectl --insecure-skip-tls-verify get certificates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/certificates.json || true
         kubectl --insecure-skip-tls-verify get MetricsTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/metrics-traits.json || true
+        kubectl --insecure-skip-tls-verify get servicemonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/service-monitors.json || true
+        kubectl --insecure-skip-tls-verify get podmonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/pod-monitors.json || true
       fi
     fi
   done <$CAPTURE_DIR/cluster-dump/namespace_list.out
@@ -258,6 +260,8 @@ function full_k8s_cluster_dump() {
     helm ls -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/helm-ls.json || true
     dump_es_indexes > $CAPTURE_DIR/cluster-dump/es_indexes.out || true
     process_nodes_output || true
+    # dump the Prometheus scrape configuration
+    kubectl get secret prometheus-prometheus-operator-kube-p-prometheus -n verrazzano-monitoring -o json | jq -r '.data["prometheus.yaml.gz"]' | base64 -d | gunzip > $CAPTURE_DIR/cluster-dump/prom-scrape-config.yaml || true
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"
   fi

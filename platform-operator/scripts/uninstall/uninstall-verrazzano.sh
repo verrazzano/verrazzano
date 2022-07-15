@@ -45,13 +45,9 @@ if [ "$FORCE" = false ] ; then
   done
 fi
 
-section "Uninstalling Keycloak..."
-$SCRIPT_DIR/uninstall-steps/4-uninstall-keycloak.sh || exit 1
 section "Uninstalling Verrazzano..."
 $SCRIPT_DIR/uninstall-steps/3-uninstall-verrazzano.sh || exit 1
 section "Uninstalling system components..."
 $SCRIPT_DIR/uninstall-steps/2-uninstall-system-components.sh || exit 1
-section "Uninstalling Istio..."
-$SCRIPT_DIR/uninstall-steps/1-uninstall-istio.sh || exit 1
 
 section "Uninstallation of Verrazzano complete."
