@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def GIT_COMMIT_TO_USE
+def LAST_CLEAN_PERIODIC_COMMIT
 def VERRAZZANO_DEV_VERSION
 def RELEASABLE_IMAGES_OBJECT_STORE
 def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
@@ -99,10 +100,10 @@ pipeline {
                     GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
                     echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
 
-                    lastCleanPeriodicCommit=getLastCleanPeriodicCommit()
-                    echo "Last clean periodics commit: ${lastCleanPeriodicCommit}"
+                    LAST_CLEAN_PERIODIC_COMMIT=getLastCleanPeriodicCommit()
+                    echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
 
-                    if (lastCleanPeriodicCommit == GIT_COMMIT_TO_USE) {
+                    if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
                         periodicsUpToDate = true
                     }
 
@@ -125,16 +126,6 @@ pipeline {
                     if (runTests()) {
                         echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
                     }
-                    def commitList = getCommitList()
-                    withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
-                        def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                        SUSPECT_LIST = getSuspectList(commitList, userMappings)
-                        echo "Suspect list: ${SUSPECT_LIST}"
-                    }
-                    if (lastCleanPeriodicCommit != null) {
-                       COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${lastCleanPeriodicCommit}...${GIT_COMMIT_TO_USE}"
-                    }
-                    echo "URL if fails: ${COMPARISON_URL_ON_FAILURE}"
                 }
             }
         }
@@ -162,6 +153,19 @@ pipeline {
                     if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
                         error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
                     }
+
+                    if (LAST_CLEAN_PERIODIC_COMMIT != null) {
+                        COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${LAST_CLEAN_PERIODIC_COMMIT}...${GIT_COMMIT_TO_USE}"
+                        def lastClean = "${LAST_CLEAN_PERIODIC_COMMIT}"
+                        def currentStable = "${GIT_COMMIT_TO_USE}"
+                        def commitList = getCommitListFromGitLog(lastClean, currentStable)
+                        withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+                            def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+                            SUSPECT_LIST = getSuspectList(commitList, userMappings)
+                            echo "Suspect list: ${SUSPECT_LIST}"
+                        }
+                    }
+                    echo "URL if fails: ${COMPARISON_URL_ON_FAILURE}"
                 }
 
                 script {
@@ -675,20 +679,11 @@ def getCronSchedule() {
 }
 
 // Called in Stage Clean workspace and checkout steps
-@NonCPS
-def getCommitList() {
+def getCommitListFromGitLog(lastClean, currentStable) {
     echo "Checking for change sets"
-    def commitList = []
-    def changeSets = currentBuild.changeSets
-    for (int i = 0; i < changeSets.size(); i++) {
-        echo "get commits from change set"
-        def commits = changeSets[i].items
-        for (int j = 0; j < commits.length; j++) {
-            def commit = commits[j]
-            def id = commit.commitId
-            echo "Add commit id: ${id}"
-            commitList.add(id)
-        }
+    def commitList = sh(returnStdout: true, script: "git log ${lastClean}...${currentStable} --oneline | cut -d \" \" -f 1").trim().split('\n')
+    for (int i = 0; i < commitList.size(); i++) {
+        echo "Found commit id: ${commitList[i]}"
     }
     return commitList
 }
