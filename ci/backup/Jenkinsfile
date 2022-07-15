@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -236,21 +236,22 @@ pipeline {
                      }
                 }
 
-                stage('Setup backup prerequisites') {
-                    steps {
-                        script {
-                           BACKUP_STORAGE_LOCATION_CREATE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup/backup_prerequisites.sh").trim()
-                           println("Backup prerequisites done!")
-                        }
-                    }
-                }
-
-                stage('Start Opensearch Backup') {
+                stage('Setup backup storage location and start Opensearch Backup') {
                     steps {
                         script {
                           sh """
-                             "${WORKSPACE}/ci/scripts/backup/backup_start.sh"
+                             "${WORKSPACE}/ci/scripts/backup/backup_prerequisites.sh"
                           """
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                 sh """
+                                     kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE} -o yaml
+                                     kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
+                                 """
+                            }
                         }
                     }
                 }
@@ -279,18 +280,7 @@ pipeline {
                         script {
                            println("Nuking opensearch")
                            sh """
-                               kubectl scale deploy -n verrazzano-system verrazzano-monitoring-operator --replicas=0
-                               kubectl delete sts -n verrazzano-system vmi-system-es-master
-                               kubectl delete deploy -n verrazzano-system vmi-system-es-data-0
-                               kubectl delete deploy -n verrazzano-system vmi-system-es-data-1
-                               kubectl delete deploy -n verrazzano-system vmi-system-es-data-2
-                               kubectl delete deploy -n verrazzano-system vmi-system-es-ingest
-                               kubectl delete pvc -n verrazzano-system vmi-system-es-data
-                               kubectl delete pvc -n verrazzano-system vmi-system-es-data-1
-                               kubectl delete pvc -n verrazzano-system vmi-system-es-data-2
-
-                               echo "Wait for all pods to be cleaned up"
-                               sleep 60
+                               "${WORKSPACE}/ci/scripts/backup/nuke_opensearch.sh"
                            """
                         }
                     }

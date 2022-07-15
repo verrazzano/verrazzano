@@ -42,10 +42,41 @@ kubectl apply -f - <<EOF
         s3Url: https://${OCI_OS_NAMESPACE}.compat.objectstorage.us-phoenix-1.oraclecloud.com
 EOF
 
-RESULT=Failed
-BSL=$(kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE} --no-headers -o custom-columns=":metadata.name")
+kubectl apply -f - <<EOF
+    apiVersion: velero.io/v1
+    kind: Backup
+    metadata:
+      name: ${BACKUP_OPENSEARCH}
+      namespace: ${VELERO_NAMESPACE}
+    spec:
+      includedNamespaces:
+        - verrazzano-system
+      labelSelector:
+        matchLabels:
+          verrazzano-component: opensearch
+      defaultVolumesToRestic: false
+      storageLocation: ${BACKUP_STORAGE}
+      hooks:
+        resources:
+          -
+            name: ${BACKUP_RESOURCE}
+            includedNamespaces:
+              - verrazzano-system
+            labelSelector:
+              matchLabels:
+                statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+            post:
+              -
+                exec:
+                  container: es-master
+                  command:
+                    - /usr/share/opensearch/bin/verrazzano-backup-hook
+                    - -operation
+                    - backup
+                    - -velero-backup-name
+                    - ${BACKUP_OPENSEARCH}
+                  onError: Fail
+                  timeout: 10m
+EOF
 
-if [ $BSL == ${BACKUP_STORAGE} ]; then
-  RESULT=Success
-fi
-echo "$RESULT"
+exit 1
