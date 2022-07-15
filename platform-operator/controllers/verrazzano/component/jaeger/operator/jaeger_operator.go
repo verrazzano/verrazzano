@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -27,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -385,19 +387,16 @@ func ReassociateResources(cli clipkg.Client) error {
 		&corev1.Service{},
 		&appsv1.Deployment{},
 	}
-
 	noNamespaceObjects := []clipkg.Object{
 		&rbacv1.ClusterRole{},
 		&rbacv1.ClusterRoleBinding{},
 	}
-
 	// namespaced resources
 	for _, obj := range objects {
 		if _, err := common.RemoveResourcePolicyAnnotation(cli, obj, namespacedName); err != nil {
 			return err
 		}
 	}
-
 	// additional namespaced resources managed by this helm chart
 	helmManagedResources := GetHelmManagedResources()
 	for _, managedResource := range helmManagedResources {
@@ -405,12 +404,153 @@ func ReassociateResources(cli clipkg.Client) error {
 			return err
 		}
 	}
-
 	// cluster resources
 	for _, obj := range noNamespaceObjects {
 		if _, err := common.RemoveResourcePolicyAnnotation(cli, obj, name); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func doManuallyCreatedJaegerInstanceExists(ctx spi.ComponentContext) (bool, error) {
+
+	installed, err := helmcli.IsReleaseInstalled(ComponentName, ComponentNamespace)
+	if err != nil {
+		ctx.Log().ErrorfNewErr("Failed searching for Jaeger release: %v", err)
+	}
+	if installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
+		ctx.Log().Info("Jaeger release is installed by helm and Default instance exists: %v", err)
+		return true, nil
+	} else if installed && !doDefaultJaegerInstanceDeploymentsExists(ctx) {
+		ctx.Log().Info("Jaeger release is installed by helm but Default instance doesn't exist: %v", err)
+		return true, nil
+	} else if !installed && !doDefaultJaegerInstanceDeploymentsExists(ctx) {
+		ctx.Log().Info("Jaeger release is not installed by helm and Default instance doesn't exist: %v", err)
+		return true, nil
+	}
+	return false, ctx.Log().ErrorfNewErr("The jaeger resource %s/%s need to be removed or moved to a different namespace before continuing the upgrade, After the upgrade by default an Jaeger instance will be created in %s namespace: %v", ComponentNamespace, JaegerInstanceName, ComponentNamespace, err)
+}
+
+//Verifies if User created Jaeger instance deployments exists
+func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
+	client := ctx.Client()
+	deployments := []types.NamespacedName{
+		{
+			Name:      JaegerCollectorDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      JaegerQueryDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.DoDeploymentsExist(ctx.Log(), client, deployments, 1, prefix)
+}
+
+func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
+	config, err := controllerruntime.GetConfig()
+	if err != nil {
+		ctx.Log().ErrorfNewErr("Failed to get kubeconfig with error: %v", err)
+		return err
+	}
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		ctx.Log().ErrorfNewErr("Failed to get kubeClient with error: %v", err)
+		return err
+	}
+	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), ComponentMutatingWebhookConfigName, metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return ctx.Log().ErrorfNewErr("Failed to get mutatingwebhookconfiguration %s: %v", ComponentMutatingWebhookConfigName, err)
+	}
+	err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), ComponentMutatingWebhookConfigName, metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return ctx.Log().ErrorfNewErr("Failed to delete mutatingwebhookconfiguration %s: %v", ComponentMutatingWebhookConfigName, err)
+	}
+	return nil
+}
+
+func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
+	config, err := controllerruntime.GetConfig()
+	if err != nil {
+		ctx.Log().ErrorfNewErr("Failed to get kubeconfig with error: %v", err)
+		return err
+	}
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		ctx.Log().ErrorfNewErr("Failed to get kubeClient with error: %v", err)
+		return err
+	}
+	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), ComponentValidatingWebhookConfigName, metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return ctx.Log().ErrorfNewErr("Failed to get validatingwebhookconfiguration %s: %v", ComponentValidatingWebhookConfigName, err)
+	}
+	err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), ComponentValidatingWebhookConfigName, metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return ctx.Log().ErrorfNewErr("Failed to delete validatingwebhookconfiguration %s: %v", ComponentValidatingWebhookConfigName, err)
+	}
+	return nil
+}
+
+// removeDeploymentAndService removes the Jaeger deployment during pre-upgrade.
+// The match selector for jaeger operator deployment was changed in 1.34.1 from the previous jaeger version (1.32.0) that Verrazzano installed.
+// The match selector is an immutable field so this was a workaround to avoid a failure during jaeger upgrade.
+func removeDeploymentAndService(ctx spi.ComponentContext) error {
+	deployment := &appsv1.Deployment{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get deployment %s/%s: %v", ComponentNamespace, ComponentName, err)
+	}
+	// Remove the jaeger deployment only if the match selector is not what is expected.
+	if deployment.Spec.Selector != nil && len(deployment.Spec.Selector.MatchExpressions) == 0 && len(deployment.Spec.Selector.MatchLabels) == 2 {
+		instance, ok := deployment.Spec.Selector.MatchLabels["app.kubernetes.io/instance"]
+		if ok && instance == ComponentName {
+			name, ok := deployment.Spec.Selector.MatchLabels["app.kubernetes.io/name"]
+			if ok && name == ComponentName {
+				return nil
+			}
+		}
+	}
+	service := &corev1.Service{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentServiceName}, service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get service %s/%s: %v", ComponentNamespace, ComponentServiceName, err)
+	}
+	if err := ctx.Client().Delete(context.TODO(), service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete service %s/%s: %v", ComponentNamespace, ComponentServiceName, err)
+	}
+	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete deployment %s/%s: %v", ComponentNamespace, ComponentName, err)
+	}
+	return nil
+}
+
+func removeJaegerWebhookService(ctx spi.ComponentContext) error {
+
+	service := &corev1.Service{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentWebhookServiceName}, service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get webhook service %s/%s: %v", ComponentNamespace, ComponentWebhookServiceName, err)
+	}
+	if err := ctx.Client().Delete(context.TODO(), service); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete webhook service %s/%s: %v", ComponentNamespace, ComponentWebhookServiceName, err)
+	}
+	return nil
+}
+
+func removeOldCertAndSecret(ctx spi.ComponentContext) error {
+	cert := &certv1.Certificate{}
+	ctx.Log().Info("Removing old jaeger certificate if it exists %s/%s: %v", ComponentNamespace, ComponentCertificateName)
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentCertificateName}, cert); err == nil {
+		if err := ctx.Client().Delete(context.TODO(), cert); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to delete Jaeger cert %s/%s: %v", ComponentNamespace, ComponentCertificateName, err)
+		}
+	}
+	secret := &corev1.Secret{}
+	ctx.Log().Info("Removing old secret if it exists %s/%s: %v", ComponentNamespace, ComponentSecretName)
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentSecretName}, secret); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to get secret %s/%s: %v", ComponentNamespace, ComponentSecretName, err)
+	}
+	if err := ctx.Client().Delete(context.TODO(), secret); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to delete secret %s/%s: %v", ComponentNamespace, ComponentSecretName, err)
 	}
 	return nil
 }
@@ -428,4 +568,24 @@ func GetHelmManagedResources() []common.HelmManagedResource {
 		//{Obj: &rbacv1.RoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
 		//{Obj: &rbacv1.Role{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
 	}
+}
+
+//Remove old Jaeger resources such as Deployment, services, certs, and webhooks
+func removeOldJaegerResources(ctx spi.ComponentContext) error {
+	if err := removeDeploymentAndService(ctx); err != nil {
+		return err
+	}
+	if err := removeMutatingWebhookConfig(ctx); err != nil {
+		return err
+	}
+	if err := removeValidatingWebhookConfig(ctx); err != nil {
+		return err
+	}
+	if err := removeJaegerWebhookService(ctx); err != nil {
+		return err
+	}
+	if err := removeOldCertAndSecret(ctx); err != nil {
+		return err
+	}
+	return nil
 }
