@@ -126,29 +126,10 @@ pipeline {
                     if (runTests()) {
                         echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
                     }
-
-                    if (LAST_CLEAN_PERIODIC_COMMIT != null) {
-                        COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${LAST_CLEAN_PERIODIC_COMMIT}...${GIT_COMMIT_TO_USE}"
-                        def lastClean = "${LAST_CLEAN_PERIODIC_COMMIT}"
-                        def currentStable = "${GIT_COMMIT_TO_USE}"
-                        def commitList = getCommitListFromGitLog(lastClean, currentStable)
-                        withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
-                            def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                            SUSPECT_LIST = getSuspectList(commitList, userMappings)
-                            echo "Suspect list: ${SUSPECT_LIST}"
-                        }
-                    }
-
-                    echo "URL if fails: ${COMPARISON_URL_ON_FAILURE}"
                 }
             }
         }
         stage('Clean workspace and checkout') {
-            when {
-                allOf {
-                    expression { return runTests() }
-                }
-            }
             steps {
                 script {
                     echo "${NODE_LABELS}"
@@ -167,6 +148,19 @@ pipeline {
                     if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
                         error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
                     }
+
+                    if (LAST_CLEAN_PERIODIC_COMMIT != null) {
+                        COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${LAST_CLEAN_PERIODIC_COMMIT}...${GIT_COMMIT_TO_USE}"
+                        def lastClean = "${LAST_CLEAN_PERIODIC_COMMIT}"
+                        def currentStable = "${GIT_COMMIT_TO_USE}"
+                        def commitList = getCommitListFromGitLog(lastClean, currentStable)
+                        withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+                            def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+                            SUSPECT_LIST = getSuspectList(commitList, userMappings)
+                            echo "Suspect list: ${SUSPECT_LIST}"
+                        }
+                    }
+                    echo "URL if fails: ${COMPARISON_URL_ON_FAILURE}"
                 }
 
                 script {
