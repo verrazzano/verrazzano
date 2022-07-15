@@ -110,6 +110,10 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 	if vzVersion.IsLessThan(&minVersion) {
+		// log-format argument ignored with pre 1.4.0 uninstalls if specified
+		if cmd.PersistentFlags().Changed(constants.LogFormatFlag) {
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: --log-format argument is ignored with uninstalls prior to v1.4.0\n")
+		}
 		useUninstallJob = true
 	}
 
