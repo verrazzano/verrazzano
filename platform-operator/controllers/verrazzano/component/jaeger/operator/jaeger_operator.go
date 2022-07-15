@@ -538,14 +538,14 @@ func removeJaegerWebhookService(ctx spi.ComponentContext) error {
 
 func removeOldCertAndSecret(ctx spi.ComponentContext) error {
 	cert := &certv1.Certificate{}
-	ctx.Log().Info("Removing old jaeger certificate if it exists %s/%s: %v", ComponentNamespace, ComponentCertificateName)
+	ctx.Log().Info("Removing old jaeger certificate if it exists %s/%s", ComponentNamespace, ComponentCertificateName)
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentCertificateName}, cert); err == nil {
 		if err := ctx.Client().Delete(context.TODO(), cert); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed to delete Jaeger cert %s/%s: %v", ComponentNamespace, ComponentCertificateName, err)
 		}
 	}
 	secret := &corev1.Secret{}
-	ctx.Log().Info("Removing old secret if it exists %s/%s: %v", ComponentNamespace, ComponentSecretName)
+	ctx.Log().Info("Removing old secret if it exists %s/%s", ComponentNamespace, ComponentSecretName)
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentSecretName}, secret); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to get secret %s/%s: %v", ComponentNamespace, ComponentSecretName, err)
 	}
