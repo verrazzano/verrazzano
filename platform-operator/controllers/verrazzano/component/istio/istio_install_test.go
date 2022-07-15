@@ -5,10 +5,15 @@ package istio
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 	"os/exec"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 	"time"
@@ -116,6 +121,10 @@ var installCR = &installv1alpha1.Verrazzano{
 	},
 }
 
+func testCR() *installv1alpha1.Verrazzano {
+	return installCR.DeepCopy()
+}
+
 type fakeMonitor struct {
 	result          bool
 	istioctlSuccess bool
@@ -139,6 +148,52 @@ func (f *fakeMonitor) isRunning() bool { return f.running }
 func (f *fakeMonitor) isIstioctlSuccess() bool { return f.istioctlSuccess }
 
 var _ installMonitor = &fakeMonitor{}
+
+// TestAppendOverrideFilesInOrder tests if the override files are appended in reverse order
+// GIVEN a component
+//  WHEN I call appendOverrideFilesInOrder
+//  THEN the overrides are appended in reverse order
+func TestAppendOverrideFilesInOrder(t *testing.T) {
+	type Foo struct {
+		Foo string `json:"foo"`
+	}
+	cr := testCR()
+	dat1 := []byte(`{"foo": "a"}`)
+	dat2 := []byte(`{"foo": "b"}`)
+	cr.Spec.Components.Istio.ValueOverrides = []installv1alpha1.Overrides{
+		{
+			Values: &apiextensionsv1.JSON{
+				Raw: dat1,
+			},
+		},
+		{
+			Values: &apiextensionsv1.JSON{
+				Raw: dat2,
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, cr, false)
+	files, err := appendOverrideFilesInOrder(ctx, []string{})
+
+	equalFoos := func(jsonFoo, yamlFoo []byte) {
+		jsonFooObj := &Foo{}
+		yamlFooObj := &Foo{}
+		err := yaml.Unmarshal(yamlFoo, yamlFooObj)
+		assert.NoError(t, err)
+		err = json.Unmarshal(jsonFoo, jsonFooObj)
+		assert.NoError(t, err)
+		assert.Equal(t, jsonFooObj, yamlFooObj)
+	}
+	assert.NoError(t, err)
+	assert.Len(t, files, 2)
+	fileDat1, err := os.ReadFile(files[0])
+	assert.NoError(t, err)
+	equalFoos(dat2, fileDat1)
+	fileDat2, err := os.ReadFile(files[1])
+	assert.NoError(t, err)
+	equalFoos(dat1, fileDat2)
+}
 
 // TestIsOperatorInstallSupported tests if the install is supported
 // GIVEN a component
