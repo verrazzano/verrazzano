@@ -6,6 +6,9 @@ package common
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	kblabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"reflect"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -33,11 +36,14 @@ import (
 )
 
 const (
-	system                = "system"
-	vmoComponentName      = "verrazzano-monitoring-operator"
-	vmoComponentNamespace = constants.VerrazzanoSystemNamespace
-	defaultStorageSize    = "50Gi"
+	system                  = "system"
+	vmoComponentName        = "verrazzano-monitoring-operator"
+	vmoComponentNamespace   = constants.VerrazzanoSystemNamespace
+	defaultStorageSize      = "50Gi"
+	mysqlDBCreationCommands = `mysql -uroot -p%s -e "create database if not exists %s; create user '%s' identified by '%s'; grant select on %s.* to '%s'; flush privileges;"`
 )
+
+var maskPw = password.MaskFunction("password ")
 
 // ResourceRequestValues defines the storage information that will be passed to VMI instance
 type ResourceRequestValues struct {
@@ -135,11 +141,11 @@ func EnsureVMISecret(cli client.Client) error {
 	return nil
 }
 
-// EnsureGrafanaAdminSecret creates or updates the Grafana admin secret
-func EnsureGrafanaAdminSecret(cli client.Client) error {
+// EnsureGrafanaSecret creates or updates the Grafana admin secret
+func EnsureGrafanaSecret(cli client.Client, secretName string) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.GrafanaSecret,
+			Name:      secretName,
 			Namespace: globalconst.VerrazzanoSystemNamespace,
 		},
 		Data: map[string][]byte{},
@@ -158,6 +164,58 @@ func EnsureGrafanaAdminSecret(cli client.Client) error {
 		return err
 	}
 	return nil
+}
+
+func SetupDatabase(ctx spi.ComponentContext) error {
+	cr := ctx.EffectiveCR()
+	grafana := cr.Spec.Components.Grafana
+	if grafana.Database != nil {
+		// setup the grafana db instance and user in the configured database
+		dbInfo := grafana.Database
+
+		// retrieve root password for mysql
+		rootSecret := corev1.Secret{}
+		if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: dbInfo.RootSecret.Namespace, Name: dbInfo.RootSecret.Name}, &rootSecret); err != nil {
+			return err
+		}
+		rootPwd := rootSecret.Data[dbInfo.RootSecret.Key]
+		// retrieve the create user password
+		userSecret := corev1.Secret{}
+		if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.GrafanaDBSecret}, &userSecret); err != nil {
+			return err
+		}
+		userPwd := userSecret.Data["password"]
+
+		sqlCmd := fmt.Sprintf(mysqlDBCreationCommands, rootPwd, dbInfo.Name, constants.VMISecret, userPwd, dbInfo.Name, constants.VMISecret)
+		execCmd := []string{"bash","-c",sqlCmd}
+		cfg, cli, err := k8sutil.ClientConfig()
+		if err != nil {
+			return err
+		}
+		mysqlPod, err := getMySQLPod(ctx)
+		if err != nil {
+			return err
+		}
+		stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
+		if err != nil {
+			ctx.Log().Errorf("Failed logging into mysql: stdout = %s: stderr = %s", stdOut, stdErr)
+			return fmt.Errorf("error: %s", maskPw(err.Error()))
+		}
+	}
+	return nil
+}
+
+func getMySQLPod(ctx spi.ComponentContext) (*corev1.Pod, error) {
+	appReq, _ := kblabels.NewRequirement("app", selection.Equals, []string{"mysql"})
+	labelSelector := kblabels.NewSelector()
+	labelSelector = labelSelector.Add(*appReq)
+	mysqlPods := corev1.PodList{}
+	err := ctx.Client().List(context.TODO(), &mysqlPods, &client.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return nil, err
+	}
+	// return one of the pods
+	return &mysqlPods.Items[0], nil
 }
 
 // EnsureBackupSecret creates or updates the VMI backup secret

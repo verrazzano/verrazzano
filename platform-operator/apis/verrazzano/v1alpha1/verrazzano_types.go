@@ -427,10 +427,26 @@ type KubeStateMetricsComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
+// SecretKey identifies a value in a Kubernetes Secret by its namespace, name and key in the Secret.
+type SecretKey struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Key       string `json:"key"`
+}
+
+// DatabaseInfo specifies the database host, name, and username/password secret for Grafana DB instance
+type DatabaseInfo struct {
+	Host       string     `json:"host,omitempty"`
+	Name       string     `json:"name,omitempty"`
+	RootSecret *SecretKey `json:"rootSecret,omitempty"`
+}
+
 // GrafanaComponent specifies the Grafana configuration.
 type GrafanaComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled  *bool         `json:"enabled,omitempty"`
+	Replicas *int32        `json:"replicas,omitempty"`
+	Database *DatabaseInfo `json:"database,omitempty"`
 }
 
 // PrometheusComponent specifies the Prometheus configuration.
