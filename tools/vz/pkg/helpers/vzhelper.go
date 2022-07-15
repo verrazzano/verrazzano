@@ -104,12 +104,15 @@ func NewScheme() *runtime.Scheme {
 	return scheme
 }
 
-// GetNamespacesForNotReadyComponents gets the list of all namespaces for the failed components
+// GetNamespacesForNotReadyComponents returns the list of unique namespaces for the components which are not in Ready state
 func GetNamespacesForNotReadyComponents(vz vzapi.Verrazzano) []string {
 	allComponents := GetComponentsNotReady(vz)
 	var nsList []string
 	for _, eachComp := range allComponents {
 		nsList = append(nsList, constants.ComponentNameToNamespacesMap[eachComp]...)
+	}
+	if len(nsList) > 0 {
+		nsList = RemoveDuplicate(nsList)
 	}
 	return nsList
 }
@@ -128,6 +131,5 @@ func GetComponentsNotReady(vzRes vzapi.Verrazzano) []string {
 			}
 		}
 	}
-	compsNotReady = RemoveDuplicate(compsNotReady)
 	return compsNotReady
 }

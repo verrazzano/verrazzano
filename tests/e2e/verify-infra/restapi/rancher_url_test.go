@@ -121,39 +121,56 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
 				start = time.Now()
 				Eventually(func() (string, error) {
-					req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, "v3/clusters/local"), nil)
-					if err != nil {
-						t.Logs.Error(fmt.Sprintf("Error creating rancher clusters api request: %v", err))
-						return "", err
-					}
-
-					req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
-					req.Header.Set("Accept", "application/json")
-					response, err := httpClient.Do(req)
-					if err != nil {
-						t.Logs.Error(fmt.Sprintf("Error invoking rancher clusters api request: %v", err))
-						return "", err
-					}
-
-					err = httputil.ValidateResponseCode(response, http.StatusOK)
-					if err != nil {
-						return "", err
-					}
-
-					defer response.Body.Close()
-
-					// extract the response body
-					body, err := ioutil.ReadAll(response.Body)
-					if err != nil {
-						return "", err
-					}
-
-					return httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "state", "unable to find state in Rancher clusters response")
+					return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/clusters/local", token, httpClient, "state")
 				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher local cluster not in active state")
 				metrics.Emit(t.Metrics.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
+
+				start = time.Now()
+				Eventually(func() (string, error) {
+					return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/nodeDrivers/oci", token, httpClient, "state")
+				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oci driver not activated")
+				metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
+
+				start = time.Now()
+				Eventually(func() (string, error) {
+					return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/kontainerDrivers/oraclecontainerengine", token, httpClient, "state")
+				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oke driver not activated")
+				metrics.Emit(t.Metrics.With("get_oke_driver_state_elapsed_time", time.Since(start).Milliseconds()))
+
 			}
 		})
 	})
 })
+
+func getFieldOrErrorFromRancherAPIResponse(rancherURL string, apiPath string, token string, httpClient *retryablehttp.Client, field string) (string, error) {
+	req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, apiPath), nil)
+	if err != nil {
+		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", apiPath, err))
+		return "", err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
+	req.Header.Set("Accept", "application/json")
+	response, err := httpClient.Do(req)
+	if err != nil {
+		t.Logs.Error(fmt.Sprintf("error invoking rancher api request %s: %v", apiPath, err))
+		return "", err
+	}
+
+	err = httputil.ValidateResponseCode(response, http.StatusOK)
+	if err != nil {
+		return "", err
+	}
+
+	defer response.Body.Close()
+
+	// extract the response body
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), field, fmt.Sprintf("unable to find %s in rancher api response for %s", field, apiPath))
+}
 
 var _ = t.AfterEach(func() {})

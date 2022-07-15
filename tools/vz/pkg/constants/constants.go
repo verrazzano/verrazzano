@@ -104,9 +104,8 @@ const (
 	BugReportFileFlagUsage = "The report file to be created by bug-report command, as a .tar.gz file [Required]"
 
 	BugReportIncludeNSFlagName  = "include-namespaces"
-	BugReportIncludeNSFlagValue = ""
 	BugReportIncludeNSFlagShort = "i"
-	BugReportIncludeNSFlagUsage = "One or more namespaces to collect information from the cluster"
+	BugReportIncludeNSFlagUsage = "A comma separated list of additional namespaces to collect information from the cluster. This flag can be specified multiple times like --include-namespaces ns1 --include-namespaces ns..."
 
 	BugReportDir = "bug-report"
 
