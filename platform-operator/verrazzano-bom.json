@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.10.2-20220225144626-7bae1b96",
+              "tag": "v0.10.2-20220714144740-7bae1b96",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -409,7 +409,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20220613060015-16e593e4ac",
+              "tag": "15.0.2-20220715095148-3c526fbe0f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
