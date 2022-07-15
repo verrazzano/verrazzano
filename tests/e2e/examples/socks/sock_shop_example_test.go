@@ -114,7 +114,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 
 	sockShop.SetHostHeader(hostname)
 
-	t.It("OAM application configuration for SockShop application exists", func() {
+	t.It("SockShop application configuration exists", func() {
 		Eventually(func() bool {
 			appConfig, err := pkg.GetAppConfig(namespace, sockshopAppName)
 			if err != nil {
