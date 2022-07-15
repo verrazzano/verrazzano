@@ -143,7 +143,8 @@ spec:
                     - podAffinityTerm:
                         labelSelector:
                           matchLabels:
-                            app: ingress-nginx
+                            app.kubernetes.io/component: controller
+                            app.kubernetes.io/name: ingress-nginx
                         topologyKey: kubernetes.io/hostname
                       weight: 100
             defaultBackend:
@@ -154,7 +155,8 @@ spec:
                     - podAffinityTerm:
                         labelSelector:
                           matchLabels:
-                            app: ingress-nginx
+                            app.kubernetes.io/component: default-backend
+                            app.kubernetes.io/name: ingress-nginx
                         topologyKey: kubernetes.io/hostname
                       weight: 100
     istio:
