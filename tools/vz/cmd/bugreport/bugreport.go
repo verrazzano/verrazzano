@@ -22,11 +22,15 @@ const (
 	helpShort   = "Collect information from the cluster to report an issue"
 	helpLong    = `Verrazzano command line utility to collect data from the cluster, to report an issue`
 	helpExample = `
-$vz bug-report --report-file <The name of the file to include cluster data, a .tar.gz or .tgz file> --include-namespaces <comma separated list of additional namespaces to collect information>
+# Create a bug report bugreport.tar.gz by collecting data from the cluster
+vz bug-report --report-file bugreport.tar.gz
 
-The flag --include-namespaces can be specified multiple times. For example, the following commands create a bug report by including additional namespaces ns1, ns2 and ns3
-   i.  vz bug-report --report-file bug.tgz --include-namespaces ns1,ns2,3
-   ii. vz bug-report --report-file bug.tgz --include-namespaces ns1,ns2 --include-namespaces ns3
+# Create a bug report bugreport.tgz, including additional namespace ns from the cluster
+vz bug-report --report-file /tmp/bugreport.tgz --include-namespaces ns
+
+The flag --include-namespaces accepts comma separated values. The flag can also be specified multiple times. For example, the following commands create a bug report by including additional namespaces ns1, ns2 and ns3
+   i.  vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2,3
+   ii. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-namespaces ns3
 
 The values specified for the flag --include-namespaces are case-sensitive.
 `
@@ -42,6 +46,10 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
 	cmd.PersistentFlags().StringSliceP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, []string{}, constants.BugReportIncludeNSFlagUsage)
 	cmd.MarkPersistentFlagRequired(constants.BugReportFileFlagName)
+
+	// Do not sort the flags
+	cmd.Flags().SortFlags = false
+	cmd.PersistentFlags().SortFlags = false
 
 	return cmd
 }
