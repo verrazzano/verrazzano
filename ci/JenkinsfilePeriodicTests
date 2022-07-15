@@ -130,6 +130,11 @@ pipeline {
             }
         }
         stage('Clean workspace and checkout') {
+            when {
+                allOf {
+                    expression { return runTests() }
+                }
+            }
             steps {
                 script {
                     echo "${NODE_LABELS}"
