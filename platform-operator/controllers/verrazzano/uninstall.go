@@ -7,21 +7,22 @@ import (
 	"context"
 
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -37,12 +38,31 @@ const (
 	// vzStateUninstallComponents is the state where the components are being uninstalled
 	vzStateUninstallComponents uninstallState = "vzStateUninstallComponents"
 
+	// vzStateUninstallCleanup is the state where the final cleanup is performed for a full uninstall
+	vzStateUninstallCleanup uninstallState = "vzStateUninstallCleanup"
+
 	// vzStateUninstallDone is the state when uninstall is done
 	vzStateUninstallDone uninstallState = "vzStateUninstallDone"
 
 	// vzStateUninstallEnd is the terminal state
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
 )
+
+// old node-exporter constants replaced with prometheus-operator node-exporter
+const (
+	monitoringNamespace = "monitoring"
+	nodeExporterName    = "node-exporter"
+	istioRootCertName   = "istio-ca-root-cert"
+)
+
+// sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
+var sharedNamespaces = []string{
+	vzconst.VerrazzanoMonitoringNamespace,
+	constants.CertManagerNamespace,
+	constants.VerrazzanoSystemNamespace,
+	vzconst.KeycloakNamespace,
+	monitoringNamespace,
+}
 
 // uninstallState identifies the state of a Verrazzano uninstall operation
 type uninstallState string
@@ -107,8 +127,18 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			if err != nil || res.Requeue {
 				return res, err
 			}
-			tracker.vzState = vzStateUninstallDone
+			tracker.vzState = vzStateUninstallCleanup
 
+		case vzStateUninstallCleanup:
+			spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			err = r.uninstallCleanup(spiCtx)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			tracker.vzState = vzStateUninstallDone
 		case vzStateUninstallDone:
 			log.Once("Successfully uninstalled all Verrazzano components")
 			tracker.vzState = vzStateUninstallEnd
@@ -208,6 +238,48 @@ func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
 	return true, nil
 }
 
+// uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
+func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) error {
+	if err := rancher.PostUninstall(ctx); err != nil {
+		return err
+	}
+
+	if err := r.deleteIstioCARootCert(ctx); err != nil {
+		return err
+	}
+
+	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
+		return err
+	}
+
+	return r.deleteNamespaces(ctx.Log())
+}
+
+// nodeExporterCleanup cleans up any resources from the old node-exporter that was
+// replaced with the node-exporter from the prometheus-operator
+func (r *Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
+	err := resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRole{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
@@ -218,6 +290,62 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 			return nil
 		}
 		return log.ErrorfNewErr("Failed to delete secret %s/%s, %v", namespace, name, err)
+	}
+	return nil
+}
+
+//deleteNamespaces Cleans up any namespaces shared by multiple components
+func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
+	for _, ns := range sharedNamespaces {
+		log.Progressf("Deleting namespace %s", ns)
+		err := resource.Resource{
+			Name:   ns,
+			Client: r.Client,
+			Object: &corev1.Namespace{},
+			Log:    log,
+		}.RemoveFinalizersAndDelete()
+		if err != nil {
+			return err
+		}
+	}
+	waiting := false
+	for _, ns := range sharedNamespaces {
+		err := r.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return err
+		}
+		waiting = true
+		log.Progressf("Waiting for namespace %s to terminate", ns)
+	}
+	if waiting {
+		return log.ErrorfThrottledNewErr("Namespace terminations still in progress")
+	}
+	return nil
+}
+
+// deleteIstioCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster
+func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
+	namespaces := corev1.NamespaceList{}
+	err := ctx.Client().List(context.TODO(), &namespaces)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list the cluster namespaces: %v", err)
+	}
+
+	for _, ns := range namespaces.Items {
+		ctx.Log().Progressf("Deleting Istio root cert in namespace %s", ns.GetName())
+		err := resource.Resource{
+			Name:      istioRootCertName,
+			Namespace: ns.GetName(),
+			Client:    r.Client,
+			Object:    &corev1.ConfigMap{},
+			Log:       ctx.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

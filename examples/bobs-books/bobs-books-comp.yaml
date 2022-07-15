@@ -230,7 +230,7 @@ spec:
               app: bobbys-front-end
               version: v1
             auxiliaryImages:
-              - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20211208104359-15ca14d
+              - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20220608153526-843e168
                 volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
@@ -483,7 +483,7 @@ spec:
               app: bobs-orders-wls
               version: v1
             auxiliaryImages:
-              - image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:20211129200415-ae4e89e
+              - image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:1.0.0-1-20220608153526-843e168
                 volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS

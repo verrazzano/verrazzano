@@ -32,10 +32,56 @@ spec:
         ca:
           secretName: "verrazzano-ca-certificate-secret"
           clusterResourceNamespace: "cert-manager"
+      overrides:
+        - values:
+            replicaCount: 1
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: cert-manager
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
+            cainjector:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: cainjector
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+            webhook:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: webhook
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
     coherenceOperator:
       enabled: true
     console:
       enabled: true
+      overrides:
+        - values:
+            replicas: 1
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: verrazzano-console
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
     dns:
       wildcard:
         domain: "nip.io"
@@ -93,10 +139,24 @@ spec:
                     topologyKey: kubernetes.io/hostname
     kiali:
       enabled: true
+      overrides:
+        - values:
+            deployment:
+              replicas: 1
+              affinity:
+                pod_anti:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: kiali
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
     keycloak:
       enabled: true
     kibana:
       enabled: true
+      replicas: 1
     oam:
       enabled: true
     prometheus:

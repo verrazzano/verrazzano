@@ -49,18 +49,19 @@ var certificates = []types.NamespacedName{
 func NewComponent() spi.Component {
 	return kialiComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), kialiOverridesFile),
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
-			AppendOverridesFunc:     AppendOverrides,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
-			Certificates:            certificates,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), kialiOverridesFile),
+			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			AppendOverridesFunc:       AppendOverrides,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_1_0,
+			Certificates:              certificates,
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,

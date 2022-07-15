@@ -5,9 +5,9 @@ package externaldns
 
 import (
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
 
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -30,17 +30,18 @@ var _ spi.Component = externalDNSComponent{}
 func NewComponent() spi.Component {
 	return externalDNSComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  imagePullSecretHelmKey,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "external-dns-values.yaml"),
-			AppendOverridesFunc:     AppendOverrides,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
-			Dependencies:            []string{},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    imagePullSecretHelmKey,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "external-dns-values.yaml"),
+			AppendOverridesFunc:       AppendOverrides,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
+			Dependencies:              []string{},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
@@ -62,6 +63,11 @@ func (e externalDNSComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 		return true
 	}
 	return false
+}
+
+// PostUninstall Clean up external-dns resources not removed by Uninstall()
+func (e externalDNSComponent) PostUninstall(ctx spi.ComponentContext) error {
+	return postUninstall(ctx.Log(), ctx.Client())
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

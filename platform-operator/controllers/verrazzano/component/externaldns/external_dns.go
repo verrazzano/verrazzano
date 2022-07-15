@@ -8,12 +8,15 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"hash/fnv"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,6 +32,9 @@ const (
 	imagePullSecretHelmKey = "global.imagePullSecrets[0]"
 	ownerIDHelmKey         = "txtOwnerId"
 	prefixKey              = "txtPrefix"
+
+	clusterRoleName        = ComponentName
+	clusterRoleBindingName = ComponentName
 )
 
 func preInstall(compContext spi.ComponentContext) error {
@@ -82,6 +88,26 @@ func preInstall(compContext spi.ComponentContext) error {
 		return compContext.Log().ErrorfNewErr("Failed to create or update the external DNS secret: %v", err)
 	}
 	return nil
+}
+
+// postUninstall Clean up the cluster role/bindings
+func postUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
+	log.Progressf("Deleting ClusterRoles and ClusterRoleBindings for external-dns")
+	err := resource.Resource{
+		Name:   clusterRoleName,
+		Client: cli,
+		Object: &rbacv1.ClusterRole{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	return resource.Resource{
+		Name:   clusterRoleBindingName,
+		Client: cli,
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    log,
+	}.Delete()
 }
 
 func isExternalDNSReady(compContext spi.ComponentContext) bool {
