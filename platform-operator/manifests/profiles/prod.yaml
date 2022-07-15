@@ -46,7 +46,9 @@ spec:
       overrides:
         - values:
             controller:
-              replicaCount: 2
+              autoscaling:
+                enabled: true
+                minReplicas: 2
             defaultBackend:
               replicaCount: 2
     istio:

@@ -124,10 +124,6 @@ spec:
           value: "10Mbps"
         - name: controller.service.externalTrafficPolicy
           value: Local
-        - name: controller.autoscaling.enabled
-          value: "true"
-        - name: controller.autoscaling.minReplicas
-          value: "3"
         - name: controller.service.externalIPs
           valueList:
             - 11.22.33.44
@@ -145,12 +141,16 @@ spec:
       overrides:
         - values:
             controller:
-              replicaCount: 2
+              autoscaling:
+                enabled: true
+                minReplicas: 2
             defaultBackend:
               replicaCount: 2
         - values:
             controller:
-              replicaCount: 1
+              autoscaling:
+                enabled: false
+                minReplicas: 1
               affinity:
                 podAntiAffinity:
                   preferredDuringSchedulingIgnoredDuringExecution:

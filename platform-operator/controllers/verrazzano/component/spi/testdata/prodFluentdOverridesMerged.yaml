@@ -127,12 +127,16 @@ spec:
       overrides:
         - values:
             controller:
-              replicaCount: 2
+              autoscaling:
+                enabled: true
+                minReplicas: 2
             defaultBackend:
               replicaCount: 2
         - values:
             controller:
-              replicaCount: 1
+              autoscaling:
+                enabled: false
+                minReplicas: 1
               affinity:
                 podAntiAffinity:
                   preferredDuringSchedulingIgnoredDuringExecution:

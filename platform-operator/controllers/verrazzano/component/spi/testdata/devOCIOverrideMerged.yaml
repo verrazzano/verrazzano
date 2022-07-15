@@ -111,7 +111,9 @@ spec:
       overrides:
         - values:
             controller:
-              replicaCount: 1
+              autoscaling:
+                enabled: false
+                minReplicas: 1
               affinity:
                 podAntiAffinity:
                   preferredDuringSchedulingIgnoredDuringExecution:
