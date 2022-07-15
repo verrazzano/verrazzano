@@ -7,10 +7,12 @@ import (
 	"context"
 	"fmt"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -136,14 +138,14 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	/*	installed, err := c.IsInstalled(ctx)
-		if err != nil {
-			return err
-		}
-		if installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
-			return ctx.Log().ErrorfNewErr("The jaeger resource %s/%s need to be removed before continuing the upgrade, After the upgrade by default an Jaeger instance will be created in %s namespace: %v", ComponentNamespace, JaegerInstanceName, ComponentNamespace, err)
-		}*/
-	if err := removeDeploymentAndService(ctx); err != nil {
+	installed, err := helmcli.IsReleaseInstalled(ComponentName, ComponentNamespace)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed searching for Jaeger release: %v", err)
+	}
+	if !installed && DoNonDefaultJaegerInstanceDeploymentsExists(ctx) {
+		return ctx.Log().ErrorfNewErr("The jaeger resource %s/%s need to be removed or moved to a different namespace before continuing the upgrade, After the upgrade by default an Jaeger instance will be created in %s namespace: %v", ComponentNamespace, JaegerInstanceName, ComponentNamespace, err)
+	}
+	if err := RemoveDeploymentAndService(ctx); err != nil {
 		return err
 	}
 	if err := RemoveMutatingWebhookConfig(ctx); err != nil {
@@ -152,10 +154,10 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := RemoveValidatingWebhookConfig(ctx); err != nil {
 		return err
 	}
-	if err := removeJaegerWebhookService(ctx); err != nil {
+	if err := RemoveJaegerWebhookService(ctx); err != nil {
 		return err
 	}
-	if err := removeOldCertAndSecret(ctx); err != nil {
+	if err := RemoveOldCertAndSecret(ctx); err != nil {
 		return err
 	}
 	if createInstance {
@@ -184,8 +186,8 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 	return true, nil
 }
 
-//Verifies if Jaeger instance deployments exists
-/*func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
+//Verifies if User created Jaeger instance deployments exists
+func DoNonDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 	client := ctx.Client()
 	deployments := []types.NamespacedName{
 		{
@@ -198,13 +200,12 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	jaegerInstance := status.DoDeploymentsExist(ctx.Log(), client, deployments, 1, prefix)
+	//jaegerInstance := status.DoDeploymentsExist(ctx.Log(), client, deployments, 1, prefix)
+	return status.DoDeploymentsExist(ctx.Log(), client, deployments, 1, prefix)
+	/*	if jaegerInstance && {
 
-	if jaegerInstance {
-
-	}
-	return true
-}*/
+		}*/
+}
 
 func RemoveMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	config, err := ctrl.GetConfig()
@@ -253,7 +254,7 @@ func RemoveValidatingWebhookConfig(ctx spi.ComponentContext) error {
 // removeDeploymentAndService removes the Jaeger deployment during pre-upgrade.
 // The match selector for jaeger operator deployment was changed in 1.34.1 from the previous jaeger version (1.32.0) that Verrazzano installed.
 // The match selector is an immutable field so this was a workaround to avoid a failure during jaeger upgrade.
-func removeDeploymentAndService(ctx spi.ComponentContext) error {
+func RemoveDeploymentAndService(ctx spi.ComponentContext) error {
 	deployment := &appsv1.Deployment{}
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to get deployment %s/%s: %v", ComponentNamespace, ComponentName, err)
@@ -281,7 +282,7 @@ func removeDeploymentAndService(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func removeJaegerWebhookService(ctx spi.ComponentContext) error {
+func RemoveJaegerWebhookService(ctx spi.ComponentContext) error {
 
 	service := &corev1.Service{}
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentWebhookServiceName}, service); err != nil {
@@ -293,7 +294,7 @@ func removeJaegerWebhookService(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func removeOldCertAndSecret(ctx spi.ComponentContext) error {
+func RemoveOldCertAndSecret(ctx spi.ComponentContext) error {
 	cert := &certv1.Certificate{}
 	ctx.Log().Info("Removing old jaeger certificate if it exists %s/%s: %v", ComponentNamespace, ComponentCertificateName)
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentCertificateName}, cert); err == nil {
