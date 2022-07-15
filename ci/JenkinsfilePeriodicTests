@@ -678,7 +678,6 @@ def getCronSchedule() {
 }
 
 // Called in Stage Clean workspace and checkout steps
-// temporary comment (changing it just adding commits for testing)
 def getCommitListFromGitLog() {
     echo "Checking for change sets"
     def commitList = sh(returnStdout: true, script: "git log ${LAST_CLEAN_PERIODIC_COMMIT}...${GIT_COMMIT_TO_USE} --oneline | cut -d \" \" -f 1").trim().split('\n')
