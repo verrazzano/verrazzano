@@ -35,6 +35,11 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.ReportFileFlagName, constants.ReportFileFlagValue, constants.ReportFileFlagUsage)
 	cmd.PersistentFlags().String(constants.ReportFormatFlagName, constants.ReportFormatFlagValue, constants.ReportFormatFlagUsage)
 	cmd.MarkPersistentFlagRequired(constants.DirectoryFlagName)
+
+	// Do not sort the flags
+	cmd.Flags().SortFlags = false
+	cmd.PersistentFlags().SortFlags = false
+
 	return cmd
 }
 
