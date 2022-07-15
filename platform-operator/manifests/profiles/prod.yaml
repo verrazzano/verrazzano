@@ -34,50 +34,14 @@ spec:
       overrides:
         - values:
             replicaCount: 2
-            affinity:
-              podAntiAffinity:
-                preferredDuringSchedulingIgnoredDuringExecution:
-                  - podAffinityTerm:
-                      labelSelector:
-                        matchLabels:
-                          app: cert-manager
-                      topologyKey: kubernetes.io/hostname
-                    weight: 100
             cainjector:
               replicaCount: 2
-              affinity:
-                podAntiAffinity:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - podAffinityTerm:
-                        labelSelector:
-                          matchLabels:
-                            app: cainjector
-                        topologyKey: kubernetes.io/hostname
-                      weight: 100
             webhook:
               replicaCount: 2
-              affinity:
-                podAntiAffinity:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - podAffinityTerm:
-                        labelSelector:
-                          matchLabels:
-                            app: webhook
-                        topologyKey: kubernetes.io/hostname
-                      weight: 100
     console:
       overrides:
         - values:
             replicas: 2
-            affinity:
-              podAntiAffinity:
-                preferredDuringSchedulingIgnoredDuringExecution:
-                  - podAffinityTerm:
-                      labelSelector:
-                        matchLabels:
-                          app: verrazzano-console
-                      topologyKey: kubernetes.io/hostname
-                    weight: 100
     istio:
       ingress:
         kubernetes:
@@ -92,15 +56,6 @@ spec:
         - values:
             deployment:
               replicas: 2
-              affinity:
-                pod_anti:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - podAffinityTerm:
-                        labelSelector:
-                          matchLabels:
-                            app: kiali
-                        topologyKey: kubernetes.io/hostname
-                      weight: 100
     prometheusOperator:
       prometheusSpec:
         storageSpec:

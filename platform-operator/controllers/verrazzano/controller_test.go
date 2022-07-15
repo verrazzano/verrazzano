@@ -12,7 +12,6 @@ import (
 
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -524,6 +523,9 @@ func TestUninstallComplete(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
@@ -566,6 +568,8 @@ func TestUninstallComplete(t *testing.T) {
 
 	// Expect the Rancher Post install
 	expectRancherPostUninstall(mock, 5, 3, 3)
+
+	expectIstioCertRemoval(mock, 1)
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -642,6 +646,9 @@ func TestUninstallStarted(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
@@ -668,6 +675,8 @@ func TestUninstallStarted(t *testing.T) {
 
 	// Expect the Rancher Post install
 	expectRancherPostUninstall(mock, 5, 3, 3)
+
+	expectIstioCertRemoval(mock, 1)
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -851,6 +860,9 @@ func TestUninstallSucceeded(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
@@ -898,6 +910,8 @@ func TestUninstallSucceeded(t *testing.T) {
 
 	// Expect the Rancher Post install
 	expectRancherPostUninstall(mock, 5, 3, 3)
+
+	expectIstioCertRemoval(mock, 1)
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -1029,6 +1043,9 @@ func TestServiceAccountGetError(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
@@ -1044,6 +1061,8 @@ func TestServiceAccountGetError(t *testing.T) {
 
 	// Expect the Rancher Post install
 	expectRancherPostUninstall(mock, 5, 3, 3)
+
+	expectIstioCertRemoval(mock, 1)
 
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
@@ -1117,11 +1136,16 @@ func TestServiceAccountCreateError(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		Return(errors.NewBadRequest("failed to create ServiceAccount"))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
 	// Expect the Rancher Post install
 	expectRancherPostUninstall(mock, 5, 3, 3)
+
+	expectIstioCertRemoval(mock, 1)
 
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
@@ -1193,11 +1217,16 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest("failed to get ClusterRoleBinding"))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
 	// Expect Rancher Post Uninstall
 	expectRancherPostUninstall(mock, 5, 3, 3)
+
+	expectIstioCertRemoval(mock, 1)
 
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
@@ -1274,11 +1303,16 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		Return(errors.NewBadRequest("failed to create ClusterRoleBinding"))
 
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
 	// Expect calls to delete the shared namespaces
 	expectSharedNamespaceDeletes(mock)
 
 	// Expect Rancher Post Uninstall
 	expectRancherPostUninstall(mock, 5, 3, 3)
+
+	expectIstioCertRemoval(mock, 1)
 
 	// Create and make the request
 	DeleteUninstallTracker(&verrazzanoToUse)
@@ -1593,20 +1627,15 @@ func expectDeleteClusterRoleBinding(mock *mocks.MockClient, namespace string, na
 }
 
 func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil())).
-		Return(nil)
-	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: constants.VerrazzanoMonitoringNamespace}, gomock.Any()).Return(nil)
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: vzconst.CertManagerNamespace}, gomock.Not(gomock.Nil())).
-		Return(nil)
-	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: vzconst.CertManagerNamespace}, gomock.Any()).Return(nil)
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
-		Return(nil)
-	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: constants.VerrazzanoSystemNamespace}, gomock.Any()).Return(nil)
+	for _, ns := range sharedNamespaces {
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil())).
+			Return(nil)
+		mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: ns}, gomock.Any()).Return(nil)
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil())).
+			Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), ns))
+	}
 }
 
 // expectRancherPostUninstall creates the expects for the Rancher post-install client calls
@@ -1614,6 +1643,16 @@ func expectRancherPostUninstall(mock *mocks.MockClient, numList, numDelete2, num
 	mock.EXPECT().List(gomock.Any(), gomock.Any()).Return(nil).Times(numList)
 	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(numDelete2)
 	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(numDelete3)
+}
+
+// expectIstioCertRemoval creates the expects for the Istio cert removal
+func expectIstioCertRemoval(mock *mocks.MockClient, numList int) {
+	mock.EXPECT().List(gomock.Any(), gomock.Any()).Return(nil).Times(numList)
+}
+
+// expectNodeExporterCleanup creates the expects for the node-exporter cleanup
+func expectNodeExporterCleanup(mock *mocks.MockClient) {
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 }
 
 // TestMergeMapsNilSourceMap tests mergeMaps function
