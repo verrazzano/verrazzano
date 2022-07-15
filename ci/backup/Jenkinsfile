@@ -248,7 +248,9 @@ pipeline {
                         always {
                             script {
                                  sh """
+                                     echo "\nBackup storage location info"
                                      kubectl get bsl ${BACKUP_STORAGE} -n ${VELERO_NAMESPACE} -o yaml
+                                     echo "\nBackup location info"
                                      kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
                                  """
                             }

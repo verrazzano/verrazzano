@@ -79,4 +79,4 @@ kubectl apply -f - <<EOF
                   timeout: 10m
 EOF
 
-exit 1
+exit 0
