@@ -27,13 +27,21 @@ spec:
       containers:
       - name: {{ .Chart.Name }}
         image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ default "Always" .Values.imagePullPolicy }}
         env:
         - name: CHART_NAMESPACE
           value: {{ .Release.Namespace }}
           {{- if .Values.s3.enabled }}
         - name: DEFAULT_S3_BACKUP_STORAGE_LOCATION
           value: {{ include "backupRestore.s3SecretName" . }}
+          {{- end }}
+          {{- if .Values.proxy }}
+        - name: HTTP_PROXY
+          value: {{ .Values.proxy }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.proxy }}
+        - name: NO_PROXY
+          value: {{ .Values.noProxy }}
           {{- end }}
           {{- if .Values.persistence.enabled }}
         - name: DEFAULT_PERSISTENCE_ENABLED
@@ -46,17 +54,15 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "backupRestore.pvcName" . }}
           {{- end }} 
-      nodeSelector:
-        kubernetes.io/os: linux
-      {{- with .Values.nodeSelector }}
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+{{- if .Values.nodeSelector }}
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}
       {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      tolerations:
-      {{- include "linux-node-tolerations" . | nindent 8}}
-      {{- with .Values.tolerations }}
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+{{- if .Values.tolerations }}
+{{ toYaml .Values.tolerations | indent 8 }}
+{{- end }}

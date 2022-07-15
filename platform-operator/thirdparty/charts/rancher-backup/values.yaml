@@ -1,6 +1,6 @@
 image:
   repository: rancher/backup-restore-operator
-  tag: v1.2.1
+  tag: v2.1.2
 
 ## Default s3 bucket for storing all backup files created by the backup-restore-operator
 s3:
@@ -37,16 +37,25 @@ persistence:
   ## Only certain StorageClasses allow resizing PVs; Refer https://kubernetes.io/blog/2018/07/12/resizing-persistent-volumes-using-kubernetes/
   size: 2Gi
 
+# http[s] proxy server passed to backup client
+# proxy: http://<username>@<password>:<url>:<port>
+
+# comma separated list of domains or ip addresses that will not use the proxy
+noProxy: 127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.svc,.cluster.local
 
 global:
   cattle:
     systemDefaultRegistry: ""
   kubectl:
     repository: rancher/kubectl
-    tag: v1.20.2
+    tag: v1.21.9
 
+## Node labels for pod assignment
+## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+##
 nodeSelector: {}
 
+## List of node taints to tolerate (requires Kubernetes >= 1.6)
 tolerations: []
 
 affinity: {}
@@ -55,3 +64,8 @@ serviceAccount:
   annotations: {}
 
 priorityClassName: ""
+
+# Override imagePullPolicy for image
+# options: Always, Never, IfNotPresent
+# Defaults to Always
+imagePullPolicy: "Always"

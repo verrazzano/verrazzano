@@ -10,6 +10,7 @@
   kindsRegexp: "^serviceaccounts$"
   namespaces:
     - "rancher-operator-system"
+  excludeResourceNameRegexp: "^default$"
 - apiVersion: "rbac.authorization.k8s.io/v1"
   kindsRegexp: "^clusterrolebindings$"
   resourceNames:
@@ -18,7 +19,7 @@
   kindsRegexp: "^clusterroles$"
   resourceNames:
     - "rancher-operator"
-- apiVersion: "apiextensions.k8s.io/v1beta1"
+- apiVersion: "apiextensions.k8s.io/v1"
   kindsRegexp: "."
   resourceNameRegexp: "rancher.cattle.io$"
 - apiVersion: "v1"
