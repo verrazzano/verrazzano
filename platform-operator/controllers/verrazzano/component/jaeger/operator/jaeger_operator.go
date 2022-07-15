@@ -11,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -411,25 +410,6 @@ func ReassociateResources(cli clipkg.Client) error {
 		}
 	}
 	return nil
-}
-
-func doManuallyCreatedJaegerInstanceExists(ctx spi.ComponentContext) (bool, error) {
-
-	installed, err := helmcli.IsReleaseInstalled(ComponentName, ComponentNamespace)
-	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed searching for Jaeger release: %v", err)
-	}
-	if installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
-		ctx.Log().Info("Jaeger release is installed by helm and Default instance exists: %v", err)
-		return true, nil
-	} else if installed && !doDefaultJaegerInstanceDeploymentsExists(ctx) {
-		ctx.Log().Info("Jaeger release is installed by helm but Default instance doesn't exist: %v", err)
-		return true, nil
-	} else if !installed && !doDefaultJaegerInstanceDeploymentsExists(ctx) {
-		ctx.Log().Info("Jaeger release is not installed by helm and Default instance doesn't exist: %v", err)
-		return true, nil
-	}
-	return false, ctx.Log().ErrorfNewErr("The jaeger resource %s/%s need to be removed or moved to a different namespace before continuing the upgrade, After the upgrade by default an Jaeger instance will be created in %s namespace: %v", ComponentNamespace, JaegerInstanceName, ComponentNamespace, err)
 }
 
 //Verifies if User created Jaeger instance deployments exists

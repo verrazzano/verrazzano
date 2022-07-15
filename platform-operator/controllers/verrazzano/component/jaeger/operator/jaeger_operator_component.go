@@ -34,11 +34,11 @@ const (
 	ComponentWebhookServiceName = "jaeger-operator-webhook-service"
 	//ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
 	ComponentMutatingWebhookConfigName = "jaeger-operator-mutating-webhook-configuration"
-	//ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
+	// ComponentValidatingWebhookConfigName is the name of the mutating webhook config.
 	ComponentValidatingWebhookConfigName = "jaeger-operator-validating-webhook-configuration"
-	//ComponentMutatingWebhookConfigName is the name of the Certificate.
+	// ComponentCertificateName is the name of the Certificate.
 	ComponentCertificateName = "jaeger-operator-serving-cert"
-	//ComponentMutatingWebhookConfigName is the name of the secret.
+	// ComponentSecretName  is the name of the secret.
 	ComponentSecretName = "jaeger-operator-service-cert"
 	//JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
 	JaegerCollectorDeploymentName = "jaeger-operator-jaeger-collector"
