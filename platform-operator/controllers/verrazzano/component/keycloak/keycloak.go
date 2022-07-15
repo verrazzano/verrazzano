@@ -1361,21 +1361,8 @@ func upgradeStatefulSet(client client.Client, vz *vzapi.Verrazzano) error {
 		return err
 	}
 
-	// Nothing to do if the replica count is less than 2
-	if statefulSet.Spec.Replicas == nil || *statefulSet.Spec.Replicas < 2 {
-		return nil
-	}
-
-	// Scale replica count to 0 to cause all pods to terminate, then restore replica count
-	savedCount := *statefulSet.Spec.Replicas
+	// Scale replica count to 0 to cause all pods to terminate, upgrade will restore replica count
 	*statefulSet.Spec.Replicas = 0
-	err = client.Update(context.TODO(), &statefulSet)
-	if err != nil {
-		return err
-	}
-
-	// Restore replica count
-	*statefulSet.Spec.Replicas = savedCount
 	err = client.Update(context.TODO(), &statefulSet)
 	if err != nil {
 		return err

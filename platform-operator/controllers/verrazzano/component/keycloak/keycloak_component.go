@@ -163,8 +163,8 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PostInstall(ctx)
 }
 
-// Upgrade - component level processing for upgrade
-func (c KeycloakComponent) Upgrade(ctx spi.ComponentContext) error {
+// PreUpgrade - component level processing for pre-upgrade
+func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Determine if additional processing is required for the upgrade of the StatefulSet
 	return upgradeStatefulSet(ctx.Client(), ctx.EffectiveCR())
 }
