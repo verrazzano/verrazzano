@@ -89,7 +89,7 @@ pipeline {
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         // Backup parameters
-        VELERO_NAMESPACE = "velero"
+        VELERO_NAMESPACE = "verrazzano-backup"
         VELERO_SECRET_NAME = "velero-backup-creds"
         OCI_OS_ACCESS_KEY = credentials('velero-key-id')
         OCI_OS_ACCESS_SECRET_KEY = credentials('velero-key')
