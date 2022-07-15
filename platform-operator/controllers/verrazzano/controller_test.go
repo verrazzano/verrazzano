@@ -103,6 +103,7 @@ func TestGetUninstallJobName(t *testing.T) {
 // THEN ensure all the objects are already created and
 //      ensure a finalizer is added if it doesn't exist
 func TestInstall(t *testing.T) {
+	metricsexporter.InitalizeMetricsWrapper()
 	tests := []struct {
 		namespace string
 		name      string
@@ -1731,6 +1732,7 @@ func TestNonIntersectingMergeNestedMap(t *testing.T) {
 // WHEN the reconcile function is called
 // THEN an error occurs and the error counter metric is incremented
 func TestReconcileErrorCounter(t *testing.T) {
+	metricsexporter.InitalizeMetricsWrapper()
 	asserts := assert.New(t)
 	clientBuilder := fakes.NewClientBuilder()
 	fakeClient := clientBuilder.Build()

@@ -67,6 +67,7 @@ func init() {
 }
 
 func main() {
+	metricsexporter.InitalizeMetricsWrapper()
 
 	// config will hold the entire operator config
 	config := internalconfig.Get()

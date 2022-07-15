@@ -80,7 +80,7 @@ var unitTesting bool
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Get the Verrazzano resource
 	zapLogForMetrics := zap.S()
-	defer metricsexporter.CollectReconcileMetricsTime(time.Now().UnixMilli(), zapLogForMetrics)
+	defer metricsexporter.CollectReconcileMetricsTime(time.Now(), zapLogForMetrics)
 	if ctx == nil {
 		ctx = context.TODO()
 	}
