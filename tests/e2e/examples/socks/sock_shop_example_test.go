@@ -30,7 +30,7 @@ const (
 	pollingInterval          = 30 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
-	sockshopAppName          = "sockshop-appconfig"
+	sockshopAppName          = "sockshop-appconf"
 	sampleSpringMetric       = "http_server_requests_seconds_count"
 	sampleMicronautMetric    = "process_start_time_seconds"
 	oamComponent             = "app_oam_dev_component"
@@ -113,6 +113,16 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 	})
 
 	sockShop.SetHostHeader(hostname)
+
+	t.It("OAM application configuration for SockShop application exists", func() {
+		Eventually(func() bool {
+			appConfig, err := pkg.GetAppConfig(namespace, sockshopAppName)
+			if err != nil {
+				return false
+			}
+			return appConfig != nil
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to get the application configuration for Sockshop")
+	})
 
 	t.It("SockShop can be accessed and user can be registered", func() {
 		Eventually(func() (bool, error) {
@@ -426,7 +436,7 @@ func coherenceMetricExists() bool {
 
 // appComponentMetricExists checks whether component related metrics are available
 func appComponentMetricExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "sockshop-appconf")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", sockshopAppName)
 }
 
 // appConfigMetricExists checks whether config metrics are available
