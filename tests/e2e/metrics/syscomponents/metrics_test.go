@@ -273,7 +273,6 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 					return true
 				}
 			} else {
-
 				// the metrics for the admin cluster or in the single cluster installation should contain the label
 				// verrazzano_cluster with the value "local" when version 1.1 or higher.
 				if isMinVersion110 {
@@ -288,7 +287,6 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 			}
 		}
 	}
-	GinkgoWriter.Write([]byte(fmt.Sprintf("lol1 %s, %s \n", ns, pod)))
 	return false
 }
 
