@@ -625,11 +625,6 @@ func TestUninstallStarted(t *testing.T) {
 
 	expectMCCleanup(mock)
 
-	// Expect the Rancher Post install
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
-
 	// Expect node-exporter cleanup
 	expectNodeExporterCleanup(mock)
 
