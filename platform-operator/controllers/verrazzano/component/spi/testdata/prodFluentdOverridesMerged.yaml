@@ -185,33 +185,15 @@ spec:
       enabled: true
     prometheusOperator:
       enabled: true
-      overrides:
-        - values:
-            prometheus:
-              prometheusSpec:
-                replicas: 2
+      prometheusSpec:
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName:
                 resources:
                   requests:
-                    memory: 128Mi
-                storageSpec:
-                  volumeClaimTemplate:
-                    spec:
-                      resources:
-                        requests:
-                          storage: 50Gi
-        - values:
-            prometheus:
-              prometheusSpec:
-                affinity:
-                  podAntiAffinity:
-                    preferredDuringSchedulingIgnoredDuringExecution:
-                      - podAffinityTerm:
-                          labelSelector:
-                            matchLabels:
-                              app.kubernetes.io/name: prometheus
-                          topologyKey: kubernetes.io/hostname
-                        weight: 100
-                replicas: 1
+                    storage: "50Gi"
+                    memory: "128Mi"
     rancher:
       enabled: true
     verrazzano:
