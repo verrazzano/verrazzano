@@ -42,6 +42,11 @@ kubectl apply -f - <<EOF
         s3Url: https://${OCI_OS_NAMESPACE}.compat.objectstorage.us-phoenix-1.oraclecloud.com
 EOF
 
+if [ $? -ne 0 ]; then
+  echo "Backup storage location creation failure"
+  exit 1
+fi
+
 kubectl apply -f - <<EOF
     apiVersion: velero.io/v1
     kind: Backup
@@ -78,5 +83,10 @@ kubectl apply -f - <<EOF
                   onError: Fail
                   timeout: 10m
 EOF
+
+if [ $? -ne 0 ]; then
+  echo "Backup object creation failure"
+  exit 1
+fi
 
 exit 0
