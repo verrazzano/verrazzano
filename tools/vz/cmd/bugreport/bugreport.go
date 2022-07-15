@@ -26,10 +26,10 @@ const (
 vz bug-report --report-file bugreport.tar.gz
 
 # Create a bug report bugreport.tgz, including additional namespace ns from the cluster
-vz bug-report --report-file /tmp/bugreport.tgz --include-namespaces ns
+vz bug-report --report-file bugreport.tgz --include-namespaces ns
 
 The flag --include-namespaces accepts comma separated values. The flag can also be specified multiple times. For example, the following commands create a bug report by including additional namespaces ns1, ns2 and ns3
-   i.  vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2,3
+   i.  vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2,ns3
    ii. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-namespaces ns3
 
 The values specified for the flag --include-namespaces are case-sensitive.
