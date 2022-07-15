@@ -11,6 +11,33 @@ if [ -z "$OCI_OS_ACCESS_KEY" ] || [ -z "$OCI_OS_ACCESS_SECRET_KEY" ] || [ -z "$V
   exit 1
 fi
 
+function waitForOpenSearch() {
+  ES_URL=$(kubectl get vz -o jsonpath={.items[].status.instance.elasticUrl})
+  VZ_PASSWORD=$(kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode)
+
+  RETRY_COUNT=0
+  CHECK_DONE=true
+  while ${CHECK_DONE};
+  do
+    RESPONSE=$(curl -ks "${ES_URL}/_cluster/health" -u verrazzano:${VZ_PASSWORD} | jq -r .status)
+    if [ "${RESPONSE}" == "green" ];then
+      echo "Opensearch is healthy"
+      CHECK_DONE=false
+    else
+        if [ "${RETRY_COUNT}" -gt 100 ];then
+             echo "Opensearch health check failure. retry count exceeded !!"
+             exit 1
+        fi
+        echo "Opensearch health is '${RESPONSE}'. Check after 10 seconds"
+        sleep 10
+    fi
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+  done
+
+}
+
+waitForOpenSearch
+
 SECRETS_FILE=/tmp/os-creds.ini
 
 cat <<EOF >> ${SECRETS_FILE}
