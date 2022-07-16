@@ -293,7 +293,7 @@ pipeline {
                             script {
                               sh """
                                 ${WORKSPACE}/ci/scripts/backup/restore_start.sh
-                                kubectl wait --namespace verrazzano-system --for=condition=ready pod  --timeout=300s
+                                kubectl wait --namespace verrazzano-system --for=condition=ready pod --all --timeout=300s
                               """
                          }
                     }
