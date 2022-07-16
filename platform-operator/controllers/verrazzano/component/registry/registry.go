@@ -28,6 +28,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackupcrd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
@@ -90,6 +91,7 @@ func getComponents() []spi.Component {
 			fluentd.NewComponent(),
 			velero.NewComponent(),
 			rancherbackup.NewComponent(),
+			rancherbackupcrd.NewComponent(),
 		}
 	}
 	return componentsRegistry

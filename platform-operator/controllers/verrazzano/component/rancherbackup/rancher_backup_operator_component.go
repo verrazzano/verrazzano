@@ -10,7 +10,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackupcrd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -60,7 +60,7 @@ func NewComponent() spi.Component {
 		ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-backup-override-static-values.yaml"),
 		AppendOverridesFunc:       AppendOverrides,
 		GetInstallOverridesFunc:   GetOverrides,
-		Dependencies:              []string{rancher.ComponentName},
+		Dependencies:              []string{rancherbackupcrd.ComponentName},
 	}
 }
 
@@ -111,8 +111,7 @@ func (rb rancherBackupHelmComponent) MonitorOverrides(ctx spi.ComponentContext) 
 }
 
 func (rb rancherBackupHelmComponent) PreInstall(ctx spi.ComponentContext) error {
-	//ensureVeleroNamespace(ctx)
-	return rancherBackupCrdInstall(ctx)
+	return ensureRancherBackupNamespace(ctx)
 }
 
 // IsReady checks if the Velero objects are ready
@@ -140,7 +139,7 @@ func (rb rancherBackupHelmComponent) PostUninstall(context spi.ComponentContext)
 		Object: &corev1.Namespace{},
 		Log:    context.Log(),
 	}
-	// Remove finalizers from the velero namespace to avoid hanging namespace deletion
+	// Remove finalizers from the cattle-resources-system namespace to avoid hanging namespace deletion
 	// and delete the namespace
 	return res.RemoveFinalizersAndDelete()
 }

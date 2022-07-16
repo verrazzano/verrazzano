@@ -4,17 +4,11 @@
 package rancherbackup
 
 import (
+	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"path"
-)
-
-import (
-	"context"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -46,27 +40,13 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 
-func ensureVeleroNamespace(ctx spi.ComponentContext) error {
+func ensureRancherBackupNamespace(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Creating namespace %s for Rancher Backup.", ComponentNamespace)
 	namespace := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
 		return nil
 	}); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
-	}
-	return nil
-}
-
-func rancherBackupCrdInstall(ctx spi.ComponentContext) error {
-	// Apply Rancher Backup Operator CRDS
-	err := ensureVeleroNamespace(ctx)
-	if err != nil {
-		return err
-	}
-	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), ComponentNamespace)
-	crdPath := path.Join(config.GetThirdPartyDir(), crdRelativePath)
-	if err := yamlApplier.ApplyFT(path.Join(config.GetThirdPartyDir(), crdPath), nil); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to deploy rancher-backup crds: %v", err)
 	}
 	return nil
 }

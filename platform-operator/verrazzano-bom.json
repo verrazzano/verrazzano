@@ -647,7 +647,7 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "rancher-backup",
+          "name": "rancher",
           "images": [
             {
               "image": "backup-restore-operator",
