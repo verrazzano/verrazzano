@@ -10,6 +10,8 @@ def testEnvironments = ["kind","oke"]
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1" ]
+def keepOKEClusterOnFailure = "false"
+
 pipeline {
     options {
         timeout(time: 1, unit: 'HOURS')
@@ -438,7 +440,7 @@ pipeline {
             archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
+                OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
                 rm archive.zip
             """
             script {
