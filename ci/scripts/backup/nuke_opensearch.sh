@@ -25,14 +25,14 @@ function nuke_os() {
 }
 function check() {
     local k8sCommand=$1
-    local resource=$3
+    local resource=$2
 
     RETRY_COUNT=0
     CHECK_DONE=true
     while ${CHECK_DONE};
     do
       RESPONSE=$(${k8sCommand})
-      if [ "${RESPONSE}" == "${expected_msg}" ];then
+      if [ "${RESPONSE}" == "" ];then
         echo "No ${resource} found"
         CHECK_DONE=false
       else
