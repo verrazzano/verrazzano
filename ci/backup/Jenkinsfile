@@ -223,7 +223,7 @@ pipeline {
 
         stage('Backup Acceptance Tests') {
             stages {
-                stage("Prepare AT environment on Kind") {
+                stage("Prepare AT environment on OKE") {
                     when { expression { return params.TEST_ENV != 'kind' } }
                     environment {
                         TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
