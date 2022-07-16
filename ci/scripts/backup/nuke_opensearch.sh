@@ -19,7 +19,7 @@ function nuke_os() {
   elasticsearch-master-vmi-system-es-master-0 \
   elasticsearch-master-vmi-system-es-master-1 \
   elasticsearch-master-vmi-system-es-master-2 \
-  vmi-system-es-data-0 \
+  vmi-system-es-data \
   vmi-system-es-data-1 \
   vmi-system-es-data-2 --ignore-not-found=true
 }
