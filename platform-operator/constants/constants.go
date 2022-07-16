@@ -211,7 +211,7 @@ const PrometheusStorageLabelValue = "prometheus"
 const VMISystemPrometheusVolumeClaim = "vmi-system-prometheus"
 
 // VeleroNameSpace indicates the namespace to be used for velero installation
-const VeleroNameSpace = "velero"
+const VeleroNameSpace = "verrazzano-backup"
 
 // ResticDaemonSetName indicates name of the daemonset that is installed as part of component velero
 const ResticDaemonSetName = "restic"
