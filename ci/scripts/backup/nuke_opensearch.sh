@@ -13,7 +13,7 @@ function nuke_os() {
   kubectl delete deploy -n verrazzano-system \
   vmi-system-es-data-0 \
   vmi-system-es-data-1 \
-  vmi-system-es-data-1 \
+  vmi-system-es-data-2 \
   vmi-system-es-ingest --ignore-not-found=true
   kubectl delete pvc -n verrazzano-system \
   elasticsearch-master-vmi-system-es-master-0 \
@@ -21,7 +21,7 @@ function nuke_os() {
   elasticsearch-master-vmi-system-es-master-2 \
   vmi-system-es-data-0 \
   vmi-system-es-data-1 \
-  vmi-system-es-data-1 --ignore-not-found=true
+  vmi-system-es-data-2 --ignore-not-found=true
 }
 function check() {
     local k8sCommand=$1
