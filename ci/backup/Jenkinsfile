@@ -311,9 +311,6 @@ pipeline {
                         }
                     }
                     post {
-                        failure {
-
-                         }
                         always {
                             script {
                                  sh """
