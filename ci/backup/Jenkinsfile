@@ -6,7 +6,10 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def backup_id = 'dummy'
-
+def testEnvironments = ["kind","oke"]
+// pulling "ap-*" from the test regions given discovery of image pull issues
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
+                          "sa-saopaulo-1", "uk-london-1" ]
 pipeline {
     options {
         timeout(time: 1, unit: 'HOURS')
@@ -25,6 +28,14 @@ pipeline {
     }
 
     parameters {
+        choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
+                    choices: testEnvironments)
+        choice (description: 'OCI region to launch OKE clusters in. This parameter will be ignored for private DNS tests', name: 'OKE_CLUSTER_REGION',
+                   // 1st choice is the default value
+                   choices: availableRegions )
+        choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
+           // 1st choice is the default value
+           choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
@@ -125,7 +136,7 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "kind"
-        TEST_ENV = "KIND"
+        TEST_ENV = "${params.TEST_ENV}"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
