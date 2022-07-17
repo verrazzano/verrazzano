@@ -39,9 +39,12 @@ pipeline {
            // 1st choice is the default value
            choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
-                description: 'Kubernetes Version for KinD/OKE Cluster',
+                description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                //choices: [ "1.22", "1.23", "1.21", "1.20" ])
+                choices: [ "1.22", "1.23", "1.21", "1.20" ])
+        choice (name: 'OKE_KUBERNETES_CLUSTER_VERSION',
+                description: 'Kubernetes Version for OKE Cluster',
+                // 1st choice is the default value
                 choices: [ "v1.22.5", "v1.21.5", "v1.20.8" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
@@ -119,7 +122,7 @@ pipeline {
         //Terraform vars
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_user_id = credentials('oci-user-ocid')
-        TF_VAR_kubernetes_version = "${params.KUBERNETES_CLUSTER_VERSION}"
+        TF_VAR_kubernetes_version = "${params.OKE_KUBERNETES_CLUSTER_VERSION}"
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
         TF_VAR_api_private_key_path = credentials('oci-api-key')
@@ -236,7 +239,12 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     setDisplayName()
-                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    if (params.TEST_ENV == 'kind') {
+                        currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    } else {
+                        currentBuild.description = params.OKE_KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    }
+
                 }
             }
         }
@@ -587,12 +595,24 @@ def metricJobName(stageName) {
 // Construct the set of labels/dimensions for the metrics
 def getMetricLabels() {
     def buildNumber = String.format("%010d", env.BUILD_NUMBER.toInteger())
+    def k8sVersion
+    def testEnv
+
+    if (params.TEST_ENV == 'kind') {
+        k8sVersion = "${params.KUBERNETES_CLUSTER_VERSION}"
+        testEnv = "kind"
+     } else {
+        k8sVersion = "${params.OKE_KUBERNETES_CLUSTER_VERSION}"
+        testEnv = "OKE"
+     }
+
+
     labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
              'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
-             'kubernetes_version=\\"' + "${params.KUBERNETES_CLUSTER_VERSION}"+'\\",' +
-             'test_env=\\"kind\\"'
+             'kubernetes_version=\\"' + "${k8sVersion}"+'\\",' +
+             'test_env=\\"${testEnv}"\\"'
     return labels
 }
 
