@@ -97,8 +97,8 @@ func TestIsEnabled(t *testing.T) {
 	}
 }
 
-//TestIsInstalled verifies component IsInstalled checks presence of the
-// Velero operator deployment
+// TestIsInstalled verifies component IsInstalled checks presence of the
+// Rancher Backup operator deployment
 func TestIsInstalled(t *testing.T) {
 	var tests = []struct {
 		name        string
@@ -106,7 +106,7 @@ func TestIsInstalled(t *testing.T) {
 		isInstalled bool
 	}{
 		{
-			"installed when Velero deployment is present",
+			"installed when Rancher Backup deployment is present",
 			fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
@@ -118,7 +118,7 @@ func TestIsInstalled(t *testing.T) {
 			true,
 		},
 		{
-			"not installed when Velero deployment is absent",
+			"not installed when Rancher Backup deployment is absent",
 			fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			false,
 		},

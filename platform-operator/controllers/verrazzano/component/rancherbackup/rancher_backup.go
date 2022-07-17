@@ -19,12 +19,12 @@ const (
 	imagePullSecretHelmKey = "image.imagePullSecrets[0]"
 )
 
-// isRancherBackupOperatorReady checks if the Velero deployment is ready
+// isRancherBackupOperatorReady checks if the Rancher Backup deployment is ready
 func isRancherBackupOperatorReady(context spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
 }
 
-// AppendOverrides appends Helm value overrides for the Velero component's Helm chart
+// AppendOverrides appends Helm value overrides for the Rancher Backup component's Helm chart
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	arguments := []bom.KeyValue{}
 	kvs = append(kvs, arguments...)

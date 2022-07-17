@@ -113,11 +113,10 @@ func (rb rancherBackupHelmComponent) MonitorOverrides(ctx spi.ComponentContext) 
 }
 
 func (rb rancherBackupHelmComponent) PreInstall(ctx spi.ComponentContext) error {
-	ctx.Log().Info("++++ Rancher Backup pre-install invoked ++++.")
 	return ensureRancherBackupNamespace(ctx)
 }
 
-// IsReady checks if the Velero objects are ready
+// IsReady checks if the RancherBackup objects are ready
 func (rb rancherBackupHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isRancherBackupOperatorReady(ctx)
 }
