@@ -17,7 +17,6 @@ import (
 const (
 	deploymentName         = "rancher-backup"
 	imagePullSecretHelmKey = "image.imagePullSecrets[0]"
-	crdRelativePath        = "rancher-backup-crd/templates"
 )
 
 // isRancherBackupOperatorReady checks if the Velero deployment is ready

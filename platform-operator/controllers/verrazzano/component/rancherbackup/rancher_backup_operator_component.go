@@ -10,7 +10,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackupcrd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -47,20 +46,22 @@ type rancherBackupHelmComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return helm.HelmComponent{
-		ReleaseName:               ComponentName,
-		JSONName:                  ComponentJSONName,
-		ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ChartDir),
-		ChartNamespace:            ComponentNamespace,
-		IgnoreNamespaceOverride:   true,
-		SupportsOperatorInstall:   true,
-		SupportsOperatorUninstall: true,
-		MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
-		ImagePullSecretKeyname:    imagePullSecretHelmKey,
-		ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-backup-override-static-values.yaml"),
-		AppendOverridesFunc:       AppendOverrides,
-		GetInstallOverridesFunc:   GetOverrides,
-		Dependencies:              []string{rancherbackupcrd.ComponentName},
+	return rancherBackupHelmComponent{
+		helm.HelmComponent{
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ChartDir),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
+			ImagePullSecretKeyname:    imagePullSecretHelmKey,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-backup-override-static-values.yaml"),
+			AppendOverridesFunc:       AppendOverrides,
+			GetInstallOverridesFunc:   GetOverrides,
+			Dependencies:              []string{},
+		},
 	}
 }
 
@@ -111,6 +112,7 @@ func (rb rancherBackupHelmComponent) MonitorOverrides(ctx spi.ComponentContext) 
 }
 
 func (rb rancherBackupHelmComponent) PreInstall(ctx spi.ComponentContext) error {
+	ctx.Log().Info("++++ Rancher Backup pre-install invoked ++++.")
 	return ensureRancherBackupNamespace(ctx)
 }
 

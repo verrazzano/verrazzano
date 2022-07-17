@@ -646,23 +646,18 @@
       "name": "rancher-backup",
       "subcomponents": [
         {
-          "repository": "verrazzano",
-          "name": "rancher",
+          "repository": "verrazzano/rancher",
+          "name": "rancher-backup",
           "images": [
             {
               "image": "backup-restore-operator",
               "tag": "v2.1.0-20220716000233-1a1d2a1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
-            }
-          ]
-        },
-        {
-          "registry": "docker.io",
-          "repository": "rancher",
-          "name": "additional-rancher",
-          "images": [
+            },
             {
+              "registry": "docker.io",
+              "repository": "rancher",
               "image": "kubectl",
               "tag": "v1.20.2",
               "helmFullImageKey": "global.kubectl.repository",

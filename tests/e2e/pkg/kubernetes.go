@@ -756,6 +756,19 @@ func IsVeleroEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.Velero.Enabled
 }
 
+// IsRancherBackupEnabled returns false if the Rancher Backup component is not set, or the value of its Enabled field otherwise
+func IsRancherBackupEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.RancherBackup == nil || vz.Spec.Components.RancherBackup.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.RancherBackup.Enabled
+}
+
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
 func APIExtensionsClientSet() (*apiextv1.ApiextensionsV1Client, error) {
 	config, err := k8sutil.GetKubeConfig()
