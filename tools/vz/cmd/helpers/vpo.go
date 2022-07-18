@@ -159,7 +159,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 // WaitForOperationToComplete waits for the Verrazzano install/upgrade to complete and
 // shows the logs of the ongoing Verrazzano install/upgrade.
 func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat LogFormat, condType vzapi.ConditionType) error {
-	rc, err := GetLogStream(kubeClient, vpoPodName)
+	rc, err := GetVpoLogStream(kubeClient, vpoPodName)
 	if err != nil {
 		return err
 	}
@@ -249,8 +249,8 @@ func GetVerrazzanoPlatformOperatorPodName(client clipkg.Client) (string, error) 
 	return podList.Items[0].Name, nil
 }
 
-// GetLogStream returns the stream to the verrazzano-platform-operator log file
-func GetLogStream(kubeClient kubernetes.Interface, vpoPodName string) (io.ReadCloser, error) {
+// GetVpoLogStream returns the stream to the verrazzano-platform-operator log file
+func GetVpoLogStream(kubeClient kubernetes.Interface, vpoPodName string) (io.ReadCloser, error) {
 	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
 	//
 	// The stream is intentionally not closed due to not being able to cancel a blocking read.  The calls to
