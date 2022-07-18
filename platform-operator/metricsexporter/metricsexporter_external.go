@@ -57,6 +57,7 @@ type metricsOperation string
 const (
 	operationInstall metricsOperation = "install"
 	operationUpgrade metricsOperation = "upgrade"
+	millisPerSecond  float64          = 1000.0
 )
 
 func InitalizeMetricsWrapper() {
@@ -235,7 +236,7 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 }
 func CollectReconcileMetricsTime(startTime time.Time, log *zap.SugaredLogger) {
 	metricsExp.ReconcileCounterMetric.Add(float64(1))
-	durationTime := float64(time.Since(startTime).Milliseconds()) / 1000.0
+	durationTime := float64(time.Since(startTime).Milliseconds()) / millisPerSecond
 	metric, _ := metricsExp.ReconcileLastDurationMetric.GetMetricWithLabelValues(strconv.Itoa(metricsExp.ReconcileIndex))
 	metric.Set(float64(durationTime))
 	log.Debugf("Time duration metric updated with label %v", metricsExp.ReconcileIndex)
