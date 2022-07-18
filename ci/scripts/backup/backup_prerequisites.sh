@@ -74,46 +74,46 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-kubectl apply -f - <<EOF
-    apiVersion: velero.io/v1
-    kind: Backup
-    metadata:
-      name: ${BACKUP_OPENSEARCH}
-      namespace: ${VELERO_NAMESPACE}
-    spec:
-      includedNamespaces:
-        - verrazzano-system
-      labelSelector:
-        matchLabels:
-          verrazzano-component: opensearch
-      defaultVolumesToRestic: false
-      storageLocation: ${BACKUP_STORAGE}
-      hooks:
-        resources:
-          -
-            name: ${BACKUP_RESOURCE}
-            includedNamespaces:
-              - verrazzano-system
-            labelSelector:
-              matchLabels:
-                statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
-            post:
-              -
-                exec:
-                  container: es-master
-                  command:
-                    - /usr/share/opensearch/bin/verrazzano-backup-hook
-                    - -operation
-                    - backup
-                    - -velero-backup-name
-                    - ${BACKUP_OPENSEARCH}
-                  onError: Fail
-                  timeout: 10m
-EOF
+#kubectl apply -f - <<EOF
+#    apiVersion: velero.io/v1
+#    kind: Backup
+#    metadata:
+#      name: ${BACKUP_OPENSEARCH}
+#      namespace: ${VELERO_NAMESPACE}
+#    spec:
+#      includedNamespaces:
+#        - verrazzano-system
+#      labelSelector:
+#        matchLabels:
+#          verrazzano-component: opensearch
+#      defaultVolumesToRestic: false
+#      storageLocation: ${BACKUP_STORAGE}
+#      hooks:
+#        resources:
+#          -
+#            name: ${BACKUP_RESOURCE}
+#            includedNamespaces:
+#              - verrazzano-system
+#            labelSelector:
+#              matchLabels:
+#                statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+#            post:
+#              -
+#                exec:
+#                  container: es-master
+#                  command:
+#                    - /usr/share/opensearch/bin/verrazzano-backup-hook
+#                    - -operation
+#                    - backup
+#                    - -velero-backup-name
+#                    - ${BACKUP_OPENSEARCH}
+#                  onError: Fail
+#                  timeout: 10m
+#EOF
 
-if [ $? -ne 0 ]; then
-  echo "Backup object creation failure"
-  exit 1
-fi
+#if [ $? -ne 0 ]; then
+#  echo "Backup object creation failure"
+#  exit 1
+#fi
 
 exit 0

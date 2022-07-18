@@ -6,6 +6,6 @@
 set -o pipefail
 
 echo "Fetching backup hook logs ..."
-hookLogFile=$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -al /tmp/ | grep verrazzano | cut -d ' ' -f9)
+hookLogFile=$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -alt --time=ctime /tmp/ | grep verrazzano | cut -d ' ' -f9 | head -1)
 hookLog=$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- cat /tmp/${hookLogFile})
 echo $hookLog

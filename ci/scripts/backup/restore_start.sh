@@ -10,43 +10,51 @@ if [ -z "$BACKUP_OPENSEARCH" ] ||  [ -z "$VELERO_NAMESPACE" ] ||  [ -z "$OCI_OS_
   exit 1
 fi
 
+function cleanup() {
+    kubectl delete restore.velero.io generic -n ${VELERO_NAMESPACE} ${RESTORE_NAME} --ignore-not-found=true
+    sleep 30
+}
+
+function create_restore() {
 kubectl apply -f - <<EOF
     apiVersion: velero.io/v1
-    kind: Restore
-    metadata:
-      name: ${RESTORE_NAME}
-      namespace: ${VELERO_NAMESPACE}
-    spec:
-      backupName: ${BACKUP_OPENSEARCH}
-      includedNamespaces:
-        - verrazzano-system
-      labelSelector:
-        matchLabels:
-          verrazzano-component: opensearch
-      restorePVs: false
-      hooks:
-        resources:
-          - name: ${BACKUP_RESOURCE}
-            includedNamespaces:
-              - verrazzano-system
-            labelSelector:
-              matchLabels:
-                statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
-            postHooks:
-              - exec:
-                  container: es-master
-                  command:
-                    - /usr/share/opensearch/bin/verrazzano-backup-hook
-                    - -operation
-                    - restore
-                    - -velero-backup-name
-                    - ${BACKUP_OPENSEARCH}
-                  waitTimeout: 30m
-                  execTimeout: 30m
-                  onError: Fail
+        kind: Restore
+        metadata:
+          name: ${RESTORE_NAME}
+          namespace: ${VELERO_NAMESPACE}
+        spec:
+          backupName: ${BACKUP_OPENSEARCH}
+          includedNamespaces:
+            - verrazzano-system
+          labelSelector:
+            matchLabels:
+              verrazzano-component: opensearch
+          restorePVs: false
+          hooks:
+            resources:
+              - name: ${BACKUP_RESOURCE}
+                includedNamespaces:
+                  - verrazzano-system
+                labelSelector:
+                  matchLabels:
+                    statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+                postHooks:
+                  - exec:
+                      container: es-master
+                      command:
+                        - /usr/share/opensearch/bin/verrazzano-backup-hook
+                        - -operation
+                        - restore
+                        - -velero-backup-name
+                        - ${BACKUP_OPENSEARCH}
+                      waitTimeout: 30m
+                      execTimeout: 30m
+                      onError: Fail
 EOF
+}
 
-
+cleanup
+create_restore
 RETRY_COUNT=0
 CHECK_DONE=true
 while ${CHECK_DONE};

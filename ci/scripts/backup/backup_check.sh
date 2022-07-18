@@ -15,27 +15,10 @@ ES_URL=$(kubectl get vz -o jsonpath={.items[].status.instance.elasticUrl})
 VZ_PASSWORD=$(kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode)
 BACKUP_ID=$(curl -ks "${ES_URL}/verrazzano-system/_search?from=0&size=1" -u verrazzano:${VZ_PASSWORD} | jq -r '.hits.hits[0]._id')
 
-RETRY_COUNT=0
-CHECK_DONE=true
-while ${CHECK_DONE};
-do
-  RESPONSE=`(kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o jsonpath={.status.phase})`
-  if [ "${RESPONSE}" == "InProgress" ];then
-    if [ "${RETRY_COUNT}" -gt 100 ];then
-       echo "Backup failed. retry count exceeded !!"
-       exit 1
-    fi
-    #echo "Backup operation is in progress. Check after 10 seconds"
-    sleep 10
-  else
-      #echo "Backup progress changed to  $RESPONSE"
-      CHECK_DONE=false
-  fi
-  RETRY_COUNT=$((RETRY_COUNT + 1))
-done
-
-if [ "${RESPONSE}" != "Completed" ]; then
-    exit 1
+if [ $? -ne 0 ]; then
+  echo "Unable to fetch backup id"
+  exit 1
 fi
+
 echo "$BACKUP_ID"
 exit 0
