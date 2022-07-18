@@ -336,7 +336,7 @@ pipeline {
                 stage('Start Backup and Check Progress') {
                     steps {
                         script {
-                          try {
+                           try {
                               sh """
                                   "${WORKSPACE}/ci/scripts/backup/backup_retry.sh"
                               """
@@ -347,19 +347,20 @@ pipeline {
                                       sh """
                                          "${WORKSPACE}/ci/scripts/backup/backup_retry.sh"
                                       """
-                                  }
-                          }
-                    }
-                    post {
-                        always {
-                            script {
-                                 sh """
-                                 kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
-                                 "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
-                                 """
-                            }
+                              }
+                           }
                         }
-                     }
+                        post {
+                            always {
+                                script {
+                                     sh """
+                                     kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
+                                     "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
+                                     """
+                                }
+                            }
+                         }
+                    }
                 }
 
                 stage('Get Backup ID to be compared') {
