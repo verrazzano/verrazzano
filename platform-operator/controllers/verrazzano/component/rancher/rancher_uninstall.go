@@ -30,28 +30,21 @@ const (
 )
 
 var rancherSystemNS = []string{
-	"kube-system",
-	"kube-public",
 	"cattle-system",
 	"cattle-alerting",
 	"cattle-logging",
 	"cattle-pipeline",
 	"cattle-prometheus",
-	"ingress-nginx",
 	"cattle-global-data",
 	"cattle-istio",
-	"kube-node-lease",
-	"cert-manager",
 	"cattle-global-nt",
 	"security-scan",
 	"cattle-fleet-system",
 	"cattle-fleet-local-system",
-	"calico-system",
 	"tigera-operator",
 	"cattle-impersonation-system",
 	"rancher-operator-system",
 	"cattle-csp-adapter-system",
-	"calico-apiserver",
 	"local",
 }
 
