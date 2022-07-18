@@ -367,8 +367,8 @@ pipeline {
                             script {
                                  sh """
                                  kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
-                                 "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
                                  """
+                                 echoHookLogs()
                             }
                         }
                      }
@@ -444,8 +444,8 @@ pipeline {
                     script {
                          sh """
                              kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME} -o yaml
-                             "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
                           """
+                          echoHookLogs()
                          if (params.DELETE_BUCKET) {
                               println("Delete object store bucket.")
                               deleteBucket("${OCI_OS_BUCKET_NAME}")
@@ -525,6 +525,14 @@ def deleteBucket(bucketName) {
     sh """
         oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
     """
+}
+
+def echoHookLogs() {
+   sh """
+     hookLogFile=$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -alt --time=ctime /tmp/ | grep verrazzano | cut -d ' ' -f9 | head -1)
+     hookLog=$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- cat /tmp/${hookLogFile})
+     echo $hookLog
+   """
 }
 
 
