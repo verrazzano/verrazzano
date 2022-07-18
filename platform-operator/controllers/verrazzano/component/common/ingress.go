@@ -24,6 +24,18 @@ type IngressProperties struct {
 	ExtraAnnotations map[string]string
 }
 
+//SameSiteCookieAnnotations creates annotations for same site cookies to enable sticky sessions on an ingress
+func SameSiteCookieAnnotations(cookieName string) map[string]string {
+	return map[string]string{
+		"nginx.ingress.kubernetes.io/affinity":                                 "cookie",
+		"nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none": "true",
+		"nginx.ingress.kubernetes.io/session-cookie-expires":                   "86400",
+		"nginx.ingress.kubernetes.io/session-cookie-max-age":                   "86400",
+		"nginx.ingress.kubernetes.io/session-cookie-name":                      cookieName,
+		"nginx.ingress.kubernetes.io/session-cookie-samesite":                  "Strict",
+	}
+}
+
 // CreateOrUpdateSystemComponentIngress creates or updates an ingress for a Verrazzano system component
 func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, props IngressProperties) error {
 	// create the ingress in the same namespace as Auth Proxy, note that we cannot use authproxy.ComponentNamespace here because it creates an import cycle

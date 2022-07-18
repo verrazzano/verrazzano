@@ -46,7 +46,11 @@ const (
 	networkPolicyName        = "vmi-system-prometheus"
 	istioCertMountPath       = "/etc/istio-certs"
 
-	prometheusName = "promtheus"
+	prometheusName     = "prometheus"
+	alertmanagerName   = "alertmanager"
+	configReloaderName = "prometheus-config-reloader"
+	storageForKey      = `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`
+	storageForLabelKey = `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.metadata.labels.verrazzano\.io/storage-for`
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -106,14 +110,7 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 		HostName:      prometheusHostName,
 		TLSSecretName: prometheusCertificateName,
 		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
-		ExtraAnnotations: map[string]string{
-			"nginx.ingress.kubernetes.io/affinity":                                 "cookie",
-			"nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none": "true",
-			"nginx.ingress.kubernetes.io/session-cookie-expires":                   "86400",
-			"nginx.ingress.kubernetes.io/session-cookie-max-age":                   "86400",
-			"nginx.ingress.kubernetes.io/session-cookie-name":                      "prometheus",
-			"nginx.ingress.kubernetes.io/session-cookie-samesite":                  "Strict",
-		},
+		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
 	}
 	if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
 		return err
@@ -235,7 +232,7 @@ func resetVolumeReclaimPolicy(ctx spi.ComponentContext) error {
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Append custom images from the subcomponents in the bom
 	ctx.Log().Debug("Appending the image overrides for the Prometheus Operator components")
-	subcomponents := []string{"prometheus-config-reloader", "alertmanager", "prometheus"}
+	subcomponents := []string{configReloaderName, alertmanagerName, prometheusName}
 	kvs, err := appendCustomImageOverrides(ctx, kvs, subcomponents)
 	if err != nil {
 		return kvs, err
@@ -244,8 +241,8 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Replace default images for subcomponents Alertmanager and Prometheus
 	defaultImages := map[string]string{
 		// format "subcomponentName": "helmDefaultKey"
-		"alertmanager": "prometheusOperator.alertmanagerDefaultBaseImage",
-		"prometheus":   "prometheusOperator.prometheusDefaultBaseImage",
+		alertmanagerName: "prometheusOperator.alertmanagerDefaultBaseImage",
+		prometheusName:   "prometheusOperator.prometheusDefaultBaseImage",
 	}
 	kvs, err = appendDefaultImageOverrides(ctx, kvs, defaultImages)
 	if err != nil {
@@ -283,7 +280,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 		// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
 		kvs = append(kvs, []bom.KeyValue{
-			{Key: "prometheus.prometheusSpec.containers[0].name", Value: "prometheus"},
+			{Key: "prometheus.prometheusSpec.containers[0].name", Value: prometheusName},
 			{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
 			{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
 		}...)
@@ -337,11 +334,11 @@ func appendResourceRequestOverrides(ctx spi.ComponentContext, resourceRequest *c
 			ctx.Log().Debug("Found existing Prometheus volume, setting Prometheus storageSpec to mount the volume")
 			kvs = append(kvs, []bom.KeyValue{
 				{
-					Key:   `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`,
+					Key:   storageForKey,
 					Value: prometheusName,
 				},
 				{
-					Key:   `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.metadata.labels.verrazzano\.io/storage-for`,
+					Key:   storageForLabelKey,
 					Value: prometheusName,
 				},
 			}...)
@@ -560,7 +557,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 		authPol.Spec = securityv1beta1.AuthorizationPolicy{
 			Selector: &istiov1beta1.WorkloadSelector{
 				MatchLabels: map[string]string{
-					"app.kubernetes.io/name": "prometheus",
+					"app.kubernetes.io/name": prometheusName,
 				},
 			},
 			Action: securityv1beta1.AuthorizationPolicy_ALLOW,
@@ -627,7 +624,7 @@ func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 	return netv1.NetworkPolicySpec{
 		PodSelector: metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app.kubernetes.io/name": "prometheus",
+				"app.kubernetes.io/name": prometheusName,
 			},
 		},
 		PolicyTypes: []netv1.PolicyType{

@@ -44,8 +44,8 @@ const (
 
 	disableMountSubPathKey = "prometheus.prometheusSpec.storageSpec.disableMountSubPath"
 	requestsStorageKey     = "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage"
-	storageForKey          = `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`
-	requestsMemoryKey      = "prometheus.prometheusSpec.resources.requests.memory"
+
+	requestsMemoryKey = "prometheus.prometheusSpec.resources.requests.memory"
 )
 
 var (
@@ -1110,7 +1110,11 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 				},
 				{
 					Key:   storageForKey,
-					Value: "prometheus",
+					Value: prometheusName,
+				},
+				{
+					Key:   storageForLabelKey,
+					Value: prometheusName,
 				},
 				{
 					Key:   requestsMemoryKey,
@@ -1170,7 +1174,11 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 				},
 				{
 					Key:   storageForKey,
-					Value: "prometheus",
+					Value: prometheusName,
+				},
+				{
+					Key:   storageForLabelKey,
+					Value: prometheusName,
 				},
 			},
 			expectError: false,
