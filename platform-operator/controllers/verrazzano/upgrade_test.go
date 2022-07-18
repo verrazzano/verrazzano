@@ -61,8 +61,10 @@ const kialiURL = "kiali." + dnsDomain
 const kibanaURL = "kibana." + dnsDomain
 const rancherURL = "rancher." + dnsDomain
 const consoleURL = "verrazzano." + dnsDomain
+const jaegerURL = "jaeger." + dnsDomain
 
 var istioEnabled = false
+var jaegerEnabled = true
 
 // goodRunner is used to test helm success without actually running an OS exec command
 type goodRunner struct {
@@ -1567,6 +1569,9 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 				Istio: &vzapi.IstioComponent{
 					Enabled: &istioEnabled,
 				},
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &jaegerEnabled,
+				},
 			},
 		},
 		Status: vzapi.VerrazzanoStatus{
@@ -1648,6 +1653,14 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 				},
 			},
 		},
+		&networkingv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.JaegerIngress},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{Host: jaegerURL},
+				},
+			},
+		},
 		rbac.NewServiceAccount(getInstallNamespace(), buildServiceAccountName(name), []string{}, labels),
 		rbac.NewClusterRoleBinding(
 			&verrazzanoToUse,
@@ -1715,6 +1728,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	assert.Equal(t, "https://"+kialiURL, *instanceInfo.KialiURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
+	assert.Equal(t, "https://"+jaegerURL, *instanceInfo.JaegerURL)
 }
 
 // TestInstanceRestoreWithPopulatedStatus tests the reconcileUpdate method for the following use case

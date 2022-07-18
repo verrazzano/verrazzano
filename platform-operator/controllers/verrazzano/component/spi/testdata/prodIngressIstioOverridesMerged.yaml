@@ -144,6 +144,31 @@ spec:
           targetPort: 0
     istio:
       enabled: true
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    replicaCount: 2
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    affinity:
+                      podAntiAffinity:
+                        preferredDuringSchedulingIgnoredDuringExecution:
+                          - podAffinityTerm:
+                              labelSelector:
+                                matchLabels:
+                                  app: istiod
+                              topologyKey: kubernetes.io/hostname
+                            weight: 100
       istioInstallArgs:
         - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
           value: "10Mbps"
