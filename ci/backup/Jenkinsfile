@@ -585,9 +585,12 @@ def deleteCluster() {
         if [ "${TEST_ENV}" == "kind" ]; then
           cd ${GO_REPO_PATH}/verrazzano/platform-operator
           make delete-cluster
-        elif [ "${keepOKEClusterOnFailure}" == "false" ]; then
-          TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
+        else
+          if [ "${keepOKEClusterOnFailure}" == "false" ]; then
+            TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
+          fi
         fi
+
         if [ -f ${POST_DUMP_FAILED_FILE} ]; then
             echo "Failures seen during dumping of artifacts, treat post as failed"
             exit 1
