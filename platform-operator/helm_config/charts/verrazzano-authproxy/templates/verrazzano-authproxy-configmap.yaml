@@ -425,6 +425,8 @@ data:
         else
             if backend == 'verrazzano' then
                 check_host = backend..me.hostSuffix
+            elseif backend == 'jaeger' then
+                check_host = backend..me.hostSuffix
             else
                 check_host = backend..vmi_system..me.hostSuffix
             end
@@ -489,8 +491,8 @@ data:
         return 'http://vmi-system-'..backend..'.verrazzano-system.svc.cluster.local'..':'..port
     end
 
-    function me.makePrometheusBackendUrl(port)
-        return 'http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local'..':'..port
+    function me.makeMonitoringComponentBackendUrl(serviceName, port)
+        return 'http://'..serviceName..'.verrazzano-monitoring.svc.cluster.local'..':'..port
     end
 
     function me.getBackendServerUrlFromName(backend)
@@ -505,13 +507,15 @@ data:
         elseif backend == 'grafana' then
             serverUrl = me.makeVmiBackendUrl(backend, '3000')
         elseif backend == 'prometheus' then
-            serverUrl = me.makePrometheusBackendUrl('9090')
+            serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '9090')
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl(backend, '5601')
         elseif backend == 'elasticsearch' then
             serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
         elseif backend == 'kiali' then
             serverUrl = me.makeVmiBackendUrl(backend, '20001')
+        elseif backend == 'jaeger' then
+            serverUrl = me.makeMonitoringComponentBackendUrl('jaeger-operator-jaeger-query', '16686')
         else
             me.not_found("Invalid backend name '"..backend.."'")
         end
@@ -1189,6 +1193,8 @@ data:
             allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
         elseif backend == 'kiali' then
             allowedOrigins = os.getenv("VZ_KIALI_ALLOWED_ORIGINS")
+        elseif backend == 'jaeger' then
+            allowedOrigins = os.getenv("VZ_JAEGER_ALLOWED_ORIGINS")
         end
         
         if not allowedOrigins or allowedOrigins == "" then
@@ -1228,6 +1234,7 @@ data:
     env VZ_KIBANA_ALLOWED_ORIGINS;
     env VZ_ES_ALLOWED_ORIGINS;
     env VZ_KIALI_ALLOWED_ORIGINS;
+    env VZ_JAEGER_ALLOWED_ORIGINS;
 
     events {
         worker_connections  1024;
