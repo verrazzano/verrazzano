@@ -9,11 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"text/template"
+
+	"k8s.io/apimachinery/pkg/labels"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -87,28 +87,7 @@ const pkceTmpl = `
       "surrogateAuthRequired": false,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "redirectUris": [
-        "https://verrazzano.{{.DNSSubDomain}}/*",
-        "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
-        "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
-        "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-        "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
-        "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-        "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
-        "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-        "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
-        "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-        "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
-        "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback"
-      ],
-      "webOrigins": [
-        "https://verrazzano.{{.DNSSubDomain}}",
-        "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
-        "https://prometheus.vmi.system.{{.DNSSubDomain}}",
-        "https://grafana.vmi.system.{{.DNSSubDomain}}",
-        "https://kibana.vmi.system.{{.DNSSubDomain}}",
-		"https://kiali.vmi.system.{{.DNSSubDomain}}"
-      ],
+      ` + pkceClientUrisTemplate + `,
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -278,6 +257,143 @@ const pgClient = `
       "defaultClientScopes" : [ "web-origins", "role_list", "roles", "profile", "email" ],
       "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
 }
+`
+const rancherClientTmpl = `
+{
+      "clientId": "rancher",
+      "name": "rancher",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "",
+      ` + rancherClientUrisTemplate + `,
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "id.token.as.detached.signature": "false",
+        "saml.assertion.signature": "false",
+        "saml.force.post.binding": "false",
+        "saml.multivalued.roles": "false",
+        "saml.encrypt": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "use.refresh.tokens": "true",
+        "exclude.session.state.from.auth.response": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "saml.artifact.binding": "false",
+        "backchannel.logout.session.required": "true",
+        "client_credentials.use_refresh_token": "false",
+        "saml_force_name_id_format": "false",
+        "require.pushed.authorization.requests": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "saml.onetimeuse.condition": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+        {
+          "id": "8994f0ee-b490-49ae-8793-ee72df7e4b6d",
+          "name": "Client Audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "rancher",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "id": "aec784d9-0fb0-43b3-bf23-24f09b7806da",
+          "name": "Groups Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "true",
+            "id.token.claim": "false",
+            "access.token.claim": "false",
+            "claim.name": "groups",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "id": "4edf1f22-7140-44f0-a183-40f99692da2d",
+          "name": "Group Path",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "true",
+            "id.token.claim": "false",
+            "access.token.claim": "false",
+            "claim.name": "full_group_path",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+}
+`
+
+const pkceClientUrisTemplate = `
+	"redirectUris": [
+	  "https://verrazzano.{{.DNSSubDomain}}/*",
+	  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
+	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback"
+	],
+	"webOrigins": [
+	  "https://verrazzano.{{.DNSSubDomain}}",
+	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
+	  "https://grafana.vmi.system.{{.DNSSubDomain}}",
+	  "https://kibana.vmi.system.{{.DNSSubDomain}}",
+	  "https://kiali.vmi.system.{{.DNSSubDomain}}"
+	]
+`
+
+const rancherClientUrisTemplate = `
+	"redirectUris": [
+        "https://rancher.{{.DNSSubDomain}}/verify-auth"
+    ],
+	"webOrigins": [
+		"https://rancher.{{.DNSSubDomain}}"
+	]
 `
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
@@ -502,48 +618,25 @@ func updatePrometheusAnnotations(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// updateKeycloakUris calls a bash script to update the Keycloak rewrite and weborigin uris
-func updateKeycloakUris(ctx spi.ComponentContext) error {
-
-	cfg, cli, err := k8sutil.ClientConfig()
+// updateKeycloakUris invokes kcadm.sh in keycloak pod to update the client with Keycloak rewrite and weborigin uris
+func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod, clientId string, uriTemplate string) error {
+	data, err := populateSubdomainInTemplate(ctx, `{`+uriTemplate+`}`)
 	if err != nil {
 		return err
 	}
 
-	err = loginKeycloak(ctx, cfg, cli)
+	// Update client
+	updateClientCmd := "/opt/jboss/keycloak/bin/kcadm.sh update clients/" + clientId + " -r " + vzSysRealm + " -f - <<\\END" +
+		data +
+		"END"
+
+	ctx.Log().Debugf("updateKeycloakUris: Update client with Id = %s, Cmd = %s", clientId, updateClientCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(updateClientCmd))
 	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed updating client with Id = %s stdout = %s, stderr = %s", clientId, stdout, stderr)
 		return err
 	}
 
-	// Get the Client ID JSON array
-	keycloakClients, err := getKeycloakClients(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Get the client ID for verrazzano-pkce
-	id := getClientID(keycloakClients, "verrazzano-pkce")
-	if id == "" {
-		err := errors.New("Component Keycloak failed retrieving ID for Keycloak user, zero length")
-		ctx.Log().Error(err)
-		return err
-	}
-	ctx.Log().Debug("Keycloak Post Upgrade: Successfully retrieved clientID")
-
-	// Get DNS Domain Configuration
-	dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
-		return err
-	}
-	ctx.Log().Debugf("Keycloak Post Upgrade: DNSDomain returned %s", dnsSubDomain)
-
-	// Call the Script and Update the URIs
-	scriptName := filepath.Join(config.GetInstallDir(), "update-kiali-redirect-uris.sh")
-	if _, stderr, err := bashFunc(scriptName, id, dnsSubDomain); err != nil {
-		ctx.Log().Errorf("Component Keycloak failed updating KeyCloak URIs %v: %s", err, stderr)
-		return err
-	}
 	ctx.Log().Debug("Component Keycloak successfully updated Keycloak URIs")
 	return nil
 }
@@ -665,13 +758,19 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create verrazzano-pkce client
-	err = createOrUpdateVerrazzanoPkceClient(ctx, cfg, cli)
+	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate)
 	if err != nil {
 		return err
 	}
 
 	// Creating verrazzano-pg client
-	err = createVerrazzanoPgClient(ctx, cfg, cli)
+	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "")
+	if err != nil {
+		return err
+	}
+
+	// Creating rancher client
+	err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate)
 	if err != nil {
 		return err
 	}
@@ -1032,75 +1131,39 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 
 	return nil
 }
-
-func createOrUpdateVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
-	data := templateData{}
-
+func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string) error {
 	keycloakClients, err := getKeycloakClients(ctx)
 	if err != nil {
 		return err
 	}
-	if clientExists(keycloakClients, "verrazzano-pkce") {
-		if err := updateKeycloakUris(ctx); err != nil {
+
+	kcPod := keycloakPod()
+	if clientId := getClientID(keycloakClients, clientName); clientId != "" && uriTemplate != "" {
+		err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientId, pkceClientUrisTemplate)
+		if err != nil {
 			return err
 		}
+
 		return nil
 	}
 
-	kcPod := keycloakPod()
-	// Get DNS Domain Configuration
-	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
-		return err
-	}
-	ctx.Log().Debugf("createOrUpdateVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
-
-	data.DNSSubDomain = dnsSubDomain
-
-	// use template to get populate template with data
-	var b bytes.Buffer
-	t, err := template.New("verrazzanoPkceClient").Parse(pkceTmpl)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(&b, &data)
+	data, err := populateSubdomainInTemplate(ctx, pkceTmpl)
 	if err != nil {
 		return err
 	}
 
 	// Create verrazzano-pkce client
-	vzPkceCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
-		b.String() +
+	clientCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
+		data +
 		"END"
 
-	ctx.Log().Debugf("createOrUpdateVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
-	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPkceCreateCmd))
+	ctx.Log().Debugf("createOrUpdateClient: Create %s client Cmd = %s", clientName, clientCreateCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed creating verrazzano-pkce client: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed creating %s client: stdout = %s, stderr = %s", clientName, stdout, stderr)
 		return err
 	}
-	ctx.Log().Debug("createOrUpdateVerrazzanoPkceClient: Created verrazzano-pkce client")
-	return nil
-}
-
-func createVerrazzanoPgClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
-	keycloakClients, err := getKeycloakClients(ctx)
-	if err == nil && clientExists(keycloakClients, "verrazzano-pg") {
-		return nil
-	}
-
-	kcPod := keycloakPod()
-	vzPgCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
-		pgClient +
-		"END"
-	ctx.Log().Debugf("createVerrazzanoPgClient: Create verrazzano-pg client Cmd = %s", vzPgCreateCmd)
-	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPgCreateCmd))
-	if err != nil {
-		ctx.Log().Errorf("createVerrazzanoPgClient: Error creating verrazzano-pg client: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("createVerrazzanoPgClient: Created verrazzano-pg client")
+	ctx.Log().Debugf("createOrUpdateClient: Created %s client", clientName)
 	return nil
 }
 
@@ -1300,16 +1363,6 @@ func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 	return keycloakClients, nil
 }
 
-func clientExists(keycloakClients KeycloakClients, clientName string) bool {
-
-	for _, keycloakClient := range keycloakClients {
-		if keycloakClient.ClientID == clientName {
-			return true
-		}
-	}
-	return false
-}
-
 func getClientID(keycloakClients KeycloakClients, clientName string) string {
 
 	for _, keycloakClient := range keycloakClients {
@@ -1348,4 +1401,31 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 		return effectiveCR.Spec.Components.Keycloak.ValueOverrides
 	}
 	return []vzapi.Overrides{}
+}
+
+func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string, error) {
+	data := templateData{}
+	// Get DNS Domain Configuration
+	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
+		return "", err
+	}
+	ctx.Log().Debugf("populateSubdomainInTemplate: DNSDomain returned %s", dnsSubDomain)
+
+	data.DNSSubDomain = dnsSubDomain
+
+	// use template to get populate template with data
+	var b bytes.Buffer
+	t, err := template.New("").Parse(tmpl)
+	if err != nil {
+		return "", err
+	}
+
+	err = t.Execute(&b, &data)
+	if err != nil {
+		return "", err
+	}
+
+	return b.String(), nil
 }

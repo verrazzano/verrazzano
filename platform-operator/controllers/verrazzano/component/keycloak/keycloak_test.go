@@ -248,6 +248,7 @@ func TestFakeCreateUserParseGroupFail(t *testing.T) {
 func TestUpdateKeycloakURIs(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	cfg, cli, _ := fakeRESTConfig()
 	tests := []struct {
 		name    string
 		args    spi.ComponentContext
@@ -342,7 +343,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 				setBashFunc(fakeBashFail)
 			}
 			defer func() { execCommand = exec.Command }()
-			if err := updateKeycloakUris(tt.args); (err != nil) != tt.wantErr {
+			if err := updateKeycloakUris(tt.args, cfg, cli, keycloakPod(), "", ""); (err != nil) != tt.wantErr {
 				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -804,19 +805,19 @@ func getBoolPtr(b bool) *bool {
 	return &b
 }
 
-// TestClientExists tests that the function returns false/true whether client exists
+// TestGetClientId tests that the function returns the Id whether client exists
 // GIVEN an array of keycloak Clients
-// WHEN I call clientExists
-// THEN return true/false whether the client exists in the array of clients
-func TestClientExists(t *testing.T) {
+// WHEN I call getClientId
+// THEN return the Id of the client if the client exists in the array of clients
+func TestGetClientId(t *testing.T) {
 	var tests = []struct {
 		name string
 		in   KeycloakClients
-		out  bool
+		out  string
 	}{
 		{"testEmptyClients",
 			KeycloakClients{},
-			false,
+			"",
 		},
 		{"testClientNotFound",
 			KeycloakClients{
@@ -829,7 +830,7 @@ func TestClientExists(t *testing.T) {
 					"thatClient",
 				},
 			},
-			false,
+			"",
 		},
 		{"testClientFound",
 			KeycloakClients{
@@ -846,13 +847,13 @@ func TestClientExists(t *testing.T) {
 					"someClient",
 				},
 			},
-			true,
+			"973974",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.out, clientExists(tt.in, "someClient"))
+			assert.Equal(t, tt.out, getClientID(tt.in, "someClient"))
 		})
 	}
 }
