@@ -11,6 +11,7 @@ def testEnvironments = ["kind","oke"]
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1" ]
 def keepOKEClusterOnFailure = "false"
+def OKE_CLUSTER_PREFIX = ""
 
 pipeline {
     options {
@@ -160,7 +161,7 @@ pipeline {
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "kind"
         TEST_ENV = "${params.TEST_ENV}"
-        K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+        //K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
@@ -245,6 +246,12 @@ pipeline {
                     } else {
                         currentBuild.description = params.OKE_KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                     }
+                     if (params.TEST_ENV != "kind") {
+                        // derive the prefix for the OKE cluster
+                        OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
+                    }
+                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+                     env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
 
                 }
             }
