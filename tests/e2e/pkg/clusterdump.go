@@ -62,9 +62,11 @@ func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 }
 
 // ExecuteClusterDump executes the cluster dump tool.
-// command - The fully qualified cluster dump executable.
+// clusterDumpCommand - The fully qualified cluster dump executable.
+// bugReportCommand - The fully qualified bug report executable.
 // kubeconfig - The kube config file to use when executing the cluster dump tool.
-// directory - The directory to store the cluster dump within.
+// clusterDumpDirectory - The directory to store the cluster dump within.
+// bugReportDirectory - The directory to store the bug report within.
 func ExecuteClusterDump(clusterDumpCommand string, bugReportCommand string, kubeconfig string, clusterDumpDirectory string, bugReportDirectory string) error {
 	var cmd *exec.Cmd
 	fmt.Printf("Execute cluster dump: KUBECONFIG=%s; %s -d %s\n", kubeconfig, clusterDumpCommand, clusterDumpDirectory)

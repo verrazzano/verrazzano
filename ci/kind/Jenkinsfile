@@ -22,7 +22,6 @@ pipeline {
         }
     }
 
-
     parameters {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
