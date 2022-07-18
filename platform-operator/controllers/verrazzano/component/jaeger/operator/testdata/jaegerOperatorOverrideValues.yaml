@@ -19,6 +19,8 @@ jaeger:
     annotations:
       sidecar.istio.io/inject: "true"
       proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+    ingress:
+      enabled: false
     strategy: production
     storage:
       # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.

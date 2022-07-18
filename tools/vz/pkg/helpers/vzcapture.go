@@ -374,8 +374,8 @@ func CaptureMultiClusterResources(dynamicClient dynamic.Interface, nsList []stri
 	return nil
 }
 
-// DoesNamespaceExists checks whether the namespace exists in the cluster
-func DoesNamespaceExists(kubeClient kubernetes.Interface, namespace string, vzHelper VZHelper) (bool, error) {
+// DoesNamespaceExist checks whether the namespace exists in the cluster
+func DoesNamespaceExist(kubeClient kubernetes.Interface, namespace string, vzHelper VZHelper) (bool, error) {
 	if namespace == "" {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Ignoring empty namespace\n")
 		return false, nil
@@ -383,7 +383,7 @@ func DoesNamespaceExists(kubeClient kubernetes.Interface, namespace string, vzHe
 	ns, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
 
 	if err != nil && errors.IsNotFound(err) {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Namespace %s not found in the cluster\n", namespace)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Namespace %s not found in the cluster, so will be ignored.\n", namespace)
 		return false, err
 	}
 	if err != nil {

@@ -81,6 +81,20 @@ func okResponse(h *http.Client, request *http.Request) (*http.Response, error) {
 	}, nil
 }
 
+func activateOCIDriverResponse(h *http.Client, request *http.Request) (*http.Response, error) {
+	return &http.Response{
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(`{"active": true}`)),
+	}, nil
+}
+
+func activateOkeDriverResponse(h *http.Client, request *http.Request) (*http.Response, error) {
+	return &http.Response{
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader("")),
+	}, nil
+}
+
 func testClient(doer func(*http.Client, *http.Request) (*http.Response, error)) *RESTClient {
 	return &RESTClient{
 		client:   &http.Client{},
@@ -354,6 +368,98 @@ func TestPutServerURL(t *testing.T) {
 			tt.rest.accessToken = dummyToken
 			err := tt.rest.PutServerURL()
 			if tt.isErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
+
+// TestActivateOCIDriver tests activating the Rancher oci driver
+func TestActivateOCIDriver(t *testing.T) {
+	var tests = []struct {
+		testName string
+		rest     *RESTClient
+		isError  bool
+	}{
+		{
+			// GIVEN Rancher is running and the credentials are correct
+			//  WHEN ActivateOCIDriver is called
+			//  THEN ActivateOCIDriver should activate the Rancher OCI Driver
+			"should be able activate the oci driver",
+			testClient(activateOCIDriverResponse),
+			false,
+		},
+		{
+			// GIVEN Rancher is not running
+			//  WHEN ActivateOCIDriver is called
+			//  THEN ActivateOCIDriver should fail to activate the OCI Driver
+			"should fail to activate the oci driver if the request fails",
+			testClient(errorResponse),
+			true,
+		},
+		{
+			// GIVEN The access token is invalid
+			//  WHEN ActivateOCIDriver is called
+			//  THEN ActivateOCIDriver should fail to activate the OCI Driver
+			"should fail to put activate the oci driver if the status is not expected",
+			testClient(unauthorizedResponse),
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			tt.rest.accessToken = dummyToken
+			err := tt.rest.ActivateOCIDriver()
+			if tt.isError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
+
+// TestActivateOKEDriver tests activating the Rancher oci driver
+func TestActivateOKEDriver(t *testing.T) {
+	var tests = []struct {
+		testName string
+		rest     *RESTClient
+		isError  bool
+	}{
+		{
+			// GIVEN Rancher is running and the credentials are correct
+			//  WHEN ActivateOKEDriver is called
+			//  THEN ActivateOKEDriver should activate the Rancher OKE Driver
+			"should be able to activate the OKE driver",
+			testClient(activateOkeDriverResponse),
+			false,
+		},
+		{
+			// GIVEN Rancher is not running
+			//  WHEN ActivateOKEDriver is called
+			//  THEN ActivateOKEDriver should fail to activate the OKE Driver
+			"should fail to activate the OKE driver if the request fails",
+			testClient(errorResponse),
+			true,
+		},
+		{
+			// GIVEN The access token is invalid
+			//  WHEN ActivateOKEDriver is called
+			//  THEN ActivateOKEDriver should fail to activate the OKE Driver
+			"should fail to put activate the OKE driver if the status is not expected",
+			testClient(unauthorizedResponse),
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			tt.rest.accessToken = dummyToken
+			err := tt.rest.ActivateOKEDriver()
+			if tt.isError {
 				assert.NotNil(t, err)
 			} else {
 				assert.Nil(t, err)
