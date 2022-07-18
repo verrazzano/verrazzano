@@ -15,11 +15,20 @@ import (
 	"go.uber.org/zap"
 )
 
+// Constants that hold the times that are used to test various cases of component timestamps being passed
+// into the TestAnalyzeVerrazzanoResourceMetrics function
+const (
+	componentFirstTime  string = "2022-07-06T13:54:59Z"
+	componentSecondTime string = "2022-07-06T13:55:45Z"
+	componentThirdTime  string = "2022-07-06T13:58:59Z"
+	componentFourthTime string = "2022-07-06T13:59:00Z"
+)
+
 // TestCollectReconcileMetricsTime tests the CollectReconcileMetricsTime fn
 // GIVEN a call to CollectReconcileMetricsTime
 // WHEN A starting time is passed into the function
 // THEN the function updates the reconcileCounterMetric by 1 and creates a new time for that reconcile in the reconcileLastDurationMetric
-func TestCollectReconcileMetrics(t *testing.T) {
+func TestCollectReconcileMetricsTime(t *testing.T) {
 	InitalizeMetricsWrapper()
 	assert := asserts.New(t)
 	test := struct {
@@ -43,11 +52,11 @@ func TestCollectReconcileMetrics(t *testing.T) {
 	})
 }
 
-// TestErrorCounterMetric tests the TestErrorCounterMetric fn
-// GIVEN a call to TestErrorCounterMetric
+// TestCollectReconcileError tests the CollectReconcileError fn
+// GIVEN a call to CollectReconcileError
 // WHEN the function is called
 // THEN the function increments the reconcile error counter metric
-func TestErrorCounterMetric(t *testing.T) {
+func TestCollectReconcileError(t *testing.T) {
 	InitalizeMetricsWrapper()
 	assert := asserts.New(t)
 	test := struct {
@@ -66,11 +75,11 @@ func TestErrorCounterMetric(t *testing.T) {
 	})
 }
 
-// TestAnalyzeVZCR tests the AnalyzeVZCR fn
-// GIVEN a call to AnalyzeVZCR
+// TestAnalyzeVerrazzanoResourceMetrics tests the AnalyzeVerrazzanoResourceMetrics fn
+// GIVEN a call to AnalyzeVerrazzanoResourceMetrics
 // WHEN a VZ CR with or without timestamps is passed to the fn
 // THEN the function properly updates or does nothing to the component's metric
-func TestAnalyzeVZCR(t *testing.T) {
+func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 	InitalizeMetricsWrapper()
 	assert := asserts.New(t)
 	emptyVZCR := installv1alpha1.Verrazzano{}
@@ -90,7 +99,7 @@ func TestAnalyzeVZCR(t *testing.T) {
 					Conditions: []installv1alpha1.Condition{
 						{
 							Type:               installv1alpha1.CondInstallStarted,
-							LastTransitionTime: "2022-07-06T13:54:59Z",
+							LastTransitionTime: componentFirstTime,
 						},
 					},
 				},
@@ -104,15 +113,15 @@ func TestAnalyzeVZCR(t *testing.T) {
 					Conditions: []installv1alpha1.Condition{
 						{
 							Type:               installv1alpha1.CondInstallStarted,
-							LastTransitionTime: "2022-07-06T13:54:59Z",
+							LastTransitionTime: componentFirstTime,
 						},
 						{
 							Type:               installv1alpha1.CondInstallComplete,
-							LastTransitionTime: "2022-07-06T13:55:45Z",
+							LastTransitionTime: componentSecondTime,
 						},
 						{
 							Type:               installv1alpha1.CondUpgradeStarted,
-							LastTransitionTime: "2022-07-06T13:58:59Z",
+							LastTransitionTime: componentThirdTime,
 						},
 					},
 				},
@@ -126,11 +135,11 @@ func TestAnalyzeVZCR(t *testing.T) {
 					Conditions: []installv1alpha1.Condition{
 						{
 							Type:               installv1alpha1.CondUpgradeStarted,
-							LastTransitionTime: "2022-07-06T13:55:45Z",
+							LastTransitionTime: componentSecondTime,
 						},
 						{
 							Type:               installv1alpha1.CondUpgradeComplete,
-							LastTransitionTime: "2022-07-06T13:54:59Z",
+							LastTransitionTime: componentFirstTime,
 						},
 					},
 				},
@@ -144,19 +153,19 @@ func TestAnalyzeVZCR(t *testing.T) {
 					Conditions: []installv1alpha1.Condition{
 						{
 							Type:               installv1alpha1.CondInstallStarted,
-							LastTransitionTime: "2022-07-06T13:54:59Z",
+							LastTransitionTime: componentFirstTime,
 						},
 						{
 							Type:               installv1alpha1.CondInstallComplete,
-							LastTransitionTime: "2022-07-06T13:55:45Z",
+							LastTransitionTime: componentSecondTime,
 						},
 						{
 							Type:               installv1alpha1.CondUpgradeStarted,
-							LastTransitionTime: "2022-07-06T13:58:59Z",
+							LastTransitionTime: componentThirdTime,
 						},
 						{
 							Type:               installv1alpha1.CondUpgradeComplete,
-							LastTransitionTime: "2022-07-06T13:59:00Z",
+							LastTransitionTime: componentFourthTime,
 						},
 					},
 				},
@@ -170,19 +179,19 @@ func TestAnalyzeVZCR(t *testing.T) {
 					Conditions: []installv1alpha1.Condition{
 						{
 							Type:               installv1alpha1.CondInstallStarted,
-							LastTransitionTime: "2022-07-06T13:54:59Z",
+							LastTransitionTime: componentFirstTime,
 						},
 						{
 							Type:               installv1alpha1.CondInstallComplete,
-							LastTransitionTime: "2022-07-06T13:55:45Z",
+							LastTransitionTime: componentSecondTime,
 						},
 						{
 							Type:               installv1alpha1.CondUpgradeStarted,
-							LastTransitionTime: "2022-07-06T13:58:59Z",
+							LastTransitionTime: componentThirdTime,
 						},
 						{
 							Type:               installv1alpha1.CondUpgradeComplete,
-							LastTransitionTime: "2022-07-06T13:59:00Z",
+							LastTransitionTime: componentFourthTime,
 						},
 					},
 				},
@@ -196,11 +205,11 @@ func TestAnalyzeVZCR(t *testing.T) {
 					Conditions: []installv1alpha1.Condition{
 						{
 							Type:               installv1alpha1.CondInstallStarted,
-							LastTransitionTime: "2022-07-06T13:55:45Z",
+							LastTransitionTime: componentSecondTime,
 						},
 						{
 							Type:               installv1alpha1.CondInstallComplete,
-							LastTransitionTime: "2022-07-06T13:54:59Z",
+							LastTransitionTime: componentFirstTime,
 						},
 					},
 				},
