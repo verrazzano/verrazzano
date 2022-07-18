@@ -125,7 +125,7 @@ func ExecuteBugReportWithEnvVarSuffix(directorySuffix string) error {
 	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
 	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY")+"/bug-report", directorySuffix)
 	bugReportCommand := os.Getenv("BUG_REPORT_COMMAND")
-	return ExecuteClusterDump(bugReportCommand, kubeconfig, bugReportDirectory)
+	return ExecuteBugReport(bugReportCommand, kubeconfig, bugReportDirectory)
 }
 
 // ExecuteClusterDumpWithEnvVarConfig executes the cluster dump tool using config from environment variables.
