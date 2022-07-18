@@ -45,6 +45,8 @@ const (
 	prometheusAuthPolicyName = "vmi-system-prometheus-authzpol"
 	networkPolicyName        = "vmi-system-prometheus"
 	istioCertMountPath       = "/etc/istio-certs"
+
+	prometheusName = "promtheus"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -336,7 +338,11 @@ func appendResourceRequestOverrides(ctx spi.ComponentContext, resourceRequest *c
 			kvs = append(kvs, []bom.KeyValue{
 				{
 					Key:   `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`,
-					Value: "prometheus",
+					Value: prometheusName,
+				},
+				{
+					Key:   `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.metadata.labels.verrazzano\.io/storage-for`,
+					Value: prometheusName,
 				},
 			}...)
 		}
