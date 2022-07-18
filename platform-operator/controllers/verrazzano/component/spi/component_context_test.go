@@ -3,7 +3,6 @@
 package spi
 
 import (
-	"fmt"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"io/ioutil"
 	"path/filepath"
@@ -162,7 +161,6 @@ func TestContextProfilesMerge(t *testing.T) {
 			a.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 			a.Equal(vzapi.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
-			fmt.Println(context.EffectiveCR())
 			a.Equal(expectedVZ, context.EffectiveCR(), "Effective CR did not match expected results")
 		})
 	}
