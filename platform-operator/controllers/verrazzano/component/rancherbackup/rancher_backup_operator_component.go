@@ -59,7 +59,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
 			ImagePullSecretKeyname:    imagePullSecretHelmKey,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-backup-override-static-values.yaml"),
-			AppendOverridesFunc:       AppendOverrides,
+			AppendOverridesFunc:       nil,
 			GetInstallOverridesFunc:   GetOverrides,
 			Dependencies:              []string{rancher.ComponentName},
 		},
@@ -113,7 +113,7 @@ func (rb rancherBackupHelmComponent) MonitorOverrides(ctx spi.ComponentContext) 
 }
 
 func (rb rancherBackupHelmComponent) PreInstall(ctx spi.ComponentContext) error {
-	return ensureRancherBackupNamespace(ctx)
+	return ensureRancherBackupCrdInstall(ctx)
 }
 
 // IsReady checks if the RancherBackup objects are ready

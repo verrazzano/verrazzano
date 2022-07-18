@@ -6,17 +6,21 @@ package rancherbackup
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"path"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 const (
 	deploymentName         = "rancher-backup"
 	imagePullSecretHelmKey = "image.imagePullSecrets[0]"
+	crdRelativePath        = "rancher-backup-crd/templates"
 )
 
 // isRancherBackupOperatorReady checks if the Rancher Backup deployment is ready
@@ -46,6 +50,20 @@ func ensureRancherBackupNamespace(ctx spi.ComponentContext) error {
 		return nil
 	}); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
+	}
+	return nil
+}
+
+func ensureRancherBackupCrdInstall(ctx spi.ComponentContext) error {
+	// Apply Rancher Backup Operator CRDS
+	err := ensureRancherBackupNamespace(ctx)
+	if err != nil {
+		return err
+	}
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), ComponentNamespace)
+	crdPath := path.Join(config.GetThirdPartyDir(), crdRelativePath)
+	if yamlApplyErr := yamlApplier.ApplyD(crdPath); yamlApplyErr != nil {
+		return ctx.Log().ErrorfNewErr("Failed to deploy rancher-backup crds: %v", yamlApplyErr)
 	}
 	return nil
 }
