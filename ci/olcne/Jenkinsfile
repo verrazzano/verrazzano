@@ -365,34 +365,34 @@ pipeline {
             }
         }
 
-    //     stage("Create OCI Storage") {
-    //         steps {
-    //             script {
-    //                 echo "[INFO] Creating OCI Storage"
-    //                 createOCIStorage()
-    //             }
-    //         }
-    //     }
+        stage("Create OCI Storage") {
+            steps {
+                script {
+                    echo "[INFO] Creating OCI Storage"
+                    // createOCIStorage()
+                }
+            }
+        }
 
-    //     stage("Create OCI Load Balancers") {
-    //         steps {
-    //             script {
-    //                 echo "[INFO] Creating OCI LoadBalancers"
-    //                 createOCILoadBalancers()
-    //             }
-    //         }
-    //     }
+        stage("Create OCI Load Balancers") {
+            steps {
+                script {
+                    echo "[INFO] Creating OCI LoadBalancers"
+                    // createOCILoadBalancers()
+                }
+            }
+        }
 
-    //    stage("Create OCI DNS Zone") {
-    //         steps {
-    //             script {
-    //                 echo "[INFO] Creating OCI DNS Zone"
-    //                 createOCIDNSZone()
-    //                 echo "[INFO] Creating DNS Zone Records"
-    //                 createOCIDNSZoneRecords()
-    //             }
-    //         }
-    //     }
+       stage("Create OCI DNS Zone") {
+            steps {
+                script {
+                    echo "[INFO] Creating OCI DNS Zone"
+                    // createOCIDNSZone()
+                    echo "[INFO] Creating DNS Zone Records"
+                    // createOCIDNSZoneRecords()
+                }
+            }
+        }
 
         stage("Create image pull secrets") {
             steps {
@@ -412,14 +412,14 @@ pipeline {
             }
         }
 
-        // stage("Mount OCI Storage") {
-        //     steps {
-        //         script {
-        //             echo "[INFO] Mounting OCI Storage"
-        //             mountOCIStorage()
-        //         }
-        //     }
-        // }
+        stage("Mount OCI Storage") {
+            steps {
+                script {
+                    echo "[INFO] Mounting OCI Storage"
+                    // mountOCIStorage()
+                }
+            }
+        }
 
         stage("Install Verrazzano Platform Operator") {
             environment {
@@ -1059,13 +1059,11 @@ def updateOLCNEConfig() {
     sh """
         scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/oci_api_key.pem "$TF_VAR_api_private_key_path"
         $GO_REPO_PATH/verrazzano/ci/scripts/update_olcne_config.sh
-    """
-    script {
-        // Add annotation to the storageclass created by OLCNE oci-ccm module
+        # Add annotation to the storageclass created by OLCNE oci-ccm module
         kubectl get storageclass oci-bv -o yaml > "$WORKSPACE/oci-bv.yaml"
         yq -i eval '.metadata.annotations += "storageclass.kubernetes.io/is-default-class: true"' "$WORKSPACE/oci-bv.yaml"
         kubectl replace -f "$WORKSPACE/oci-bv.yaml"
-    }
+    """
 }
 
 def createOCIStorage() {
