@@ -31,7 +31,7 @@ const (
 	waitTimeout          = 10 * time.Minute
 	longWaitTimeout      = 20 * time.Minute
 	pollingInterval      = 30 * time.Second
-	sockshopAppName      = "sockshop-appconfig"
+	sockshopAppName      = "sockshop-appconf"
 )
 
 var sockShop SockShop
@@ -107,6 +107,16 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 	})
 
 	sockShop.SetHostHeader(hostname)
+
+	t.It("SockShop application configuration exists", func() {
+		Eventually(func() bool {
+			appConfig, err := pkg.GetAppConfig(namespace, sockshopAppName)
+			if err != nil {
+				return false
+			}
+			return appConfig != nil
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to get the application configuration for Sockshop")
+	})
 
 	t.It("SockShop can be accessed and user can be registered", func() {
 		Eventually(func() (bool, error) {
@@ -341,7 +351,7 @@ func appMetricsExists() bool {
 
 // appComponentMetricsExists checks whether component related metrics are available
 func appComponentMetricsExists() bool {
-	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "sockshop-appconf")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", sockshopAppName)
 }
 
 // appConfigMetricsExists checks whether config metrics are available
