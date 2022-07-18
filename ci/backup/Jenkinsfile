@@ -10,7 +10,7 @@ def testEnvironments = ["kind","oke"]
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1" ]
-def keepOKEClusterOnFailure = "false"
+//def keepOKEClusterOnFailure = "false"
 def OKE_CLUSTER_PREFIX = ""
 
 pipeline {
@@ -131,6 +131,7 @@ pipeline {
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
+        keepOKEClusterOnFailure = "false"
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
