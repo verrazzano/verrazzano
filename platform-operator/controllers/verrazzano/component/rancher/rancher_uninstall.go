@@ -180,7 +180,7 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to list the RoleBindings: %v", err)
 	}
 	for i := range rblist.Items {
-		err = deleteMatchingObject(ctx, []string{"rb"}, &rblist.Items[i])
+		err = deleteMatchingObject(ctx, []string{"^rb-"}, &rblist.Items[i])
 		if err != nil {
 			return err
 		}
