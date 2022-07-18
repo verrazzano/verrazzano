@@ -529,9 +529,9 @@ def deleteBucket(bucketName) {
 
 def echoHookLogs() {
    sh """
-     hookLogFile='$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -alt --time=ctime /tmp/ | grep verrazzano | cut -d ' ' -f9 | head -1)'
-     hookLog='$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- cat /tmp/${hookLogFile})'
-     echo '$hookLog'
+     hookLogFile="$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -alt --time=ctime /tmp/ | grep verrazzano | cut -d ' ' -f9 | head -1)"
+     hookLog="$(kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- cat /tmp/${hookLogFile})"
+     echo "${hookLog}"
    """
 }
 
