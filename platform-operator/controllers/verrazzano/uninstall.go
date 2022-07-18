@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,11 +48,21 @@ const (
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
 )
 
+// old node-exporter constants replaced with prometheus-operator node-exporter
+const (
+	monitoringNamespace = "monitoring"
+	nodeExporterName    = "node-exporter"
+	mcElasticSearchScrt = "verrazzano-cluster-elasticsearch"
+	istioRootCertName   = "istio-ca-root-cert"
+)
+
 // sharedNamespaces The set of namespaces shared by multiple components; managed separately apart from individual components
 var sharedNamespaces = []string{
 	vzconst.VerrazzanoMonitoringNamespace,
 	constants.CertManagerNamespace,
 	constants.VerrazzanoSystemNamespace,
+	vzconst.KeycloakNamespace,
+	monitoringNamespace,
 }
 
 // uninstallState identifies the state of a Verrazzano uninstall operation
@@ -124,9 +135,9 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			err = r.uninstallCleanup(spiCtx)
-			if err != nil {
-				return ctrl.Result{}, err
+			result, err := r.uninstallCleanup(spiCtx)
+			if err != nil || !result.IsZero() {
+				return result, err
 			}
 			tracker.vzState = vzStateUninstallDone
 		case vzStateUninstallDone:
@@ -169,9 +180,21 @@ func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 
 // Delete multicluster related resources
 func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
-	// Return if this is not MC or if there is an error
-	if mc, err := r.isMC(log); err != nil || !mc {
+	// Check if this is not managed cluster
+	managed, err := r.isManagedCluster(log)
+	if err != nil {
 		return err
+	}
+
+	projects := vzappclusters.VerrazzanoProjectList{}
+	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil {
+		return log.ErrorfNewErr("Failed listing MC projects: %v", err)
+	}
+	// Delete MC rolebindings for each project
+	for _, p := range projects.Items {
+		if err := r.deleteManagedClusterRoleBindings(p, log); err != nil {
+			return err
+		}
 	}
 
 	log.Oncef("Deleting all VMC resources")
@@ -179,17 +202,21 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 	if err := r.List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil {
 		return log.ErrorfNewErr("Failed listing VMCs: %v", err)
 	}
+
 	for i, vmc := range vmcList.Items {
+		// Delete the VMC ServiceAccount (since managed cluster role bindings associated to it should now be deleted)
+		vmcSA := corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{Namespace: vmc.Namespace, Name: vmc.Spec.ServiceAccount},
+		}
+		if err := r.Delete(context.TODO(), &vmcSA); err != nil {
+			return log.ErrorfNewErr("Failed to delete VMC service account %s/%s, %v", vmc.Namespace, vmc.Spec.ServiceAccount, err)
+		}
 		if err := r.Delete(context.TODO(), &vmcList.Items[i]); err != nil {
 			return log.ErrorfNewErr("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
 		}
 	}
 
 	// Delete VMC namespace only if there are no projects
-	projects := vzappclusters.VerrazzanoProjectList{}
-	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil {
-		return log.ErrorfNewErr("Failed listing MC projects: %v", err)
-	}
 	if len(projects.Items) == 0 {
 		log.Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
 		if err := r.deleteNamespace(context.TODO(), log, vzconst.VerrazzanoMultiClusterNamespace); err != nil {
@@ -197,20 +224,43 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 		}
 	}
 
-	// Delete secrets last. Don't delete MC agent secret until the end since it tells us this is MC install
-	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
-		return err
-	}
-	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, "verrazzano-cluster-elasticsearch"); err != nil {
-		return err
-	}
-	if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
-		return err
+	// Delete secrets on managed cluster.  Don't delete MC agent secret until the end since it tells us this is MC install
+	if managed {
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
+			return err
+		}
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, mcElasticSearchScrt); err != nil {
+			return err
+		}
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
+// deleteManagedClusterRoleBindings deletes the managed cluster rolebindings from each namespace
+// governed by the given project
+func (r *Reconciler) deleteManagedClusterRoleBindings(project vzappclusters.VerrazzanoProject, log vzlog.VerrazzanoLogger) error {
+	for _, projectNSTemplate := range project.Spec.Template.Namespaces {
+		rbList := rbacv1.RoleBindingList{}
+		if err := r.List(context.TODO(), &rbList, &client.ListOptions{Namespace: projectNSTemplate.Metadata.Name}); err != nil {
+			return err
+		}
+		for i, rb := range rbList.Items {
+			if rb.RoleRef.Name == "verrazzano-managed-cluster" {
+				if err := r.Delete(context.TODO(), &rbList.Items[i]); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// isManagedCluster returns true if this is a managed cluster
+func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) {
 	var secret corev1.Secret
 	secretNsn := types.NamespacedName{
 		Namespace: vzconst.VerrazzanoSystemNamespace,
@@ -229,13 +279,48 @@ func (r *Reconciler) isMC(log vzlog.VerrazzanoLogger) (bool, error) {
 }
 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
-func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) error {
+func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, error) {
 	if err := rancher.PostUninstall(ctx); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
+
+	if err := r.deleteIstioCARootCert(ctx); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return r.deleteNamespaces(ctx.Log())
 }
 
+// nodeExporterCleanup cleans up any resources from the old node-exporter that was
+// replaced with the node-exporter from the prometheus-operator
+func (r *Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
+	err := resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRoleBinding{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = resource.Resource{
+		Name:   nodeExporterName,
+		Client: r.Client,
+		Object: &rbacv1.ClusterRole{},
+		Log:    log,
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// deleteSecret deletes a Kubernetes secret
 func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, name string) error {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
@@ -250,8 +335,8 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 	return nil
 }
 
-//deleteNamespaces Cleans up any namespaces shared by multiple components
-func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
+// deleteNamespaces Cleans up any namespaces shared by multiple components
+func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	for _, ns := range sharedNamespaces {
 		log.Progressf("Deleting namespace %s", ns)
 		err := resource.Resource{
@@ -260,6 +345,47 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) error {
 			Object: &corev1.Namespace{},
 			Log:    log,
 		}.RemoveFinalizersAndDelete()
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+	waiting := false
+	for _, ns := range sharedNamespaces {
+		err := r.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return ctrl.Result{}, err
+		}
+		waiting = true
+		log.Progressf("Waiting for namespace %s to terminate", ns)
+	}
+	if waiting {
+		log.Progressf("Namespace terminations still in progress")
+		return newRequeueWithDelay(), nil
+	}
+	log.Once("Namespaces terminated successfully")
+	return ctrl.Result{}, nil
+}
+
+// deleteIstioCARootCert deletes the Istio root cert ConfigMap that gets distributed across the cluster
+func (r *Reconciler) deleteIstioCARootCert(ctx spi.ComponentContext) error {
+	namespaces := corev1.NamespaceList{}
+	err := ctx.Client().List(context.TODO(), &namespaces)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to list the cluster namespaces: %v", err)
+	}
+
+	for _, ns := range namespaces.Items {
+		ctx.Log().Progressf("Deleting Istio root cert in namespace %s", ns.GetName())
+		err := resource.Resource{
+			Name:      istioRootCertName,
+			Namespace: ns.GetName(),
+			Client:    r.Client,
+			Object:    &corev1.ConfigMap{},
+			Log:       ctx.Log(),
+		}.Delete()
 		if err != nil {
 			return err
 		}

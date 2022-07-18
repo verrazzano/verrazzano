@@ -166,6 +166,31 @@ spec:
                       weight: 100
     istio:
       enabled: true
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    replicaCount: 2
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    affinity:
+                      podAntiAffinity:
+                        preferredDuringSchedulingIgnoredDuringExecution:
+                          - podAffinityTerm:
+                              labelSelector:
+                                matchLabels:
+                                  app: istiod
+                              topologyKey: kubernetes.io/hostname
+                            weight: 100
       ingress:
         kubernetes:
           replicas: 2
