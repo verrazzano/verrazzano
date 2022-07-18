@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
@@ -246,9 +245,9 @@ func CollectReconcileMetricsError(log *zap.SugaredLogger) {
 	metricsExp.ReconcileErrorCounterMetric.Add(1)
 	log.Debugf("Error counter for reconcile has been incremented by one")
 }
-func GetErrorCounterMetric() float64 {
-	return testutil.ToFloat64(metricsExp.ReconcileErrorCounterMetric)
+func GetErrorCounterMetric() prometheus.Counter {
+	return metricsExp.ReconcileErrorCounterMetric
 }
-func GetReconcileCounterMetric() float64 {
-	return testutil.ToFloat64(metricsExp.ReconcileCounterMetric)
+func GetReconcileCounterMetric() prometheus.Counter {
+	return metricsExp.ReconcileCounterMetric
 }
