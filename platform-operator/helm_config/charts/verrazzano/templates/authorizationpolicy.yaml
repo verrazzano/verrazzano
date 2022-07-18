@@ -32,14 +32,16 @@ spec:
       to:
         - operation:
             ports: ["{{ .Values.api.port }}"]
+{{- if .Values.jaegerOperator.enabled }}
     # verrazzano-authproxy:8775 <- jaeger
     - from:
         - source:
-            namespaces: ["{{ .Values.jaeger.namespace }}"]
-            principals: ["cluster.local/ns/{{ .Values.jaeger.namespace }}/sa/{{ .Values.jaeger.serviceAccount }}"]
+            namespaces: ["{{ .Values.jaegerOperator.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.jaegerOperator.namespace }}/sa/{{ .Values.jaegerOperator.jaegerServiceAccount }}"]
       to:
         - operation:
             ports: ["{{ .Values.api.port }}"]
+{{- end }}
     # verrazzano-authproxy:9113,15090 <- prometheus
     - from:
         - source:
@@ -237,5 +239,29 @@ spec:
       to:
         - operation:
             ports: ["15090"]
+{{- end }}
+---
+{{- if .Values.jaegerOperator.enabled }}
+#
+# Istio AuthorizationPolicy for Jaeger deployed by Verrazzano
+#
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: jaeger-authzpol
+  namespace: {{ .Values.jaegerOperator.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: jaeger
+      app.kubernetes.io/component: collector
+      app.kubernetes.io/managed-by: jaeger-operator
+  action: ALLOW
+  rules:
+    # jaeger-collector-service:9411, 14250 <- <any>
+    - from:
+      to:
+        - operation:
+            ports: ["9411", "14250"]
 {{- end }}
 {{- end }}

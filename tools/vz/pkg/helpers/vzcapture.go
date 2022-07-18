@@ -10,13 +10,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	vzoamapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"io"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
@@ -114,7 +121,7 @@ func GetPodList(client clipkg.Client, appLabel, appName, namespace string) ([]co
 	return podList.Items, nil
 }
 
-// captureVZResource captures Verrazzano resources as a JSON file
+// CaptureVZResource captures Verrazzano resources as a JSON file
 func CaptureVZResource(captureDir string, vz vzapi.VerrazzanoList, vzHelper VZHelper) error {
 	var vzRes = captureDir + string(os.PathSeparator) + constants.VzResource
 	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
@@ -321,4 +328,304 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while writing the file %s: %s", res, err.Error())
 	}
 	return nil
+}
+
+// CaptureOAMResources captures OAM resources in the given list of namespaces
+func CaptureOAMResources(dynamicClient dynamic.Interface, nsList []string, captureDir string, vzHelper VZHelper) error {
+	for _, ns := range nsList {
+		if err := captureAppConfigurations(dynamicClient, ns, captureDir, vzHelper); err != nil {
+			return err
+		}
+		if err := captureComponents(dynamicClient, ns, captureDir, vzHelper); err != nil {
+			return err
+		}
+		if err := captureIngressTraits(dynamicClient, ns, captureDir, vzHelper); err != nil {
+			return err
+		}
+		if err := captureMetricsTraits(dynamicClient, ns, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CaptureMultiClusterResources captures resources useful to debug issues in multi-cluster environment
+func CaptureMultiClusterResources(dynamicClient dynamic.Interface, nsList []string, captureDir string, vzHelper VZHelper) error {
+	for _, ns := range nsList {
+		// Capture multi-cluster components and application configurations
+		if err := captureMCComponents(dynamicClient, ns, captureDir, vzHelper); err != nil {
+			return err
+		}
+
+		if err := captureMCAppConfigurations(dynamicClient, ns, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+
+	// Capture Verrazzano projects in verrazzano-mc namespace
+	if err := captureVerrazzanoProjects(dynamicClient, captureDir, vzHelper); err != nil {
+		return err
+	}
+
+	// Capture Verrazzano projects in verrazzano-mc namespace
+	if err := captureVerrazzanoManagedCluster(dynamicClient, captureDir, vzHelper); err != nil {
+		return err
+	}
+	return nil
+}
+
+// DoesNamespaceExist checks whether the namespace exists in the cluster
+func DoesNamespaceExist(kubeClient kubernetes.Interface, namespace string, vzHelper VZHelper) (bool, error) {
+	if namespace == "" {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Ignoring empty namespace\n")
+		return false, nil
+	}
+	ns, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
+
+	if err != nil && errors.IsNotFound(err) {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Namespace %s not found in the cluster, so will be ignored.\n", namespace)
+		return false, err
+	}
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the namespace %s: %s\n", namespace, err.Error())
+		return false, err
+	}
+	return ns != nil && len(ns.Name) > 0, nil
+}
+
+// RemoveDuplicate removes duplicates from origSlice
+func RemoveDuplicate(origSlice []string) []string {
+	allKeys := make(map[string]bool)
+	returnSlice := []string{}
+	for _, item := range origSlice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			returnSlice = append(returnSlice, item)
+		}
+	}
+	return returnSlice
+}
+
+// captureAppConfigurations captures the OAM application configurations in the given namespace, as a JSON file
+func captureAppConfigurations(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	appConfigs, err := dynamicClient.Resource(GetAppConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the ApplicationConfigurations in namespace %s: %s\n", namespace, err.Error())
+		return nil
+	}
+	if len(appConfigs.Items) > 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing ApplicationConfigurations in namespace: %s ...\n", namespace)
+		if err = createFile(appConfigs, namespace, constants.AppConfigJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureComponents captures the OAM components in the given namespace, as a JSON file
+func captureComponents(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	comps, err := dynamicClient.Resource(GetComponentConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the Components in namespace %s: %s\n", namespace, err.Error())
+		return nil
+	}
+	if len(comps.Items) > 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Components in namespace: %s ...\n", namespace)
+		if err = createFile(comps, namespace, constants.ComponentJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureIngressTraits captures the ingress traits in the given namespace, as a JSON file
+func captureIngressTraits(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	ingTraits, err := dynamicClient.Resource(GetIngressTraitConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the IngressTraits in namespace %s: %s\n", namespace, err.Error())
+		return nil
+	}
+	if len(ingTraits.Items) > 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing IngressTraits in namespace: %s ...\n", namespace)
+		if err = createFile(ingTraits, namespace, constants.IngressTraitJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureMetricsTraits captures the metrics traits in the given namespace, as a JSON file
+func captureMetricsTraits(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	metricsTraits, err := dynamicClient.Resource(GetMetricsTraitConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the MetricsTraits in namespace %s: %s\n", namespace, err.Error())
+		return nil
+	}
+	if len(metricsTraits.Items) > 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing MetricsTraits in namespace: %s ...\n", namespace)
+		if err = createFile(metricsTraits, namespace, constants.MetricsTraitJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureMCComponents captures the MulticlusterComponent in the given namespace, as a JSON file
+func captureMCComponents(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	mcComps, err := dynamicClient.Resource(GetMCComponentScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the MulticlusterComponent in namespace %s: %s\n", namespace, err.Error())
+		return nil
+	}
+	if len(mcComps.Items) > 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing MulticlusterComponent in namespace: %s ...\n", namespace)
+		if err = createFile(mcComps, namespace, constants.McComponentJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureMCComponents captures the MultiClusterApplicationConfiguration in the given namespace, as a JSON file
+func captureMCAppConfigurations(dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	mcAppConfigs, err := dynamicClient.Resource(GetMCAppConfigScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the MultiClusterApplicationConfiguration in namespace %s: %s\n", namespace, err.Error())
+		return nil
+	}
+	if len(mcAppConfigs.Items) > 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing MultiClusterApplicationConfiguration in namespace: %s ...\n", namespace)
+		if err = createFile(mcAppConfigs, namespace, constants.McAppConfigJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureAppConfigurations captures the Verrazzano projects in the verrazzano-mc namespace, as a JSON file
+func captureVerrazzanoProjects(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
+	vzProjectConfigs, err := dynamicClient.Resource(GetVzProjectsConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the VerrazzanoProjects in namespace %s: %s\n", vzconstants.VerrazzanoMultiClusterNamespace, err.Error())
+		return nil
+	}
+	if len(vzProjectConfigs.Items) > 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing VerrazzanoProjects in namespace: %s ...\n", vzconstants.VerrazzanoMultiClusterNamespace)
+		if err = createFile(vzProjectConfigs, vzconstants.VerrazzanoMultiClusterNamespace, constants.VzProjectsJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureVerrazzanoManagedCluster captures VerrazzanoManagedCluster in verrazzano-mc namespace, as a JSON file
+func captureVerrazzanoManagedCluster(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
+	vmcConfigs, err := dynamicClient.Resource(GetManagedClusterConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the VerrazzanoManagedClusters in namespace %s: %s\n", vzconstants.VerrazzanoMultiClusterNamespace, err.Error())
+		return nil
+	}
+	if len(vmcConfigs.Items) > 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing VerrazzanoManagedClusters in namespace: %s ...\n", vzconstants.VerrazzanoMultiClusterNamespace)
+		if err = createFile(vmcConfigs, vzconstants.VerrazzanoMultiClusterNamespace, constants.VmcJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GetAppConfigScheme returns GroupVersionResource for ApplicationConfiguration
+func GetAppConfigScheme() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    oamcore.Group,
+		Version:  oamcore.Version,
+		Resource: constants.OAMAppConfigurations,
+	}
+}
+
+// GetComponentConfigScheme returns GroupVersionResource for Component
+func GetComponentConfigScheme() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    oamcore.Group,
+		Version:  oamcore.Version,
+		Resource: constants.OAMComponents,
+	}
+}
+
+// GetMetricsTraitConfigScheme returns GroupVersionResource for MetricsTrait
+func GetMetricsTraitConfigScheme() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    vzoamapi.SchemeGroupVersion.Group,
+		Version:  vzoamapi.SchemeGroupVersion.Version,
+		Resource: constants.OAMMetricsTraits,
+	}
+}
+
+// GetIngressTraitConfigScheme returns GroupVersionResource for IngressTrait
+func GetIngressTraitConfigScheme() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    vzoamapi.SchemeGroupVersion.Group,
+		Version:  vzoamapi.SchemeGroupVersion.Version,
+		Resource: constants.OAMIngressTraits,
+	}
+}
+
+// GetMCComponentScheme returns GroupVersionResource for MulticlusterComponent
+func GetMCComponentScheme() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
+		Resource: constants.OAMMCCompConfigurations,
+	}
+}
+
+// GetMCAppConfigScheme returns GroupVersionResource for MulticlusterApplicationConfiguration
+func GetMCAppConfigScheme() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
+		Resource: constants.OAMMCAppConfigurations,
+	}
+}
+
+// GetVzProjectsConfigScheme returns GroupVersionResource for VerrazzanoProject
+func GetVzProjectsConfigScheme() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
+		Resource: constants.OAMProjects,
+	}
+}
+
+// GetManagedClusterConfigScheme returns GroupVersionResource for VerrazzanoManagedCluster
+func GetManagedClusterConfigScheme() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
+		Resource: constants.OAMManagedClusters,
+	}
 }

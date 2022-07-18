@@ -6,7 +6,9 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"io"
+	"k8s.io/client-go/dynamic"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -30,6 +32,7 @@ type VZHelper interface {
 	GetClient(cmd *cobra.Command) (client.Client, error)
 	GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error)
 	GetHTTPClient() *http.Client
+	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource
@@ -99,4 +102,34 @@ func NewScheme() *runtime.Scheme {
 	_ = rbacv1.SchemeBuilder.AddToScheme(scheme)
 	_ = appv1.SchemeBuilder.AddToScheme(scheme)
 	return scheme
+}
+
+// GetNamespacesForNotReadyComponents returns the list of unique namespaces for the components which are not in Ready state
+func GetNamespacesForNotReadyComponents(vz vzapi.Verrazzano) []string {
+	allComponents := GetComponentsNotReady(vz)
+	var nsList []string
+	for _, eachComp := range allComponents {
+		nsList = append(nsList, constants.ComponentNameToNamespacesMap[eachComp]...)
+	}
+	if len(nsList) > 0 {
+		nsList = RemoveDuplicate(nsList)
+	}
+	return nsList
+}
+
+// GetComponentsNotReady returns the list of components which did not reach Ready state from the Verrazzano resource
+func GetComponentsNotReady(vzRes vzapi.Verrazzano) []string {
+	var compsNotReady = make([]string, 0)
+	if vzRes.Status.State != vzapi.VzStateReady {
+		// Verrazzano installation is not complete, find out the list of components which are not ready
+		for _, compStatusDetail := range vzRes.Status.Components {
+			if compStatusDetail.State != vzapi.CompStateReady {
+				if compStatusDetail.State == vzapi.CompStateDisabled {
+					continue
+				}
+				compsNotReady = append(compsNotReady, compStatusDetail.Name)
+			}
+		}
+	}
+	return compsNotReady
 }

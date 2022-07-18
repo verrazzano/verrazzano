@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -52,6 +53,10 @@ type jaegerOperatorComponent struct {
 	helm.HelmComponent
 }
 
+var certificates = []types.NamespacedName{
+	{Namespace: constants.VerrazzanoSystemNamespace, Name: jaegerCertificateName},
+}
+
 func NewComponent() spi.Component {
 	return jaegerOperatorComponent{
 		helm.HelmComponent{
@@ -66,8 +71,15 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    "image.imagePullSecrets[0].name",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
 			Dependencies:              []string{certmanager.ComponentName},
-			AppendOverridesFunc:       AppendOverrides,
-			GetInstallOverridesFunc:   GetOverrides,
+			Certificates:              certificates,
+			IngressNames: []types.NamespacedName{
+				{
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Name:      constants.JaegerIngress,
+				},
+			},
+			AppendOverridesFunc:     AppendOverrides,
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
@@ -106,12 +118,28 @@ func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)
 }
 
-// ValidateInstall verifies the installation of the Verrazzano object
+// PostInstall creates the ingress resource for exposing Jaeger UI service.
+func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
+	if err := c.createOrUpdateJaegerResources(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PostInstall(ctx)
+}
+
+// PostUpgrade creates or updates the ingress of Jaeger UI service after a Verrazzano upgrade
+func (c jaegerOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
+		return err
+	}
+	return c.createOrUpdateJaegerResources(ctx)
+}
+
+// ValidateInstall validates the installation of the Verrazzano CR
 func (c jaegerOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return c.validateJaegerOperator(vz)
 }
 
-// ValidateUpgrade verifies the upgrade of the Verrazzano object
+// ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
 func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
@@ -167,4 +195,18 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 		return false, err
 	}
 	return true, nil
+}
+
+// createOrUpdateJaegerResources create or update related Jaeger resources
+func (c jaegerOperatorComponent) createOrUpdateJaegerResources(ctx spi.ComponentContext) error {
+	jaegerCREnabled, err := isCreateJaegerInstance(ctx)
+	if err != nil {
+		return err
+	}
+	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) && jaegerCREnabled {
+		if err := createOrUpdateJaegerIngress(ctx, constants.VerrazzanoSystemNamespace); err != nil {
+			return err
+		}
+	}
+	return nil
 }

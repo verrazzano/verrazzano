@@ -137,6 +137,8 @@ type InstanceInfo struct {
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
 	// KialiURL The Kiali URL for this Verrazzano installation
 	KialiURL *string `json:"kialiUrl,omitempty"`
+	// JaegerURL The Jaeger UI URL for this Verrazzano installation
+	JaegerURL *string `json:"jaegerUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of Verrazzano
@@ -416,7 +418,8 @@ type OpenSearchNodeStorage struct {
 // KibanaComponent specifies the Kibana configuration.
 type KibanaComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled  *bool  `json:"enabled,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 }
 
 // KubeStateMetricsComponent specifies the kube-state-metrics configuration.

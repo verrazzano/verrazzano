@@ -5,10 +5,11 @@ package rancher
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -46,17 +47,18 @@ var certificates = []types.NamespacedName{
 func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
-			ReleaseName:             common.RancherName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
-			AppendOverridesFunc:     AppendOverrides,
-			Certificates:            certificates,
-			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
+			ReleaseName:               common.RancherName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), common.RancherName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
+			AppendOverridesFunc:       AppendOverrides,
+			Certificates:              certificates,
+			Dependencies:              []string{nginx.ComponentName, certmanager.ComponentName},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -266,10 +268,25 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
+	if err := rest.ActivateOCIDriver(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed activating OCI Driver: %s", err.Error())
+	}
+	if err := rest.ActivateOKEDriver(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed activating OKE Driver: %s", err.Error())
+	}
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
 	return nil
+}
+
+// PostUninstall handles the deletion of all Rancher resources after the Helm uninstall
+func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("Rancher PostUninstall dry run")
+		return nil
+	}
+	return PostUninstall(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

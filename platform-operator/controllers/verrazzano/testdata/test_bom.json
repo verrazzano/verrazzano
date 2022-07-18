@@ -535,7 +535,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.34.1-20220705041607-b81f3dc8",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
               "helmFullImageKey": "jaegerAgentImage"
             }
           ]
@@ -546,7 +546,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.34.1-20220705041607-b81f3dc8",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
               "helmFullImageKey": "jaegerCollectorImage"
             }
           ]
@@ -557,7 +557,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.34.1-20220705041607-b81f3dc8",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
               "helmFullImageKey": "jaegerQueryImage"
             }
           ]
@@ -568,8 +568,41 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.34.1-20220705041607-b81f3dc8",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
               "helmFullImageKey": "jaegerIngesterImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-es-index-cleaner",
+          "images": [
+            {
+              "image": "jaeger-es-index-cleaner",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "helmFullImageKey": "jaegerESIndexCleanerImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-es-rollover",
+          "images": [
+            {
+              "image": "jaeger-es-rollover",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "helmFullImageKey": "jaegerESRolloverImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-all-in-one",
+          "images": [
+            {
+              "image": "jaeger-all-in-one",
+              "tag": "1.34.1-20220718052137-ae4bd702",
+              "helmFullImageKey": "jaegerAllInOneImage"
             }
           ]
         }

@@ -25,19 +25,23 @@ spec:
     authproxy:
       kubernetes:
         replicas: 2
+    certManager:
+      enabled: true
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+      overrides:
+        - values:
+            replicaCount: 2
+            cainjector:
+              replicaCount: 2
+            webhook:
+              replicaCount: 2
     console:
       overrides:
         - values:
             replicas: 2
-            affinity:
-              podAntiAffinity:
-                preferredDuringSchedulingIgnoredDuringExecution:
-                  - podAffinityTerm:
-                      labelSelector:
-                        matchLabels:
-                          app: verrazzano-console
-                      topologyKey: kubernetes.io/hostname
-                    weight: 100
     istio:
       ingress:
         kubernetes:
@@ -45,6 +49,13 @@ spec:
       egress:
         kubernetes:
           replicas: 2
+    kibana:
+      replicas: 2
+    kiali:
+      overrides:
+        - values:
+            deployment:
+              replicas: 2
     prometheusOperator:
       prometheusSpec:
         storageSpec:

@@ -40,17 +40,18 @@ var _ spi.Component = mysqlComponent{}
 func NewComponent() spi.Component {
 	return mysqlComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
-			AppendOverridesFunc:     appendMySQLOverrides,
-			Dependencies:            []string{istio.ComponentName},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
+			AppendOverridesFunc:       appendMySQLOverrides,
+			Dependencies:              []string{istio.ComponentName},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }

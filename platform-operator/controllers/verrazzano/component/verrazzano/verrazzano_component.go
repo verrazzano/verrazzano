@@ -54,17 +54,18 @@ type verrazzanoComponent struct {
 func NewComponent() spi.Component {
 	return verrazzanoComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			ResolveNamespaceFunc:    resolveVerrazzanoNamespace,
-			AppendOverridesFunc:     appendVerrazzanoOverrides,
-			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
-			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			ResolveNamespaceFunc:      resolveVerrazzanoNamespace,
+			AppendOverridesFunc:       appendVerrazzanoOverrides,
+			ImagePullSecretKeyname:    vzImagePullSecretKeyName,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }

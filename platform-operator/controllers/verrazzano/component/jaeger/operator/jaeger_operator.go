@@ -23,6 +23,7 @@ import (
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,14 +45,16 @@ func resetWriteFileFunc() {
 }
 
 const (
-	deploymentName       = "jaeger-operator"
-	tmpFilePrefix        = "jaeger-operator-overrides-"
-	tmpSuffix            = "yaml"
-	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
-	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
-	jaegerSecName        = "verrazzano-jaeger-secret"
-	openSearchURL        = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
-	jaegerCreateField    = "jaeger.create"
+	deploymentName        = "jaeger-operator"
+	tmpFilePrefix         = "jaeger-operator-overrides-"
+	tmpSuffix             = "yaml"
+	tmpFileCreatePattern  = tmpFilePrefix + "*." + tmpSuffix
+	tmpFileCleanPattern   = tmpFilePrefix + ".*\\." + tmpSuffix
+	jaegerSecName         = "verrazzano-jaeger-secret"
+	jaegerCreateField     = "jaeger.create"
+	jaegerHostName        = "jaeger"
+	jaegerCertificateName = "jaeger-tls"
+	openSearchURL         = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
 )
 
 // Define the Jaeger images using extraEnv key.
@@ -65,6 +68,12 @@ const extraEnvValueTemplate = `extraEnv:
     value: "{{.CollectorImage}}"
   - name: "JAEGER-INGESTER-IMAGE"
     value: "{{.IngesterImage}}"
+  - name: "JAEGER-ES-INDEX-CLEANER-IMAGE"
+    value: "{{.IndexCleanerImage}}"
+  - name: "JAEGER-ES-ROLLOVER-IMAGE"
+    value: "{{.RolloverImage}}"
+  - name: "JAEGER-ALL-IN-ONE-IMAGE"
+    value: "{{.AllInOneImage}}"
 `
 
 // A template to define Jaeger override
@@ -76,6 +85,11 @@ const jaegerValueTemplate = `jaeger:
     annotations:
       sidecar.istio.io/inject: "true"
       proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+<<<<<<< HEAD
+=======
+    ingress:
+      enabled: false
+>>>>>>> 60f1df7ec87f989440dc158d499357830ddb113c
     strategy: production
     storage:
       # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
@@ -83,7 +97,10 @@ const jaegerValueTemplate = `jaeger:
       dependencies:
         enabled: false
       esIndexCleaner:
-        enabled: false
+        enabled: true
+        # Number of days to wait before deleting a record
+        numberOfDays: 7
+        schedule: "55 23 * * *"
       options:
         es:
           server-urls: {{.OpenSearchURL}}
@@ -93,10 +110,13 @@ const jaegerValueTemplate = `jaeger:
 
 // imageData needed for template rendering
 type imageData struct {
-	AgentImage     string
-	QueryImage     string
-	CollectorImage string
-	IngesterImage  string
+	AgentImage        string
+	QueryImage        string
+	CollectorImage    string
+	IngesterImage     string
+	IndexCleanerImage string
+	RolloverImage     string
+	AllInOneImage     string
 }
 
 // jaegerData needed for template rendering
@@ -186,6 +206,33 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Ingester, found %v", len(ingesterImages))
 	}
 
+	// Get jaeger-es-index-cleaner image
+	indexCleanerImages, err := bomFile.BuildImageOverrides("jaeger-es-index-cleaner")
+	if err != nil {
+		return nil, err
+	}
+	if len(indexCleanerImages) != 1 {
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Elasticsearch Index Cleaner, found %v", len(indexCleanerImages))
+	}
+
+	// Get jaeger-es-rollover image
+	rolloverImages, err := bomFile.BuildImageOverrides("jaeger-es-rollover")
+	if err != nil {
+		return nil, err
+	}
+	if len(rolloverImages) != 1 {
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Elasticsearch Rollover, found %v", len(rolloverImages))
+	}
+
+	// Get jaeger-es-rollover image
+	allInOneImages, err := bomFile.BuildImageOverrides("jaeger-all-in-one")
+	if err != nil {
+		return nil, err
+	}
+	if len(allInOneImages) != 1 {
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger AllInOne, found %v", len(allInOneImages))
+	}
+
 	// use template to populate Jaeger images
 	var b bytes.Buffer
 	t, err := template.New("images").Parse(extraEnvValueTemplate)
@@ -195,7 +242,9 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 
 	// Render the template
 	data := imageData{AgentImage: agentImages[0].Value, CollectorImage: collectorImages[0].Value,
-		QueryImage: queryImages[0].Value, IngesterImage: ingesterImages[0].Value}
+		QueryImage: queryImages[0].Value, IngesterImage: ingesterImages[0].Value,
+		IndexCleanerImage: indexCleanerImages[0].Value, RolloverImage: rolloverImages[0].Value,
+		AllInOneImage: allInOneImages[0].Value}
 	err = t.Execute(&b, data)
 	if err != nil {
 		return nil, err
@@ -568,4 +617,77 @@ func removeOldJaegerResources(ctx spi.ComponentContext) error {
 		return err
 	}
 	return nil
+}
+
+// createOrUpdateJaegerIngress Creates or updates the Jaeger authproxy ingress
+func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) error {
+	ingress := networkv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: constants.JaegerIngress, Namespace: namespace},
+	}
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
+		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed building DNS domain name: %v", err)
+		}
+
+		jaegerHostName := buildJaegerHostnameForDomain(dnsSubDomain)
+		ingressClassName := vzconfig.GetIngressClassName(ctx.EffectiveCR())
+		// Overwrite the existing Jaeger service definition to point to the Verrazzano authproxy
+		pathType := networkv1.PathTypeImplementationSpecific
+		ingRule := networkv1.IngressRule{
+			Host: jaegerHostName,
+			IngressRuleValue: networkv1.IngressRuleValue{
+				HTTP: &networkv1.HTTPIngressRuleValue{
+					Paths: []networkv1.HTTPIngressPath{
+						{
+							Path:     "/()(.*)",
+							PathType: &pathType,
+							Backend: networkv1.IngressBackend{
+								Service: &networkv1.IngressServiceBackend{
+									Name: constants.VerrazzanoAuthProxyServiceName,
+									Port: networkv1.ServiceBackendPort{
+										Number: constants.VerrazzanoAuthProxyServicePort,
+									},
+								},
+								Resource: nil,
+							},
+						},
+					},
+				},
+			},
+		}
+		ingress.Spec.TLS = []networkv1.IngressTLS{
+			{
+				Hosts:      []string{jaegerHostName},
+				SecretName: "jaeger-tls",
+			},
+		}
+		ingress.Spec.Rules = []networkv1.IngressRule{ingRule}
+		ingress.Spec.IngressClassName = &ingressClassName
+		if ingress.Annotations == nil {
+			ingress.Annotations = make(map[string]string)
+		}
+		ingress.Annotations["kubernetes.io/tls-acme"] = "true"
+		ingress.Annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = "6M"
+		ingress.Annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2"
+		ingress.Annotations["nginx.ingress.kubernetes.io/secure-backends"] = "false"
+		ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTP"
+		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
+		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
+		ingress.Annotations["cert-manager.io/common-name"] = jaegerHostName
+		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
+			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
+			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
+		}
+		return nil
+	})
+	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
+		return ctx.Log().ErrorfNewErr("Failed create/update Jaeger ingress: %v", err)
+	}
+	return err
+}
+
+func buildJaegerHostnameForDomain(dnsDomain string) string {
+	return fmt.Sprintf("%s.%s", jaegerHostName, dnsDomain)
 }

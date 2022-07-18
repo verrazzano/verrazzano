@@ -22,6 +22,11 @@ type installRunner struct {
 	t *testing.T
 }
 
+// uninstallRunner is used to test istioctl uninstall without actually running an OS exec command
+type uninstallRunner struct {
+	t *testing.T
+}
+
 // badRunner is used to test istioctl errors without actually running an OS exec command
 type badRunner struct {
 	t *testing.T
@@ -89,6 +94,37 @@ func TestIsInstalled(t *testing.T) {
 	assert.True(b, "IsInstalled returned false")
 }
 
+// TestUninstall tests the istioctl uninstall command
+// GIVEN a set of uninstall parameters and a fake uninstall runner
+//  WHEN I call Uninstall
+//  THEN the istioctl uninstall returns success
+func TestUninstall(t *testing.T) {
+
+	assert := assert.New(t)
+	SetCmdRunner(uninstallRunner{t: t})
+	defer SetDefaultRunner()
+
+	stdout, stderr, err := Uninstall(vzlog.DefaultLogger())
+	assert.NoError(err, "Uninstall returned an error")
+	assert.Len(stderr, 0, "Uninstall stderr should be empty")
+	assert.NotZero(stdout, "Uninstall stdout should not be empty")
+}
+
+// TestUninstallFail tests the istioctl uninstall command failure condition
+// GIVEN a set of uninstall parameters and a fake runner that fails
+//  WHEN I call Uninstall
+//  THEN the istioctl uninstall returns an error
+func TestUninstallFail(t *testing.T) {
+	assert := assert.New(t)
+	SetCmdRunner(badRunner{t: t})
+	defer SetDefaultRunner()
+
+	stdout, stderr, err := Uninstall(vzlog.DefaultLogger())
+	assert.Error(err, "Uninstall should have returned an error")
+	assert.Len(stdout, 0, "Uninstall stdout should be empty")
+	assert.NotZero(stderr, "Uninstall stderr should not be empty")
+}
+
 // fakeIsInstalledRunner overrides the istio run command
 func (r fakeIstioInstalledRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte("Istio is installed and verified successfully"), []byte(""), nil
@@ -112,6 +148,20 @@ func (r installRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err err
 	assert.Contains(cmd.Args[0], "istioctl", "args should contain istioctl")
 	assert.Contains(cmd.Args[1], "install", "args should contain install")
 	assert.Contains(cmd.Args[2], "-y", "args should contain -y")
+
+	return []byte("success"), []byte(""), nil
+}
+
+// Run should assert the command parameters are correct then return a success with stdout contents
+func (r uninstallRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	assert := assert.New(r.t)
+	assert.Contains(cmd.Path, "istioctl", "command should contain istioctl")
+	assert.Contains(cmd.Args[0], "istioctl", "args should contain istioctl")
+	assert.Contains(cmd.Args[1], "x", "args should contain x")
+	assert.Contains(cmd.Args[2], "uninstall", "args should contain uninstall")
+	assert.Contains(cmd.Args[3], "--revision", "args should contain --revision")
+	assert.Contains(cmd.Args[4], "default", "args should contain default")
+	assert.Contains(cmd.Args[5], "-y", "args should contain -y")
 
 	return []byte("success"), []byte(""), nil
 }
