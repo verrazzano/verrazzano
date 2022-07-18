@@ -65,18 +65,17 @@ func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 // command - The fully qualified cluster dump executable.
 // kubeconfig - The kube config file to use when executing the cluster dump tool.
 // directory - The directory to store the cluster dump within.
-func ExecuteClusterDump(command string, kubeconfig string, directory string) error {
+func ExecuteClusterDump(clusterDumpCommand string, bugReportCommand string, kubeconfig string, clusterDumpDirectory string, bugReportDirectory string) error {
 	var cmd *exec.Cmd
-	fmt.Printf("Execute cluster dump: KUBECONFIG=%s; %s -d %s\n", kubeconfig, command, directory)
-	if command == "" {
+	fmt.Printf("Execute cluster dump: KUBECONFIG=%s; %s -d %s\n", kubeconfig, clusterDumpCommand, clusterDumpDirectory)
+	if clusterDumpCommand == "" {
 		return nil
 	}
-	if os.Getenv("IS_BUG_REPORT_CLI_USED") != "true" {
-		reportFile := fmt.Sprintf("%s/cluster-dump/analysis.report", directory)
-		cmd = exec.Command(command, "-d", directory, "-r", reportFile)
-	} else {
-		cmd = exec.Command(command, "--report-file", directory)
-	}
+	reportFile := fmt.Sprintf("%s/cluster-dump/analysis.report", clusterDumpDirectory)
+	cmd = exec.Command(clusterDumpCommand, "-d", clusterDumpDirectory, "-r", reportFile)
+
+	cmd = exec.Command(bugReportCommand, "--report-file", bugReportDirectory)
+
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -92,9 +91,11 @@ func ExecuteClusterDump(command string, kubeconfig string, directory string) err
 
 func ExecuteClusterDumpWithEnvVarSuffix(directorySuffix string) error {
 	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
-	directory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix)
-	command := os.Getenv("DUMP_COMMAND")
-	return ExecuteClusterDump(command, kubeconfig, directory)
+	clusterDumpDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix)
+	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY")+"/bug-report", directorySuffix)
+	clusterDumpCommand := os.Getenv("DUMP_COMMAND")
+	bugReportCommand := os.Getenv("BUG_REPORT_COMMAND")
+	return ExecuteClusterDump(clusterDumpCommand, bugReportCommand, kubeconfig, clusterDumpDirectory, bugReportDirectory)
 }
 
 // ExecuteClusterDumpWithEnvVarConfig executes the cluster dump tool using config from environment variables.
