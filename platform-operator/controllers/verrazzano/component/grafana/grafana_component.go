@@ -131,10 +131,10 @@ func (g grafanaComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
 		return err
 	}
-	if err := common.EnsureGrafanaSecret(ctx.Client(), constants.GrafanaSecret); err != nil {
+	if err := common.EnsureGrafanaSecret(ctx.Client(), constants.GrafanaSecret, true); err != nil {
 		return err
 	}
-	if err := common.EnsureGrafanaSecret(ctx.Client(), constants.GrafanaDBSecret); err != nil {
+	if err := common.EnsureGrafanaSecret(ctx.Client(), constants.GrafanaDBSecret, false); err != nil {
 		return err
 	}
 
@@ -176,7 +176,7 @@ func (g grafanaComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	return common.EnsureGrafanaSecret(ctx.Client(), constants.GrafanaSecret)
+	return common.EnsureGrafanaSecret(ctx.Client(), constants.GrafanaSecret, true)
 }
 
 // Install performs Grafana upgrade processing

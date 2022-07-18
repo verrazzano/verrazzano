@@ -4,6 +4,7 @@
 package grafana
 
 import (
+	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/resources"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,6 +22,16 @@ var grafanaEnabledCR = vzapi.Verrazzano{
 		Components: vzapi.ComponentSpec{
 			Grafana: &vzapi.GrafanaComponent{
 				Enabled: &enabled,
+				Replicas: resources.NewVal(2),
+				Database: &vzapi.DatabaseInfo{
+					Host:       "testhost:3032",
+					Name:       "grafanadb",
+					RootSecret: &vzapi.SecretKey{
+						Namespace: "testns",
+						Name:      "rootsecret",
+						Key:       "password",
+					},
+				},
 			},
 		},
 	},
@@ -42,6 +53,11 @@ func TestNewGrafana(t *testing.T) {
 	assert.True(t, vmi.Spec.Grafana.Enabled)
 	assert.Equal(t, "48Mi", vmi.Spec.Grafana.Resources.RequestMemory)
 	assert.Equal(t, "50Gi", vmi.Spec.Grafana.Storage.Size)
+	assert.Equal(t, vmi.Spec.Grafana.Replicas, int32(2))
+	assert.NotNil(t, vmi.Spec.Grafana.Database, "Database is nil")
+	assert.Equal(t, "grafana-db", vmi.Spec.Grafana.Database.PasswordSecret)
+	assert.Equal(t, "testhost:3032", vmi.Spec.Grafana.Database.Host)
+	assert.Equal(t, "grafanadb", vmi.Spec.Grafana.Database.Name)
 }
 
 // TestNewGrafanaWithExistingVMI tests that storage values in the VMI are not erased when a new Grafana is created

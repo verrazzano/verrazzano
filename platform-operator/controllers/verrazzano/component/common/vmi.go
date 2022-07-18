@@ -40,7 +40,7 @@ const (
 	vmoComponentName        = "verrazzano-monitoring-operator"
 	vmoComponentNamespace   = constants.VerrazzanoSystemNamespace
 	defaultStorageSize      = "50Gi"
-	mysqlDBCreationCommands = `mysql -uroot -p%s -e "create database if not exists %s; create user '%s' identified by '%s'; grant select on %s.* to '%s'; flush privileges;"`
+	mysqlDBCreationCommands = `mysql -uroot -p%s -e "create database if not exists %s; create user '%s' identified by '%s'; grant usage on %s.* to '%s'; grant all privileges on %s.* to '%s' with grant option; flush privileges;"`
 )
 
 var maskPw = password.MaskFunction("password ")
@@ -142,7 +142,7 @@ func EnsureVMISecret(cli client.Client) error {
 }
 
 // EnsureGrafanaSecret creates or updates the Grafana admin secret
-func EnsureGrafanaSecret(cli client.Client, secretName string) error {
+func EnsureGrafanaSecret(cli client.Client, secretName string, update bool) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
@@ -150,19 +150,46 @@ func EnsureGrafanaSecret(cli client.Client, secretName string) error {
 		},
 		Data: map[string][]byte{},
 	}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
-		if secret.Data["username"] == nil || secret.Data["password"] == nil {
-			secret.Data["username"] = []byte(constants.VMISecret)
-			pw, err := password.GeneratePassword(32)
-			if err != nil {
-				return err
+	// TODO:  modify to use existing secret if one exists
+	if update {
+		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
+			if secret.Data["username"] == nil || secret.Data["password"] == nil {
+				err := createSecretData(secret)
+				if err != nil {
+					return err
+				}
 			}
-			secret.Data["password"] = []byte(pw)
+			return nil
+		}); err != nil {
+			return err
 		}
-		return nil
-	}); err != nil {
+	} else {
+		err := cli.Get(context.TODO(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: secretName}, secret)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				// create the secret
+				err := createSecretData(secret)
+				if err != nil {
+					return err
+				}
+				err = cli.Create(context.TODO(), secret)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// createSecretData populates the secret data fields with the username and generated password
+func createSecretData(secret *corev1.Secret) error {
+	secret.Data["username"] = []byte(constants.VMISecret)
+	pw, err := password.GeneratePassword(32)
+	if err != nil {
 		return err
 	}
+	secret.Data["password"] = []byte(pw)
 	return nil
 }
 
@@ -185,8 +212,7 @@ func SetupDatabase(ctx spi.ComponentContext) error {
 			return err
 		}
 		userPwd := userSecret.Data["password"]
-
-		sqlCmd := fmt.Sprintf(mysqlDBCreationCommands, rootPwd, dbInfo.Name, constants.VMISecret, userPwd, dbInfo.Name, constants.VMISecret)
+		sqlCmd := fmt.Sprintf(mysqlDBCreationCommands, rootPwd, dbInfo.Name, constants.VMISecret, userPwd, dbInfo.Name, constants.VMISecret, dbInfo.Name, constants.VMISecret)
 		execCmd := []string{"bash","-c",sqlCmd}
 		cfg, cli, err := k8sutil.ClientConfig()
 		if err != nil {
