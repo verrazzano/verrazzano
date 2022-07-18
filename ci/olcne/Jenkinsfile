@@ -205,10 +205,10 @@ pipeline {
         // OCI variables
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING='True'
         OCI_CLI_REGION="${params.OLCNE_CLUSTER_REGION}"
-        OCI_CLI_TENANCY="$TF_VAR_tenancy_id"
-        OCI_CLI_USER="$TF_VAR_compartment_id"
-        OCI_CLI_FINGERPRINT="$TF_VAR_fingerprint"
-        OCI_CLI_KEY_FILE="$TF_VAR_api_private_key_path"
+        OCI_CLI_TENANCY=credentials('oci-tenancy')
+        OCI_CLI_USER=credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT=credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE=credentials('oci-api-key')
         // OCI_DNS_COMPARTMENT_OCID and OCI_PRIVATE_KEY_FILE are needed for setting up DNS zone in OCI
         OCI_DNS_COMPARTMENT_OCID=credentials('oci-dns-compartment')
         OCI_DNS_SCOPE="${params.OCI_DNS_SCOPE}"
