@@ -336,19 +336,9 @@ pipeline {
                 stage('Start Backup and Check Progress') {
                     steps {
                         script {
-                          try {
-                              sh """
-                                  "${WORKSPACE}/ci/scripts/backup/backup_retry.sh"
-                              """
-                              } catch(error) {
-                                  echo "Backup failed probably due to intermittent kexec issue"
-                                  retry(3) {
-                                      sleep(30)
-                                      sh """
-                                         "${WORKSPACE}/ci/scripts/backup/backup_retry.sh"
-                                      """
-                                  }
-                          }
+                           sh """
+                            "${WORKSPACE}/ci/scripts/backup/backup_retry.sh"
+                            """
                     }
                     post {
                         always {
@@ -386,19 +376,9 @@ pipeline {
                     steps {
                             script {
 
-                               try {
-                                    sh """
-                                        "${WORKSPACE}/ci/scripts/backup/restore_start.sh"
-                                    """
-                                    } catch(error) {
-                                        echo "Restore failed probably due to intermittent kexec issue"
-                                        retry(3) {
-                                            sleep(30)
-                                            sh """
-                                               "${WORKSPACE}/ci/scripts/backup/restore_start.sh"
-                                            """
-                                        }
-                              }
+                               sh """
+                                   "${WORKSPACE}/ci/scripts/backup/restore_start.sh"
+                               """
                          }
                     }
                     post {
