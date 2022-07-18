@@ -528,7 +528,9 @@ def deleteBucket(bucketName) {
 }
 
 def echoHookLogs() {
-   "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
+   sh """
+     "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
+   """
 }
 
 
