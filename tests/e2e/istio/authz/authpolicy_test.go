@@ -64,12 +64,12 @@ func deployFooApplication() {
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(fooNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": istioInjection})
-	}, waitTimeout, shortPollingInterval).Should(BeNil())
+	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
-	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create Sleep Component")
 	Eventually(func() error {
@@ -94,7 +94,7 @@ func deployBarApplication() {
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(barNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": istioInjection})
-	}, waitTimeout, shortPollingInterval).Should(BeNil())
+	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
@@ -124,7 +124,7 @@ func deployNoIstioApplication() {
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(noIstioNamespace, map[string]string{"verrazzano-managed": "true"})
-	}, waitTimeout, shortPollingInterval).Should(BeNil())
+	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
@@ -159,7 +159,7 @@ func undeployFooApplication() {
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
-	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml")
@@ -190,7 +190,7 @@ func undeployBarApplication() {
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
-	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
@@ -235,7 +235,7 @@ func undeployNoIstioApplication() {
 
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml")
-	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
@@ -329,7 +329,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 			t.Logs.Infof("Ingress: %s", barHost)
 			url := fmt.Sprintf("https://%s/", barHost)
 			return pkg.GetWebPage(url, barHost)
-		}, waitTimeout, shortPollingInterval).ShouldNot(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Greetings from Verrazzano Enterprise Container Platform")))
+		}, waitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Greetings from Verrazzano Enterprise Container Platform")))
 	})
 
 	// Verify application in namespace bar is working
