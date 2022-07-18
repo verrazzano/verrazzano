@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"path"
 	"strconv"
 
@@ -49,8 +50,8 @@ const (
 	prometheusName     = "prometheus"
 	alertmanagerName   = "alertmanager"
 	configReloaderName = "prometheus-config-reloader"
-	storageForKey      = `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`
-	storageForLabelKey = `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.metadata.labels.verrazzano\.io/storage-for`
+
+	pvcName = "prometheus-prometheus-operator-kube-p-prometheus-db-prometheus-prometheus-operator-kube-p-prometheus-0"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -89,7 +90,7 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	// Remove any existing volume claims from old VMO-managed Prometheus persistent volumes
-	return removeOldClaimFromPrometheusVolume(ctx)
+	return updateExistingVolumeClaims(ctx)
 }
 
 // postInstallUpgrade handles post-install and post-upgrade processing for the Prometheus Operator Component
@@ -152,10 +153,10 @@ func ensureAdditionalScrapeConfigsSecret(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// removeOldClaimFromPrometheusVolume removes a persistent volume claim from the Prometheus persistent volume if the
+// updateExistingVolumeClaims removes a persistent volume claim from the Prometheus persistent volume if the
 // claim was from the VMO-managed Prometheus and the status is "released". This allows the new Prometheus instance to
 // bind to the existing volume.
-func removeOldClaimFromPrometheusVolume(ctx spi.ComponentContext) error {
+func updateExistingVolumeClaims(ctx spi.ComponentContext) error {
 	ctx.Log().Info("Removing old claim from Prometheus persistent volume if a volume exists")
 
 	pvList, err := getPrometheusPersistentVolumes(ctx)
@@ -175,10 +176,35 @@ func removeOldClaimFromPrometheusVolume(ctx spi.ComponentContext) error {
 			if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
 				return ctx.Log().ErrorfNewErr("Failed removing claim from persistent volume %s: %v", pv.Name, err)
 			}
+			if err := createPVCFromPV(ctx, pv); err != nil {
+				return ctx.Log().ErrorfNewErr("Failed to create new PVC from volume %s: %v", pv.Name, err)
+			}
 			break
 		}
 	}
 	return nil
+}
+
+func createPVCFromPV(ctx spi.ComponentContext, volume corev1.PersistentVolume) error {
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pvcName,
+			Namespace: ComponentNamespace,
+		},
+	}
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), pvc, func() error {
+		accessModes := make([]corev1.PersistentVolumeAccessMode, len(volume.Spec.AccessModes))
+		copy(accessModes, volume.Spec.AccessModes)
+		pvc.Spec.AccessModes = accessModes
+		pvc.Spec.Resources = corev1.ResourceRequirements{
+			Requests: map[corev1.ResourceName]resource.Quantity{
+				corev1.ResourceStorage: volume.Spec.Capacity.Storage().DeepCopy(),
+			},
+		}
+		pvc.Spec.VolumeName = volume.Name
+		return nil
+	})
+	return err
 }
 
 // getPrometheusPersistentVolumes returns a volume list containing a Prometheus persistent volume created by
@@ -324,25 +350,6 @@ func appendResourceRequestOverrides(ctx spi.ComponentContext, resourceRequest *c
 				Value: storage,
 			},
 		}...)
-
-		// if there's an existing persistent volume, set it in the volumeClaimTemplate
-		pvList, err := getPrometheusPersistentVolumes(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if len(pvList.Items) > 0 {
-			ctx.Log().Debug("Found existing Prometheus volume, setting Prometheus storageSpec to mount the volume")
-			kvs = append(kvs, []bom.KeyValue{
-				{
-					Key:   storageForKey,
-					Value: prometheusName,
-				},
-				{
-					Key:   storageForLabelKey,
-					Value: prometheusName,
-				},
-			}...)
-		}
 	}
 	if len(memory) > 0 {
 		kvs = append(kvs, []bom.KeyValue{

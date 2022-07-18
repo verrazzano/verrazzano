@@ -834,12 +834,12 @@ func (e *erroringFakeClient) Update(_ context.Context, _ client.Object, _ ...cli
 	return errors.NewConflict(schema.GroupResource{}, "", nil)
 }
 
-// TestRemoveOldClaimFromPrometheusVolume tests the removeOldClaimFromPrometheusVolume function
+// TestRemoveOldClaimFromPrometheusVolume tests the updateExistingVolumeClaims function
 func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 	const volumeName = "pvc-5ab58a05-71f9-4f09-8911-a5c029f6305f"
 
 	// GIVEN a persistent volume that has a released status and a claim that references vmi-system-prometheus
-	// WHEN the removeOldClaimFromPrometheusVolume function is called
+	// WHEN the updateExistingVolumeClaims function is called
 	// THEN the persistent volume is updated and the claim is removed
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.PersistentVolume{
@@ -861,7 +861,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 		}).Build()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 
-	err := removeOldClaimFromPrometheusVolume(ctx)
+	err := updateExistingVolumeClaims(ctx)
 	assert.NoError(t, err)
 
 	// validate that the ClaimRef is now nil
@@ -871,7 +871,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 	assert.Nil(t, pv.Spec.ClaimRef)
 
 	// GIVEN no persistent volumes
-	// WHEN the removeOldClaimFromPrometheusVolume function is called
+	// WHEN the updateExistingVolumeClaims function is called
 	// THEN no error is returned
 	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.PersistentVolume{
@@ -881,11 +881,11 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 		}).Build()
 	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 
-	err = removeOldClaimFromPrometheusVolume(ctx)
+	err = updateExistingVolumeClaims(ctx)
 	assert.NoError(t, err)
 
 	// GIVEN a persistent volume that is bound and has a claim that references vmi-system-prometheus
-	// WHEN the removeOldClaimFromPrometheusVolume function is called
+	// WHEN the updateExistingVolumeClaims function is called
 	// THEN the persistent volume is not updated
 	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.PersistentVolume{
@@ -907,7 +907,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 		}).Build()
 	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 
-	err = removeOldClaimFromPrometheusVolume(ctx)
+	err = updateExistingVolumeClaims(ctx)
 	assert.NoError(t, err)
 
 	// validate that the ClaimRef is not nil
@@ -917,7 +917,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 	assert.NotNil(t, pv.Spec.ClaimRef)
 
 	// GIVEN a persistent volume that has a released status and a claim that references vmi-system-prometheus
-	// WHEN the removeOldClaimFromPrometheusVolume function is called and the call to update the volume fails
+	// WHEN the updateExistingVolumeClaims function is called and the call to update the volume fails
 	// THEN an error is returned
 	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.PersistentVolume{
@@ -941,7 +941,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 	ctx = spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, false)
 
 	// validate that the expected error is returned
-	err = removeOldClaimFromPrometheusVolume(ctx)
+	err = updateExistingVolumeClaims(ctx)
 	assert.ErrorContains(t, err, "Failed removing claim")
 }
 
@@ -1109,14 +1109,6 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 					Value: storageSize,
 				},
 				{
-					Key:   storageForKey,
-					Value: prometheusName,
-				},
-				{
-					Key:   storageForLabelKey,
-					Value: prometheusName,
-				},
-				{
 					Key:   requestsMemoryKey,
 					Value: memorySize,
 				},
@@ -1171,14 +1163,6 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 				{
 					Key:   requestsStorageKey,
 					Value: storageSize,
-				},
-				{
-					Key:   storageForKey,
-					Value: prometheusName,
-				},
-				{
-					Key:   storageForLabelKey,
-					Value: prometheusName,
 				},
 			},
 			expectError: false,
