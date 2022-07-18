@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	clik8sutil "github.com/verrazzano/verrazzano/tools/vz/pkg/k8sutil"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -41,6 +43,35 @@ var vpoWaitRetries = vpoDefaultWaitRetries
 // Used with unit testing
 func SetVpoWaitRetries(retries int) { vpoWaitRetries = retries }
 func ResetVpoWaitRetries()          { vpoWaitRetries = vpoDefaultWaitRetries }
+
+// UsePlatformOperatorUninstallJob determines whether the version of the platform operator is using an uninstall job.
+// The uninstall job was removed with Verrazzano 1.4.0.
+func UsePlatformOperatorUninstallJob(client clipkg.Client) (bool, error) {
+	deployment := &appsv1.Deployment{}
+	err := client.Get(context.TODO(), types.NamespacedName{Namespace: vzconstants.VerrazzanoInstallNamespace, Name: constants.VerrazzanoPlatformOperator}, deployment)
+	if err != nil {
+		return false, fmt.Errorf("Failed to find %s/%s: %s", vzconstants.VerrazzanoInstallNamespace, constants.VerrazzanoPlatformOperator, err.Error())
+	}
+
+	// label does not exist therefore uninstall job is being used
+	version, ok := deployment.Labels["app.kubernetes.io/version"]
+	if !ok {
+		return true, nil
+	}
+
+	minVersion := semver.SemVersion{Major: 1, Minor: 4, Patch: 0}
+	vzVersion, err := semver.NewSemVersion(version)
+	if err != nil {
+		return false, err
+	}
+
+	// Version of platform operator is less than  1.4.0 therefore uninstall job is being used
+	if vzVersion.IsLessThan(&minVersion) {
+		return true, nil
+	}
+
+	return false, nil
+}
 
 // ApplyPlatformOperatorYaml applies a given version of the platform operator yaml file
 func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelper helpers.VZHelper, version string) error {
@@ -159,7 +190,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 // WaitForOperationToComplete waits for the Verrazzano install/upgrade to complete and
 // shows the logs of the ongoing Verrazzano install/upgrade.
 func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat LogFormat, condType vzapi.ConditionType) error {
-	rc, err := GetLogStream(kubeClient, vpoPodName)
+	rc, err := GetVpoLogStream(kubeClient, vpoPodName)
 	if err != nil {
 		return err
 	}
@@ -249,8 +280,8 @@ func GetVerrazzanoPlatformOperatorPodName(client clipkg.Client) (string, error) 
 	return podList.Items[0].Name, nil
 }
 
-// GetLogStream returns the stream to the verrazzano-platform-operator log file
-func GetLogStream(kubeClient kubernetes.Interface, vpoPodName string) (io.ReadCloser, error) {
+// GetVpoLogStream returns the stream to the verrazzano-platform-operator log file
+func GetVpoLogStream(kubeClient kubernetes.Interface, vpoPodName string) (io.ReadCloser, error) {
 	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
 	//
 	// The stream is intentionally not closed due to not being able to cancel a blocking read.  The calls to
