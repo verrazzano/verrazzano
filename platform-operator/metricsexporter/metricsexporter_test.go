@@ -18,10 +18,11 @@ import (
 // Constants that hold the times that are used to test various cases of component timestamps being passed
 // into the TestAnalyzeVerrazzanoResourceMetrics function
 const (
-	componentFirstTime  string = "2022-07-06T13:54:59Z"
-	componentSecondTime string = "2022-07-06T13:55:45Z"
-	componentThirdTime  string = "2022-07-06T13:58:59Z"
-	componentFourthTime string = "2022-07-06T13:59:00Z"
+	componentFirstTime        string = "2022-07-06T13:54:59Z"
+	componentSecondTime       string = "2022-07-06T13:55:45Z"
+	componentThirdTime        string = "2022-07-06T13:58:59Z"
+	componentFourthTime       string = "2022-07-06T13:59:00Z"
+	unregisteredTestComponent string = "unregistered test component"
 )
 
 // TestCollectReconcileMetricsTime tests the CollectReconcileMetricsTime fn
@@ -131,7 +132,7 @@ func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 	upgradeStartTimeisAfterUpgradeCompletedTimeVZCR := installv1alpha1.Verrazzano{
 		Status: installv1alpha1.VerrazzanoStatus{
 			Components: installv1alpha1.ComponentStatusMap{
-				"unregistered test component": &installv1alpha1.ComponentStatusDetails{
+				unregisteredTestComponent: &installv1alpha1.ComponentStatusDetails{
 					Conditions: []installv1alpha1.Condition{
 						{
 							Type:               installv1alpha1.CondUpgradeStarted,
@@ -175,7 +176,7 @@ func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 	componentNameNotInDictionaryVZCR := installv1alpha1.Verrazzano{
 		Status: installv1alpha1.VerrazzanoStatus{
 			Components: installv1alpha1.ComponentStatusMap{
-				"unregistered test component": &installv1alpha1.ComponentStatusDetails{
+				unregisteredTestComponent: &installv1alpha1.ComponentStatusDetails{
 					Conditions: []installv1alpha1.Condition{
 						{
 							Type:               installv1alpha1.CondInstallStarted,
@@ -201,7 +202,7 @@ func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 	installStartTimeisAfterInstallCompletedTimeVZCR := installv1alpha1.Verrazzano{
 		Status: installv1alpha1.VerrazzanoStatus{
 			Components: installv1alpha1.ComponentStatusMap{
-				"unregistered test component": &installv1alpha1.ComponentStatusDetails{
+				unregisteredTestComponent: &installv1alpha1.ComponentStatusDetails{
 					Conditions: []installv1alpha1.Condition{
 						{
 							Type:               installv1alpha1.CondInstallStarted,
