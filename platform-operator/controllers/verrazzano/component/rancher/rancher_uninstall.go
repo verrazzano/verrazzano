@@ -5,7 +5,6 @@ package rancher
 
 import (
 	"context"
-	"k8s.io/utils/strings/slices"
 	"regexp"
 	"strings"
 
@@ -16,6 +15,7 @@ import (
 	admv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/utils/strings/slices"
 	osexec "os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
