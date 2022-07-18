@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -190,9 +191,9 @@ func TestInstall(t *testing.T) {
 			// Create and make the request
 			request := newRequest(namespace, name)
 			reconciler := newVerrazzanoReconciler(mock)
-			reconcileCounterBefore := metricsexporter.GetReconcileCounterMetric()
+			reconcileCounterBefore := testutil.ToFloat64(metricsexporter.GetReconcileCounterMetric())
 			result, err := reconciler.Reconcile(nil, request)
-			reconcileCounterAfter := metricsexporter.GetReconcileCounterMetric()
+			reconcileCounterAfter := testutil.ToFloat64(metricsexporter.GetReconcileCounterMetric())
 			asserts.Equal(reconcileCounterBefore, reconcileCounterAfter-1)
 
 			asserts.NoError(err)
@@ -1339,8 +1340,8 @@ func TestReconcileErrorCounter(t *testing.T) {
 	fakeClient := clientBuilder.Build()
 	errorRequest := newRequest("bad namespace", "test")
 	reconciler := newVerrazzanoReconciler(fakeClient)
-	errorCounterBefore := metricsexporter.GetErrorCounterMetric()
+	errorCounterBefore := testutil.ToFloat64(metricsexporter.GetErrorCounterMetric())
 	reconciler.Reconcile(nil, errorRequest)
-	errorCounterAfter := metricsexporter.GetErrorCounterMetric()
+	errorCounterAfter := testutil.ToFloat64(metricsexporter.GetErrorCounterMetric())
 	asserts.Equal(errorCounterBefore, errorCounterAfter-1)
 }
