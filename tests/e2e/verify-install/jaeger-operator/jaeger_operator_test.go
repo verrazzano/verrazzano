@@ -167,8 +167,8 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 			}
 			Eventually(verifyCRDList, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-		WhenJaegerOperatorInstalledIt(minVZVersionForDefaultInstance, "should have a default instance Collector pods running", func() {
-			verifyDefaultInstancePods := func() bool {
+		WhenJaegerOperatorInstalledIt(minVZVersionForDefaultInstance, "should have a default instance Collector pod running", func() {
+			verifyDefaultInstanceCollectorPod := func() bool {
 				if !isJaegerOperatorEnabled() {
 					return true
 				}
@@ -178,10 +178,10 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				}
 				return result
 			}
-			Eventually(verifyDefaultInstancePods, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(verifyDefaultInstanceCollectorPod, waitTimeout, pollingInterval).Should(BeTrue())
 		})
-		WhenJaegerOperatorInstalledIt(minVZVersionForDefaultInstance, "should have a default instance Query pods running", func() {
-			verifyDefaultInstancePods := func() bool {
+		WhenJaegerOperatorInstalledIt(minVZVersionForDefaultInstance, "should have a default instance Query pod running", func() {
+			verifyDefaultInstanceQueryPods := func() bool {
 				if !isJaegerOperatorEnabled() {
 					return true
 				}
@@ -191,7 +191,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				}
 				return result
 			}
-			Eventually(verifyDefaultInstancePods, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(verifyDefaultInstanceQueryPods, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 })
