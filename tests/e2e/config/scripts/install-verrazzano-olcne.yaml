@@ -6,34 +6,22 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
-  profile: prod
-  environmentName: 
+  profile: dev
+  environmentName: default
   components:
     dns:
-      external:
-        suffix: 
+      wildcard:
+        domain: nip.io
     ingress:
-      type: NodePort
-      ports:
-      - name: https
-        port: 443
-        nodePort: 30443
-        protocol: TCP
-        targetPort: https
+      type: LoadBalancer
       nginxInstallArgs:
-      - name: controller.service.externalIPs
-        valueList:
-        - 
+      - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
+        value: "10Mbps"
+      - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-list-management-mode"
+        value: "None"
     istio:
-      ingress:
-        type: NodePort
-        ports:
-        - name: https
-          port: 443
-          nodePort: 31390
-          protocol: TCP
-          targetPort: 8443
       istioInstallArgs:
-      - name: gateways.istio-ingressgateway.externalIPs
-        valueList:
-        - 
+      - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
+        value: "10Mbps"
+      - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-list-management-mode"
+        value: "None"

@@ -516,18 +516,18 @@ pipeline {
             
             script {
                 if (params.KEEP_RESOURCES_AFTER_RUN == false) {
-                    if (env.createdOCIDNSZone && env.createdOCIDNSZone == "true") {
-                        echo "[INFO] Deleting OCI DNS Zone"
-                        deleteOCIDNSZone()
-                    }
-                    if (env.createdOCIFileSystem && env.createdOCIFileSystem == "true") {
-                        echo "[INFO] Deleting OCI FileSystem"
-                        deleteOCIFileSystem()
-                    }
-                    if (env.createdOCILoadBalancers && env.createdOCILoadBalancers == "true") {
-                        echo "[INFO] Deleting OCI LoadBalancers"
-                        deleteOCILoadBalancers()
-                    }
+                    // if (env.createdOCIDNSZone && env.createdOCIDNSZone == "true") {
+                    //     echo "[INFO] Deleting OCI DNS Zone"
+                    //     deleteOCIDNSZone()
+                    // }
+                    // if (env.createdOCIFileSystem && env.createdOCIFileSystem == "true") {
+                    //     echo "[INFO] Deleting OCI FileSystem"
+                    //     deleteOCIFileSystem()
+                    // }
+                    // if (env.createdOCILoadBalancers && env.createdOCILoadBalancers == "true") {
+                    //     echo "[INFO] Deleting OCI LoadBalancers"
+                    //     deleteOCILoadBalancers()
+                    // }
                     if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
                         echo "[INFO] Deleting OLCNE Cluster"
                         deleteOLCNECluster()
@@ -1147,31 +1147,13 @@ def installVerrazzano() {
     sh """
         yq -i eval '.spec.environmentName = "$VZ_ENVIRONMENT_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
         yq -i eval '.spec.profile = "$INSTALL_PROFILE"' "$INSTALL_CONFIG_FILE_OLCNE"
-        yq -i eval '.spec.components.dns.external.suffix = "$OCI_DNS_ZONE_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
-        yq -i eval '.spec.components.ingress.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.ingress.nginxInstallArgs[0].valueList[0] = "$OCI_LB_MGMT_IP"' "$INSTALL_CONFIG_FILE_OLCNE"
-        yq -i eval '.spec.components.istio.istioInstallArgs[0].valueList[0] = "$OCI_LB_APP_IP"' "$INSTALL_CONFIG_FILE_OLCNE"
-        yq -i eval '.spec.components.prometheusOperator.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.kiali.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.rancher.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.certManager.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.istio.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.keycloak.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.applicationOperator.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.oam.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.fluentd.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.elasticsearch.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.kibana.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.prometheus.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.grafana.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.console.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
-        yq -i eval '.spec.components.verrazzano.enabled = true' $INSTALL_CONFIG_FILE_OLCNE
         cat "$INSTALL_CONFIG_FILE_OLCNE"
 
         # apply config to create cluster
         kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
         # wait for Verrazzano install to complete
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+        
         # Print out the username and passwords
         echo "Verrazzano username: verrazzano"
         kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
@@ -1179,6 +1161,7 @@ def installVerrazzano() {
         kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo
         echo "Keycloak username: keycloakadmin"
         kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo
+        
         # Create acceptance test configuration file
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/common-test-setup-script.sh "$WORKSPACE" "$TEST_CONFIG_FILE" "$GHCR_REPO" "$KUBECONFIG" "$OCR_CREDS_USR" "$OCR_CREDS_PSW" "$VZ_ENVIRONMENT_NAME"
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_ingress_ip.sh "$TEST_CONFIG_FILE" "$OCI_DNS_ZONE_NAME"
