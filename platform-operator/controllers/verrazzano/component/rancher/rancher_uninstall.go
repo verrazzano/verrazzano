@@ -67,8 +67,8 @@ func PostUninstall(ctx spi.ComponentContext) error {
 	}
 
 	// For Rancher namespaces, run the system tools uninstaller
-	for _, ns := range nsList.Items {
-		if isRancherNamespace(&ns) {
+	for i, ns := range nsList.Items {
+		if isRancherNamespace(&nsList.Items[i]) {
 			args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
 			cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
 			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
