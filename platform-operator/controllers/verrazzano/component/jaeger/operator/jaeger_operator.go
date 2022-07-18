@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -474,7 +475,7 @@ func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 	return status.DoDeploymentsExist(ctx.Log(), client, deployments, 1, prefix)
 }
 
-/*func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
+func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	config, err := controllerruntime.GetConfig()
 	if err != nil {
 		ctx.Log().ErrorfNewErr("Failed to get kubeconfig with error: %v", err)
@@ -494,9 +495,9 @@ func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 		return ctx.Log().ErrorfNewErr("Failed to delete mutatingwebhookconfiguration %s: %v", ComponentMutatingWebhookConfigName, err)
 	}
 	return nil
-}*/
+}
 
-/*func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
+func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
 	config, err := controllerruntime.GetConfig()
 	if err != nil {
 		ctx.Log().ErrorfNewErr("Failed to get kubeconfig with error: %v", err)
@@ -516,7 +517,7 @@ func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 		return ctx.Log().ErrorfNewErr("Failed to delete validatingwebhookconfiguration %s: %v", ComponentValidatingWebhookConfigName, err)
 	}
 	return nil
-}*/
+}
 
 // removeDeploymentAndService removes the Jaeger deployment during pre-upgrade.
 // The match selector for jaeger operator deployment was changed in 1.34.1 from the previous jaeger version (1.32.0) that Verrazzano installed.
@@ -602,12 +603,12 @@ func removeOldJaegerResources(ctx spi.ComponentContext) error {
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
-	/*	if err := removeMutatingWebhookConfig(ctx); err != nil {
-			return err
-		}
-		if err := removeValidatingWebhookConfig(ctx); err != nil {
-			return err
-		}*/
+	if err := removeMutatingWebhookConfig(ctx); err != nil {
+		return err
+	}
+	if err := removeValidatingWebhookConfig(ctx); err != nil {
+		return err
+	}
 	if err := removeJaegerWebhookService(ctx); err != nil {
 		return err
 	}
