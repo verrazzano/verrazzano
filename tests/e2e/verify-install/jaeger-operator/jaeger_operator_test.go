@@ -35,6 +35,7 @@ var (
 		"JAEGER-INGESTER-IMAGE":         imagePrefix + "/verrazzano/jaeger-ingester",
 		"JAEGER-ES-INDEX-CLEANER-IMAGE": imagePrefix + "/verrazzano/jaeger-es-index-cleaner",
 		"JAEGER-ES-ROLLOVER-IMAGE":      imagePrefix + "/verrazzano/jaeger-es-rollover",
+		"JAEGER-ALL-IN-ONE-IMAGE":       imagePrefix + "/verrazzano/jaeger-all-in-one",
 	}
 )
 

@@ -67,6 +67,8 @@ const extraEnvValueTemplate = `extraEnv:
     value: "{{.IndexCleanerImage}}"
   - name: "JAEGER-ES-ROLLOVER-IMAGE"
     value: "{{.RolloverImage}}"
+  - name: "JAEGER-ALL-IN-ONE-IMAGE"
+    value: "{{.AllInOneImage}}"
 `
 
 // A template to define Jaeger override
@@ -106,6 +108,7 @@ type imageData struct {
 	IngesterImage     string
 	IndexCleanerImage string
 	RolloverImage     string
+	AllInOneImage     string
 }
 
 // jaegerData needed for template rendering
@@ -213,6 +216,15 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Elasticsearch Rollover, found %v", len(rolloverImages))
 	}
 
+	// Get jaeger-es-rollover image
+	allInOneImages, err := bomFile.BuildImageOverrides("jaeger-all-in-one")
+	if err != nil {
+		return nil, err
+	}
+	if len(allInOneImages) != 1 {
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger AllInOne, found %v", len(allInOneImages))
+	}
+
 	// use template to populate Jaeger images
 	var b bytes.Buffer
 	t, err := template.New("images").Parse(extraEnvValueTemplate)
@@ -223,7 +235,8 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	// Render the template
 	data := imageData{AgentImage: agentImages[0].Value, CollectorImage: collectorImages[0].Value,
 		QueryImage: queryImages[0].Value, IngesterImage: ingesterImages[0].Value,
-		IndexCleanerImage: indexCleanerImages[0].Value, RolloverImage: rolloverImages[0].Value}
+		IndexCleanerImage: indexCleanerImages[0].Value, RolloverImage: rolloverImages[0].Value,
+		AllInOneImage: allInOneImages[0].Value}
 	err = t.Execute(&b, data)
 	if err != nil {
 		return nil, err
