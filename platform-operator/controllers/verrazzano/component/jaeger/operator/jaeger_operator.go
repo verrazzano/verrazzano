@@ -562,6 +562,8 @@ func removeJaegerWebhookService(ctx spi.ComponentContext) error {
 	return nil
 }
 
+//Jaeger yaml based installation creates jaeger-operator-serving-cert which is different from helm based installation
+//But both create same secret jaeger-operator-service-cert, After jaeger is upgraded, jaeger webhook uses old secret which isn't valid, so had to be removed.
 func removeOldCertAndSecret(ctx spi.ComponentContext) error {
 	cert := &certv1.Certificate{}
 	ctx.Log().Info("Removing old jaeger certificate if it exists %s/%s", ComponentNamespace, ComponentCertificateName)

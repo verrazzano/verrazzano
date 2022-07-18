@@ -177,7 +177,7 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//Uprade jaegeroperator component for upgrade processing.
+// Upgrade jaegeroperator component for upgrade processing.
 func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
 
 	return c.HelmComponent.Install(ctx)
