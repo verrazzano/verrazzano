@@ -19,10 +19,21 @@ import (
 
 const (
 	CommandName = "bug-report"
-	helpShort   = "Capture data from the cluster"
-	helpLong    = `Verrazzano command line utility to capture the data from the cluster, to report an issue`
-	helpExample = `# Run bug report tool by providing the name for the report file
-$vz bug-report --report-file <name of the file to include cluster data, a .tar.gz or .tgz file>
+	helpShort   = "Collect information from the cluster to report an issue"
+	helpLong    = `Verrazzano command line utility to collect data from the cluster, to report an issue`
+	helpExample = `
+# Create a bug report bugreport.tar.gz by collecting data from the cluster
+vz bug-report --report-file bugreport.tar.gz
+
+# Create a bug report bugreport.tgz, including additional namespace ns1 from the cluster
+vz bug-report --report-file bugreport.tgz --include-namespaces ns1
+
+The flag --include-namespaces accepts comma separated values. The flag can also be specified multiple times.
+For example, the following commands create a bug report by including additional namespaces ns1, ns2 and ns3
+   a. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2,ns3
+   b. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-namespaces ns3
+
+The values specified for the flag --include-namespaces are case-sensitive.
 `
 )
 
@@ -33,8 +44,10 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	}
 
 	cmd.Example = helpExample
-	cmd.PersistentFlags().String(constants.BugReportFileFlagName, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
+	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
+	cmd.PersistentFlags().StringSliceP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, []string{}, constants.BugReportIncludeNSFlagUsage)
 	cmd.MarkPersistentFlagRequired(constants.BugReportFileFlagName)
+
 	return cmd
 }
 
@@ -57,6 +70,12 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 
+	// Get the dynamic client to retrieve OAM resources
+	dynamicClient, err := vzHelper.GetDynamicClient(cmd)
+	if err != nil {
+		return err
+	}
+
 	// Check whether the file already exists
 	err = checkExistingFile(bugReportFile)
 	if err != nil {
@@ -73,8 +92,14 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 	defer bugRepFile.Close()
 
+	// Read the additional namespaces provided using flag --include-namespaces
+	moreNS, err := cmd.PersistentFlags().GetStringSlice(constants.BugReportIncludeNSFlagName)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading values for the flag --include-namespaces: %s", err.Error())
+	}
+
 	// Generate the bug report
-	err = vzbugreport.GenerateBugReport(kubeClient, client, bugRepFile, vzHelper)
+	err = vzbugreport.GenerateBugReport(kubeClient, dynamicClient, client, bugRepFile, moreNS, vzHelper)
 	if err != nil {
 		os.Remove(bugReportFile)
 		return fmt.Errorf(err.Error())
