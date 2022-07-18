@@ -418,7 +418,7 @@ pipeline {
                         script {
                           sh """
                              kubectl wait --namespace verrazzano-system --for=condition=ready pod --all --timeout=300s
-                          """"
+                          """
                         }
                       }
                     }
