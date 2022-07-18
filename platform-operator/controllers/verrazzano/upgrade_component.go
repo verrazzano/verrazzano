@@ -78,7 +78,6 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStateInit:
 			// Check if component is installed, if not continue
 			installed, err := comp.IsInstalled(compContext)
-			compLog.Oncef("Now Checking for Component %s", compName)
 			if err != nil {
 				compLog.Errorf("Failed checking if component %s is installed: %v", compName, err)
 				return ctrl.Result{}, err
