@@ -37,7 +37,7 @@ ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@$API_SERVE
     --oci-compartment $TF_VAR_compartment_id \
     --oci-user $TF_VAR_user_id \
     --oci-fingerprint $TF_VAR_fingerprint \
-    --oci-private-key /home/opc/.oci/oci_api_key.pem \
+    --oci-private-key /home/opc/oci_api_key.pem \
     --oci-vcn $VCN_OCID \
     --oci-lb-subnet1 $BASTION_SUBNET_OCID
 

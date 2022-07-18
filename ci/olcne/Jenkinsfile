@@ -87,7 +87,17 @@ pipeline {
         string (
             name: "OLCNE_KUBERNETES_NAME",
             defaultValue: 'olcne-cluster',
-            description: 'Name of the OLCNE cluster',
+            description: 'Name of the OLCNE Kubernetes module',
+            trim: true)
+        string (
+            name: "OLCNE_HELM_NAME",
+            defaultValue: 'olcne-helm',
+            description: 'Name of the OLCNE Helm module',
+            trim: true)
+        string (
+            name: "OLCNE_OCI_CCM_NAME",
+            defaultValue: 'olcne-oci-ccm',
+            description: 'Name of the OLCNE OCI-CCM module',
             trim: true)
         choice(
             name: 'OCI_DNS_SCOPE',
@@ -189,7 +199,7 @@ pipeline {
         TF_VAR_helm_name="${params.OLCNE_HELM_NAME}"
         TF_VAR_oci_ccm_name="${params.OLCNE_OCI_CCM_NAME}"
         TF_VAR_olcne_version="${params.OLCNE_VERSION}"
-        TF_VAR_s3_bucket_access_key=credentials('oci-s3-bucket-access-key')
+        TF_VAR_s3_bucket_access_key=credentials('oci-s3-OLCNE OCI-CCM module-key')
         TF_VAR_s3_bucket_secret_key=credentials('oci-s3-bucket-secret-key')
 
         // OCI variables
@@ -1047,7 +1057,7 @@ def updateOLCNEConfig() {
     env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
     echo CONTROL_PLANE_IP
     sh """
-        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/.oci/oci_api_key.pem "$TF_VAR_api_private_key_path"
+        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/oci_api_key.pem "$TF_VAR_api_private_key_path"
         $GO_REPO_PATH/verrazzano/ci/scripts/update_olcne_config.sh
     """
     script {
