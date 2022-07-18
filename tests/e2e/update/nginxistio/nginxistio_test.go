@@ -267,8 +267,6 @@ func (u NginxIstioIngressServiceAnnotationModifier) ModifyCR(cr *vzapi.Verrazzan
 
 var t = framework.NewTestFramework("update nginx-istio")
 
-var nodeCount uint32
-
 var systemExternalIP, applicationExternalIP string
 
 var _ = t.BeforeSuite(func() {
