@@ -126,7 +126,7 @@ func postInstall(ctx spi.ComponentContext) error {
 		return nil
 	}
 	// Delete create-mysql-db.sql after install
-	// TODO removeMySQLInitFile(ctx)
+	removeMySQLInitFile(ctx)
 	return nil
 }
 
