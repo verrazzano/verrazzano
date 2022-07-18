@@ -39,7 +39,8 @@ ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@$API_SERVE
     --oci-fingerprint $TF_VAR_fingerprint \
     --oci-private-key /home/opc/oci_api_key.pem \
     --oci-vcn $VCN_OCID \
-    --oci-lb-subnet1 $BASTION_SUBNET_OCID
+    --oci-lb-subnet1 $BASTION_SUBNET_OCID \
+    --oci-lb-security-mode None
 
     olcnectl module validate \
     --environment-name $TF_VAR_environment_name \
