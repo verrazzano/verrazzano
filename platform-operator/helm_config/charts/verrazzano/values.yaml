@@ -95,6 +95,7 @@ externaldns:
 istio:
   enabled: true
 
-jaeger:
+jaegerOperator:
+  enabled: false
   namespace: verrazzano-monitoring
-  serviceAccount: jaeger-operator-jaeger
+  jaegerServiceAccount: jaeger-operator-jaeger
