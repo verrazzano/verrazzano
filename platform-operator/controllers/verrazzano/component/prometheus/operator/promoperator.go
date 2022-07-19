@@ -51,7 +51,8 @@ const (
 	alertmanagerName   = "alertmanager"
 	configReloaderName = "prometheus-config-reloader"
 
-	pvcName = "prometheus-prometheus-operator-kube-p-prometheus-db-prometheus-prometheus-operator-kube-p-prometheus-0"
+	pvcName                  = "prometheus-prometheus-operator-kube-p-prometheus-db-prometheus-prometheus-operator-kube-p-prometheus-0"
+	defaultPrometheusStorage = "50Gi"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -287,6 +288,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
 		if err != nil {
 			return kvs, err
+		}
+		// If no storage specified (dev specifies emptydir), use 50Gi
+		if resourceRequest == nil {
+			resourceRequest = &common.ResourceRequestValues{
+				Storage: defaultPrometheusStorage,
+			}
 		}
 		if resourceRequest != nil {
 			kvs, err = appendResourceRequestOverrides(ctx, resourceRequest, kvs)

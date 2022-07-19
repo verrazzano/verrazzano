@@ -378,7 +378,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Check persistent volumes for prod cluster profile", func() {
 			if minVer14 {
 				Expect(len(volumeClaims)).To(Equal(7))
-				Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
+				Expect(len(vzMonitoringVolumeClaims)).To(Equal(2))
 				assertPrometheusVolume(size)
 			} else {
 				Expect(len(volumeClaims)).To(Equal(8))

@@ -218,12 +218,6 @@ spec:
                 resources:
                   requests:
                     memory: 128Mi
-                storageSpec:
-                  volumeClaimTemplate:
-                    spec:
-                      resources:
-                        requests:
-                          storage: 50Gi
         - values:
             prometheus:
               prometheusSpec:
