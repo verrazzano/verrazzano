@@ -320,6 +320,10 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
 	}
 
+	if err := rest.SetAccessToken(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
+	}
+
 	if err := rest.ActivateOCIDriver(); err != nil {
 		return log.ErrorfThrottledNewErr("Failed activating OCI Driver: %s", err.Error())
 	}
