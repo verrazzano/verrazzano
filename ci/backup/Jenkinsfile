@@ -348,6 +348,7 @@ pipeline {
                                          "${WORKSPACE}/ci/scripts/backup/backup_retry.sh"
                                       """
                               }
+                              println(error)
                            }
                         }
                         post {
