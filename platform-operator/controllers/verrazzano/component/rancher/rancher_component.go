@@ -299,3 +299,38 @@ func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	}
 	return false
 }
+
+// PostUpgrade activates OCI and OKE drivers in Rancher
+func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	c := ctx.Client()
+	log := ctx.Log()
+	vz := ctx.EffectiveCR()
+	password, err := common.GetAdminSecret(c)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
+	}
+
+	rancherHostName, err := getRancherHostname(c, vz)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
+	}
+
+	rest, err := common.NewClient(c, rancherHostName, password)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
+	}
+
+	if err := rest.ActivateOCIDriver(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed activating OCI Driver: %s", err.Error())
+	}
+
+	if err := rest.ActivateOKEDriver(); err != nil {
+		return log.ErrorfThrottledNewErr("Failed activating OKE Driver: %s", err.Error())
+	}
+
+	if err := r.HelmComponent.PostUpgrade(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
+	}
+
+	return nil
+}
