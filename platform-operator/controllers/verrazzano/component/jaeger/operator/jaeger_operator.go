@@ -559,7 +559,6 @@ func removeDeploymentAndService(ctx spi.ComponentContext) error {
 // removeJaegerWebhookService removes the jaeger-operator-webhook-service  during the upgrade
 // After removing the mutating and validating webhook configs, the webhook service is removed and replaced by helm during the upgrade.
 func removeJaegerWebhookService(ctx spi.ComponentContext) error {
-
 	service := &corev1.Service{}
 	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentWebhookServiceName}, service); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to get webhook service %s/%s: %v", ComponentNamespace, ComponentWebhookServiceName, err)
