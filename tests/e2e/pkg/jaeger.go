@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	jaeger_service_index_prefix = "verrazzano-jaeger-jaeger-service"
-	jaeger_span_index_prefix    = "verrazzano-jaeger-jaeger-span"
+	jaegerServiceIndexPrefix = "verrazzano-jaeger-jaeger-service"
+	jaegerSpanIndexPrefix    = "verrazzano-jaeger-jaeger-span"
 )
 
 func VerifyJaegerSpans(service string) bool {
@@ -31,8 +31,8 @@ func IsJaegerInstanceCreated() (bool, error) {
 func GetJaegerIndicesInElasticSearch(kubeconfigPath string) []string {
 	jaegerIndices := []string{}
 	for _, indexName := range listSystemElasticSearchIndices(kubeconfigPath) {
-		if strings.HasPrefix(indexName, jaeger_service_index_prefix) ||
-			strings.HasPrefix(indexName, jaeger_span_index_prefix) {
+		if strings.HasPrefix(indexName, jaegerServiceIndexPrefix) ||
+			strings.HasPrefix(indexName, jaegerSpanIndexPrefix) {
 			jaegerIndices = append(jaegerIndices, indexName)
 		}
 	}
