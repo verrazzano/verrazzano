@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	adminv1 "k8s.io/api/admissionregistration/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,21 +30,9 @@ import (
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command is successful
 func TestUninstallCmd(t *testing.T) {
-	vpo := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
-			},
-		},
-	}
-	namespace := &corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: vzconstants.VerrazzanoInstallNamespace,
-		},
-	}
+	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	vpo := createVpoPod()
+	namespace := createNamespace()
 	validatingWebhookConfig := &adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -62,15 +51,8 @@ func TestUninstallCmd(t *testing.T) {
 			Name: constants.VerrazzanoManagedCluster,
 		},
 	}
-	vz := &vzapi.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-		Status: vzapi.VerrazzanoStatus{Version: "1.4.0"},
-	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
+	vz := createVz()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -118,6 +100,7 @@ func TestUninstallCmd(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command is successful
 func TestUninstallCmdUninstallJob(t *testing.T) {
+	deployment := createDeployment(nil)
 	job := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
@@ -134,12 +117,7 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 			},
 		},
 	}
-	namespace := &corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: vzconstants.VerrazzanoInstallNamespace,
-		},
-	}
+	namespace := createNamespace()
 	validatingWebhookConfig := &adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -158,15 +136,8 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 			Name: constants.VerrazzanoManagedCluster,
 		},
 	}
-	vz := &vzapi.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-		Status: vzapi.VerrazzanoStatus{Version: "1.3.1"},
-	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(job, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
+	vz := createVz()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, job, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -214,30 +185,11 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command times out
 func TestUninstallCmdDefaultTimeout(t *testing.T) {
-	vpo := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
-			},
-		},
-	}
-	namespace := &corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: vzconstants.VerrazzanoInstallNamespace,
-		},
-	}
-	vz := &vzapi.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-		Status: vzapi.VerrazzanoStatus{Version: "1.4.0"},
-	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, vz, namespace).Build()
+	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	vpo := createVpoPod()
+	namespace := createNamespace()
+	vz := createVz()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -262,24 +214,10 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command is successful
 func TestUninstallCmdDefaultNoWait(t *testing.T) {
-	vz := &vzapi.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-		Status: vzapi.VerrazzanoStatus{Version: "1.4.0"},
-	}
-	vpo := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
-			},
-		},
-	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz, vpo).Build()
+	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	vz := createVz()
+	vpo := createVpoPod()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz, vpo).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -301,24 +239,10 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command is successful
 func TestUninstallCmdJsonLogFormat(t *testing.T) {
-	vz := &vzapi.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-		Status: vzapi.VerrazzanoStatus{Version: "1.4.0"},
-	}
-	vpo := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
-			},
-		},
-	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz, vpo).Build()
+	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	vz := createVz()
+	vpo := createVpoPod()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz, vpo).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -341,15 +265,9 @@ func TestUninstallCmdJsonLogFormat(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command fails
 func TestUninstallCmdDefaultNoVPO(t *testing.T) {
-	vz := &vzapi.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-		Status: vzapi.VerrazzanoStatus{Version: "1.4.0"},
-	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
+	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	vz := createVz()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -371,15 +289,9 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command fails
 func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
-	vz := &vzapi.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-		Status: vzapi.VerrazzanoStatus{Version: "1.3.1"},
-	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
+	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.3.0"})
+	vz := createVz()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -388,6 +300,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
 
 	setWaitRetries(1)
 	defer resetWaitRetries()
@@ -421,34 +334,43 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	assert.Contains(t, errBuf.String(), "Error: Verrazzano is not installed: Failed to find any Verrazzano resources")
 }
 
-// TestUninstallNoVzStatus
-// GIVEN a CLI uninstall command with all defaults and no vz resource status found
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command fails
-func TestUninstallNoVzStatus(t *testing.T) {
-	vz := &vzapi.Verrazzano{
+func createNamespace() *corev1.Namespace {
+	return &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: vzconstants.VerrazzanoInstallNamespace,
+		},
+	}
+}
+
+func createVz() *vzapi.Verrazzano {
+	return &vzapi.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "verrazzano",
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
+}
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	cmd := NewCmdUninstall(rc)
-	assert.NotNil(t, cmd)
+func createDeployment(labels map[string]string) *appsv1.Deployment {
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+			Labels:    labels,
+		},
+	}
+}
 
-	setWaitRetries(1)
-	defer resetWaitRetries()
-
-	// Run uninstall command
-	err := cmd.Execute()
-	assert.Error(t, err)
-	assert.ErrorContains(t, err, "Verrazzano version not found in verrazzano resource")
-	assert.Contains(t, errBuf.String(), "Error: Verrazzano version not found in verrazzano resource")
+func createVpoPod() *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+			Labels: map[string]string{
+				"app": constants.VerrazzanoPlatformOperator,
+			},
+		},
+	}
 }

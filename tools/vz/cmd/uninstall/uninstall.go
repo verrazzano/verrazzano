@@ -8,14 +8,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"reflect"
 	"regexp"
 	"time"
 
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/semver"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -84,7 +81,6 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-
 	// Get the controller runtime client.
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
@@ -97,24 +93,17 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("Verrazzano is not installed: %s", err.Error())
 	}
 
-	// Get the installed Verrazzano version and decide whether to stream the old uninstall
-	// job log or the VPO log.  With Verrazzano 1.4.0, the uninstall job has been removed and
-	// the VPO does the uninstall.
-	if reflect.DeepEqual(vz.Status, vzapi.VerrazzanoStatus{}) {
-		return fmt.Errorf("Verrazzano version not found in verrazzano resource")
-	}
-	useUninstallJob := false
-	minVersion := semver.SemVersion{Major: 1, Minor: 4, Patch: 0}
-	vzVersion, err := semver.NewSemVersion(vz.Status.Version)
+	// Decide whether to stream the old uninstall job log or the VPO log.  With Verrazzano 1.4.0,
+	// the uninstall job has been removed and the VPO does the uninstall.
+	useUninstallJob, err := cmdhelpers.UsePlatformOperatorUninstallJob(client)
 	if err != nil {
 		return err
 	}
-	if vzVersion.IsLessThan(&minVersion) {
+	if useUninstallJob {
 		// log-format argument ignored with pre 1.4.0 uninstalls if specified
 		if cmd.PersistentFlags().Changed(constants.LogFormatFlag) {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: --log-format argument is ignored with uninstalls prior to v1.4.0\n")
 		}
-		useUninstallJob = true
 	}
 
 	// Get the kubernetes clientset.  This will validate that the kubeconfig and context are valid.
