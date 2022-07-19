@@ -310,7 +310,7 @@ pipeline {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-push-triggered-upgrade-minor-release-tests//${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-push-triggered-upgrade-minor-release-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'N_JOBS_FOR_EACH_BATCH', value: N_JOBS_FOR_EACH_BATCH),
