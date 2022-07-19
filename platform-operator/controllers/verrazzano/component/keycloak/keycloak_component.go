@@ -166,7 +166,7 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 // PreUpgrade - component level processing for pre-upgrade
 func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Determine if additional processing is required for the upgrade of the StatefulSet
-	return upgradeStatefulSet(ctx.Client(), ctx.EffectiveCR())
+	return upgradeStatefulSet(ctx)
 }
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress

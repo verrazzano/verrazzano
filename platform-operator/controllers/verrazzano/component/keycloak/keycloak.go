@@ -11,8 +11,13 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"text/template"
+
+	"sigs.k8s.io/yaml"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -1353,12 +1358,52 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 
-func upgradeStatefulSet(client client.Client, vz *vzapi.Verrazzano) error {
-	// Get the StatefulSet for Keycloak
-	statefulSet := appv1.StatefulSet{}
-	err := client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &statefulSet)
+func upgradeStatefulSet(ctx spi.ComponentContext) error {
+	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
+	if keycloakComp == nil {
+		return nil
+	}
+
+	// Get the combine set of value overrides into a single array of string
+	overrides, err := common.GetInstallOverridesYAML(ctx, keycloakComp.ValueOverrides)
 	if err != nil {
 		return err
+	}
+
+	// Is there an override for affinity?
+	found := false
+	affinityOverride := &corev1.Affinity{}
+	for _, overrideYaml := range overrides {
+		if strings.Contains(overrideYaml, "affinity: |") {
+			found = true
+
+			// Convert the affinity override from yaml to a struct
+			affinityField, err := common.ExtractValueFromOverrideString(overrideYaml, "affinity")
+			if err != nil {
+				return err
+			}
+			err = yaml.Unmarshal([]byte(fmt.Sprintf("%v", affinityField)), affinityOverride)
+			if err != nil {
+				return err
+			}
+			break
+		}
+	}
+	if !found {
+		return nil
+	}
+
+	// Get the StatefulSet for Keycloak
+	client := ctx.Client()
+	statefulSet := appv1.StatefulSet{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &statefulSet)
+	if err != nil {
+		return err
+	}
+
+	// Nothing to do if the affinity definitions are the same
+	if reflect.DeepEqual(affinityOverride, statefulSet.Spec.Template.Spec.Affinity) {
+		return nil
 	}
 
 	// Scale replica count to 0 to cause all pods to terminate, upgrade will restore replica count
