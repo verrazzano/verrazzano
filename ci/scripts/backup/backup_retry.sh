@@ -6,8 +6,8 @@
 set -x
 set -o pipefail
 
-if [ -z "$OCI_OS_ACCESS_KEY" ] || [ -z "$OCI_OS_ACCESS_SECRET_KEY" ] || [ -z "$VELERO_NAMESPACE" ] || [ -z "$VELERO_SECRET_NAME" ]
-   [ -z "$BACKUP_STORAGE" ] || [ -z "$OCI_OS_BUCKET_NAME" ] || [ -z "$OCI_OS_NAMESPACE" ] ; then
+if [ -z "$OCI_OS_ACCESS_KEY" ] || [ -z "$OCI_OS_ACCESS_SECRET_KEY" ] || [ -z "$VELERO_NAMESPACE" ] || [ -z "$VELERO_SECRET_NAME" ] ||
+   [ -z "$BACKUP_STORAGE" ] || [ -z "$OCI_OS_BUCKET_NAME" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$RANCHER_SECRET_NAME" ] || [ -z "$BACKUP_RANCHER" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
@@ -62,24 +62,26 @@ kubectl apply -f - <<EOF
   apiVersion: resources.cattle.io/v1
   kind: Backup
   metadata:
-    name: rancher-backup-test
+    name: ${BACKUP_RANCHER}
   spec:
     storageLocation:
       s3:
-        credentialSecretName: rancher-backup-creds
-        credentialSecretNamespace: verrazzano-backup
-        bucketName: aamitra-v80dev-bucket
-        folder: v8odevbackup-kind
-        region: us-ashburn-1
-        endpoint: odsbuilddev.compat.objectstorage.us-ashburn-1.oraclecloud.com
+        credentialSecretName: ${RANCHER_SECRET_NAME}
+        credentialSecretNamespace: ${VELERO_NAMESPACE}
+        bucketName:${OCI_OS_BUCKET_NAME}
+        folder: rancher
+        region: us-phoenix-1
+        endpoint: ${OCI_OS_NAMESPACE}.compat.objectstorage.us-phoenix-1.oraclecloud.com
     resourceSetName: rancher-resource-set
 EOF
 }
 
 cleanup
 create_os_backup_object
+#create_rancher_backup_object
 RETRY_COUNT=0
 CHECK_DONE=true
+echo "Checking opensearch backup progress"
 while ${CHECK_DONE};
 do
   RESPONSE=`(kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o jsonpath={.status.phase})`
@@ -100,6 +102,30 @@ done
 if [ "${RESPONSE}" != "Completed" ]; then
     exit 1
 fi
+echo "Opensearch backup successful"
 
+#echo "Checking rancher backup progress"
+#RETRY_COUNT=0
+#CHECK_DONE=true
+#while ${CHECK_DONE};
+#do
+#  RESPONSE=`(kubectl get backup.resources.cattle.io rancher-backup-test -o json | jq '.status.conditions[] | select(.type == "Ready").message')`
+#  if [ "${RESPONSE}" != "Completed" ];then
+#    if [ "${RETRY_COUNT}" -gt 100 ];then
+#       echo "Backup failed. retry count exceeded !!"
+#       exit 1
+#    fi
+#    echo "Rancher backup progress is $RESPONSE. Check after 10 seconds"
+#    sleep 10
+#  else
+#      echo "Backup progress changed to  $RESPONSE"
+#      CHECK_DONE=false
+#  fi
+#  RETRY_COUNT=$((RETRY_COUNT + 1))
+#done
+#
+#if [ "${RESPONSE}" != "Completed" ]; then
+#    exit 1
+#fi
+#echo "Rancher backup successful"
 exit 0
-}
