@@ -6,7 +6,6 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def listOfUpgradeJobs
 def upgradeJobsStageMapping
 
-def branchSpecificSchedule = getCronSchedule()
 pipeline {
     options {
         skipDefaultCheckout true
@@ -444,13 +443,5 @@ def getStageOfUpgradeJob(job) {
     }
 }
 
-def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-
-        //Set cron job to run every day at 9 AM from Monday to Friday
-        return "0 9 * * 1-5"
-    }
-    return ""
-}
 
 
