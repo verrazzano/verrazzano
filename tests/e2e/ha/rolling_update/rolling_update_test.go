@@ -14,24 +14,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
-const (
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 10 * time.Second
-)
-
+var clientset = k8sutil.GetKubernetesClientsetOrDie()
 var t = framework.NewTestFramework("rolling_update")
-var clientset *kubernetes.Clientset
-
-var _ = t.BeforeSuite(func() {
-	var err error
-	clientset, err = k8sutil.GetKubernetesClientset()
-	if err != nil {
-		Fail(fmt.Sprintf("could not get clientset: %v", err))
-	}
-})
 
 var _ = t.Describe("Rolling Update", Label("f:platform-lcm:ha"), func() {
 	t.It("does a rolling update of all nodes", func() {
@@ -63,7 +49,7 @@ func swapScheduling(cs *kubernetes.Clientset, node, unschedulableNode *corev1.No
 			return false
 		}
 		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue())
+	}, ha.WaitTimeout, ha.PollingInterval).Should(BeTrue())
 }
 
 func deletePodsForNode(cs *kubernetes.Clientset, node *corev1.Node) {
@@ -83,7 +69,7 @@ func deletePodsForNode(cs *kubernetes.Clientset, node *corev1.Node) {
 			}
 		}
 		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue())
+	}, ha.WaitTimeout, ha.PollingInterval).Should(BeTrue())
 }
 
 func getNodes(cs *kubernetes.Clientset) ([]corev1.Node, []corev1.Node) {
@@ -119,7 +105,7 @@ func eventuallyPodsReady(cs *kubernetes.Clientset) {
 		}
 		return true
 
-	}, waitTimeout, pollingInterval).Should(BeTrue())
+	}, ha.WaitTimeout, ha.PollingInterval).Should(BeTrue())
 }
 
 func isPodReadyOrCompleted(pod corev1.Pod) bool {

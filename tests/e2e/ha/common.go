@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 10 * time.Second
+	WaitTimeout     = 10 * time.Minute
+	PollingInterval = 10 * time.Second
 )
 
 func EventuallyGetNodes(cs *kubernetes.Clientset, log *zap.SugaredLogger) *corev1.NodeList {
@@ -28,7 +28,7 @@ func EventuallyGetNodes(cs *kubernetes.Clientset, log *zap.SugaredLogger) *corev
 			return false
 		}
 		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue())
+	}, WaitTimeout, PollingInterval).Should(BeTrue())
 	return nodes
 }
 

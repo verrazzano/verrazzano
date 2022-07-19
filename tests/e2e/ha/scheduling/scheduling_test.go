@@ -5,7 +5,6 @@ package scheduling
 
 import (
 	"context"
-	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -13,25 +12,10 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/ha"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"time"
-)
-
-const (
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 10 * time.Second
 )
 
 var t = framework.NewTestFramework("scheduling")
-var clientset *kubernetes.Clientset
-
-var _ = t.BeforeSuite(func() {
-	var err error
-	clientset, err = k8sutil.GetKubernetesClientset()
-	if err != nil {
-		Fail(fmt.Sprintf("could not get clientset: %v", err))
-	}
-})
+var clientset = k8sutil.GetKubernetesClientsetOrDie()
 
 var _ = t.Describe("Kind Scheduling", Label("f:platform-lcm:ha"), func() {
 	t.It("marks half the worker nodes in the cluster as unschedulable", func() {
@@ -51,7 +35,7 @@ var _ = t.Describe("Kind Scheduling", Label("f:platform-lcm:ha"), func() {
 					return false
 				}
 				return true
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+			}, ha.WaitTimeout, ha.PollingInterval).Should(BeTrue())
 		}
 	})
 })
