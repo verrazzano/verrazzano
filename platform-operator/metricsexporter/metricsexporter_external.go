@@ -6,7 +6,6 @@ package metricsexporter
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -44,80 +43,136 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-var metricsExp metricsExporter
+var MetricsExp MetricsExporter
 
-type metricsComponent struct {
-	LatestInstallDuration prometheus.Gauge
-	LatestUpgradeDuration prometheus.Gauge
-}
+// Initalized but not populated
+
+// Deciding register all of the metrics internraly when we initalize it controller wise
 
 // Want variable name but for it to be internal
 type metricsOperation string
+type metricName string
 
 const (
 	operationInstall metricsOperation = "install"
 	operationUpgrade metricsOperation = "upgrade"
 	millisPerSecond  float64          = 1000.0
+	reconcileCounter metricName       = "reconcile counter"
 )
 
-func InitalizeMetricsWrapper() {
-	metricsExp.MetricsMap = map[string]metricsComponent{
-		authproxy.ComponentName:            *newMetricsComponent("authproxy"),
-		oam.ComponentName:                  *newMetricsComponent("oam"),
-		appoper.ComponentName:              *newMetricsComponent("appoper"),
-		istio.ComponentName:                *newMetricsComponent("istio"),
-		weblogic.ComponentName:             *newMetricsComponent("weblogic"),
-		nginx.ComponentName:                *newMetricsComponent("nginx"),
-		certmanager.ComponentName:          *newMetricsComponent("certManager"),
-		externaldns.ComponentName:          *newMetricsComponent("externalDNS"),
-		rancher.ComponentName:              *newMetricsComponent("rancher"),
-		verrazzano.ComponentName:           *newMetricsComponent("verrazzano"),
-		vmo.ComponentName:                  *newMetricsComponent("verrazzano_monitoring_operator"),
-		opensearch.ComponentName:           *newMetricsComponent("opensearch"),
-		opensearchdashboards.ComponentName: *newMetricsComponent("opensearch_dashboards"),
-		grafana.ComponentName:              *newMetricsComponent("grafana"),
-		coherence.ComponentName:            *newMetricsComponent("coherence"),
-		mysql.ComponentName:                *newMetricsComponent("mysql"),
-		keycloak.ComponentName:             *newMetricsComponent("keycloak"),
-		kiali.ComponentName:                *newMetricsComponent("kiali"),
-		promoperator.ComponentName:         *newMetricsComponent("prometheus_operator"),
-		promadapter.ComponentName:          *newMetricsComponent("prometheus_adapter"),
-		kubestatemetrics.ComponentName:     *newMetricsComponent("kube_state_metrics"),
-		pushgateway.ComponentName:          *newMetricsComponent("prometheus_push_gateway"),
-		promnodeexporter.ComponentName:     *newMetricsComponent("prometheus_node_exporter"),
-		jaegeroperator.ComponentName:       *newMetricsComponent("jaeger_operator"),
-		console.ComponentName:              *newMetricsComponent("verrazzano_console"),
-		fluentd.ComponentName:              *newMetricsComponent("fluentd"),
+// List 1.) To provide same initalization interface 1a.) Decide we should initalize server and metrics at same time or different (right now different)
+// 2.) Provide common interface for creating a new metrics (similar to metric component Struct)
+// 3.) Provide a common interface for updating and interacting with metrics (Add error handling)
+// 4.) One structure encopassess all metrics might have different member functions of metrics and updates structure
+// 6.) Internally have map that maps to string that has metrics
+// 7.) Maybe have external object that provides metrics constant so can access them whatever strings
+// 8.) Metrics will be can't dynamically register or unregister a metrics
+// 9. Functions generate UpdateCount("authproxy") ->
+// 10.) Have different struct for each type of metric and for each function share the same type of metric
+func InitRegisterStart(log *zap.SugaredLogger) {
+	RequiredInitialization()
+	RegisterMetrics(log)
+	StartMetricsServer(log)
+}
+func TestInitalization() {
+	RequiredInitialization()
+}
+func RequiredInitialization() {
+	MetricsExp = MetricsExporter{
+		internalConfig: initConfiguration(),
+		internalData: data{
+			simpleCounterMetricMap: initSimpleCounterMetricMap(),
+			simpleGaugeMetricMap:   initSimpleGaugeMetricMap(),
+			durationMetricMap:      initDurationMetricMap(),
+			metricsComponentMap:    initMetricComponentMap(),
+		},
 	}
-	metricsExp.ReconcileCounterMetric = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "vpo_reconcile_counter",
-		Help: "The number of times the reconcile function has been called in the Verrazzano-platform-operator",
-	})
-	metricsExp.ReconcileLastDurationMetric = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "vpo_reconcile_duration_seconds",
-		Help: "The duration of each reconcile call in the Verrazzano-platform-operator in seconds"},
-		[]string{"reconcile_index"},
-	)
-	metricsExp.ReconcileErrorCounterMetric = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "vpo_error_reconcile_counter",
-		Help: "The number of times the reconcile function has returned an error in the Verrazzano-platform-operator",
-	})
-	metricsExp.populateAllMetricsList()
-	metricsExp.FailedMetrics = map[prometheus.Collector]int{}
-	metricsExp.Registry = prometheus.DefaultRegisterer
+
+}
+
+func RegisterMetrics(log *zap.SugaredLogger) {
+	InitializeAllMetricsArray()
+	go registerMetricsHandlers(log)
 }
 
 // This function returns a pointer to a new MetricComponent Object
-func newMetricsComponent(name string) *metricsComponent {
-	return &metricsComponent{
-		LatestInstallDuration: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("vz_%s_install_duration_seconds", name),
-			Help: fmt.Sprintf("The duration of the latest installation of the %s component in seconds", name),
-		}),
-		LatestUpgradeDuration: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("vz_%s_upgrade_duration_seconds", name),
-			Help: fmt.Sprintf("The duration of the latest upgrade of the %s component in seconds", name),
-		}),
+func newMetricsComponent(name string) *MetricsComponent {
+	return &MetricsComponent{
+		LatestInstallDuration: &SimpleGaugeMetric{
+
+			metric: prometheus.NewGauge(prometheus.GaugeOpts{
+				Name: fmt.Sprintf("vz_%s_install_duration_seconds", name),
+				Help: fmt.Sprintf("The duration of the latest installation of the %s component in seconds", name),
+			}),
+		},
+		LatestUpgradeDuration: &SimpleGaugeMetric{
+			prometheus.NewGauge(prometheus.GaugeOpts{
+				Name: fmt.Sprintf("vz_%s_upgrade_duration_seconds", name),
+				Help: fmt.Sprintf("The duration of the latest upgrade of the %s component in seconds", name),
+			}),
+		},
+	}
+}
+
+func initSimpleCounterMetricMap() map[string]*SimpleCounterMetric {
+	return map[string]*SimpleCounterMetric{
+		"reconcile_counter": {
+			prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vpo_reconcile_counter",
+				Help: "The number of times the reconcile function has been called in the Verrazzano-platform-operator",
+			}),
+		},
+		"reconcile_error": {
+			prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vpo_error_reconcile_counter",
+				Help: "The number of times the reconcile function has returned an error in the Verrazzano-platform-operator",
+			}),
+		},
+	}
+}
+func initMetricComponentMap() map[string]*MetricsComponent {
+	return map[string]*MetricsComponent{
+		authproxy.ComponentName:            newMetricsComponent("authproxy"),
+		oam.ComponentName:                  newMetricsComponent("oam"),
+		appoper.ComponentName:              newMetricsComponent("appoper"),
+		istio.ComponentName:                newMetricsComponent("istio"),
+		weblogic.ComponentName:             newMetricsComponent("weblogic"),
+		nginx.ComponentName:                newMetricsComponent("nginx"),
+		certmanager.ComponentName:          newMetricsComponent("certManager"),
+		externaldns.ComponentName:          newMetricsComponent("externalDNS"),
+		rancher.ComponentName:              newMetricsComponent("rancher"),
+		verrazzano.ComponentName:           newMetricsComponent("verrazzano"),
+		vmo.ComponentName:                  newMetricsComponent("verrazzano_monitoring_operator"),
+		opensearch.ComponentName:           newMetricsComponent("opensearch"),
+		opensearchdashboards.ComponentName: newMetricsComponent("opensearch_dashboards"),
+		grafana.ComponentName:              newMetricsComponent("grafana"),
+		coherence.ComponentName:            newMetricsComponent("coherence"),
+		mysql.ComponentName:                newMetricsComponent("mysql"),
+		keycloak.ComponentName:             newMetricsComponent("keycloak"),
+		kiali.ComponentName:                newMetricsComponent("kiali"),
+		promoperator.ComponentName:         newMetricsComponent("prometheus_operator"),
+		promadapter.ComponentName:          newMetricsComponent("prometheus_adapter"),
+		kubestatemetrics.ComponentName:     newMetricsComponent("kube_state_metrics"),
+		pushgateway.ComponentName:          newMetricsComponent("prometheus_push_gateway"),
+		promnodeexporter.ComponentName:     newMetricsComponent("prometheus_node_exporter"),
+		jaegeroperator.ComponentName:       newMetricsComponent("jaeger_operator"),
+		console.ComponentName:              newMetricsComponent("verrazzano_console"),
+		fluentd.ComponentName:              newMetricsComponent("fluentd"),
+	}
+}
+
+func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
+	return map[metricName]*SimpleGaugeMetric{}
+}
+
+func initDurationMetricMap() map[metricName]*DurationMetric {
+	return map[metricName]*DurationMetric{
+		reconcileCounter: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vpo_reconcile_duration",
+				Help: "The duration in seconds of vpo reconcile process",
+			}),
+		},
 	}
 }
 
@@ -141,24 +196,24 @@ func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName string
 		return nil
 	}
 	totalDuration := (completionInSecondsUnix - startInSecondsUnix)
-	_, ok := metricsExp.MetricsMap[componentName]
+	_, ok := MetricsExp.internalData.metricsComponentMap[componentName]
 	if !ok {
 		log.Errorf("Component %s does not have metrics in the metrics map", componentName)
 		return nil
 	}
 	if typeofOperation == operationUpgrade {
-		metricsExp.MetricsMap[componentName].LatestUpgradeDuration.Set(float64(totalDuration))
+		MetricsExp.internalData.metricsComponentMap[componentName].LatestUpgradeDuration.Set(float64(totalDuration))
 	}
 	if typeofOperation == operationInstall {
-		metricsExp.MetricsMap[componentName].LatestInstallDuration.Set(float64(totalDuration))
+		MetricsExp.internalData.metricsComponentMap[componentName].LatestInstallDuration.Set(float64(totalDuration))
 	}
 	return nil
 
 }
 func registerMetricsHandlersHelper() error {
 	var errorObserved error
-	for metric := range metricsExp.FailedMetrics {
-		err := metricsExp.Registry.Register(metric)
+	for metric := range MetricsExp.internalConfig.failedMetrics {
+		err := MetricsExp.internalConfig.registry.Register(metric)
 		if err != nil {
 			if errorObserved != nil {
 				errorObserved = errors.Wrap(errorObserved, err.Error())
@@ -167,26 +222,26 @@ func registerMetricsHandlersHelper() error {
 			}
 		} else {
 			//if a metric is registered, delete it from the failed metrics map so that it is not retried
-			delete(metricsExp.FailedMetrics, metric)
+			delete(MetricsExp.internalConfig.failedMetrics, metric)
 		}
 	}
 	return errorObserved
 }
-func registerMetricsHandlers() {
+func registerMetricsHandlers(log *zap.SugaredLogger) {
 	initializeFailedMetricsArray() //Get list of metrics to register initially
 	//loop until there is no error in registering
 	for err := registerMetricsHandlersHelper(); err != nil; err = registerMetricsHandlersHelper() {
-		zap.S().Errorf("Failed to register metrics for VPO %v \n", err)
+		log.Errorf("Failed to register metrics for VPO %v \n", err)
 		time.Sleep(time.Second)
 	}
 }
 func initializeFailedMetricsArray() {
-	for i, metric := range metricsExp.MetricsList {
-		metricsExp.FailedMetrics[metric] = i
+	for i, metric := range MetricsExp.internalConfig.allMetrics {
+		MetricsExp.internalConfig.failedMetrics[metric] = i
 	}
 }
-func InitalizeMetricsEndpoint(log *zap.SugaredLogger) {
-	go registerMetricsHandlers()
+func StartMetricsServer(log *zap.SugaredLogger) {
+	go registerMetricsHandlers(log)
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
 		err := http.ListenAndServe(":9100", nil)
@@ -234,21 +289,26 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 		}
 	}
 }
-func CollectReconcileMetricsTime(startTime time.Time, log *zap.SugaredLogger) {
-	metricsExp.ReconcileCounterMetric.Add(float64(1))
-	durationTime := float64(time.Since(startTime).Milliseconds()) / millisPerSecond
-	metric, _ := metricsExp.ReconcileLastDurationMetric.GetMetricWithLabelValues(strconv.Itoa(metricsExp.ReconcileIndex))
-	metric.Set(float64(durationTime))
-	log.Debugf("Time duration metric updated with label %v", metricsExp.ReconcileIndex)
-	metricsExp.ReconcileIndex = metricsExp.ReconcileIndex + 1
+
+func InitializeAllMetricsArray() {
+	//loop through all metrics declarations in metric maps
+	for _, value := range MetricsExp.internalData.simpleCounterMetricMap {
+		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
+	}
+	for _, value := range MetricsExp.internalData.durationMetricMap {
+		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
+	}
+	for _, value := range MetricsExp.internalData.metricsComponentMap {
+		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.LatestInstallDuration.metric, value.LatestUpgradeDuration.metric)
+	}
 }
-func CollectReconcileMetricsError(log *zap.SugaredLogger) {
-	metricsExp.ReconcileErrorCounterMetric.Add(1)
-	log.Debugf("Error counter for reconcile has been incremented by one")
+func initConfiguration() configuration {
+	return configuration{
+		allMetrics:    []prometheus.Collector{},
+		failedMetrics: map[prometheus.Collector]int{},
+		registry:      prometheus.DefaultRegisterer,
+	}
 }
-func GetErrorCounterMetric() prometheus.Counter {
-	return metricsExp.ReconcileErrorCounterMetric
-}
-func GetReconcileCounterMetric() prometheus.Counter {
-	return metricsExp.ReconcileCounterMetric
-}
+func getCounterMetric(string Name)
+
+// Implement Get Types, make const block with all of the metric strings, make the metricNames in the struct, make types private when possible

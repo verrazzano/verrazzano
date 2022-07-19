@@ -67,7 +67,6 @@ func init() {
 }
 
 func main() {
-	metricsexporter.InitalizeMetricsWrapper()
 
 	// config will hold the entire operator config
 	config := internalconfig.Get()
@@ -168,7 +167,7 @@ func main() {
 
 	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
 
-	metricsexporter.InitalizeMetricsEndpoint(log)
+	metricsexporter.InitRegisterStart(log)
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{

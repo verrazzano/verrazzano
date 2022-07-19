@@ -30,7 +30,7 @@ const (
 // WHEN A starting time is passed into the function
 // THEN the function updates the reconcileCounterMetric by 1 and creates a new time for that reconcile in the reconcileLastDurationMetric
 func TestCollectReconcileMetricsTime(t *testing.T) {
-	InitalizeMetricsWrapper()
+	TestInitalization()
 	assert := asserts.New(t)
 	test := struct {
 		name                   string
@@ -42,13 +42,13 @@ func TestCollectReconcileMetricsTime(t *testing.T) {
 	t.Run(test.name, func(t *testing.T) {
 		startTime := time.Now()
 		time.Sleep(1 * time.Millisecond)
-		reconcileCounterBefore := testutil.ToFloat64(metricsExp.ReconcileCounterMetric)
+		reconcileCounterBefore := testutil.ToFloat64(MetricsExp.reconcileCounterMetric)
 		CollectReconcileMetricsTime(startTime, zap.S())
-		reconcileCounterAfter := testutil.ToFloat64(metricsExp.ReconcileCounterMetric)
+		reconcileCounterAfter := testutil.ToFloat64(MetricsExp.reconcileCounterMetric)
 		assert.Equal(test.expectedIncrementValue, reconcileCounterAfter-reconcileCounterBefore)
 		// Reconcile Index is decremented by one because when the function is called Reconcile index is incremented by one at the end of the fn
 		// However, the gauge inside the gauge vector that we want to test is accessed with the original value of reconcile index that was used in the function call
-		metric, _ := metricsExp.ReconcileLastDurationMetric.GetMetricWithLabelValues(strconv.Itoa(metricsExp.ReconcileIndex - 1))
+		metric, _ := MetricsExp.reconcileLastDurationMetric.GetMetricWithLabelValues(strconv.Itoa(MetricsExp.reconcileIndex - 1))
 		assert.Greater(testutil.ToFloat64(metric), float64(0))
 	})
 }
@@ -58,7 +58,6 @@ func TestCollectReconcileMetricsTime(t *testing.T) {
 // WHEN the function is called
 // THEN the function increments the reconcile error counter metric
 func TestCollectReconcileError(t *testing.T) {
-	InitalizeMetricsWrapper()
 	assert := asserts.New(t)
 	test := struct {
 		name                        string
@@ -69,9 +68,9 @@ func TestCollectReconcileError(t *testing.T) {
 		expectedErrorIncrementValue: float64(1),
 	}
 	t.Run(test.name, func(t *testing.T) {
-		errorCounterBefore := testutil.ToFloat64(metricsExp.ReconcileErrorCounterMetric)
+		errorCounterBefore := testutil.ToFloat64(MetricsExp.reconcileErrorCounterMetric)
 		CollectReconcileMetricsError(zap.S())
-		errorCounterAfter := testutil.ToFloat64(metricsExp.ReconcileErrorCounterMetric)
+		errorCounterAfter := testutil.ToFloat64(MetricsExp.reconcileErrorCounterMetric)
 		assert.Equal(test.expectedErrorIncrementValue, errorCounterAfter-errorCounterBefore)
 	})
 }
@@ -81,7 +80,7 @@ func TestCollectReconcileError(t *testing.T) {
 // WHEN a VZ CR with or without timestamps is passed to the fn
 // THEN the function properly updates or does nothing to the component's metric
 func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
-	InitalizeMetricsWrapper()
+	TestInitalization(log)
 	assert := asserts.New(t)
 	emptyVZCR := installv1alpha1.Verrazzano{}
 	disabledComponentVZCR := installv1alpha1.Verrazzano{
@@ -290,8 +289,8 @@ func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 	}
 }
 func getValueOfInstallMetricForTesting(componentName string) float64 {
-	return testutil.ToFloat64(metricsExp.MetricsMap[componentName].LatestInstallDuration)
+	return testutil.ToFloat64(MetricsExp.metricsMap[componentName].LatestInstallDuration)
 }
 func getValueOfUpgradeMetricForTesting(componentName string) float64 {
-	return testutil.ToFloat64(metricsExp.MetricsMap[componentName].LatestUpgradeDuration)
+	return testutil.ToFloat64(MetricsExp.metricsMap[componentName].LatestUpgradeDuration)
 }
