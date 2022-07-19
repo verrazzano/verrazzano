@@ -351,16 +351,16 @@ pipeline {
                               println(error)
                            }
                         }
-                        post {
-                            always {
-                                script {
-                                     sh """
-                                     kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
-                                     "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
-                                     """
-                                }
+                    }
+                    post {
+                        always {
+                            script {
+                                 sh """
+                                 kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
+                                 "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
+                                 """
                             }
-                         }
+                        }
                     }
                 }
 
@@ -387,8 +387,7 @@ pipeline {
                 stage('Start Opensearch Restore') {
                     steps {
                             script {
-
-                               try {
+                                try {
                                     sh """
                                         "${WORKSPACE}/ci/scripts/backup/restore_start.sh"
                                     """
@@ -399,10 +398,10 @@ pipeline {
                                             sh """
                                                "${WORKSPACE}/ci/scripts/backup/restore_start.sh"
                                             """
-                                        }
-                              }
-                         }
-                    }
+                                       }
+                                    }
+                                }
+                           }
                     post {
                       always {
                         script {
