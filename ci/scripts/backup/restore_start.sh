@@ -19,38 +19,38 @@ function cleanup() {
 function create_restore() {
 kubectl apply -f - <<EOF
     apiVersion: velero.io/v1
-        kind: Restore
-        metadata:
-          name: ${RESTORE_NAME}
-          namespace: ${VELERO_NAMESPACE}
-        spec:
-          backupName: ${BACKUP_OPENSEARCH}
-          includedNamespaces:
-            - verrazzano-system
-          labelSelector:
-            matchLabels:
-              verrazzano-component: opensearch
-          restorePVs: false
-          hooks:
-            resources:
-              - name: ${BACKUP_RESOURCE}
-                includedNamespaces:
-                  - verrazzano-system
-                labelSelector:
-                  matchLabels:
-                    statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
-                postHooks:
-                  - exec:
-                      container: es-master
-                      command:
-                        - /usr/share/opensearch/bin/verrazzano-backup-hook
-                        - -operation
-                        - restore
-                        - -velero-backup-name
-                        - ${BACKUP_OPENSEARCH}
-                      waitTimeout: 30m
-                      execTimeout: 30m
-                      onError: Fail
+    kind: Restore
+    metadata:
+      name: ${RESTORE_NAME}
+      namespace: ${VELERO_NAMESPACE}
+    spec:
+      backupName: ${BACKUP_OPENSEARCH}
+      includedNamespaces:
+        - verrazzano-system
+      labelSelector:
+        matchLabels:
+          verrazzano-component: opensearch
+      restorePVs: false
+      hooks:
+        resources:
+          - name: ${BACKUP_RESOURCE}
+            includedNamespaces:
+              - verrazzano-system
+            labelSelector:
+              matchLabels:
+                statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+            postHooks:
+              - exec:
+                  container: es-master
+                  command:
+                    - /usr/share/opensearch/bin/verrazzano-backup-hook
+                    - -operation
+                    - restore
+                    - -velero-backup-name
+                    - ${BACKUP_OPENSEARCH}
+                  waitTimeout: 30m
+                  execTimeout: 30m
+                  onError: Fail
 EOF
 }
 
