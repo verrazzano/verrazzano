@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 
+	osexec "os/exec"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/os"
@@ -15,8 +17,8 @@ import (
 	admv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/utils/strings/slices"
-	osexec "os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -105,6 +107,9 @@ func PostUninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
+	removeCRDFinalizers(ctx)
+
 	return nil
 }
 
@@ -137,6 +142,34 @@ func deleteWebhooks(ctx spi.ComponentContext) error {
 		}
 	}
 	return nil
+}
+
+func removeCRDFinalizers(ctx spi.ComponentContext) {
+	crds := v1.CustomResourceDefinitionList{}
+	err := ctx.Client().List(context.TODO(), &crds)
+	if err != nil {
+		ctx.Log().Errorf("Failed to list CRDs during uninstall: %v", err)
+	}
+	var rancherDeletedCRDs []v1.CustomResourceDefinition
+	for _, crd := range crds.Items {
+		if strings.HasSuffix(crd.Name, ".cattle.io") && crd.DeletionTimestamp != nil && !crd.DeletionTimestamp.IsZero() {
+			rancherDeletedCRDs = append(rancherDeletedCRDs, crd)
+		}
+	}
+
+	for _, crd := range rancherDeletedCRDs {
+		ctx.Log().Infof("Removing finalizers from deleted Rancher CRD %s", crd.Name)
+		err = resource.Resource{
+			Name:   crd.Name,
+			Client: ctx.Client(),
+			Object: &v1.CustomResourceDefinition{},
+			Log:    ctx.Log(),
+		}.RemoveFinalizers()
+		if err != nil {
+			// not treated as a failure
+			ctx.Log().Errorf("Failed to remove finalizer from Rancher CRD %s: %v", crd.Name, err)
+		}
+	}
 }
 
 // deleteMatchingResources delete the Rancher objects that need to match a string: ClusterRole, ClusterRoleBinding, RoleBinding, PersistentVolumes
