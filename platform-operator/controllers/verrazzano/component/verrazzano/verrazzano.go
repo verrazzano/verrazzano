@@ -227,7 +227,7 @@ func associateFluentdResources(cli clipkg.Client) error {
 	return nil
 }
 
-//
+// Associate jaeger objects
 func associateJaegerResources(cli clipkg.Client) error {
 	jaegerReleaseName := types.NamespacedName{Name: jaegeroperator.ComponentName, Namespace: jaegeroperator.ComponentNamespace}
 	namespacedName := jaegerReleaseName
