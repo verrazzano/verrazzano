@@ -6,9 +6,9 @@ package common
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/vzmap"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/vzmap"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
