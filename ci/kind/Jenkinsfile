@@ -533,7 +533,7 @@ pipeline {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
-                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-dump/bug-report')
+                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-dump')
                         }
                     }
                 }
@@ -542,7 +542,7 @@ pipeline {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
-                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-dump/bug-report')
+                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-dump')
                         }
                     }
                 }
@@ -647,9 +647,9 @@ def dumpK8sCluster(dumpDirectory) {
 
 def dumpK8sClusterFromBugReport(dumpDirectory) {
     sh """
-            go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}.tar.gz
+            go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
             mkdir bug-report
-            tar -xvf ${dumpDirectory}.tar.gz -C bug-report
+            tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
     """
 }
 
