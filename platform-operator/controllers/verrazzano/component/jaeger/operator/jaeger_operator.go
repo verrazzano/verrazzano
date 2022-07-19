@@ -477,7 +477,7 @@ func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 
 // removeMutatingWebhookConfig removes the  jaeger-operator-mutating-webhook-configuration resource during the pre-upgrade
 // The jaeger-operator-mutating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
-// On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service during the upgrade.
+// On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	config, err := controllerruntime.GetConfig()
 	if err != nil {
@@ -502,7 +502,7 @@ func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 
 // removeValidatingWebhookConfig removes the  jaeger-operator-validating-webhook-configuration resource during the pre-upgrade
 // The jaeger-operator-validating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
-// On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service during the upgrade.
+// On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
 	config, err := controllerruntime.GetConfig()
 	if err != nil {
