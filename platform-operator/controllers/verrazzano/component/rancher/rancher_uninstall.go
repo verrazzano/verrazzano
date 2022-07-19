@@ -15,7 +15,6 @@ import (
 	admv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/utils/strings/slices"
 	osexec "os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -26,27 +25,7 @@ const (
 	webhookName      = "rancher.cattle.io"
 	controllerCMName = "cattle-controllers"
 	lockCMName       = "rancher-controller-lock"
-	rancherSysNS     = "management.cattle.io/system-namespace"
 )
-
-var rancherSystemNS = []string{
-	"cattle-system",
-	"cattle-alerting",
-	"cattle-logging",
-	"cattle-pipeline",
-	"cattle-prometheus",
-	"cattle-global-data",
-	"cattle-istio",
-	"cattle-global-nt",
-	"security-scan",
-	"cattle-fleet-system",
-	"cattle-fleet-local-system",
-	"tigera-operator",
-	"cattle-impersonation-system",
-	"rancher-operator-system",
-	"cattle-csp-adapter-system",
-	"local",
-}
 
 // PostUninstall removes the objects after the Helm uninstall process finishes
 func PostUninstall(ctx spi.ComponentContext) error {
@@ -60,8 +39,20 @@ func PostUninstall(ctx spi.ComponentContext) error {
 	}
 
 	// For Rancher namespaces, run the system tools uninstaller
-	for i, ns := range nsList.Items {
-		if isRancherNamespace(&nsList.Items[i]) {
+	namespaceNames := []string{
+		"^cattle-",
+		"^local$",
+		"^p-",
+		"^user-",
+		"^fleet",
+		"^rancher",
+	}
+	for _, ns := range nsList.Items {
+		matches, err := regexp.MatchString(strings.Join(namespaceNames, "|"), ns.Name)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to verify that namespace %s is a Rancher namespace: %v", ns.Name, err)
+		}
+		if matches {
 			args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
 			cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
 			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
@@ -229,20 +220,6 @@ func deleteMatchingObject(ctx spi.ComponentContext, matches []string, obj client
 		}
 	}
 	return nil
-}
-
-// isRancherNamespace determines whether the namespace given is a Rancher ns
-func isRancherNamespace(ns *corev1.Namespace) bool {
-	if slices.Contains(rancherSystemNS, ns.Name) {
-		return true
-	}
-	if ns.Annotations == nil {
-		return false
-	}
-	if val, ok := ns.Annotations[rancherSysNS]; ok && val == "true" {
-		return true
-	}
-	return false
 }
 
 // setRancherSystemTool sets the Rancher system tool to an arbitrary command
