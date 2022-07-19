@@ -94,12 +94,13 @@ func ExecuteClusterDump(clusterDumpCommand string, kubeconfig string, clusterDum
 // bugReportDirectory - The directory to store the bug report within.
 func ExecuteBugReport(bugReportCommand string, kubeconfig string, bugReportDirectory string) error {
 	var cmd *exec.Cmd
-	fmt.Printf("Execute bug report dump: KUBECONFIG=%s; %s -d %s\n", kubeconfig, bugReportCommand, bugReportDirectory)
+	fmt.Printf("Execute bug report command: KUBECONFIG=%s; %s --report-file %s\n", kubeconfig, bugReportCommand, bugReportDirectory)
 	if bugReportCommand == "" {
 		return nil
 	}
 
-	cmd = exec.Command(bugReportCommand, "--report-file", bugReportDirectory)
+	filename := fmt.Sprintf("%s/%s", bugReportDirectory, "bug-report.tar.gz")
+	cmd = exec.Command(bugReportCommand, "--report-file", filename)
 
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
 	cmd.Stdout = os.Stdout
