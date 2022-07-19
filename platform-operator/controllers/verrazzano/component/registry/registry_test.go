@@ -4,8 +4,9 @@
 package registry
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -543,6 +544,7 @@ func newReplicaSet(name string, namespace string) *appsv1.ReplicaSet {
 
 type fakeComponent struct {
 	name         string
+	namespace    string
 	dependencies []string
 	enabled      bool
 }
@@ -551,6 +553,10 @@ var _ spi.Component = fakeComponent{}
 
 func (f fakeComponent) Name() string {
 	return f.name
+}
+
+func (f fakeComponent) Namespace() string {
+	return f.namespace
 }
 
 func (f fakeComponent) GetJSONName() string {

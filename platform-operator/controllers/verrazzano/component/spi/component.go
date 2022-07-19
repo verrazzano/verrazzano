@@ -38,6 +38,8 @@ type ComponentContext interface {
 type ComponentInfo interface {
 	// Name returns the name of the Verrazzano component
 	Name() string
+	// Namespace returns the namespace of the Verrazzano component
+	Namespace() string
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 	// IsReady Indicates whether or not a component is available and ready

@@ -665,7 +665,8 @@ func setFakeComponentsDisabled() {
 		return []spi.Component{
 			fakeComponent{
 				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
+					ReleaseName:    "fake",
+					ChartNamespace: "fake",
 				},
 				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
 					return false, nil
@@ -1130,6 +1131,7 @@ func expectDeleteClusterRoleBinding(mock *mocks.MockClient, namespace string, na
 }
 
 func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
+	const fakeNS = "fake"
 	for _, ns := range sharedNamespaces {
 		mock.EXPECT().
 			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil())).
@@ -1139,6 +1141,15 @@ func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
 			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil())).
 			Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), ns))
 	}
+	// Expect delete for component namesapces
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil())).
+		Return(nil)
+	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: fakeNS}, gomock.Any()).Return(nil)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), fakeNS))
+
 }
 
 // expectRancherPostUninstall creates the expects for the Rancher post-install client calls
