@@ -1074,11 +1074,11 @@ def installVerrazzano() {
 }
 
 def updateLoadBalancerHealthCheck() {
-    sh """
+    sh '''
         LB_MGMT_IP=$(kubectl get service ingress-controller-ingress-nginx-controller -n ingress-nginx -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
         LB_APP_IP=$(kubectl get service  istio-ingressgateway  -n  istio-system -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
         $GO_REPO_PATH/verrazzano/ci/scripts/update_lb_health_check.sh "$LB_MGMT_IP $LB_APP_IP"
-    """
+    '''
 }
 
 def dumpVerrazzanoInstallLogs() {
@@ -1093,9 +1093,9 @@ def dumpVerrazzanoInstallLogs() {
 }
 
 def deleteVerrazzano() {
-    sh """
+    sh '''
         kubectl delete verrazzano $(kubectl  get vz -o jsonpath="{.items[0].metadata.name}") --wait=true
-    """
+    '''
 }
 
 def deleteOLCNECluster() {
