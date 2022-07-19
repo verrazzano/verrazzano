@@ -11,9 +11,11 @@ if [ -z "$BACKUP_OPENSEARCH" ] ||  [ -z "$VELERO_NAMESPACE" ] ||  [ -z "$OCI_OS_
   exit 1
 fi
 
+source ./nuke_opensearch.sh
+
 function cleanup() {
     kubectl delete restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME} --ignore-not-found=true
-    kubectl delete pod -n verrazzano-system  vmi-system-es-master-0 --grace-period=0 --force
+    cleanup_opensearch
     kubectl wait --namespace verrazzano-system --for=condition=ready pod --all --timeout=300s
 }
 

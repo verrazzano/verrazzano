@@ -5,7 +5,7 @@
 #
 set -o pipefail
 
-if [ -z "$OCI_OS_ACCESS_KEY" ] || [ -z "$OCI_OS_ACCESS_SECRET_KEY" ] || [ -z "$VELERO_NAMESPACE" ] || [ -z "$VELERO_SECRET_NAME" ]
+if [ -z "$OCI_OS_ACCESS_KEY" ] || [ -z "$OCI_OS_ACCESS_SECRET_KEY" ] || [ -z "$VELERO_NAMESPACE" ] || [ -z "$VELERO_SECRET_NAME" ] || [ -z "$RANCHER_SECRET_NAME" ]
    [ -z "$BACKUP_STORAGE" ] || [ -z "$OCI_OS_BUCKET_NAME" ] || [ -z "$OCI_OS_NAMESPACE" ] ; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
@@ -48,6 +48,9 @@ EOF
 
 kubectl create secret generic -n ${VELERO_NAMESPACE} ${VELERO_SECRET_NAME} --from-file=cloud=${SECRETS_FILE}
 rm -rf ${SECRETS_FILE}
+
+kubectl create secret generic -n ${VELERO_NAMESPACE} ${RANCHER_SECRET_NAME} --from-literal=accessKey=${OCI_OS_ACCESS_KEY} --from-literal=secretKey=${OCI_OS_ACCESS_SECRET_KEY}
+
 
 kubectl apply -f - <<EOF
     apiVersion: velero.io/v1

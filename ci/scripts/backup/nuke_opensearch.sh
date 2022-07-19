@@ -48,15 +48,18 @@ function check() {
 
 }
 
-EXPECTED_MSG="No resources found in verrazzano-system namespace."
-POD_CHECK_CMD="kubectl get pod -n verrazzano-system -l verrazzano-component=opensearch"
-PVC_CHECK_CMD_DATA="kubectl get pvc  -n verrazzano-system -l verrazzano-component=opensearch"
-PVC_CHECK_CMD_MASTER="kubectl get pvc  -n verrazzano-system -l app=system-es-master"
+function cleanup_opensearch() {
+  POD_CHECK_CMD="kubectl get pod -n verrazzano-system -l verrazzano-component=opensearch"
+  PVC_CHECK_CMD_DATA="kubectl get pvc  -n verrazzano-system -l verrazzano-component=opensearch"
+  PVC_CHECK_CMD_MASTER="kubectl get pvc  -n verrazzano-system -l app=system-es-master"
 
-nuke_os
-check "${POD_CHECK_CMD}" "pod"
-check "${PVC_CHECK_CMD_DATA}" "pvc"
-check "${PVC_CHECK_CMD_MASTER}" "pvc"
+  nuke_os
+  check "${POD_CHECK_CMD}" "pod"
+  check "${PVC_CHECK_CMD_DATA}" "pvc"
+  check "${PVC_CHECK_CMD_MASTER}" "pvc"
+}
+
+cleanup_opensearch
 
 if [ $? -ne 0 ]; then
   echo "opensearch pods not cleaned up"
