@@ -1062,15 +1062,15 @@ def updateOLCNEConfig() {
         # TODO: Need to update the following with OLCNE > 1.5 release
         # Add annotation to the storageclass created by OLCNE oci-ccm module
         kubectl get storageclass oci-bv -o yaml > "$WORKSPACE/oci-bv.yaml"
-        yq -i eval '.metadata.annotations += "storageclass.kubernetes.io/is-default-class: true"' "$WORKSPACE/oci-bv.yaml"
+        yq -i eval '.metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true"' "$WORKSPACE/oci-bv.yaml"
         kubectl replace -f "$WORKSPACE/oci-bv.yaml"
-cat << EOF | kubectl apply -f -
-    apiVersion: storage.k8s.io/v1
-    kind: CSIDriver
-    metadata:
-        name: blockvolume.csi.oraclecloud.com
-    spec:
-        fsGroupPolicy: File 
+        cat << EOF | kubectl apply -f -
+            apiVersion: storage.k8s.io/v1
+            kind: CSIDriver
+            metadata:
+                name: blockvolume.csi.oraclecloud.com
+            spec:
+                fsGroupPolicy: File 
 EOF
     """
 }
