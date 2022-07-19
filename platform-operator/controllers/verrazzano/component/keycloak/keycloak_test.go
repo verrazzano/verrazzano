@@ -11,8 +11,6 @@ import (
 	"os/exec"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -26,7 +24,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -1345,6 +1345,33 @@ func TestUpgradeStatefulSet(t *testing.T) {
 			},
 			profilesRelativePath,
 			int32(1),
+		},
+		{
+			"StatefulSet replica count scaled to 0 when value override not same as StatefulSet",
+			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
+			&vzapi.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ComponentName,
+					Namespace: ComponentNamespace,
+				},
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte("{\"affinity\": \"podAntiAffinity:\\n  preferredDuringSchedulingIgnoredDuringExecution:\\n    - weight: 100\\n\"}"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"",
+			int32(0),
 		},
 	}
 
