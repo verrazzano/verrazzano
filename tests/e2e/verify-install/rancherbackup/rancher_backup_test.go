@@ -24,8 +24,6 @@ var (
 		"resourcesets.resources.cattle.io",
 		"restores.resources.cattle.io",
 	}
-
-	imagePrefix = pkg.GetImagePrefix()
 )
 
 var t = framework.NewTestFramework("rancherbackup")
