@@ -4,6 +4,7 @@
 package pkg
 
 import (
+	"errors"
 	"fmt"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/test"
@@ -136,8 +137,17 @@ func ExecuteBugReportWithEnvVarSuffix(directorySuffix string) error {
 // DUMP_COMMAND - The fully quallified cluster dump executable.
 func ExecuteClusterDumpWithEnvVarConfig() error {
 	err1 := ExecuteClusterDumpWithEnvVarSuffix("")
-	ExecuteBugReportWithEnvVarSuffix("")
-	return err1
+	err2 := ExecuteBugReportWithEnvVarSuffix("")
+	if err1 != nil || err2 != nil {
+		if err1 == nil {
+			return err2
+		} else if err2 == nil {
+			return err1
+		} else {
+			return errors.New(err1.Error() + err2.Error())
+		}
+	}
+	return nil
 }
 
 // DumpContainerLogs executes a "kubectl cp" command to copy a container's log directories to a local path on disk for examination.
