@@ -12,7 +12,7 @@ if [ -z "$BACKUP_OPENSEARCH" ] ||  [ -z "$VELERO_NAMESPACE" ] ||  [ -z "$OCI_OS_
 fi
 
 function cleanup() {
-    kubectl delete restore.velero.io generic -n ${VELERO_NAMESPACE} ${RESTORE_NAME} --ignore-not-found=true
+    kubectl delete restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME} --ignore-not-found=true
     sleep 30
 }
 

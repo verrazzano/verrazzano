@@ -13,7 +13,7 @@ if [ -z "$OCI_OS_ACCESS_KEY" ] || [ -z "$OCI_OS_ACCESS_SECRET_KEY" ] || [ -z "$V
 fi
 
 function cleanup() {
-    kubectl delete backup.velero.io generic -n ${VELERO_NAMESPACE}  ${BACKUP_OPENSEARCH} --ignore-not-found=true
+    kubectl delete backup.velero.io -n ${VELERO_NAMESPACE}  ${BACKUP_OPENSEARCH} --ignore-not-found=true
     sleep 30
 }
 
