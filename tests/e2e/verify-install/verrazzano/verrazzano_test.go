@@ -418,8 +418,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion110 {
-				err := validateCorrectNumberOfPodsRunning("verrazzano-authproxy", constants.VerrazzanoSystemNamespace)
-				Expect(err).To(BeNil())
+				validateCorrectNumberOfPodsRunning("verrazzano-authproxy", constants.VerrazzanoSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
@@ -504,8 +503,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion110 {
-				err := validateCorrectNumberOfPodsRunning("istio-ingressgateway", constants.IstioSystemNamespace)
-				Expect(err).To(BeNil())
+				validateCorrectNumberOfPodsRunning("istio-ingressgateway", constants.IstioSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
@@ -513,8 +511,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion120 {
-				err := validateIstioGatewayAffinity("istio-ingressgateway", constants.IstioSystemNamespace)
-				Expect(err).To(BeNil())
+				validateIstioGatewayAffinity("istio-ingressgateway", constants.IstioSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
@@ -534,8 +531,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion110 {
-				err := validateCorrectNumberOfPodsRunning("istio-egressgateway", constants.IstioSystemNamespace)
-				Expect(err).To(BeNil())
+				validateCorrectNumberOfPodsRunning("istio-egressgateway", constants.IstioSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
@@ -543,8 +539,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion120 {
-				err := validateIstioGatewayAffinity("istio-egressgateway", constants.IstioSystemNamespace)
-				Expect(err).To(BeNil())
+				validateIstioGatewayAffinity("istio-egressgateway", constants.IstioSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
@@ -582,14 +577,13 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 	t.Describe("service resources in verrazzano-system", Label("f:platform-lcm.install"), func() {
 		t.It("have expected Istio port names", func() {
-			err := validateVerrazzanoSystemServicePorts()
-			Expect(err).To(BeNil())
+			validateVerrazzanoSystemServicePorts()
 		})
 	})
 
 })
 
-func validateIstioGatewayAffinity(gwName string, gwNamespace string) error {
+func validateIstioGatewayAffinity(gwName string, gwNamespace string) {
 	var pods []corev1.Pod
 	Eventually(func() error {
 		var err error
@@ -606,10 +600,9 @@ func validateIstioGatewayAffinity(gwName string, gwNamespace string) error {
 		Expect(affinity.PodAntiAffinity).ToNot(BeNil())
 		Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
 	}
-	return nil
 }
 
-func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) error {
+func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) {
 	// Get the deployment
 	var deployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
@@ -635,10 +628,9 @@ func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) err
 		}
 		return runningPods == *expectedPods
 	}, waitTimeout, pollingInterval).Should(BeTrue())
-	return nil
 }
 
-func validateCorrectNumberOfIngressNGINXPodsRunning() error {
+func validateCorrectNumberOfIngressNGINXPodsRunning() {
 	// Get the controller deployment
 	var controllerDeployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
@@ -670,7 +662,6 @@ func validateCorrectNumberOfIngressNGINXPodsRunning() error {
 		}
 		return runningPods == *controllerDeployment.Spec.Replicas+*defaultBackendDeployment.Spec.Replicas
 	}, waitTimeout, pollingInterval).Should(BeTrue())
-	return nil
 }
 
 // validateCorrectNumberOfPodsRunningSts - validate the expected number of pods is running for a statefulset
@@ -705,7 +696,7 @@ func validateCorrectNumberOfPodsRunningSts(stsName string, nameSpace string, lab
 
 // Validate the verrazzano-system service ports to make sure they follow Istio conventions for
 // naming ports.  Ports should have the prefix of "http-" or "https-" or be equal to "http" or "https".
-func validateVerrazzanoSystemServicePorts() error {
+func validateVerrazzanoSystemServicePorts() {
 	// Get the list of verrazzano-system services
 	var services *corev1.ServiceList
 	Eventually(func() (*corev1.ServiceList, error) {
@@ -737,7 +728,6 @@ func validateVerrazzanoSystemServicePorts() error {
 			}
 		}
 	}
-	return nil
 }
 
 func assertPodAntiAffinity(matchLabels map[string]string, namespace string) {
