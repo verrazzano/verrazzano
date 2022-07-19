@@ -374,7 +374,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//getESInternalSecret checks whether verrazzano-es-internal secret exists. Return error if the secret does not exist.
+// getESInternalSecret checks whether verrazzano-es-internal secret exists. Return error if the secret does not exist.
 func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 	secret := corev1.Secret{}
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
@@ -458,7 +458,7 @@ func ReassociateResources(cli clipkg.Client) error {
 	return nil
 }
 
-//Verifies if User created Jaeger instance deployments exists
+// Verifies if User created Jaeger instance deployments exists
 func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 	client := ctx.Client()
 	deployments := []types.NamespacedName{
@@ -475,6 +475,9 @@ func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 	return status.DoDeploymentsExist(ctx.Log(), client, deployments, 1, prefix)
 }
 
+// removeMutatingWebhookConfig removes the  jaeger-operator-mutating-webhook-configuration resource during the pre-upgrade
+// The jaeger-operator-mutating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
+// On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service during the upgrade.
 func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	config, err := controllerruntime.GetConfig()
 	if err != nil {
@@ -497,6 +500,9 @@ func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// removeValidatingWebhookConfig removes the  jaeger-operator-validating-webhook-configuration resource during the pre-upgrade
+// The jaeger-operator-validating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
+// On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service during the upgrade.
 func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
 	config, err := controllerruntime.GetConfig()
 	if err != nil {
@@ -550,6 +556,8 @@ func removeDeploymentAndService(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// removeJaegerWebhookService removes the jaeger-operator-webhook-service  during the upgrade
+//After removing the mutating and validating webhook configs, the webhook service is removed and replaced by helm during the upgrade.
 func removeJaegerWebhookService(ctx spi.ComponentContext) error {
 
 	service := &corev1.Service{}
@@ -562,8 +570,8 @@ func removeJaegerWebhookService(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//Jaeger yaml based installation creates jaeger-operator-serving-cert which is different from helm based installation
-//But both create same secret jaeger-operator-service-cert, After jaeger is upgraded, jaeger webhook uses old secret which isn't valid, so had to be removed.
+// Jaeger yaml based installation creates jaeger-operator-serving-cert which is different from helm based installation
+// But both create same secret jaeger-operator-service-cert, After jaeger is upgraded, jaeger webhook uses old secret which isn't valid, so had to be removed.
 func removeOldCertAndSecret(ctx spi.ComponentContext) error {
 	cert := &certv1.Certificate{}
 	ctx.Log().Info("Removing old jaeger certificate if it exists %s/%s", ComponentNamespace, ComponentCertificateName)
@@ -589,12 +597,9 @@ func GetHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-metrics", Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-webhook-service", Namespace: ComponentNamespace}},
-		//{Obj: &certv1.Certificate{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-serving-cert", Namespace: ComponentNamespace}},
 		{Obj: &certv1.Issuer{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-selfsigned-issuer", Namespace: ComponentNamespace}},
 		{Obj: &adminv1.ValidatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-validating-webhook-configuration", Namespace: ComponentNamespace}},
 		{Obj: &adminv1.MutatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-mutating-webhook-configuration", Namespace: ComponentNamespace}},
-		//{Obj: &rbacv1.RoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
-		//{Obj: &rbacv1.Role{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
 	}
 }
 
