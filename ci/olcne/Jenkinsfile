@@ -3,12 +3,10 @@
 
 // This pipeline is configured to test Verrazzano using OLCNE environment
 // -> Setup Kubernetes in OLCNE environment
-// -> Setup persistent storage for Verrazzano 
-// -> Create OCI Load Balancers
-// -> Setup DNS Zone with the records
+// -> Install oci-ccm module in OLCNE environment
 // -> Install Verrazzano 
-// -> Deploys Verrazzano test applications 
-// -> Runs validations 
+// -> Deploy Verrazzano test applications 
+// -> Run validations 
 // -> Undeploy the apps
 // -> Uninstall Verrazzano
 // -> Cleanup resources
@@ -22,8 +20,6 @@ def kubernetesVersions=[ "v1.22.5", "v1.21.5", "v1.20.8" ]
 def olcneVersions=[ "1.5", "1.4", "1.3"]
 def osVersions=['8', '7']
 def uniquePrefix=UUID.randomUUID().toString().substring(0,6).replace('-','')
-// Currently the pipeline only supports GLOBAL DNS Zone
-def dnsScopes=['GLOBAL']
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=false
 
 pipeline {
@@ -99,10 +95,6 @@ pipeline {
             defaultValue: 'olcne-oci-ccm',
             description: 'Name of the OLCNE OCI-CCM module',
             trim: true)
-        choice(
-            name: 'OCI_DNS_SCOPE',
-            description: 'Specifies OCI DNS scope. Default: GLOBAL', 
-            choices: dnsScopes)
         string (
             name: "INSTALL_PROFILE",
             defaultValue: 'prod',
@@ -329,7 +321,7 @@ pipeline {
                         // update the description with some meaningful info
                         setDisplayName()
                         currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
-                        // derive the prefix for the OKE cluster
+                        // derive the prefix for the OLCNE cluster
                         OLCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                         // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                         env.K8S_VERSION_LABEL=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
@@ -365,35 +357,6 @@ pipeline {
             }
         }
 
-        stage("Create OCI Storage") {
-            steps {
-                script {
-                    echo "[INFO] Creating OCI Storage"
-                    // createOCIStorage()
-                }
-            }
-        }
-
-        stage("Create OCI Load Balancers") {
-            steps {
-                script {
-                    echo "[INFO] Creating OCI LoadBalancers"
-                    // createOCILoadBalancers()
-                }
-            }
-        }
-
-       stage("Create OCI DNS Zone") {
-            steps {
-                script {
-                    echo "[INFO] Creating OCI DNS Zone"
-                    // createOCIDNSZone()
-                    echo "[INFO] Creating DNS Zone Records"
-                    // createOCIDNSZoneRecords()
-                }
-            }
-        }
-
         stage("Create image pull secrets") {
             steps {
                 script {
@@ -408,15 +371,6 @@ pipeline {
                 script {
                     echo "[INFO] Enable External IP access"
                     updateOLCNEConfig()
-                }
-            }
-        }
-
-        stage("Mount OCI Storage") {
-            steps {
-                script {
-                    echo "[INFO] Mounting OCI Storage"
-                    // mountOCIStorage()
                 }
             }
         }
@@ -486,7 +440,6 @@ pipeline {
 
         stage('Post-install Acceptance Tests') {
             steps {
-                // Run all acceptance tests after installation
                 script {
                     parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'true', 'false')
                 }
@@ -526,18 +479,6 @@ pipeline {
             
             script {
                 if (params.KEEP_RESOURCES_AFTER_RUN == false) {
-                    // if (env.createdOCIDNSZone && env.createdOCIDNSZone == "true") {
-                    //     echo "[INFO] Deleting OCI DNS Zone"
-                    //     deleteOCIDNSZone()
-                    // }
-                    // if (env.createdOCIFileSystem && env.createdOCIFileSystem == "true") {
-                    //     echo "[INFO] Deleting OCI FileSystem"
-                    //     deleteOCIFileSystem()
-                    // }
-                    // if (env.createdOCILoadBalancers && env.createdOCILoadBalancers == "true") {
-                    //     echo "[INFO] Deleting OCI LoadBalancers"
-                    //     deleteOCILoadBalancers()
-                    // }
                     if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
                         echo "[INFO] Deleting OLCNE Cluster"
                         deleteOLCNECluster()
@@ -677,14 +618,6 @@ def acceptanceTestsConsole(dumpRoot) {
 
 def saveConsoleScreenShots() {
     sh "$GO_REPO_PATH/verrazzano/ci/scripts/save_console_test_artifacts.sh"
-}
-
-def getTestClusterType(testEnv) {
-    if("kind".equalsIgnoreCase(testEnv)) {
-        return "KIND"
-    } else {
-        return "OKE"
-    }
 }
 
 def runGinkgoRandomize(testSuitePath, dumpDir='') {
@@ -837,7 +770,7 @@ def getMetricLabels() {
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
              'kubernetes_version=\\"' + "${params.K8S_VERSION}"+'\\",' +
-             'test_env=\\"' + "ocidns_oke"+'\\"'
+             'test_env=\\"' + "olcne"+'\\"'
     return labels
 }
 
@@ -915,14 +848,6 @@ def setDisplayName() {
          }
     }
     echo "[INFO] End setDisplayName"
-}
-
-def createImagePullSecrets() {
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
-    """
 }
 
 def emitJobMetrics() {
@@ -1075,65 +1000,11 @@ EOF
     """
 }
 
-def createOCIStorage() {
-    env.createdOCIFileSystem="true"
+def createImagePullSecrets() {
     sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
-        -o create -a "$TF_VAR_availability_domain_id" \
-        -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
-        -p "/$TF_VAR_prefix-export" -c "$TF_VAR_compartment_id" -s "$NODE_SUBNET_OCID"
-    """
-    env.MT_PVT_IP_OCID=sh(returnStdout: true, script: """ oci fs mount-target list --compartment-id "$TF_VAR_compartment_id" --availability-domain "$TF_VAR_availability_domain_id" --display-name "$TF_VAR_prefix-mt" --lifecycle-state ACTIVE | jq -r '.data[0]."private-ip-ids"[0]' """).trim()
-    echo MT_PVT_IP_OCID
-    env.OCI_MOUNT_IP=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_private_ip_address.sh "$MT_PVT_IP_OCID" """).trim()
-    echo OCI_MOUNT_IP
-    env.OCI_EXPORT_PATH="$TF_VAR_prefix-export"
-    echo OCI_EXPORT_PATH
-}
-
-def mountOCIStorage() {
-    env.WORKER_IP=WORKER_NODES_IP.split(" ")[0]
-    echo WORKER_IP
-    env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
-    echo CONTROL_PLANE_IP
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/mount_oci_storage.sh \
-        "$WORKSPACE" "$API_SERVER_IP" "$CONTROL_PLANE_IP" "$WORKER_IP" "$OCI_MOUNT_IP" "$TF_VAR_prefix" "$TF_VAR_ssh_private_key_path" "$OCI_EXPORT_PATH"
-    """
-}
-
-def createOCILoadBalancers() {
-    env.createdOCILoadBalancers="true"
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
-        -o create -n "$TF_VAR_prefix-mgmt" -e true \
-        -c "$TF_VAR_compartment_id" -s "$BASTION_SUBNET_OCID" \
-        -i "$WORKER_NODES_IP" -p 30443 \
-        -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
-
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
-        -o create -n "$TF_VAR_prefix-app" -e true \
-        -c "$TF_VAR_compartment_id" -s "$BASTION_SUBNET_OCID" \
-        -i "$WORKER_NODES_IP" -p 31390 \
-        -f "$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci-load-balancer.json"
-    """
-    env.OCI_LB_MGMT_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-mgmt" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """).trim()
-    echo OCI_LB_MGMT_IP
-    env.OCI_LB_APP_IP=sh(returnStdout: true, script: """ oci lb load-balancer list --compartment-id "$TF_VAR_compartment_id" --display-name "$TF_VAR_prefix-app" --lifecycle-state ACTIVE | jq -r '.data[0]."ip-addresses"[0]."ip-address"' """).trim()
-    echo OCI_LB_APP_IP
-}
-
-def createOCIDNSZone() {
-    env.createdOCIDNSZone="true"
-    env.OCI_DNS_ZONE_OCID=sh(returnStdout: true, script: """ $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c "$TF_VAR_compartment_id" -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" """).trim()
-    echo OCI_DNS_ZONE_OCID
-}
-
-def createOCIDNSZoneRecords() {
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create_dns_records.sh \
-        -c $TF_VAR_compartment_id -e $VZ_ENVIRONMENT_NAME -z $OCI_DNS_ZONE_NAME \
-        -s $OCI_DNS_SCOPE -m $OCI_LB_MGMT_IP -a $OCI_LB_APP_IP
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
     """
 }
 
@@ -1181,7 +1052,7 @@ def installVerrazzano() {
         
         # Create acceptance test configuration file
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/common-test-setup-script.sh "$WORKSPACE" "$TEST_CONFIG_FILE" "$GHCR_REPO" "$KUBECONFIG" "$OCR_CREDS_USR" "$OCR_CREDS_PSW" "$VZ_ENVIRONMENT_NAME"
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_ingress_ip.sh "$TEST_CONFIG_FILE" "$OCI_DNS_ZONE_NAME"
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_ingress_ip.sh "$TEST_CONFIG_FILE"
         echo "[INFO] ----------Test config file:-------------"
         cat "$TEST_CONFIG_FILE"
         echo "[INFO] ----------------------------------------" 
@@ -1212,33 +1083,4 @@ def deleteOLCNECluster() {
             fi
         done
     '''
-}
-
-def deleteOCIFileSystem() {
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_fs_ops.sh \
-        -o delete -a "$TF_VAR_availability_domain_id" \
-        -n "$TF_VAR_prefix-fs" -m "$TF_VAR_prefix-mt" \
-        -p "/$TF_VAR_prefix-export" -c "$TF_VAR_compartment_id"
-    """
-}
-
-def deleteOCILoadBalancers() {
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
-        -o delete -n "$TF_VAR_prefix-mgmt" \
-        -c "$TF_VAR_compartment_id"
-
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_lb_ops.sh \
-        -o delete -n "$TF_VAR_prefix-app" \
-        -c "$TF_VAR_compartment_id"
-    """
-}
-
-def deleteOCIDNSZone() {
-    sh """
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh \
-        -o delete -s "$OCI_DNS_ZONE_SUBDOMAIN_NAME" -k "$OCI_DNS_SCOPE" \
-        || echo "[ERROR] Failed to delete DNS zone $OCI_DNS_ZONE_SUBDOMAIN_NAME"
-    """
 }
