@@ -28,7 +28,7 @@ var (
 	imagePrefix = pkg.GetImagePrefix()
 )
 
-var t = framework.NewTestFramework("velero")
+var t = framework.NewTestFramework("rancherbackup")
 
 func isRancherBackupEnabled() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -92,7 +92,7 @@ var _ = t.Describe("Rancher Backup", Label("f:platform-lcm.install"), func() {
 
 		// GIVEN the Rancher Backup is installed
 		// WHEN we check to make sure cattle crds are created
-		// THEN we see that correct set of velero crds are set up
+		// THEN we see that correct set of rancher backup crds are set up
 		WhenRancherBackupInstalledIt("should have the correct rancher backup CRDs", func() {
 			verifyCRDList := func() (bool, error) {
 				if isRancherBackupEnabled() {
