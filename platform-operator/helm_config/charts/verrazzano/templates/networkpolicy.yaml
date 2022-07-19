@@ -136,8 +136,9 @@ spec:
     - Ingress
 {{- if .Values.jaegerOperator.enabled }}
 ---
-# Network policy for Jaeger
+# Network policy for Jaeger Collector
 # Ingress: allow access to connect to Jaeger Collector ports 9411 and 14250
+# Ingress: allow access from Prometheus to scrape Jaeger Collector metrics on port ports 14269
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -158,4 +159,55 @@ spec:
           protocol: TCP
         - port: 14250
           protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 14269
+          protocol: TCP
+---
+# Network policy for Jaeger Query
+# Ingress: allow access from Prometheus to scrape Jaeger Query metrics on port ports 14271 and 16687
+# Ingress: allow access from verrazzano-authproxy to Jaeger UI on port 16686
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: jaeger-query
+  namespace: {{ .Values.jaegerOperator.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: jaeger
+      app.kubernetes.io/component: query
+      app.kubernetes.io/managed-by: jaeger-operator
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: verrazzano-monitoring
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: prometheus
+      ports:
+        - port: 16687
+          protocol: TCP
+        - port: 14271
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: verrazzano-authproxy
+      ports:
+        - protocol: TCP
+          port: 16686
 {{- end }}
