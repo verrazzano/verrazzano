@@ -69,17 +69,18 @@ do
        echo "Backup failed. retry count exceeded !!"
        exit 1
     fi
-    echo "Backup operation is in progress. Check after 10 seconds"
+    #echo "Backup operation is in progress. Check after 10 seconds"
     sleep 10
   else
-      echo "Backup progress changed to  $RESPONSE"
+      #echo "Backup progress changed to  $RESPONSE"
       CHECK_DONE=false
   fi
   RETRY_COUNT=$((RETRY_COUNT + 1))
 done
 
-if [ "${RESPONSE}" != "Completed" ]; then
-    exit 1
+if [ $? -ne 0 ]; then
+  echo "Backup object creation failure while retry"
+  exit 1
 fi
 
 exit 0
