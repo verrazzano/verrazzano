@@ -186,6 +186,17 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 		return err
 	}
 
+	projects := vzappclusters.VerrazzanoProjectList{}
+	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil {
+		return log.ErrorfNewErr("Failed listing MC projects: %v", err)
+	}
+	// Delete MC rolebindings for each project
+	for _, p := range projects.Items {
+		if err := r.deleteManagedClusterRoleBindings(p, log); err != nil {
+			return err
+		}
+	}
+
 	log.Oncef("Deleting all VMC resources")
 	vmcList := clustersapi.VerrazzanoManagedClusterList{}
 	if err := r.List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil {
@@ -193,16 +204,19 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 	}
 
 	for i, vmc := range vmcList.Items {
+		// Delete the VMC ServiceAccount (since managed cluster role bindings associated to it should now be deleted)
+		vmcSA := corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{Namespace: vmc.Namespace, Name: vmc.Spec.ServiceAccount},
+		}
+		if err := r.Delete(context.TODO(), &vmcSA); err != nil {
+			return log.ErrorfNewErr("Failed to delete VMC service account %s/%s, %v", vmc.Namespace, vmc.Spec.ServiceAccount, err)
+		}
 		if err := r.Delete(context.TODO(), &vmcList.Items[i]); err != nil {
 			return log.ErrorfNewErr("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
 		}
 	}
 
 	// Delete VMC namespace only if there are no projects
-	projects := vzappclusters.VerrazzanoProjectList{}
-	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil {
-		return log.ErrorfNewErr("Failed listing MC projects: %v", err)
-	}
 	if len(projects.Items) == 0 {
 		log.Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
 		if err := r.deleteNamespace(context.TODO(), log, vzconst.VerrazzanoMultiClusterNamespace); err != nil {
@@ -220,6 +234,25 @@ func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 		}
 		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+// deleteManagedClusterRoleBindings deletes the managed cluster rolebindings from each namespace
+// governed by the given project
+func (r *Reconciler) deleteManagedClusterRoleBindings(project vzappclusters.VerrazzanoProject, log vzlog.VerrazzanoLogger) error {
+	for _, projectNSTemplate := range project.Spec.Template.Namespaces {
+		rbList := rbacv1.RoleBindingList{}
+		if err := r.List(context.TODO(), &rbList, &client.ListOptions{Namespace: projectNSTemplate.Metadata.Name}); err != nil {
+			return err
+		}
+		for i, rb := range rbList.Items {
+			if rb.RoleRef.Name == "verrazzano-managed-cluster" {
+				if err := r.Delete(context.TODO(), &rbList.Items[i]); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -302,10 +335,20 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 	return nil
 }
 
-//deleteNamespaces Cleans up any namespaces shared by multiple components
+// deleteNamespaces deletes up all component namespaces plus any namespaces shared by multiple components
 // - returns an error or a requeue with delay result
 func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
-	for _, ns := range sharedNamespaces {
+	// Load a set of all component namespaces plus shared namespaces
+	nsSet := make(map[string]bool)
+	for _, comp := range registry.GetComponents() {
+		nsSet[comp.Namespace()] = true
+	}
+	for i := range sharedNamespaces {
+		nsSet[sharedNamespaces[i]] = true
+	}
+
+	// Delete all the namespaces
+	for ns := range nsSet {
 		log.Progressf("Deleting namespace %s", ns)
 		err := resource.Resource{
 			Name:   ns,
@@ -317,8 +360,10 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) (ctrl.Result, 
 			return ctrl.Result{}, err
 		}
 	}
+
+	// Wait for all the namespaces to be deleted
 	waiting := false
-	for _, ns := range sharedNamespaces {
+	for ns := range nsSet {
 		err := r.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
 		if err != nil {
 			if errors.IsNotFound(err) {
