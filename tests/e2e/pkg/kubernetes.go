@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/selection"
 	"net/http"
 	"os"
 	"strings"
@@ -26,6 +27,7 @@ import (
 	istionetv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/authorization/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -124,18 +126,62 @@ func ListPods(namespace string, opts metav1.ListOptions) (*corev1.PodList, error
 
 // ListDeployments returns the list of deployments in a given namespace for the cluster
 func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
+	return ListDeploymentsMatchingLabels(namespace, nil)
+}
+
+// ListDeployments returns the list of deployments in a given namespace matching the given labels for the cluster
+func ListDeploymentsMatchingLabels(namespace string, matchLabels map[string]string) (*appsv1.DeploymentList, error) {
 	// Get the Kubernetes clientset
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
 	}
-
-	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
+	listOptions := metav1.ListOptions{}
+	if matchLabels != nil {
+		var selector labels.Selector
+		for k, v := range matchLabels {
+			selectorLabel, _ := labels.NewRequirement(k, selection.Equals, []string{v})
+			selector = labels.NewSelector()
+			selector = selector.Add(*selectorLabel)
+		}
+		listOptions.LabelSelector = selector.String()
+	}
+	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), listOptions)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to list deployments in namespace %s: %v", namespace, err))
 		return nil, err
 	}
 	return deployments, nil
+}
+
+// ListCronJobsMatchingLabels returns the list of cronjobs in a given namespace matching the given labels for the cluster
+func ListCronJobs(namespace string) (*batchv1.CronJobList, error) {
+	return ListCronJobsMatchingLabels(namespace, nil)
+}
+
+// ListCronJobsMatchingLabels returns the list of cronjobs in a given namespace matching the given labels for the cluster
+func ListCronJobsMatchingLabels(namespace string, matchLabels map[string]string) (*batchv1.CronJobList, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	listOptions := metav1.ListOptions{}
+	if matchLabels != nil {
+		var selector labels.Selector
+		for k, v := range matchLabels {
+			selectorLabel, _ := labels.NewRequirement(k, selection.Equals, []string{v})
+			selector = labels.NewSelector()
+			selector = selector.Add(*selectorLabel)
+		}
+		listOptions.LabelSelector = selector.String()
+	}
+	cronjobs, err := clientset.BatchV1().CronJobs(namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list deployments in namespace %s: %v", namespace, err))
+		return nil, err
+	}
+	return cronjobs, nil
 }
 
 // GetReplicaCounts Builds a map of pod counts for a list of deployments
@@ -166,6 +212,21 @@ func DoesDeploymentExist(namespace string, name string) (bool, error) {
 	}
 	for i := range deployments.Items {
 		if strings.HasPrefix(deployments.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// DoesCronJobExist returns whether a cronjob with the given name and namespace exists for the cluster
+func DoesCronJobExist(namespace string, name string) (bool, error) {
+	cronjobs, err := ListCronJobsMatchingLabels(namespace, nil)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed listing deployments in cluster for namespace %s: %v", namespace, err))
+		return false, err
+	}
+	for i := range cronjobs.Items {
+		if strings.HasPrefix(cronjobs.Items[i].Name, name) {
 			return true, nil
 		}
 	}

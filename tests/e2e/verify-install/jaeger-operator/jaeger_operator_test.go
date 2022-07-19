@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	waitTimeout        = 3 * time.Minute
-	pollingInterval    = 10 * time.Second
-	jaegerOperatorName = "jaeger-operator"
+	waitTimeout             = 3 * time.Minute
+	pollingInterval         = 10 * time.Second
+	jaegerOperatorName      = "jaeger-operator"
+	jaegerESIndexCleanerJob = "jaeger-operator-jaeger-es-index-cleaner"
 )
 
 var (
@@ -161,5 +162,22 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 			}
 			Eventually(verifyCRDList, waitTimeout, pollingInterval).Should(BeTrue())
 		})
+
+		// GIVEN the Jaeger Operator is installed
+		// WHEN we check to make sure the Jaeger OpenSearch Index Cleaner cron job exists
+		// THEN we successfully find the expected cron job
+		WhenJaegerOperatorInstalledIt("should have a Jaeger OpenSearch Index Cleaner cron job", func() {
+			Eventually(func() (bool, error) {
+				create, err := pkg.IsJaegerInstanceCreated()
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error checking if Jaeger CR is available %s", err.Error()))
+				}
+				if create {
+					return pkg.DoesCronJobExist(constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
+				}
+				return false, nil
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
 	})
+
 })
