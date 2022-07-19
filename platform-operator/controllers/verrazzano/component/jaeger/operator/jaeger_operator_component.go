@@ -29,11 +29,11 @@ const (
 	ComponentJSONName = "jaegerOperator"
 	// ChartDir is the relative directory path for Jaeger Operator chart
 	ChartDir = "jaegertracing/jaeger-operator"
-	//ComponentServiceName is the name of the service.
+	// ComponentServiceName is the name of the service.
 	ComponentServiceName = "jaeger-operator-metrics"
-	//ComponentWebhookServiceName is the name of the webhook service.
+	// ComponentWebhookServiceName is the name of the webhook service.
 	ComponentWebhookServiceName = "jaeger-operator-webhook-service"
-	//ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
+	// ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
 	ComponentMutatingWebhookConfigName = "jaeger-operator-mutating-webhook-configuration"
 	// ComponentValidatingWebhookConfigName is the name of the mutating webhook config.
 	ComponentValidatingWebhookConfigName = "jaeger-operator-validating-webhook-configuration"
@@ -41,11 +41,11 @@ const (
 	ComponentCertificateName = "jaeger-operator-serving-cert"
 	// ComponentSecretName  is the name of the secret.
 	ComponentSecretName = "jaeger-operator-service-cert"
-	//JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
+	// JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
 	JaegerCollectorDeploymentName = "jaeger-operator-jaeger-collector"
-	//JaegerQueryDeploymentName is the name of the Jaeger instance query deployment.
+	// JaegerQueryDeploymentName is the name of the Jaeger instance query deployment.
 	JaegerQueryDeploymentName = "jaeger-operator-jaeger-query"
-	//JaegerInstanceName is the name of the jaeger instance
+	// JaegerInstanceName is the name of the jaeger instance
 	JaegerInstanceName = "jaeger-operator-jaeger"
 )
 

@@ -556,7 +556,7 @@ func removeDeploymentAndService(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// removeJaegerWebhookService removes the jaeger-operator-webhook-service  during the upgrade
+// removeJaegerWebhookService removes the jaeger-operator-webhook-service during the pre-upgrade
 // After removing the mutating and validating webhook configs, the webhook service is removed and replaced by helm during the upgrade.
 func removeJaegerWebhookService(ctx spi.ComponentContext) error {
 	service := &corev1.Service{}
