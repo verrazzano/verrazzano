@@ -14,7 +14,8 @@ fi
 
 function cleanup() {
     kubectl delete backup.velero.io -n ${VELERO_NAMESPACE}  ${BACKUP_OPENSEARCH} --ignore-not-found=true
-    sleep 30
+    kubectl delete pod -n verrazzano-system  vmi-system-es-master-0 --grace-period=0 --force
+    kubectl wait --namespace verrazzano-system --for=condition=ready pod --all --timeout=300s
 }
 
 function create_backup() {
