@@ -42,6 +42,15 @@ spec:
       overrides:
         - values:
             replicas: 2
+    ingress:
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 2
+            defaultBackend:
+              replicaCount: 2
     istio:
       overrides:
         - values:
