@@ -8353,6 +8353,9 @@ spec:
                   grafanaUrl:
                     description: GrafanaURL The Grafana URL for this Verrazzano installation
                     type: string
+                  jaegerUrl:
+                    description: JaegerURL The Jaeger UI URL for this Verrazzano installation
+                    type: string
                   keyCloakUrl:
                     description: KeyCloakURL The KeyCloak URL for this Verrazzano
                       installation

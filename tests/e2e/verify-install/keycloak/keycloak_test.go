@@ -315,13 +315,13 @@ func verifyKeycloakClientURIs() bool {
 	json.Unmarshal([]byte(out), &keycloakClient)
 
 	// Verify Correct number of RedirectURIs
-	if len(keycloakClient.RedirectUris) != 12 {
+	if len(keycloakClient.RedirectUris) != 13 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Verify Correct number of WebOrigins
-	if len(keycloakClient.WebOrigins) != 6 {
+	if len(keycloakClient.WebOrigins) != 7 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 		return false
 	}
