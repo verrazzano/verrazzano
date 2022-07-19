@@ -59,7 +59,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
 			ImagePullSecretKeyname:    imagePullSecretHelmKey,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-backup-override-static-values.yaml"),
-			AppendOverridesFunc:       nil,
+			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			Dependencies:              []string{rancher.ComponentName},
 		},
