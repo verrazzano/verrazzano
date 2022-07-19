@@ -23,7 +23,9 @@ import (
 	networkv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,7 +34,14 @@ import (
 
 var (
 	// For Unit test purposes
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc              = ioutil.WriteFile
+	getControllerRuntimeClient = getClient
+	disallowedOverrides        = []string{
+		"nameOverride",
+		"fullnameOverride",
+		"serviceAccount.name",
+		"ingress.enabled",
+	}
 )
 
 func resetWriteFileFunc() {
@@ -274,9 +283,33 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 // due to Jaeger Operator specifications
 func (c jaegerOperatorComponent) validateJaegerOperator(vz *vzapi.Verrazzano) error {
 	// Validate install overrides
-	if vz.Spec.Components.JaegerOperator != nil {
-		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.JaegerOperator.ValueOverrides); err != nil {
+	if vz.Spec.Components.JaegerOperator != nil && vz.Spec.Components.JaegerOperator.Enabled != nil &&
+		*vz.Spec.Components.JaegerOperator.Enabled {
+		overrides := vz.Spec.Components.JaegerOperator.ValueOverrides
+		if err := vzapi.ValidateInstallOverrides(overrides); err != nil {
 			return err
+		}
+
+		client, err := getControllerRuntimeClient()
+		if err != nil {
+			return err
+		}
+		overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
+		if err != nil {
+			return err
+		}
+		for _, overrideYAML := range overrideYAMLs {
+			// Check if there are any Helm chart values that are not allowed to be overridden by the user
+			for _, disallowedOverride := range disallowedOverrides {
+				value, err := common.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
+				if err != nil {
+					return err
+				}
+				if value != nil {
+					return fmt.Errorf("the Jaeger Operator Helm chart value %s cannot be overriden in"+
+						" Verrazzano CR", disallowedOverride)
+				}
+			}
 		}
 	}
 	return nil
@@ -468,4 +501,21 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 
 func buildJaegerHostnameForDomain(dnsDomain string) string {
 	return fmt.Sprintf("%s.%s", jaegerHostName, dnsDomain)
+}
+
+// getClient returns a controller runtime client for the Verrazzano resource
+func getClient() (clipkg.Client, error) {
+	runtimeConfig, err := controllerruntime.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	return clipkg.New(runtimeConfig, clipkg.Options{Scheme: newScheme()})
+}
+
+// newScheme creates a new scheme that includes this package's object for use by client
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	_ = vzapi.AddToScheme(scheme)
+	_ = clientgoscheme.AddToScheme(scheme)
+	return scheme
 }
