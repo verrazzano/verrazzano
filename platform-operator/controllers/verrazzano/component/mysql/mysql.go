@@ -29,26 +29,26 @@ import (
 
 const (
 	secretName          = "mysql"
-	mySQLUsernameKey    = "mysqlUser"
+	mySQLUsernameKey    = "auth.username"
 	mySQLUsername       = "keycloak"
-	helmPwd             = "mysqlPassword"
-	helmRootPwd         = "mysqlRootPassword"
+	helmPwd             = "auth.password"
+	helmRootPwd         = "auth.rootPassword"
 	mySQLKey            = "mysql-password"
 	mySQLRootKey        = "mysql-root-password"
 	mySQLInitFilePrefix = "init-mysql-"
-	mySQLHookFile       = "platform-operator/scripts/hooks/mysql-hook.sh"
+	//mySQLHookFile       = "platform-operator/scripts/hooks/mysql-hook.sh"
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
 func isMySQLReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
+	statefulset := []types.NamespacedName{
 		{
 			Name:      ComponentName,
 			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return status.StatefulSetsAreReady(context.Log(), context.Client(), statefulset, 1, prefix)
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides
@@ -74,8 +74,8 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
-		kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: mySQLInitFile, SetFile: true})
-		kvs = append(kvs, bom.KeyValue{Key: "configurationFiles.mysql-hook\\.sh", Value: mySQLHookFile, SetFile: true})
+		kvs = append(kvs, bom.KeyValue{Key: "initdbScripts.create-db\\.sql", Value: mySQLInitFile, SetFile: true})
+		//kvs = append(kvs, bom.KeyValue{Key: "primary.lifecycleHooks.mysql-hook\\.sh", Value: mySQLHookFile, SetFile: true})
 		kvs, err = appendMySQLSecret(compContext, kvs)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -245,7 +245,7 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
-	imageOverrides, err := bomFile.BuildImageOverrides("oraclelinux")
+	imageOverrides, err := bomFile.BuildImageOverrides("mysql")
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}

@@ -375,26 +375,15 @@
       "name": "mysql",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "repository": "verrazzano/mysql",
           "name": "mysql",
           "images": [
             {
               "image": "mysql",
               "tag": "8.0.29",
-              "helmFullImageKey": "image",
-              "helmTagKey": "imageTag"
-            }
-          ]
-        },
-        {
-          "repository": "oracle",
-          "name": "oraclelinux",
-          "images": [
-            {
-              "image": "oraclelinux",
-              "tag": "7-slim",
-              "helmFullImageKey": "busybox.image",
-              "helmTagKey": "busybox.tag"
+              "helmRegKey": "image.registry",
+              "helmRepoKey": "image.repository",
+              "helmTagKey": "image.tag"
             }
           ]
         }
