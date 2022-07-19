@@ -117,11 +117,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallMC
 
 		case vzStateUninstallMC:
-			spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			if err := r.deleteMCResources(spiCtx); err != nil {
+			if err := r.deleteMCResources(log); err != nil {
 				return ctrl.Result{}, err
 			}
 			tracker.vzState = vzStateUninstallComponents
@@ -183,28 +179,28 @@ func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
 }
 
 // Delete multicluster related resources
-func (r *Reconciler) deleteMCResources(ctx spi.ComponentContext) error {
+func (r *Reconciler) deleteMCResources(log vzlog.VerrazzanoLogger) error {
 	// Check if this is not managed cluster
-	managed, err := r.isManagedCluster(ctx.Log())
+	managed, err := r.isManagedCluster(log)
 	if err != nil {
 		return err
 	}
 
 	projects := vzappclusters.VerrazzanoProjectList{}
 	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed listing MC projects: %v", err)
+		return log.ErrorfNewErr("Failed listing MC projects: %v", err)
 	}
 	// Delete MC rolebindings for each project
 	for _, p := range projects.Items {
-		if err := r.deleteManagedClusterRoleBindings(p, ctx.Log()); err != nil {
+		if err := r.deleteManagedClusterRoleBindings(p, log); err != nil {
 			return err
 		}
 	}
 
-	ctx.Log().Oncef("Deleting all VMC resources")
+	log.Oncef("Deleting all VMC resources")
 	vmcList := clustersapi.VerrazzanoManagedClusterList{}
 	if err := r.List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed listing VMCs: %v", err)
+		return log.ErrorfNewErr("Failed listing VMCs: %v", err)
 	}
 
 	for i, vmc := range vmcList.Items {
@@ -213,39 +209,33 @@ func (r *Reconciler) deleteMCResources(ctx spi.ComponentContext) error {
 			ObjectMeta: metav1.ObjectMeta{Namespace: vmc.Namespace, Name: vmc.Spec.ServiceAccount},
 		}
 		if err := r.Delete(context.TODO(), &vmcSA); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed to delete VMC service account %s/%s, %v", vmc.Namespace, vmc.Spec.ServiceAccount, err)
+			return log.ErrorfNewErr("Failed to delete VMC service account %s/%s, %v", vmc.Namespace, vmc.Spec.ServiceAccount, err)
 		}
 		if err := r.Delete(context.TODO(), &vmcList.Items[i]); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
+			return log.ErrorfNewErr("Failed to delete VMC %s/%s, %v", vmc.Namespace, vmc.Name, err)
 		}
 	}
 
 	// Delete VMC namespace only if there are no projects
 	if len(projects.Items) == 0 {
-		ctx.Log().Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
-		if err := r.deleteNamespace(context.TODO(), ctx.Log(), vzconst.VerrazzanoMultiClusterNamespace); err != nil {
+		log.Oncef("Deleting %s namespace", vzconst.VerrazzanoMultiClusterNamespace)
+		if err := r.deleteNamespace(context.TODO(), log, vzconst.VerrazzanoMultiClusterNamespace); err != nil {
 			return err
 		}
 	}
 
 	// Delete secrets on managed cluster.  Don't delete MC agent secret until the end since it tells us this is MC install
 	if managed {
-		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
 			return err
 		}
-		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, mcElasticSearchScrt); err != nil {
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, mcElasticSearchScrt); err != nil {
 			return err
 		}
-		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
-			return err
-		}
-
-		// Run Rancher Post Uninstall to delete the Rancher resources on the managed cluster
-		if err := rancher.PostUninstall(ctx); err != nil {
+		if err := r.deleteSecret(log, vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -290,6 +280,10 @@ func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) 
 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
 func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, error) {
+	if err := rancher.PostUninstall(ctx); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if err := r.deleteIstioCARootCert(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
