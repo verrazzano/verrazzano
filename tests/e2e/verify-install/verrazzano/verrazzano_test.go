@@ -638,6 +638,41 @@ func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) err
 	return nil
 }
 
+func validateCorrectNumberOfIngressNGINXPodsRunning() error {
+	// Get the controller deployment
+	var controllerDeployment *appsv1.Deployment
+	Eventually(func() (*appsv1.Deployment, error) {
+		var err error
+		controllerDeployment, err = pkg.GetDeployment(constants.IngressNamespace, constants.IngressController)
+		return controllerDeployment, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	var defaultBackendDeployment *appsv1.Deployment
+	Eventually(func() (*appsv1.Deployment, error) {
+		var err error
+		defaultBackendDeployment, err = pkg.GetDeployment(constants.IngressNamespace, constants.IngressDefaultBackend)
+		return defaultBackendDeployment, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	var pods []corev1.Pod
+	Eventually(func() bool {
+		var err error
+		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "ingress-nginx"}}, constants.IngressNamespace)
+		if err != nil {
+			return false
+		}
+		// Compare the number of running pods to the expected number
+		var runningPods int32 = 0
+		for _, pod := range pods {
+			if pod.Status.Phase == corev1.PodRunning {
+				runningPods++
+			}
+		}
+		return runningPods == *controllerDeployment.Spec.Replicas+*defaultBackendDeployment.Spec.Replicas
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+	return nil
+}
+
 // validateCorrectNumberOfPodsRunningSts - validate the expected number of pods is running for a statefulset
 func validateCorrectNumberOfPodsRunningSts(stsName string, nameSpace string, label string) error {
 	// Get the deployment
