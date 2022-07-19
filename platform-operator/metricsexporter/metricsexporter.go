@@ -17,62 +17,62 @@ type configuration struct {
 }
 
 type data struct {
-	simpleCounterMetricMap map[metricName]*SimpleCounterMetric
-	simpleGaugeMetricMap   map[metricName]*SimpleGaugeMetric
-	durationMetricMap      map[metricName]*DurationMetric
-	metricsComponentMap    map[metricName]*MetricsComponent
+	simpleCounterMetricMap map[metricName]*simpleCounterMetric
+	simpleGaugeMetricMap   map[metricName]*simpleGaugeMetric
+	durationMetricMap      map[metricName]*durationMetric
+	metricsComponentMap    map[metricName]*metricsComponent
 }
-type SimpleCounterMetric struct {
+type simpleCounterMetric struct {
 	metric prometheus.Counter
 }
 
-func (c *SimpleCounterMetric) Inc() {
+func (c *simpleCounterMetric) Inc() {
 	c.metric.Inc()
 }
 
-func (c *SimpleCounterMetric) Add(num float64) {
+func (c *simpleCounterMetric) Add(num float64) {
 	c.metric.Add(num)
 }
 
-type SimpleGaugeMetric struct {
+type simpleGaugeMetric struct {
 	metric prometheus.Gauge
 }
 
-func (g *SimpleGaugeMetric) Set(num float64) {
+func (g *simpleGaugeMetric) Set(num float64) {
 	g.metric.Set(num)
 }
 
-func (g *SimpleGaugeMetric) SetToCurrentTime() {
+func (g *simpleGaugeMetric) SetToCurrentTime() {
 	g.metric.SetToCurrentTime()
 }
 
-func (g *SimpleGaugeMetric) Add(num float64) {
+func (g *simpleGaugeMetric) Add(num float64) {
 	g.metric.Add(num)
 }
 
-type DurationMetric struct {
+type durationMetric struct {
 	metric prometheus.Summary
 	timer  *prometheus.Timer
 }
 
 //Creates a new timer, and starts the timer
-func (d *DurationMetric) TimerStart() {
+func (d *durationMetric) TimerStart() {
 	d.timer = prometheus.NewTimer(d.metric)
 }
 
 //stops the timer and record the duration since the last call to TimerStart
-func (d *DurationMetric) TimerStop() {
+func (d *durationMetric) TimerStop() {
 	d.timer.ObserveDuration()
 }
 
-type MetricsComponent struct {
-	LatestInstallDuration *SimpleGaugeMetric
-	LatestUpgradeDuration *SimpleGaugeMetric
+type metricsComponent struct {
+	LatestInstallDuration *simpleGaugeMetric
+	LatestUpgradeDuration *simpleGaugeMetric
 }
 
-func getInstall(m *MetricsComponent) *SimpleGaugeMetric {
+func getInstall(m *metricsComponent) *simpleGaugeMetric {
 	return m.LatestInstallDuration
 }
-func getUpgrade(m *MetricsComponent) *SimpleGaugeMetric {
+func getUpgrade(m *metricsComponent) *simpleGaugeMetric {
 	return m.LatestUpgradeDuration
 }

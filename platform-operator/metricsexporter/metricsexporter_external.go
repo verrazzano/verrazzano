@@ -54,10 +54,37 @@ type metricsOperation string
 type metricName string
 
 const (
-	operationInstall metricsOperation = "install"
-	operationUpgrade metricsOperation = "upgrade"
-	millisPerSecond  float64          = 1000.0
-	reconcileCounter metricName       = "reconcile counter"
+	operationInstall               metricsOperation = "install"
+	operationUpgrade               metricsOperation = "upgrade"
+	millisPerSecond                float64          = 1000.0
+	reconcileCounter               metricName       = "reconcile counter"
+	reconcileError                 metricName       = "reconcile error"
+	authproxyMetricName            metricName       = authproxy.ComponentName
+	oamMetricName                  metricName       = oam.ComponentName
+	appoperMetricName              metricName       = appoper.ComponentName
+	istioMetricName                metricName       = istio.ComponentName
+	weblogicMetricName             metricName       = weblogic.ComponentName
+	nginxMetricName                metricName       = nginx.ComponentName
+	certmanagerMetricName          metricName       = certmanager.ComponentName
+	externaldnsMetricName          metricName       = externaldns.ComponentName
+	rancherMetricName              metricName       = rancher.ComponentName
+	verrazzanoMetricName           metricName       = verrazzano.ComponentName
+	vmoMetricName                  metricName       = vmo.ComponentName
+	opensearchMetricName           metricName       = opensearch.ComponentName
+	opensearchdashboardsMetricName metricName       = opensearchdashboards.ComponentName
+	grafanaMetricName              metricName       = grafana.ComponentName
+	coherenceMetricName            metricName       = coherence.ComponentName
+	mysqlMetricName                metricName       = mysql.ComponentName
+	keycloakMetricname             metricName       = keycloak.ComponentName
+	kialiMetricName                metricName       = kiali.ComponentName
+	promoperatorMetricname         metricName       = promoperator.ComponentName
+	promadapterMetricname          metricName       = promadapter.ComponentName
+	kubestatemmetricsMetricName    metricName       = kubestatemetrics.ComponentName
+	pushgatewayMetricName          metricName       = pushgateway.ComponentName
+	promnodeexporterMetricname     metricName       = promnodeexporter.ComponentName
+	jaegeroperatorMetricName       metricName       = jaegeroperator.ComponentName
+	consoleMetricName              metricName       = console.ComponentName
+	fluentdMetricName              metricName       = fluentd.ComponentName
 )
 
 // List 1.) To provide same initalization interface 1a.) Decide we should initalize server and metrics at same time or different (right now different)
@@ -82,7 +109,7 @@ func RequiredInitialization() {
 		internalConfig: initConfiguration(),
 		internalData: data{
 			simpleCounterMetricMap: initSimpleCounterMetricMap(),
-			simpleGaugeMetricMap:   initSimpleGaugeMetricMap(),
+			simpleGaugeMetricMap:   initsimpleGaugeMetricMap(),
 			durationMetricMap:      initDurationMetricMap(),
 			metricsComponentMap:    initMetricComponentMap(),
 		},
@@ -96,16 +123,16 @@ func RegisterMetrics(log *zap.SugaredLogger) {
 }
 
 // This function returns a pointer to a new MetricComponent Object
-func newMetricsComponent(name string) *MetricsComponent {
-	return &MetricsComponent{
-		LatestInstallDuration: &SimpleGaugeMetric{
+func newMetricsComponent(name string) *metricsComponent {
+	return &metricsComponent{
+		LatestInstallDuration: &simpleGaugeMetric{
 
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
 				Name: fmt.Sprintf("vz_%s_install_duration_seconds", name),
 				Help: fmt.Sprintf("The duration of the latest installation of the %s component in seconds", name),
 			}),
 		},
-		LatestUpgradeDuration: &SimpleGaugeMetric{
+		LatestUpgradeDuration: &simpleGaugeMetric{
 			prometheus.NewGauge(prometheus.GaugeOpts{
 				Name: fmt.Sprintf("vz_%s_upgrade_duration_seconds", name),
 				Help: fmt.Sprintf("The duration of the latest upgrade of the %s component in seconds", name),
@@ -114,15 +141,15 @@ func newMetricsComponent(name string) *MetricsComponent {
 	}
 }
 
-func initSimpleCounterMetricMap() map[string]*SimpleCounterMetric {
-	return map[string]*SimpleCounterMetric{
-		"reconcile_counter": {
+func initSimpleCounterMetricMap() map[metricName]*simpleCounterMetric {
+	return map[metricName]*simpleCounterMetric{
+		reconcileCounter: {
 			prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vpo_reconcile_counter",
 				Help: "The number of times the reconcile function has been called in the Verrazzano-platform-operator",
 			}),
 		},
-		"reconcile_error": {
+		reconcileError: {
 			prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vpo_error_reconcile_counter",
 				Help: "The number of times the reconcile function has returned an error in the Verrazzano-platform-operator",
@@ -130,43 +157,43 @@ func initSimpleCounterMetricMap() map[string]*SimpleCounterMetric {
 		},
 	}
 }
-func initMetricComponentMap() map[string]*MetricsComponent {
-	return map[string]*MetricsComponent{
-		authproxy.ComponentName:            newMetricsComponent("authproxy"),
-		oam.ComponentName:                  newMetricsComponent("oam"),
-		appoper.ComponentName:              newMetricsComponent("appoper"),
-		istio.ComponentName:                newMetricsComponent("istio"),
-		weblogic.ComponentName:             newMetricsComponent("weblogic"),
-		nginx.ComponentName:                newMetricsComponent("nginx"),
-		certmanager.ComponentName:          newMetricsComponent("certManager"),
-		externaldns.ComponentName:          newMetricsComponent("externalDNS"),
-		rancher.ComponentName:              newMetricsComponent("rancher"),
-		verrazzano.ComponentName:           newMetricsComponent("verrazzano"),
-		vmo.ComponentName:                  newMetricsComponent("verrazzano_monitoring_operator"),
-		opensearch.ComponentName:           newMetricsComponent("opensearch"),
-		opensearchdashboards.ComponentName: newMetricsComponent("opensearch_dashboards"),
-		grafana.ComponentName:              newMetricsComponent("grafana"),
-		coherence.ComponentName:            newMetricsComponent("coherence"),
-		mysql.ComponentName:                newMetricsComponent("mysql"),
-		keycloak.ComponentName:             newMetricsComponent("keycloak"),
-		kiali.ComponentName:                newMetricsComponent("kiali"),
-		promoperator.ComponentName:         newMetricsComponent("prometheus_operator"),
-		promadapter.ComponentName:          newMetricsComponent("prometheus_adapter"),
-		kubestatemetrics.ComponentName:     newMetricsComponent("kube_state_metrics"),
-		pushgateway.ComponentName:          newMetricsComponent("prometheus_push_gateway"),
-		promnodeexporter.ComponentName:     newMetricsComponent("prometheus_node_exporter"),
-		jaegeroperator.ComponentName:       newMetricsComponent("jaeger_operator"),
-		console.ComponentName:              newMetricsComponent("verrazzano_console"),
-		fluentd.ComponentName:              newMetricsComponent("fluentd"),
+func initMetricComponentMap() map[metricName]*metricsComponent {
+	return map[metricName]*metricsComponent{
+		authproxyMetricName:            newMetricsComponent("authproxy"),
+		oamMetricName:                  newMetricsComponent("oam"),
+		appoperMetricName:              newMetricsComponent("appoper"),
+		istioMetricName:                newMetricsComponent("istio"),
+		weblogicMetricName:             newMetricsComponent("weblogic"),
+		nginxMetricName:                newMetricsComponent("nginx"),
+		certmanagerMetricName:          newMetricsComponent("certManager"),
+		externaldnsMetricName:          newMetricsComponent("externalDNS"),
+		rancherMetricName:              newMetricsComponent("rancher"),
+		verrazzanoMetricName:           newMetricsComponent("verrazzano"),
+		vmoMetricName:                  newMetricsComponent("verrazzano_monitoring_operator"),
+		opensearchMetricName:           newMetricsComponent("opensearch"),
+		opensearchdashboardsMetricName: newMetricsComponent("opensearch_dashboards"),
+		grafanaMetricName:              newMetricsComponent("grafana"),
+		coherenceMetricName:            newMetricsComponent("coherence"),
+		mysqlMetricName:                newMetricsComponent("mysql"),
+		keycloakMetricname:             newMetricsComponent("keycloak"),
+		kialiMetricName:                newMetricsComponent("kiali"),
+		promoperatorMetricname:         newMetricsComponent("prometheus_operator"),
+		promadapterMetricname:          newMetricsComponent("prometheus_adapter"),
+		kubestatemmetricsMetricName:    newMetricsComponent("kube_state_metrics"),
+		pushgatewayMetricName:          newMetricsComponent("prometheus_push_gateway"),
+		promnodeexporterMetricname:     newMetricsComponent("prometheus_node_exporter"),
+		jaegeroperatorMetricName:       newMetricsComponent("jaeger_operator"),
+		consoleMetricName:              newMetricsComponent("verrazzano_console"),
+		fluentdMetricName:              newMetricsComponent("fluentd"),
 	}
 }
 
-func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
-	return map[metricName]*SimpleGaugeMetric{}
+func initsimpleGaugeMetricMap() map[metricName]*simpleGaugeMetric {
+	return map[metricName]*simpleGaugeMetric{}
 }
 
-func initDurationMetricMap() map[metricName]*DurationMetric {
-	return map[metricName]*DurationMetric{
+func initDurationMetricMap() map[metricName]*durationMetric {
+	return map[metricName]*durationMetric{
 		reconcileCounter: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vpo_reconcile_duration",
@@ -180,7 +207,7 @@ func initDurationMetricMap() map[metricName]*DurationMetric {
 // If the start time is greater than the completion time, the metric will not be set
 // After this check, the function calculates the duration time and tries to set the metric of the component
 // If the component's name is not in the metric map, an error will be raised to prevent a seg fault
-func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName string, startTime string, completionTime string, typeofOperation metricsOperation) error {
+func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metricName, startTime string, completionTime string, typeofOperation metricsOperation) error {
 	startInSeconds, err := time.Parse(time.RFC3339, startTime)
 	if err != nil {
 		return fmt.Errorf("error in parsing start time %s for operation %s for component %s", startTime, typeofOperation, componentName)
@@ -276,13 +303,13 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 			continue
 		}
 		if installStartTime != "" && installCompletionTime != "" {
-			err := metricParserHelperFunction(log, componentName, installStartTime, installCompletionTime, "install")
+			err := metricParserHelperFunction(log, metricName(componentName), installStartTime, installCompletionTime, "install")
 			if err != nil {
 				log.Error(err)
 			}
 		}
 		if upgradeStartTime != "" && upgradeCompletionTime != "" {
-			err := metricParserHelperFunction(log, componentName, upgradeStartTime, upgradeCompletionTime, "upgrade")
+			err := metricParserHelperFunction(log, metricName(componentName), upgradeStartTime, upgradeCompletionTime, "upgrade")
 			if err != nil {
 				log.Error(err)
 			}
@@ -309,6 +336,19 @@ func initConfiguration() configuration {
 		registry:      prometheus.DefaultRegisterer,
 	}
 }
-func getCounterMetric(string Name)
+func getCounterMetric(name metricName) (*simpleCounterMetric, error) {
+	counterMetric, ok := MetricsExp.internalData.simpleCounterMetricMap[name]
+	if !ok {
+		return nil, fmt.Errorf("%v not found in simpleCounterMetricMap", name)
+	}
+	return counterMetric, nil
+}
+func getDurationMetric(name metricName) (*durationMetric, error) {
+	durationMetric, ok := MetricsExp.internalData.durationMetricMap[name]
+	if !ok {
+		return nil, fmt.Errorf("%v not found in durationMetricMap", name)
+	}
+	return durationMetric, nil
+}
 
 // Implement Get Types, make const block with all of the metric strings, make the metricNames in the struct, make types private when possible
