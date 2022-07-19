@@ -77,11 +77,9 @@ func TestAppendMySQLOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
 }
 
 // TestAppendMySQLOverridesUpdate tests the appendMySQLOverrides function
@@ -102,13 +100,12 @@ func TestAppendMySQLOverridesUpdate(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
+
 }
 
 // TestAppendMySQLOverridesWithInstallArgs tests the appendMySQLOverrides function
