@@ -101,6 +101,7 @@ func ExecuteBugReport(bugReportCommand string, kubeconfig string, bugReportDirec
 
 	filename := fmt.Sprintf("%s/%s", bugReportDirectory, "bug-report.tar.gz")
 	fmt.Printf("Starting bug report command: KUBECONFIG=%s; %s --report-file %s\n", kubeconfig, bugReportCommand, filename)
+	os.MkdirAll(bugReportDirectory, 0755)
 	cmd = exec.Command(bugReportCommand, "--report-file", filename)
 	fmt.Printf("past the exec.Command")
 
