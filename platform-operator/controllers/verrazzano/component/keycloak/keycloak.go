@@ -15,10 +15,6 @@ import (
 	"strings"
 	"text/template"
 
-	"sigs.k8s.io/yaml"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -26,6 +22,7 @@ import (
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -44,6 +41,7 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -1358,6 +1356,12 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 	return []vzapi.Overrides{}
 }
 
+// upgradeStatefulSet - determine if the replica count for the StatefulSet needs
+// to be scaled down before the upgrade.  The affinity rules installed by default
+// prior to the 1.4 release conflict with the new affinity rules being overridden
+// by Verrazzano (the upgrade will never complete).  The work around is to scale
+// down the replica count prior to upgrade, which terminates the keycloak pods, and
+// then do the upgrade.
 func upgradeStatefulSet(ctx spi.ComponentContext) error {
 	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
 	if keycloakComp == nil {

@@ -1347,7 +1347,7 @@ func TestUpgradeStatefulSet(t *testing.T) {
 			int32(1),
 		},
 		{
-			"StatefulSet replica count scaled to 0 when value override not same as StatefulSet",
+			"StatefulSet replica count scaled to 0 when ValueOverrides not same as StatefulSet",
 			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
 			&vzapi.Verrazzano{
 				ObjectMeta: metav1.ObjectMeta{
