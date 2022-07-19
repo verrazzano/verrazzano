@@ -101,17 +101,22 @@ func ExecuteBugReport(bugReportCommand string, kubeconfig string, bugReportDirec
 	filename := fmt.Sprintf("%s/%s", bugReportDirectory, "bug-report.tar.gz")
 	fmt.Printf("Starting bug report command: KUBECONFIG=%s; %s --report-file %s\n", kubeconfig, bugReportCommand, filename)
 	cmd = exec.Command(bugReportCommand, "--report-file", filename)
-	fmt.Printf("Completed the bug report command: KUBECONFIG=%s; %s --report-file %s\n", kubeconfig, bugReportCommand, filename)
+	fmt.Printf("past the exec.Command")
 
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	fmt.Printf("About to call start")
 	if err := cmd.Start(); err != nil {
+		fmt.Printf("Failed to start command %v", err)
 		return err
 	}
 	if err := cmd.Wait(); err != nil {
+		fmt.Printf("Failed waiting for command %v", err)
 		return err
 	}
+	fmt.Printf("command succeeded without error")
 
 	return nil
 }
