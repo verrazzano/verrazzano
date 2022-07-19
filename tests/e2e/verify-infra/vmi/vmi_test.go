@@ -610,7 +610,10 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	expectedReplicas := int32(1)
+	var expectedReplicas int32 = 1
+	if pkg.IsProdProfile() {
+		expectedReplicas = 2
+	}
 	if vz.Spec.Components.PrometheusOperator == nil {
 		return expectedReplicas, nil
 	}
