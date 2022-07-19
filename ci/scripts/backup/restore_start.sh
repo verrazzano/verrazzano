@@ -62,7 +62,7 @@ while ${CHECK_DONE};
 do
   RESPONSE=`(kubectl get restore.velero.io -n ${VELERO_NAMESPACE} ${RESTORE_NAME} -o jsonpath={.status.phase})`
   if [ "${RESPONSE}" == "InProgress" ];then
-    if [ "${RETRY_COUNT}" -gt 100 ];then
+    if [ "${RETRY_COUNT}" -gt 30 ];then
        echo "Restore failed. retry count exceeded !!"
        exit 1
     fi
