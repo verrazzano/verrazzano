@@ -87,7 +87,6 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
-        booleanParam (description: 'Whether to run BOM Validator after Upgrade', name: 'RUN_BOM_VALIDATOR', defaultValue: true)
         string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
@@ -526,16 +525,6 @@ pipeline {
             stages {
                 stage('Post-upgrade Acceptance Tests parallel') {
                     parallel {
-                        stage("Validate BOM : Admin and Managed") {
-                            when {
-                                allOf {
-                                    expression{params.RUN_BOM_VALIDATOR == true}
-                                }
-                            }
-                            steps {
-                                executeBomValidator()
-                            }
-                        }
                         stage ('Console') {
                             when { expression { isMultiCluster() } }
                             steps {
@@ -1430,42 +1419,6 @@ def createOKEClusters(clusterPrefix) {
             cd ${TEST_SCRIPTS_DIR}
             TF_VAR_label_prefix=${clusterPrefix} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}" ${params.CREATE_CLUSTER_USE_CALICO}
         """
-    }
-}
-
-// execute bom validation against admin and managed cluster
-def executeBomValidator() {
-    script {
-        getBomValidatorFile()
-        def validateBomStages = createClusterExecutionsMap()
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        validateBomStages["validate bom vz-admin"] = validateBom(1)
-        for(int count=2; count<=clusterCount; count++) {
-            validateBomStages["validate bom vz-mgd-${count-1}"] = validateBom(count)
-        }
-        parallel validateBomStages
-    }
-}
-
-// download the bom validator executable file
-def getBomValidatorFile() {
-    script {
-        sh """
-            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
-            chmod +x ${WORKSPACE}/bom-validator
-        """
-    }
-}
-
-// validate bom-validator against a cluster
-def validateBom(count) {
-    return {
-        script {
-            sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                ${WORKSPACE}/bom-validator
-            """
-        }
     }
 }
 

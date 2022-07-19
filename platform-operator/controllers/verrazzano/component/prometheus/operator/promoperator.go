@@ -28,6 +28,7 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -45,6 +46,13 @@ const (
 	prometheusAuthPolicyName = "vmi-system-prometheus-authzpol"
 	networkPolicyName        = "vmi-system-prometheus"
 	istioCertMountPath       = "/etc/istio-certs"
+
+	prometheusName     = "prometheus"
+	alertmanagerName   = "alertmanager"
+	configReloaderName = "prometheus-config-reloader"
+
+	pvcName                  = "prometheus-prometheus-operator-kube-p-prometheus-db-prometheus-prometheus-operator-kube-p-prometheus-0"
+	defaultPrometheusStorage = "50Gi"
 )
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
@@ -83,7 +91,7 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	// Remove any existing volume claims from old VMO-managed Prometheus persistent volumes
-	return removeOldClaimFromPrometheusVolume(ctx)
+	return updateExistingVolumeClaims(ctx)
 }
 
 // postInstallUpgrade handles post-install and post-upgrade processing for the Prometheus Operator Component
@@ -99,7 +107,14 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 	if err := updateApplicationAuthorizationPolicies(ctx); err != nil {
 		return err
 	}
-	if err := common.CreateOrUpdateSystemComponentIngress(ctx, constants.PrometheusIngress, prometheusHostName, prometheusCertificateName); err != nil {
+	props := common.IngressProperties{
+		IngressName:   constants.PrometheusIngress,
+		HostName:      prometheusHostName,
+		TLSSecretName: prometheusCertificateName,
+		// Enable sticky sessions, so there is no UI query skew in multi-replica prometheus clusters
+		ExtraAnnotations: common.SameSiteCookieAnnotations(prometheusName),
+	}
+	if err := common.CreateOrUpdateSystemComponentIngress(ctx, props); err != nil {
 		return err
 	}
 	if err := createOrUpdatePrometheusAuthPolicy(ctx); err != nil {
@@ -139,10 +154,10 @@ func ensureAdditionalScrapeConfigsSecret(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// removeOldClaimFromPrometheusVolume removes a persistent volume claim from the Prometheus persistent volume if the
+// updateExistingVolumeClaims removes a persistent volume claim from the Prometheus persistent volume if the
 // claim was from the VMO-managed Prometheus and the status is "released". This allows the new Prometheus instance to
 // bind to the existing volume.
-func removeOldClaimFromPrometheusVolume(ctx spi.ComponentContext) error {
+func updateExistingVolumeClaims(ctx spi.ComponentContext) error {
 	ctx.Log().Info("Removing old claim from Prometheus persistent volume if a volume exists")
 
 	pvList, err := getPrometheusPersistentVolumes(ctx)
@@ -162,10 +177,36 @@ func removeOldClaimFromPrometheusVolume(ctx spi.ComponentContext) error {
 			if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
 				return ctx.Log().ErrorfNewErr("Failed removing claim from persistent volume %s: %v", pv.Name, err)
 			}
+			if err := createPVCFromPV(ctx, pv); err != nil {
+				return ctx.Log().ErrorfNewErr("Failed to create new PVC from volume %s: %v", pv.Name, err)
+			}
 			break
 		}
 	}
 	return nil
+}
+
+//createPVCFromPV creates a PVC from a PV definition, and sets the PVC to reference the PV by name
+func createPVCFromPV(ctx spi.ComponentContext, volume corev1.PersistentVolume) error {
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pvcName,
+			Namespace: ComponentNamespace,
+		},
+	}
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), pvc, func() error {
+		accessModes := make([]corev1.PersistentVolumeAccessMode, len(volume.Spec.AccessModes))
+		copy(accessModes, volume.Spec.AccessModes)
+		pvc.Spec.AccessModes = accessModes
+		pvc.Spec.Resources = corev1.ResourceRequirements{
+			Requests: map[corev1.ResourceName]resource.Quantity{
+				corev1.ResourceStorage: volume.Spec.Capacity.Storage().DeepCopy(),
+			},
+		}
+		pvc.Spec.VolumeName = volume.Name
+		return nil
+	})
+	return err
 }
 
 // getPrometheusPersistentVolumes returns a volume list containing a Prometheus persistent volume created by
@@ -219,7 +260,7 @@ func resetVolumeReclaimPolicy(ctx spi.ComponentContext) error {
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Append custom images from the subcomponents in the bom
 	ctx.Log().Debug("Appending the image overrides for the Prometheus Operator components")
-	subcomponents := []string{"prometheus-config-reloader", "alertmanager", "prometheus"}
+	subcomponents := []string{configReloaderName, alertmanagerName, prometheusName}
 	kvs, err := appendCustomImageOverrides(ctx, kvs, subcomponents)
 	if err != nil {
 		return kvs, err
@@ -228,8 +269,8 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Replace default images for subcomponents Alertmanager and Prometheus
 	defaultImages := map[string]string{
 		// format "subcomponentName": "helmDefaultKey"
-		"alertmanager": "prometheusOperator.alertmanagerDefaultBaseImage",
-		"prometheus":   "prometheusOperator.prometheusDefaultBaseImage",
+		alertmanagerName: "prometheusOperator.alertmanagerDefaultBaseImage",
+		prometheusName:   "prometheusOperator.prometheusDefaultBaseImage",
 	}
 	kvs, err = appendDefaultImageOverrides(ctx, kvs, defaultImages)
 	if err != nil {
@@ -249,6 +290,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		if err != nil {
 			return kvs, err
 		}
+		// If no storage specified (dev specifies emptydir), use 50Gi
+		if resourceRequest == nil {
+			resourceRequest = &common.ResourceRequestValues{
+				Storage: defaultPrometheusStorage,
+			}
+		}
 		if resourceRequest != nil {
 			kvs, err = appendResourceRequestOverrides(ctx, resourceRequest, kvs)
 			if err != nil {
@@ -267,7 +314,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 		// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
 		kvs = append(kvs, []bom.KeyValue{
-			{Key: "prometheus.prometheusSpec.containers[0].name", Value: "prometheus"},
+			{Key: "prometheus.prometheusSpec.containers[0].name", Value: prometheusName},
 			{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
 			{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
 		}...)
@@ -311,21 +358,6 @@ func appendResourceRequestOverrides(ctx spi.ComponentContext, resourceRequest *c
 				Value: storage,
 			},
 		}...)
-
-		// if there's an existing persistent volume, set it in the volumeClaimTemplate
-		pvList, err := getPrometheusPersistentVolumes(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if len(pvList.Items) > 0 {
-			ctx.Log().Debug("Found existing Prometheus volume, setting Prometheus storageSpec to mount the volume")
-			kvs = append(kvs, []bom.KeyValue{
-				{
-					Key:   `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`,
-					Value: "prometheus",
-				},
-			}...)
-		}
 	}
 	if len(memory) > 0 {
 		kvs = append(kvs, []bom.KeyValue{
@@ -540,7 +572,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 		authPol.Spec = securityv1beta1.AuthorizationPolicy{
 			Selector: &istiov1beta1.WorkloadSelector{
 				MatchLabels: map[string]string{
-					"app.kubernetes.io/name": "prometheus",
+					"app.kubernetes.io/name": prometheusName,
 				},
 			},
 			Action: securityv1beta1.AuthorizationPolicy_ALLOW,
@@ -607,7 +639,7 @@ func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 	return netv1.NetworkPolicySpec{
 		PodSelector: metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app.kubernetes.io/name": "prometheus",
+				"app.kubernetes.io/name": prometheusName,
 			},
 		},
 		PolicyTypes: []netv1.PolicyType{

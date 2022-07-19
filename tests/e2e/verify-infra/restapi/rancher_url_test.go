@@ -125,18 +125,21 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher local cluster not in active state")
 				metrics.Emit(t.Metrics.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
 
-				start = time.Now()
-				Eventually(func() (string, error) {
-					return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/nodeDrivers/oci", token, httpClient, "state")
-				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oci driver not activated")
-				metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
+				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+				if minVer14 {
+					start = time.Now()
+					Eventually(func() (string, error) {
+						return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/nodeDrivers/oci", token, httpClient, "state")
+					}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oci driver not activated")
+					metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 
-				start = time.Now()
-				Eventually(func() (string, error) {
-					return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/kontainerDrivers/oraclecontainerengine", token, httpClient, "state")
-				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oke driver not activated")
-				metrics.Emit(t.Metrics.With("get_oke_driver_state_elapsed_time", time.Since(start).Milliseconds()))
-
+					start = time.Now()
+					Eventually(func() (string, error) {
+						return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/kontainerDrivers/oraclecontainerengine", token, httpClient, "state")
+					}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oke driver not activated")
+					metrics.Emit(t.Metrics.With("get_oke_driver_state_elapsed_time", time.Since(start).Milliseconds()))
+				}
 			}
 		})
 	})
