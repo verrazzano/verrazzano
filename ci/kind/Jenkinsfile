@@ -92,7 +92,7 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        BUG_REPORT_COMMAND="go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report"
+        VZ_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/test-call-vz.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"

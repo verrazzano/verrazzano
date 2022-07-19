@@ -90,19 +90,19 @@ func ExecuteClusterDump(clusterDumpCommand string, kubeconfig string, clusterDum
 }
 
 // ExecuteBugReport executes the cluster dump tool.
-// bugReportCommand - The fully qualified bug report executable.
+// vzCommand - The fully qualified bug report executable.
 // kubeconfig - The kube config file to use when executing the cluster dump tool.
 // bugReportDirectory - The directory to store the bug report within.
-func ExecuteBugReport(bugReportCommand string, kubeconfig string, bugReportDirectory string) error {
+func ExecuteBugReport(vzCommand string, kubeconfig string, bugReportDirectory string) error {
 	var cmd *exec.Cmd
-	if bugReportCommand == "" {
+	if vzCommand == "" {
 		return nil
 	}
 
 	filename := fmt.Sprintf("%s/%s", bugReportDirectory, "bug-report.tar.gz")
-	fmt.Printf("Starting bug report command: KUBECONFIG=%s; %s --report-file %s\n", kubeconfig, bugReportCommand, filename)
+	fmt.Printf("Starting bug report command: KUBECONFIG=%s; %s --report-file %s\n", kubeconfig, vzCommand, filename)
 	os.MkdirAll(bugReportDirectory, 0755)
-	cmd = exec.Command(bugReportCommand, "--report-file", filename)
+	cmd = exec.Command(vzCommand, "bug-report", "--report-file", filename)
 	fmt.Printf("past the exec.Command \n")
 
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
@@ -133,8 +133,8 @@ func ExecuteClusterDumpWithEnvVarSuffix(directorySuffix string) error {
 func ExecuteBugReportWithEnvVarSuffix(directorySuffix string) error {
 	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
 	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY")+"/bug-report", directorySuffix)
-	bugReportCommand := os.Getenv("BUG_REPORT_COMMAND")
-	return ExecuteBugReport(bugReportCommand, kubeconfig, bugReportDirectory)
+	vzCommand := os.Getenv("VZ_COMMAND")
+	return ExecuteBugReport(vzCommand, kubeconfig, bugReportDirectory)
 }
 
 // ExecuteClusterDumpWithEnvVarConfig executes the cluster dump tool using config from environment variables.
