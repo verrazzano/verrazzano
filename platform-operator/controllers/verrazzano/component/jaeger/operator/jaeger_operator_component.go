@@ -154,13 +154,12 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := ensureVerrazzanoMonitoringNamespace(ctx); err != nil {
 		return err
 	}
-	//_, err := DoManuallyCreatedJaegerInstanceExists(ctx)
 	installed, err := helmcli.IsReleaseInstalled(ComponentName, ComponentNamespace)
 	if err != nil {
 		ctx.Log().ErrorfNewErr("Failed searching for Jaeger release: %v", err)
 	}
 	if !installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
-		return ctx.Log().ErrorfNewErr("The jaeger resource %s/%s need to be removed or moved to a different namespace before continuing the upgrade, After the upgrade by default an Jaeger instance will be created in %s namespace: %v", ComponentNamespace, JaegerInstanceName, ComponentNamespace, err)
+		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! The jaeger resource need to be removed or moved to a different namespace before continuing the upgrade, After the upgrade by default an Jaeger instance will be created in %s namespace: %v", ComponentNamespace, JaegerInstanceName, ComponentNamespace, err)
 	}
 	err = removeOldJaegerResources(ctx)
 	if err != nil {
