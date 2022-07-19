@@ -18,7 +18,7 @@ function cleanup() {
     kubectl wait --namespace verrazzano-system --for=condition=ready pod --all --timeout=300s
 }
 
-function create_backup() {
+function create_os_backup_object() {
 kubectl apply -f - <<EOF
     apiVersion: velero.io/v1
     kind: Backup
@@ -57,9 +57,27 @@ kubectl apply -f - <<EOF
 EOF
 }
 
+function create_rancher_backup_object() {
+kubectl apply -f - <<EOF
+  apiVersion: resources.cattle.io/v1
+  kind: Backup
+  metadata:
+    name: rancher-backup-test
+  spec:
+    storageLocation:
+      s3:
+        credentialSecretName: rancher-backup-creds
+        credentialSecretNamespace: verrazzano-backup
+        bucketName: aamitra-v80dev-bucket
+        folder: v8odevbackup-kind
+        region: us-ashburn-1
+        endpoint: odsbuilddev.compat.objectstorage.us-ashburn-1.oraclecloud.com
+    resourceSetName: rancher-resource-set
+EOF
+}
 
 cleanup
-create_backup
+create_os_backup_object
 RETRY_COUNT=0
 CHECK_DONE=true
 while ${CHECK_DONE};
@@ -84,3 +102,4 @@ if [ "${RESPONSE}" != "Completed" ]; then
 fi
 
 exit 0
+}
