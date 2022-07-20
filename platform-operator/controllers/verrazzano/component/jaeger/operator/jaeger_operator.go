@@ -306,8 +306,8 @@ func (c jaegerOperatorComponent) validateJaegerOperator(vz *vzapi.Verrazzano) er
 					return err
 				}
 				if value != nil {
-					return fmt.Errorf("the Jaeger Operator Helm chart value %s cannot be overriden in"+
-						" Verrazzano CR", disallowedOverride)
+					return fmt.Errorf("the Jaeger Operator Helm chart value %s cannot be overridden in the "+
+						"Verrazzano CR.", disallowedOverride)
 				}
 			}
 		}
