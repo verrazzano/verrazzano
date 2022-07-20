@@ -20,10 +20,10 @@ type configuration struct {
 }
 
 type data struct {
-	SimpleCounterMetricMap map[metricName]*SimpleCounterMetric
-	SimpleGaugeMetricMap   map[metricName]*SimpleGaugeMetric
-	durationMetricMap      map[metricName]*durationMetric
-	metricsComponentMap    map[metricName]*metricsComponent
+	simpleCounterMetricMap map[metricName]*SimpleCounterMetric
+	simpleGaugeMetricMap   map[metricName]*SimpleGaugeMetric
+	durationMetricMap      map[metricName]*DurationMetric
+	metricsComponentMap    map[metricName]*MetricsComponent
 }
 type SimpleCounterMetric struct {
 	metric prometheus.Counter
@@ -62,29 +62,29 @@ func (g *SimpleGaugeMetric) Get() prometheus.Gauge {
 	return g.metric
 }
 
-type durationMetric struct {
+type DurationMetric struct {
 	metric prometheus.Summary
 	timer  *prometheus.Timer
 }
 
 //Creates a new timer, and starts the timer
-func (d *durationMetric) TimerStart() {
+func (d *DurationMetric) TimerStart() {
 	d.timer = prometheus.NewTimer(d.metric)
 }
 
-//stops the timer and record the duration since the last call to TimerStart
-func (d *durationMetric) TimerStop() {
+//stops the timer and record the Duration since the last call to TimerStart
+func (d *DurationMetric) TimerStop() {
 	d.timer.ObserveDuration()
 }
 
-type metricsComponent struct {
+type MetricsComponent struct {
 	latestInstallDuration *SimpleGaugeMetric
 	latestUpgradeDuration *SimpleGaugeMetric
 }
 
-func (m *metricsComponent) getInstall() *SimpleGaugeMetric {
+func (m *MetricsComponent) getInstall() *SimpleGaugeMetric {
 	return m.latestInstallDuration
 }
-func (m *metricsComponent) getUpgrade() *SimpleGaugeMetric {
+func (m *MetricsComponent) getUpgrade() *SimpleGaugeMetric {
 	return m.latestUpgradeDuration
 }

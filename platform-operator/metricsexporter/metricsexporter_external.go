@@ -94,8 +94,8 @@ func RequiredInitialization() {
 	MetricsExp = MetricsExporter{
 		internalConfig: initConfiguration(),
 		internalData: data{
-			SimpleCounterMetricMap: initSimpleCounterMetricMap(),
-			SimpleGaugeMetricMap:   initSimpleGaugeMetricMap(),
+			simpleCounterMetricMap: initSimpleCounterMetricMap(),
+			simpleGaugeMetricMap:   initSimpleGaugeMetricMap(),
 			durationMetricMap:      initDurationMetricMap(),
 			metricsComponentMap:    initMetricComponentMap(),
 		},
@@ -109,8 +109,8 @@ func RegisterMetrics(log *zap.SugaredLogger) {
 }
 
 // This function returns a pointer to a new MetricComponent Object
-func newMetricsComponent(name string) *metricsComponent {
-	return &metricsComponent{
+func newMetricsComponent(name string) *MetricsComponent {
+	return &MetricsComponent{
 		latestInstallDuration: &SimpleGaugeMetric{
 
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -143,8 +143,8 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		},
 	}
 }
-func initMetricComponentMap() map[metricName]*metricsComponent {
-	return map[metricName]*metricsComponent{
+func initMetricComponentMap() map[metricName]*MetricsComponent {
+	return map[metricName]*MetricsComponent{
 		authproxyMetricName:            newMetricsComponent("authproxy"),
 		oamMetricName:                  newMetricsComponent("oam"),
 		appoperMetricName:              newMetricsComponent("appoper"),
@@ -178,8 +178,8 @@ func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
 	return map[metricName]*SimpleGaugeMetric{}
 }
 
-func initDurationMetricMap() map[metricName]*durationMetric {
-	return map[metricName]*durationMetric{
+func initDurationMetricMap() map[metricName]*DurationMetric {
+	return map[metricName]*DurationMetric{
 		ReconcileDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vpo_reconcile_duration",
@@ -307,7 +307,7 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 
 func InitializeAllMetricsArray() {
 	//loop through all metrics declarations in metric maps
-	for _, value := range MetricsExp.internalData.SimpleCounterMetricMap {
+	for _, value := range MetricsExp.internalData.simpleCounterMetricMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
 	for _, value := range MetricsExp.internalData.durationMetricMap {
@@ -325,13 +325,13 @@ func initConfiguration() configuration {
 	}
 }
 func GetSimpleCounterMetric(name metricName) (*SimpleCounterMetric, error) {
-	counterMetric, ok := MetricsExp.internalData.SimpleCounterMetricMap[name]
+	counterMetric, ok := MetricsExp.internalData.simpleCounterMetricMap[name]
 	if !ok {
 		return nil, fmt.Errorf("%v not found in SimpleCounterMetricMap", name)
 	}
 	return counterMetric, nil
 }
-func GetDurationMetric(name metricName) (*durationMetric, error) {
+func GetDurationMetric(name metricName) (*DurationMetric, error) {
 	durationMetric, ok := MetricsExp.internalData.durationMetricMap[name]
 	if !ok {
 		return nil, fmt.Errorf("%v not found in durationMetricMap", name)
@@ -339,13 +339,13 @@ func GetDurationMetric(name metricName) (*durationMetric, error) {
 	return durationMetric, nil
 }
 func GetSimpleGaugeMetric(name metricName) (*SimpleGaugeMetric, error) {
-	gaugeMetric, ok := MetricsExp.internalData.SimpleGaugeMetricMap[name]
+	gaugeMetric, ok := MetricsExp.internalData.simpleGaugeMetricMap[name]
 	if !ok {
 		return nil, fmt.Errorf("%v not found in SimpleGaugeMetricMap", name)
 	}
 	return gaugeMetric, nil
 }
-func GetMetricComponent(name metricName) (*metricsComponent, error) {
+func GetMetricComponent(name metricName) (*MetricsComponent, error) {
 	metricComponent, ok := MetricsExp.internalData.metricsComponentMap[name]
 	if !ok {
 		return nil, fmt.Errorf("%v not found in metricsComponentMap", name)
