@@ -31,7 +31,7 @@ spec:
             - --init-webhooks=true
           env:
             - name: MODE
-              value: RUN_OPERATOR
+              value: WEBHOOK_INIT
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -65,8 +65,6 @@ spec:
               value: RUN_OPERATOR
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig
-            - name: VZ_INSTALL_IMAGE
-              value: {{ .Values.image }}
             {{- if .Values.global.registry }}
             - name: REGISTRY
               value: {{ .Values.global.registry }}

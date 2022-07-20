@@ -21,8 +21,14 @@ function create-kubeconfig {
   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 }
 
-# Set up a valid Kubeconfig for tools that require them
-create-kubeconfig
+echo "*************************************************************"
+echo " Running in ${MODE} mode                                     "
+echo "*************************************************************"
+
+if [ -n "${VERRAZZANO_KUBECONFIG}" ]; then
+  # Set up a valid Kubeconfig for tools that require them
+  create-kubeconfig
+fi
 
 # Run the operator
 /usr/local/bin/verrazzano-platform-operator $*
