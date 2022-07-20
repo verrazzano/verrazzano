@@ -3,9 +3,8 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-# Script to update load balancer health check with the given IPs
-# Usage - ./update_lb_health_check.sh "1.1.1.1 2.2.2.2"
-
+# Usage: ./update_lb_health_check.sh "1.1.1.1 2.2.2.2"
+# - Updates health check configuration for load balancers with the given IPs
 IP=$1
 for ip in $IP; do
     echo $ip
