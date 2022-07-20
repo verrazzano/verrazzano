@@ -626,7 +626,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: "**/*-cluster-dump*/**,**/test-cluster-dumps/**", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "**/multicluster-uninstall-dump/**,**/*cluster-dump*/**,**/test-cluster-dumps/**", allowEmptyArchive: true
                 }
             }
         }
@@ -655,7 +655,6 @@ pipeline {
                     dumpOamKubernetesRuntimeLogs()
                     dumpVerrazzanoApiLogs()
                 }
-                dumpUninstallLogs()
             }
             sh """
                 # Copy the generated test reports to WORKSPACE to archive them
@@ -663,7 +662,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -847,6 +846,12 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
+                if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${verrazzanoConfig}
+                fi
+
                 echo "Applying \$verrazzanoConfig"
                 kubectl apply -f ${verrazzanoConfig}
 
@@ -903,6 +908,13 @@ def upgradeVerrazzano() {
                 cd ${GO_REPO_PATH}/verrazzano
                 cp ${v8oInstallFile} ${v8oUpgradeFile}
                 ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
+
+                if [ "true" == "${params.UPGRADE_VERRAZZANO}" ] ; then
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${v8oUpgradeFile}
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${v8oUpgradeFile}
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${v8oUpgradeFile}
+                fi
+
                 # Do the upgrade
                 echo "Following is the verrazzano CR file with the new version:"
                 cat ${v8oUpgradeFile}
@@ -1367,23 +1379,6 @@ def dumpInstallLogs() {
                 mkdir -p ${LOG_DIR}
                 kubectl -n ${namespace} logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
                 kubectl -n ${namespace} describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
-                echo "------------------------------------------"
-            """
-        }
-    }
-}
-
-def dumpUninstallLogs() {
-    script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/uninstall/build/logs/cluster-$count"
-            sh """
-                ## dump Verrazzano uninstall logs
-                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                mkdir -p ${LOG_DIR}
-                kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall.log --tail -1
-                kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall-job-pod.out
                 echo "------------------------------------------"
             """
         }

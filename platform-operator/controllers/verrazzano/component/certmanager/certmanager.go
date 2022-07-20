@@ -19,28 +19,27 @@ import (
 	"text/template"
 
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
-	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	certv1client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -78,6 +77,10 @@ const (
 
 	extraArgsKey  = "extraArgs[0]"
 	acmeSolverArg = "--acme-http01-solver-image="
+
+	// Uninstall resources
+	controllerConfigMap = "cert-manager-controller"
+	caInjectorConfigMap = "cert-manager-cainjector-leader-election"
 )
 
 type authenticationType string
@@ -830,6 +833,89 @@ func cleanupUnusedResources(compContext spi.ComponentContext, isCAValue bool) er
 		if err := deleteObject(client, defaultCACertificateSecretName, ComponentNamespace, &v1.Secret{}); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// uninstallCertManager is the implementation for the cert-manager uninstall step
+// this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
+func uninstallCertManager(compContext spi.ComponentContext) error {
+	// Delete the kube-system cert-manager configMaps [controller, caInjector]
+	err := vzresource.Resource{
+		Name:      controllerConfigMap,
+		Namespace: constants.KubeSystem,
+		Client:    compContext.Client(),
+		Object:    &v1.ConfigMap{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	err = vzresource.Resource{
+		Name:      caInjectorConfigMap,
+		Namespace: constants.KubeSystem,
+		Client:    compContext.Client(),
+		Object:    &v1.ConfigMap{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	// Delete the ClusterIssuer created by Verrazzano
+	err = vzresource.Resource{
+		Name:   verrazzanoClusterIssuerName,
+		Client: compContext.Client(),
+		Object: &certv1.ClusterIssuer{},
+		Log:    compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	// Delete the CA resources if necessary
+	err = vzresource.Resource{
+		Name:      caSelfSignedIssuerName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &certv1.Issuer{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = vzresource.Resource{
+		Name:      caCertificateName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &certv1.Certificate{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+	err = vzresource.Resource{
+		Name:      defaultCACertificateSecretName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &v1.Secret{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
+	}
+
+	// Delete the ACME secret if present
+	err = vzresource.Resource{
+		Name:      caAcmeSecretName,
+		Namespace: ComponentNamespace,
+		Client:    compContext.Client(),
+		Object:    &v1.Secret{},
+		Log:       compContext.Log(),
+	}.Delete()
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -37,6 +37,7 @@ metadata:
   name: verrazzano-ingress
   namespace: {{ .Release.Namespace }}
 spec:
+  ingressClassName: {{ .Values.config.ingressClassName }}
   rules:
     - host: verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
       http:

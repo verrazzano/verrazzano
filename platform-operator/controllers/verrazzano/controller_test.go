@@ -6,6 +6,11 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+
+	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+
+	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+
 	"sync"
 	"testing"
 	"time"
@@ -19,14 +24,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -46,6 +48,22 @@ const testBomFilePath = "testdata/test_bom.json"
 
 const installPrefix = "verrazzano-install-"
 const uninstallPrefix = "verrazzano-uninstall-"
+
+type nsMatcher struct {
+	Name string
+}
+
+func (nm nsMatcher) Matches(i interface{}) bool {
+	ns, ok := i.(*corev1.Namespace)
+	if !ok {
+		return false
+	}
+	return ns.Name == nm.Name
+}
+
+func (nsMatcher) String() string {
+	return "namespace matcher"
+}
 
 // TestGetClusterRoleBindingName tests generating a ClusterRoleBinding name
 // GIVEN a name and namespace
@@ -402,38 +420,6 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
 
-	// Expect a call to get the ServiceAccount - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, buildServiceAccountName(name)))
-
-	// Expect a call to create the ServiceAccount - return success
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
-			asserts.Equalf(getInstallNamespace(), serviceAccount.Namespace, "ServiceAccount namespace did not match")
-			asserts.Equalf(buildServiceAccountName(name), serviceAccount.Name, "ServiceAccount name did not match")
-			asserts.Equalf(labels, serviceAccount.Labels, "ServiceAccount labels did not match")
-			return nil
-		})
-
-	// Expect a call to get the ClusterRoleBinding - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ClusterRoleBinding"}, buildClusterRoleBindingName(namespace, name)))
-
-	// Expect a call to create the ClusterRoleBinding - return success
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, clusterRoleBinding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
-			asserts.Equalf("", clusterRoleBinding.Namespace, "ClusterRoleBinding namespace did not match")
-			asserts.Equalf(buildClusterRoleBindingName(namespace, name), clusterRoleBinding.Name, "ClusterRoleBinding name did not match")
-			asserts.Equalf(labels, clusterRoleBinding.Labels, "ClusterRoleBinding labels did not match")
-			asserts.Equalf(buildServiceAccountName(name), clusterRoleBinding.Subjects[0].Name, "ClusterRoleBinding Subjects name did not match")
-			asserts.Equalf(getInstallNamespace(), clusterRoleBinding.Subjects[0].Namespace, "ClusterRoleBinding Subjects namespace did not match")
-			return nil
-		})
-
 	// Expect a call to get the DNS config secret and return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
@@ -496,21 +482,8 @@ func TestUninstallComplete(t *testing.T) {
 		Time: time.Now(),
 	}
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
-				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
-				},
-				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
-					return false, nil
-				},
-			},
-		}
-	})
-
-	config.TestProfilesDir = "../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
+	setFakeComponentsDisabled()
+	defer registry.ResetGetComponentsFn()
 
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -548,28 +521,13 @@ func TestUninstallComplete(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+	expectMCCleanup(mock)
 
-	// Expect a call to get the uninstall Job - return that it exists
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
-			newJob := uninstalljob.NewJob(&uninstalljob.JobConfig{
-				JobConfigCommon: k8s.JobConfigCommon{
-					JobName:            name.Name,
-					Namespace:          name.Namespace,
-					Labels:             labels,
-					ServiceAccountName: buildServiceAccountName(name.Name),
-					JobImage:           "image",
-					DryRun:             false,
-				},
-			})
-			job.ObjectMeta = newJob.ObjectMeta
-			job.Spec = newJob.Spec
-			return nil
-		})
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
+
+	// Expect calls to delete the shared namespaces
+	expectSharedNamespaceDeletes(mock)
 
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -585,9 +543,7 @@ func TestUninstallComplete(t *testing.T) {
 			return nil
 		})
 
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteNamespace(mock)
+	expectIstioCertRemoval(mock, 1)
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -627,6 +583,9 @@ func TestUninstallStarted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	setFakeComponentsDisabled()
+	defer registry.ResetGetComponentsFn()
+
 	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -657,24 +616,13 @@ func TestUninstallStarted(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+	expectMCCleanup(mock)
 
-	// Expect a call to get the uninstall Job - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildUninstallJobName(name)))
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
 
-	// Expect a call to create the uninstall Job - return success
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, job *batchv1.Job, opts ...client.CreateOption) error {
-			asserts.Equalf(getInstallNamespace(), job.Namespace, "Job namespace did not match")
-			asserts.Equalf(buildUninstallJobName(name), job.Name, "Job name did not match")
-			asserts.Equalf(labels, job.Labels, "Job labels did not match")
-			return nil
-		})
+	// Expect calls to delete the shared namespaces
+	expectSharedNamespaceDeletes(mock)
 
 	// Expect a call to update the job - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -682,106 +630,10 @@ func TestUninstallStarted(t *testing.T) {
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
-	config.TestProfilesDir = "../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
-
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
-}
-
-// TestUninstallFailed tests the Reconcile method for the following use case
-// GIVEN an uninstall job has failed
-// WHEN a Verrazzano resource has been deleted
-// THEN ensure the error is handled
-func TestUninstallFailed(t *testing.T) {
-	unitTesting = true
-	namespace := "verrazzano"
-	name := "test"
-	labels := map[string]string{"label1": "test"}
-	var verrazzanoToUse vzapi.Verrazzano
-
-	deleteTime := metav1.Time{
-		Time: time.Now(),
-	}
-
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:         name.Namespace,
-				Name:              name.Name,
-				DeletionTimestamp: &deleteTime,
-				Finalizers:        []string{finalizerName}}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.VzStateReady}
-			return nil
-		})
-
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, labels)
-
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	// Expect a call to get the uninstall Job - return that it exists and the job failed
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
-			newJob := uninstalljob.NewJob(&uninstalljob.JobConfig{
-				JobConfigCommon: k8s.JobConfigCommon{
-					JobName:            name.Name,
-					Namespace:          name.Namespace,
-					Labels:             labels,
-					ServiceAccountName: buildServiceAccountName(name.Name),
-					JobImage:           "image",
-					DryRun:             false,
-				},
-			})
-			job.ObjectMeta = newJob.ObjectMeta
-			job.Spec = newJob.Spec
-			job.Status = batchv1.JobStatus{
-				Failed: 1,
-			}
-			return nil
-		})
-
-	// Expect a status update on the job
+	// Expect a call to get the status writer and return a mock.
 	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	// Expect a call to update the finalizers - return success
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
-
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			return nil
-		}).AnyTimes()
-
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteNamespace(mock)
+	expectIstioCertRemoval(mock, 1)
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -794,12 +646,28 @@ func TestUninstallFailed(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
+	asserts.False(result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+func setFakeComponentsDisabled() {
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{
+				HelmComponent: helm2.HelmComponent{
+					ReleaseName:    "fake",
+					ChartNamespace: "fake",
+				},
+				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
+					return false, nil
+				},
+			},
+		}
+	})
+}
+
 // TestUninstallSucceeded tests the Reconcile method for the following use case
-// GIVEN an uninstall job has succeeded
+// GIVEN an uninstall has succeeded
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallSucceeded(t *testing.T) {
@@ -813,18 +681,8 @@ func TestUninstallSucceeded(t *testing.T) {
 		Time: time.Now(),
 	}
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
-				HelmComponent: helm2.HelmComponent{
-					ReleaseName: "fake",
-				},
-				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
-					return false, nil
-				},
-			},
-		}
-	})
+	setFakeComponentsDisabled()
+	defer registry.ResetGetComponentsFn()
 
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -855,34 +713,13 @@ func TestUninstallSucceeded(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+	expectMCCleanup(mock)
 
-	// Expect a call to get the uninstall Job - return that it exists and the job succeeded
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
-			newJob := uninstalljob.NewJob(&uninstalljob.JobConfig{
-				JobConfigCommon: k8s.JobConfigCommon{
-					JobName:            name.Name,
-					Namespace:          name.Namespace,
-					Labels:             labels,
-					ServiceAccountName: buildServiceAccountName(name.Name),
-					JobImage:           "image",
-					DryRun:             false,
-				},
-			})
-			job.ObjectMeta = newJob.ObjectMeta
-			job.Spec = newJob.Spec
-			job.Status = batchv1.JobStatus{
-				Succeeded: 1,
-			}
-			return nil
-		})
+	// Expect node-exporter cleanup
+	expectNodeExporterCleanup(mock)
 
-	// Expect a status update on the job
-	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	// Expect calls to delete the shared namespaces
+	expectSharedNamespaceDeletes(mock)
 
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -897,9 +734,7 @@ func TestUninstallSucceeded(t *testing.T) {
 			return nil
 		}).AnyTimes()
 
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteNamespace(mock)
+	expectIstioCertRemoval(mock, 1)
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -966,209 +801,6 @@ func TestVerrazzanoGetError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest("failed to get Verrazzano custom resource"))
-
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.NotZero(result.RequeueAfter)
-}
-
-// TestServiceAccountGetError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an Verrazzano resource
-// WHEN a Verrazzano resource has been applied
-// THEN return error if failure getting ServiceAccount
-func TestServiceAccountGetError(t *testing.T) {
-	namespace := "verrazzano"
-	name := "test"
-	labels := map[string]string{"label1": "test"}
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	var verrazzanoToUse vzapi.Verrazzano
-	asserts.NotNil(mockStatus)
-
-	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
-		APIVersion: "install.verrazzano.io/v1alpha1",
-		Kind:       "Verrazzano"}
-	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Labels:     labels,
-		Finalizers: []string{finalizerName}}
-	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.VzStateReady}
-
-	// Expect a call to get the Verrazzano resource.
-	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
-
-	// Expect a call to get the ServiceAccount - return a failure error
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewBadRequest("failed to get ServiceAccount"))
-
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.NotZero(result.RequeueAfter)
-}
-
-// TestServiceAccountCreateError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an Verrazzano resource
-// WHEN a there is a failure creating a ServiceAccount
-// THEN return error
-func TestServiceAccountCreateError(t *testing.T) {
-	unitTesting = true
-	namespace := "verrazzano"
-	name := "test"
-	labels := map[string]string{"label1": "test"}
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	var verrazzanoToUse vzapi.Verrazzano
-	asserts.NotNil(mockStatus)
-
-	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
-		APIVersion: "install.verrazzano.io/v1alpha1",
-		Kind:       "Verrazzano"}
-	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Labels:     labels,
-		Finalizers: []string{finalizerName}}
-	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.VzStateReady}
-
-	// Expect a call to get the Verrazzano resource.
-	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
-
-	// Expect a call to get the ServiceAccount - return not found
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, name))
-
-	// Expect a call to create the ServiceAccount - return failure
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		Return(errors.NewBadRequest("failed to create ServiceAccount"))
-
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.NotZero(result.RequeueAfter)
-}
-
-// TestClusterRoleBindingGetError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an Verrazzano resource
-// WHEN a there is an error getting the ClusterRoleBinding
-// THEN return error
-func TestClusterRoleBindingGetError(t *testing.T) {
-	unitTesting = true
-	namespace := "verrazzano"
-	name := "test"
-	labels := map[string]string{"label1": "test"}
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	var verrazzanoToUse vzapi.Verrazzano
-	asserts.NotNil(mockStatus)
-
-	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
-		APIVersion: "install.verrazzano.io/v1alpha1",
-		Kind:       "Verrazzano"}
-	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Labels:     labels,
-		Finalizers: []string{finalizerName}}
-	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.VzStateReady}
-
-	// Expect a call to get the Verrazzano resource.
-	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
-
-	// Expect a call to get the ServiceAccount - return that it exists
-	expectGetServiceAccountExists(mock, name, labels)
-
-	// Expect a call to get the ClusterRoleBinding - return a failure error
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewBadRequest("failed to get ClusterRoleBinding"))
-
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.NotZero(result.RequeueAfter)
-}
-
-// TestClusterRoleBindingCreateError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an Verrazzano resource
-// WHEN a there is a failure creating a ClusterRoleBinding
-// THEN return error
-func TestClusterRoleBindingCreateError(t *testing.T) {
-	unitTesting = true
-	namespace := "verrazzano"
-	name := "test"
-	labels := map[string]string{"label1": "test"}
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	var verrazzanoToUse vzapi.Verrazzano
-	asserts.NotNil(mockStatus)
-
-	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
-		APIVersion: "install.verrazzano.io/v1alpha1",
-		Kind:       "Verrazzano"}
-	verrazzanoToUse.ObjectMeta = metav1.ObjectMeta{
-		Namespace:  namespace,
-		Name:       name,
-		Labels:     labels,
-		Finalizers: []string{finalizerName}}
-	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.VzStateReady}
-
-	// Expect a call to get the Verrazzano resource.
-	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
-
-	// Expect a call to get the ServiceAccount - return that it exists
-	expectGetServiceAccountExists(mock, name, labels)
-
-	// Expect a call to get the ClusterRoleBinding - return not found
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ClusterRoleBinding"}, name))
-
-	// Expect a call to create the ClusterRoleBinding - return failure
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		Return(errors.NewBadRequest("failed to create ClusterRoleBinding"))
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1463,22 +1095,58 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 		}).AnyTimes()
 }
 
-// expectDeleteServiceAccount expects a call to delete the service account used by install
-func expectDeleteServiceAccount(mock *mocks.MockClient, namespace string, name string) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
+	const fakeNS = "fake"
+	for _, ns := range sharedNamespaces {
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil())).
+			Return(nil)
+		mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: ns}, gomock.Any()).Return(nil)
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Name: ns}, gomock.Not(gomock.Nil())).
+			Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), ns))
+	}
+	// Expect delete for component namesapces
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil())).
+		Return(nil)
+	mock.EXPECT().Delete(gomock.Any(), nsMatcher{Name: fakeNS}, gomock.Any()).Return(nil)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), fakeNS))
+
 }
 
-// expectDeleteNamespace expects a call to delete the verrazzano-system ns
-func expectDeleteNamespace(mock *mocks.MockClient) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+// expectIstioCertRemoval creates the expects for the Istio cert removal
+func expectIstioCertRemoval(mock *mocks.MockClient, numList int) {
+	mock.EXPECT().List(gomock.Any(), gomock.Any()).Return(nil).Times(numList)
 }
 
-// expectDeleteClusterRoleBinding expects a call to delete the ClusterRoleBinding for the Verrazzano with the given
-// namespace and name, and returns that it exists
-func expectDeleteClusterRoleBinding(mock *mocks.MockClient, namespace string, name string) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+// expectNodeExporterCleanup creates the expects for the node-exporter cleanup
+func expectNodeExporterCleanup(mock *mocks.MockClient) {
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+}
 
-	//	mock.EXPECT().Delete(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Any()).Return(nil)
+func expectMCCleanup(mock *mocks.MockClient) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	mock.EXPECT().
+		List(gomock.Any(), &clustersapi.VerrazzanoManagedClusterList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmcList *clustersapi.VerrazzanoManagedClusterList, options ...*client.ListOptions) error {
+			vmcList.Items = []clustersapi.VerrazzanoManagedCluster{}
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), &vzappclusters.VerrazzanoProjectList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, projects *vzappclusters.VerrazzanoProjectList, options ...*client.ListOptions) error {
+			projects.Items = []vzappclusters.VerrazzanoProject{}
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 }
 
 // TestMergeMapsNilSourceMap tests mergeMaps function

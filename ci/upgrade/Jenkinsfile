@@ -44,7 +44,6 @@ pipeline {
         booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
-        booleanParam (description: 'Whether to run BOM Validator after Upgrade', name: 'RUN_BOM_VALIDATOR', defaultValue: true)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -359,6 +358,9 @@ pipeline {
                     # Add some simple additional updates to validate update during an upgrade
                     yq -i eval '.spec.components.istio.ingress.kubernetes.replicas = 3' ${UPGRADE_CR}
                     yq -i eval '.spec.components.istio.egress.kubernetes.replicas = 3' ${UPGRADE_CR}
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true'  ${UPGRADE_CR}
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true'  ${UPGRADE_CR}
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true'  ${UPGRADE_CR}
 
                     # Copy upgrade CR where it will be archived
                     cp ${UPGRADE_CR} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
@@ -428,25 +430,6 @@ pipeline {
 
                 stage('Run Acceptance Tests After Upgrade') {
                     parallel {
-                        stage("Validate BOM") {
-                            when {
-                                allOf {
-                                    expression{params.RUN_BOM_VALIDATOR == true}
-                                }
-                            }
-                            environment {
-                                OCI_CLI_AUTH="instance_principal"
-                                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                                OCI_OS_BUCKET="verrazzano-builds"
-                            }
-                            steps {
-                                sh """
-                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
-                                    chmod +x ${WORKSPACE}/bom-validator
-                                    ${WORKSPACE}/bom-validator
-                                """
-                            }
-                        }
                         stage('verify-infra restapi') {
                             steps {
                                 runGinkgoRandomize('verify-infra/restapi')
@@ -553,10 +536,6 @@ pipeline {
             post {
                 always {
                     sh """
-                        ## dump out uninstall logs
-                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                        kubectl logs -n verrazzano-install --tail -1 --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log
-                        kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
                         echo "Listing all pods in all namespaces after uninstall"
                         kubectl get pods --all-namespaces
                         echo "-----------------------------------------------------"

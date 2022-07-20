@@ -21,46 +21,8 @@ function create-kubeconfig {
   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 }
 
-# Add installation logs to STDOUT so that they can be viewed after the job completes
-function dump-install-logs {
-  exitStatus=$1
-  echo "**************************************************************"
-  echo " Dumping the installation logs contained in install/build/logs"
-  echo "**************************************************************"
-  cat platform-operator/scripts/install/build/logs/*
-  exit $exitStatus
-}
+# Set up a valid Kubeconfig for tools that require them
+create-kubeconfig
 
-# Add uninstall logs to STDOUT so that they can be viewed after the job completes
-function dump-uninstall-logs {
-  exitStatus=$1
-  echo "*************************************************************"
-  echo " Dumping the uninstall logs contained in uninstall/build/logs"
-  echo "*************************************************************"
-  cat platform-operator/scripts/uninstall/build/logs/*
-  exit $exitStatus
-}
-
-# The same docker image is shared between the verrazzano-platform-operator and
-# the installation jobs that the operator creates.  The default mode is to run
-# the verrazzano-platform-operator.
-
-if [ "${MODE}" == "NOOP" ]; then
-  echo "*************************************************************"
-  echo " Running in NOOP mode, exiting                               "
-  echo "*************************************************************"
-  exit 0
-elif [ "${MODE}" == "INSTALL" ]; then
-  echo "*************************************************************"
-  echo " INSTALL is a NOOP                              "
-  echo "*************************************************************"
-  exit 0
-elif [ "${MODE}" == "UNINSTALL" ]; then
-  # Create a kubeconfig and run the installation
-  create-kubeconfig
-  ./platform-operator/scripts/uninstall/uninstall-verrazzano.sh -f || dump-uninstall-logs 1
-  dump-uninstall-logs 0
-else
-  # Run the operator
-  /usr/local/bin/verrazzano-platform-operator $*
-fi
+# Run the operator
+/usr/local/bin/verrazzano-platform-operator $*

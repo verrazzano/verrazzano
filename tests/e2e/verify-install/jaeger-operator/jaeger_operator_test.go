@@ -20,18 +20,22 @@ const (
 	waitTimeout        = 3 * time.Minute
 	pollingInterval    = 10 * time.Second
 	jaegerOperatorName = "jaeger-operator"
-	operatorImage      = "ghcr.io/verrazzano/jaeger-operator"
 )
 
 var (
 	jaegerOperatorCrds = []string{
 		"jaegers.jaegertracing.io",
 	}
+	imagePrefix          = pkg.GetImagePrefix()
+	operatorImage        = imagePrefix + "/verrazzano/" + jaegerOperatorName
 	expectedJaegerImages = map[string]string{
-		"JAEGER-AGENT-IMAGE":     "ghcr.io/verrazzano/jaeger-agent",
-		"JAEGER-COLLECTOR-IMAGE": "ghcr.io/verrazzano/jaeger-collector",
-		"JAEGER-QUERY-IMAGE":     "ghcr.io/verrazzano/jaeger-query",
-		"JAEGER-INGESTER-IMAGE":  "ghcr.io/verrazzano/jaeger-ingester",
+		"JAEGER-AGENT-IMAGE":            imagePrefix + "/verrazzano/jaeger-agent",
+		"JAEGER-COLLECTOR-IMAGE":        imagePrefix + "/verrazzano/jaeger-collector",
+		"JAEGER-QUERY-IMAGE":            imagePrefix + "/verrazzano/jaeger-query",
+		"JAEGER-INGESTER-IMAGE":         imagePrefix + "/verrazzano/jaeger-ingester",
+		"JAEGER-ES-INDEX-CLEANER-IMAGE": imagePrefix + "/verrazzano/jaeger-es-index-cleaner",
+		"JAEGER-ES-ROLLOVER-IMAGE":      imagePrefix + "/verrazzano/jaeger-es-rollover",
+		"JAEGER-ALL-IN-ONE-IMAGE":       imagePrefix + "/verrazzano/jaeger-all-in-one",
 	}
 )
 

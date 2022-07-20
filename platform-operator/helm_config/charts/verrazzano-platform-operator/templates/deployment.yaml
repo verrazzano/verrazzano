@@ -7,6 +7,7 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.name }}
+    app.kubernetes.io/version: {{ .Chart.Version }}
 spec:
   replicas: 1
   strategy:
@@ -18,6 +19,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.name }}
+        app.kubernetes.io/version: {{ .Chart.Version }}
     spec:
       terminationGracePeriodSeconds: 0
       initContainers:
@@ -61,6 +63,8 @@ spec:
           env:
             - name: MODE
               value: RUN_OPERATOR
+            - name: VERRAZZANO_KUBECONFIG
+              value: /home/verrazzano/kubeconfig
             - name: VZ_INSTALL_IMAGE
               value: {{ .Values.image }}
             {{- if .Values.global.registry }}

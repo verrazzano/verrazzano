@@ -60,6 +60,7 @@ const (
 
 // Define the keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
+const kcIngressClassKey = "ingress.ingressClassName"
 const kcInitContainerKey = "extraInitContainers"
 const kcInitContainerValueTemplate = `
     - name: theme-provider
@@ -98,7 +99,8 @@ const pkceTmpl = `
         "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
         "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
         "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
-        "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback"
+        "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+        "https://jaeger.{{.DNSSubDomain}}/*"
       ],
       "webOrigins": [
         "https://verrazzano.{{.DNSSubDomain}}",
@@ -106,7 +108,8 @@ const pkceTmpl = `
         "https://prometheus.vmi.system.{{.DNSSubDomain}}",
         "https://grafana.vmi.system.{{.DNSSubDomain}}",
         "https://kibana.vmi.system.{{.DNSSubDomain}}",
-		"https://kiali.vmi.system.{{.DNSSubDomain}}"
+        "https://kiali.vmi.system.{{.DNSSubDomain}}",
+        "https://jaeger.{{.DNSSubDomain}}"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -421,6 +424,11 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsSecret,
 		Value: keycloakCertificateName,
+	})
+
+	kvs = append(kvs, bom.KeyValue{
+		Key:   kcIngressClassKey,
+		Value: vzconfig.GetIngressClassName(compContext.EffectiveCR()),
 	})
 
 	return kvs, nil

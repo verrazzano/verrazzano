@@ -27,6 +27,7 @@ prometheus:
         - prometheus-node-exporter
         - kube-state-metrics
         - prometheus-pushgateway
+    scrapeInterval: 20s
   serviceMonitor:
     relabelings:
       - action: replace

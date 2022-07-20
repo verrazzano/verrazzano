@@ -38,9 +38,9 @@ debug: false
 restrictedAdmin: false
 
 # Extra environment variables passed to the rancher pods.
-# extraEnv:
-# - name: CATTLE_TLS_MIN_VERSION
-#   value: "1.0"
+extraEnv:
+- name: CATTLE_UI_OFFLINE_PREFERRED
+  value: "true"
 
 # Fully qualified name to reach your Rancher server
 # hostname: rancher.my.org
@@ -60,6 +60,7 @@ ingress:
   includeDefaultExtraAnnotations: true
   extraAnnotations: {}
 
+  ingressClassName: nginx
   # configurationSnippet - Add additional Nginx configuration. This example statically sets a header on the ingress.
   # configurationSnippet: |
   #   more_set_input_headers "X-Forwarded-Host: {{ .Values.hostname }}";

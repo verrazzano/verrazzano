@@ -5,10 +5,11 @@ package mcagent
 
 import (
 	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
+
+const prometheusClusterNameLabel = "verrazzano_cluster"
 
 func (s *Syncer) updatePrometheusMonitorsClusterName() error {
 	err := s.updateServiceMonitorsClusterName()
@@ -74,7 +75,7 @@ func (s *Syncer) updatePodMonitorsClusterName() error {
 func updateClusterNameRelabelConfigs(configs []*v1.RelabelConfig, clusterName string) bool {
 	updated := false
 	for _, relabelCfg := range configs {
-		if relabelCfg.TargetLabel == constants.PrometheusClusterNameLabel {
+		if relabelCfg.TargetLabel == prometheusClusterNameLabel {
 			if relabelCfg.Replacement != clusterName {
 				updated = true
 			}

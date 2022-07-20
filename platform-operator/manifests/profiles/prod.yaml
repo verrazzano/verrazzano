@@ -25,20 +25,61 @@ spec:
     authproxy:
       kubernetes:
         replicas: 2
+    certManager:
+      enabled: true
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+      overrides:
+        - values:
+            replicaCount: 2
+            cainjector:
+              replicaCount: 2
+            webhook:
+              replicaCount: 2
+    console:
+      overrides:
+        - values:
+            replicas: 2
+    ingress:
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 2
+            defaultBackend:
+              replicaCount: 2
     istio:
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    replicaCount: 2
       ingress:
         kubernetes:
           replicas: 2
       egress:
         kubernetes:
           replicas: 2
+    kibana:
+      replicas: 2
+    kiali:
+      overrides:
+        - values:
+            deployment:
+              replicas: 2
     prometheusOperator:
-      prometheusSpec:
-        storageSpec:
-          volumeClaimTemplate:
-            spec:
-              storageClassName:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 2
                 resources:
                   requests:
-                    storage: "50Gi"
                     memory: "128Mi"
