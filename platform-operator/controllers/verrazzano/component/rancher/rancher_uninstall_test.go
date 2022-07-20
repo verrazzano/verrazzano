@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"testing"
+	"time"
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -14,6 +15,7 @@ import (
 	admv1 "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -42,6 +44,8 @@ func TestPostUninstall(t *testing.T) {
 	randPV := "randomPV"
 	randCR := "randomCR"
 	randCRB := "randomCRB"
+	rancherCRDName := "definitelyrancher.cattle.io"
+	nonRancherCRDName := "other.cattle"
 
 	nonRancherNs := v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -135,7 +139,37 @@ func TestPostUninstall(t *testing.T) {
 			Name: randPV,
 		},
 	}
-
+	delTimestamp := metav1.NewTime(time.Now())
+	crdAPIVersion := "apiextensions.k8s.io/v1"
+	crdKind := "CustomResourceDefinition"
+	rancherCRD := v12.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       crdKind,
+			APIVersion: crdAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              rancherCRDName,
+			Finalizers:        []string{"somefinalizer"},
+			DeletionTimestamp: &delTimestamp,
+		},
+	}
+	nonRancherCRD := v12.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       crdKind,
+			APIVersion: crdAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nonRancherCRDName,
+		},
+		Spec: v12.CustomResourceDefinitionSpec{
+			Group:                 "cattle.io",
+			Names:                 v12.CustomResourceDefinitionNames{},
+			Scope:                 "",
+			Versions:              nil,
+			Conversion:            nil,
+			PreserveUnknownFields: false,
+		},
+	}
 	tests := []struct {
 		name           string
 		objects        []clipkg.Object
@@ -206,6 +240,7 @@ func TestPostUninstall(t *testing.T) {
 				&crbNotRancher,
 				&nonRancherPV,
 				&rbNotRancher,
+				&nonRancherCRD,
 			},
 			nonRancherTest: true,
 		},
@@ -262,12 +297,27 @@ func TestPostUninstall(t *testing.T) {
 				&rbRancher,
 			},
 		},
+		{
+			name: "test CRD finalizer cleanup",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+				&rancherNs2,
+				&mutWebhook,
+				&valWebhook,
+				&rancherCRD,
+			},
+		},
 	}
 	setRancherSystemTool("echo")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
 			ctx := spi.NewFakeContext(c, &vz, false)
+
+			crd1 := v12.CustomResourceDefinition{}
+			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
+
 			err := PostUninstall(ctx)
 			assert.NoError(err)
 
@@ -297,6 +347,8 @@ func TestPostUninstall(t *testing.T) {
 				assert.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherRBName}, &rbacv1.RoleBinding{})
 				assert.Nil(err)
+				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherCRDName}, &v12.CustomResourceDefinition{})
+				assert.Nil(err)
 			}
 			// ConfigMaps should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerCMName}, &v1.ConfigMap{})
@@ -310,6 +362,11 @@ func TestPostUninstall(t *testing.T) {
 			assert.True(apierrors.IsNotFound(err))
 			// Role Binding should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: rbName}, &rbacv1.RoleBinding{})
+			assert.True(apierrors.IsNotFound(err))
+			// Rancher CRD finalizer should have been deleted which should cause it to go away
+			// since it had a deletion timestamp
+			crd := v12.CustomResourceDefinition{}
+			err = c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd)
 			assert.True(apierrors.IsNotFound(err))
 		})
 	}
