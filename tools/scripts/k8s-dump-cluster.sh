@@ -84,23 +84,23 @@ fi
 #		services.json
 #		directory per pod
 #			logs.txt
-#       api-resources.out
-#	application-configurations.json
-#       coherence.json
-#       configmaps.out
+#	  application-configurations.json
+#   coherence.json
+#	  gateways.json
+#	  ingress-traits.json
+#	  virtualservices.json
+# configmap_list.out
 #	crd.json
-#       es_indexex.out
-#	gateways.json
+# es_indexes.out
+# verrazzano-resources.json
 #	helm-ls.json
 #	helm-version.out
-#       images-on-nodes.csv
+# images-on-nodes.csv
 #	ingress.json
-#	ingress-traits.json
-#       kubectl-version.json
+# kubectl-version.json
 #	nodes.json
 #	pv.json
-#       verrazzano_resources.out
-#	virtualservices.json
+
 #
 # REVIEW: We certainly could capture some of the above per-namespace into the hierarchy
 #         created by the cluster-info.
@@ -240,7 +240,7 @@ function full_k8s_cluster_dump() {
   kubectl --insecure-skip-tls-verify cluster-info dump --all-namespaces --output-directory=$CAPTURE_DIR/cluster-dump >/dev/null 2>&1
 
   # Get the Verrazzano resource at the root level. The Verrazzano custom resource can define the namespace, so use all the namespaces in the command
-  kubectl --insecure-skip-tls-verify get verrazzano --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/verrazzano_resources.json || true
+  kubectl --insecure-skip-tls-verify get verrazzano --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/verrazzano-resources.json || true
 
   if [ $? -eq 0 ]; then
     kubectl --insecure-skip-tls-verify version -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/kubectl-version.json || true
