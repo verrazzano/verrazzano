@@ -188,26 +188,6 @@ pipeline {
                     }
                 }
 
-        stage('BOM Validator Tool') {
-            steps {
-                buildBOMValidatorTool()
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                success {
-                    sh """
-                        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
-                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/bom-validator --file ./out/linux_amd64/bom-validator
-                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ./out/linux_amd64/bom-validator
-                    """
-                }
-            }
-        }
-
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
@@ -609,14 +589,6 @@ def buildVerrazzanoCLI(dockerImageTag) {
         cd ${GO_REPO_PATH}/verrazzano/tools/vz
         make go-build DOCKER_IMAGE_TAG=${dockerImageTag}
         ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
-    """
-}
-
-// Called in Stage Bom Validator Tool steps
-def buildBOMValidatorTool() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
-        make go-build
     """
 }
 

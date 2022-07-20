@@ -297,8 +297,6 @@ var prodIngressIstioOverrides = vzapi.Verrazzano{
 				NGINXInstallArgs: []vzapi.InstallArgs{
 					{Name: "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"", Value: "10Mbps"},
 					{Name: "controller.service.externalTrafficPolicy", Value: "Local"},
-					{Name: "controller.autoscaling.enabled", Value: "true"},
-					{Name: "controller.autoscaling.minReplicas", Value: "3"},
 					{Name: "controller.service.externalIPs", ValueList: []string{"11.22.33.44"}},
 				},
 				Ports: []corev1.ServicePort{

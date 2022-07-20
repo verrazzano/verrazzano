@@ -293,15 +293,6 @@ pipeline {
                         }
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                            sh """
-                                ## dump out install logs
-                                mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
-                                kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                                kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                                echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                                echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                                echo "------------------------------------------"
-                            """
                         }
                     }
                 }
@@ -503,10 +494,6 @@ pipeline {
             post {
                 always {
                     sh """
-                        ## dump out uninstall logs
-                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                        kubectl logs -n verrazzano-install --tail -1 --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log
-                        kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
                         echo "Listing all pods in all namespaces after uninstall"
                         kubectl get pods --all-namespaces
                         echo "-----------------------------------------------------"

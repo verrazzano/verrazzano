@@ -124,10 +124,6 @@ spec:
           value: "10Mbps"
         - name: controller.service.externalTrafficPolicy
           value: Local
-        - name: controller.autoscaling.enabled
-          value: "true"
-        - name: controller.autoscaling.minReplicas
-          value: "3"
         - name: controller.service.externalIPs
           valueList:
             - 11.22.33.44
@@ -142,6 +138,41 @@ spec:
           port: 443
           protocol: TCP
           targetPort: 0
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 2
+            defaultBackend:
+              replicaCount: 2
+        - values:
+            controller:
+              autoscaling:
+                enabled: false
+                minReplicas: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/component: controller
+                            app.kubernetes.io/name: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+            defaultBackend:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/component: default-backend
+                            app.kubernetes.io/name: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
     istio:
       enabled: true
       overrides:
@@ -236,15 +267,27 @@ spec:
       enabled: true
     prometheusOperator:
       enabled: true
-      prometheusSpec:
-        storageSpec:
-          volumeClaimTemplate:
-            spec:
-              storageClassName:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 2
                 resources:
                   requests:
-                    storage: "50Gi"
-                    memory: "128Mi"
+                    memory: 128Mi
+        - values:
+            prometheus:
+              prometheusSpec:
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/name: prometheus
+                          topologyKey: kubernetes.io/hostname
+                        weight: 100
+                replicas: 1
     rancher:
       enabled: true
     verrazzano:

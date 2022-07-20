@@ -154,7 +154,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 
 // getUninstallTracker gets the Uninstall tracker for Verrazzano
 func getUninstallTracker(cr *installv1alpha1.Verrazzano) *UninstallTracker {
-	key := getNSNKey(cr)
+	key := getTrackerKey(cr)
 	vuc, ok := UninstallTrackerMap[key]
 	// If the entry is missing or the generation is different create a new entry
 	if !ok || vuc.gen != cr.Generation {
@@ -171,7 +171,7 @@ func getUninstallTracker(cr *installv1alpha1.Verrazzano) *UninstallTracker {
 // DeleteUninstallTracker deletes the Uninstall tracker for the Verrazzano resource
 // This needs to be called when uninstall is completely done
 func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
-	key := getNSNKey(cr)
+	key := getTrackerKey(cr)
 	_, ok := UninstallTrackerMap[key]
 	if ok {
 		delete(UninstallTrackerMap, key)
@@ -335,9 +335,20 @@ func (r *Reconciler) deleteSecret(log vzlog.VerrazzanoLogger, namespace string, 
 	return nil
 }
 
-// deleteNamespaces Cleans up any namespaces shared by multiple components
+// deleteNamespaces deletes up all component namespaces plus any namespaces shared by multiple components
+// - returns an error or a requeue with delay result
 func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
-	for _, ns := range sharedNamespaces {
+	// Load a set of all component namespaces plus shared namespaces
+	nsSet := make(map[string]bool)
+	for _, comp := range registry.GetComponents() {
+		nsSet[comp.Namespace()] = true
+	}
+	for i := range sharedNamespaces {
+		nsSet[sharedNamespaces[i]] = true
+	}
+
+	// Delete all the namespaces
+	for ns := range nsSet {
 		log.Progressf("Deleting namespace %s", ns)
 		err := resource.Resource{
 			Name:   ns,
@@ -349,8 +360,10 @@ func (r *Reconciler) deleteNamespaces(log vzlog.VerrazzanoLogger) (ctrl.Result, 
 			return ctrl.Result{}, err
 		}
 	}
+
+	// Wait for all the namespaces to be deleted
 	waiting := false
-	for _, ns := range sharedNamespaces {
+	for ns := range nsSet {
 		err := r.Get(context.TODO(), types.NamespacedName{Name: ns}, &corev1.Namespace{})
 		if err != nil {
 			if errors.IsNotFound(err) {

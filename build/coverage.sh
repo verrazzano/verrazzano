@@ -13,7 +13,6 @@ TEST_PKGS=$(go list ./... | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/mocks | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/test/integ | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/clients | \
-  grep -Ev github.com/verrazzano/verrazzano/tools/bom-validator | \
   grep -Ev github.com/verrazzano/verrazzano/tools/eventually-checker | \
   grep -Ev github.com/verrazzano/verrazzano/tools/fix-copyright | \
   grep -Ev github.com/verrazzano/verrazzano/tests | \
