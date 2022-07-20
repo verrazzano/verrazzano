@@ -20,46 +20,46 @@ type configuration struct {
 }
 
 type data struct {
-	simpleCounterMetricMap map[metricName]*simpleCounterMetric
-	simpleGaugeMetricMap   map[metricName]*simpleGaugeMetric
+	SimpleCounterMetricMap map[metricName]*SimpleCounterMetric
+	SimpleGaugeMetricMap   map[metricName]*SimpleGaugeMetric
 	durationMetricMap      map[metricName]*durationMetric
 	metricsComponentMap    map[metricName]*metricsComponent
 }
-type simpleCounterMetric struct {
+type SimpleCounterMetric struct {
 	metric prometheus.Counter
 }
 
-func (c *simpleCounterMetric) Inc(log *zap.SugaredLogger, err error) {
+func (c *SimpleCounterMetric) Inc(log *zap.SugaredLogger, err error) {
 	c.metric.Inc()
 	if err != nil {
 		log.Error(err)
 	}
 }
 
-func (c *simpleCounterMetric) Add(num float64) {
+func (c *SimpleCounterMetric) Add(num float64) {
 	c.metric.Add(num)
 }
-func (c *simpleCounterMetric) Get() prometheus.Counter {
+func (c *SimpleCounterMetric) Get() prometheus.Counter {
 	return c.metric
 }
 
-type simpleGaugeMetric struct {
+type SimpleGaugeMetric struct {
 	metric prometheus.Gauge
 }
 
-func (g *simpleGaugeMetric) Set(num float64) {
+func (g *SimpleGaugeMetric) Set(num float64) {
 	g.metric.Set(num)
 }
 
-func (g *simpleGaugeMetric) SetToCurrentTime() {
+func (g *SimpleGaugeMetric) SetToCurrentTime() {
 	g.metric.SetToCurrentTime()
 }
 
-func (g *simpleGaugeMetric) Add(num float64) {
+func (g *SimpleGaugeMetric) Add(num float64) {
 	g.metric.Add(num)
 }
-func (c *simpleGaugeMetric) Get() prometheus.Gauge {
-	return c.metric
+func (g *SimpleGaugeMetric) Get() prometheus.Gauge {
+	return g.metric
 }
 
 type durationMetric struct {
@@ -78,13 +78,13 @@ func (d *durationMetric) TimerStop() {
 }
 
 type metricsComponent struct {
-	latestInstallDuration *simpleGaugeMetric
-	latestUpgradeDuration *simpleGaugeMetric
+	latestInstallDuration *SimpleGaugeMetric
+	latestUpgradeDuration *SimpleGaugeMetric
 }
 
-func (m *metricsComponent) getInstall() *simpleGaugeMetric {
+func (m *metricsComponent) getInstall() *SimpleGaugeMetric {
 	return m.latestInstallDuration
 }
-func (m *metricsComponent) getUpgrade() *simpleGaugeMetric {
+func (m *metricsComponent) getUpgrade() *SimpleGaugeMetric {
 	return m.latestUpgradeDuration
 }
