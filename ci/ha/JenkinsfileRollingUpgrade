@@ -181,35 +181,37 @@ pipeline {
             }
         }
 
-        stage('Create KIND Cluster') {
-            environment {
-                KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
-                OCI_CLI_AUTH = "instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET = "verrazzano-builds"
-                OCI_OS_LOCATION = "${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
-                KIND_NODE_COUNT = "${params.KIND_WORKER_NODES}"
-            }
-            steps {
-                sh """
+        stage('Tests') {
+            stages {
+                stage('Create KIND Cluster') {
+                    environment {
+                        KIND_KUBERNETES_CLUSTER_VERSION = "${params.KUBERNETES_CLUSTER_VERSION}"
+                        OCI_CLI_AUTH = "instance_principal"
+                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                        OCI_OS_BUCKET = "verrazzano-builds"
+                        OCI_OS_LOCATION = "${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                        KIND_NODE_COUNT = "${params.KIND_WORKER_NODES}"
+                    }
+                    steps {
+                        sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
-            }
-            post {
-                failure {
-                    archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
-                }
-                always {
-                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                    script {
-                        VZ_TEST_METRIC = metricJobName('')
-                        metricTimerStart("${VZ_TEST_METRIC}")
                     }
-                    // enable debug logging of Verrazzano api istio proxy
-                    script {
-                        if (params.ENABLE_API_ENVOY_LOGGING) {
-                            sh '''
+                    post {
+                        failure {
+                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                        }
+                        always {
+                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                            script {
+                                VZ_TEST_METRIC = metricJobName('')
+                                metricTimerStart("${VZ_TEST_METRIC}")
+                            }
+                            // enable debug logging of Verrazzano api istio proxy
+                            script {
+                                if (params.ENABLE_API_ENVOY_LOGGING) {
+                                    sh '''
                                         vz_api_pod=\$(kubectl get pod -n verrazzano-system -l app=verrazzano-authproxy --no-headers -o custom-columns=\":metadata.name\")
                                         if [ -z "\$vz_api_pod" ]; then
                                           echo "Could not find verrazzano-authproxy pod, not enabling debug logging"
@@ -223,6 +225,74 @@ pipeline {
                                           kubectl exec \$nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
                                         fi
                                     '''
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('Verify Install') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Node Scheduling') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/scheduling"
+                    }
+                    steps {
+                        runGinkgoRandomize('ha/scheduling')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Rolling Update') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/rollingupdate"
+                    }
+                    steps {
+                        runGinkgoRandomize('ha/rollingupdate')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+            }
+            
+            post {
+                failure {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-dump')
+                        }
+                    }
+                }
+                success {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-dump')
                         }
                     }
                 }
