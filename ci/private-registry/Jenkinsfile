@@ -105,6 +105,7 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        VZ_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/test-call-vz.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dump"
 
         // Ideally use the TIBURON-DEV compartment, but we need permissions
@@ -288,6 +289,7 @@ pipeline {
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                                     dumpK8sCluster('install-success-cluster-dump')
+                                    dumpK8sClusterFromBugReport('install-success-cluster-dump')
                                 }
                             }
                         }
@@ -462,6 +464,7 @@ pipeline {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('tests-failure-cluster-dump')
+                            dumpK8sClusterFromBugReport('tests-failure-cluster-dump')
                         }
                     }
                 }
@@ -469,6 +472,7 @@ pipeline {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('tests-success-cluster-dump')
+                            dumpK8sClusterFromBugReport('tests-success-cluster-dump')
                         }
                     }
                 }
@@ -503,9 +507,11 @@ pipeline {
                 }
                 failure {
                     dumpK8sCluster('uninstall-failure-cluster-dump')
+                    dumpK8sClusterFromBugReport('uninstall-failure-cluster-dump')
                 }
                 aborted {
                     dumpK8sCluster('uninstall-aborted-cluster-dump')
+                    dumpK8sClusterFromBugReport('uninstall-aborted-cluster-dump')
                 }
             }
         }
@@ -523,11 +529,13 @@ pipeline {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('verify-uninstall-success-cluster-dump')
+                            dumpK8sClusterFromBugReport('verify-uninstall-success-cluster-dump')
                         }
                     }
                 }
                 failure {
                     dumpK8sCluster('verify-uninstall-failed-cluster-dump')
+                    dumpK8sClusterFromBugReport('verify-uninstall-failed-cluster-dump')
                 }
             }
         }
@@ -559,7 +567,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/bug-report/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             sh """
@@ -613,6 +621,14 @@ def runGinkgo(testSuitePath, String... extraArgs) {
 def dumpK8sCluster(dumpDirectory) {
     sh """
         ${DUMP_COMMAND} -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+    """
+}
+
+def dumpK8sClusterFromBugReport(dumpDirectory) {
+    sh """
+            go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+            mkdir bug-report
+            tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
     """
 }
 
