@@ -14,16 +14,15 @@ import (
 
 // PostUninstall removes the objects after the Helm uninstall process finishes
 func PostUninstall(ctx spi.ComponentContext) error {
-	ctx.Log().Infof("+++++++++++++++")
 	ctx.Log().Infof("Cleaning up rancher-backup cluster-role-binding and finalizers")
 
 	clusterRbList := rbacv1.ClusterRoleBindingList{}
 	if err := ctx.Client().List(context.TODO(), &clusterRbList, &client.ListOptions{}); err != nil {
 		return err
 	}
-	for i, crb := range clusterRbList.Items {
-		if crb.RoleRef.Name == ComponentName {
-			if err := ctx.Client().Delete(context.TODO(), &clusterRbList.Items[i]); err != nil {
+	for _, crb := range clusterRbList.Items {
+		if crb.Name == ComponentName {
+			if err := ctx.Client().Delete(context.TODO(), &crb); err != nil {
 				return err
 			}
 			ctx.Log().Oncef("%v cluster role binding deleted successfully", crb.RoleRef.Name)
