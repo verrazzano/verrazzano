@@ -42,7 +42,7 @@ pipeline {
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         string (name: 'KIND_WORKER_NODES',
-                defaultValue: '4',
+                defaultValue: '5',
                 description: 'Number of worker nodes,',
                 trim: true)
         string (name: 'INCLUDED_TESTS',
