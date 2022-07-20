@@ -281,17 +281,27 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 		files = append(files, userFileCR)
 
 		// get the install overrides from the VZ CR, write it to a temp file and append it
-		overrideYAMLs, err := common.GetInstallOverridesYAML(compContext, cr.Spec.Components.Istio.ValueOverrides)
+		files, err = appendOverrideFilesInOrder(compContext, files)
 		if err != nil {
 			return files, err
 		}
-		for _, overrideYAML := range overrideYAMLs {
-			overrideFile, err := createTempFile(log, overrideYAML)
-			if err != nil {
-				return files, err
-			}
-			files = append(files, overrideFile)
+	}
+	return files, nil
+}
+
+func appendOverrideFilesInOrder(ctx spi.ComponentContext, files []string) ([]string, error) {
+	overrideYAMLs, err := common.GetInstallOverridesYAML(ctx, ctx.EffectiveCR().Spec.Components.Istio.ValueOverrides)
+	if err != nil {
+		return files, err
+	}
+	// Reverse order is expected for value overrides
+	for idx := range overrideYAMLs {
+		overrideYAML := overrideYAMLs[len(overrideYAMLs)-1-idx]
+		overrideFile, err := createTempFile(ctx.Log(), overrideYAML)
+		if err != nil {
+			return files, err
 		}
+		files = append(files, overrideFile)
 	}
 	return files, nil
 }

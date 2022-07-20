@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
 	"os/exec"
 	"path/filepath"
@@ -35,7 +36,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,8 +61,10 @@ const kialiURL = "kiali." + dnsDomain
 const kibanaURL = "kibana." + dnsDomain
 const rancherURL = "rancher." + dnsDomain
 const consoleURL = "verrazzano." + dnsDomain
+const jaegerURL = "jaeger." + dnsDomain
 
 var istioEnabled = false
+var jaegerEnabled = true
 
 // goodRunner is used to test helm success without actually running an OS exec command
 type goodRunner struct {
@@ -386,7 +388,6 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
-	var verrazzanoToUse vzapi.Verrazzano
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -416,8 +417,6 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 				},
 				Components: makeVerrazzanoComponentStatusMap()},
 		},
-		rbac.NewServiceAccount(namespace, name, []string{}, nil),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -430,26 +429,14 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 
 	// Validate the results
 	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(2)*time.Second, result.RequeueAfter)
-
-	// check that an uninstall job was created
-	uninstallJob := batchv1.Job{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, &uninstallJob)
-	asserts.NoError(err)
+	asserts.False(result.Requeue)
+	asserts.Equal(time.Duration(0)*time.Second, result.RequeueAfter)
 
 	// check for uninstall started condition
 	verrazzano := vzapi.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &verrazzano)
-	asserts.NoError(err)
-	found := false
-	for _, condition := range verrazzano.Status.Conditions {
-		if condition.Type == vzapi.CondUninstallStarted {
-			found = true
-			break
-		}
-	}
-	asserts.True(found, "expected uninstall started to be true")
+	asserts.Error(err)
+	asserts.True(errors2.IsNotFound(err))
 }
 
 // TestUpgradeStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
@@ -1100,6 +1087,11 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).AnyTimes()
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
@@ -1173,6 +1165,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockEnabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
+	mockEnabledComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 
 	// Set disabled mock component expectations
 	mockDisabledComp.EXPECT().Name().Return("DisabledComponent").Times(1).AnyTimes()
@@ -1180,9 +1173,15 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockDisabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(0)
+	mockDisabledComp.EXPECT().IsEnabled(gomock.Any()).Return(false).AnyTimes()
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).AnyTimes()
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
@@ -1570,6 +1569,9 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 				Istio: &vzapi.IstioComponent{
 					Enabled: &istioEnabled,
 				},
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &jaegerEnabled,
+				},
 			},
 		},
 		Status: vzapi.VerrazzanoStatus{
@@ -1651,6 +1653,14 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 				},
 			},
 		},
+		&networkingv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.JaegerIngress},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{Host: jaegerURL},
+				},
+			},
+		},
 		rbac.NewServiceAccount(getInstallNamespace(), buildServiceAccountName(name), []string{}, labels),
 		rbac.NewClusterRoleBinding(
 			&verrazzanoToUse,
@@ -1718,6 +1728,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	assert.Equal(t, "https://"+kialiURL, *instanceInfo.KialiURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
+	assert.Equal(t, "https://"+jaegerURL, *instanceInfo.JaegerURL)
 }
 
 // TestInstanceRestoreWithPopulatedStatus tests the reconcileUpdate method for the following use case

@@ -6,7 +6,9 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"io"
+	"k8s.io/client-go/dynamic"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -30,6 +32,7 @@ type VZHelper interface {
 	GetClient(cmd *cobra.Command) (client.Client, error)
 	GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error)
 	GetHTTPClient() *http.Client
+	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
 }
 
 // FindVerrazzanoResource - find the single Verrazzano resource
@@ -99,4 +102,30 @@ func NewScheme() *runtime.Scheme {
 	_ = rbacv1.SchemeBuilder.AddToScheme(scheme)
 	_ = appv1.SchemeBuilder.AddToScheme(scheme)
 	return scheme
+}
+
+// GetNamespacesForAllComponents returns the list of unique namespaces of all the components included in the Verrazzano resource
+func GetNamespacesForAllComponents(vz vzapi.Verrazzano) []string {
+	allComponents := getAllComponents(vz)
+	var nsList []string
+	for _, eachComp := range allComponents {
+		nsList = append(nsList, constants.ComponentNameToNamespacesMap[eachComp]...)
+	}
+	if len(nsList) > 0 {
+		nsList = RemoveDuplicate(nsList)
+	}
+	return nsList
+}
+
+// getAllComponents returns the list of components from the Verrazzano resource
+func getAllComponents(vzRes vzapi.Verrazzano) []string {
+	var compSlice = make([]string, 0)
+
+	for _, compStatusDetail := range vzRes.Status.Components {
+		if compStatusDetail.State == vzapi.CompStateDisabled {
+			continue
+		}
+		compSlice = append(compSlice, compStatusDetail.Name)
+	}
+	return compSlice
 }

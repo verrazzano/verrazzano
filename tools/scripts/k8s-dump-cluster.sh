@@ -84,23 +84,23 @@ fi
 #		services.json
 #		directory per pod
 #			logs.txt
-#       api-resources.out
-#	application-configurations.json
-#       coherence.json
-#       configmaps.out
+#	  application-configurations.json
+#   coherence.json
+#	  gateways.json
+#	  ingress-traits.json
+#	  virtualservices.json
+# configmap_list.out
 #	crd.json
-#       es_indexex.out
-#	gateways.json
+# es_indexes.out
+# verrazzano-resources.json
 #	helm-ls.json
 #	helm-version.out
-#       images-on-nodes.csv
+# images-on-nodes.csv
 #	ingress.json
-#	ingress-traits.json
-#       kubectl-version.json
+# kubectl-version.json
 #	nodes.json
 #	pv.json
-#       verrazzano_resources.out
-#	virtualservices.json
+
 #
 # REVIEW: We certainly could capture some of the above per-namespace into the hierarchy
 #         created by the cluster-info.
@@ -226,6 +226,8 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get secrets -n $NAMESPACE -o json |jq 'del(.items[].data)' 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/secrets.json || true
         kubectl --insecure-skip-tls-verify get certificates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/certificates.json || true
         kubectl --insecure-skip-tls-verify get MetricsTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/metrics-traits.json || true
+        kubectl --insecure-skip-tls-verify get servicemonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/service-monitors.json || true
+        kubectl --insecure-skip-tls-verify get podmonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/pod-monitors.json || true
       fi
     fi
   done <$CAPTURE_DIR/cluster-dump/namespace_list.out
@@ -238,7 +240,7 @@ function full_k8s_cluster_dump() {
   kubectl --insecure-skip-tls-verify cluster-info dump --all-namespaces --output-directory=$CAPTURE_DIR/cluster-dump >/dev/null 2>&1
 
   # Get the Verrazzano resource at the root level. The Verrazzano custom resource can define the namespace, so use all the namespaces in the command
-  kubectl --insecure-skip-tls-verify get verrazzano --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/verrazzano_resources.json || true
+  kubectl --insecure-skip-tls-verify get verrazzano --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/verrazzano-resources.json || true
 
   if [ $? -eq 0 ]; then
     kubectl --insecure-skip-tls-verify version -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/kubectl-version.json || true
@@ -258,6 +260,8 @@ function full_k8s_cluster_dump() {
     helm ls -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/helm-ls.json || true
     dump_es_indexes > $CAPTURE_DIR/cluster-dump/es_indexes.out || true
     process_nodes_output || true
+    # dump the Prometheus scrape configuration
+    kubectl get secret prometheus-prometheus-operator-kube-p-prometheus -n verrazzano-monitoring -o json | jq -r '.data["prometheus.yaml.gz"]' | base64 -d | gunzip > $CAPTURE_DIR/cluster-dump/prom-scrape-config.yaml || true
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"
   fi
