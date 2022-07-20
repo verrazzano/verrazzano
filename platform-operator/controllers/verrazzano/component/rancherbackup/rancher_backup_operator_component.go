@@ -15,9 +15,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -125,6 +127,10 @@ func (rb rancherBackupHelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error 
 	return nil
 }
 
+func (rb rancherBackupHelmComponent) IsOperatorUninstallSupported() bool {
+	return true
+}
+
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (rb rancherBackupHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if rb.IsEnabled(old) && !rb.IsEnabled(new) {
@@ -134,12 +140,41 @@ func (rb rancherBackupHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *
 }
 
 // PostUninstall processing for RancherBackup
-func (rb rancherBackupHelmComponent) PostUninstall(context spi.ComponentContext) error {
+//func (rb rancherBackupHelmComponent) PostUninstall(context spi.ComponentContext) error {
+//	res := resource.Resource{
+//		Name:   ComponentNamespace,
+//		Client: context.Client(),
+//		Object: &corev1.Namespace{},
+//		Log:    context.Log(),
+//	}
+//	// Remove finalizers from the cattle-resources-system namespace to avoid hanging namespace deletion
+//	// and delete the namespace
+//	return res.RemoveFinalizersAndDelete()
+//}
+
+func (rb rancherBackupHelmComponent) PostUninstall(ctx spi.ComponentContext) error {
+	ctx.Log().Infof("??????????????????")
+	ctx.Log().Infof("Cleaning up rancher-backup cluster-role-binding and finalizers")
+
+	clusterRbList := rbacv1.ClusterRoleBindingList{}
+	if err := ctx.Client().List(context.TODO(), &clusterRbList, &client.ListOptions{}); err != nil {
+		return err
+	}
+	for i, crb := range clusterRbList.Items {
+		if crb.RoleRef.Name == ComponentName {
+			if err := ctx.Client().Delete(context.TODO(), &clusterRbList.Items[i]); err != nil {
+				return err
+			}
+			ctx.Log().Oncef("%v cluster role binding deleted successfully", crb.RoleRef.Name)
+			return nil
+		}
+	}
+
 	res := resource.Resource{
 		Name:   ComponentNamespace,
-		Client: context.Client(),
+		Client: ctx.Client(),
 		Object: &corev1.Namespace{},
-		Log:    context.Log(),
+		Log:    ctx.Log(),
 	}
 	// Remove finalizers from the cattle-resources-system namespace to avoid hanging namespace deletion
 	// and delete the namespace
