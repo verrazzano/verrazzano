@@ -10,9 +10,11 @@ spec:
   environmentName: default
   components:
     dns:
+      enabled: true
       wildcard:
         domain: nip.io
     ingress:
+      enabled: true
       type: LoadBalancer
       nginxInstallArgs:
       - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
@@ -20,8 +22,19 @@ spec:
       - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-list-management-mode"
         value: "None"
     istio:
+      enabled: true
       istioInstallArgs:
       - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
         value: "10Mbps"
       - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-list-management-mode"
         value: "None"
+    prometheusOperator:
+      enabled: true
+    prometheusAdapter:
+      enabled: true
+    kubeStateMetrics:
+      enabled: true
+    prometheusPushgateway:
+      enabled: true
+    prometheusNodeExporter:
+      enabled: true
