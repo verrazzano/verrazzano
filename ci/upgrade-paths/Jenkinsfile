@@ -197,7 +197,7 @@ pipeline {
         SAMPLE_APP_NAME="hello-helidon"
         SAMPLE_APP_NAMESPACE="hello-helidon-sample"
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
-        SAMPLE_APP_COMPONENT="hello-helidon-sample-component"
+        SAMPLE_APP_COMPONENT="hello-helidon-component"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
