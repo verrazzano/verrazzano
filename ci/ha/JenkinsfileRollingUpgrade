@@ -45,6 +45,14 @@ pipeline {
                 defaultValue: '4',
                 description: 'Number of worker nodes,',
                 trim: true)
+        string (name: 'INCLUDED_TESTS',
+                defaultValue: '.*',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                defaultValue: '_excluded_test',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
         booleanParam (description: 'Whether to enable debug logging of the istio envoy in the VZ API pod', name: 'ENABLE_API_ENVOY_LOGGING', defaultValue: true)
     }
@@ -276,7 +284,7 @@ pipeline {
                     }
                 }
             }
-            
+
             post {
                 failure {
                     script {
