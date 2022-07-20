@@ -58,8 +58,6 @@ var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
 	minExpectedHelmOverridesCount = 4
-	busyboxImageNameKey           = "busybox.image"
-	busyboxImageTagKey            = "busybox.tag"
 	testBomFilePath               = "../../testdata/test_bom.json"
 )
 

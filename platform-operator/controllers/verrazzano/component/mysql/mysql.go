@@ -31,8 +31,8 @@ const (
 	secretName          = "mysql"
 	mySQLUsernameKey    = "auth.username"
 	mySQLUsername       = "keycloak"
-	helmPwd             = "auth.password"
-	helmRootPwd         = "auth.rootPassword"
+	helmPwd             = "auth.password"     //nolint:gosec //#gosec G101
+	helmRootPwd         = "auth.rootPassword" //nolint:gosec //#gosec G101
 	mySQLKey            = "mysql-password"
 	mySQLRootKey        = "mysql-root-password"
 	mySQLInitFilePrefix = "init-mysql-"
