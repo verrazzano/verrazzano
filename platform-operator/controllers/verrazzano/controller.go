@@ -76,22 +76,20 @@ var unitTesting bool
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Get the Verrazzano resource
 	zapLogForMetrics := zap.S()
+	// Error is defined is
 	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
 	if err != nil {
 		zapLogForMetrics.Error(err)
-		return reconcile.Result{}, err
 	}
 	counterMetricObject.Inc(zapLogForMetrics, err)
 	errorCounterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
 	if err != nil {
 		zapLogForMetrics.Error(err)
-		return reconcile.Result{}, err
 	}
 
 	reconcileDurationMetricObject, err := metricsexporter.GetDurationMetric(metricsexporter.ReconcileDuration)
 	if err != nil {
 		zapLogForMetrics.Error(err)
-		return reconcile.Result{}, err
 	}
 	reconcileDurationMetricObject.TimerStart()
 	defer reconcileDurationMetricObject.TimerStop()

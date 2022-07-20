@@ -326,28 +326,34 @@ func initConfiguration() configuration {
 func GetSimpleCounterMetric(name metricName) (*SimpleCounterMetric, error) {
 	counterMetric, ok := MetricsExp.internalData.simpleCounterMetricMap[name]
 	if !ok {
-		return nil, fmt.Errorf("%v not found in SimpleCounterMetricMap", name)
+		return &SimpleCounterMetric{metric: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "vpo_dummy_reconcile_counter_metric",
+			Help: "This metric is returned and incremented in the case of an error, so the reconcile function will not return prematurely. This metric is not registered ",
+		})}, fmt.Errorf("%v not found in SimpleCounterMetricMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return counterMetric, nil
 }
 func GetDurationMetric(name metricName) (*DurationMetric, error) {
 	durationMetric, ok := MetricsExp.internalData.durationMetricMap[name]
 	if !ok {
-		return nil, fmt.Errorf("%v not found in durationMetricMap", name)
+		return &DurationMetric{metric: prometheus.NewSummary(prometheus.SummaryOpts{
+			Name: "vpo_dummy_reconcile_duration_metric",
+			Help: "his metric is returned and incremented in the case of an error, so the reconcile function will not return prematurely. This metric is not registered",
+		})}, fmt.Errorf("%v not found in durationMetricMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return durationMetric, nil
 }
 func GetSimpleGaugeMetric(name metricName) (*SimpleGaugeMetric, error) {
 	gaugeMetric, ok := MetricsExp.internalData.simpleGaugeMetricMap[name]
 	if !ok {
-		return nil, fmt.Errorf("%v not found in SimpleGaugeMetricMap", name)
+		return nil, fmt.Errorf("%v not found in SimpleGaugeMetricMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return gaugeMetric, nil
 }
 func GetMetricComponent(name metricName) (*MetricsComponent, error) {
 	metricComponent, ok := MetricsExp.internalData.metricsComponentMap[name]
 	if !ok {
-		return nil, fmt.Errorf("%v not found in metricsComponentMap", name)
+		return nil, fmt.Errorf("%v not found in metricsComponentMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return metricComponent, nil
 }
