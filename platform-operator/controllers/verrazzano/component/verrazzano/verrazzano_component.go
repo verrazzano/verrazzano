@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -153,6 +154,11 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	}
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
 		if err := fluentd.ReassociateResources(ctx.Client()); err != nil {
+			return err
+		}
+	}
+	if vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
+		if err := jaegeroperator.ReassociateResources(ctx.Client()); err != nil {
 			return err
 		}
 	}
