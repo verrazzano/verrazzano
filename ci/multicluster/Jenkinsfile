@@ -164,6 +164,7 @@ pipeline {
         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
 
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        VZ_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/test-call-vz.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
@@ -435,6 +436,7 @@ pipeline {
                 failure {
                     script {
                         dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-dump")
+                        dumpK8sClusterFromBugReport("${WORKSPACE}/multicluster-install-cluster-dump")
                     }
                 }
             }
@@ -452,6 +454,7 @@ pipeline {
                 failure {
                     script {
                         dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
+                        dumpK8sClusterFromBugReport("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
                     }
                 }
             }
@@ -546,6 +549,7 @@ pipeline {
                         failure {
                             script {
                                 dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump-pre-uninstall")
+                                dumpK8sClusterFromBugReport("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump-pre-uninstall")
                             }
                         }
                     }
@@ -556,12 +560,14 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+                        dumpK8sClusterFromBugReport("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                     }
                 }
                 aborted {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+                        dumpK8sClusterFromBugReport("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                     }
                 }
                 success {
@@ -569,6 +575,7 @@ pipeline {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+                            dumpK8sClusterFromBugReport("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                         }
                     }
                 }
@@ -587,6 +594,7 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-dump")
+                        dumpK8sClusterFromBugReport("${WORKSPACE}/multicluster-cleanup-tests-cluster-dump")
                     }
                 }
             }
@@ -609,12 +617,14 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         dumpK8sCluster("${WORKSPACE}/multicluster-uninstall-dump")
+                        dumpK8sClusterFromBugReport("${WORKSPACE}/multicluster-uninstall-dump")
                     }
                 }
                 aborted {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         dumpK8sCluster("${WORKSPACE}/multicluster-uninstall-dump")
+                        dumpK8sClusterFromBugReport("${WORKSPACE}/multicluster-uninstall-dump")
                     }
                 }
                 success {
@@ -622,11 +632,12 @@ pipeline {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster("${WORKSPACE}/multicluster-uninstall-dump")
+                            dumpK8sClusterFromBugReport("${WORKSPACE}/multicluster-uninstall-dump")
                         }
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: "**/multicluster-uninstall-dump/**,**/*cluster-dump*/**,**/test-cluster-dumps/**", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "**/multicluster-uninstall-dump/**,**/*cluster-dump*/**,**/bug-report/**,**/test-cluster-dumps/**", allowEmptyArchive: true
                 }
             }
         }
@@ -662,7 +673,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-dump*/**,**/bug-report/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -1235,6 +1246,14 @@ def dumpK8sCluster(dumpDirectory) {
             }
         }
     }
+}
+
+def dumpK8sClusterFromBugReport(dumpDirectory) {
+    sh """
+            go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+            mkdir bug-report
+            tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
+    """
 }
 
 def dumpVerrazzanoSystemPods() {
