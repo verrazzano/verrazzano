@@ -244,59 +244,21 @@ func TestIsReady(t *testing.T) {
 //  WHEN PostInstall is called
 //  THEN PostInstall should return nil
 func TestPostInstall(t *testing.T) {
-	// mock the k8s resources used in post install
-	caSecret := createCASecret()
-	rootCASecret := createRootCASecret()
-	adminSecret := createAdminSecret()
-	rancherPodList := createRancherPodListWithAllRunning()
-	ingress := v1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: common.CattleSystem,
-			Name:      constants.RancherIngress,
-		},
-	}
-	time := metav1.Now()
-	cert := certapiv1.Certificate{
-		ObjectMeta: metav1.ObjectMeta{Name: certificates[0].Name, Namespace: certificates[0].Namespace},
-		Status: certapiv1.CertificateStatus{
-			Conditions: []certapiv1.CertificateCondition{
-				{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
-			},
-		},
-	}
-
-	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0]).Build()
-	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
-
-	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert).Build()
-	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
-
-	// mock the pod executor when resetting the Rancher admin password
-	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
-	k8sutilfake.PodSTDOUT = "password"
-	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
-		config, k := k8sutilfake.NewClientsetConfig()
-		return config, k, nil
-	}
-
-	// mock the HTTP responses for the Rancher API
-	common.HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
-		url := req.URL.String()
-		if strings.Contains(url, common.RancherServerURLPath) {
-			return &http.Response{
-				StatusCode: 200,
-				Body:       io.NopCloser(strings.NewReader("blahblah")),
-			}, nil
-		}
-		return &http.Response{
-			StatusCode: 200,
-			Body:       io.NopCloser(strings.NewReader(`{"token":"token"}`)),
-		}, nil
-	}
-
 	component := NewComponent()
+	ctxWithoutIngress, ctxWithIngress := prepareContexts()
 	assert.IsType(t, fmt.Errorf(""), component.PostInstall(ctxWithoutIngress))
 	assert.Nil(t, component.PostInstall(ctxWithIngress))
+}
+
+// TestPostUpgrade tests a happy path post upgrade run
+// GIVEN a Rancher install state where all components are ready
+//  WHEN PostUpgrade is called
+//  THEN PostUpgrade should return nil
+func TestPostUpgrade(t *testing.T) {
+	component := NewComponent()
+	ctxWithoutIngress, ctxWithIngress := prepareContexts()
+	assert.Nil(t, component.PostUpgrade(ctxWithoutIngress))
+	assert.Nil(t, component.PostUpgrade(ctxWithIngress))
 }
 
 func Test_rancherComponent_ValidateUpdate(t *testing.T) {
@@ -350,6 +312,61 @@ func Test_rancherComponent_ValidateUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
+	// mock the k8s resources used in post install
+	caSecret := createCASecret()
+	rootCASecret := createRootCASecret()
+	adminSecret := createAdminSecret()
+	rancherPodList := createRancherPodListWithAllRunning()
+	ingress := v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: common.CattleSystem,
+			Name:      constants.RancherIngress,
+		},
+	}
+	time := metav1.Now()
+	cert := certapiv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: certificates[0].Name, Namespace: certificates[0].Namespace},
+		Status: certapiv1.CertificateStatus{
+			Conditions: []certapiv1.CertificateCondition{
+				{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+			},
+		},
+	}
+
+	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0]).Build()
+	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
+
+	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert).Build()
+	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
+
+	// mock the pod executor when resetting the Rancher admin password
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodSTDOUT = "password"
+	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
+		config, k := k8sutilfake.NewClientsetConfig()
+		return config, k, nil
+	}
+
+	// mock the HTTP responses for the Rancher API
+	common.HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
+		url := req.URL.String()
+		if strings.Contains(url, common.RancherServerURLPath) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader("blahblah")),
+			}, nil
+		}
+		return &http.Response{
+			StatusCode: 200,
+			Body:       io.NopCloser(strings.NewReader(`{"token":"token"}`)),
+		}, nil
+	}
+
+	return ctxWithoutIngress, ctxWithIngress
+
 }
 
 func newReadyDeployment(namespace string, name string) *appsv1.Deployment {
