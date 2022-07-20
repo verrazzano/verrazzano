@@ -27,6 +27,7 @@ type DeploymentTemplate struct {
 	Strategy appsv1.DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys"  protobuf:"bytes,4,opt,name=strategy"`
 	// +kubebuilder:validation:Required
 	PodSpec v1.PodSpec `json:"podSpec"`
+	Selector metav1.LabelSelector `json:"selector,omitempty" patchStrategy:"retainKeys"`
 }
 
 // VerrazzanoHelidonWorkloadStatus defines the observed state of VerrazzanoHelidonWorkload

@@ -117,14 +117,12 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoH
 		log.Errorf("Failed to get workload name: %v", err)
 		return reconcile.Result{Requeue: false}, err
 	}
-
 	// unwrap the apps/DeploymentSpec and meta/ObjectMeta
 	deploy, err := r.convertWorkloadToDeployment(&workload, log)
 	if err != nil {
 		log.Errorf("Failed to convert workload to deployment: %v", err)
 		return reconcile.Result{}, err
 	}
-
 	// Attempt to get the existing deployment. This is used in the case where we don't want to update any resources
 	// which are defined by Verrazzano such as the Fluentd image used by logging. In this case we obtain the previous
 	// Fluentd image and set that on the new deployment. We also need to know if the deployment exists
@@ -222,9 +220,7 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 		Spec: appsv1.DeploymentSpec{
 			//setting label selector for pod that this deployment will manage
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					labelKey: string(workload.GetUID()),
-				},
+				MatchLabels: workload.Spec.DeploymentTemplate.Selector.MatchLabels,
 			},
 		},
 	}
@@ -236,9 +232,7 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 	// Set PodSpec on deployment's PodTemplate from workload spec
 	workload.Spec.DeploymentTemplate.PodSpec.DeepCopyInto(&d.Spec.Template.Spec)
 	// making sure pods have same label as selector on deployment
-	d.Spec.Template.ObjectMeta.SetLabels(map[string]string{
-		labelKey: string(workload.GetUID()),
-	})
+	d.Spec.Template.ObjectMeta.SetLabels(workload.Spec.DeploymentTemplate.Selector.MatchLabels)
 
 	// pass through label and annotation from the workload to the deployment
 	passLabelAndAnnotation(workload, d)

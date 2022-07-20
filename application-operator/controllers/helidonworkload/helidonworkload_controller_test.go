@@ -212,6 +212,7 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			helidonTestContainerPort,
 		},
 	}
+
 	deploymentTemplate := &vzapi.DeploymentTemplate{
 		Metadata: metav1.ObjectMeta{
 			Name:      "hello-helidon-deployment-new",
@@ -223,6 +224,11 @@ func TestReconcileCreateHelidon(t *testing.T) {
 		PodSpec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				helidonTestContainer,
+			},
+		},
+		Selector: metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app" : "vicky sarkar",
 			},
 		},
 	}
@@ -347,6 +353,7 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 			},
 		},
 	}
+
 	// expect call to fetch existing deployment
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "hello-helidon-deployment-new"}, gomock.Not(gomock.Nil())).
