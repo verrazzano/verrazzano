@@ -59,10 +59,6 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/THIRD_PARTY_LICENSES.txt /licenses/
 
-# Pull in bitnami helm dependencies for MySQL chart
-RUN helm repo add bitnami https://charts.bitnami.com/bitnami \
-  && helm dependency build ./platform-operator/thirdparty/charts/mysql/
-
 USER 1000
 
 ENTRYPOINT ["/verrazzano/run.sh"]
