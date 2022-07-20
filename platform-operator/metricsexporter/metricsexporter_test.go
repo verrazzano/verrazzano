@@ -4,9 +4,7 @@
 package metricsexporter
 
 import (
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	asserts "github.com/stretchr/testify/assert"
@@ -25,12 +23,15 @@ const (
 	unregisteredTestComponent string = "unregistered test component"
 )
 
-// TestCollectReconcileMetricsTime tests the CollectReconcileMetricsTime fn
-// GIVEN a call to CollectReconcileMetricsTime
-// WHEN A starting time is passed into the function
-// THEN the function updates the reconcileCounterMetric by 1 and creates a new time for that reconcile in the reconcileLastDurationMetric
-func TestCollectReconcileMetricsTime(t *testing.T) {
-	TestInitalization()
+var (
+	logForTest = zap.S()
+)
+
+// TestReconcileCounterIncrement tests the Inc fn of the reconcile counter metrics object
+// GIVEN a call to Inc
+// THEN the function should update that internal metric by one
+func TestReconcileCounterIncrement(t *testing.T) {
+	RequiredInitialization()
 	assert := asserts.New(t)
 	test := struct {
 		name                   string
@@ -40,38 +41,37 @@ func TestCollectReconcileMetricsTime(t *testing.T) {
 		expectedIncrementValue: float64(1),
 	}
 	t.Run(test.name, func(t *testing.T) {
-		startTime := time.Now()
-		time.Sleep(1 * time.Millisecond)
-		reconcileCounterBefore := testutil.ToFloat64(MetricsExp.reconcileCounterMetric)
-		CollectReconcileMetricsTime(startTime, zap.S())
-		reconcileCounterAfter := testutil.ToFloat64(MetricsExp.reconcileCounterMetric)
+		reconcileCounterObject, err := GetSimpleCounterMetric(ReconcileCounter)
+		assert.NoError(err)
+		reconcileCounterBefore := testutil.ToFloat64(reconcileCounterObject.Get())
+		reconcileCounterObject.Inc(logForTest, nil)
+		reconcileCounterAfter := testutil.ToFloat64(reconcileCounterObject.Get())
 		assert.Equal(test.expectedIncrementValue, reconcileCounterAfter-reconcileCounterBefore)
-		// Reconcile Index is decremented by one because when the function is called Reconcile index is incremented by one at the end of the fn
-		// However, the gauge inside the gauge vector that we want to test is accessed with the original value of reconcile index that was used in the function call
-		metric, _ := MetricsExp.reconcileLastDurationMetric.GetMetricWithLabelValues(strconv.Itoa(MetricsExp.reconcileIndex - 1))
-		assert.Greater(testutil.ToFloat64(metric), float64(0))
 	})
 }
 
-// TestCollectReconcileError tests the CollectReconcileError fn
+// TestReconcileErrorIncrement tests the CollectReconcileError fn
 // GIVEN a call to CollectReconcileError
 // WHEN the function is called
 // THEN the function increments the reconcile error counter metric
-func TestCollectReconcileError(t *testing.T) {
+func ReconcileErrorIncrement(t *testing.T) {
+	RequiredInitialization()
 	assert := asserts.New(t)
 	test := struct {
 		name                        string
 		expectedErrorIncrementValue float64
 	}{
 
-		name:                        "Test that reoncile counter is incremented by one when function is called",
+		name:                        "Test that reconcile error counter is incremented by one when function is called",
 		expectedErrorIncrementValue: float64(1),
 	}
 	t.Run(test.name, func(t *testing.T) {
-		errorCounterBefore := testutil.ToFloat64(MetricsExp.reconcileErrorCounterMetric)
-		CollectReconcileMetricsError(zap.S())
-		errorCounterAfter := testutil.ToFloat64(MetricsExp.reconcileErrorCounterMetric)
-		assert.Equal(test.expectedErrorIncrementValue, errorCounterAfter-errorCounterBefore)
+		reconcileErrorCounterObject, err := GetSimpleCounterMetric(ReconcileError)
+		assert.NoError(err)
+		reconcileErrorCounterBefore := testutil.ToFloat64(reconcileErrorCounterObject.Get())
+		reconcileErrorCounterObject.Inc(logForTest, nil)
+		reconcileErrorCounterAfter := testutil.ToFloat64(reconcileErrorCounterObject.Get())
+		assert.Equal(test.expectedErrorIncrementValue, reconcileErrorCounterAfter-reconcileErrorCounterBefore)
 	})
 }
 
@@ -80,7 +80,7 @@ func TestCollectReconcileError(t *testing.T) {
 // WHEN a VZ CR with or without timestamps is passed to the fn
 // THEN the function properly updates or does nothing to the component's metric
 func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
-	TestInitalization(log)
+	RequiredInitialization()
 	assert := asserts.New(t)
 	emptyVZCR := installv1alpha1.Verrazzano{}
 	disabledComponentVZCR := installv1alpha1.Verrazzano{
@@ -283,14 +283,12 @@ func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			AnalyzeVerrazzanoResourceMetrics(testLog, tt.vzcr)
-			assert.Equal(tt.expectedValueForInstallMetric, getValueOfInstallMetricForTesting("grafana"))
-			assert.Equal(tt.expectedValueForUpdateMetric, getValueOfUpgradeMetricForTesting("grafana"))
+			grafanaMetricComponentObject, err := GetMetricComponent(grafanaMetricName)
+			assert.NoError(err)
+			grafanaInstallMetric := grafanaMetricComponentObject.getInstall()
+			assert.Equal(tt.expectedValueForInstallMetric, testutil.ToFloat64(grafanaInstallMetric.Get()))
+			grafanaUpgradeMetric := grafanaMetricComponentObject.getUpgrade()
+			assert.Equal(tt.expectedValueForUpdateMetric, testutil.ToFloat64(grafanaUpgradeMetric.Get()))
 		})
 	}
-}
-func getValueOfInstallMetricForTesting(componentName string) float64 {
-	return testutil.ToFloat64(MetricsExp.metricsMap[componentName].LatestInstallDuration)
-}
-func getValueOfUpgradeMetricForTesting(componentName string) float64 {
-	return testutil.ToFloat64(MetricsExp.metricsMap[componentName].LatestUpgradeDuration)
 }

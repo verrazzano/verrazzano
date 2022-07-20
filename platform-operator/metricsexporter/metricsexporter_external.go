@@ -45,11 +45,6 @@ import (
 
 var MetricsExp MetricsExporter
 
-// Initalized but not populated
-
-// Deciding register all of the metrics internraly when we initalize it controller wise
-
-// Want variable name but for it to be internal
 type metricsOperation string
 type metricName string
 
@@ -57,8 +52,9 @@ const (
 	operationInstall               metricsOperation = "install"
 	operationUpgrade               metricsOperation = "upgrade"
 	millisPerSecond                float64          = 1000.0
-	reconcileCounter               metricName       = "reconcile counter"
-	reconcileError                 metricName       = "reconcile error"
+	ReconcileCounter               metricName       = "reconcile counter"
+	ReconcileError                 metricName       = "reconcile error"
+	ReconcileDuration              metricName       = "reconcile duration"
 	authproxyMetricName            metricName       = authproxy.ComponentName
 	oamMetricName                  metricName       = oam.ComponentName
 	appoperMetricName              metricName       = appoper.ComponentName
@@ -87,23 +83,14 @@ const (
 	fluentdMetricName              metricName       = fluentd.ComponentName
 )
 
-// List 1.) To provide same initalization interface 1a.) Decide we should initalize server and metrics at same time or different (right now different)
-// 2.) Provide common interface for creating a new metrics (similar to metric component Struct)
-// 3.) Provide a common interface for updating and interacting with metrics (Add error handling)
-// 4.) One structure encopassess all metrics might have different member functions of metrics and updates structure
-// 6.) Internally have map that maps to string that has metrics
-// 7.) Maybe have external object that provides metrics constant so can access them whatever strings
-// 8.) Metrics will be can't dynamically register or unregister a metrics
-// 9. Functions generate UpdateCount("authproxy") ->
-// 10.) Have different struct for each type of metric and for each function share the same type of metric
+// This fn initalizes the metrics object, registers the metrics, and then starts the server
 func InitRegisterStart(log *zap.SugaredLogger) {
 	RequiredInitialization()
 	RegisterMetrics(log)
 	StartMetricsServer(log)
 }
-func TestInitalization() {
-	RequiredInitialization()
-}
+
+// This fn initalizes the metrics object, but does not register the metrics
 func RequiredInitialization() {
 	MetricsExp = MetricsExporter{
 		internalConfig: initConfiguration(),
@@ -125,14 +112,14 @@ func RegisterMetrics(log *zap.SugaredLogger) {
 // This function returns a pointer to a new MetricComponent Object
 func newMetricsComponent(name string) *metricsComponent {
 	return &metricsComponent{
-		LatestInstallDuration: &simpleGaugeMetric{
+		latestInstallDuration: &simpleGaugeMetric{
 
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
 				Name: fmt.Sprintf("vz_%s_install_duration_seconds", name),
 				Help: fmt.Sprintf("The duration of the latest installation of the %s component in seconds", name),
 			}),
 		},
-		LatestUpgradeDuration: &simpleGaugeMetric{
+		latestUpgradeDuration: &simpleGaugeMetric{
 			prometheus.NewGauge(prometheus.GaugeOpts{
 				Name: fmt.Sprintf("vz_%s_upgrade_duration_seconds", name),
 				Help: fmt.Sprintf("The duration of the latest upgrade of the %s component in seconds", name),
@@ -143,13 +130,13 @@ func newMetricsComponent(name string) *metricsComponent {
 
 func initSimpleCounterMetricMap() map[metricName]*simpleCounterMetric {
 	return map[metricName]*simpleCounterMetric{
-		reconcileCounter: {
+		ReconcileCounter: {
 			prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vpo_reconcile_counter",
 				Help: "The number of times the reconcile function has been called in the Verrazzano-platform-operator",
 			}),
 		},
-		reconcileError: {
+		ReconcileError: {
 			prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vpo_error_reconcile_counter",
 				Help: "The number of times the reconcile function has returned an error in the Verrazzano-platform-operator",
@@ -194,7 +181,7 @@ func initsimpleGaugeMetricMap() map[metricName]*simpleGaugeMetric {
 
 func initDurationMetricMap() map[metricName]*durationMetric {
 	return map[metricName]*durationMetric{
-		reconcileCounter: {
+		ReconcileDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vpo_reconcile_duration",
 				Help: "The duration in seconds of vpo reconcile process",
@@ -229,10 +216,10 @@ func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metric
 		return nil
 	}
 	if typeofOperation == operationUpgrade {
-		MetricsExp.internalData.metricsComponentMap[componentName].LatestUpgradeDuration.Set(float64(totalDuration))
+		MetricsExp.internalData.metricsComponentMap[componentName].latestUpgradeDuration.Set(float64(totalDuration))
 	}
 	if typeofOperation == operationInstall {
-		MetricsExp.internalData.metricsComponentMap[componentName].LatestInstallDuration.Set(float64(totalDuration))
+		MetricsExp.internalData.metricsComponentMap[componentName].latestInstallDuration.Set(float64(totalDuration))
 	}
 	return nil
 
@@ -277,6 +264,8 @@ func StartMetricsServer(log *zap.SugaredLogger) {
 		}
 	}, time.Second*3, wait.NeverStop)
 }
+
+// This fn parses the VZ CR and extracts the install and update data for each component
 func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verrazzano) {
 	mapOfComponents := cr.Status.Components
 	for componentName, componentStatusDetails := range mapOfComponents {
@@ -326,7 +315,7 @@ func InitializeAllMetricsArray() {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
 	for _, value := range MetricsExp.internalData.metricsComponentMap {
-		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.LatestInstallDuration.metric, value.LatestUpgradeDuration.metric)
+		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.latestInstallDuration.metric, value.latestUpgradeDuration.metric)
 	}
 }
 func initConfiguration() configuration {
@@ -336,19 +325,31 @@ func initConfiguration() configuration {
 		registry:      prometheus.DefaultRegisterer,
 	}
 }
-func getCounterMetric(name metricName) (*simpleCounterMetric, error) {
+func GetSimpleCounterMetric(name metricName) (*simpleCounterMetric, error) {
 	counterMetric, ok := MetricsExp.internalData.simpleCounterMetricMap[name]
 	if !ok {
 		return nil, fmt.Errorf("%v not found in simpleCounterMetricMap", name)
 	}
 	return counterMetric, nil
 }
-func getDurationMetric(name metricName) (*durationMetric, error) {
+func GetDurationMetric(name metricName) (*durationMetric, error) {
 	durationMetric, ok := MetricsExp.internalData.durationMetricMap[name]
 	if !ok {
 		return nil, fmt.Errorf("%v not found in durationMetricMap", name)
 	}
 	return durationMetric, nil
 }
-
-// Implement Get Types, make const block with all of the metric strings, make the metricNames in the struct, make types private when possible
+func GetSimpleGaugeMetric(name metricName) (*simpleGaugeMetric, error) {
+	gaugeMetric, ok := MetricsExp.internalData.simpleGaugeMetricMap[name]
+	if !ok {
+		return nil, fmt.Errorf("%v not found in simpleGaugeMetricMap", name)
+	}
+	return gaugeMetric, nil
+}
+func GetMetricComponent(name metricName) (*metricsComponent, error) {
+	metricComponent, ok := MetricsExp.internalData.metricsComponentMap[name]
+	if !ok {
+		return nil, fmt.Errorf("%v not found in metricsComponentMap", name)
+	}
+	return metricComponent, nil
+}

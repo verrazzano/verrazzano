@@ -3,7 +3,10 @@
 
 package metricsexporter
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
+)
 
 type MetricsExporter struct {
 	internalConfig configuration
@@ -26,12 +29,18 @@ type simpleCounterMetric struct {
 	metric prometheus.Counter
 }
 
-func (c *simpleCounterMetric) Inc() {
+func (c *simpleCounterMetric) Inc(log *zap.SugaredLogger, err error) {
 	c.metric.Inc()
+	if err != nil {
+		log.Error(err)
+	}
 }
 
 func (c *simpleCounterMetric) Add(num float64) {
 	c.metric.Add(num)
+}
+func (c *simpleCounterMetric) Get() prometheus.Counter {
+	return c.metric
 }
 
 type simpleGaugeMetric struct {
@@ -48,6 +57,9 @@ func (g *simpleGaugeMetric) SetToCurrentTime() {
 
 func (g *simpleGaugeMetric) Add(num float64) {
 	g.metric.Add(num)
+}
+func (c *simpleGaugeMetric) Get() prometheus.Gauge {
+	return c.metric
 }
 
 type durationMetric struct {
@@ -66,13 +78,13 @@ func (d *durationMetric) TimerStop() {
 }
 
 type metricsComponent struct {
-	LatestInstallDuration *simpleGaugeMetric
-	LatestUpgradeDuration *simpleGaugeMetric
+	latestInstallDuration *simpleGaugeMetric
+	latestUpgradeDuration *simpleGaugeMetric
 }
 
-func getInstall(m *metricsComponent) *simpleGaugeMetric {
-	return m.LatestInstallDuration
+func (m *metricsComponent) getInstall() *simpleGaugeMetric {
+	return m.latestInstallDuration
 }
-func getUpgrade(m *metricsComponent) *simpleGaugeMetric {
-	return m.LatestUpgradeDuration
+func (m *metricsComponent) getUpgrade() *simpleGaugeMetric {
+	return m.latestUpgradeDuration
 }

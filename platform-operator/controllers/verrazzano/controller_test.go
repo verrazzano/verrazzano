@@ -105,7 +105,7 @@ func TestGetUninstallJobName(t *testing.T) {
 // THEN ensure all the objects are already created and
 //      ensure a finalizer is added if it doesn't exist
 func TestInstall(t *testing.T) {
-	metricsexporter.InitalizeMetricsWrapper()
+	metricsexporter.RequiredInitialization()
 	tests := []struct {
 		namespace string
 		name      string
@@ -191,9 +191,11 @@ func TestInstall(t *testing.T) {
 			// Create and make the request
 			request := newRequest(namespace, name)
 			reconciler := newVerrazzanoReconciler(mock)
-			reconcileCounterBefore := testutil.ToFloat64(metricsexporter.GetReconcileCounterMetric())
+			reconcileCounterMetric, err := (metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter))
+			asserts.NoError(err)
+			reconcileCounterBefore := testutil.ToFloat64(reconcileCounterMetric.Get())
 			result, err := reconciler.Reconcile(nil, request)
-			reconcileCounterAfter := testutil.ToFloat64(metricsexporter.GetReconcileCounterMetric())
+			reconcileCounterAfter := testutil.ToFloat64(reconcileCounterMetric.Get())
 			asserts.Equal(reconcileCounterBefore, reconcileCounterAfter-1)
 
 			asserts.NoError(err)
@@ -1334,14 +1336,16 @@ func TestNonIntersectingMergeNestedMap(t *testing.T) {
 // WHEN the reconcile function is called
 // THEN an error occurs and the error counter metric is incremented
 func TestReconcileErrorCounter(t *testing.T) {
-	metricsexporter.InitalizeMetricsWrapper()
+	metricsexporter.RequiredInitialization()
 	asserts := assert.New(t)
 	clientBuilder := fakes.NewClientBuilder()
 	fakeClient := clientBuilder.Build()
 	errorRequest := newRequest("bad namespace", "test")
 	reconciler := newVerrazzanoReconciler(fakeClient)
-	errorCounterBefore := testutil.ToFloat64(metricsexporter.GetErrorCounterMetric())
+	reconcileErrorCounterMetric, err := (metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError))
+	asserts.NoError(err)
+	errorCounterBefore := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
 	reconciler.Reconcile(nil, errorRequest)
-	errorCounterAfter := testutil.ToFloat64(metricsexporter.GetErrorCounterMetric())
+	errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
 	asserts.Equal(errorCounterBefore, errorCounterAfter-1)
 }
