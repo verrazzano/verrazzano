@@ -144,7 +144,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: jaeger
+  name: jaeger-collector
   namespace: {{ .Values.jaegerOperator.namespace }}
 spec:
   podSelector:
