@@ -384,6 +384,13 @@
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
               "helmTagKey": "image.tag"
+            },
+            {
+              "registry": "docker.io",
+              "repository": "library",
+              "image": "busybox",
+              "tag": "v1.34",
+              "HelmFullImageKey": "primary.initContainers[0].image"
             }
           ]
         }
