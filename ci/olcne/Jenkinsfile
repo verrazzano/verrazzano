@@ -162,8 +162,10 @@ pipeline {
         KUBECONFIG="$WORKSPACE/test_kubeconfig"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
+        // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
         OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
-        // TODO: Make changes to the security list in the release branch and use it here
+        // TODO: Update the default branch to be used for terraform-oci-olcne 
+        // Check https://gitlab-odx.oracledx.com/shashank.z.kumar/terraform-oci-olcne/-/merge_requests/1
         // OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
         OLCNE_BRANCH_TO_USE="origin/feature/VZ-6040"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
@@ -547,7 +549,7 @@ def generateAllAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='
 
 def generateVerifyInstallStages(dumpRoot) {
     return [
-        // TODO: Update the list to include other tests for subsequent VZ releases
+        // TODO: Update the list to include tests for subsequent VZ releases
         // Currently supported Verrazzano version = 1.3 
         "verify-install istio": {
             runGinkgoRandomize('verify-install/istio', "${dumpRoot}/verify-install-istio")
@@ -778,6 +780,17 @@ def dumpVerrazzanoApiLogs() {
     """
 }
 
+def dumpVerrazzanoInstallLogs() {
+    sh """
+        ## dump out install logs
+        mkdir -p $WORKSPACE/platform-operator/scripts/install/build/logs
+        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+        echo "[INFO] Verrazzano Installation logs dumped to verrazzano-install.log"
+        echo "[INFO] Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+    """
+}
+
 def getEffectiveDumpOnSuccess() {
     def effectiveValue=params.DUMP_K8S_CLUSTER_ON_SUCCESS
     if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
@@ -956,9 +969,11 @@ def updateOLCNEConfig() {
     env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
     echo CONTROL_PLANE_IP
     sh """
+        # TODO: This will no longer be required after terraform-oci-olcne repository supports OCI CCM module
         scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" "$TF_VAR_api_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/oci_api_key.pem
         $GO_REPO_PATH/verrazzano/ci/scripts/update_olcne_config.sh
-        # TODO: Need to update the following with OLCNE > 1.5 release
+    
+        # TODO: This MIGHT not be required for OCNE > 1.5 releases
         # Add annotation to the storageclass created by OLCNE oci-ccm module
         kubectl get storageclass oci-bv -o yaml > "$WORKSPACE/oci-bv.yaml"
         yq -i eval '.metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true"' "$WORKSPACE/oci-bv.yaml"
@@ -989,7 +1004,7 @@ def installVerrazzanoPlatformOperator() {
         # --name "${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
         # --file $WORKSPACE/downloaded-operator.yaml
         
-        # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands
+        # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands instead of "wget"
         wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/release-1.3/operator.yaml
         
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
@@ -1035,22 +1050,12 @@ def installVerrazzano() {
 }
 
 def updateLoadBalancerHealthCheck() {
+    // TODO: This function will not be required if OCI CCM supports configuring health check protocol and port
     sh '''
         LB_MGMT_IP=$(kubectl get service ingress-controller-ingress-nginx-controller -n ingress-nginx -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
         LB_APP_IP=$(kubectl get service  istio-ingressgateway  -n  istio-system -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
         $GO_REPO_PATH/verrazzano/ci/scripts/update_lb_health_check.sh "$LB_MGMT_IP $LB_APP_IP"
     '''
-}
-
-def dumpVerrazzanoInstallLogs() {
-    sh """
-        ## dump out install logs
-        mkdir -p $WORKSPACE/platform-operator/scripts/install/build/logs
-        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-        echo "[INFO] Verrazzano Installation logs dumped to verrazzano-install.log"
-        echo "[INFO] Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-    """
 }
 
 def deleteVerrazzano() {
