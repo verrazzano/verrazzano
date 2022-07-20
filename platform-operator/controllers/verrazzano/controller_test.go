@@ -543,13 +543,6 @@ func TestUninstallComplete(t *testing.T) {
 			return nil
 		})
 
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteNamespace(mock)
-
-	// Expect the Rancher Post install
-	expectRancherPostUninstall(mock, 5, 3, 0)
-
 	expectIstioCertRemoval(mock, 1)
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -639,9 +632,6 @@ func TestUninstallStarted(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-
-	// Expect the Rancher Post install
-	expectRancherPostUninstall(mock, 5, 3, 3)
 
 	expectIstioCertRemoval(mock, 1)
 
@@ -743,13 +733,6 @@ func TestUninstallSucceeded(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
 		}).AnyTimes()
-
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteNamespace(mock)
-
-	// Expect the Rancher Post install
-	expectRancherPostUninstall(mock, 5, 3, 0)
 
 	expectIstioCertRemoval(mock, 1)
 
