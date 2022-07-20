@@ -254,7 +254,6 @@ func initializeFailedMetricsArray() {
 	}
 }
 func StartMetricsServer(log *zap.SugaredLogger) {
-	go registerMetricsHandlers(log)
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
 		err := http.ListenAndServe(":9100", nil)
