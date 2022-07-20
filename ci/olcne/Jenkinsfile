@@ -471,8 +471,11 @@ pipeline {
 
             dumpVerrazzanoSystemPods()
             dumpCattleSystemPods()
+            dumpCertManagerNamespaceLogs()
             dumpNginxIngressControllerLogs()
             dumpVerrazzanoPlatformOperatorLogs()
+            dumpVerrazzanoApplicationOperatorLogs()
+            dumpVerrazzanoApiLogs()
 
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*-cluster-dump/**,**/test-cluster-dumps/**/,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
@@ -534,10 +537,6 @@ pipeline {
            deleteDir()
         }
     }
-}
-
-def generateNonWLSAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='false') {
-    return generateSecurityTests(dumpRoot) + generateNonWLSTests(dumpRoot, skipDeploy, skipUndeploy)
 }
 
 def generateAllAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='false') {
@@ -893,66 +892,6 @@ def emitJobMetrics() {
     long startTimeInMillis="${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING=startTimeInMillis-timeInMillis
     runGinkgo('jobmetrics')
-}
-
-def runVerrazzanoAcceptanceTests() {
-    return [
-        'metrics': stage('metrics') {
-            steps {
-                runGinkgo('metrics/syscomponents', "${TEST_DUMP_ROOT}/syscomponents-metrics")
-            }
-        },
-        'restapi': stage('restapi') {
-            steps {
-                runGinkgo('verify-infra/restapi', "${TEST_DUMP_ROOT}/restapi-infra")
-            }
-        },
-        'vmi': stage('vmi') {
-            steps {
-                runGinkgo('verify-infra/vmi', "${TEST_DUMP_ROOT}/vmi-infra")
-            }
-        },
-        'oam': stage('oam') {
-            steps {
-                runGinkgo('verify-infra/oam', "${TEST_DUMP_ROOT}/oam-infra")
-            }
-        },
-        'system-logging': stage('system-logging') {
-            steps {
-                runGinkgo('logging/system', "${TEST_DUMP_ROOT}/system-logging")
-            }
-        },
-        'istio-authorization-policy': stage('istio-authorization-policy') {
-            steps {
-                runGinkgo('istio/authz', "${TEST_DUMP_ROOT}/examples-istio-auth-policy")
-            }
-        },
-        'security-role-based-access': stage('security-role-based-access') {
-            steps {
-                runGinkgo('security/rbac', "${TEST_DUMP_ROOT}/examples-rbac")
-            }
-        },
-        'WebLogic-logging': stage('WebLogic-logging') {
-            steps {
-                runGinkgoFailFast('logging/weblogic', "${TEST_DUMP_ROOT}/weblogic-logging")
-            }
-        },
-        'helidon-workload': stage('helidon-workload') {
-            steps {
-                runGinkgoFailFast('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload")
-            }
-        },
-        'weblogic-workload': stage('weblogic-workload') {
-            steps {
-                runGinkgoFailFast('workloads/weblogic', "${TEST_DUMP_ROOT}/weblogic-workload")
-            }
-        },
-        'coherence-workload': stage('coherence-workload') {
-            steps {
-                runGinkgoFailFast('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload")
-            }
-        }
-    ]
 }
 
 def createOLCNECluster() {
