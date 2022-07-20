@@ -195,9 +195,9 @@ pipeline {
 
         // sample app deployed before upgrade and UI console tests
         SAMPLE_APP_NAME="hello-helidon"
-        SAMPLE_APP_NAMESPACE="hello-helidon"
+        SAMPLE_APP_NAMESPACE="hello-helidon-sample"
         SAMPLE_APP_PROJECT="hello-helidon-sample-proj"
-        SAMPLE_APP_COMPONENT="hello-helidon-component"
+        SAMPLE_APP_COMPONENT="hello-helidon-sample-component"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
@@ -405,6 +405,11 @@ pipeline {
                                 runGinkgoVerifyParallel('Prometheus pre-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "true", "deploymetrics")
                             }
                         }
+                        stage ('Deploy Sample Application') {
+                            steps {
+                                deploySampleApp()
+                            }
+                        }
                     }
                 }
                 stage("upgrade-verrazzano") {
@@ -523,19 +528,24 @@ pipeline {
 
         stage('Post-upgrade Acceptance Tests') {
             stages {
+                stage ('Console') {
+                    when { expression { isMultiCluster() } }
+                    steps {
+                        runConsoleTests()
+                    }
+                    post {
+                        always {
+                            saveConsoleTestArtifacts()
+                        }
+                    }
+                }
+                stage ('Undeploy Sample Application') {
+                    steps {
+                        undeploySampleApp()
+                    }
+                }
                 stage('Post-upgrade Acceptance Tests parallel') {
                     parallel {
-                        stage ('Console') {
-                            when { expression { isMultiCluster() } }
-                            steps {
-                                runConsoleTests()
-                            }
-                            post {
-                                always {
-                                    saveConsoleTestArtifacts()
-                                }
-                            }
-                        }
                         stage('post-upgrade verify keycloak') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
@@ -1796,17 +1806,6 @@ def setDisplayName() {
     echo "End setDisplayName"
 }
 
-def modifyHelloHelidonApp(newNamespace, newProjName) {
-    sh """
-      # create modified versions of the hello helidon MC example
-      export MC_HH_DEST_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/${newNamespace}
-      export MC_HH_SOURCE_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon
-      export MC_APP_NAMESPACE="${newNamespace}"
-      export MC_PROJ_NAME="${newProjName}"
-      ${GO_REPO_PATH}/verrazzano/ci/scripts/generate_mc_hello_deployment_files.sh
-    """
-}
-
 def runMulticlusterVerifyApi() {
     def verrazzanoMulticlusterVerifyApiStages = createClusterExecutionsMap()
     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -2015,4 +2014,34 @@ def performDescribeVerrazzanoResource() {
             """
         }
     }
+}
+
+def modifyHelloHelidonApp(newNamespace, newProjName) {
+    sh """
+      # create modified versions of the hello helidon MC example
+      export MC_HH_DEST_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/${newNamespace}
+      export MC_HH_SOURCE_DIR=${GO_REPO_PATH}/verrazzano/examples/multicluster/hello-helidon
+      export MC_APP_NAMESPACE="${newNamespace}"
+      export MC_PROJ_NAME="${newProjName}"
+      ${GO_REPO_PATH}/verrazzano/ci/scripts/generate_mc_hello_deployment_files.sh
+    """
+}
+
+def deploySampleApp() {
+    modifyHelloHelidonApp("${SAMPLE_APP_NAMESPACE}", "${SAMPLE_APP_PROJECT}")
+    sh """
+      export KUBECONFIG=$ADMIN_KUBECONFIG
+      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/${SAMPLE_APP_NAMESPACE}/verrazzano-project.yaml
+      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/${SAMPLE_APP_NAMESPACE}/hello-helidon-comp.yaml
+      kubectl apply -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/${SAMPLE_APP_NAMESPACE}/mc-hello-helidon-app.yaml
+    """
+}
+
+def undeploySampleApp() {
+    sh """
+      export KUBECONFIG=$ADMIN_KUBECONFIG
+      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/${SAMPLE_APP_NAMESPACE}/mc-hello-helidon-app.yaml
+      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/${SAMPLE_APP_NAMESPACE}/hello-helidon-comp.yaml
+      kubectl delete -f ${GO_REPO_PATH}/verrazzano/examples/multicluster/${SAMPLE_APP_NAMESPACE}/verrazzano-project.yaml
+    """
 }
