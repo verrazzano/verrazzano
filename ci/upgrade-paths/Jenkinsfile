@@ -522,6 +522,21 @@ pipeline {
 
         stage('Post-upgrade Acceptance Tests') {
             stages {
+                stage ('Verify & Uninstall Example Apps') {
+                    when { expression { isMultiCluster() } }
+                    parallel {
+                        stage ('Examples Helidon') {
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
+                            }
+                        }
+                        stage ('Verify/Uninstall Example Coherence') {
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeBelowVer("v1.3.0"), "false", "false")
+                            }
+                        }
+                    }
+                }
                 stage ('Console') {
                     when { expression { isMultiCluster() } }
                     steps {
@@ -585,21 +600,6 @@ pipeline {
                                         dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump-pre-uninstall")
                                     }
                                 }
-                            }
-                        }
-                    }
-                }
-                stage ('Verify & Uninstall Example Apps') {
-                    when { expression { isMultiCluster() } }
-                    parallel {
-                        stage ('Examples Helidon') {
-                            steps {
-                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
-                            }
-                        }
-                        stage ('Verify/Uninstall Example Coherence') {
-                            steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeBelowVer("v1.3.0"), "false", "false")
                             }
                         }
                     }
