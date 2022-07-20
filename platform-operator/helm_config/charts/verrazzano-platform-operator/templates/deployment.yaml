@@ -29,9 +29,6 @@ spec:
           args:
             - --zap-log-level=info
             - --init-webhooks=true
-          env:
-            - name: MODE
-              value: WEBHOOK_INIT
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -61,8 +58,6 @@ spec:
             - --zap-log-level=info
             - --enable-webhook-validation=true
           env:
-            - name: MODE
-              value: RUN_OPERATOR
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig
             {{- if .Values.global.registry }}
