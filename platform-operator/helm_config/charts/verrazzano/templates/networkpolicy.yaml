@@ -204,8 +204,8 @@ spec:
           protocol: TCP
         - port: 14271
           protocol: TCP
-        - protocol: TCP
-          port: 15090
+        - port: 15090
+          protocol: TCP
     - from:
         - namespaceSelector:
             matchLabels:
@@ -214,6 +214,6 @@ spec:
             matchLabels:
               app: verrazzano-authproxy
       ports:
-        - protocol: TCP
-          port: 16686
+        - port: 16686
+          protocol: TCP
 {{- end }}
