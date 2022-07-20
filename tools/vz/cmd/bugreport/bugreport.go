@@ -25,6 +25,8 @@ const (
 # Create a bug report bugreport.tar.gz by collecting data from the cluster
 vz bug-report --report-file bugreport.tar.gz
 
+When the --report-file is not provided, the command attempts to create bug-report.tar.gz in the current directory.
+
 # Create a bug report bugreport.tgz, including additional namespace ns1 from the cluster
 vz bug-report --report-file bugreport.tgz --include-namespaces ns1
 
@@ -46,14 +48,13 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
 	cmd.PersistentFlags().StringSliceP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, []string{}, constants.BugReportIncludeNSFlagUsage)
-	cmd.MarkPersistentFlagRequired(constants.BugReportFileFlagName)
 
 	return cmd
 }
 
 func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	start := time.Now()
-	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
+	bugReportFile, err := getBugReportFile(cmd, vzHelper)
 	if err != nil {
 		return fmt.Errorf("error fetching flag: %s", err.Error())
 	}
@@ -105,12 +106,35 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf(err.Error())
 	}
 
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully created the bug report: %s in %s\n", bugReportFile, time.Since(start)))
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Please go through errors (if any), in the standard output.\n")
+	brf, _ := os.Stat(bugReportFile)
+	if brf.Size() > 0 {
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully created the bug report: %s in %s\n", bugReportFile, time.Since(start)))
 
-	// Display a warning message to review the contents of the report
-	fmt.Fprint(vzHelper.GetOutputStream(), "WARNING: Please examine the contents of the bug report for sensitive data.\n")
+		// TODO: Display a message to look at the standard err, if the command reported any error
+
+		// Display a warning message to review the contents of the report
+		fmt.Fprint(vzHelper.GetOutputStream(), "WARNING: Please examine the contents of the bug report for sensitive data.\n")
+	} else {
+		// When Verrazzano is not installed, remove the empty bug report file
+		os.Remove(bugReportFile)
+	}
 	return nil
+}
+
+// getBugReportFile determines the bug report file
+func getBugReportFile(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
+	bugReport, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
+	if err != nil {
+		return "", fmt.Errorf("error fetching flag: %s", err.Error())
+	}
+	if bugReport == "" {
+		currentDir, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("error determining the current directory: %s", err.Error())
+		}
+		return currentDir + string(os.PathSeparator) + constants.BugReportFileDefaultValue, nil
+	}
+	return bugReport, nil
 }
 
 // checkExistingFile determines whether a file / directory with the name bugReportFile already exists
