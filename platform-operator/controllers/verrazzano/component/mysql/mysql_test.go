@@ -57,7 +57,7 @@ var mySQLSecret = v1.Secret{
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 2
+	minExpectedHelmOverridesCount = 4
 	busyboxImageNameKey           = "busybox.image"
 	busyboxImageTagKey            = "busybox.tag"
 	testBomFilePath               = "../../testdata/test_bom.json"
@@ -77,7 +77,7 @@ func TestAppendMySQLOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, minExpectedHelmOverridesCount)
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
 }
@@ -100,7 +100,7 @@ func TestAppendMySQLOverridesUpdate(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
@@ -135,11 +135,11 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesDev tests the appendMySQLOverrides function
@@ -164,11 +164,11 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
-	assert.Equal(t, "false", bom.FindKV(kvs, "persistence.enabled"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
+	assert.Equal(t, "false", bom.FindKV(kvs, "primary.persistence.enabled"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesDevWithPersistence tests the appendMySQLOverrides function
@@ -209,12 +209,12 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
-	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
-	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
+	assert.Equal(t, "true", bom.FindKV(kvs, "primary.persistence.enabled"))
+	assert.Equal(t, "100Gi", bom.FindKV(kvs, "primary.persistence.size"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesProd tests the appendMySQLOverrides function
@@ -236,10 +236,10 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.Len(t, kvs, minExpectedHelmOverridesCount)
+	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesProdWithOverrides tests the appendMySQLOverrides function
@@ -276,12 +276,12 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
-	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
-	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
+	assert.Equal(t, "true", bom.FindKV(kvs, "primary.persistence.enabled"))
+	assert.Equal(t, "100Gi", bom.FindKV(kvs, "primary.persistence.size"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesUpgrade tests the appendMySQLOverrides function
@@ -309,11 +309,11 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestIsMySQLReady tests the isMySQLReady function
@@ -322,39 +322,39 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 //  THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&appsv1.Deployment{
+		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      ComponentName,
 				Labels:    map[string]string{"app": ComponentName},
 			},
-			Spec: appsv1.DeploymentSpec{
+			Spec: appsv1.StatefulSetSpec{
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{"app": ComponentName},
 				},
 			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
+			Status: appsv1.StatefulSetStatus{
+				ReadyReplicas:   1,
+				Replicas:        1,
+				UpdatedReplicas: 1,
 			},
 		},
 		&v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      ComponentName + "-95d8c5d96-m6mbr",
+				Name:      ComponentName + "-0",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               ComponentName,
+					"controller-revision-hash": ComponentName + "-f97fd59d8",
+					"app":                      ComponentName,
 				},
 			},
 		},
-		&appsv1.ReplicaSet{
+		&appsv1.ControllerRevision{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
-				Name:        ComponentName + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Name:      ComponentName + "-f97fd59d8",
+				Namespace: ComponentNamespace,
 			},
+			Revision: 1,
 		},
 	).Build()
 	assert.True(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))

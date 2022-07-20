@@ -194,7 +194,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 	if mySQLVolumeSource.EmptyDir != nil {
 		// EmptyDir, disable persistence
 		kvs = append(kvs, bom.KeyValue{
-			Key:   "persistence.enabled",
+			Key:   "primary.persistence.enabled",
 			Value: "false",
 		})
 	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
@@ -207,7 +207,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 		storageClass := storageSpec.StorageClassName
 		if storageClass != nil && len(*storageClass) > 0 {
 			kvs = append(kvs, bom.KeyValue{
-				Key:       "persistence.storageClass",
+				Key:       "primary.persistence.storageClass",
 				Value:     *storageClass,
 				SetString: true,
 			})
@@ -215,7 +215,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 		storage := storageSpec.Resources.Requests.Storage()
 		if storageSpec.Resources.Requests != nil && !storage.IsZero() {
 			kvs = append(kvs, bom.KeyValue{
-				Key:       "persistence.size",
+				Key:       "primary.persistence.size",
 				Value:     storage.String(),
 				SetString: true,
 			})
@@ -224,14 +224,14 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 		if len(accessModes) > 0 {
 			// MySQL only allows a single AccessMode value, so just choose the first
 			kvs = append(kvs, bom.KeyValue{
-				Key:       "persistence.accessMode",
+				Key:       "primary.persistence.accessMode",
 				Value:     string(accessModes[0]),
 				SetString: true,
 			})
 		}
 		// Enable MySQL persistence
 		kvs = append(kvs, bom.KeyValue{
-			Key:   "persistence.enabled",
+			Key:   "primary.persistence.enabled",
 			Value: "true",
 		})
 	}
