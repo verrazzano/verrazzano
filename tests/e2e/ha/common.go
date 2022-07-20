@@ -5,7 +5,7 @@ package ha
 
 import (
 	"context"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,14 +21,14 @@ const (
 func EventuallyGetNodes(cs *kubernetes.Clientset, log *zap.SugaredLogger) *corev1.NodeList {
 	var nodes *corev1.NodeList
 	var err error
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 		nodes, err = cs.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			log.Errorf("failed to get nodes: %v", err)
 			return false
 		}
 		return true
-	}, WaitTimeout, PollingInterval).Should(BeTrue())
+	}, WaitTimeout, PollingInterval).Should(gomega.BeTrue())
 	return nodes
 }
 
