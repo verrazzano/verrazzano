@@ -172,22 +172,6 @@ pipeline {
             }
         }
 
-        stage('Verrazzano CLI') {
-                    steps {
-                        buildVerrazzanoCLI("${DOCKER_IMAGE_TAG}")
-                    }
-                    post {
-                        failure {
-                            script {
-                                SKIP_TRIGGERED_TESTS = true
-                            }
-                        }
-                        always {
-                            archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
-                        }
-                    }
-                }
-
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
@@ -206,28 +190,48 @@ pipeline {
         }
 
         stage('Build') {
-            when { not { buildingTag() } }
-            steps {
-                script {
-                    VZ_BUILD_METRIC = metricJobName('build')
-                    metricTimerStart("${VZ_BUILD_METRIC}")
-                    buildImages("${DOCKER_IMAGE_TAG}")
-                }
-            }
-            post {
-                failure {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
-                        SKIP_TRIGGERED_TESTS = true
+            parallel {
+                stage('Verrazzano CLI') {
+                    steps {
+                        buildVerrazzanoCLI("${DOCKER_IMAGE_TAG}")
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                        always {
+                            archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
+                        }
                     }
                 }
-                success {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
-                        archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
+                stage('Build Images') {
+                    when { not { buildingTag() } }
+                    steps {
+                        script {
+                            VZ_BUILD_METRIC = metricJobName('build')
+                            metricTimerStart("${VZ_BUILD_METRIC}")
+                            buildImages("${DOCKER_IMAGE_TAG}")
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                        success {
+                            script {
+                                METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
+                                archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
+                            }
+                        }
                     }
                 }
             }
+
         }
 
         stage('Image Patch Operator') {
