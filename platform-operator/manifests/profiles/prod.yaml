@@ -42,7 +42,25 @@ spec:
       overrides:
         - values:
             replicas: 2
+    ingress:
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 2
+            defaultBackend:
+              replicaCount: 2
     istio:
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    replicaCount: 2
       ingress:
         kubernetes:
           replicas: 2
@@ -57,12 +75,11 @@ spec:
             deployment:
               replicas: 2
     prometheusOperator:
-      prometheusSpec:
-        storageSpec:
-          volumeClaimTemplate:
-            spec:
-              storageClassName:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 2
                 resources:
                   requests:
-                    storage: "50Gi"
                     memory: "128Mi"

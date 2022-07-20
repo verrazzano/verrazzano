@@ -8,6 +8,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,7 +18,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	appsv1 "k8s.io/api/apps/v1"
 )
 
 const (
@@ -30,6 +31,30 @@ var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Istio", Label("f:platform-lcm.install"), func() {
 	const istioNamespace = "istio-system"
+
+	t.It("has affinity configured on istiod pods", func() {
+		var pods []corev1.Pod
+		var err error
+		Eventually(func() bool {
+			pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, istioNamespace)
+			if err != nil {
+				t.Logs.Error("Failed to get Istiod pods: %v", err)
+				return false
+			}
+			if len(pods) < 1 {
+				return false
+			}
+			return true
+		}, waitTimeout, pollingInterval).Should(BeTrue())
+		for _, pod := range pods {
+			affinity := pod.Spec.Affinity
+			Expect(affinity).ToNot(BeNil())
+			Expect(affinity.PodAffinity).To(BeNil())
+			Expect(affinity.NodeAffinity).To(BeNil())
+			Expect(affinity.PodAntiAffinity).ToNot(BeNil())
+			Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
+		}
+	})
 
 	t.DescribeTable("namespace",
 		func(name string) {
@@ -156,6 +181,9 @@ func getPilotReplicaCount(vz *vzapi.Verrazzano) uint32 {
 	istio := vz.Spec.Components.Istio
 	if istio != nil && !isIstioEnabled(istio) {
 		return 0
+	}
+	if pkg.IsProdProfile() {
+		return 2
 	}
 	return 1
 }

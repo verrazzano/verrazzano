@@ -4,8 +4,9 @@
 package registry
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -494,6 +495,73 @@ func TestNoComponentDependencies(t *testing.T) {
 	assert.True(t, ready)
 }
 
+// TestComponentDependenciesMetStateCheckReady tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN returns true if a dependency's component status is already in Ready state
+func TestComponentDependenciesMetStateCheckReady(t *testing.T) {
+	runDepenencyStateCheckTest(t, v1alpha1.CompStateReady, true)
+}
+
+// TestComponentDependenciesMetStateCheckNotReady tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN returns false if a dependency's component status is not Ready state and the deployments are not ready
+func TestComponentDependenciesMetStateCheckNotReady(t *testing.T) {
+	runDepenencyStateCheckTest(t, v1alpha1.CompStatePreInstalling, true)
+}
+
+// TestComponentDependenciesMetStateCheckCompDisabled tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN returns false if a dependency is disabled and the component status is disabled
+func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
+	runDepenencyStateCheckTest(t, v1alpha1.CompStateDisabled, false)
+}
+
+func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enabled bool) {
+	const compName = coherence.ComponentName
+	comp := fakeComponent{name: "foo", enabled: true, dependencies: []string{compName}}
+
+	dependency := fakeComponent{name: compName, enabled: true, ready: false}
+	OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			dependency,
+		}
+	})
+	defer ResetGetComponentsFn()
+
+	expectedResult := true
+	if state != v1alpha1.CompStateReady {
+		expectedResult = false
+	}
+
+	cr := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+		},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				CoherenceOperator: &v1alpha1.CoherenceOperatorComponent{
+					Enabled: &enabled,
+				},
+			},
+		},
+		Status: v1alpha1.VerrazzanoStatus{
+			Components: v1alpha1.ComponentStatusMap{
+				compName: &v1alpha1.ComponentStatusDetails{
+					Name:  compName,
+					State: state,
+				},
+			},
+		},
+	}
+
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, cr, true))
+	assert.Equal(t, expectedResult, ready)
+}
+
 // Create a new deployment object for testing
 func newReadyDeployment(name string, namespace string, labels map[string]string) *appsv1.Deployment {
 	return &appsv1.Deployment{
@@ -543,14 +611,20 @@ func newReplicaSet(name string, namespace string) *appsv1.ReplicaSet {
 
 type fakeComponent struct {
 	name         string
+	namespace    string
 	dependencies []string
 	enabled      bool
+	ready        bool
 }
 
 var _ spi.Component = fakeComponent{}
 
 func (f fakeComponent) Name() string {
 	return f.name
+}
+
+func (f fakeComponent) Namespace() string {
+	return f.namespace
 }
 
 func (f fakeComponent) GetJSONName() string {
@@ -570,7 +644,7 @@ func (f fakeComponent) GetDependencies() []string {
 }
 
 func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
-	return true
+	return f.ready
 }
 
 func (f fakeComponent) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {

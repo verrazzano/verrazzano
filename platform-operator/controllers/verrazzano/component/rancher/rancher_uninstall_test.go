@@ -37,6 +37,8 @@ func TestPostUninstall(t *testing.T) {
 	vwcName := "validating-webhook-configuration"
 	pvName := "pvc-12345"
 	pv2Name := "ocid1.volume.oc1.ca-toronto-1.12345"
+	rbName := "rb-test"
+	nonRancherRBName := "testrb"
 	randPV := "randomPV"
 	randCR := "randomCR"
 	randCRB := "randomCRB"
@@ -94,6 +96,16 @@ func TestPostUninstall(t *testing.T) {
 	crbNotRancher := rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: randCRB,
+		},
+	}
+	rbRancher := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: rbName,
+		},
+	}
+	rbNotRancher := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nonRancherRBName,
 		},
 	}
 	controllerCM := v1.ConfigMap{
@@ -193,6 +205,7 @@ func TestPostUninstall(t *testing.T) {
 				&crNotRancher,
 				&crbNotRancher,
 				&nonRancherPV,
+				&rbNotRancher,
 			},
 			nonRancherTest: true,
 		},
@@ -230,6 +243,25 @@ func TestPostUninstall(t *testing.T) {
 				&rancherPV2,
 			},
 		},
+		{
+			name: "test role binding",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+				&rancherNs2,
+				&mutWebhook,
+				&valWebhook,
+				&crRancher,
+				&crbRancher,
+				&crNotRancher,
+				&crbNotRancher,
+				&controllerCM,
+				&lockCM,
+				&rancherPV,
+				&rancherPV2,
+				&rbRancher,
+			},
+		},
 	}
 	setRancherSystemTool("echo")
 	for _, tt := range tests {
@@ -263,6 +295,8 @@ func TestPostUninstall(t *testing.T) {
 				assert.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: randPV}, &v1.PersistentVolume{})
 				assert.Nil(err)
+				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherRBName}, &rbacv1.RoleBinding{})
+				assert.Nil(err)
 			}
 			// ConfigMaps should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerCMName}, &v1.ConfigMap{})
@@ -273,6 +307,9 @@ func TestPostUninstall(t *testing.T) {
 			err = c.Get(context.TODO(), types.NamespacedName{Name: pvName}, &v1.PersistentVolume{})
 			assert.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: pv2Name}, &v1.PersistentVolume{})
+			assert.True(apierrors.IsNotFound(err))
+			// Role Binding should not exist
+			err = c.Get(context.TODO(), types.NamespacedName{Name: rbName}, &rbacv1.RoleBinding{})
 			assert.True(apierrors.IsNotFound(err))
 		})
 	}
