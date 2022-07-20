@@ -422,7 +422,7 @@ pipeline {
         stage('Post-install Verify Tests') {
             steps {
                 script {
-                    runGinkgoRandomize('verify-install', "${TEST_DUMP_ROOT}/post-install-verify-install")
+                    parallel generateVerifyInstallStages("${TEST_DUMP_ROOT}/post-install-verify-tests")
                 }
             }
             post {
@@ -546,6 +546,28 @@ def generateAllAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='
         generateWLSTests(dumpRoot, skipDeploy, skipUndeploy)
 }
 
+def generateVerifyInstallStages(dumpRoot) {
+    return [
+        // TODO: Update the list to include other tests for subsequent VZ releases
+        // Currently supported Verrazzano version = 1.3 
+        "verify-install istio": {
+            runGinkgoRandomize('verify-install/istio', "${dumpRoot}/verify-install-istio")
+        },
+        "verify-install keycloak": {
+            runGinkgoRandomize('verify-install/keycloak', "${dumpRoot}/verify-install-keycloak")
+        },
+        "verify-install kiali": {
+            runGinkgoRandomize('verify-install/kiali', "${dumpRoot}/verify-install-kiali")
+        },
+        "verify-install verrazzano": {
+            runGinkgoRandomize('verify-install/verrazzano', "${dumpRoot}/verify-install-verrazzano")
+        },
+        "verify-install web": {
+            runGinkgoRandomize('verify-install/web', "${dumpRoot}/verify-install-web")
+        },
+    ]
+}
+
 def generateVerifyInfraStages(dumpRoot) {
     return [
         "verify-scripts": {
@@ -651,8 +673,8 @@ def runGinkgo(testSuitePath, dumpDir='', kubeconfig='') {
             if [ ! -z "${dumpDir}" ]; then
                 export DUMP_DIRECTORY=${dumpDir}
             fi
-            if [ ! -z "$kubeConfig" ]; then
-                export KUBECONFIG="$kubeConfig"
+            if [ ! -z "${kubeconfig}" ]; then
+                export KUBECONFIG="$kubeconfig"
             fi
             cd $GO_REPO_PATH/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
