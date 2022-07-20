@@ -95,7 +95,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				}
 				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, []string{jaegerOperatorName})
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", jaegerOperatorName, constants.VerrazzanoMonitoringNamespace, err))
+					pkg.Log(pkg.Error, fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", jaegerOperatorName, constants.VerrazzanoMonitoringNamespace, err))
 				}
 				return result
 			}
@@ -148,17 +148,19 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		})
 
 		WhenJaegerOperatorInstalledIt("should have the correct Jaeger Operator CRDs", func() {
-			verifyCRDList := func() (bool, error) {
+			verifyCRDList := func() bool {
 				if isJaegerOperatorEnabled() {
+					exists := false
+					var err error
 					for _, crd := range jaegerOperatorCrds {
-						exists, err := pkg.DoesCRDExist(crd)
-						if err != nil || !exists {
-							return exists, err
+						exists, err = pkg.DoesCRDExist(crd)
+						if err != nil {
+							return false
 						}
 					}
-					return true, nil
+					return exists
 				}
-				return true, nil
+				return true
 			}
 			Eventually(verifyCRDList, waitTimeout, pollingInterval).Should(BeTrue())
 		})
