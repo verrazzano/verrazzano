@@ -189,7 +189,7 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Parallel Build, Test, and Compliance') {
             parallel {
                 stage('Verrazzano CLI') {
                     steps {
@@ -206,6 +206,7 @@ pipeline {
                         }
                     }
                 }
+
                 stage('Build Images') {
                     when { not { buildingTag() } }
                     steps {
@@ -227,6 +228,60 @@ pipeline {
                                 METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
                                 archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
                             }
+                        }
+                    }
+                }
+
+                stage('Quality and Compliance Checks') {
+                    when { not { buildingTag() } }
+                    steps {
+                        qualityCheck()
+                        thirdpartyCheck()
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                    }
+                }
+
+                stage('Unit Tests') {
+                    when { not { buildingTag() } }
+                    steps {
+                        sh """
+                    cd ${GO_REPO_PATH}/verrazzano
+                    make -B coverage
+                """
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                        always {
+                            sh """
+                        cd ${GO_REPO_PATH}/verrazzano
+                        cp coverage.html ${WORKSPACE}
+                        cp coverage.xml ${WORKSPACE}
+                        build/copy-junit-output.sh ${WORKSPACE}
+                    """
+                            archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                            cobertura(coberturaReportFile: 'coverage.xml',
+                                    enableNewApi: true,
+                                    autoUpdateHealth: false,
+                                    autoUpdateStability: false,
+                                    failUnstable: true,
+                                    failUnhealthy: true,
+                                    failNoReports: true,
+                                    onlyStable: false,
+                                    fileCoverageTargets: '100, 0, 0',
+                                    lineCoverageTargets: '75, 75, 75',
+                                    packageCoverageTargets: '100, 0, 0',
+                            )
                         }
                     }
                 }
@@ -273,60 +328,6 @@ pipeline {
                     script {
                         SKIP_TRIGGERED_TESTS = true
                     }
-                }
-            }
-        }
-
-        stage('Quality and Compliance Checks') {
-            when { not { buildingTag() } }
-            steps {
-                qualityCheck()
-                thirdpartyCheck()
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-            }
-        }
-
-        stage('Unit Tests') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make -B coverage
-                """
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                always {
-                    sh """
-                        cd ${GO_REPO_PATH}/verrazzano
-                        cp coverage.html ${WORKSPACE}
-                        cp coverage.xml ${WORKSPACE}
-                        build/copy-junit-output.sh ${WORKSPACE}
-                    """
-                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    cobertura(coberturaReportFile: 'coverage.xml',
-                      enableNewApi: true,
-                      autoUpdateHealth: false,
-                      autoUpdateStability: false,
-                      failUnstable: true,
-                      failUnhealthy: true,
-                      failNoReports: true,
-                      onlyStable: false,
-                      fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '75, 75, 75',
-                      packageCoverageTargets: '100, 0, 0',
-                    )
                 }
             }
         }
