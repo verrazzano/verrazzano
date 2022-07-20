@@ -10,6 +10,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	pkgConstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -93,7 +94,7 @@ var _ = t.Describe("Velero", Label("f:platform-lcm.install"), func() {
 			verifyImages := func() bool {
 				if isVeleroEnabled() {
 
-					cfgMap, err := pkg.GetConfigMap(fmt.Sprintf("%s-%s", constants.VeleroNameSpace, veleroRestoreHelperConfigMap), constants.VeleroNameSpace)
+					cfgMap, err := pkg.GetConfigMap(fmt.Sprintf("%s-%s", pkgConstants.Velero, veleroRestoreHelperConfigMap), constants.VeleroNameSpace)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("Unable to retrieve configmap %s in the namespace: %s, error: %v", veleroRestoreHelperConfigMap, constants.VeleroNameSpace, err))
 						return false
