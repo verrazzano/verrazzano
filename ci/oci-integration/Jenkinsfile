@@ -131,6 +131,7 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
 
         DUMP_COMMAND="${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh"
+        VZ_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/test-call-vz.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
         // used for console artifact capture on failure and for downloading the operator.yaml file
@@ -415,6 +416,7 @@ pipeline {
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
                                     dumpK8sCluster('oci-integration-tests-oke-cluster-dump')
+                                    dumpK8sClusterFromBugReport('oci-integration-tests-oke-cluster-dump')
                                 }
                             }
 
@@ -630,6 +632,7 @@ pipeline {
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
                                     dumpK8sCluster('oci-integration-tests-kind-cluster-dump')
+                                    dumpK8sClusterFromBugReport('oci-integration-tests-kind-cluster-dump')
                                 }
                             }
 
@@ -645,7 +648,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/bug-report/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -704,6 +707,14 @@ def runGinkgo(testSuitePath) {
 def dumpK8sCluster(dumpDirectory) {
     sh """
         ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+    """
+}
+
+def dumpK8sClusterFromBugReport(dumpDirectory) {
+    sh """
+            go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+            mkdir bug-report
+            tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
     """
 }
 
