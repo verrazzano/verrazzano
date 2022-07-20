@@ -211,6 +211,20 @@ spec:
       enabled: true
     prometheusOperator:
       enabled: true
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 1
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/name: prometheus
+                          topologyKey: kubernetes.io/hostname
+                        weight: 100
     rancher:
       enabled: true
     verrazzano:
