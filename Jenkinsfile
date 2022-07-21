@@ -234,7 +234,6 @@ pipeline {
                             script {
                                 METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
                                 archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
-                                saveGeneratedFiles()
                             }
                         }
                     }
