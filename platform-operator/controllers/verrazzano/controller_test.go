@@ -191,7 +191,7 @@ func TestInstall(t *testing.T) {
 			// Create and make the request
 			request := newRequest(namespace, name)
 			reconciler := newVerrazzanoReconciler(mock)
-			reconcileCounterMetric, err := (metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter))
+			reconcileCounterMetric, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
 			asserts.NoError(err)
 			reconcileCounterBefore := testutil.ToFloat64(reconcileCounterMetric.Get())
 			result, err := reconciler.Reconcile(nil, request)
@@ -1342,7 +1342,7 @@ func TestReconcileErrorCounter(t *testing.T) {
 	fakeClient := clientBuilder.Build()
 	errorRequest := newRequest("bad namespace", "test")
 	reconciler := newVerrazzanoReconciler(fakeClient)
-	reconcileErrorCounterMetric, err := (metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError))
+	reconcileErrorCounterMetric, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
 	asserts.NoError(err)
 	errorCounterBefore := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
 	reconciler.Reconcile(nil, errorRequest)

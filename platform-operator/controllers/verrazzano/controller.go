@@ -75,21 +75,23 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Get the Verrazzano resource
-	zapLogForMetrics := zap.S()
-	// Error is defined is
+	zapLogForMetrics := zap.S().With("verrazzano-controller")
 	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
 	if err != nil {
 		zapLogForMetrics.Error(err)
+		return ctrl.Result{}, err
 	}
-	counterMetricObject.Inc(zapLogForMetrics, err)
+	counterMetricObject.Inc()
 	errorCounterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
 	if err != nil {
 		zapLogForMetrics.Error(err)
+		return ctrl.Result{}, err
 	}
 
 	reconcileDurationMetricObject, err := metricsexporter.GetDurationMetric(metricsexporter.ReconcileDuration)
 	if err != nil {
 		zapLogForMetrics.Error(err)
+		return ctrl.Result{}, err
 	}
 	reconcileDurationMetricObject.TimerStart()
 	defer reconcileDurationMetricObject.TimerStop()
@@ -98,7 +100,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
-		errorCounterMetricObject.Inc(zapLogForMetrics, err)
+		errorCounterMetricObject.Inc()
 		// If the resource is not found, that means all of the finalizers have been removed,
 		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
@@ -117,7 +119,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		ControllerName: "verrazzano",
 	})
 	if err != nil {
-		errorCounterMetricObject.Inc(zapLogForMetrics, err)
+		errorCounterMetricObject.Inc()
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
@@ -130,7 +132,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
-		errorCounterMetricObject.Inc(zapLogForMetrics, err)
+		errorCounterMetricObject.Inc()
 		return newRequeueWithDelay(), nil
 	}
 	// The Verrazzano resource has been reconciled.
