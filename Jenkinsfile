@@ -191,7 +191,7 @@ pipeline {
 
         stage('Parallel Build, Test, and Compliance') {
             parallel {
-                stage('Verrazzano CLI') {
+                stage('Build Verrazzano CLI and Save Binary') {
                     steps {
                         buildVerrazzanoCLI("${DOCKER_IMAGE_TAG}")
                     }
@@ -204,6 +204,7 @@ pipeline {
                         success {
                             script {
                                 archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
+                                echo "Saving CLI Binary"
                                 saveCLIExecutable()
                             }
 
