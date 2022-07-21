@@ -70,3 +70,6 @@ http://mozilla.org/MPL/2.0/
 http://www.iana.org/assignments/service-names
 
 https://oracle.github.io/coherence-operator/charts
+
+# Until we have the advice versioned, ignore new advice not in all releases
+https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape
