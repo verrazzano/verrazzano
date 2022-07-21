@@ -5,41 +5,49 @@ package metricsexporter
 
 import (
 	"testing"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	asserts "github.com/stretchr/testify/assert"
+
+	//"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"go.uber.org/zap"
 )
 
+var (
+	logForTest = zap.S()
+)
+
 func TestCollectReconcileMetrics(t *testing.T) {
+	RequiredInitialization()
 	assert := asserts.New(t)
-	tests := []struct {
+	test := struct {
 		name string
 	}{
-		{
-			name: "Test that reoncile counter is incremented by one when function is Successful & reoncile counter is incremented by one when function is Failed",
-		},
+
+		name: "Test that reoncile counter is incremented by one when function is Successful & reconcile counter is incremented by one when function is Failed",
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := reconcileMap["appconfig"]
+	// for _, tt := range tests {
+	t.Run(test.name, func(t *testing.T) {
 
-			reconcileSuccessfulCounterBefore := testutil.ToFloat64(r.reconcileSuccessful)
-			r.reconcileSuccessful.Inc()
-			reconcileSuccessfulCounterAfter := testutil.ToFloat64(r.reconcileSuccessful)
-			assert.Equal(reconcileSuccessfulCounterBefore, reconcileSuccessfulCounterAfter-1)
+		reconcileCounterObject, err := GetSimpleCounterMetric(AppconfigReconcileCounter)
+		assert.NoError(err)
+		reconcileSuccessfulCounterBefore := testutil.ToFloat64(reconcileCounterObject.Get())
+		reconcileCounterObject.Inc(logForTest, nil)
+		reconcileSuccessfulCounterAfter := testutil.ToFloat64(reconcileCounterObject.Get())
+		assert.Equal(reconcileSuccessfulCounterBefore, reconcileSuccessfulCounterAfter-1)
 
-			reconcileFailedCounterBefore := testutil.ToFloat64(r.reconcileFailed)
-			r.reconcileFailed.Inc()
-			reconcileFailedCounterAfter := testutil.ToFloat64(r.reconcileFailed)
-			assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
+		reconcileerrorCounterObject, err := GetSimpleCounterMetric(AppconfigReconcileError)
+		assert.NoError(err)
+		reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+		reconcileerrorCounterObject.Inc(logForTest, nil)
+		reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+		assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 
-			//Duration Metric test
+		//Duration Metric test
 
-			r.GetDurationMetrics().DurationTimerStart(zap.S())
-			time.Sleep(time.Second)
-			r.GetDurationMetrics().DurationTimerStop(zap.S())
-		})
-	}
+		// r.GetDurationMetrics().DurationTimerStart(zap.S())
+		// time.Sleep(time.Second)
+		// r.GetDurationMetrics().DurationTimerStop(zap.S())
+	})
+	//}
 }

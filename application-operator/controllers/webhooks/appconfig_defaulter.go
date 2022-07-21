@@ -94,7 +94,6 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
-
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledAppConfig)
 }
 

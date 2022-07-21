@@ -341,7 +341,7 @@ func main() {
 	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
 
 	// Initialize the metricsExporter
-	metricsexporter.InitalizeMetricsEndpoint()
+	metricsexporter.StartMetricsServer(log)
 
 	if err = (&multiclustersecret.Reconciler{
 		Client:       mgr.GetClient(),
