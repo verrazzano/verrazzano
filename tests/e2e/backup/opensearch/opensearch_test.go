@@ -25,20 +25,14 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 20 * time.Minute
-	longPollingInterval  = 20 * time.Second
 	waitTimeout          = 15 * time.Minute
 	pollingInterval      = 30 * time.Second
-	timeOut              = "30m"
-	httpContentType      = "application/json"
-	min                  = 10
-	max                  = 25
 )
 
 var (
 	VeleroNameSpace, VeleroSecretName                                                                    string
 	RancherSecretName                                                                                    string
-	OciBucketId, OciBucketName, OciOsAccessKey, OciOsAccessSecretKey, OciCompartmentId, OciNamespaceName string
+	OciBucketID, OciBucketName, OciOsAccessKey, OciOsAccessSecretKey, OciCompartmentID, OciNamespaceName string
 	BackupName, RestoreName, BackupResourceName, BackupOpensearchName, BackupRancherName                 string
 	RestoreOpensearchName, RestoreRancherName                                                            string
 	BackupStorageName                                                                                    string
@@ -48,11 +42,11 @@ func gatherInfo() {
 	VeleroNameSpace = os.Getenv("VELERO_NAMESPACE")
 	VeleroSecretName = os.Getenv("VELERO_SECRET_NAME")
 	RancherSecretName = os.Getenv("RANCHER_SECRET_NAME")
-	OciBucketId = os.Getenv("OCI_OS_BUCKET_ID")
+	OciBucketID = os.Getenv("OCI_OS_BUCKET_ID")
 	OciBucketName = os.Getenv("OCI_OS_BUCKET_NAME")
 	OciOsAccessKey = os.Getenv("OCI_OS_ACCESS_KEY")
 	OciOsAccessSecretKey = os.Getenv("OCI_OS_ACCESS_SECRET_KEY")
-	OciCompartmentId = os.Getenv("OCI_OS_COMPARTMENT_ID")
+	OciCompartmentID = os.Getenv("OCI_OS_COMPARTMENT_ID")
 	OciNamespaceName = os.Getenv("OCI_OS_NAMESPACE")
 	BackupName = os.Getenv("BACKUP_NAME")
 	RestoreName = os.Getenv("RESTORE_NAME")
@@ -67,7 +61,7 @@ func gatherInfo() {
 const secretsData = `[default]
 aws_access_key_id={{ .ObjectStoreAccessKeyId }}
 aws_secret_access_key={{ .ObjectStoreAccessKey }}
-`
+` //nolint:gosec
 
 const veleroBackupLocation = `apiVersion: velero.io/v1
     kind: BackupStorageLocation
@@ -123,7 +117,7 @@ const veleroBackup = `apiVersion: velero.io/v1
                   timeout: 10m`
 
 type accessData struct {
-	ObjectStoreAccessKeyId string
+	ObjectStoreAccessKeyID string
 	ObjectStoreAccessKey   string
 }
 
@@ -142,24 +136,6 @@ type veleroBackupObject struct {
 	VeleroOpensearchHookResourceName string
 }
 
-var (
-	veleroCrds = []string{
-		"backups.velero.io",
-		"backupstoragelocations.velero.io",
-		"deletebackuprequests.velero.io",
-		"downloadrequests.velero.io",
-		"podvolumebackups.velero.io",
-		"podvolumerestores.velero.io",
-		"resticrepositories.velero.io",
-		"restores.velero.io",
-		"schedules.velero.io",
-		"serverstatusrequests.velero.io",
-		"volumesnapshotlocations.velero.io",
-	}
-
-	imagePrefix = pkg.GetImagePrefix()
-)
-
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
 	gatherInfo()
@@ -168,14 +144,6 @@ var _ = t.BeforeSuite(func() {
 })
 
 var t = framework.NewTestFramework("opensearch-backup")
-
-func isVeleroEnabled() bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	return pkg.IsVeleroEnabled(kubeconfigPath)
-}
 
 // CreateCredentialsSecretFromFile creates opaque secret from the given map of values
 func CreateCredentialsSecretFromFile(namespace string, name string) (*corev1.Secret, error) {
@@ -187,7 +155,7 @@ func CreateCredentialsSecretFromFile(namespace string, name string) (*corev1.Sec
 
 	var b bytes.Buffer
 	template, _ := template.New("testsecrets").Parse(secretsData)
-	data := accessData{ObjectStoreAccessKeyId: OciOsAccessKey, ObjectStoreAccessKey: OciOsAccessSecretKey}
+	data := accessData{ObjectStoreAccessKeyID: OciOsAccessKey, ObjectStoreAccessKey: OciOsAccessSecretKey}
 	template.Execute(&b, data)
 
 	secretData := make(map[string]string)
@@ -276,7 +244,7 @@ func CheckBackupProgress() error {
 		switch bashResponse.StandardOut.String() {
 		case "InProgress":
 			if retryCount > 100 {
-				return fmt.Errorf("Retry count to monitor backup '%s' exceeded!!", BackupOpensearchName)
+				return fmt.Errorf("retry count to monitor backup '%s' exceeded!!", BackupOpensearchName)
 			}
 			t.Logs.Infof("Backup '%s' is in progress. Check after 10 seconds", BackupOpensearchName)
 			time.Sleep(10 * time.Second)
@@ -288,8 +256,6 @@ func CheckBackupProgress() error {
 		}
 		retryCount = retryCount + 1
 	}
-
-	return nil
 }
 
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
