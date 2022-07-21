@@ -6,6 +6,7 @@ package opensearch
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
