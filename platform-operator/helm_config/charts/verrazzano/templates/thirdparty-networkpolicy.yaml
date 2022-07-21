@@ -214,6 +214,16 @@ spec:
       ports:
         - port: 15090
           protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
+      ports:
+        - port: 7600
+          protocol: TCP
 {{- end }}
 ---
 # Network policy for Rancher cluster agent
