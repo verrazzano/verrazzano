@@ -85,7 +85,7 @@ fi
 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 echo "Downloading VZ CLI from object storage"
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/$VZ_CLI_TARGZ --file ${WORKSPACE}/$VZ_CLI_TARGZ
-tar xzf $VZ_CLI_TARGZ -C "$WORKSPACE"
+tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
 
 # Create the verrazzano-install namespace
 kubectl create namespace verrazzano-install
