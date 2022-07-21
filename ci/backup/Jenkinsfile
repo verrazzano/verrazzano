@@ -327,6 +327,23 @@ pipeline {
                      }
                 }
 
+                stage('Verify Install') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup"
+                    }
+                    steps {
+                        runGinkgoRandomize('backup/opensearch')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+
+                /*
                 stage('Setup backup storage location and start Opensearch Backup') {
                     steps {
                         script {
@@ -430,6 +447,7 @@ pipeline {
                          }
                     }
                 }
+                */
 
             }
 
