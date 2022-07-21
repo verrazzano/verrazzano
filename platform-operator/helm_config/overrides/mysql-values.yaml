@@ -21,7 +21,7 @@ primary:
       - -R
       - 27:27
       - /var/lib/mysql
-    image: "busybox:v1.34"
+    image: "ghcr.io/oracle/oraclelinux:7-slim"
     imagePullPolicy: IfNotPresent
     name: chown-data-dir
     resources:
