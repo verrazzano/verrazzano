@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -132,13 +133,13 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		ReconcileCounter: {
 			prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vpo_reconcile_counter",
-				Help: "The number of times the reconcile function has been called in the Verrazzano-platform-operator",
+				Help: "The number of times the reconcile function has been called in the verrazzano-platform-operator",
 			}),
 		},
 		ReconcileError: {
 			prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vpo_error_reconcile_counter",
-				Help: "The number of times the reconcile function has returned an error in the Verrazzano-platform-operator",
+				Help: "The number of times the reconcile function has returned an error in the verrazzano-platform-operator",
 			}),
 		},
 	}
@@ -193,34 +194,37 @@ func initDurationMetricMap() map[metricName]*DurationMetric {
 // If the start time is greater than the completion time, the metric will not be set
 // After this check, the function calculates the duration time and tries to set the metric of the component
 // If the component's name is not in the metric map, an error will be raised to prevent a seg fault
-func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metricName, startTime string, completionTime string, typeofOperation metricsOperation) error {
+func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metricName, startTime string, completionTime string, typeofOperation string) {
+	_, ok := MetricsExp.internalData.metricsComponentMap[componentName]
+	if !ok {
+		log.Errorf("Component %s does not have metrics in the metrics map", componentName)
+		return
+	}
 	startInSeconds, err := time.Parse(time.RFC3339, startTime)
 	if err != nil {
-		return fmt.Errorf("error in parsing start time %s for operation %s for component %s", startTime, typeofOperation, componentName)
+		log.Errorf("Error in parsing start time %s for operation %s for component %s", startTime, typeofOperation, componentName)
+		return
 	}
 	startInSecondsUnix := startInSeconds.Unix()
 	completionInSeconds, err := time.Parse(time.RFC3339, completionTime)
 	if err != nil {
-		return fmt.Errorf("error in parsing completion time %s for operation %s for component %s", completionTime, typeofOperation, componentName)
+		log.Errorf("Error in parsing completion time %s for operation %s for component %s", completionTime, typeofOperation, componentName)
+		return
 	}
 	completionInSecondsUnix := completionInSeconds.Unix()
 	if startInSecondsUnix >= completionInSecondsUnix {
 		log.Debug("Component %s is not updated, as there is an ongoing operation in progress")
-		return nil
+		return
 	}
 	totalDuration := (completionInSecondsUnix - startInSecondsUnix)
-	_, ok := MetricsExp.internalData.metricsComponentMap[componentName]
-	if !ok {
-		log.Errorf("Component %s does not have metrics in the metrics map", componentName)
-		return nil
+	if typeofOperation == constants.InstallOperation {
+		installDurationMetricForComponent := MetricsExp.internalData.metricsComponentMap[componentName].getInstallDuration()
+		installDurationMetricForComponent.Set(float64(totalDuration))
 	}
-	if typeofOperation == operationUpgrade {
-		MetricsExp.internalData.metricsComponentMap[componentName].latestUpgradeDuration.Set(float64(totalDuration))
+	if typeofOperation == constants.UpgradeOperation {
+		upgradeDurationMetricForComponent := MetricsExp.internalData.metricsComponentMap[componentName].getUpgradeDuration()
+		upgradeDurationMetricForComponent.Set(float64(totalDuration))
 	}
-	if typeofOperation == operationInstall {
-		MetricsExp.internalData.metricsComponentMap[componentName].latestInstallDuration.Set(float64(totalDuration))
-	}
-	return nil
 
 }
 func registerMetricsHandlersHelper() error {
@@ -286,20 +290,11 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 				upgradeCompletionTime = status.LastTransitionTime
 			}
 		}
-		if (installStartTime == "" || installCompletionTime == "") && (upgradeStartTime == "" || upgradeCompletionTime == "") {
-			continue
-		}
 		if installStartTime != "" && installCompletionTime != "" {
-			err := metricParserHelperFunction(log, metricName(componentName), installStartTime, installCompletionTime, "install")
-			if err != nil {
-				log.Error(err)
-			}
+			metricParserHelperFunction(log, metricName(componentName), installStartTime, installCompletionTime, constants.InstallOperation)
 		}
 		if upgradeStartTime != "" && upgradeCompletionTime != "" {
-			err := metricParserHelperFunction(log, metricName(componentName), upgradeStartTime, upgradeCompletionTime, "upgrade")
-			if err != nil {
-				log.Error(err)
-			}
+			metricParserHelperFunction(log, metricName(componentName), upgradeStartTime, upgradeCompletionTime, constants.UpgradeOperation)
 		}
 	}
 }

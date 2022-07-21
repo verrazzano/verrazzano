@@ -10,7 +10,6 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"go.uber.org/zap"
 )
 
 // Constants that hold the times that are used to test various cases of component timestamps being passed
@@ -23,55 +22,34 @@ const (
 	unregisteredTestComponent string = "unregistered test component"
 )
 
-var (
-	logForTest = zap.S()
-)
-
-// TestReconcileCounterIncrement tests the Inc fn of the reconcile counter metrics object
+// TestReconcileCounterIncrement tests the Inc fn of the reconcile counter and the reconcile error counter metrics objects
 // GIVEN a call to Inc
 // THEN the function should update that internal metric by one
-func TestReconcileCounterIncrement(t *testing.T) {
+func TestReconcileCounterAndErrorIncrement(t *testing.T) {
 	RequiredInitialization()
 	assert := asserts.New(t)
 	test := struct {
-		name                   string
-		expectedIncrementValue float64
+		name                             string
+		expectedIncrementValueForCounter float64
+		expectedIncrementValueForError   float64
 	}{
-		name:                   "Test that reoncile counter is incremented by one when function is called",
-		expectedIncrementValue: float64(1),
+		name:                             "Test that reoncile counter is incremented by one when function is called",
+		expectedIncrementValueForCounter: float64(1),
+		expectedIncrementValueForError:   float64(1),
 	}
 	t.Run(test.name, func(t *testing.T) {
 		reconcileCounterObject, err := GetSimpleCounterMetric(ReconcileCounter)
 		assert.NoError(err)
 		reconcileCounterBefore := testutil.ToFloat64(reconcileCounterObject.Get())
-		reconcileCounterObject.Inc(logForTest, nil)
+		reconcileCounterObject.Inc()
 		reconcileCounterAfter := testutil.ToFloat64(reconcileCounterObject.Get())
-		assert.Equal(test.expectedIncrementValue, reconcileCounterAfter-reconcileCounterBefore)
-	})
-}
-
-// TestReconcileErrorIncrement tests the CollectReconcileError fn
-// GIVEN a call to CollectReconcileError
-// WHEN the function is called
-// THEN the function increments the reconcile error counter metric
-func ReconcileErrorIncrement(t *testing.T) {
-	RequiredInitialization()
-	assert := asserts.New(t)
-	test := struct {
-		name                        string
-		expectedErrorIncrementValue float64
-	}{
-
-		name:                        "Test that reconcile error counter is incremented by one when function is called",
-		expectedErrorIncrementValue: float64(1),
-	}
-	t.Run(test.name, func(t *testing.T) {
+		assert.Equal(test.expectedIncrementValueForCounter, reconcileCounterAfter-reconcileCounterBefore)
 		reconcileErrorCounterObject, err := GetSimpleCounterMetric(ReconcileError)
 		assert.NoError(err)
 		reconcileErrorCounterBefore := testutil.ToFloat64(reconcileErrorCounterObject.Get())
-		reconcileErrorCounterObject.Inc(logForTest, nil)
+		reconcileErrorCounterObject.Inc()
 		reconcileErrorCounterAfter := testutil.ToFloat64(reconcileErrorCounterObject.Get())
-		assert.Equal(test.expectedErrorIncrementValue, reconcileErrorCounterAfter-reconcileErrorCounterBefore)
+		assert.Equal(test.expectedIncrementValueForError, reconcileErrorCounterAfter-reconcileErrorCounterBefore)
 	})
 }
 
@@ -285,9 +263,9 @@ func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 			AnalyzeVerrazzanoResourceMetrics(testLog, tt.vzcr)
 			grafanaMetricComponentObject, err := GetMetricComponent(grafanaMetricName)
 			assert.NoError(err)
-			grafanaInstallMetric := grafanaMetricComponentObject.getInstall()
+			grafanaInstallMetric := grafanaMetricComponentObject.getInstallDuration()
 			assert.Equal(tt.expectedValueForInstallMetric, testutil.ToFloat64(grafanaInstallMetric.Get()))
-			grafanaUpgradeMetric := grafanaMetricComponentObject.getUpgrade()
+			grafanaUpgradeMetric := grafanaMetricComponentObject.getUpgradeDuration()
 			assert.Equal(tt.expectedValueForUpdateMetric, testutil.ToFloat64(grafanaUpgradeMetric.Get()))
 		})
 	}

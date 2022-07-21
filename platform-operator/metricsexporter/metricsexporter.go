@@ -5,7 +5,6 @@ package metricsexporter
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"go.uber.org/zap"
 )
 
 type MetricsExporter struct {
@@ -29,11 +28,8 @@ type SimpleCounterMetric struct {
 	metric prometheus.Counter
 }
 
-func (c *SimpleCounterMetric) Inc(log *zap.SugaredLogger, err error) {
+func (c *SimpleCounterMetric) Inc() {
 	c.metric.Inc()
-	if err != nil {
-		log.Error(err)
-	}
 }
 
 func (c *SimpleCounterMetric) Add(num float64) {
@@ -82,9 +78,9 @@ type MetricsComponent struct {
 	latestUpgradeDuration *SimpleGaugeMetric
 }
 
-func (m *MetricsComponent) getInstall() *SimpleGaugeMetric {
+func (m *MetricsComponent) getInstallDuration() *SimpleGaugeMetric {
 	return m.latestInstallDuration
 }
-func (m *MetricsComponent) getUpgrade() *SimpleGaugeMetric {
+func (m *MetricsComponent) getUpgradeDuration() *SimpleGaugeMetric {
 	return m.latestUpgradeDuration
 }
