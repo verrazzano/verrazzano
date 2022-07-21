@@ -1,6 +1,6 @@
 {
   "registry": "ghcr.io",
-  "version": "VERRAZZANO_VERSION",
+  "version": "1.4.0-local+9abf4e45",
   "components": [
     {
       "name": "verrazzano-platform-operator",
@@ -10,8 +10,8 @@
           "name": "verrazzano-platform-operator",
           "images": [
             {
-              "image": "VERRAZZANO_PLATFORM_OPERATOR_IMAGE",
-              "tag": "VERRAZZANO_PLATFORM_OPERATOR_TAG",
+              "image": "verrazzano-platform-operator-dev",
+              "tag": "local-9abf4e456",
               "helmFullImageKey": "image"
             }
           ]
@@ -220,7 +220,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.4.0-20220721155737-5b016df",
+              "tag": "1.4.0-20220707165907-46d90dc",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -231,7 +231,7 @@
             },
             {
               "image": "grafana",
-              "tag": "v7.5.15",
+              "tag": "v7.5.11",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -248,6 +248,11 @@
               "image": "opensearch-dashboards",
               "tag": "1.2.0-20220301201035-be0efd47ab",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
+            },
+            {
+              "image": "configmap-reload",
+              "tag": "0.7.1-20220302211236-774d907",
+              "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
               "image": "nginx-ingress-controller",
@@ -304,8 +309,8 @@
           "name": "verrazzano-application-operator",
           "images": [
             {
-              "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
-              "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
+              "image": "verrazzano-application-operator-dev",
+              "tag": "local-9abf4e456",
               "helmFullImageKey": "image"
             }
           ]
