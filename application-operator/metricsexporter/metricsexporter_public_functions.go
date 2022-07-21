@@ -25,10 +25,10 @@ const (
 	AppconfigReconcileCounter  metricName = "reconcile counter"
 	AppconfigReconcileError    metricName = "reconcile error"
 	AppconfigReconcileDuration metricName = "reconcile duration"
-	appconfigMetricName        metricName = "appconfig"
-	cohworkloadMetricName      metricName = "cohworkload"
-	helidonworkloadMetricName  metricName = "helidonworkload"
-	ingresstraitMetricName     metricName = "ingresstrait"
+	// appconfigMetricName        metricName = "appconfig"
+	// cohworkloadMetricName      metricName = "cohworkload"
+	// helidonworkloadMetricName  metricName = "helidonworkload"
+	// ingresstraitMetricName     metricName = "ingresstrait"
 )
 
 func InitRegisterStart(log *zap.SugaredLogger) {
