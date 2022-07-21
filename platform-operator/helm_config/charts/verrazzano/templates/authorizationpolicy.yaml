@@ -248,7 +248,7 @@ spec:
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: jaeger-authzpol
+  name: jaeger-collector-authzpol
   namespace: {{ .Values.jaegerOperator.namespace }}
 spec:
   selector:
@@ -263,5 +263,46 @@ spec:
       to:
         - operation:
             ports: ["9411", "14250"]
+    # jaeger-collector-service:15090, 14269 <- prometheus
+    - from:
+        - source:
+            namespaces: ["{{ .Values.prometheus.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.prometheus.namespace }}/sa/{{ .Values.prometheus.serviceAccount }}"]
+      to:
+        - operation:
+            ports: ["15090", "14269"]
+
+#
+# Istio AuthorizationPolicy for Jaeger Query deployed by Verrazzano
+#
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: jaeger-query-authzpol
+  namespace: {{ .Values.jaegerOperator.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: jaeger
+      app.kubernetes.io/component: query
+      app.kubernetes.io/managed-by: jaeger-operator
+  action: ALLOW
+  rules:
+    # jaeger-collector-service:16686 <- verrazzano-authproxy
+    - from:
+        - source:
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}"]
+      to:
+        - operation:
+            ports: ["16686"]
+    # jaeger-query-service:15090, 14271, 16687 <- prometheus
+    - from:
+        - source:
+            namespaces: ["{{ .Values.prometheus.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.prometheus.namespace }}/sa/{{ .Values.prometheus.serviceAccount }}"]
+      to:
+        - operation:
+            ports: ["15090", "14271", "16687"]
 {{- end }}
 {{- end }}

@@ -4,6 +4,7 @@
 package pkg
 
 import (
+	"errors"
 	"fmt"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/test"
@@ -48,6 +49,7 @@ func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 	return ginkgo.AfterSuite(func() {
 		if c.failed || !c.beforeSuitePassed {
 			ExecuteClusterDumpWithEnvVarSuffix(fmt.Sprintf("fail-%d", time.Now().Unix()))
+			ExecuteBugReportWithEnvVarSuffix(fmt.Sprintf("fail-%d", time.Now().Unix()))
 		}
 
 		// ginkgo.Fail and gomega matchers panic if they fail. Recover is used to capture the panic and
@@ -55,6 +57,7 @@ func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 		defer func() {
 			if r := recover(); r != nil {
 				ExecuteClusterDumpWithEnvVarSuffix(fmt.Sprintf("aftersuite-%d", time.Now().Unix()))
+				ExecuteBugReportWithEnvVarSuffix(fmt.Sprintf("aftersuite-%d", time.Now().Unix()))
 			}
 		}()
 		body()
@@ -62,16 +65,17 @@ func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 }
 
 // ExecuteClusterDump executes the cluster dump tool.
-// command - The fully qualified cluster dump executable.
+// clusterDumpCommand - The fully qualified cluster dump executable.
 // kubeconfig - The kube config file to use when executing the cluster dump tool.
-// directory - The directory to store the cluster dump within.
-func ExecuteClusterDump(command string, kubeconfig string, directory string) error {
-	fmt.Printf("Execute cluster dump: KUBECONFIG=%s; %s -d %s\n", kubeconfig, command, directory)
-	if command == "" {
+// clusterDumpDirectory - The directory to store the cluster dump within.
+func ExecuteClusterDump(clusterDumpCommand string, kubeconfig string, clusterDumpDirectory string) error {
+	var cmd *exec.Cmd
+	fmt.Printf("Execute cluster dump: KUBECONFIG=%s; %s -d %s\n", kubeconfig, clusterDumpCommand, clusterDumpDirectory)
+	if clusterDumpCommand == "" {
 		return nil
 	}
-	reportFile := fmt.Sprintf("%s/cluster-dump/analysis.report", directory)
-	cmd := exec.Command(command, "-d", directory, "-r", reportFile)
+	reportFile := fmt.Sprintf("%s/cluster-dump/analysis.report", clusterDumpDirectory)
+	cmd = exec.Command(clusterDumpCommand, "-d", clusterDumpDirectory, "-r", reportFile)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -85,11 +89,52 @@ func ExecuteClusterDump(command string, kubeconfig string, directory string) err
 	return nil
 }
 
+// ExecuteBugReport executes the cluster dump tool.
+// vzCommand - The fully qualified bug report executable.
+// kubeconfig - The kube config file to use when executing the cluster dump tool.
+// bugReportDirectory - The directory to store the bug report within.
+func ExecuteBugReport(vzCommand string, kubeconfig string, bugReportDirectory string) error {
+	var cmd *exec.Cmd
+	if vzCommand == "" {
+		return nil
+	}
+
+	filename := fmt.Sprintf("%s/%s", bugReportDirectory, "bug-report.tar.gz")
+	fmt.Printf("Starting bug report command: KUBECONFIG=%s; %s --report-file %s\n", kubeconfig, vzCommand, filename)
+	os.MkdirAll(bugReportDirectory, 0755)
+	cmd = exec.Command(vzCommand, "bug-report", "--report-file", filename)
+	fmt.Printf("past the exec.Command \n")
+
+	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	fmt.Printf("About to call start \n")
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("Failed to start command %v \n", err)
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		fmt.Printf("Failed waiting for command %v \n", err)
+		return err
+	}
+	fmt.Printf("command succeeded without error \n")
+
+	return nil
+}
+
 func ExecuteClusterDumpWithEnvVarSuffix(directorySuffix string) error {
 	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
-	directory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix)
-	command := os.Getenv("DUMP_COMMAND")
-	return ExecuteClusterDump(command, kubeconfig, directory)
+	clusterDumpDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix)
+	clusterDumpCommand := os.Getenv("DUMP_COMMAND")
+	return ExecuteClusterDump(clusterDumpCommand, kubeconfig, clusterDumpDirectory)
+}
+
+func ExecuteBugReportWithEnvVarSuffix(directorySuffix string) error {
+	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
+	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY")+"/bug-report", directorySuffix)
+	vzCommand := os.Getenv("VZ_COMMAND")
+	return ExecuteBugReport(vzCommand, kubeconfig, bugReportDirectory)
 }
 
 // ExecuteClusterDumpWithEnvVarConfig executes the cluster dump tool using config from environment variables.
@@ -97,7 +142,18 @@ func ExecuteClusterDumpWithEnvVarSuffix(directorySuffix string) error {
 // DUMP_DIRECTORY - The directory to store the cluster dump within.
 // DUMP_COMMAND - The fully quallified cluster dump executable.
 func ExecuteClusterDumpWithEnvVarConfig() error {
-	return ExecuteClusterDumpWithEnvVarSuffix("")
+	err1 := ExecuteClusterDumpWithEnvVarSuffix("")
+	err2 := ExecuteBugReportWithEnvVarSuffix("")
+	if err1 != nil || err2 != nil {
+		if err1 == nil {
+			return err2
+		} else if err2 == nil {
+			return err1
+		} else {
+			return errors.New(err1.Error() + err2.Error())
+		}
+	}
+	return nil
 }
 
 // DumpContainerLogs executes a "kubectl cp" command to copy a container's log directories to a local path on disk for examination.
