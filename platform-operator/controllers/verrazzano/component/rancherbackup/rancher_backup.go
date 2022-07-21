@@ -46,7 +46,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	if err != nil {
 		return nil, err
 	}
-
+	kvs = append(kvs, images...)
 	//bomSubcomponent, err := bomFile.GetSubcomponent("rancher-backup-kubectl")
 	//if err != nil {
 	//	return nil, err
@@ -58,8 +58,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	//	{Key: "global.kubectl.repository", Value: rancherRepo},
 	//	{Key: "global.kubectl.tag", Value: bomSubcomponent.Images[0].ImageTag},
 	//}
-
-	kvs = append(kvs, images...)
+	//kvs = append(kvs, arguments...)
 	return kvs, nil
 }
 

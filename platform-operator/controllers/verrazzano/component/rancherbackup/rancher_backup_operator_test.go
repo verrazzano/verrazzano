@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -143,11 +142,12 @@ func TestAppendOverrides(t *testing.T) {
 }
 
 func validateKeyValuePairs(t *testing.T, kvs []bom.KeyValue, expectedRegistry string) {
+	expectedRepo := fmt.Sprintf("%s/rancher/kubectl", expectedRegistry)
 	assert.Len(t, kvs, 2)
 	for _, kv := range kvs {
 		switch kv.Key {
 		case "global.kubectl.repository":
-			assert.Truef(t, strings.Contains(kv.Value, expectedRegistry), "Expected registry %s in value, repository: %s", expectedRegistry, kv.Value)
+			assert.Equalf(t, expectedRepo, kv.Value, "Expected  %s in value, was: %s", expectedRegistry, kv.Value)
 		case "global.kubectl.tag":
 			continue
 		default:
