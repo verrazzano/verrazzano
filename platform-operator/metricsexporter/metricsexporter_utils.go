@@ -321,20 +321,14 @@ func initConfiguration() configuration {
 func GetSimpleCounterMetric(name metricName) (*SimpleCounterMetric, error) {
 	counterMetric, ok := MetricsExp.internalData.simpleCounterMetricMap[name]
 	if !ok {
-		return &SimpleCounterMetric{metric: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "vpo_dummy_reconcile_counter_metric",
-			Help: "This metric is returned and incremented in the case of an error, so the reconcile function will not return prematurely. This metric is not registered ",
-		})}, fmt.Errorf("%v not found in SimpleCounterMetricMap due to metricName being defined, but not being a key in the map", name)
+		return nil, fmt.Errorf("%v not found in SimpleCounterMetricMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return counterMetric, nil
 }
 func GetDurationMetric(name metricName) (*DurationMetric, error) {
 	durationMetric, ok := MetricsExp.internalData.durationMetricMap[name]
 	if !ok {
-		return &DurationMetric{metric: prometheus.NewSummary(prometheus.SummaryOpts{
-			Name: "vpo_dummy_reconcile_duration_metric",
-			Help: "his metric is returned and incremented in the case of an error, so the reconcile function will not return prematurely. This metric is not registered",
-		})}, fmt.Errorf("%v not found in durationMetricMap due to metricName being defined, but not being a key in the map", name)
+		return nil, fmt.Errorf("%v not found in durationMetricMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return durationMetric, nil
 }
