@@ -15,7 +15,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+var falseValue = false
+var trueValue = true
+
 // List of Verrazzano resources that have status InstallComplete
+
+// verrazzanoList contains Verrazzano with defaults and InstallComplete status condition
 var verrazzanoList = &v1alpha1.VerrazzanoList{
 	Items: []v1alpha1.Verrazzano{
 		{
@@ -34,126 +39,203 @@ var verrazzanoList = &v1alpha1.VerrazzanoList{
 	},
 }
 
+// verrazzanoListRancherDisabled contains Verrazzano with Rancher disabled and InstallComplete status condition
+var verrazzanoListRancherDisabled = &v1alpha1.VerrazzanoList{
+	Items: []v1alpha1.Verrazzano{
+		{
+			ObjectMeta: verrazzanoList.Items[0].ObjectMeta,
+			Status:     verrazzanoList.Items[0].Status,
+			Spec: v1alpha1.VerrazzanoSpec{
+				Components: v1alpha1.ComponentSpec{
+					Rancher: &v1alpha1.RancherComponent{Enabled: &falseValue},
+				},
+			},
+		},
+	},
+}
+
+// verrazzanoListRancherEnabled contains Verrazzano with Rancher explicitly enabled and InstallComplete status condition
+var verrazzanoListRancherEnabled = &v1alpha1.VerrazzanoList{
+	Items: []v1alpha1.Verrazzano{
+		{
+			ObjectMeta: verrazzanoList.Items[0].ObjectMeta,
+			Status:     verrazzanoList.Items[0].Status,
+			Spec: v1alpha1.VerrazzanoSpec{
+				Components: v1alpha1.ComponentSpec{
+					Rancher: &v1alpha1.RancherComponent{Enabled: &trueValue},
+				},
+			},
+		},
+	},
+}
+
 // TestCreateWithSecretAndConfigMap tests the validation of a valid VerrazzanoManagedCluster secret and valid verrazzano-admin-cluster configmap
 // GIVEN a call validate VerrazzanoManagedCluster
 // WHEN the VerrazzanoManagedCluster has valid secret specified and verrazzano-admin-cluster configmap is valid
-// THEN the validation should succeed
+// THEN the validation should succeed in all cases
 func TestCreateWithSecretAndConfigMap(t *testing.T) {
 	const secretName = "mySecret"
+	tests := []struct {
+		name        string
+		verrazzanos *v1alpha1.VerrazzanoList
+	}{
+		{"defaultVz", verrazzanoList},
+		{"rancher disabled in VZ", verrazzanoListRancherDisabled},
+		{"rancher explicitly enabled in VZ", verrazzanoListRancherEnabled},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 
-	// fake client needed to get secret
-	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(),
-			verrazzanoList,
-			&corev1.Secret{
+			// fake client needed to get secret
+			getClientFunc = func() (client.Client, error) {
+				return fake.NewFakeClientWithScheme(newScheme(),
+					verrazzanoList,
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      secretName,
+							Namespace: constants.VerrazzanoMultiClusterNamespace,
+						},
+					},
+					&corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      constants.AdminClusterConfigMapName,
+							Namespace: constants.VerrazzanoMultiClusterNamespace,
+						},
+						Data: map[string]string{
+							constants.ServerDataKey: "https://testUrl",
+						},
+					}), nil
+			}
+			defer func() { getClientFunc = getClient }()
+
+			// VMC to be validated
+			vz := VerrazzanoManagedCluster{
+				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName,
+					Name:      "testMC",
 					Namespace: constants.VerrazzanoMultiClusterNamespace,
 				},
-			},
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      constants.AdminClusterConfigMapName,
-					Namespace: constants.VerrazzanoMultiClusterNamespace,
+				Spec: VerrazzanoManagedClusterSpec{
+					CASecret: secretName,
 				},
-				Data: map[string]string{
-					constants.ServerDataKey: "https://testUrl",
-				},
-			}), nil
+			}
+			err := vz.ValidateCreate()
+			assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")
+		})
 	}
-	defer func() { getClientFunc = getClient }()
-
-	// VMC to be validated
-	vz := VerrazzanoManagedCluster{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testMC",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-		Spec: VerrazzanoManagedClusterSpec{
-			CASecret: secretName,
-		},
-	}
-	err := vz.ValidateCreate()
-	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")
 }
 
 // TestCreateNoConfigMap tests the validation of missing verrazzano-admin-cluster configmap
 // GIVEN a call validate VerrazzanoManagedCluster
 // WHEN the verrazzano-admin-cluster configmap doesn't exist
-// THEN the validation should fail
+// THEN the validation should fail if Rancher is disabled, succeed otherwise
 func TestCreateNoConfigMap(t *testing.T) {
 	const secretName = "mySecret"
 
-	// fake client needed to get secret
-	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(),
-			verrazzanoList,
-			&corev1.Secret{
+	tests := []struct {
+		name           string
+		verrazzanos    *v1alpha1.VerrazzanoList
+		errorExpected  bool
+		errMsgExpected string
+	}{
+		{"defaultVz", verrazzanoList, false, ""},
+		{"rancher disabled in VZ", verrazzanoListRancherDisabled, true, "The ConfigMap verrazzano-admin-cluster does not exist in namespace verrazzano-mc"},
+		{"rancher explicitly enabled in VZ", verrazzanoListRancherEnabled, false, ""},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// fake client needed to get secret
+			getClientFunc = func() (client.Client, error) {
+				return fake.NewFakeClientWithScheme(newScheme(),
+					test.verrazzanos,
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      secretName,
+							Namespace: constants.VerrazzanoMultiClusterNamespace,
+						},
+					}), nil
+			}
+			defer func() { getClientFunc = getClient }()
+
+			// VMC to be validated
+			vz := VerrazzanoManagedCluster{
+				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName,
+					Name:      "testMC",
 					Namespace: constants.VerrazzanoMultiClusterNamespace,
 				},
-			}), nil
+				Spec: VerrazzanoManagedClusterSpec{
+					CASecret: secretName,
+				},
+			}
+			err := vz.ValidateCreate()
+			if test.errorExpected {
+				assert.EqualError(t, err, test.errMsgExpected, "Expected correct error message")
+			} else {
+				assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource - should be able to create VMC without verrazzano-admin-cluster existing")
+			}
+		})
 	}
-	defer func() { getClientFunc = getClient }()
-
-	// VMC to be validated
-	vz := VerrazzanoManagedCluster{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testMC",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-		Spec: VerrazzanoManagedClusterSpec{
-			CASecret: secretName,
-		},
-	}
-	err := vz.ValidateCreate()
-	assert.EqualError(t, err, "The ConfigMap verrazzano-admin-cluster does not exist in namespace verrazzano-mc",
-		"Expected correct error message")
 }
 
 // TestCreateWithSecretConfigMapMissingServer tests the validation of verrazzano-admin-cluster configmap with missing server data
 // GIVEN a call validate VerrazzanoManagedCluster
 // WHEN the verrazzano-admin-cluster configmap is missing server data
-// THEN the validation should fail
+// THEN the validation should fail if Rancher is disabled, succeed otherwise
 func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 	const secretName = "mySecret"
 
-	// fake client needed to get secret
-	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(),
-			verrazzanoList,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName,
-					Namespace: constants.VerrazzanoMultiClusterNamespace,
-				},
-			},
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      constants.AdminClusterConfigMapName,
-					Namespace: constants.VerrazzanoMultiClusterNamespace,
-				},
-			}), nil
+	tests := []struct {
+		name           string
+		verrazzanos    *v1alpha1.VerrazzanoList
+		errorExpected  bool
+		errMsgExpected string
+	}{
+		{"defaultVz", verrazzanoList, false, ""},
+		{"rancher disabled in VZ", verrazzanoListRancherDisabled, true, "Data with key \"server\" contains invalid url \"\" in the ConfigMap verrazzano-admin-cluster namespace verrazzano-mc"},
+		{"rancher explicitly enabled in VZ", verrazzanoListRancherEnabled, false, ""},
 	}
-	defer func() { getClientFunc = getClient }()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// fake client needed to get secret
+			getClientFunc = func() (client.Client, error) {
+				return fake.NewFakeClientWithScheme(newScheme(),
+					test.verrazzanos,
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      secretName,
+							Namespace: constants.VerrazzanoMultiClusterNamespace,
+						},
+					},
+					&corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      constants.AdminClusterConfigMapName,
+							Namespace: constants.VerrazzanoMultiClusterNamespace,
+						},
+					}), nil
+			}
+			defer func() { getClientFunc = getClient }()
 
-	// VMC to be validated
-	vz := VerrazzanoManagedCluster{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testMC",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-		Spec: VerrazzanoManagedClusterSpec{
-			CASecret: secretName,
-		},
+			// VMC to be validated
+			vz := VerrazzanoManagedCluster{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testMC",
+					Namespace: constants.VerrazzanoMultiClusterNamespace,
+				},
+				Spec: VerrazzanoManagedClusterSpec{
+					CASecret: secretName,
+				},
+			}
+			err := vz.ValidateCreate()
+			if test.errorExpected {
+				assert.EqualError(t, err, test.errMsgExpected,
+					"Expected correct error message")
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
-	err := vz.ValidateCreate()
-	assert.EqualError(t, err, "Data with key \"server\" contains invalid url \"\" in the ConfigMap verrazzano-admin-cluster namespace verrazzano-mc",
-		"Expected correct error message")
 }
 
 // TestCreateMissingSecretName tests the validation of a VerrazzanoManagedCluster with a missing secret name
@@ -192,24 +274,42 @@ func TestCreateMissingSecretName(t *testing.T) {
 // THEN the validation should fail
 func TestCreateMissingSecret(t *testing.T) {
 	const secretName = "mySecret"
-	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(), verrazzanoList), nil
+	tests := []struct {
+		name           string
+		verrazzanos    *v1alpha1.VerrazzanoList
+		errorExpected  bool
+		errMsgExpected string
+	}{
+		{"defaultVz", verrazzanoList, false, ""},
+		{"rancher disabled in VZ", verrazzanoListRancherDisabled, true, "The CA secret mySecret does not exist in namespace verrazzano-mc"},
+		{"rancher explicitly enabled in VZ", verrazzanoListRancherEnabled, false, ""},
 	}
-	defer func() { getClientFunc = getClient }()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			getClientFunc = func() (client.Client, error) {
+				return fake.NewFakeClientWithScheme(newScheme(), test.verrazzanos), nil
+			}
+			defer func() { getClientFunc = getClient }()
 
-	vz := VerrazzanoManagedCluster{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testMC",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-		Spec: VerrazzanoManagedClusterSpec{
-			CASecret: secretName,
-		},
+			vz := VerrazzanoManagedCluster{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testMC",
+					Namespace: constants.VerrazzanoMultiClusterNamespace,
+				},
+				Spec: VerrazzanoManagedClusterSpec{
+					CASecret: secretName,
+				},
+			}
+			err := vz.ValidateCreate()
+			if test.errorExpected {
+				assert.EqualError(t, err, test.errMsgExpected,
+					"Expected correct error message for missing secret")
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
-	err := vz.ValidateCreate()
-	assert.EqualError(t, err, "The CA secret mySecret does not exist in namespace verrazzano-mc",
-		"Expected correct error message for missing secret")
 }
 
 // TestCreateVerrazzanoNotInstalled tests the validation of a Verrazzano being installed

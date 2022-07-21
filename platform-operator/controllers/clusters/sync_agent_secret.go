@@ -39,14 +39,6 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 //   5. save the kubeconfig as a secret
 //   6. update VMC with the admin secret name
 func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
-	// These names are used internally in the generated kubeconfig. The names
-	// are meant to be descriptive and the actual values don't affect behavior.
-	const (
-		clusterName = "admin"
-		userName    = "mcAgent"
-		contextName = "defaultContext"
-	)
-
 	// The same managed name and  vmc namespace is used for the service account and the kubeconfig secret,
 	// for clarity use different vars
 	saName := generateManagedResourceName(vmc.Name)
@@ -68,41 +60,20 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 
 	// Get the service account token from the secret
 	tokenName := sa.Secrets[0].Name
-	var secret corev1.Secret
+	var serviceAccountSecret corev1.Secret
 	secretNsn := types.NamespacedName{
 		Namespace: managedNamespace,
 		Name:      tokenName,
 	}
-	if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
+	if err := r.Get(context.TODO(), secretNsn, &serviceAccountSecret); err != nil {
 		return fmt.Errorf("Failed to fetch the service account secret %s/%s, %v", managedNamespace, tokenName, err)
 	}
 
-	// Get client config, this has some of the info needed to build a kubeconfig
-	config, err := getConfigFunc()
+	// Build the kubeconfig
+	kc, err := r.buildKubeConfig(serviceAccountSecret)
 	if err != nil {
-		return fmt.Errorf("Failed to get the client config, %v", err)
+		return fmt.Errorf("Failed to create kubeconfig for cluster %s: %v", vmc.Name, err)
 	}
-
-	// Load the kubeconfig struct
-	token := secret.Data[mcconstants.TokenKey]
-	b64Cert, err := getB64CAData(config)
-	if err != nil {
-		return err
-	}
-	serverURL, err := vzk8s.GetAPIServerURL(r.Client)
-	if err != nil {
-		return err
-	}
-
-	kb := vzk8s.KubeconfigBuilder{
-		ClusterName: clusterName,
-		Server:      serverURL,
-		CertAuth:    b64Cert,
-		UserName:    userName,
-		UserToken:   string(token),
-		ContextName: contextName,
-	}
-	kc := kb.Build()
 
 	// Convert the kubeconfig to yaml then write it to a secret
 	kcBytes, err := yaml.Marshal(kc)
@@ -115,6 +86,46 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	}
 
 	return nil
+}
+
+// buildKubeConfig builds the kubeconfig from the user-provided admin cluster URL and
+// CA cert of the local cluster configuration
+func (r *VerrazzanoManagedClusterReconciler) buildKubeConfig(serviceAccountSecret corev1.Secret) (*vzk8s.KubeConfig, error) {
+	// These names are used internally in the generated kubeconfig. The names
+	// are meant to be descriptive and the actual values don't affect behavior.
+	const (
+		clusterName = "admin"
+		userName    = "mcAgent"
+		contextName = "defaultContext"
+	)
+
+	// Get client config, this has some of the info needed to build a kubeconfig
+	config, err := getConfigFunc()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get the client config, %v", err)
+	}
+
+	token := serviceAccountSecret.Data[mcconstants.TokenKey]
+	b64Cert, err := getB64CAData(config)
+	if err != nil {
+		return nil, err
+	}
+	serverURL, err := vzk8s.GetAPIServerURL(r.Client)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load the kubeconfig struct and build the kubeconfig
+	kb := vzk8s.KubeconfigBuilder{
+		ClusterName: clusterName,
+		Server:      serverURL,
+		CertAuth:    b64Cert,
+		UserName:    userName,
+		UserToken:   string(token),
+		ContextName: contextName,
+	}
+	kc := kb.Build()
+	return &kc, nil
 }
 
 // Create or update the kubeconfig secret
