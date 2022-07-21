@@ -4,9 +4,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Usage: ./upate_olcne_config.sh
-# - Enables external IP access on OCNE nodes
-# - Installs OCNE helm module
-# - Install OCNE oci-ccm module
+# - Enables external IP access on OLCNE nodes
+# - Installs OLCNE helm module
+# - Install OLCNE oci-ccm module
 ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@$API_SERVER_IP "
     # Enable external IP
     olcnectl module update \

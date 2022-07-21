@@ -458,6 +458,7 @@ pipeline {
             dumpVerrazzanoPlatformOperatorLogs()
             dumpVerrazzanoApplicationOperatorLogs()
             dumpVerrazzanoApiLogs()
+            dumpOLCNEResources()
 
             archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*-cluster-dump/**,**/test-cluster-dumps/**/,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
@@ -690,10 +691,6 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
 def dumpK8sCluster(dumpDirectory) {
     sh """
         $GO_REPO_PATH/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
-        cp $KUBECONFIG ${dumpDirectory}/kube/config
-        cp $TF_VAR_bastion_private_key_path ${dumpDirectory}/terraform-oci-olcne/id_rsa.bastion
-        cp $TF_VAR_ssh_private_key_path ${dumpDirectory}/terraform-oci-olcne/id_rsa.node
-        cd $TERRAFORM_OUTPUT ${dumpDirectory}/terraform/tf.out
     """
 }
 
@@ -772,6 +769,16 @@ def dumpVerrazzanoInstallLogs() {
         kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
         echo "[INFO] Verrazzano Installation logs dumped to verrazzano-install.log"
         echo "[INFO] Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+    """
+}
+
+def dumpOLCNEResources() {
+    sh """
+        mkdir -p $WORKSPACE/olcne
+        cp $KUBECONFIG $WORKSPACE/olcne/kubeconfig
+        cp $TF_VAR_bastion_private_key_path $WORKSPACE/olcne/id_rsa.bastion
+        cp $TF_VAR_ssh_private_key_path $WORKSPACE/olcne/id_rsa.node
+        cd $TERRAFORM_OUTPUT $WORKSPACE/olcne/tf.out
     """
 }
 
@@ -958,7 +965,7 @@ def updateOLCNEConfig() {
         scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" "$TF_VAR_api_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/oci_api_key.pem
         $GO_REPO_PATH/verrazzano/ci/scripts/update_olcne_config.sh
     
-        # TODO: This MIGHT not be required for OCNE > 1.5 releases
+        # TODO: This MIGHT not be required for OLCNE > 1.5 releases
         # Add annotation to the storageclass created by OLCNE oci-ccm module
         kubectl get storageclass oci-bv -o yaml > "$WORKSPACE/oci-bv.yaml"
         yq -i eval '.metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true"' "$WORKSPACE/oci-bv.yaml"
