@@ -224,6 +224,8 @@ pipeline {
                             }
                         }
                         success {
+                            echo "Saving generated files"
+                            saveGeneratedFiles()
                             script {
                                 METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
                                 archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
@@ -309,24 +311,6 @@ pipeline {
                 success {
                     script {
                         SCAN_IMAGE_PATCH_OPERATOR = true
-                    }
-                }
-            }
-        }
-
-        stage('Save Generated Files') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                }
-            }
-            steps {
-                saveGeneratedFiles()
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
                     }
                 }
             }
