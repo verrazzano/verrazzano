@@ -46,41 +46,38 @@ import (
 
 var MetricsExp MetricsExporter
 
-type metricsOperation string
 type metricName string
 
 const (
-	operationInstall               metricsOperation = "install"
-	operationUpgrade               metricsOperation = "upgrade"
-	ReconcileCounter               metricName       = "reconcile counter"
-	ReconcileError                 metricName       = "reconcile error"
-	ReconcileDuration              metricName       = "reconcile duration"
-	authproxyMetricName            metricName       = authproxy.ComponentName
-	oamMetricName                  metricName       = oam.ComponentName
-	appoperMetricName              metricName       = appoper.ComponentName
-	istioMetricName                metricName       = istio.ComponentName
-	weblogicMetricName             metricName       = weblogic.ComponentName
-	nginxMetricName                metricName       = nginx.ComponentName
-	certmanagerMetricName          metricName       = certmanager.ComponentName
-	externaldnsMetricName          metricName       = externaldns.ComponentName
-	rancherMetricName              metricName       = rancher.ComponentName
-	verrazzanoMetricName           metricName       = verrazzano.ComponentName
-	vmoMetricName                  metricName       = vmo.ComponentName
-	opensearchMetricName           metricName       = opensearch.ComponentName
-	opensearchdashboardsMetricName metricName       = opensearchdashboards.ComponentName
-	grafanaMetricName              metricName       = grafana.ComponentName
-	coherenceMetricName            metricName       = coherence.ComponentName
-	mysqlMetricName                metricName       = mysql.ComponentName
-	keycloakMetricname             metricName       = keycloak.ComponentName
-	kialiMetricName                metricName       = kiali.ComponentName
-	promoperatorMetricname         metricName       = promoperator.ComponentName
-	promadapterMetricname          metricName       = promadapter.ComponentName
-	kubestatemmetricsMetricName    metricName       = kubestatemetrics.ComponentName
-	pushgatewayMetricName          metricName       = pushgateway.ComponentName
-	promnodeexporterMetricname     metricName       = promnodeexporter.ComponentName
-	jaegeroperatorMetricName       metricName       = jaegeroperator.ComponentName
-	consoleMetricName              metricName       = console.ComponentName
-	fluentdMetricName              metricName       = fluentd.ComponentName
+	ReconcileCounter               metricName = "reconcile counter"
+	ReconcileError                 metricName = "reconcile error"
+	ReconcileDuration              metricName = "reconcile duration"
+	authproxyMetricName            metricName = authproxy.ComponentName
+	oamMetricName                  metricName = oam.ComponentName
+	appoperMetricName              metricName = appoper.ComponentName
+	istioMetricName                metricName = istio.ComponentName
+	weblogicMetricName             metricName = weblogic.ComponentName
+	nginxMetricName                metricName = nginx.ComponentName
+	certmanagerMetricName          metricName = certmanager.ComponentName
+	externaldnsMetricName          metricName = externaldns.ComponentName
+	rancherMetricName              metricName = rancher.ComponentName
+	verrazzanoMetricName           metricName = verrazzano.ComponentName
+	vmoMetricName                  metricName = vmo.ComponentName
+	opensearchMetricName           metricName = opensearch.ComponentName
+	opensearchdashboardsMetricName metricName = opensearchdashboards.ComponentName
+	grafanaMetricName              metricName = grafana.ComponentName
+	coherenceMetricName            metricName = coherence.ComponentName
+	mysqlMetricName                metricName = mysql.ComponentName
+	keycloakMetricname             metricName = keycloak.ComponentName
+	kialiMetricName                metricName = kiali.ComponentName
+	promoperatorMetricname         metricName = promoperator.ComponentName
+	promadapterMetricname          metricName = promadapter.ComponentName
+	kubestatemmetricsMetricName    metricName = kubestatemetrics.ComponentName
+	pushgatewayMetricName          metricName = pushgateway.ComponentName
+	promnodeexporterMetricname     metricName = promnodeexporter.ComponentName
+	jaegeroperatorMetricName       metricName = jaegeroperator.ComponentName
+	consoleMetricName              metricName = console.ComponentName
+	fluentdMetricName              metricName = fluentd.ComponentName
 )
 
 // This fn initalizes the metrics object, registers the metrics, and then starts the server
