@@ -4,6 +4,12 @@
 package rancherbackup
 
 import (
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -109,5 +115,43 @@ func TestIsRancherBackupOperatorReady(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
 			assert.Equal(t, tt.expectTrue, isRancherBackupOperatorReady(ctx))
 		})
+	}
+}
+
+// TestisRancherBackupOperatorReady tests the isRancherBackupOperatorReady function for the Rancher Backup Operator
+func TestAppendOverrides(t *testing.T) {
+	cli := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, false)
+
+	defBOMPath := config.GetDefaultBOMFilePath()
+	config.SetDefaultBomFilePath("testdata/test-bom.json")
+	defer config.SetDefaultBomFilePath(defBOMPath)
+
+	kvs := []bom.KeyValue{}
+	kvs, err := AppendOverrides(ctx, "", "", "", kvs)
+	assert.NoError(t, err)
+	validateKeyValuePairs(t, kvs, "docker.io")
+
+	privateRegistry := "foo.io"
+	os.Setenv(constants.RegistryOverrideEnvVar, privateRegistry)
+	defer os.Unsetenv(constants.RegistryOverrideEnvVar)
+
+	kvs = []bom.KeyValue{}
+	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
+	assert.NoError(t, err)
+	validateKeyValuePairs(t, kvs, privateRegistry)
+}
+
+func validateKeyValuePairs(t *testing.T, kvs []bom.KeyValue, expectedRegistry string) {
+	assert.Len(t, kvs, 2)
+	for _, kv := range kvs {
+		switch kv.Key {
+		case "global.kubectl.repository":
+			assert.Truef(t, strings.Contains(kv.Value, expectedRegistry), "Expected registry %s in value, repository: %s", expectedRegistry, kv.Value)
+		case "global.kubectl.tag":
+			continue
+		default:
+			assert.Fail(t, fmt.Sprintf("Unexpected key: %s", kv.Key))
+		}
 	}
 }

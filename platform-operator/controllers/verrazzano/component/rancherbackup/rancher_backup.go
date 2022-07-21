@@ -5,7 +5,6 @@ package rancherbackup
 
 import (
 	"context"
-	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -39,24 +38,28 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 
 // AppendOverrides appends Helm value overrides for the Rancher Backups component's Helm chart
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return nil, err
 	}
-
-	bomSubcomponent, err := bomFile.GetSubcomponent("rancher-backup-kubectl")
+	images, err := bomFile.BuildImageOverrides("rancher-backup-kubectl")
 	if err != nil {
 		return nil, err
 	}
 
-	rancherRepo := fmt.Sprintf("%s/%s/%s", bomSubcomponent.Registry, bomSubcomponent.Repository, bomSubcomponent.Images[0].ImageName)
+	//bomSubcomponent, err := bomFile.GetSubcomponent("rancher-backup-kubectl")
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//rancherRepo := fmt.Sprintf("%s/%s/%s", bomSubcomponent.Registry, bomSubcomponent.Repository, bomSubcomponent.Images[0].ImageName)
+	//
+	//arguments := []bom.KeyValue{
+	//	{Key: "global.kubectl.repository", Value: rancherRepo},
+	//	{Key: "global.kubectl.tag", Value: bomSubcomponent.Images[0].ImageTag},
+	//}
 
-	arguments := []bom.KeyValue{
-		{Key: "global.kubectl.repository", Value: rancherRepo},
-		{Key: "global.kubectl.tag", Value: bomSubcomponent.Images[0].ImageTag},
-	}
-	kvs = append(kvs, arguments...)
+	kvs = append(kvs, images...)
 	return kvs, nil
 }
 

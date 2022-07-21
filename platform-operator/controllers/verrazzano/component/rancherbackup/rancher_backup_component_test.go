@@ -167,8 +167,8 @@ func TestGetName(t *testing.T) {
 	assert.Equal(t, ComponentJSONName, v.GetJSONName())
 }
 
-// TestPostUninstall tests the PostUninstall function
-// GIVEN a call to PostUninstall
+// TestPostUninstall tests the postUninstall function
+// GIVEN a call to postUninstall
 //  WHEN the cattle-resources-namespace  namespace exists with a finalizer
 //  THEN true is returned and cattle-resources-namespace namespace is deleted
 func TestPostUninstall(t *testing.T) {

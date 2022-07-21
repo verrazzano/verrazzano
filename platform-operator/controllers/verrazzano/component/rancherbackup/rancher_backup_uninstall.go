@@ -12,8 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// PostUninstall removes the objects after the Helm uninstall process finishes
-func PostUninstall(ctx spi.ComponentContext) error {
+// postUninstall removes the objects after the Helm uninstall process finishes
+func postUninstall(ctx spi.ComponentContext) error {
 	ctx.Log().Infof("Cleaning up rancher-backup cluster-role-binding and finalizers")
 
 	clusterRbList := rbacv1.ClusterRoleBindingList{}

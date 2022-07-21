@@ -6,7 +6,6 @@ package rancherbackup
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -14,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
@@ -137,15 +135,7 @@ func (rb rancherBackupHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *
 	return rb.validateRancherBackup(new)
 }
 
-// PostUninstall processing for RancherBackup
+// postUninstall processing for RancherBackup
 func (rb rancherBackupHelmComponent) PostUninstall(context spi.ComponentContext) error {
-	res := resource.Resource{
-		Name:   ComponentNamespace,
-		Client: context.Client(),
-		Object: &corev1.Namespace{},
-		Log:    context.Log(),
-	}
-	// Remove finalizers from the cattle-resources-system namespace to avoid hanging namespace deletion
-	// and delete the namespace
-	return res.RemoveFinalizersAndDelete()
+	return postUninstall(context)
 }

@@ -6,6 +6,7 @@ package rancherbackup
 import (
 	"context"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
@@ -59,12 +60,13 @@ func TestRancherBackupPostUninstall(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
 			ctx := spi.NewFakeContext(c, &vz, false)
-			err := PostUninstall(ctx)
+			err := postUninstall(ctx)
 			assert.NoError(err)
 
 			// ClusterRoleBinding should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: "rancher-backup"}, &rbacv1.ClusterRoleBinding{})
-			assert.Nil(err)
+			assert.NotNil(err)
+			assert.True(errors.IsNotFound(err))
 		})
 	}
 }
