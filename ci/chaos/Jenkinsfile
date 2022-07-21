@@ -252,7 +252,6 @@ pipeline {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('pre-upgrade-tests-cluster-dump')
-                            dumpK8sClusterFromBugReport('pre-upgrade-tests-cluster-dump')
                         }
                     }
                 }
@@ -260,7 +259,6 @@ pipeline {
                     script {
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('install-success-cluster-dump')
-                            dumpK8sClusterFromBugReport('install-success-cluster-dump')
                         }
                     }
                 }
@@ -332,7 +330,6 @@ pipeline {
                     script {
                         if (fileExists(env.TESTS_EXECUTED_FILE)) {
                             dumpK8sCluster('post-upgrade-vpo-failure-cluster-dump')
-                            dumpK8sClusterFromBugReport('post-upgrade-vpo-failure-cluster-dump')
                         }
                     }
                 }
@@ -559,7 +556,6 @@ pipeline {
                     script {
                         if (fileExists(env.TESTS_EXECUTED_FILE)) {
                             dumpK8sCluster('upgrade-failure-cluster-dump')
-                            dumpK8sClusterFromBugReport('upgrade-failure-cluster-dump')
                         }
                     }
                 }
@@ -600,7 +596,6 @@ pipeline {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('post-upgrade-failure-cluster-dump')
-                            dumpK8sClusterFromBugReport('post-upgrade-failure-cluster-dump')
                         }
                     }
                 }
@@ -608,7 +603,6 @@ pipeline {
                     script {
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('post-upgrade-success-cluster-dump')
-                            dumpK8sClusterFromBugReport('post-upgrade-success-cluster-dump')
                         }
                     }
                 }
@@ -709,14 +703,9 @@ def runGinkgoNamespace(testSuitePath, skipDeploy, skipUndeploy, namespace) {
 def dumpK8sCluster(dumpDirectory) {
     sh """
         ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
-    """
-}
-
-def dumpK8sClusterFromBugReport(dumpDirectory) {
-    sh """
-            go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
-            mkdir bug-report
-            tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
+        go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+        mkdir bug-report
+        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
     """
 }
 

@@ -296,14 +296,12 @@ pipeline {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('verrazzano-install-cluster-dump')
-                            dumpK8sClusterFromBugReport('verrazzano-install-cluster-dump')
                         }
                     }
                 }
                 failure {
                     script {
                         dumpK8sCluster('verrazzano-install-failure-cluster-dump')
-                        dumpK8sClusterFromBugReport('verrazzano-install-failure-cluster-dump')
                         sh """
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
                             ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/resources.log
@@ -331,13 +329,11 @@ pipeline {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('verrazzano-testrun-after-install-cluster-dump')
-                            dumpK8sClusterFromBugReport('verrazzano-testrun-after-install-cluster-dump')
                         }
                     }
                 }
                 failure {
                     dumpK8sCluster('verrazzano-test-failure-cluster-dump')
-                    dumpK8sClusterFromBugReport('verrazzano-test-failure-cluster-dump')
 
                 }
             }
@@ -365,13 +361,11 @@ pipeline {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('verrazzano-uninstall-cluster-dump')
-                            dumpK8sClusterFromBugReport('verrazzano-uninstall-cluster-dump')
                         }
                     }
                 }
                 failure {
                     dumpK8sCluster('verrazzano-uninstall-failure-cluster-dump')
-                    dumpK8sClusterFromBugReport('verrazzano-uninstall-failure-cluster-dump')
                 }
             }
         }
@@ -390,13 +384,11 @@ pipeline {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('verify-uninstall-cluster-dump')
-                            dumpK8sClusterFromBugReport('verify-uninstall-cluster-dump')
                         }
                     }
                 }
                 failure {
                     dumpK8sCluster('verify-uninstall-cluster-dump')
-                    dumpK8sClusterFromBugReport('verify-uninstall-cluster-dump')
                 }
             }
         }
@@ -433,13 +425,11 @@ pipeline {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('verrazzano-reinstall-cluster-dump')
-                            dumpK8sClusterFromBugReport('verrazzano-reinstall-cluster-dump')
                         }
                     }
                 }
                 failure {
                     dumpK8sCluster('verrazzano-reinstall-failure-cluster-dump')
-                    dumpK8sClusterFromBugReport('verrazzano-reinstall-failure-cluster-dump')
                     sh """
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs
                         ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/resources.log
@@ -466,13 +456,11 @@ pipeline {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('verrazzano-testrun-after-reinstall-cluster-dump')
-                            dumpK8sClusterFromBugReport('verrazzano-testrun-after-reinstall-cluster-dump')
                         }
                     }
                 }
                 failure {
                     dumpK8sCluster('verrazzano-test-failure-after-reinstall-cluster-dump')
-                    dumpK8sClusterFromBugReport('verrazzano-test-failure-after-reinstall-cluster-dump')
                 }
             }
         }
@@ -534,14 +522,9 @@ def runGinkgo(testSuitePath) {
 def dumpK8sCluster(dumpDirectory) {
     sh """
         ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
-    """
-}
-
-def dumpK8sClusterFromBugReport(dumpDirectory) {
-    sh """
-            go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
-            mkdir bug-report
-            tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
+        go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+        mkdir bug-report
+        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
     """
 }
 

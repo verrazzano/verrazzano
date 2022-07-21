@@ -170,7 +170,6 @@ pipeline {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
-                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-dump')
                         }
                     }
                 }
@@ -179,7 +178,6 @@ pipeline {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
-                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-dump')
                         }
                     }
                 }
@@ -528,7 +526,7 @@ def emitJobMetrics() {
     runTestTarget('jobmetrics')
 }
 
-def dumpK8sClusterFromBugReport(dumpDirectory) {
+def dumpK8sCluster(dumpDirectory) {
     sh """
             go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
             mkdir bug-report

@@ -289,7 +289,6 @@ pipeline {
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                                     dumpK8sCluster('install-success-cluster-dump')
-                                    dumpK8sClusterFromBugReport('install-success-cluster-dump')
                                 }
                             }
                         }
@@ -464,7 +463,6 @@ pipeline {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('tests-failure-cluster-dump')
-                            dumpK8sClusterFromBugReport('tests-failure-cluster-dump')
                         }
                     }
                 }
@@ -472,7 +470,6 @@ pipeline {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('tests-success-cluster-dump')
-                            dumpK8sClusterFromBugReport('tests-success-cluster-dump')
                         }
                     }
                 }
@@ -507,11 +504,9 @@ pipeline {
                 }
                 failure {
                     dumpK8sCluster('uninstall-failure-cluster-dump')
-                    dumpK8sClusterFromBugReport('uninstall-failure-cluster-dump')
                 }
                 aborted {
                     dumpK8sCluster('uninstall-aborted-cluster-dump')
-                    dumpK8sClusterFromBugReport('uninstall-aborted-cluster-dump')
                 }
             }
         }
@@ -529,13 +524,11 @@ pipeline {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('verify-uninstall-success-cluster-dump')
-                            dumpK8sClusterFromBugReport('verify-uninstall-success-cluster-dump')
                         }
                     }
                 }
                 failure {
                     dumpK8sCluster('verify-uninstall-failed-cluster-dump')
-                    dumpK8sClusterFromBugReport('verify-uninstall-failed-cluster-dump')
                 }
             }
         }
@@ -621,14 +614,9 @@ def runGinkgo(testSuitePath, String... extraArgs) {
 def dumpK8sCluster(dumpDirectory) {
     sh """
         ${DUMP_COMMAND} -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
-    """
-}
-
-def dumpK8sClusterFromBugReport(dumpDirectory) {
-    sh """
-            go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
-            mkdir bug-report
-            tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
+        go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+        mkdir bug-report
+        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
     """
 }
 
