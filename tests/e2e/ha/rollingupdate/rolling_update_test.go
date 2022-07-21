@@ -38,18 +38,28 @@ var _ = t.Describe("Rolling Update", Label("f:platform-lcm:ha"), func() {
 
 func swapScheduling(cs *kubernetes.Clientset, node, unschedulableNode *corev1.Node) {
 	Eventually(func() bool {
-		node.Spec.Unschedulable = true
-		if _, err := cs.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
+		if err := swapNodeScheduling(cs, node.Name); err != nil {
 			t.Logs.Errorf("Failed to mark node %s as unschedulable: %v", node.Name, err)
 			return false
 		}
-		unschedulableNode.Spec.Unschedulable = false
-		if _, err := cs.CoreV1().Nodes().Update(context.TODO(), unschedulableNode, metav1.UpdateOptions{}); err != nil {
+		if err := swapNodeScheduling(cs, unschedulableNode.Name); err != nil {
 			t.Logs.Errorf("Failed to mark node %s as schedulable: %v", unschedulableNode.Name, err)
 			return false
 		}
 		return true
 	}, ha.WaitTimeout, ha.PollingInterval).Should(BeTrue())
+}
+
+func swapNodeScheduling(cs *kubernetes.Clientset, name string) error {
+	node, err := cs.CoreV1().Nodes().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	node.Spec.Unschedulable = !node.Spec.Unschedulable
+	if _, err := cs.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func deletePodsForNode(cs *kubernetes.Clientset, node *corev1.Node) {
