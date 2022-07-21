@@ -34,7 +34,7 @@ var _ = t.Describe("Kind Scheduling", Label("f:platform-lcm:ha"), func() {
 					t.Logs.Errorf("Failed to mark node %s as unschedulable: %v", workerNode.Name, err)
 					return false
 				}
-				t.Logs.Info("Marked node %s as unschedulable", workerNode.Name)
+				t.Logs.Infof("Marked node %s as unschedulable", workerNode.Name)
 				return true
 			}, ha.WaitTimeout, ha.PollingInterval).Should(BeTrue())
 		}
