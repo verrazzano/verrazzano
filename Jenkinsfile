@@ -207,7 +207,7 @@ pipeline {
                     }
                 }
 
-                stage('Build Images') {
+                stage('Build Images and Save Generated Files') {
                     when { not { buildingTag() } }
                     steps {
                         script {
