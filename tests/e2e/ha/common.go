@@ -47,6 +47,7 @@ func EventuallySetNodeScheduling(cs *kubernetes.Clientset, name string, unschedu
 		}
 		return true
 	}).Should(gomega.BeTrue())
+	log.Infof("Set node[%s].spec.unschedulable=%v", name, unschedulable)
 }
 
 func EventuallyEvictNode(cs *kubernetes.Clientset, name string, log *zap.SugaredLogger) {
@@ -68,6 +69,7 @@ func EventuallyEvictNode(cs *kubernetes.Clientset, name string, log *zap.Sugared
 		}
 		return true
 	}, WaitTimeout, PollingInterval).Should(gomega.BeTrue())
+	log.Infof("Evicted node[%s]", name)
 }
 
 func IsControlPlaneNode(node corev1.Node) bool {
