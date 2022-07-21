@@ -6,10 +6,10 @@
 
 image:
   pullPolicy: IfNotPresent
+
+commonLabels:
+  app: mysql
   
-#ssl:
-#  enabled: false
-#
 ## Add an init container to chown the data directory to be owned by the mysql user
 ## (uid=27 gid=27) so that when upgrading, mysql user can definitely access data dir
 ## from previous volume. The Helm chart expects this to be a STRING, so using a multi-line string here
