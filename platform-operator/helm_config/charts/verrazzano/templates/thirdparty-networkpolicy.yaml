@@ -171,6 +171,13 @@ spec:
         - protocol: TCP
           port: 8080
     - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+      ports:
+        - protocol: TCP
+          port: 7600
+    - from:
       - namespaceSelector:
           matchLabels:
             verrazzano.io/namespace: verrazzano-monitoring
@@ -204,6 +211,8 @@ spec:
       ports:
         - protocol: TCP
           port: 3306
+        - protocol: TCP
+          port: 7600
     - from:
       - namespaceSelector:
           matchLabels:
@@ -213,16 +222,6 @@ spec:
             app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
-          protocol: TCP
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: keycloak
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: keycloak
-      ports:
-        - port: 7600
           protocol: TCP
 {{- end }}
 ---
