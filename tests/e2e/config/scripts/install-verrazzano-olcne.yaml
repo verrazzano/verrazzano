@@ -6,25 +6,14 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
-  profile: dev
-  environmentName: default
   components:
     dns:
       wildcard:
         domain: nip.io
     ingress:
       type: LoadBalancer
-      nginxInstallArgs:
-      - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
-        value: "10Mbps"
-      - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-list-management-mode"
-        value: "None"
     istio:
-      istioInstallArgs:
-      - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
-        value: "10Mbps"
-      - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-list-management-mode"
-        value: "None"
+      enabled: true
     prometheusOperator:
       enabled: true
     prometheusAdapter:

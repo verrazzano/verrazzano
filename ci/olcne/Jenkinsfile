@@ -73,28 +73,8 @@ pipeline {
             trim: true)
         choice (
             name: "OLCNE_OS_VERSION",
-            description: 'OracleLinux OS version OLCNE nodes',
+            description: 'OracleLinux OS version for OLCNE nodes',
             choices: osVersions)
-        string (
-            name: "OLCNE_ENVIRONMENT_NAME",
-            defaultValue: 'olcne-environment',
-            description: 'Name of the OLCNE environment',
-            trim: true)
-        string (
-            name: "OLCNE_KUBERNETES_NAME",
-            defaultValue: 'olcne-cluster',
-            description: 'Name of the OLCNE Kubernetes module',
-            trim: true)
-        string (
-            name: "OLCNE_HELM_NAME",
-            defaultValue: 'olcne-helm',
-            description: 'Name of the OLCNE Helm module',
-            trim: true)
-        string (
-            name: "OLCNE_OCI_CCM_NAME",
-            defaultValue: 'olcne-oci-ccm',
-            description: 'Name of the OLCNE OCI-CCM module',
-            trim: true)
         string (
             name: "INSTALL_PROFILE",
             defaultValue: 'prod',
@@ -158,8 +138,8 @@ pipeline {
         GOPATH="$HOME/go"
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
         TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-olcne"
-        TEST_CONFIG_FILE="$WORKSPACE/testConfigOlcne.yaml"
         KUBECONFIG="$WORKSPACE/test_kubeconfig"
+        TERRAFORM_OUTPUT="$WORKSPACE/tf.out"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
         // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
@@ -188,10 +168,10 @@ pipeline {
         TF_VAR_worker_node_count="${params.WORKER_NODE_COUNT}"
         TF_VAR_control_plane_node_count="${params.CONTROL_PLANE_NODE_COUNT}"
         TF_VAR_os_version="${params.OLCNE_OS_VERSION}"
-        TF_VAR_environment_name="${params.OLCNE_ENVIRONMENT_NAME}"
-        TF_VAR_kubernetes_name="${params.OLCNE_KUBERNETES_NAME}"
-        TF_VAR_helm_name="${params.OLCNE_HELM_NAME}"
-        TF_VAR_oci_ccm_name="${params.OLCNE_OCI_CCM_NAME}"
+        TF_VAR_environment_name="myenvironment"
+        TF_VAR_kubernetes_name="mycluster"
+        TF_VAR_helm_name="myhelm"
+        TF_VAR_oci_ccm_name="myoci"
         TF_VAR_olcne_version="${params.OLCNE_VERSION}"
         TF_VAR_s3_bucket_access_key=credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key=credentials('oci-s3-bucket-secret-key')
@@ -710,6 +690,10 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
 def dumpK8sCluster(dumpDirectory) {
     sh """
         $GO_REPO_PATH/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        cp $KUBECONFIG ${dumpDirectory}/kube/config
+        cp $TF_VAR_bastion_private_key_path ${dumpDirectory}/terraform-oci-olcne/id_rsa.bastion
+        cp $TF_VAR_ssh_private_key_path ${dumpDirectory}/terraform-oci-olcne/id_rsa.node
+        cd $TERRAFORM_OUTPUT ${dumpDirectory}/terraform/tf.out
     """
 }
 
@@ -914,6 +898,7 @@ def createOLCNECluster() {
         terraform init -input=false
         terraform plan -input=false -out=tfplan -no-color
         terraform apply -input=false -no-color -auto-approve tfplan
+        terraform output > $TERRAFORM_OUTPUT
     """
     env.API_SERVER_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw apiserver_ip """).trim()
     echo API_SERVER_IP
@@ -1039,13 +1024,6 @@ def installVerrazzano() {
         kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo
         echo "Keycloak username: keycloakadmin"
         kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo
-        
-        # Create acceptance test configuration file
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/common-test-setup-script.sh "$WORKSPACE" "$TEST_CONFIG_FILE" "$GHCR_REPO" "$KUBECONFIG" "$OCR_CREDS_USR" "$OCR_CREDS_PSW" "$VZ_ENVIRONMENT_NAME"
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/get_ingress_ip.sh "$TEST_CONFIG_FILE"
-        echo "[INFO] ----------Test config file:-------------"
-        cat "$TEST_CONFIG_FILE"
-        echo "[INFO] ----------------------------------------" 
     """
 }
 
