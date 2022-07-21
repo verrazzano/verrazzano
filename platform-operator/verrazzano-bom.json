@@ -389,8 +389,7 @@
               "registry": "docker.io",
               "repository": "library",
               "image": "busybox",
-              "tag": "v1.34",
-              "HelmFullImageKey": "primary.initContainers[0].image"
+              "tag": "v1.34"
             }
           ]
         }
