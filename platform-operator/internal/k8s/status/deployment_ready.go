@@ -5,6 +5,7 @@ package status
 import (
 	"context"
 	"fmt"
+	pkgConstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
@@ -19,7 +20,7 @@ import (
 // DeploymentsAreReady check that the named deployments have the minimum number of specified replicas ready and available
 func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
 	veleroPodLabel := map[string]string{
-		"name": constants.VeleroNameSpace,
+		"name": pkgConstants.Velero,
 	}
 	veleroPodSelector := &metav1.LabelSelector{
 		MatchLabels: veleroPodLabel,
@@ -49,7 +50,7 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 		// Velero install deploys a daemonset and deployment with common labels. The labels need to be adjusted so the pod fetch logic works
 		// as expected
 		podSelector := deployment.Spec.Selector
-		if namespacedName.Namespace == constants.VeleroNameSpace && namespacedName.Name == constants.VeleroNameSpace {
+		if namespacedName.Namespace == constants.VeleroNameSpace && namespacedName.Name == pkgConstants.Velero {
 			podSelector = veleroPodSelector
 		}
 

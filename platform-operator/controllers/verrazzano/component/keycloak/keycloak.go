@@ -375,7 +375,8 @@ const pkceClientUrisTemplate = `
 	  "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback"
+	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://jaeger.{{.DNSSubDomain}}/*"
 	],
 	"webOrigins": [
 	  "https://verrazzano.{{.DNSSubDomain}}",
@@ -383,7 +384,8 @@ const pkceClientUrisTemplate = `
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}",
 	  "https://kibana.vmi.system.{{.DNSSubDomain}}",
-	  "https://kiali.vmi.system.{{.DNSSubDomain}}"
+	  "https://kiali.vmi.system.{{.DNSSubDomain}}",
+	  "https://jaeger.{{.DNSSubDomain}}"
 	]
 `
 
