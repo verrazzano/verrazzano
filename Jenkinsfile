@@ -212,7 +212,7 @@ pipeline {
                     }
                 }
 
-                stage('Build Images') {
+                stage('Build Images and Save Generated Files') {
                     when { not { buildingTag() } }
                     steps {
                         script {
@@ -229,6 +229,8 @@ pipeline {
                             }
                         }
                         success {
+                            echo "Saving generated files"
+                            saveGeneratedFiles()
                             script {
                                 METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
                                 archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
