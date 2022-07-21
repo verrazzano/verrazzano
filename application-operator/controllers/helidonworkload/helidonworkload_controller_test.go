@@ -228,7 +228,7 @@ func TestReconcileCreateHelidon(t *testing.T) {
 		},
 		Selector: metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app" : "vicky sarkar",
+				"app": "vicky sarkar",
 			},
 		},
 	}
