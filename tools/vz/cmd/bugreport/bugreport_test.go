@@ -45,20 +45,6 @@ func TestBugReportHelp(t *testing.T) {
 	assert.Contains(t, buf.String(), "Verrazzano command line utility to collect data from the cluster, to report an issue")
 }
 
-// TestBugReportWithoutAnyFlag
-// GIVEN a CLI bug-report command without mandatory flag --report-file
-//  WHEN I call cmd.Execute for bug-report
-//  THEN expect an error
-func TestBugReportWithoutAnyFlag(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	cmd := NewCmdBugReport(rc)
-	assert.NotNil(t, cmd)
-	err := cmd.Execute()
-	assert.Contains(t, err.Error(), "required flag(s) \"report-file\" not set")
-}
-
 // TestBugReportExistingReportFile
 // GIVEN a CLI bug-report command using an existing file for flag --report-file
 //  WHEN I call cmd.Execute for bug-report
@@ -200,6 +186,44 @@ func TestBugReportSuccess(t *testing.T) {
 	assert.FileExists(t, bugRepFile)
 }
 
+// TestBugReportDefaultReportFile
+// GIVEN a CLI bug-report command
+//  WHEN I call cmd.Execute, without specifying --report-file
+//  THEN expect the command to create the report bug-report.tar.gz under the current directory
+func TestBugReportDefaultReportFile(t *testing.T) {
+	c := getClientWithWatch()
+	installVZ(t, c)
+
+	// Verify the vz resource is as expected
+	vz := vzapi.Verrazzano{}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
+
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdBugReport(rc)
+	assert.NotNil(t, cmd)
+	err = cmd.Execute()
+	if err != nil {
+		assert.Error(t, err)
+	}
+
+	assert.NoError(t, err)
+	assert.Contains(t, buf.String(), "Capturing Verrazzano resource",
+		"Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace",
+		"Successfully created the bug report",
+		"WARNING: Please examine the contents of the bug report for sensitive data", "Namespace dummy not found in the cluster")
+	currentDir, err := os.Getwd()
+	if err != nil {
+		assert.Error(t, err)
+	}
+	defaultBugReport := currentDir + string(os.PathSeparator) + constants.BugReportFileDefaultValue
+	assert.FileExists(t, defaultBugReport)
+	os.Remove(defaultBugReport)
+}
+
 // TestBugReportNoVerrazzano
 // GIVEN a CLI bug-report command
 //  WHEN I call cmd.Execute without Verrazzano installed
@@ -223,8 +247,6 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-
-	assert.NoError(t, err)
 	assert.Contains(t, buf.String(), "Verrazzano is not installed")
 }
 
@@ -251,8 +273,8 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
+
 	assert.Contains(t, buf.String(), "Verrazzano is not installed")
-	assert.Contains(t, errBuf.String(), "The bug-report command did not collect any file from the cluster")
 	assert.NoFileExists(t, bugRepFile)
 }
 
