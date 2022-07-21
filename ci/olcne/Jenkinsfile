@@ -139,7 +139,7 @@ pipeline {
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
         TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-olcne"
         KUBECONFIG="$WORKSPACE/test_kubeconfig"
-        TERRAFORM_OUTPUT="$WORKSPACE/tf.out"
+        OLCNE_DUMP_DIR="$WORKSPACE/olcne"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
         // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
@@ -160,11 +160,11 @@ pipeline {
         TF_VAR_availability_domain_id="${params.OLCNE_CLUSTER_AVAILABILITY_DOMAIN}"
         TF_VAR_deploy_networking="true"
         TF_VAR_bastion_enabled="true"
-        TF_VAR_bastion_private_key_path="$WORKSPACE/id_rsa"
+        TF_VAR_bastion_private_key_path="$OLCNE_DUMP_DIR/id_rsa"
         TF_VAR_prefix="$CLUSTER_NAME"
         TF_VAR_use_vault="false"
-        TF_VAR_ssh_public_key_path="$WORKSPACE/id_rsa.pub"
-        TF_VAR_ssh_private_key_path="$WORKSPACE/id_rsa"
+        TF_VAR_ssh_public_key_path="$OLCNE_DUMP_DIR/id_rsa.pub"
+        TF_VAR_ssh_private_key_path="$OLCNE_DUMP_DIR/id_rsa"
         TF_VAR_worker_node_count="${params.WORKER_NODE_COUNT}"
         TF_VAR_control_plane_node_count="${params.CONTROL_PLANE_NODE_COUNT}"
         TF_VAR_os_version="${params.OLCNE_OS_VERSION}"
@@ -286,6 +286,7 @@ pipeline {
                     sh """
                         sudo yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/x86_64 
                         sudo yum install -y terraform
+                        mkdir -p $OLCNE_DUMP_DIR
                         ssh-keygen -t rsa -b 4096 -q -N "" -f $TF_VAR_ssh_private_key_path
                         chmod 600 $TF_VAR_ssh_private_key_path
                     """
@@ -458,9 +459,8 @@ pipeline {
             dumpVerrazzanoPlatformOperatorLogs()
             dumpVerrazzanoApplicationOperatorLogs()
             dumpVerrazzanoApiLogs()
-            dumpOLCNEResources()
 
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*-cluster-dump/**,**/test-cluster-dumps/**/,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*-cluster-dump/**,**/test-cluster-dumps/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -534,9 +534,6 @@ def generateVerifyInstallStages(dumpRoot) {
         // Currently supported Verrazzano version = 1.3 
         "verify-install istio": {
             runGinkgoRandomize('verify-install/istio', "${dumpRoot}/verify-install-istio")
-        },
-        "verify-install keycloak": {
-            runGinkgoRandomize('verify-install/keycloak', "${dumpRoot}/verify-install-keycloak")
         },
         "verify-install kiali": {
             runGinkgoRandomize('verify-install/kiali', "${dumpRoot}/verify-install-kiali")
@@ -772,16 +769,6 @@ def dumpVerrazzanoInstallLogs() {
     """
 }
 
-def dumpOLCNEResources() {
-    sh """
-        mkdir -p $WORKSPACE/olcne
-        cp $KUBECONFIG $WORKSPACE/olcne/kubeconfig
-        cp $TF_VAR_bastion_private_key_path $WORKSPACE/olcne/id_rsa.bastion
-        cp $TF_VAR_ssh_private_key_path $WORKSPACE/olcne/id_rsa.node
-        cd $TERRAFORM_OUTPUT $WORKSPACE/olcne/tf.out
-    """
-}
-
 def getEffectiveDumpOnSuccess() {
     def effectiveValue=params.DUMP_K8S_CLUSTER_ON_SUCCESS
     if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
@@ -905,26 +892,25 @@ def createOLCNECluster() {
         terraform init -input=false
         terraform plan -input=false -out=tfplan -no-color
         terraform apply -input=false -no-color -auto-approve tfplan
-        terraform output > $TERRAFORM_OUTPUT
     """
     env.API_SERVER_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw apiserver_ip """).trim()
-    echo API_SERVER_IP
+    sh 'echo "API_SERVER_IP: $API_SERVER_IP" > $OLCNE_DUMP_DIR/tf.out'
     env.WORKER_NODES_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -json worker_nodes""").replaceAll(/["\[\]]/, "").replaceAll(",", " ").trim()
-    echo WORKER_NODES_IP
+    sh 'echo "WORKER_NODES_IP: $WORKER_NODES_IP" >> $OLCNE_DUMP_DIR/tf.out'
     env.CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -json control_plane_nodes """).replaceAll(/["\[\]]/, "").replaceAll(",", " ").trim()
-    echo CONTROL_PLANE_NODES_IP
+    sh 'echo "CONTROL_PLANE_NODES_IP: $CONTROL_PLANE_NODES_IP" >> $OLCNE_DUMP_DIR/tf.out'
     env.VCN_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw vcn_id """).trim()
-    echo VCN_OCID
+    sh 'echo "VCN_OCID: $VCN_OCID" >> $OLCNE_DUMP_DIR/tf.out'
     env.VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """).trim()
-    echo VCN_CIDR
+    sh 'echo "VCN_CIDR: $VCN_CIDR" >> $OLCNE_DUMP_DIR/tf.out'
     env.NODE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw subnet_id """).trim()
-    echo NODE_SUBNET_OCID
+    sh 'echo "NODE_SUBNET_OCID: $NODE_SUBNET_OCID" >> $OLCNE_DUMP_DIR/tf.out'
     env.BASTION_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """).trim()
-    echo BASTION_SUBNET_OCID
+    sh 'echo "BASTION_SUBNET_OCID: $BASTION_SUBNET_OCID" >> $OLCNE_DUMP_DIR/tf.out'
     env.BASTION_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_public_ip """).trim()
-    echo BASTION_IP
+    sh 'echo "BASTION_IP: $BASTION_IP" >> $OLCNE_DUMP_DIR/tf.out'
     env.BASTION_USER=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_user """).trim()
-    echo BASTION_USER
+    sh 'echo "BASTION_USER: $BASTION_USER" >> $OLCNE_DUMP_DIR/tf.out'
 }
 
 def setupSSH() {
@@ -952,7 +938,7 @@ def setupKubeconfig() {
         yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
-        cat "$KUBECONFIG"
+        cp "$KUBECONFIG" $OLCNE_DUMP_DIR/kubeconfig
         kubectl get nodes
     """
 }
@@ -997,7 +983,7 @@ def installVerrazzanoPlatformOperator() {
         # --file $WORKSPACE/downloaded-operator.yaml
         
         # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands instead of "wget"
-        wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/release-1.3/operator.yaml
+        wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
         
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
@@ -1005,8 +991,10 @@ def installVerrazzanoPlatformOperator() {
         kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
         # make sure ns exists
-        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
+        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh        
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+        kubectl get ns
+
         # create secret in verrazzano-install ns
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
     """
