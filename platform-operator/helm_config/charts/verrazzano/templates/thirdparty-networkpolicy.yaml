@@ -530,6 +530,12 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: prometheus
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app: jaeger
     - ports:
         - port: 15017
           protocol: TCP
