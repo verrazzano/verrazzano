@@ -20,9 +20,9 @@ func PostUninstall(ctx spi.ComponentContext) error {
 	if err := ctx.Client().List(context.TODO(), &clusterRbList, &client.ListOptions{}); err != nil {
 		return err
 	}
-	for _, crb := range clusterRbList.Items {
+	for i, crb := range clusterRbList.Items {
 		if crb.Name == ComponentName {
-			if err := ctx.Client().Delete(context.TODO(), &crb); err != nil {
+			if err := ctx.Client().Delete(context.TODO(), &clusterRbList.Items[i]); err != nil {
 				return err
 			}
 			ctx.Log().Oncef("%v cluster role binding deleted successfully", crb.RoleRef.Name)
