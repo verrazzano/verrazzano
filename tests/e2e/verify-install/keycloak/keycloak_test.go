@@ -151,7 +151,7 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 				// There is no Persistent Volume for MySQL in a dev install
 				Expect(len(volumeClaims)).To(Equal(expectedKeyCloakPVCs))
 				if expectedKeyCloakPVCs > 0 {
-					assertPersistentVolume("mysql", size)
+					assertPersistentVolume("data-mysql-0", size)
 				}
 			})
 		} else if pkg.IsManagedClusterProfile() {
@@ -166,7 +166,7 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 			t.It("Prod install profile", func() {
 				// 50 GB Persistent Volume create for MySQL in a prod install
 				Expect(len(volumeClaims)).To(Equal(1))
-				assertPersistentVolume("mysql", size)
+				assertPersistentVolume("data-mysql-0", size)
 			})
 		}
 	})
