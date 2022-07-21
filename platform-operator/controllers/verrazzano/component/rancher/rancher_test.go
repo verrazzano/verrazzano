@@ -17,6 +17,7 @@ import (
 	"k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -66,6 +67,7 @@ func getScheme() *runtime.Scheme {
 	_ = certv1.AddToScheme(scheme)
 	_ = admv1.AddToScheme(scheme)
 	_ = rbacv1.AddToScheme(scheme)
+	_ = v12.AddToScheme(scheme)
 	return scheme
 }
 

@@ -98,10 +98,11 @@ const (
 
 // Constants for bug report
 const (
-	BugReportFileFlagName  = "report-file"
-	BugReportFileFlagValue = ""
-	BugReportFileFlagShort = "r"
-	BugReportFileFlagUsage = "The report file to be created by bug-report command, as a .tar.gz file [Required]"
+	BugReportFileFlagName     = "report-file"
+	BugReportFileFlagValue    = ""
+	BugReportFileFlagShort    = "r"
+	BugReportFileFlagUsage    = "The report file to be created by bug-report command, as a .tar.gz file. Defaults to bug-report.tar.gz in the current directory."
+	BugReportFileDefaultValue = "bug-report.tar.gz"
 
 	BugReportIncludeNSFlagName  = "include-namespaces"
 	BugReportIncludeNSFlagShort = "i"
@@ -113,7 +114,7 @@ const (
 	LogFile = "logs.txt"
 
 	// File names for the various resources
-	VzResource       = "verrazzano_resources.json"
+	VzResource       = "verrazzano-resources.json"
 	DeploymentsJSON  = "deployments.json"
 	EventsJSON       = "events.json"
 	PodsJSON         = "pods.json"

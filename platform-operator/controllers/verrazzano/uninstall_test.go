@@ -9,6 +9,30 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -503,5 +527,80 @@ func assertProjectRoleBindings(c client.Client, asserts *assert.Assertions) {
 	for _, rbExists := range roleBindingsExist {
 		err := c.Get(context.TODO(), rbExists, &rb)
 		asserts.NoError(err, "RoleBinding %s/%s should still exist", rbExists.Namespace, rbExists.Name)
+	}
+}
+
+// TestDeleteNamespaces tests the deleteNamespaces method for the following use case
+// GIVEN a request to deleteNamespaces
+// WHEN deleteNamespaces is called
+// THEN ensure all the component and shared namespaces are deleted
+func TestDeleteNamespaces(t *testing.T) {
+	asserts := assert.New(t)
+
+	const fakeNS = "foo"
+	nameSpaces := []client.Object{}
+	names := []string{
+		fakeNS,
+		appoper.ComponentNamespace,
+		authproxy.ComponentNamespace,
+		certmanager.ComponentNamespace,
+		coherence.ComponentNamespace,
+		console.ComponentNamespace,
+		externaldns.ComponentNamespace,
+		fluentd.ComponentNamespace,
+		grafana.ComponentNamespace,
+		istio.IstioNamespace,
+		jaegeroperator.ComponentNamespace,
+		keycloak.ComponentNamespace,
+		kiali.ComponentNamespace,
+		mysql.ComponentNamespace,
+		nginx.ComponentNamespace,
+		oam.ComponentNamespace,
+		opensearch.ComponentNamespace,
+		opensearchdashboards.ComponentNamespace,
+		rancher.ComponentNamespace,
+		velero.ComponentNamespace,
+		verrazzano.ComponentNamespace,
+		vmo.ComponentNamespace,
+		weblogic.ComponentNamespace,
+
+		// Shared
+		vzconst.VerrazzanoMonitoringNamespace,
+		constants.CertManagerNamespace,
+		constants.VerrazzanoSystemNamespace,
+		vzconst.KeycloakNamespace,
+		monitoringNamespace,
+	}
+	// Remove dups since adding objects to the fake client with fail on duplicates
+	nsSet := make(map[string]bool)
+	for i := range names {
+		nsSet[names[i]] = true
+	}
+	for n := range nsSet {
+		nameSpaces = append(nameSpaces, &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: n},
+		})
+	}
+
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	_ = clustersv1alpha1.AddToScheme(k8scheme.Scheme)
+	_ = vzappclusters.AddToScheme(k8scheme.Scheme)
+
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(nameSpaces...).Build()
+
+	reconciler := newVerrazzanoReconciler(c)
+	result, err := reconciler.deleteNamespaces(vzlog.DefaultLogger())
+
+	// Validate the results
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	for _, n := range names {
+		ns := &corev1.Namespace{}
+		err = c.Get(context.TODO(), types.NamespacedName{Name: n}, ns)
+		if err == nil {
+			asserts.Equal(ns.Name, fakeNS, fmt.Sprintf("Namespace %s should exist", fakeNS))
+		} else {
+			asserts.True(errors.IsNotFound(err), fmt.Sprintf("Namespace %s should not exist", n))
+		}
 	}
 }

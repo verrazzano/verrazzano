@@ -724,6 +724,20 @@ func (mr *MockComponentMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockComponent)(nil).Name))
 }
 
+// Namespace mocks base method.
+func (m *MockComponent) Namespace() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Namespace")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Namespace indicates an expected call of Namespace.
+func (mr *MockComponentMockRecorder) Namespace() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Namespace", reflect.TypeOf((*MockComponent)(nil).Namespace))
+}
+
 // PostInstall mocks base method.
 func (m *MockComponent) PostInstall(arg0 spi.ComponentContext) error {
 	m.ctrl.T.Helper()

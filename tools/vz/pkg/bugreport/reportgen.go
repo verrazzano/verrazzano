@@ -23,8 +23,8 @@ import (
 // The bug-report command captures the following resources from the cluster by default
 // - Verrazzano resource
 // - Logs from verrazzano-platform-operator, verrazzano-monitoring-operator and verrazzano-application-operator pods
-// - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from namespace verrazzano-system,
-//   namespaces specified by flag --include-namespaces and the namespaces for each of the components which are not in Ready state
+// - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from the namespaces of
+//   installed verrazzano components and namespaces specified by flag --include-namespaces
 // - OAM resources like ApplicationConfiguration, Component, IngressTrait, MetricsTrait from namespaces specified by flag --include-namespaces
 // - VerrazzanoManagedCluster, VerrazzanoProject and MultiClusterApplicationConfiguration in a multi-clustered environment
 
@@ -51,6 +51,7 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 	err = client.List(context.TODO(), &vz)
 	if (err != nil && len(vz.Items) == 0) || len(vz.Items) == 0 {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Verrazzano is not installed ...\n")
+		return nil
 	}
 
 	// Get the list of namespaces based on the failed components and value specified by flag --include-namespaces
@@ -59,16 +60,16 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
 	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "There is an error with capturing the Verrazzano resources: %s", err.Error())
+		fmt.Fprintf(vzHelper.GetErrorStream(), "There is an error with capturing the Verrazzano resources: %s", err.Error())
 	}
 
 	// Capture OAM resources from the namespaces specified using --include-namespaces
 	if len(additionalNS) > 0 {
 		if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "There is an error in capturing the resources : %s", err.Error())
+			fmt.Fprintf(vzHelper.GetErrorStream(), "There is an error in capturing the resources : %s", err.Error())
 		}
 		if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "There is an error in capturing the multi-cluster resources : %s", err.Error())
+			fmt.Fprintf(vzHelper.GetErrorStream(), "There is an error in capturing the multi-cluster resources : %s", err.Error())
 		}
 	}
 
@@ -188,13 +189,12 @@ func isDirEmpty(directory string) bool {
 // collectNamespaces gathers list of unique namespaces, to be considered to collect the information
 func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz vzapi.VerrazzanoList, vzHelper pkghelpers.VZHelper) ([]string, []string) {
 
-	// Always collect information from verrazzano-system
-	var nsList = []string{vzconstants.VerrazzanoSystemNamespace}
+	var nsList []string
 
-	// Include namespaces for the components which are not in Ready state
-	if len(vz.Items) != 0 && vz.Items[0].Status.State != vzapi.VzStateReady {
-		failedCompNS := pkghelpers.GetNamespacesForNotReadyComponents(vz.Items[0])
-		nsList = append(nsList, failedCompNS...)
+	// Include namespaces for all the components
+	if len(vz.Items) != 0 {
+		allCompNS := pkghelpers.GetNamespacesForAllComponents(vz.Items[0])
+		nsList = append(nsList, allCompNS...)
 	}
 
 	// Include the namespaces specified by flag --include-namespaces

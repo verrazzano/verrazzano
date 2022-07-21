@@ -142,6 +142,11 @@ func (h HelmComponent) Name() string {
 	return h.ReleaseName
 }
 
+// Namespace returns the component namespace
+func (h HelmComponent) Namespace() string {
+	return h.ChartNamespace
+}
+
 // GetJsonName returns the josn name of the verrazzano component in CRD
 func (h HelmComponent) GetJSONName() string {
 	return h.JSONName
