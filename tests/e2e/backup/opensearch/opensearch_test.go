@@ -35,8 +35,8 @@ const (
 	osDataDepPrefix                     = "vmi-system-es-data"
 	osIngestDeployment                  = "vmi-system-es-ingest"
 	osDepPvcPrefix                      = "vmi-system-es-data"
-	objectStoreCredsAccessKeyName       = "aws_access_key_id"     //nolint:gosec //#nosec G101 //#nosec G204
-	objectStoreCredsSecretAccessKeyName = "aws_secret_access_key" //nolint:gosec //#nosec G101 //#nosec G204
+	objectStoreCredsAccessKeyName       = "aws_access_key_id"     //nolint:gosec //#gosec G101 //#gosec G204
+	objectStoreCredsSecretAccessKeyName = "aws_secret_access_key" //nolint:gosec //#gosec G101 //#gosec G204
 )
 
 var (
@@ -72,7 +72,8 @@ func gatherInfo() {
 const secretsData = `
 [default]
 {{ .AccessName }}={{ .ObjectStoreAccessValue }}
-{{ .ScrtName }}={{ .ObjectStoreScrt }}` //nolint:gosec //#nosec G101 //#nosec G204
+{{ .ScrtName }}={{ .ObjectStoreScrt }}
+` //nolint:gosec //#gosec G101 //#gosec G204
 
 const veleroBackupLocation = `
     apiVersion: velero.io/v1
