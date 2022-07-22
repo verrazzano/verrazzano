@@ -14,6 +14,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -176,20 +177,12 @@ func displayWarning(successMessage string, helper helpers.VZHelper) {
 	if len(successMessage) < minLineLength {
 		count = minLineLength
 	}
-
-	sep := ""
-	for i := 0; i < count; i++ {
-		sep += lineSeparator
-	}
+	sep := strings.Repeat(lineSeparator, count)
 
 	// Any change in BugReportWarning, requires a change here to adjust the whitespace characters before the message
 	wsCount := count - len(constants.BugReportWarning)
-	warningPrefix := ""
-	for i := 0; i < wsCount/2; i++ {
-		warningPrefix += " "
-	}
 
 	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
-	fmt.Fprintf(helper.GetOutputStream(), warningPrefix+constants.BugReportWarning+"\n")
+	fmt.Fprintf(helper.GetOutputStream(), strings.Repeat(" ", wsCount/2)+constants.BugReportWarning+"\n")
 	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
 }
