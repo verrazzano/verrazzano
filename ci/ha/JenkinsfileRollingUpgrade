@@ -243,8 +243,27 @@ pipeline {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
                     }
-                    steps {
-                        runGinkgoRandomize('verify-install')
+                    parallel {
+                        stage('verify-install') {
+                            steps {
+                                runGinkgoRandomize('verify-install')
+                            }
+                        }
+                        stage('verify-infra restapi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/restapi')
+                            }
+                        }
+                        stage('verify-infra oam') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/oam')
+                            }
+                        }
+                        stage('verify-infra vmi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/vmi')
+                            }
+                        }
                     }
                     post {
                         always {
