@@ -782,7 +782,7 @@ func IsKeycloakEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	if vz.Spec.Components.Keycloak == nil || vz.Spec.Components.Keycloak.Enabled == nil {
-		// Grafana component is enabled by default
+		// Keycloak component is enabled by default
 		return true
 	}
 	return *vz.Spec.Components.Keycloak.Enabled
