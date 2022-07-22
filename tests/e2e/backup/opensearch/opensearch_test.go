@@ -71,7 +71,8 @@ aws_access_key_id={{ .ObjectStoreAccessKeyID }}
 aws_secret_access_key={{ .ObjectStoreAccessKey }}
 ` //nolint:gosec
 
-const veleroBackupLocation = `apiVersion: velero.io/v1
+const veleroBackupLocation = `
+	apiVersion: velero.io/v1
     kind: BackupStorageLocation
     metadata:
       name: {{ .VeleroBackupStorageName }}
