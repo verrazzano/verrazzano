@@ -78,16 +78,16 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
 	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
 	if err != nil {
-		pkghelpers.LogError(vzHelper, fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
+		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
 
 	// Capture OAM resources from the namespaces specified using --include-namespaces
 	if len(additionalNS) > 0 {
 		if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
-			pkghelpers.LogError(vzHelper, fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
+			pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
 		}
 		if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
-			pkghelpers.LogError(vzHelper, fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
+			pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
 		}
 	}
 
