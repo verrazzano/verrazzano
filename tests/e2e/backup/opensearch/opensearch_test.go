@@ -6,6 +6,7 @@ package opensearch
 import (
 	"bytes"
 	"context"
+	b64 "encoding/base64"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
@@ -14,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
+	"strconv"
 	"text/template"
 	"time"
 
@@ -25,16 +27,18 @@ import (
 )
 
 const (
-	shortWaitTimeout     = 10 * time.Minute
-	shortPollingInterval = 10 * time.Second
-	waitTimeout          = 15 * time.Minute
-	pollingInterval      = 30 * time.Second
-	vmoDeploymentName    = "verrazzano-monitoring-operator"
-	osStsName            = "vmi-system-es-master"
-	osStsPvcPrefix       = "elasticsearch-master-vmi-system-es-master"
-	osDataDepPrefix      = "vmi-system-es-data"
-	osIngestDeployment   = "vmi-system-es-ingest"
-	osDepPvcPrefix       = "vmi-system-es-data"
+	shortWaitTimeout                    = 10 * time.Minute
+	shortPollingInterval                = 10 * time.Second
+	waitTimeout                         = 15 * time.Minute
+	pollingInterval                     = 30 * time.Second
+	vmoDeploymentName                   = "verrazzano-monitoring-operator"
+	osStsName                           = "vmi-system-es-master"
+	osStsPvcPrefix                      = "elasticsearch-master-vmi-system-es-master"
+	osDataDepPrefix                     = "vmi-system-es-data"
+	osIngestDeployment                  = "vmi-system-es-ingest"
+	osDepPvcPrefix                      = "vmi-system-es-data"
+	objectStoreCredsAccessKeyName       = "aws_access_key_id"
+	objectStoreCredsSecretAccessKeyName = "aws_secret_access_key"
 )
 
 var (
@@ -44,6 +48,7 @@ var (
 	BackupName, RestoreName, BackupResourceName, BackupOpensearchName, BackupRancherName                 string
 	RestoreOpensearchName, RestoreRancherName                                                            string
 	BackupStorageName                                                                                    string
+	BackupId                                                                                             string
 )
 
 func gatherInfo() {
@@ -67,12 +72,12 @@ func gatherInfo() {
 }
 
 const secretsData = `[default]
-aws_access_key_id={{ .ObjectStoreAccessKeyID }}
-aws_secret_access_key={{ .ObjectStoreAccessKey }}
+{{ .accessKey }}={{ .ObjectStoreAccessKeyID }}
+{{ .secretKey }}={{ .ObjectStoreAccessKey }}
 ` //nolint:gosec
 
 const veleroBackupLocation = `
-	apiVersion: velero.io/v1
+    apiVersion: velero.io/v1
     kind: BackupStorageLocation
     metadata:
       name: {{ .VeleroBackupStorageName }}
@@ -90,7 +95,8 @@ const veleroBackupLocation = `
         s3ForcePathStyle: "true"
         s3Url: https://{{ .VeleroObjectStorageNamespaceName }}.compat.objectstorage.us-phoenix-1.oraclecloud.com`
 
-const veleroBackup = `apiVersion: velero.io/v1
+const veleroBackup = `
+    apiVersion: velero.io/v1
     kind: Backup
     metadata:
       name: {{ .VeleroBackupName }}
@@ -125,7 +131,45 @@ const veleroBackup = `apiVersion: velero.io/v1
                   onError: Fail
                   timeout: 10m`
 
+const veleroRestore = `
+    apiVersion: velero.io/v1
+    kind: Restore
+    metadata:
+      name: {{ .VeleroRestore }}
+      namespace: {{ .VeleroNamespaceName }}
+    spec:
+      backupName: {{ .VeleroBackupName }}
+      includedNamespaces:
+        - verrazzano-system
+      labelSelector:
+        matchLabels:
+          verrazzano-component: opensearch
+      restorePVs: false
+      hooks:
+        resources:
+          - name: {{ .VeleroOpensearchHookResourceName }}
+            includedNamespaces:
+              - verrazzano-system
+            labelSelector:
+              matchLabels:
+                statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+            postHooks:
+              - exec:
+                  container: es-master
+                  command:
+                    - /usr/share/opensearch/bin/verrazzano-backup-hook
+                    - -operation
+                    - restore
+                    - -velero-backup-name
+                    - {{ .VeleroBackupName }}
+                  waitTimeout: 30m
+                  execTimeout: 30m
+                  onError: Fail
+`
+
 type accessData struct {
+	AccessKeyName          string
+	SecretKeyName          string
 	ObjectStoreAccessKeyID string
 	ObjectStoreAccessKey   string
 }
@@ -143,6 +187,18 @@ type veleroBackupObject struct {
 	VeleroNamespaceName              string
 	VeleroBackupStorageName          string
 	VeleroOpensearchHookResourceName string
+}
+
+type veleroRestoreObject struct {
+	VeleroRestore                    string
+	VeleroNamespaceName              string
+	VeleroBackupName                 string
+	VeleroOpensearchHookResourceName string
+}
+
+type vzcreds struct {
+	VzUsername string
+	VzPasswd   string
 }
 
 var _ = t.BeforeSuite(func() {
@@ -164,7 +220,12 @@ func CreateCredentialsSecretFromFile(namespace string, name string) error {
 
 	var b bytes.Buffer
 	template, _ := template.New("testsecrets").Parse(secretsData)
-	data := accessData{ObjectStoreAccessKeyID: OciOsAccessKey, ObjectStoreAccessKey: OciOsAccessSecretKey}
+	data := accessData{
+		AccessKeyName:          objectStoreCredsAccessKeyName,
+		SecretKeyName:          objectStoreCredsSecretAccessKeyName,
+		ObjectStoreAccessKeyID: OciOsAccessKey,
+		ObjectStoreAccessKey:   OciOsAccessSecretKey,
+	}
 	template.Execute(&b, data)
 
 	secretData := make(map[string]string)
@@ -228,6 +289,83 @@ func CreateVeleroBackupObject() error {
 		return err
 	}
 	return nil
+}
+
+func CreateVeleroRestoreObject() error {
+	var b bytes.Buffer
+	template, _ := template.New("velero-restore").Parse(veleroRestore)
+	data := veleroRestoreObject{
+		VeleroRestore:                    RestoreName,
+		VeleroNamespaceName:              VeleroNameSpace,
+		VeleroBackupName:                 BackupOpensearchName,
+		VeleroOpensearchHookResourceName: BackupResourceName,
+	}
+	template.Execute(&b, data)
+	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
+	if err != nil {
+		t.Logs.Infof("Error creating velero backup ", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func GetBackupID() (string, error) {
+	var esUrl string
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "vz")
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, "jsonpath={.items[].status.instance.elasticUrl}")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+
+	bashResponse := Runner(&kcmd, t.Logs)
+	if bashResponse.CommandError != nil {
+		return "", bashResponse.CommandError
+	}
+
+	esUrl = bashResponse.StandardOut.String()
+
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		t.Logs.Errorf("Failed to get clientset with error: %v", err)
+		return "", err
+	}
+
+	secret, err := clientset.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).Get(context.TODO(), "verrazzano", metav1.GetOptions{})
+	if err != nil {
+		t.Logs.Infof("Error creating secret ", zap.Error(err))
+		return "", err
+	}
+	vzPassEncodedBytes := secret.Data["password"]
+	vzPassDecodedBytes, err := b64.StdEncoding.DecodeString(string(vzPassEncodedBytes))
+	if err != nil {
+		return "", err
+	}
+
+	cmdArgs = []string{}
+	url := strconv.Quote(fmt.Sprintf("$s/verrazzano-system/_search?from=0&size=1", esUrl))
+	creds := fmt.Sprintf("verrazzano/%s", string(vzPassDecodedBytes))
+	jqIdFetch := "| jq -r '.hits.hits[0]._id'"
+	curlCmd := fmt.Sprintf("curl -ks %s %s %s", url, creds, jqIdFetch)
+	cmdArgs = append(cmdArgs, "/bin/sh")
+	cmdArgs = append(cmdArgs, "-c")
+	cmdArgs = append(cmdArgs, curlCmd)
+
+	var newkcmd BashCommand
+	newkcmd.Timeout = 2 * time.Minute
+	newkcmd.CommandArgs = cmdArgs
+
+	curlResponse := Runner(&kcmd, t.Logs)
+	if curlResponse.CommandError != nil {
+		return "", curlResponse.CommandError
+	}
+	BackupId = curlResponse.StandardOut.String()
+	return BackupId, nil
+
 }
 
 func CheckBackupProgress() error {
@@ -380,7 +518,7 @@ func checkPvcs(labelSelector, namespace string) error {
 		}
 		if len(pvcs.Items) > 0 {
 			if retryCount > 100 {
-				return fmt.Errorf("retry count to monitor pvcs exceeded!!")
+				return fmt.Errorf("retry count to monitor pvcs exceeded")
 			}
 			t.Logs.Infof("Pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
 			time.Sleep(10 * time.Second)
@@ -424,25 +562,30 @@ func backupPrerequisites() {
 		return CreateVeleroBackupLocationObject()
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
+	t.Logs.Info("Get backup id before starting the backup process")
+	Eventually(func() (string, error) {
+		return GetBackupID()
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
 }
 
 var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), func() {
 	t.Context("after velero backup storage location created", func() {
-		// GIVEN the Velero is installed
-		// WHEN we check to make sure the namespace exists
-		// THEN we successfully find the namespace
+		t.Logs.Info("Start velero backup")
 		WhenVeleroInstalledIt("Start velero backup", func() {
 			Eventually(func() error {
 				return CreateVeleroBackupObject()
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 
+		t.Logs.Info("Check backup progress")
 		WhenVeleroInstalledIt("Check velero backup progress", func() {
 			Eventually(func() error {
 				return CheckBackupProgress()
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 
+		t.Logs.Info("Cleanup opensearch once backup is done")
 		WhenVeleroInstalledIt("Nuke opensearch", func() {
 			Eventually(func() error {
 				return NukeOpensearch()
@@ -450,4 +593,5 @@ var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), func(
 		})
 
 	})
+
 })

@@ -30,7 +30,7 @@ func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
 	bashCommand.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	bashCommand.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 
-	log.Debugf("Executing command '%v'", bashCommand.String())
+	log.Infof("Executing command '%v'", bashCommand.String())
 	err := bashCommand.Start()
 	if err != nil {
 		log.Errorf("Cmd '%v' execution failed due to '%v'", bashCommand.String(), zap.Error(err))
