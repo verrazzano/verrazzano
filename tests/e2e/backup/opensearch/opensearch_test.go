@@ -46,7 +46,7 @@ var (
 	BackupName, RestoreName, BackupResourceName, BackupOpensearchName, BackupRancherName                 string
 	RestoreOpensearchName, RestoreRancherName                                                            string
 	BackupStorageName                                                                                    string
-	BackupId                                                                                             string
+	BackupID                                                                                             string
 )
 
 func gatherInfo() {
@@ -70,8 +70,8 @@ func gatherInfo() {
 }
 
 const secretsData = `[default]
-{{ .AccessKeyName }}={{ .ObjectStoreAccessKeyID }}
-{{ .SecretKeyName }}={{ .ObjectStoreAccessKey }}
+{{ .AccessName }}={{ .ObjectStoreAccessKeyID }}
+{{ .ScrtName }}={{ .ObjectStoreAccessKey }}
 `
 
 const veleroBackupLocation = `
@@ -169,15 +169,15 @@ const esQueryBody = `
 {
 	"query": {
   		"terms": {
-			"_id": ["{{ .BackupIdBeforeBackup }}"]
+			"_id": ["{{ .BackupIDBeforeBackup }}"]
   		}
 	}
 }
 `
 
 type accessData struct {
-	AccessKeyName          string
-	SecretKeyName          string
+	AccessName             string
+	ScrtName               string
 	ObjectStoreAccessKeyID string
 	ObjectStoreAccessKey   string
 }
@@ -205,7 +205,7 @@ type veleroRestoreObject struct {
 }
 
 type esQueryObject struct {
-	BackupIdBeforeBackup string
+	BackupIDBeforeBackup string
 }
 
 var _ = t.BeforeSuite(func() {
@@ -228,8 +228,8 @@ func CreateCredentialsSecretFromFile(namespace string, name string) error {
 	var b bytes.Buffer
 	template, _ := template.New("testsecrets").Parse(secretsData)
 	data := accessData{
-		AccessKeyName:          objectStoreCredsAccessKeyName,
-		SecretKeyName:          objectStoreCredsSecretAccessKeyName,
+		AccessName:             objectStoreCredsAccessKeyName,
+		ScrtName:               objectStoreCredsSecretAccessKeyName,
 		ObjectStoreAccessKeyID: OciOsAccessKey,
 		ObjectStoreAccessKey:   OciOsAccessSecretKey,
 	}
@@ -343,8 +343,8 @@ func GetBackupID() (string, error) {
 	if curlResponse.CommandError != nil {
 		return "", curlResponse.CommandError
 	}
-	BackupId = curlResponse.StandardOut.String()
-	return BackupId, nil
+	BackupID = curlResponse.StandardOut.String()
+	return BackupID, nil
 
 }
 
@@ -363,7 +363,7 @@ func IsRestoreSuccessful() bool {
 	var b bytes.Buffer
 	template, _ := template.New("velero-restore-verify").Parse(esQueryBody)
 	data := esQueryObject{
-		BackupIdBeforeBackup: BackupId,
+		BackupIDBeforeBackup: BackupID,
 	}
 	template.Execute(&b, data)
 
@@ -387,7 +387,7 @@ func IsRestoreSuccessful() bool {
 	if curlResponse.CommandError != nil {
 		return false
 	}
-	if curlResponse.StandardOut.String() == BackupId {
+	if curlResponse.StandardOut.String() == BackupID {
 		return true
 	}
 	return false
