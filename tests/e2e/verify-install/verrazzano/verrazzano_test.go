@@ -29,6 +29,7 @@ const (
 var isMinVersion110 bool
 var isMinVersion120 bool
 var isMinVersion140 bool
+var keycloakEnabled bool
 
 var t = framework.NewTestFramework("verrazzano")
 
@@ -52,6 +53,7 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+	keycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 })
 
 var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
@@ -546,34 +548,38 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
-	t.Describe("keycloak", Label("f:platform-lcm.install"), func() {
-		t.It("has expected statefulset", func() {
-			if isMinVersion110 {
-				Eventually(func() (bool, error) {
-					return pkg.DoesStatefulSetExist(constants.KeycloakNamespace, constants.Keycloak)
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			} else {
-				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
-			}
-		})
+	if keycloakEnabled {
+		t.Describe("keycloak", Label("f:platform-lcm.install"), func() {
+			t.It("has expected statefulset", func() {
+				if isMinVersion110 {
+					Eventually(func() (bool, error) {
+						return pkg.DoesStatefulSetExist(constants.KeycloakNamespace, constants.Keycloak)
+					}, waitTimeout, pollingInterval).Should(BeTrue())
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+				}
+			})
 
-		t.It("has correct number of pods running", func() {
-			if isMinVersion110 {
-				err := validateCorrectNumberOfPodsRunningSts(constants.Keycloak, constants.KeycloakNamespace, "app.kubernetes.io/name")
-				Expect(err).To(BeNil())
-			} else {
-				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
-			}
-		})
+			t.It("has correct number of pods running", func() {
+				if isMinVersion110 {
+					err := validateCorrectNumberOfPodsRunningSts(constants.Keycloak, constants.KeycloakNamespace, "app.kubernetes.io/name")
+					Expect(err).To(BeNil())
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+				}
+			})
 
-		t.It("has affinity configured as expected", func() {
-			if isMinVersion140 {
-				assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": constants.Keycloak}, constants.KeycloakNamespace)
-			} else {
-				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
-			}
+			t.It("has affinity configured as expected", func() {
+				if isMinVersion140 {
+					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": constants.Keycloak}, constants.KeycloakNamespace)
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+				}
+			})
 		})
-	})
+	} else {
+		t.Logs.Info("Skipping Keycloak check because it is not enabled")
+	}
 
 	t.Describe("service resources in verrazzano-system", Label("f:platform-lcm.install"), func() {
 		t.It("have expected Istio port names", func() {

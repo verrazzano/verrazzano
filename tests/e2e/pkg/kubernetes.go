@@ -774,6 +774,20 @@ func IsGrafanaEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.Grafana.Enabled
 }
 
+// IsKeycloakEnabled returns false if the Keycloak component is not set, or the value of its Enabled field otherwise
+func IsKeycloakEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Keycloak == nil || vz.Spec.Components.Keycloak.Enabled == nil {
+		// Grafana component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.Keycloak.Enabled
+}
+
 // IsVeleroEnabled returns false if the Velero component is not set, or the value of its Enabled field otherwise
 func IsVeleroEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
