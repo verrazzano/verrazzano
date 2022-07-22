@@ -36,9 +36,5 @@ func EventuallyCreateShutdownSignal(cs *kubernetes.Clientset, log *zap.SugaredLo
 
 func IsShutdownSignalSet(cs *kubernetes.Clientset) bool {
 	_, err := cs.CoreV1().Secrets(shutdownSignalNamespace).Get(context.TODO(), shutdownSignalName, metav1.GetOptions{})
-	if err != nil {
-		return false
-	}
-	return true
-
+	return err == nil
 }
