@@ -9,20 +9,20 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = t.Describe("Prometheus HA Monitoring", Label("f:platform-lcm:ha"), func() {
-	RunningUntilShutdownIt("verifies Prometheus is ready and running", func() {
+var _ = t.Describe("Prometheus REST API", Label("f:platform-lcm:ha"), func() {
+	RunningUntilShutdownIt("can access Prometheus over HTTPS", func() {
 		Expect(pkg.VerifyPrometheusComponent(t.Logs, api, vzHTTPClient, vmiCredentials)).To(BeTrue())
 	})
 })
 
-var _ = t.Describe("Grafana HA Monitoring", Label("f:platform-lcm:ha"), func() {
-	RunningUntilShutdownIt("verifies Grafana is ready and running", func() {
+var _ = t.Describe("Grafana REST API", Label("f:platform-lcm:ha"), func() {
+	RunningUntilShutdownIt("can access Grafana over HTTPS", func() {
 		Expect(pkg.VerifyGrafanaComponent(t.Logs, api, vzHTTPClient, vmiCredentials)).To(BeTrue())
 	})
 })
 
-var _ = t.Describe("OpenSearch HA Monitoring", Label("f:platform-lcm:ha"), func() {
-	RunningUntilShutdownIt("verifies OpenSearch is ready and running", func() {
+var _ = t.Describe("OpenSearch REST API", Label("f:platform-lcm:ha"), func() {
+	RunningUntilShutdownIt("can access OpenSearch over HTTPS", func() {
 		Expect(pkg.VerifyOpenSearchComponent(t.Logs, api, vzHTTPClient, vmiCredentials)).To(BeTrue())
 	})
 })
