@@ -327,7 +327,7 @@ pipeline {
                      }
                 }
 
-                stage('Verify Install') {
+                stage('Opensearch backup tests') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup"
                     }
@@ -546,7 +546,7 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
             fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -v --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                ginkgo -v --progress --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             fi
         """
     }
