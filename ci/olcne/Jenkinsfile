@@ -532,6 +532,12 @@ def generateVerifyInstallStages(dumpRoot) {
     return [
         // TODO: Update the list to include tests for subsequent VZ releases
         // Currently supported Verrazzano version = 1.3 
+        "verify-install keycloak": {
+            runGinkgoRandomize('verify-install/keycloak', "${dumpRoot}/verify-install-keycloak")
+        },
+        "verify-install kubernetes": {
+            runGinkgoRandomize('verify-install/kubernetes', "${dumpRoot}/verify-install-kubernetes")
+        },
         "verify-install istio": {
             runGinkgoRandomize('verify-install/istio', "${dumpRoot}/verify-install-istio")
         },
@@ -551,9 +557,6 @@ def generateVerifyInfraStages(dumpRoot) {
     return [
         "verify-scripts": {
             runGinkgo('scripts', '', "$KUBECONFIG")
-        },
-        "verify-infra restapi": {
-            runGinkgoRandomize('verify-infra/restapi', "${dumpRoot}/verify-infra-restapi")
         },
         "verify-infra oam": {
             runGinkgoRandomize('verify-infra/oam', "${dumpRoot}/verify-infra-oam")
