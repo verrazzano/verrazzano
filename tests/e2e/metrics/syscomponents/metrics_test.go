@@ -59,6 +59,7 @@ var kubeConfig = os.Getenv("KUBECONFIG")
 // will be initialized in BeforeSuite so that any log messages during init are available
 var clusterNameMetricsLabel = ""
 var isMinVersion110 bool
+var isMinVersion140 bool
 
 var adminKubeConfig string
 var isManagedClusterProfile bool
@@ -109,6 +110,11 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var _ = t.AfterSuite(func() {})
@@ -132,6 +138,46 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			Eventually(func() bool {
 				return metricsContainLabels(containerStartTimeSeconds, map[string]string{})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		})
+
+		t.It("Verify VMO function metrics can be queried from Prometheus", func() {
+			if isMinVersion140 {
+				Eventually(func() bool {
+					return metricsContainLabels("vmo_reconcile_total", map[string]string{})
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			}
+		})
+
+		t.It("Verify VMO simple counter metrics can be queried from Prometheus", func() {
+			if isMinVersion140 {
+				Eventually(func() bool {
+					return metricsContainLabels("vmo_deployment_update_total", map[string]string{})
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			}
+		})
+
+		t.It("Verify VMO simple gauge metrics can be queried from Prometheus", func() {
+			if isMinVersion140 {
+				Eventually(func() bool {
+					return metricsContainLabels("vmo_work_queue_size", map[string]string{})
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			}
+		})
+
+		t.It("Verify VMO timestamp metrics can be queried from Prometheus", func() {
+			if isMinVersion140 {
+				Eventually(func() bool {
+					return metricsContainLabels("vmo_configmap_last_succesful_timestamp", map[string]string{})
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			}
+		})
+
+		t.It("Verify VMO error metrics can be queried from Prometheus", func() {
+			if isMinVersion140 {
+				Eventually(func() bool {
+					return metricsContainLabels("vmo_deployment_update_error_total", map[string]string{})
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			}
 		})
 
 		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
