@@ -110,7 +110,7 @@ const jaegerValueTemplate = `jaeger:
       options:
         es:
           server-urls: {{.OpenSearchURL}}
-          index-prefix: verrazzano-jaeger
+          index-prefix: verrazzano
       secretName: {{.SecretName}}
 `
 

@@ -269,17 +269,27 @@ pipeline {
                     }
                 }
 
-                stage('Rolling Update') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/rollingupdate"
-                    }
-                    steps {
-                        runGinkgoRandomize('ha/rollingupdate')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                stage('Parallel HA Tests and Rolling Update') {
+                    parallel {
+                        stage('Rolling Update') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/rollingupdate"
+                            }
+                            steps {
+                                runGinkgoRandomize('ha/rollingupdate')
+                            }
+                            post {
+                                always {
+                                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                                }
+                            }
+                        }
+
+                        stage('HA Tests') {
+                            steps {
+                                runGinkgoRandomize('ha/monitor')
+                            }
                         }
                     }
                 }
