@@ -433,7 +433,7 @@ pipeline {
         stage('Post-install Acceptance Tests') {
             steps {
                 script {
-                    parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'true', 'false')
+                    parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'false', 'false')
                 }
             }
             post {
