@@ -66,7 +66,7 @@ func gatherInfo() {
 }
 
 const secretsData = `[default]
-aws_access_key_id={{ .ObjectStoreAccessKeyId }}
+aws_access_key_id={{ .ObjectStoreAccessKeyID }}
 aws_secret_access_key={{ .ObjectStoreAccessKey }}
 ` //nolint:gosec
 
@@ -250,7 +250,7 @@ func CheckBackupProgress() error {
 		switch bashResponse.StandardOut.String() {
 		case "InProgress":
 			if retryCount > 100 {
-				return fmt.Errorf("retry count to monitor backup '%s' exceeded!!", BackupOpensearchName)
+				return fmt.Errorf("retry count to monitor backup '%s' exceeded", BackupOpensearchName)
 			}
 			t.Logs.Infof("Backup '%s' is in progress. Check after 10 seconds", BackupOpensearchName)
 			time.Sleep(10 * time.Second)
@@ -292,7 +292,7 @@ func NukeOpensearch() error {
 
 	t.Logs.Infof("Deleting opensearch data deployments")
 	for i := 0; i < 3; i++ {
-		err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%s", osDataDepPrefix, string(i)), metav1.DeleteOptions{})
+		err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osDataDepPrefix, i), metav1.DeleteOptions{})
 		if err != nil {
 			return err
 		}
@@ -306,7 +306,7 @@ func NukeOpensearch() error {
 
 	t.Logs.Infof("Deleting opensearch master pvc if still present")
 	for i := 0; i < 3; i++ {
-		err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%s", osStsPvcPrefix, string(i)), metav1.DeleteOptions{})
+		err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osStsPvcPrefix, i), metav1.DeleteOptions{})
 		if err != nil {
 			return err
 		}
@@ -317,7 +317,7 @@ func NukeOpensearch() error {
 		if i == 0 {
 			err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osDepPvcPrefix, metav1.DeleteOptions{})
 		} else {
-			err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%s", osDepPvcPrefix, string(i)), metav1.DeleteOptions{})
+			err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osDepPvcPrefix, i), metav1.DeleteOptions{})
 		}
 		if err != nil {
 			return err
@@ -348,7 +348,7 @@ func checkPods(labelSelector, namespace string) error {
 		}
 		if len(pods.Items) > 0 {
 			if retryCount > 100 {
-				return fmt.Errorf("retry count to monitor pods exceeded!!")
+				return fmt.Errorf("retry count to monitor pods exceeded")
 			}
 			t.Logs.Infof("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
 			time.Sleep(10 * time.Second)
