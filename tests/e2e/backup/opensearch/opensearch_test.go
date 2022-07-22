@@ -622,17 +622,17 @@ func WhenVeleroInstalledIt(description string, f func()) {
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
 	t.Logs.Info("Create backup secret for velero backup objects")
-	Expect(func() error {
+	Eventually(func() error {
 		return CreateCredentialsSecretFromFile(VeleroNameSpace, VeleroSecretName)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create backup storage location for velero backup objects")
-	Expect(func() error {
+	Eventually(func() error {
 		return CreateVeleroBackupLocationObject()
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Get backup id before starting the backup process")
-	Expect(func() (string, error) {
+	Eventually(func() (string, error) {
 		return GetBackupID()
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
@@ -641,9 +641,9 @@ func backupPrerequisites() {
 var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), Serial, func() {
 	t.Context("after velero backup storage location created", func() {
 		WhenVeleroInstalledIt("Start velero backup", func() {
-			Expect(func() error {
+			Eventually(func() error {
 				return CreateVeleroBackupObject()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 	})
 })
@@ -651,9 +651,9 @@ var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), Seria
 var _ = t.Describe("Check backup progress,", Label("f:platform-verrazzano.backup"), Serial, func() {
 	t.Context("after velero backup was created", func() {
 		WhenVeleroInstalledIt("Check velero backup progress", func() {
-			Expect(func() error {
+			Eventually(func() error {
 				return CheckBackupProgress()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 	})
 })
@@ -661,9 +661,9 @@ var _ = t.Describe("Check backup progress,", Label("f:platform-verrazzano.backup
 var _ = t.Describe("Nuke opensearch,", Label("f:platform-verrazzano.backup"), Serial, func() {
 	t.Context("Cleanup opensearch once backup is don", func() {
 		WhenVeleroInstalledIt("Nuke opensearch", func() {
-			Expect(func() error {
+			Eventually(func() error {
 				return NukeOpensearch()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 
 	})
@@ -673,9 +673,9 @@ var _ = t.Describe("Nuke opensearch,", Label("f:platform-verrazzano.backup"), Se
 var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), func() {
 	t.Context("start restore after velero backup is completed", func() {
 		WhenVeleroInstalledIt("Start velero restore", func() {
-			Expect(func() error {
+			Eventually(func() error {
 				return CreateVeleroRestoreObject()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 	})
 
@@ -684,9 +684,9 @@ var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), fun
 var _ = t.Describe("Check restore progress,", Label("f:platform-verrazzano.restore"), func() {
 	t.Context("Create the velero restore object", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
-			Expect(func() error {
+			Eventually(func() error {
 				return CheckRestoreProgress()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 	})
 
@@ -695,9 +695,9 @@ var _ = t.Describe("Check restore progress,", Label("f:platform-verrazzano.resto
 var _ = t.Describe("Verify if restore is successful,", Label("f:platform-verrazzano.restore"), func() {
 	t.Context("start restore after velero backup is completed", func() {
 		WhenVeleroInstalledIt("Is Restore good?", func() {
-			Expect(func() bool {
+			Eventually(func() bool {
 				return IsRestoreSuccessful()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 
 	})
