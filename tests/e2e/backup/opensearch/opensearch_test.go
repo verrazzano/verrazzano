@@ -153,11 +153,11 @@ var _ = t.BeforeSuite(func() {
 var t = framework.NewTestFramework("opensearch-backup")
 
 // CreateCredentialsSecretFromFile creates opaque secret from the given map of values
-func CreateCredentialsSecretFromFile(namespace string, name string) (*corev1.Secret, error) {
+func CreateCredentialsSecretFromFile(namespace string, name string) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		t.Logs.Errorf("Failed to get clientset with error: %v", err)
-		return nil, err
+		return err
 	}
 
 	var b bytes.Buffer
@@ -177,13 +177,13 @@ func CreateCredentialsSecretFromFile(namespace string, name string) (*corev1.Sec
 		StringData: secretData,
 	}
 
-	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 	if err != nil {
 		t.Logs.Infof("Error creating secret ", zap.Error(err))
-		return nil, err
+		return err
 	}
 
-	return scr, err
+	return err
 }
 
 // CreateVeleroBackupLocationObject creates opaque secret from the given map of values
@@ -409,17 +409,15 @@ func WhenVeleroInstalledIt(description string, f func()) {
 
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
-
 	t.Logs.Info("Create backup secret for velero backup objects")
-	Eventually(func() (*corev1.Secret, error) {
+	Eventually(func() error {
 		return CreateCredentialsSecretFromFile(VeleroNameSpace, VeleroSecretName)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	WhenVeleroInstalledIt("Create backup storage location for velero", func() {
-		Eventually(func() error {
-			return CreateVeleroBackupLocationObject()
-		}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-	})
+	t.Logs.Info("Create backup storage location for velero backup objects")
+	Eventually(func() error {
+		return CreateVeleroBackupLocationObject()
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 }
 
@@ -431,19 +429,19 @@ var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), func(
 		WhenVeleroInstalledIt("Start velero backup", func() {
 			Eventually(func() error {
 				return CreateVeleroBackupObject()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 
 		WhenVeleroInstalledIt("Check velero backup progress", func() {
 			Eventually(func() error {
 				return CheckBackupProgress()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 
 		WhenVeleroInstalledIt("Nuke opensearch", func() {
 			Eventually(func() error {
 				return NukeOpensearch()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 
 	})
