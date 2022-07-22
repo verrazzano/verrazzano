@@ -239,6 +239,21 @@ pipeline {
                     }
                 }
 
+                stage('Reschedule 50% of Worker Nodes') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/scheduling"
+                    }
+                    steps {
+                        runGinkgoRandomize('ha/scheduling')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
                 stage('Verify Install') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
@@ -273,22 +288,10 @@ pipeline {
                     }
                 }
 
-                stage('Reschedule 50% of Worker Nodes') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/scheduling"
-                    }
-                    steps {
-                        runGinkgoRandomize('ha/scheduling')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-
                 stage('Parallel HA Tests and Rolling Update') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ha-tests"
+                    }
                     parallel {
                         stage('Rolling Update') {
                             environment {
@@ -297,12 +300,6 @@ pipeline {
                             steps {
                                 runGinkgoRandomize('ha/rollingupdate')
                             }
-                            post {
-                                always {
-                                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                                }
-                            }
                         }
 
                         stage('HA Tests') {
@@ -310,6 +307,12 @@ pipeline {
                                 runGinkgoRandomize('ha/monitor')
                             }
                         }
+                    }
+                }
+                post {
+                    always {
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
                     }
                 }
             }
