@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -74,7 +75,7 @@ const veleroBackupLocation = `apiVersion: velero.io/v1
     kind: BackupStorageLocation
     metadata:
       name: {{ .VeleroBackupStorageName }}
-      namespace: {{ . VeleroNamespaceName }}
+      namespace: {{ .VeleroNamespaceName }}
     spec:
       provider: aws
       objectStorage:
@@ -190,6 +191,7 @@ func CreateCredentialsSecretFromFile(namespace string, name string) error {
 func CreateVeleroBackupLocationObject() error {
 	var b bytes.Buffer
 	template, _ := template.New("velero-backup-location").Parse(veleroBackupLocation)
+
 	data := veleroBackupLocationObjectData{
 		VeleroBackupStorageName:          BackupStorageName,
 		VeleroNamespaceName:              VeleroNameSpace,
@@ -197,7 +199,9 @@ func CreateVeleroBackupLocationObject() error {
 		VeleroSecretName:                 VeleroSecretName,
 		VeleroObjectStorageNamespaceName: OciNamespaceName,
 	}
+	spew.Dump(data)
 	template.Execute(&b, data)
+	spew.Dump(b.String())
 	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
 	if err != nil {
 		t.Logs.Infof("Error creating velero backup loaction ", zap.Error(err))
