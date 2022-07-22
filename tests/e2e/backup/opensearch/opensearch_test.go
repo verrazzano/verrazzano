@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -24,9 +25,9 @@ import (
 )
 
 const (
-	shortWaitTimeout     = 1 * time.Minute
+	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	waitTimeout          = 1 * time.Minute
+	waitTimeout          = 15 * time.Minute
 	pollingInterval      = 30 * time.Second
 	vmoDeploymentName    = "verrazzano-monitoring-operator"
 	osStsName            = "vmi-system-es-master"
@@ -87,11 +88,9 @@ const veleroBackupLocation = `
       config:
         region: us-phoenix-1
         s3ForcePathStyle: "true"
-        s3Url: https://{{ .VeleroObjectStorageNamespaceName }}.compat.objectstorage.us-phoenix-1.oraclecloud.com
-`
+        s3Url: https://{{ .VeleroObjectStorageNamespaceName }}.compat.objectstorage.us-phoenix-1.oraclecloud.com`
 
-const veleroBackup = `
-	apiVersion: velero.io/v1
+const veleroBackup = `apiVersion: velero.io/v1
     kind: Backup
     metadata:
       name: {{ .VeleroBackupName }}
@@ -124,8 +123,7 @@ const veleroBackup = `
                     - -velero-backup-name
                     - {{ .VeleroBackupName }}
                   onError: Fail
-                  timeout: 10m
-`
+                  timeout: 10m`
 
 type accessData struct {
 	ObjectStoreAccessKeyID string
@@ -202,7 +200,9 @@ func CreateVeleroBackupLocationObject() error {
 		VeleroSecretName:                 VeleroSecretName,
 		VeleroObjectStorageNamespaceName: OciNamespaceName,
 	}
+	spew.Dump(data)
 	template.Execute(&b, data)
+	spew.Dump(b.String())
 	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
 	if err != nil {
 		t.Logs.Infof("Error creating velero backup loaction ", zap.Error(err))
@@ -417,12 +417,12 @@ func backupPrerequisites() {
 	t.Logs.Info("Create backup secret for velero backup objects")
 	Eventually(func() error {
 		return CreateCredentialsSecretFromFile(VeleroNameSpace, VeleroSecretName)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create backup storage location for velero backup objects")
 	Eventually(func() error {
 		return CreateVeleroBackupLocationObject()
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 }
 
@@ -434,19 +434,19 @@ var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), func(
 		WhenVeleroInstalledIt("Start velero backup", func() {
 			Eventually(func() error {
 				return CreateVeleroBackupObject()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 
 		WhenVeleroInstalledIt("Check velero backup progress", func() {
 			Eventually(func() error {
 				return CheckBackupProgress()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 
 		WhenVeleroInstalledIt("Nuke opensearch", func() {
 			Eventually(func() error {
 				return NukeOpensearch()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 
 	})
