@@ -14,3 +14,15 @@ var _ = t.Describe("Prometheus HA Monitoring", Label("f:platform-lcm:ha"), func(
 		Expect(pkg.VerifyPrometheusComponent(t.Logs, api, vzHTTPClient, vmiCredentials)).To(BeTrue())
 	})
 })
+
+var _ = t.Describe("Grafana HA Monitoring", Label("f:platform-lcm:ha"), func() {
+	RunningUntilShutdownIt("verifies Grafana is ready and running", func() {
+		Expect(pkg.VerifyGrafanaComponent(t.Logs, api, vzHTTPClient, vmiCredentials)).To(BeTrue())
+	})
+})
+
+var _ = t.Describe("OpenSearch HA Monitoring", Label("f:platform-lcm:ha"), func() {
+	RunningUntilShutdownIt("verifies OpenSearch is ready and running", func() {
+		Expect(pkg.VerifyOpenSearchComponent(t.Logs, api, vzHTTPClient, vmiCredentials)).To(BeTrue())
+	})
+})
