@@ -72,8 +72,7 @@ func gatherInfo() {
 const secretsData = `
 [default]
 {{ .AccessName }}={{ .ObjectStoreAccessValue }}
-{{ .ScrtName }}={{ .ObjectStoreScrt }}
-` //nolint:gosec //#nosec G101 //#nosec G204
+{{ .ScrtName }}={{ .ObjectStoreScrt }}` //nolint:gosec //#nosec G101 //#nosec G204
 
 const veleroBackupLocation = `
     apiVersion: velero.io/v1
