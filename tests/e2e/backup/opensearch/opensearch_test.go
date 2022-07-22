@@ -347,7 +347,7 @@ func GetBackupID() (string, error) {
 	}
 
 	cmdArgs = []string{}
-	url := strconv.Quote(fmt.Sprintf("$s/verrazzano-system/_search?from=0&size=1", esUrl))
+	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?from=0&size=1", esUrl))
 	creds := fmt.Sprintf("verrazzano/%s", string(vzPassDecodedBytes))
 	jqIdFetch := "| jq -r '.hits.hits[0]._id'"
 	curlCmd := fmt.Sprintf("curl -ks %s %s %s", url, creds, jqIdFetch)
