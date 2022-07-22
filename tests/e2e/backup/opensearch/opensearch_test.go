@@ -35,8 +35,8 @@ const (
 	osDataDepPrefix                     = "vmi-system-es-data"
 	osIngestDeployment                  = "vmi-system-es-ingest"
 	osDepPvcPrefix                      = "vmi-system-es-data"
-	objectStoreCredsAccessKeyName       = "aws_access_key_id"     //nolint:gosec
-	objectStoreCredsSecretAccessKeyName = "aws_secret_access_key" //nolint:gosec
+	objectStoreCredsAccessKeyName       = "aws_access_key_id"     //nolint:gosec //#nosec G101
+	objectStoreCredsSecretAccessKeyName = "aws_secret_access_key" //nolint:gosec //#nosec G101
 )
 
 var (
@@ -72,7 +72,7 @@ func gatherInfo() {
 const secretsData = `[default]
 {{ .AccessName }}={{ .ObjectStoreAccessValue }}
 {{ .ScrtName }}={{ .ObjectStoreScrt }}
-`
+` //nolint:gosec //#nosec G101
 
 const veleroBackupLocation = `
     apiVersion: velero.io/v1
@@ -633,23 +633,28 @@ func backupPrerequisites() {
 
 }
 
-var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), func() {
+var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), Serial, func() {
 	t.Context("after velero backup storage location created", func() {
-		t.Logs.Info("Start velero backup")
 		WhenVeleroInstalledIt("Start velero backup", func() {
 			Eventually(func() error {
 				return CreateVeleroBackupObject()
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
+	})
+})
 
-		t.Logs.Info("Check backup progress")
+var _ = t.Describe("Check backup progress,", Label("f:platform-verrazzano.backup"), Serial, func() {
+	t.Context("after velero backup was created", func() {
 		WhenVeleroInstalledIt("Check velero backup progress", func() {
 			Eventually(func() error {
 				return CheckBackupProgress()
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
+	})
+})
 
-		t.Logs.Info("Cleanup opensearch once backup is done")
+var _ = t.Describe("Nuke opensearch,", Label("f:platform-verrazzano.backup"), Serial, func() {
+	t.Context("Cleanup opensearch once backup is don", func() {
 		WhenVeleroInstalledIt("Nuke opensearch", func() {
 			Eventually(func() error {
 				return NukeOpensearch()
@@ -662,22 +667,29 @@ var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), func(
 
 var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), func() {
 	t.Context("start restore after velero backup is completed", func() {
-		t.Logs.Info("Create the velero restore object")
 		WhenVeleroInstalledIt("Start velero restore", func() {
 			Eventually(func() error {
 				return CreateVeleroRestoreObject()
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
+	})
 
-		t.Logs.Info("Check restore progress")
+})
+
+var _ = t.Describe("Check restore progress,", Label("f:platform-verrazzano.restore"), func() {
+	t.Context("Create the velero restore object", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
 				return CheckRestoreProgress()
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
+	})
 
-		t.Logs.Info("Cleanup opensearch once backup is done")
-		WhenVeleroInstalledIt("Nuke opensearch", func() {
+})
+
+var _ = t.Describe("Verify if restore is successful,", Label("f:platform-verrazzano.restore"), func() {
+	t.Context("start restore after velero backup is completed", func() {
+		WhenVeleroInstalledIt("Is Restore good?", func() {
 			Eventually(func() bool {
 				return IsRestoreSuccessful()
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
