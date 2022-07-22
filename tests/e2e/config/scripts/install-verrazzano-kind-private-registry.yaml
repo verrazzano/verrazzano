@@ -20,3 +20,5 @@ spec:
       enabled: true
     velero:
       enabled: true
+    rancherBackup:
+      enabled: true
