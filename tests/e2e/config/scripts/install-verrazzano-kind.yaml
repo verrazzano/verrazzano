@@ -31,29 +31,14 @@ spec:
       enabled: true
     elasticsearch:
       enabled: true
-      installArgs:
-        - name: nodes.master.replicas
-          value: "0"
-      nodes:
-      - name: es-master
-        replicas: 3
-        roles:
-        - master
-        - data
-        - ingest
-        storage:
-          size: 3Gi
-        resources:
-          requests:
-            memory: 48Mi
       policies:
       - policyName: "verrazzano-system"
         indexPattern: "verrazzano-system*"
-        minIndexAge: "14d"
+        minIndexAge: "7d"
         rollover:
-          minIndexAge: "7d"
+          minIndexAge: "1d"
       - policyName: "verrazzano-application"
         indexPattern: "verrazzano-application*"
-        minIndexAge: "14d"
+        minIndexAge: "7d"
         rollover:
-          minIndexAge: "7d"
+          minIndexAge: "1d"
