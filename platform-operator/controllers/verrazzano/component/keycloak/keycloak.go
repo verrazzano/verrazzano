@@ -266,7 +266,6 @@ const rancherClientTmpl = `
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "",
       ` + rancherClientUrisTemplate + `,
       "notBefore": 0,
       "bearerOnly": false,
