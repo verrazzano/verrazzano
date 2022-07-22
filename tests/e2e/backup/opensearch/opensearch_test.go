@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +28,12 @@ const (
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 15 * time.Minute
 	pollingInterval      = 30 * time.Second
+	vmoDeploymentName    = "verrazzano-monitoring-operator"
+	osStsName            = "vmi-system-es-master"
+	osStsPvcPrefix       = "elasticsearch-master-vmi-system-es-master"
+	osDataDepPrefix      = "vmi-system-es-data"
+	osIngestDeployment   = "vmi-system-es-ingest"
+	osDepPvcPrefix       = "vmi-system-es-data"
 )
 
 var (
@@ -219,7 +226,6 @@ func CreateVeleroBackupObject() error {
 }
 
 func CheckBackupProgress() error {
-	//kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o jsonpath={.status.phase})
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
 	cmdArgs = append(cmdArgs, "get")
@@ -234,7 +240,7 @@ func CheckBackupProgress() error {
 	kcmd.Timeout = 1 * time.Minute
 	kcmd.CommandArgs = cmdArgs
 
-	retryCount := 100
+	retryCount := 0
 
 	for {
 		bashResponse := Runner(&kcmd, t.Logs)
@@ -256,6 +262,128 @@ func CheckBackupProgress() error {
 		}
 		retryCount = retryCount + 1
 	}
+}
+
+func NukeOpensearch() error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		t.Logs.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	t.Logs.Infof("Scaling down VMO")
+	getScale, err := clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).GetScale(context.TODO(), vmoDeploymentName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	newScale := *getScale
+	newScale.Spec.Replicas = 0
+
+	_, err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).UpdateScale(context.TODO(), vmoDeploymentName, &newScale, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	t.Logs.Infof("Deleting opensearch amster sts")
+	err = clientset.AppsV1().StatefulSets(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osStsName, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+
+	t.Logs.Infof("Deleting opensearch data deployments")
+	for i := 0; i < 3; i++ {
+		err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%s", osDataDepPrefix, string(i)), metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
+	t.Logs.Infof("Deleting opensearch ingest deployment")
+	err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osIngestDeployment, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+
+	t.Logs.Infof("Deleting opensearch master pvc if still present")
+	for i := 0; i < 3; i++ {
+		err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%s", osStsPvcPrefix, string(i)), metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
+	t.Logs.Infof("Deleting opensearch data pvc")
+	for i := 0; i < 3; i++ {
+		if i == 0 {
+			err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osDepPvcPrefix, metav1.DeleteOptions{})
+		} else {
+			err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%s", osDepPvcPrefix, string(i)), metav1.DeleteOptions{})
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	err = checkPods("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace)
+	if err != nil {
+		return err
+	}
+
+	return checkPvcs("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace)
+}
+
+func checkPods(labelSelector, namespace string) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		t.Logs.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	retryCount := 0
+	for {
+		listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+		pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+		if err != nil {
+			return err
+		}
+		if len(pods.Items) > 0 {
+			if retryCount > 100 {
+				return fmt.Errorf("retry count to monitor pods exceeded!!")
+			}
+			t.Logs.Infof("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+			time.Sleep(10 * time.Second)
+		} else {
+			return nil
+		}
+	}
+
+}
+
+func checkPvcs(labelSelector, namespace string) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		t.Logs.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	retryCount := 0
+	for {
+		listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+		pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), listOptions)
+		if err != nil {
+			return err
+		}
+		if len(pvcs.Items) > 0 {
+			if retryCount > 100 {
+				return fmt.Errorf("retry count to monitor pvcs exceeded!!")
+			}
+			t.Logs.Infof("Pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+			time.Sleep(10 * time.Second)
+		} else {
+			return nil
+		}
+	}
+
 }
 
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
@@ -311,5 +439,12 @@ var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), func(
 				return CheckBackupProgress()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
+
+		WhenVeleroInstalledIt("Nuke opensearch", func() {
+			Eventually(func() error {
+				return NukeOpensearch()
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+
 	})
 })
