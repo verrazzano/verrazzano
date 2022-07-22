@@ -31,6 +31,21 @@ spec:
       enabled: true
     elasticsearch:
       enabled: true
+      installArgs:
+        - name: nodes.master.replicas
+          value: "0"
+      nodes:
+        name: master
+        replicas: 1
+        roles:
+          - master
+          - data
+          - ingest
+        storage:
+          size: 3Gi
+        resources:
+          requests:
+            memory: 48Mi
       policies:
       - policyName: "verrazzano-system"
         indexPattern: "verrazzano-system*"
