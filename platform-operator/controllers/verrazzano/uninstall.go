@@ -239,11 +239,6 @@ func (r *Reconciler) deleteMCResources(ctx spi.ComponentContext) error {
 		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {
 			return err
 		}
-
-		// Run Rancher Post Uninstall to delete the Rancher resources on the managed cluster
-		if err := rancher.PostUninstall(ctx); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -295,6 +290,11 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 	}
 
 	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Run Rancher Post Uninstall to delete the Rancher resources on the managed cluster
+	if err := rancher.PostUninstall(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
 
