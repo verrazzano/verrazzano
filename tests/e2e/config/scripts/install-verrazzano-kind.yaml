@@ -34,11 +34,11 @@ spec:
       policies:
       - policyName: "verrazzano-system"
         indexPattern: "verrazzano-system*"
-        minIndexAge: "7d"
+        minIndexAge: "14d"
         rollover:
-          minIndexAge: "1d"
+          minIndexAge: "7d"
       - policyName: "verrazzano-application"
         indexPattern: "verrazzano-application*"
-        minIndexAge: "7d"
+        minIndexAge: "14d"
         rollover:
-          minIndexAge: "1d"
+          minIndexAge: "7d"
