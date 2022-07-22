@@ -8,22 +8,32 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"k8s.io/client-go/kubernetes"
 )
 
-var (
-	api            *pkg.APIEndpoint
-	vzHTTPClient   *retryablehttp.Client
-	vmiCredentials *pkg.UsernamePassword
-	rancherURL     string
-	kialiHost      string
-)
+// config for HA monitoring test suite
+type config struct {
+	api        *pkg.APIEndpoint
+	httpClient *retryablehttp.Client
+	clientset  *kubernetes.Clientset
+	hosts      struct {
+		rancher string
+		kiali   string
+	}
+	users struct {
+		verrazzano *pkg.UsernamePassword
+	}
+}
+
+var web = config{}
 
 var _ = t.BeforeSuite(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
-	api = pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-	vzHTTPClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
-	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
-	rancherURL = pkg.EventuallyGetRancherURL(t.Logs, api)
-	kialiHost = pkg.EventuallyGetKialiHost(clientset)
+	web.api = pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
+	web.httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	web.clientset = k8sutil.GetKubernetesClientsetOrDie()
+	web.users.verrazzano = pkg.EventuallyGetSystemVMICredentials()
+	web.hosts.rancher = pkg.EventuallyGetRancherURL(t.Logs, web.api)
+	web.hosts.kiali = pkg.EventuallyGetKialiHost(web.clientset)
 })
