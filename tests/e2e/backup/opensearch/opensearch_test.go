@@ -6,9 +6,7 @@ package opensearch
 import (
 	"bytes"
 	"context"
-	b64 "encoding/base64"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -37,8 +35,8 @@ const (
 	osDataDepPrefix                     = "vmi-system-es-data"
 	osIngestDeployment                  = "vmi-system-es-ingest"
 	osDepPvcPrefix                      = "vmi-system-es-data"
-	objectStoreCredsAccessKeyName       = "aws_access_key_id"
-	objectStoreCredsSecretAccessKeyName = "aws_secret_access_key"
+	objectStoreCredsAccessKeyName       = "aws_access_key_id"     //nolint:gosec
+	objectStoreCredsSecretAccessKeyName = "aws_secret_access_key" //nolint:gosec
 )
 
 var (
@@ -72,9 +70,9 @@ func gatherInfo() {
 }
 
 const secretsData = `[default]
-{{ .accessKey }}={{ .ObjectStoreAccessKeyID }}
-{{ .secretKey }}={{ .ObjectStoreAccessKey }}
-` //nolint:gosec
+{{ .AccessKeyName }}={{ .ObjectStoreAccessKeyID }}
+{{ .SecretKeyName }}={{ .ObjectStoreAccessKey }}
+`
 
 const veleroBackupLocation = `
     apiVersion: velero.io/v1
@@ -167,6 +165,16 @@ const veleroRestore = `
                   onError: Fail
 `
 
+const esQueryBody = `
+{
+	"query": {
+  		"terms": {
+			"_id": ["{{ .BackupIdBeforeBackup }}"]
+  		}
+	}
+}
+`
+
 type accessData struct {
 	AccessKeyName          string
 	SecretKeyName          string
@@ -196,9 +204,8 @@ type veleroRestoreObject struct {
 	VeleroOpensearchHookResourceName string
 }
 
-type vzcreds struct {
-	VzUsername string
-	VzPasswd   string
+type esQueryObject struct {
+	BackupIdBeforeBackup string
 }
 
 var _ = t.BeforeSuite(func() {
@@ -261,9 +268,7 @@ func CreateVeleroBackupLocationObject() error {
 		VeleroSecretName:                 VeleroSecretName,
 		VeleroObjectStorageNamespaceName: OciNamespaceName,
 	}
-	spew.Dump(data)
 	template.Execute(&b, data)
-	spew.Dump(b.String())
 	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
 	if err != nil {
 		t.Logs.Infof("Error creating velero backup loaction ", zap.Error(err))
@@ -310,54 +315,29 @@ func CreateVeleroRestoreObject() error {
 }
 
 func GetBackupID() (string, error) {
-	var esUrl string
+	esURL, err := GetEsURL(t.Logs)
+	if err != nil {
+		t.Logs.Infof("Error getting es url ", zap.Error(err))
+		return "", err
+	}
+
+	vzPasswd, err := GetVZPasswd(t.Logs)
+	if err != nil {
+		t.Logs.Infof("Error getting vz passwd ", zap.Error(err))
+		return "", err
+	}
 	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "vz")
-	cmdArgs = append(cmdArgs, "-o")
-	cmdArgs = append(cmdArgs, "jsonpath={.items[].status.instance.elasticUrl}")
-
-	var kcmd BashCommand
-	kcmd.Timeout = 1 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-
-	bashResponse := Runner(&kcmd, t.Logs)
-	if bashResponse.CommandError != nil {
-		return "", bashResponse.CommandError
-	}
-
-	esUrl = bashResponse.StandardOut.String()
-
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		t.Logs.Errorf("Failed to get clientset with error: %v", err)
-		return "", err
-	}
-
-	secret, err := clientset.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).Get(context.TODO(), "verrazzano", metav1.GetOptions{})
-	if err != nil {
-		t.Logs.Infof("Error creating secret ", zap.Error(err))
-		return "", err
-	}
-	vzPassEncodedBytes := secret.Data["password"]
-	vzPassDecodedBytes, err := b64.StdEncoding.DecodeString(string(vzPassEncodedBytes))
-	if err != nil {
-		return "", err
-	}
-
-	cmdArgs = []string{}
-	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?from=0&size=1", esUrl))
-	creds := fmt.Sprintf("verrazzano/%s", string(vzPassDecodedBytes))
-	jqIdFetch := "| jq -r '.hits.hits[0]._id'"
-	curlCmd := fmt.Sprintf("curl -ks %s %s %s", url, creds, jqIdFetch)
+	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?from=0&size=1", esURL))
+	creds := fmt.Sprintf("verrazzano/%s", vzPasswd)
+	jqIDFetch := "| jq -r '.hits.hits[0]._id'"
+	curlCmd := fmt.Sprintf("curl -ks %s -u %s %s", url, creds, jqIDFetch)
 	cmdArgs = append(cmdArgs, "/bin/sh")
 	cmdArgs = append(cmdArgs, "-c")
 	cmdArgs = append(cmdArgs, curlCmd)
 
-	var newkcmd BashCommand
-	newkcmd.Timeout = 2 * time.Minute
-	newkcmd.CommandArgs = cmdArgs
+	var kcmd BashCommand
+	kcmd.Timeout = 2 * time.Minute
+	kcmd.CommandArgs = cmdArgs
 
 	curlResponse := Runner(&kcmd, t.Logs)
 	if curlResponse.CommandError != nil {
@@ -368,11 +348,56 @@ func GetBackupID() (string, error) {
 
 }
 
+func IsRestoreSuccessful() bool {
+	esURL, err := GetEsURL(t.Logs)
+	if err != nil {
+		t.Logs.Infof("Error getting es url ", zap.Error(err))
+		return false
+	}
+
+	vzPasswd, err := GetVZPasswd(t.Logs)
+	if err != nil {
+		t.Logs.Infof("Error getting vz passwd ", zap.Error(err))
+		return false
+	}
+	var b bytes.Buffer
+	template, _ := template.New("velero-restore-verify").Parse(esQueryBody)
+	data := esQueryObject{
+		BackupIdBeforeBackup: BackupId,
+	}
+	template.Execute(&b, data)
+
+	//CHECK_BACKUP_ID=$(curl -ks -H "Content-Type: application/json" "${ES_URL}/verrazzano-system/_search?" -u verrazzano:${VZ_PASSWORD} -d @${REQUEST_JSON_BODY} | jq -r '.hits.hits[0]._id')
+
+	var cmdArgs []string
+	header := "Content-Type: application/json"
+	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?", esURL))
+	creds := fmt.Sprintf("verrazzano/%s", vzPasswd)
+	jqIDFetch := "| jq -r '.hits.hits[0]._id'"
+	curlCmd := fmt.Sprintf("curl -ks -H %s %s -u %s -d '%s' %s", strconv.Quote(header), url, creds, b.String(), jqIDFetch)
+	cmdArgs = append(cmdArgs, "/bin/sh")
+	cmdArgs = append(cmdArgs, "-c")
+	cmdArgs = append(cmdArgs, curlCmd)
+
+	var kcmd BashCommand
+	kcmd.Timeout = 2 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+
+	curlResponse := Runner(&kcmd, t.Logs)
+	if curlResponse.CommandError != nil {
+		return false
+	}
+	if curlResponse.StandardOut.String() == BackupId {
+		return true
+	}
+	return false
+}
+
 func CheckBackupProgress() error {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
 	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "backup.velero.io")
+	cmdArgs = append(cmdArgs, "restore.velero.io")
 	cmdArgs = append(cmdArgs, "-n")
 	cmdArgs = append(cmdArgs, VeleroNameSpace)
 	cmdArgs = append(cmdArgs, BackupOpensearchName)
@@ -402,6 +427,45 @@ func CheckBackupProgress() error {
 			return nil
 		default:
 			return fmt.Errorf("Backup '%s' did not complete successfully. State = '%s'", BackupOpensearchName, bashResponse.StandardOut.String())
+		}
+		retryCount = retryCount + 1
+	}
+}
+
+func CheckRestoreProgress() error {
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "backup.velero.io")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, VeleroNameSpace)
+	cmdArgs = append(cmdArgs, RestoreName)
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, "jsonpath={.status.phase}")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+
+	retryCount := 0
+
+	for {
+		bashResponse := Runner(&kcmd, t.Logs)
+		if bashResponse.CommandError != nil {
+			return bashResponse.CommandError
+		}
+		switch bashResponse.StandardOut.String() {
+		case "InProgress":
+			if retryCount > 100 {
+				return fmt.Errorf("retry count to monitor restore '%s' exceeded", BackupOpensearchName)
+			}
+			t.Logs.Infof("Restore '%s' is in progress. Check after 30 seconds", BackupOpensearchName)
+			time.Sleep(30 * time.Second)
+		case "Completed":
+			t.Logs.Infof("Restore '%s' completed successfully.", BackupOpensearchName)
+			return nil
+		default:
+			return fmt.Errorf("Restore '%s' did not complete successfully. State = '%s'", RestoreName, bashResponse.StandardOut.String())
 		}
 		retryCount = retryCount + 1
 	}
@@ -589,6 +653,33 @@ var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), func(
 		WhenVeleroInstalledIt("Nuke opensearch", func() {
 			Eventually(func() error {
 				return NukeOpensearch()
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		})
+
+	})
+
+})
+
+var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), func() {
+	t.Context("start restore after velero backup is completed", func() {
+		t.Logs.Info("Create the velero restore object")
+		WhenVeleroInstalledIt("Start velero restore", func() {
+			Eventually(func() error {
+				return CreateVeleroRestoreObject()
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		})
+
+		t.Logs.Info("Check restore progress")
+		WhenVeleroInstalledIt("Check velero restore progress", func() {
+			Eventually(func() error {
+				return CheckRestoreProgress()
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+		})
+
+		t.Logs.Info("Cleanup opensearch once backup is done")
+		WhenVeleroInstalledIt("Nuke opensearch", func() {
+			Eventually(func() bool {
+				return IsRestoreSuccessful()
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 

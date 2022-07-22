@@ -5,8 +5,13 @@ package opensearch
 
 import (
 	"bytes"
+	"context"
+	b64 "encoding/base64"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"os/exec"
 	"time"
@@ -63,4 +68,43 @@ func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
 		bashCommandResponse.CommandError = err
 		return &bashCommandResponse
 	}
+}
+
+func GetEsURL(log *zap.SugaredLogger) (string, error) {
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "vz")
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, "jsonpath={.items[].status.instance.elasticUrl}")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+
+	bashResponse := Runner(&kcmd, log)
+	if bashResponse.CommandError != nil {
+		return "", bashResponse.CommandError
+	}
+	return bashResponse.StandardOut.String(), nil
+}
+
+func GetVZPasswd(log *zap.SugaredLogger) (string, error) {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return "", err
+	}
+
+	secret, err := clientset.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).Get(context.TODO(), "verrazzano", metav1.GetOptions{})
+	if err != nil {
+		log.Infof("Error creating secret ", zap.Error(err))
+		return "", err
+	}
+	vzPassEncodedBytes := secret.Data["password"]
+	vzPassDecodedBytes, err := b64.StdEncoding.DecodeString(string(vzPassEncodedBytes))
+	if err != nil {
+		return "", err
+	}
+	return string(vzPassDecodedBytes), nil
 }
