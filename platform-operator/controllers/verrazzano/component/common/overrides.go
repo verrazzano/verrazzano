@@ -6,6 +6,8 @@ package common
 import (
 	"context"
 	"github.com/Jeffail/gabs/v2"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -18,12 +20,40 @@ import (
 
 // GetInstallOverridesYAML takes the list of Overrides and returns a string array of YAMLs
 func GetInstallOverridesYAML(ctx spi.ComponentContext, overrides []v1alpha1.Overrides) ([]string, error) {
+	return getInstallOverridesYAML(ctx.Log(), ctx.Client(), overrides, ctx.EffectiveCR().Namespace)
+}
+
+// GetInstallOverridesYAMLUsingClient takes the list of Overrides and returns a string array of YAMLs using the
+// specified client
+func GetInstallOverridesYAMLUsingClient(client client.Client, overrides []v1alpha1.Overrides, namespace string) ([]string, error) {
+	// DefaultLogger is used since this is invoked from validateInstall and validateUpdate functions and
+	// any actual logging isn't being performed
+	log := vzlog.DefaultLogger()
+	return getInstallOverridesYAML(log, client, overrides, namespace)
+}
+
+// ExtractValueFromOverrideString is a helper function to extract a given value from override.
+func ExtractValueFromOverrideString(overrideStr string, field string) (interface{}, error) {
+	jsonConfig, err := yaml.YAMLToJSON([]byte(overrideStr))
+	if err != nil {
+		return nil, err
+	}
+	jsonString, err := gabs.ParseJSON(jsonConfig)
+	if err != nil {
+		return nil, err
+	}
+	return jsonString.Path(field).Data(), nil
+}
+
+// getInstallOverridesYAML takes the list of Overrides and returns a string array of YAMLs
+func getInstallOverridesYAML(log vzlog.VerrazzanoLogger, client client.Client, overrides []v1alpha1.Overrides,
+	namespace string) ([]string, error) {
 	var overrideStrings []string
 	for _, override := range overrides {
 		// Check if ConfigMapRef is populated and gather data
 		if override.ConfigMapRef != nil {
 			// Get the ConfigMap data
-			data, err := getConfigMapOverrides(ctx, override.ConfigMapRef)
+			data, err := getConfigMapOverrides(log, client, override.ConfigMapRef, namespace)
 			if err != nil {
 				return overrideStrings, err
 			}
@@ -33,7 +63,7 @@ func GetInstallOverridesYAML(ctx spi.ComponentContext, overrides []v1alpha1.Over
 		// Check if SecretRef is populated and gather data
 		if override.SecretRef != nil {
 			// Get the Secret data
-			data, err := getSecretOverrides(ctx, override.SecretRef)
+			data, err := getSecretOverrides(log, client, override.SecretRef, namespace)
 			if err != nil {
 				return overrideStrings, err
 			}
@@ -52,35 +82,23 @@ func GetInstallOverridesYAML(ctx spi.ComponentContext, overrides []v1alpha1.Over
 	return overrideStrings, nil
 }
 
-// ExtractValueFromOverrideString is a helper function to extract a given value from override.
-func ExtractValueFromOverrideString(overrideStr string, field string) (interface{}, error) {
-	jsonConfig, err := yaml.YAMLToJSON([]byte(overrideStr))
-	if err != nil {
-		return nil, err
-	}
-	jsonString, err := gabs.ParseJSON(jsonConfig)
-	if err != nil {
-		return nil, err
-	}
-	return jsonString.Path(field).Data(), nil
-}
-
 // getConfigMapOverrides takes a ConfigMap selector and returns the YAML data and handles k8s api errors appropriately
-func getConfigMapOverrides(ctx spi.ComponentContext, selector *v1.ConfigMapKeySelector) (string, error) {
+func getConfigMapOverrides(log vzlog.VerrazzanoLogger, client client.Client, selector *v1.ConfigMapKeySelector,
+	namespace string) (string, error) {
 	configMap := &v1.ConfigMap{}
-	nsn := types.NamespacedName{Name: selector.Name, Namespace: ctx.EffectiveCR().Namespace}
+	nsn := types.NamespacedName{Name: selector.Name, Namespace: namespace}
 	optional := selector.Optional
-	err := ctx.Client().Get(context.TODO(), nsn, configMap)
+	err := client.Get(context.TODO(), nsn, configMap)
 	if err != nil {
 		if !k8sErrors.IsNotFound(err) {
-			ctx.Log().Errorf("Error retrieving ConfigMap %s: %v", nsn.Name, err)
+			log.Errorf("Error retrieving ConfigMap %s: %v", nsn.Name, err)
 			return "", err
 		}
 		if optional == nil || !*optional {
-			err = ctx.Log().ErrorfThrottledNewErr("Could not get Configmap %s from namespace %s: %v", nsn.Name, nsn.Namespace, err)
+			err = log.ErrorfThrottledNewErr("Could not get Configmap %s from namespace %s: %v", nsn.Name, nsn.Namespace, err)
 			return "", err
 		}
-		ctx.Log().Infof("Optional Configmap %s from namespace %s not found", nsn.Name, nsn.Namespace)
+		log.Infof("Optional Configmap %s from namespace %s not found", nsn.Name, nsn.Namespace)
 		return "", nil
 	}
 
@@ -88,30 +106,31 @@ func getConfigMapOverrides(ctx spi.ComponentContext, selector *v1.ConfigMapKeySe
 	fieldData, ok := configMap.Data[selector.Key]
 	if !ok {
 		if optional == nil || !*optional {
-			err := ctx.Log().ErrorfThrottledNewErr("Could not get Data field %s from Resource %s from namespace %s", selector.Key, nsn.Name, nsn.Namespace)
+			err := log.ErrorfThrottledNewErr("Could not get Data field %s from Resource %s from namespace %s", selector.Key, nsn.Name, nsn.Namespace)
 			return "", err
 		}
-		ctx.Log().Infof("Optional Resource %s from namespace %s missing Data key %s", nsn.Name, nsn.Namespace, selector.Key)
+		log.Infof("Optional Resource %s from namespace %s missing Data key %s", nsn.Name, nsn.Namespace, selector.Key)
 	}
 	return fieldData, nil
 }
 
 // getSecretOverrides takes a Secret selector and returns the YAML data and handles k8s api errors appropriately
-func getSecretOverrides(ctx spi.ComponentContext, selector *v1.SecretKeySelector) (string, error) {
+func getSecretOverrides(log vzlog.VerrazzanoLogger, client client.Client, selector *v1.SecretKeySelector,
+	namespace string) (string, error) {
 	sec := &v1.Secret{}
-	nsn := types.NamespacedName{Name: selector.Name, Namespace: ctx.EffectiveCR().Namespace}
+	nsn := types.NamespacedName{Name: selector.Name, Namespace: namespace}
 	optional := selector.Optional
-	err := ctx.Client().Get(context.TODO(), nsn, sec)
+	err := client.Get(context.TODO(), nsn, sec)
 	if err != nil {
 		if !k8sErrors.IsNotFound(err) {
-			ctx.Log().Errorf("Error retrieving Secret %s: %v", nsn.Name, err)
+			log.Errorf("Error retrieving Secret %s: %v", nsn.Name, err)
 			return "", err
 		}
 		if optional == nil || !*optional {
-			err = ctx.Log().ErrorfThrottledNewErr("Could not get Secret %s from namespace %s: %v", nsn.Name, nsn.Namespace, err)
+			err = log.ErrorfThrottledNewErr("Could not get Secret %s from namespace %s: %v", nsn.Name, nsn.Namespace, err)
 			return "", err
 		}
-		ctx.Log().Infof("Optional Secret %s from namespace %s not found", nsn.Name, nsn.Namespace)
+		log.Infof("Optional Secret %s from namespace %s not found", nsn.Name, nsn.Namespace)
 		return "", nil
 	}
 
@@ -124,10 +143,10 @@ func getSecretOverrides(ctx spi.ComponentContext, selector *v1.SecretKeySelector
 	fieldData, ok := dataStrings[selector.Key]
 	if !ok {
 		if optional == nil || !*optional {
-			err := ctx.Log().ErrorfThrottledNewErr("Could not get Data field %s from Resource %s from namespace %s", selector.Key, nsn.Name, nsn.Namespace)
+			err := log.ErrorfThrottledNewErr("Could not get Data field %s from Resource %s from namespace %s", selector.Key, nsn.Name, nsn.Namespace)
 			return "", err
 		}
-		ctx.Log().Infof("Optional Resource %s from namespace %s missing Data key %s", nsn.Name, nsn.Namespace, selector.Key)
+		log.Infof("Optional Resource %s from namespace %s missing Data key %s", nsn.Name, nsn.Namespace, selector.Key)
 	}
 	return fieldData, nil
 }

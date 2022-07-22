@@ -171,6 +171,7 @@ const (
 	VerrazzanoConsole             = "verrazzano-console"
 	Verrazzano                    = "verrazzano"
 	Fluentd                       = "fluentd"
+	RancherBackup                 = "rancher-backup"
 )
 
 const (
@@ -206,4 +207,5 @@ var ComponentNameToNamespacesMap = map[string][]string{
 	VerrazzanoConsole:             {VerrazzanoSystemNamespace},
 	Verrazzano:                    {VerrazzanoSystemNamespace},
 	Fluentd:                       {VerrazzanoSystemNamespace},
+	RancherBackup:                 {platformOperatorConstants.RancherBackupNamesSpace},
 }

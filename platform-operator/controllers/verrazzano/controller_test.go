@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 
 	"sync"
@@ -543,13 +542,6 @@ func TestUninstallComplete(t *testing.T) {
 			return nil
 		})
 
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteNamespace(mock)
-
-	// Expect the Rancher Post install
-	expectRancherPostUninstall(mock, 5, 3, 0)
-
 	expectIstioCertRemoval(mock, 1)
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -639,9 +631,6 @@ func TestUninstallStarted(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-
-	// Expect the Rancher Post install
-	expectRancherPostUninstall(mock, 5, 3, 3)
 
 	expectIstioCertRemoval(mock, 1)
 
@@ -743,13 +732,6 @@ func TestUninstallSucceeded(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
 		}).AnyTimes()
-
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteNamespace(mock)
-
-	// Expect the Rancher Post install
-	expectRancherPostUninstall(mock, 5, 3, 0)
 
 	expectIstioCertRemoval(mock, 1)
 
@@ -1112,24 +1094,6 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 		}).AnyTimes()
 }
 
-// expectDeleteServiceAccount expects a call to delete the service account used by install
-func expectDeleteServiceAccount(mock *mocks.MockClient, namespace string, name string) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-}
-
-// expectDeleteNamespace expects a call to delete the verrazzano-system ns
-func expectDeleteNamespace(mock *mocks.MockClient) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-}
-
-// expectDeleteClusterRoleBinding expects a call to delete the ClusterRoleBinding for the Verrazzano with the given
-// namespace and name, and returns that it exists
-func expectDeleteClusterRoleBinding(mock *mocks.MockClient, namespace string, name string) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-
-	//	mock.EXPECT().Delete(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Any()).Return(nil)
-}
-
 func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
 	const fakeNS = "fake"
 	for _, ns := range sharedNamespaces {
@@ -1150,17 +1114,6 @@ func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
 		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), fakeNS))
 
-}
-
-// expectRancherPostUninstall creates the expects for the Rancher post-install client calls
-func expectRancherPostUninstall(mock *mocks.MockClient, numList, numDelete2, numDelete3 int) {
-	mock.EXPECT().List(gomock.Any(), gomock.Any()).Return(nil).Times(numList)
-	if numDelete2 > 0 {
-		mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(numDelete2)
-	}
-	if numDelete3 > 0 {
-		mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(numDelete3)
-	}
 }
 
 // expectIstioCertRemoval creates the expects for the Istio cert removal

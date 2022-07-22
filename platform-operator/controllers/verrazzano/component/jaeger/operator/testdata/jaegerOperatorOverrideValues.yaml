@@ -37,5 +37,5 @@ jaeger:
       options:
         es:
           server-urls: "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
-          index-prefix: verrazzano-jaeger
+          index-prefix: verrazzano
       secretName: "verrazzano-jaeger-secret"

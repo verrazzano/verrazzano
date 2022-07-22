@@ -186,7 +186,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20220427170000-87ed055",
+              "tag": "v1.14.5-20220721170525-12c063f",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -220,7 +220,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.4.0-20220707165907-46d90dc",
+              "tag": "1.4.0-20220721155737-5b016df",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -231,7 +231,7 @@
             },
             {
               "image": "grafana",
-              "tag": "v7.5.11",
+              "tag": "v7.5.15",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -248,11 +248,6 @@
               "image": "opensearch-dashboards",
               "tag": "1.2.0-20220301201035-be0efd47ab",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
-            },
-            {
-              "image": "configmap-reload",
-              "tag": "0.7.1-20220302211236-774d907",
-              "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
               "image": "nginx-ingress-controller",
@@ -421,7 +416,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "1.3.0-20220510114742-dc513a7"
+              "tag": "1.4.0-20220721182006-bd71eb4"
             }
           ]
         }
@@ -670,6 +665,36 @@
               "image": "velero-restic-restore-helper",
               "tag": "v1.8.1",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rancher-backup",
+      "subcomponents": [
+        {
+          "repository": "verrazzano/rancher",
+          "name": "rancher-backup",
+          "images": [
+            {
+              "image": "backup-restore-operator",
+              "tag": "v2.1.0-20220716000233-1a1d2a1",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        },
+        {
+          "registry": "docker.io",
+          "repository": "rancher",
+          "name": "rancher-backup-kubectl",
+          "images": [
+            {
+              "image": "kubectl",
+              "tag": "v1.20.2",
+              "helmFullImageKey": "global.kubectl.repository",
+              "helmTagKey": "global.kubectl.tag"
             }
           ]
         }
