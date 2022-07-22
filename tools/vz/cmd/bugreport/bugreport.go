@@ -39,6 +39,9 @@ The values specified for the flag --include-namespaces are case-sensitive.
 `
 )
 
+const lineSeparator = "-"
+const minLineLength = 100
+
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -108,14 +111,15 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 	brf, _ := os.Stat(bugReportFile)
 	if brf.Size() > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully created the bug report: %s in %s\n", bugReportFile, time.Since(start)))
-
-		// TODO: Display a message to look at the standard err, if the command reported any error
-
-		// Display a warning message to review the contents of the report
-		fmt.Fprint(vzHelper.GetOutputStream(), "WARNING: Please examine the contents of the bug report for sensitive data.\n")
+		msg := fmt.Sprintf("Created bug report: %s in %s\n", bugReportFile, time.Since(start))
+		fmt.Fprintf(vzHelper.GetOutputStream(), msg)
+		// Display a message to check the standard error, if the command reported any error and continued
+		if helpers.IsErrorReported() {
+			fmt.Fprintf(vzHelper.GetOutputStream(), constants.BugReportError+"\n")
+		}
+		displayWarning(msg, vzHelper)
 	} else {
-		// When Verrazzano is not installed, remove the empty bug report file
+		// Verrazzano is not installed, remove the empty bug report file
 		os.Remove(bugReportFile)
 	}
 	return nil
@@ -132,7 +136,7 @@ func getBugReportFile(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, er
 		if err != nil {
 			return "", fmt.Errorf("error determining the current directory: %s", err.Error())
 		}
-		return currentDir + string(os.PathSeparator) + constants.BugReportFileDefaultValue, nil
+		return filepath.Join(currentDir, constants.BugReportFileDefaultValue), nil
 	}
 	return bugReport, nil
 }
@@ -161,4 +165,31 @@ func checkExistingFile(bugReportFile string) error {
 		}
 	}
 	return nil
+}
+
+// displayWarning logs a warning message to check the contents of the bug report
+func displayWarning(successMessage string, helper helpers.VZHelper) {
+	// This might be the efficient way, but does the job of displaying a formatted message
+
+	// Draw a line to differentiate the warning from the info message
+	count := len(successMessage)
+	if len(successMessage) < minLineLength {
+		count = minLineLength
+	}
+
+	sep := ""
+	for i := 0; i < count; i++ {
+		sep += lineSeparator
+	}
+
+	// Any change in BugReportWarning, requires a change here to adjust the whitespace characters before the message
+	wsCount := count - len(constants.BugReportWarning)
+	warningPrefix := ""
+	for i := 0; i < wsCount/2; i++ {
+		warningPrefix += " "
+	}
+
+	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
+	fmt.Fprintf(helper.GetOutputStream(), warningPrefix+constants.BugReportWarning+"\n")
+	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
 }
