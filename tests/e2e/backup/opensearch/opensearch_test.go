@@ -70,8 +70,8 @@ func gatherInfo() {
 }
 
 const secretsData = `[default]
-{{ .AccessName }}={{ .ObjectStoreAccessKeyID }}
-{{ .ScrtName }}={{ .ObjectStoreAccessKey }}
+{{ .AccessName }}={{ .ObjectStoreAccessValue }}
+{{ .ScrtName }}={{ .ObjectStoreScrt }}
 `
 
 const veleroBackupLocation = `
@@ -178,8 +178,8 @@ const esQueryBody = `
 type accessData struct {
 	AccessName             string
 	ScrtName               string
-	ObjectStoreAccessKeyID string
-	ObjectStoreAccessKey   string
+	ObjectStoreAccessValue string
+	ObjectStoreScrt        string
 }
 
 type veleroBackupLocationObjectData struct {
@@ -230,8 +230,8 @@ func CreateCredentialsSecretFromFile(namespace string, name string) error {
 	data := accessData{
 		AccessName:             objectStoreCredsAccessKeyName,
 		ScrtName:               objectStoreCredsSecretAccessKeyName,
-		ObjectStoreAccessKeyID: OciOsAccessKey,
-		ObjectStoreAccessKey:   OciOsAccessSecretKey,
+		ObjectStoreAccessValue: OciOsAccessKey,
+		ObjectStoreScrt:        OciOsAccessSecretKey,
 	}
 	template.Execute(&b, data)
 
