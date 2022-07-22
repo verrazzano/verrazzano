@@ -14,6 +14,8 @@ var (
 	api            *pkg.APIEndpoint
 	vzHTTPClient   *retryablehttp.Client
 	vmiCredentials *pkg.UsernamePassword
+	rancherURL     string
+	kialiHost      string
 )
 
 var _ = t.BeforeSuite(func() {
@@ -22,4 +24,6 @@ var _ = t.BeforeSuite(func() {
 	api = pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	vzHTTPClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
+	rancherURL = pkg.EventuallyGetRancherURL(t.Logs, api)
+	kialiHost = pkg.EventuallyGetKialiHost(clientset)
 })
