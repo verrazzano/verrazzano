@@ -4,6 +4,7 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,6 +24,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -258,7 +260,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
 	}
 
-	err = activateDrivers(log, rest)
+	err = activateDrivers(log, c)
 	if err != nil {
 		return err
 	}
@@ -297,13 +299,14 @@ func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
-	vz := ctx.EffectiveCR()
-	rest, err := configureRancherRestClient(log, c, vz)
-	if err != nil {
-		return err
-	}
+	//vz := ctx.EffectiveCR()
+	//rest, err := configureRancherRestClient(log, c, vz)
+	//if err != nil {
+	//return err
+	//}ctx
+	//ctx.
 
-	err = activateDrivers(log, rest)
+	err := activateDrivers(log, c)
 	if err != nil {
 		return err
 	}
@@ -340,13 +343,37 @@ func configureRancherRestClient(log vzlog.VerrazzanoLogger, c client.Client, vz 
 }
 
 // activateDrivers activates the oci nodeDriver and oraclecontainerengine kontainerDriver
-func activateDrivers(log vzlog.VerrazzanoLogger, rest *common.RESTClient) error {
-	if err := rest.ActivateOCIDriver(); err != nil {
-		return log.ErrorfThrottledNewErr("Failed activating OCI Driver: %s", err.Error())
+func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
+	ociDriver := unstructured.Unstructured{}
+	ociDriver.SetKind("NodeDriver")
+	ociDriver.SetAPIVersion("management.cattle.io/v3")
+	ociDriverName := types.NamespacedName{Namespace: "default", Name: "oci"}
+	err := c.Get(context.Background(), ociDriverName, &ociDriver)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting OCI Driver: %s", err.Error())
 	}
 
-	if err := rest.ActivateOKEDriver(); err != nil {
-		return log.ErrorfThrottledNewErr("Failed activating OKE Driver: %s", err.Error())
+	ociDriverMerge := client.MergeFrom(ociDriver.DeepCopy())
+	ociDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
+	err = c.Patch(context.Background(), &ociDriver, ociDriverMerge)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed patching OCI Driver: %s", err.Error())
+	}
+
+	okeDriver := unstructured.Unstructured{}
+	okeDriver.SetKind("KontainerDriver")
+	okeDriver.SetAPIVersion("management.cattle.io/v3")
+	okeDriverName := types.NamespacedName{Namespace: "default", Name: "oraclecontainerengine"}
+	err = c.Get(context.Background(), okeDriverName, &okeDriver)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting OKE Driver: %s", err.Error())
+	}
+
+	okeDriverMerge := client.MergeFrom(okeDriver.DeepCopy())
+	okeDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
+	err = c.Patch(context.Background(), &okeDriver, okeDriverMerge)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed patching OKE Driver: %s", err.Error())
 	}
 
 	return nil
