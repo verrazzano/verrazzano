@@ -257,7 +257,7 @@ func CreateCredentialsSecretFromFile(namespace string, name string) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 // CreateVeleroBackupLocationObject creates opaque secret from the given map of values
@@ -279,6 +279,30 @@ func CreateVeleroBackupLocationObject() error {
 		t.Logs.Infof("Error creating velero backup loaction ", zap.Error(err))
 		return err
 	}
+
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "backupstoragelocation.velero.io")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, VeleroNameSpace)
+	cmdArgs = append(cmdArgs, BackupStorageName)
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
+	cmdArgs = append(cmdArgs, "--no-headers")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+	cmdResponse := Runner(&kcmd, t.Logs)
+	if cmdResponse.CommandError != nil {
+		return cmdResponse.CommandError
+	}
+
+	if cmdResponse.StandardOut.String() == BackupStorageName {
+		return fmt.Errorf("backup storage location '%s' already created", BackupStorageName)
+	}
+
 	return nil
 }
 
@@ -298,6 +322,30 @@ func CreateVeleroBackupObject() error {
 		t.Logs.Infof("Error creating velero backup ", zap.Error(err))
 		return err
 	}
+
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "backup.velero.io")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, VeleroNameSpace)
+	cmdArgs = append(cmdArgs, BackupOpensearchName)
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
+	cmdArgs = append(cmdArgs, "--no-headers")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+	cmdResponse := Runner(&kcmd, t.Logs)
+	if cmdResponse.CommandError != nil {
+		return cmdResponse.CommandError
+	}
+
+	if cmdResponse.StandardOut.String() == BackupOpensearchName {
+		return fmt.Errorf("backup '%s' already created", BackupOpensearchName)
+	}
+
 	return nil
 }
 
@@ -349,8 +397,11 @@ func GetBackupID() (string, error) {
 		return "", curlResponse.CommandError
 	}
 	BackupID = curlResponse.StandardOut.String()
-	return BackupID, nil
 
+	if BackupID != "" {
+		return "", fmt.Errorf("backupId has already been retrieved = '%s", BackupID)
+	}
+	return BackupID, nil
 }
 
 func IsRestoreSuccessful() bool {
@@ -402,7 +453,7 @@ func CheckBackupProgress() error {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
 	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "restore.velero.io")
+	cmdArgs = append(cmdArgs, "backup.velero.io")
 	cmdArgs = append(cmdArgs, "-n")
 	cmdArgs = append(cmdArgs, VeleroNameSpace)
 	cmdArgs = append(cmdArgs, BackupOpensearchName)
@@ -413,35 +464,52 @@ func CheckBackupProgress() error {
 	kcmd.Timeout = 1 * time.Minute
 	kcmd.CommandArgs = cmdArgs
 
-	retryCount := 0
+	/*
+		retryCount := 0
 
-	for {
-		bashResponse := Runner(&kcmd, t.Logs)
-		if bashResponse.CommandError != nil {
-			return bashResponse.CommandError
-		}
-		switch bashResponse.StandardOut.String() {
-		case "InProgress":
-			if retryCount > 100 {
-				return fmt.Errorf("retry count to monitor backup '%s' exceeded", BackupOpensearchName)
+		for {
+			bashResponse := Runner(&kcmd, t.Logs)
+			if bashResponse.CommandError != nil {
+				return bashResponse.CommandError
 			}
-			t.Logs.Infof("Backup '%s' is in progress. Check after 10 seconds", BackupOpensearchName)
-			time.Sleep(10 * time.Second)
-		case "Completed":
-			t.Logs.Infof("Backup '%s' completed successfully.", BackupOpensearchName)
-			return nil
-		default:
-			return fmt.Errorf("Backup '%s' did not complete successfully. State = '%s'", BackupOpensearchName, bashResponse.StandardOut.String())
+			switch bashResponse.StandardOut.String() {
+			case "InProgress":
+				if retryCount > 100 {
+					return fmt.Errorf("retry count to monitor backup '%s' exceeded", BackupOpensearchName)
+				}
+				t.Logs.Infof("Backup '%s' is in progress. Check after 10 seconds", BackupOpensearchName)
+				time.Sleep(10 * time.Second)
+			case "Completed":
+				t.Logs.Infof("Backup '%s' completed successfully.", BackupOpensearchName)
+				return nil
+			default:
+				return fmt.Errorf("Backup '%s' did not complete successfully. State = '%s'", BackupOpensearchName, bashResponse.StandardOut.String())
+			}
+			retryCount = retryCount + 1
 		}
-		retryCount = retryCount + 1
+	*/
+
+	bashResponse := Runner(&kcmd, t.Logs)
+	if bashResponse.CommandError != nil {
+		return bashResponse.CommandError
 	}
+	switch bashResponse.StandardOut.String() {
+	case "InProgress":
+		return fmt.Errorf("Backup '%s' is in progress", BackupOpensearchName)
+	case "Completed":
+		t.Logs.Infof("Backup '%s' completed successfully.", BackupOpensearchName)
+		return nil
+	default:
+		return fmt.Errorf("Backup '%s' did not complete successfully. State = '%s'", BackupOpensearchName, bashResponse.StandardOut.String())
+	}
+
 }
 
 func CheckRestoreProgress() error {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
 	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "backup.velero.io")
+	cmdArgs = append(cmdArgs, "restore.velero.io")
 	cmdArgs = append(cmdArgs, "-n")
 	cmdArgs = append(cmdArgs, VeleroNameSpace)
 	cmdArgs = append(cmdArgs, RestoreName)
@@ -451,28 +519,43 @@ func CheckRestoreProgress() error {
 	var kcmd BashCommand
 	kcmd.Timeout = 1 * time.Minute
 	kcmd.CommandArgs = cmdArgs
+	/*
+		retryCount := 0
 
-	retryCount := 0
-
-	for {
-		bashResponse := Runner(&kcmd, t.Logs)
-		if bashResponse.CommandError != nil {
-			return bashResponse.CommandError
-		}
-		switch bashResponse.StandardOut.String() {
-		case "InProgress":
-			if retryCount > 100 {
-				return fmt.Errorf("retry count to monitor restore '%s' exceeded", BackupOpensearchName)
+		for {
+			bashResponse := Runner(&kcmd, t.Logs)
+			if bashResponse.CommandError != nil {
+				return bashResponse.CommandError
 			}
-			t.Logs.Infof("Restore '%s' is in progress. Check after 30 seconds", BackupOpensearchName)
-			time.Sleep(30 * time.Second)
-		case "Completed":
-			t.Logs.Infof("Restore '%s' completed successfully.", BackupOpensearchName)
-			return nil
-		default:
-			return fmt.Errorf("Restore '%s' did not complete successfully. State = '%s'", RestoreName, bashResponse.StandardOut.String())
+			switch bashResponse.StandardOut.String() {
+			case "InProgress":
+				if retryCount > 100 {
+					return fmt.Errorf("retry count to monitor restore '%s' exceeded", BackupOpensearchName)
+				}
+				t.Logs.Infof("Restore '%s' is in progress. Check after 30 seconds", BackupOpensearchName)
+				time.Sleep(30 * time.Second)
+			case "Completed":
+				t.Logs.Infof("Restore '%s' completed successfully.", BackupOpensearchName)
+				return nil
+			default:
+				return fmt.Errorf("Restore '%s' did not complete successfully. State = '%s'", RestoreName, bashResponse.StandardOut.String())
+			}
+			retryCount = retryCount + 1
 		}
-		retryCount = retryCount + 1
+	*/
+
+	bashResponse := Runner(&kcmd, t.Logs)
+	if bashResponse.CommandError != nil {
+		return bashResponse.CommandError
+	}
+	switch bashResponse.StandardOut.String() {
+	case "InProgress":
+		return fmt.Errorf("Restore '%s' is in progress", BackupOpensearchName)
+	case "Completed":
+		t.Logs.Infof("Restore '%s' completed successfully.", BackupOpensearchName)
+		return nil
+	default:
+		return fmt.Errorf("Restore '%s' did not complete successfully. State = '%s'", RestoreName, bashResponse.StandardOut.String())
 	}
 }
 
@@ -536,64 +619,88 @@ func NukeOpensearch() error {
 		}
 	}
 
-	err = checkPods("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace)
+	err = checkPodsTerminated("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace)
 	if err != nil {
 		return err
 	}
 
-	return checkPvcs("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace)
+	return checkPvcsTerminated("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace)
 }
 
-func checkPods(labelSelector, namespace string) error {
+func checkPodsTerminated(labelSelector, namespace string) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		t.Logs.Errorf("Failed to get clientset with error: %v", err)
 		return err
 	}
 
-	retryCount := 0
-	for {
-		listOptions := metav1.ListOptions{LabelSelector: labelSelector}
-		pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
-		if err != nil {
-			return err
-		}
-		if len(pods.Items) > 0 {
-			if retryCount > 100 {
-				return fmt.Errorf("retry count to monitor pods exceeded")
+	/*
+		retryCount := 0
+		for {
+			listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+			pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+			if err != nil {
+				return err
 			}
-			t.Logs.Infof("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
-			time.Sleep(10 * time.Second)
-		} else {
-			return nil
+			if len(pods.Items) > 0 {
+				if retryCount > 100 {
+					return fmt.Errorf("retry count to monitor pods exceeded")
+				}
+				t.Logs.Infof("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+				time.Sleep(10 * time.Second)
+			} else {
+				return nil
+			}
 		}
+	*/
+	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		return err
+	}
+	if len(pods.Items) > 0 {
+		return fmt.Errorf("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+	} else {
+		return nil
 	}
 
 }
 
-func checkPvcs(labelSelector, namespace string) error {
+func checkPvcsTerminated(labelSelector, namespace string) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		t.Logs.Errorf("Failed to get clientset with error: %v", err)
 		return err
 	}
-
-	retryCount := 0
-	for {
-		listOptions := metav1.ListOptions{LabelSelector: labelSelector}
-		pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), listOptions)
-		if err != nil {
-			return err
-		}
-		if len(pvcs.Items) > 0 {
-			if retryCount > 100 {
-				return fmt.Errorf("retry count to monitor pvcs exceeded")
+	/*
+		retryCount := 0
+		for {
+			listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+			pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), listOptions)
+			if err != nil {
+				return err
 			}
-			t.Logs.Infof("Pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
-			time.Sleep(10 * time.Second)
-		} else {
-			return nil
+			if len(pvcs.Items) > 0 {
+				if retryCount > 100 {
+					return fmt.Errorf("retry count to monitor pvcs exceeded")
+				}
+				t.Logs.Infof("Pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+				time.Sleep(10 * time.Second)
+			} else {
+				return nil
+			}
 		}
+	*/
+
+	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		return err
+	}
+	if len(pvcs.Items) > 0 {
+		return fmt.Errorf("pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+	} else {
+		return nil
 	}
 
 }
@@ -703,3 +810,14 @@ var _ = t.Describe("Verify if restore is successful,", Label("f:platform-verrazz
 	})
 
 })
+
+/*
+// checkPodsRunning checks whether the pods are ready in a given namespace
+func checkPodsRunning(namespace string, expectedPods []string) bool {
+	result, err := pkg.PodsRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
+}
+*/
