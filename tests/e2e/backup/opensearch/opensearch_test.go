@@ -286,7 +286,7 @@ func CreateVeleroBackupLocationObject() error {
 	cmdArgs = append(cmdArgs, "backupstoragelocation.velero.io")
 	cmdArgs = append(cmdArgs, "-n")
 	cmdArgs = append(cmdArgs, VeleroNameSpace)
-	cmdArgs = append(cmdArgs, BackupStorageName)
+	//cmdArgs = append(cmdArgs, BackupStorageName)
 	cmdArgs = append(cmdArgs, "-o")
 	cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
 	cmdArgs = append(cmdArgs, "--no-headers")
@@ -298,7 +298,7 @@ func CreateVeleroBackupLocationObject() error {
 	if cmdResponse.CommandError != nil {
 		return cmdResponse.CommandError
 	}
-
+	t.Logs.Infof("Output = %v", cmdResponse.StandardOut.String())
 	if cmdResponse.StandardOut.String() == BackupStorageName {
 		return fmt.Errorf("backup storage location '%s' already created", BackupStorageName)
 	}
@@ -660,9 +660,8 @@ func checkPodsTerminated(labelSelector, namespace string) error {
 	}
 	if len(pods.Items) > 0 {
 		return fmt.Errorf("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
-	} else {
-		return nil
 	}
+	return nil
 
 }
 
@@ -699,9 +698,8 @@ func checkPvcsTerminated(labelSelector, namespace string) error {
 	}
 	if len(pvcs.Items) > 0 {
 		return fmt.Errorf("pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
-	} else {
-		return nil
 	}
+	return nil
 
 }
 
