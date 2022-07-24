@@ -120,7 +120,7 @@ spec:
           - verrazzano-system
         labelSelector:
           matchLabels:
-          statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+            statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
         post:
           - exec:
               container: es-master
