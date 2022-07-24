@@ -781,7 +781,9 @@ func backupPrerequisites() {
 
 }
 
-var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), Serial, func() {
+var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial, func() {
+	t.Logs.Infof("Start backup")
+
 	t.Context("after velero backup storage location created", func() {
 		WhenVeleroInstalledIt("Start velero backup", func() {
 			Eventually(func() error {
@@ -789,9 +791,8 @@ var _ = t.Describe("Start Backup,", Label("f:platform-verrazzano.backup"), Seria
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 	})
-})
 
-var _ = t.Describe("Check backup progress,", Label("f:platform-verrazzano.backup"), Serial, func() {
+	t.Logs.Infof("Check backup")
 	t.Context("after velero backup was created", func() {
 		WhenVeleroInstalledIt("Check velero backup progress", func() {
 			Eventually(func() error {
@@ -799,10 +800,10 @@ var _ = t.Describe("Check backup progress,", Label("f:platform-verrazzano.backup
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 		})
 	})
-})
 
-var _ = t.Describe("Nuke opensearch,", Label("f:platform-verrazzano.backup"), Serial, func() {
-	t.Context("Cleanup opensearch once backup is don", func() {
+	t.Logs.Infof("Cleanup opensearch")
+
+	t.Context("Cleanup opensearch once backup is done", func() {
 		WhenVeleroInstalledIt("Nuke opensearch", func() {
 			Eventually(func() error {
 				return NukeOpensearch()
@@ -814,6 +815,8 @@ var _ = t.Describe("Nuke opensearch,", Label("f:platform-verrazzano.backup"), Se
 })
 
 var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Serial, func() {
+
+	t.Logs.Infof("Start restore")
 	t.Context("start restore after velero backup is completed", func() {
 		WhenVeleroInstalledIt("Start velero restore", func() {
 			Eventually(func() error {
@@ -822,9 +825,7 @@ var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Ser
 		})
 	})
 
-})
-
-var _ = t.Describe("Check restore progress,", Label("f:platform-verrazzano.restore"), Serial, func() {
+	t.Logs.Infof("Check restore")
 	t.Context("Create the velero restore object", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
@@ -833,10 +834,9 @@ var _ = t.Describe("Check restore progress,", Label("f:platform-verrazzano.resto
 		})
 	})
 
-})
+	t.Logs.Infof("Verify restore")
 
-var _ = t.Describe("Verify if restore is successful,", Label("f:platform-verrazzano.restore"), Serial, func() {
-	t.Context("start restore after velero backup is completed", func() {
+	t.Context("verify restore after velero restore is completed", func() {
 		WhenVeleroInstalledIt("Is Restore good?", func() {
 			Eventually(func() bool {
 				return IsRestoreSuccessful()
