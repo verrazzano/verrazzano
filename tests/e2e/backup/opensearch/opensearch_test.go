@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -298,11 +299,13 @@ func CreateVeleroBackupLocationObject() error {
 	if cmdResponse.CommandError != nil {
 		return cmdResponse.CommandError
 	}
-	t.Logs.Infof("Output = %v", cmdResponse.StandardOut.String())
-	if cmdResponse.StandardOut.String() == BackupStorageName {
+	storageNameRetrieved := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
+	t.Logs.Infof("Output = %v", storageNameRetrieved)
+	if storageNameRetrieved == BackupStorageName {
+		t.Logs.Infof("Output Matched !!!!")
 		return fmt.Errorf("backup storage location '%s' already created", BackupStorageName)
 	}
-
+	t.Logs.Infof("Output Did not Matc !!!!, return Nil !!")
 	return nil
 }
 
