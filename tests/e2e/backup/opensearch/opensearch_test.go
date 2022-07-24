@@ -98,40 +98,41 @@ const veleroBackupLocation = `
         s3Url: https://{{ .VeleroObjectStorageNamespaceName }}.compat.objectstorage.{{ .VeleroBackupRegion }}.oraclecloud.com`
 
 const veleroBackup = `
-    apiVersion: velero.io/v1
-    kind: Backup
-    metadata:
-      name: {{ .VeleroBackupName }}
-      namespace: {{ .VeleroNamespaceName }}
-    spec:
-      includedNamespaces:
-        - verrazzano-system
-      labelSelector:
-        matchLabels:
-          verrazzano-component: opensearch
-      defaultVolumesToRestic: false
-      storageLocation: {{ .VeleroBackupStorageName }}
-      hooks:
-        resources:
-          -
-            name: {{ .VeleroOpensearchHookResourceName }}
-            includedNamespaces:
-              - verrazzano-system
-            labelSelector:
-              matchLabels:
-                statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
-            post:
-              -
-                exec:
-                  container: es-master
-                  command:
-                    - /usr/share/opensearch/bin/verrazzano-backup-hook
-                    - -operation
-                    - backup
-                    - -velero-backup-name
-                    - {{ .VeleroBackupName }}
-                  onError: Fail
-                  timeout: 10m`
+---
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: {{ .VeleroBackupName }}
+  namespace: {{ .VeleroNamespaceName }}
+spec:
+  includedNamespaces:
+	- verrazzano-system
+  labelSelector:
+	matchLabels:
+	  verrazzano-component: opensearch
+  defaultVolumesToRestic: false
+  storageLocation: {{ .VeleroBackupStorageName }}
+  hooks:
+	resources:
+	  -
+		name: {{ .VeleroOpensearchHookResourceName }}
+		includedNamespaces:
+		  - verrazzano-system
+		labelSelector:
+		  matchLabels:
+			statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+		post:
+		  -
+			exec:
+			  container: es-master
+			  command:
+				- /usr/share/opensearch/bin/verrazzano-backup-hook
+				- -operation
+				- backup
+				- -velero-backup-name
+				- {{ .VeleroBackupName }}
+			  onError: Fail
+			  timeout: 10m`
 
 const veleroRestore = `
     apiVersion: velero.io/v1
@@ -287,10 +288,11 @@ func CreateVeleroBackupLocationObject() error {
 	cmdArgs = append(cmdArgs, "backupstoragelocation.velero.io")
 	cmdArgs = append(cmdArgs, "-n")
 	cmdArgs = append(cmdArgs, VeleroNameSpace)
-	//cmdArgs = append(cmdArgs, BackupStorageName)
+	cmdArgs = append(cmdArgs, BackupStorageName)
 	cmdArgs = append(cmdArgs, "-o")
 	cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
 	cmdArgs = append(cmdArgs, "--no-headers")
+	cmdArgs = append(cmdArgs, "--ignore-not-found")
 
 	var kcmd BashCommand
 	kcmd.Timeout = 1 * time.Minute
@@ -333,6 +335,7 @@ func CreateVeleroBackupObject() error {
 	cmdArgs = append(cmdArgs, "-o")
 	cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
 	cmdArgs = append(cmdArgs, "--no-headers")
+	cmdArgs = append(cmdArgs, "--ignore-not-found")
 
 	var kcmd BashCommand
 	kcmd.Timeout = 1 * time.Minute
@@ -342,7 +345,9 @@ func CreateVeleroBackupObject() error {
 		return cmdResponse.CommandError
 	}
 
-	if cmdResponse.StandardOut.String() == BackupOpensearchName {
+	retrievedBackupObject := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
+	if retrievedBackupObject == BackupOpensearchName {
+		t.Logs.Infof("backup '%s' already created", BackupOpensearchName)
 		return fmt.Errorf("backup '%s' already created", BackupOpensearchName)
 	}
 
@@ -361,9 +366,36 @@ func CreateVeleroRestoreObject() error {
 	template.Execute(&b, data)
 	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
 	if err != nil {
-		t.Logs.Infof("Error creating velero backup ", zap.Error(err))
+		t.Logs.Infof("Error creating velero restore ", zap.Error(err))
 		return err
 	}
+
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "restore.velero.io")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, VeleroNameSpace)
+	cmdArgs = append(cmdArgs, RestoreName)
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
+	cmdArgs = append(cmdArgs, "--no-headers")
+	cmdArgs = append(cmdArgs, "--ignore-not-found")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+	cmdResponse := Runner(&kcmd, t.Logs)
+	if cmdResponse.CommandError != nil {
+		return cmdResponse.CommandError
+	}
+
+	retrievedRestoreObject := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
+	if retrievedRestoreObject == RestoreName {
+		t.Logs.Infof("restore '%s' already created", RestoreName)
+		return fmt.Errorf("restore '%s' already created", RestoreName)
+	}
+
 	return nil
 }
 
@@ -461,6 +493,7 @@ func CheckBackupProgress() error {
 	cmdArgs = append(cmdArgs, BackupOpensearchName)
 	cmdArgs = append(cmdArgs, "-o")
 	cmdArgs = append(cmdArgs, "jsonpath={.status.phase}")
+	cmdArgs = append(cmdArgs, "--ignore-not-found")
 
 	var kcmd BashCommand
 	kcmd.Timeout = 1 * time.Minute
@@ -518,6 +551,7 @@ func CheckRestoreProgress() error {
 	cmdArgs = append(cmdArgs, RestoreName)
 	cmdArgs = append(cmdArgs, "-o")
 	cmdArgs = append(cmdArgs, "jsonpath={.status.phase}")
+	cmdArgs = append(cmdArgs, "--ignore-not-found")
 
 	var kcmd BashCommand
 	kcmd.Timeout = 1 * time.Minute
@@ -779,7 +813,7 @@ var _ = t.Describe("Nuke opensearch,", Label("f:platform-verrazzano.backup"), Se
 
 })
 
-var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), func() {
+var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Serial, func() {
 	t.Context("start restore after velero backup is completed", func() {
 		WhenVeleroInstalledIt("Start velero restore", func() {
 			Eventually(func() error {
@@ -790,7 +824,7 @@ var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), fun
 
 })
 
-var _ = t.Describe("Check restore progress,", Label("f:platform-verrazzano.restore"), func() {
+var _ = t.Describe("Check restore progress,", Label("f:platform-verrazzano.restore"), Serial, func() {
 	t.Context("Create the velero restore object", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
@@ -801,7 +835,7 @@ var _ = t.Describe("Check restore progress,", Label("f:platform-verrazzano.resto
 
 })
 
-var _ = t.Describe("Verify if restore is successful,", Label("f:platform-verrazzano.restore"), func() {
+var _ = t.Describe("Verify if restore is successful,", Label("f:platform-verrazzano.restore"), Serial, func() {
 	t.Context("start restore after velero backup is completed", func() {
 		WhenVeleroInstalledIt("Is Restore good?", func() {
 			Eventually(func() bool {
