@@ -122,8 +122,7 @@ spec:
           matchLabels:
           statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
         post:
-          -
-            exec:
+          - exec:
               container: es-master
               command:
                 - /usr/share/opensearch/bin/verrazzano-backup-hook
