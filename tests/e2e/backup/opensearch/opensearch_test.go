@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -318,7 +319,9 @@ func CreateVeleroBackupObject() error {
 		VeleroBackupStorageName:          BackupStorageName,
 		VeleroOpensearchHookResourceName: BackupResourceName,
 	}
+	spew.Dump(data)
 	template.Execute(&b, data)
+	spew.Dump(b)
 	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
 	if err != nil {
 		t.Logs.Infof("Error creating velero backup ", zap.Error(err))
@@ -814,6 +817,8 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 
 })
 
+/*
+
 var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Serial, func() {
 
 	t.Logs.Infof("Start restore")
@@ -846,3 +851,4 @@ var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Ser
 	})
 
 })
+*/
