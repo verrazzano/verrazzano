@@ -367,17 +367,17 @@ func CreateVeleroRestoreObject() error {
 	return nil
 }
 
-func GetBackupID() (string, error) {
+func GetBackupID() error {
 	esURL, err := GetEsURL(t.Logs)
 	if err != nil {
 		t.Logs.Infof("Error getting es url ", zap.Error(err))
-		return "", err
+		return err
 	}
 
 	vzPasswd, err := GetVZPasswd(t.Logs)
 	if err != nil {
 		t.Logs.Infof("Error getting vz passwd ", zap.Error(err))
-		return "", err
+		return err
 	}
 	var cmdArgs []string
 	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?from=0&size=1", esURL))
@@ -394,15 +394,15 @@ func GetBackupID() (string, error) {
 
 	curlResponse := Runner(&kcmd, t.Logs)
 	if curlResponse.CommandError != nil {
-		return "", curlResponse.CommandError
+		return curlResponse.CommandError
 	}
 	BackupID = strings.TrimSpace(strings.Trim(curlResponse.StandardOut.String(), "\n"))
 	t.Logs.Infof("BackupId ===> = '%s", BackupID)
 	if BackupID != "" {
 		t.Logs.Infof("BackupId has already been retrieved = '%s", BackupID)
-		return "", fmt.Errorf("backupId has already been retrieved = '%s", BackupID)
+		return fmt.Errorf("backupId has already been retrieved = '%s", BackupID)
 	}
-	return BackupID, nil
+	return nil
 }
 
 func IsRestoreSuccessful() bool {
@@ -741,7 +741,7 @@ func backupPrerequisites() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Get backup id before starting the backup process")
-	Eventually(func() (string, error) {
+	Eventually(func() error {
 		return GetBackupID()
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
@@ -812,14 +812,3 @@ var _ = t.Describe("Verify if restore is successful,", Label("f:platform-verrazz
 	})
 
 })
-
-/*
-// checkPodsRunning checks whether the pods are ready in a given namespace
-func checkPodsRunning(namespace string, expectedPods []string) bool {
-	result, err := pkg.PodsRunning(namespace, expectedPods)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
-	}
-	return result
-}
-*/
