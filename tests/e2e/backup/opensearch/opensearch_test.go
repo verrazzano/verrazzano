@@ -107,69 +107,69 @@ metadata:
   namespace: {{ .VeleroNamespaceName }}
 spec:
   includedNamespaces:
-	- verrazzano-system
+    - verrazzano-system
   labelSelector:
-	matchLabels:
-	  verrazzano-component: opensearch
+    matchLabels:
+      verrazzano-component: opensearch
   defaultVolumesToRestic: false
   storageLocation: {{ .VeleroBackupStorageName }}
   hooks:
-	resources:
-	  -
-		name: {{ .VeleroOpensearchHookResourceName }}
-		includedNamespaces:
-		  - verrazzano-system
-		labelSelector:
-		  matchLabels:
-			statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
-		post:
-		  -
-			exec:
-			  container: es-master
-			  command:
-				- /usr/share/opensearch/bin/verrazzano-backup-hook
-				- -operation
-				- backup
-				- -velero-backup-name
-				- {{ .VeleroBackupName }}
-			  onError: Fail
-			  timeout: 10m`
+    resources:
+      -
+        name: {{ .VeleroOpensearchHookResourceName }}
+        includedNamespaces:
+          - verrazzano-system
+        labelSelector:
+          matchLabels:
+          statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+        post:
+          -
+            exec:
+              container: es-master
+              command:
+                - /usr/share/opensearch/bin/verrazzano-backup-hook
+                - -operation
+                - backup
+                - -velero-backup-name
+                - {{ .VeleroBackupName }}
+              onError: Fail
+              timeout: 10m`
 
 const veleroRestore = `
-    apiVersion: velero.io/v1
-    kind: Restore
-    metadata:
-      name: {{ .VeleroRestore }}
-      namespace: {{ .VeleroNamespaceName }}
-    spec:
-      backupName: {{ .VeleroBackupName }}
-      includedNamespaces:
-        - verrazzano-system
-      labelSelector:
-        matchLabels:
-          verrazzano-component: opensearch
-      restorePVs: false
-      hooks:
-        resources:
-          - name: {{ .VeleroOpensearchHookResourceName }}
-            includedNamespaces:
-              - verrazzano-system
-            labelSelector:
-              matchLabels:
-                statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
-            postHooks:
-              - exec:
-                  container: es-master
-                  command:
-                    - /usr/share/opensearch/bin/verrazzano-backup-hook
-                    - -operation
-                    - restore
-                    - -velero-backup-name
-                    - {{ .VeleroBackupName }}
-                  waitTimeout: 30m
-                  execTimeout: 30m
-                  onError: Fail
-`
+---
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: {{ .VeleroRestore }}
+  namespace: {{ .VeleroNamespaceName }}
+spec:
+  backupName: {{ .VeleroBackupName }}
+  includedNamespaces:
+    - verrazzano-system
+  labelSelector:
+    matchLabels:
+      verrazzano-component: opensearch
+  restorePVs: false
+  hooks:
+    resources:
+      - name: {{ .VeleroOpensearchHookResourceName }}
+        includedNamespaces:
+          - verrazzano-system
+        labelSelector:
+          matchLabels:
+            statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+        postHooks:
+          - exec:
+              container: es-master
+              command:
+                - /usr/share/opensearch/bin/verrazzano-backup-hook
+                - -operation
+                - restore
+                - -velero-backup-name
+                - {{ .VeleroBackupName }}
+              waitTimeout: 30m
+              execTimeout: 30m
+              onError: Fail`
 
 const esQueryBody = `
 {
