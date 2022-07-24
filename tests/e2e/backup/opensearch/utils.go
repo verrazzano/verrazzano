@@ -6,7 +6,6 @@ package opensearch
 import (
 	"bytes"
 	"context"
-	b64 "encoding/base64"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -101,10 +100,5 @@ func GetVZPasswd(log *zap.SugaredLogger) (string, error) {
 		log.Infof("Error creating secret ", zap.Error(err))
 		return "", err
 	}
-	vzPassEncodedBytes := secret.Data["password"]
-	vzPassDecodedBytes, err := b64.StdEncoding.DecodeString(string(vzPassEncodedBytes))
-	if err != nil {
-		return "", err
-	}
-	return string(vzPassDecodedBytes), nil
+	return string(secret.Data["password"]), nil
 }

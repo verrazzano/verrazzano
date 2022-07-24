@@ -300,12 +300,9 @@ func CreateVeleroBackupLocationObject() error {
 		return cmdResponse.CommandError
 	}
 	storageNameRetrieved := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
-	t.Logs.Infof("Output = %v", storageNameRetrieved)
 	if storageNameRetrieved == BackupStorageName {
-		t.Logs.Infof("Output Matched !!!!")
 		return fmt.Errorf("backup storage location '%s' already created", BackupStorageName)
 	}
-	t.Logs.Infof("Output Did not Matc !!!!, return Nil !!")
 	return nil
 }
 
@@ -384,7 +381,7 @@ func GetBackupID() (string, error) {
 	}
 	var cmdArgs []string
 	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?from=0&size=1", esURL))
-	creds := fmt.Sprintf("verrazzano/%s", vzPasswd)
+	creds := fmt.Sprintf("verrazzano:%s", vzPasswd)
 	jqIDFetch := "| jq -r '.hits.hits[0]._id'"
 	curlCmd := fmt.Sprintf("curl -ks %s -u %s %s", url, creds, jqIDFetch)
 	cmdArgs = append(cmdArgs, "/bin/sh")
@@ -399,9 +396,10 @@ func GetBackupID() (string, error) {
 	if curlResponse.CommandError != nil {
 		return "", curlResponse.CommandError
 	}
-	BackupID = curlResponse.StandardOut.String()
-
+	BackupID = strings.TrimSpace(strings.Trim(curlResponse.StandardOut.String(), "\n"))
+	t.Logs.Infof("BackupId ===> = '%s", BackupID)
 	if BackupID != "" {
+		t.Logs.Infof("BackupId has already been retrieved = '%s", BackupID)
 		return "", fmt.Errorf("backupId has already been retrieved = '%s", BackupID)
 	}
 	return BackupID, nil
@@ -431,7 +429,7 @@ func IsRestoreSuccessful() bool {
 	var cmdArgs []string
 	header := "Content-Type: application/json"
 	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?", esURL))
-	creds := fmt.Sprintf("verrazzano/%s", vzPasswd)
+	creds := fmt.Sprintf("verrazzano:%s", vzPasswd)
 	jqIDFetch := "| jq -r '.hits.hits[0]._id'"
 	curlCmd := fmt.Sprintf("curl -ks -H %s %s -u %s -d '%s' %s", strconv.Quote(header), url, creds, b.String(), jqIDFetch)
 	cmdArgs = append(cmdArgs, "/bin/sh")
@@ -446,7 +444,8 @@ func IsRestoreSuccessful() bool {
 	if curlResponse.CommandError != nil {
 		return false
 	}
-	if curlResponse.StandardOut.String() == BackupID {
+	backupIDFetched := strings.TrimSpace(strings.Trim(curlResponse.StandardOut.String(), "\n"))
+	if backupIDFetched == BackupID {
 		return true
 	}
 	return false
@@ -496,7 +495,8 @@ func CheckBackupProgress() error {
 	if bashResponse.CommandError != nil {
 		return bashResponse.CommandError
 	}
-	switch bashResponse.StandardOut.String() {
+	response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
+	switch response {
 	case "InProgress":
 		return fmt.Errorf("Backup '%s' is in progress", BackupOpensearchName)
 	case "Completed":
@@ -551,7 +551,8 @@ func CheckRestoreProgress() error {
 	if bashResponse.CommandError != nil {
 		return bashResponse.CommandError
 	}
-	switch bashResponse.StandardOut.String() {
+	response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
+	switch response {
 	case "InProgress":
 		return fmt.Errorf("Restore '%s' is in progress", BackupOpensearchName)
 	case "Completed":
