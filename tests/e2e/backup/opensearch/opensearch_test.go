@@ -115,8 +115,7 @@ spec:
   storageLocation: {{ .VeleroBackupStorageName }}
   hooks:
     resources:
-      -
-        name: {{ .VeleroOpensearchHookResourceName }}
+      - name: {{ .VeleroOpensearchHookResourceName }}
         includedNamespaces:
           - verrazzano-system
         labelSelector:
