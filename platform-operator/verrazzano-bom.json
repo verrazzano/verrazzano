@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.10.2-20220714144740-7bae1b96",
+              "tag": "v0.10.2-20220722144739-7bae1b96",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.5-20220714005945-ef6dc5264",
+              "tag": "v2.6.6-20220722140326-0029c0a73",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.5-20220714005945-ef6dc5264"
+              "tag": "v2.6.6-20220722140326-0029c0a73"
             }
           ]
         },
@@ -191,7 +191,7 @@
             },
             {
               "image": "console",
-              "tag": "1.4.0-20220718130912-363a2cb",
+              "tag": "1.4.0-20220722132540-d8a58fc",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -246,7 +246,7 @@
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "1.2.0-20220301201035-be0efd47ab",
+              "tag": "1.2.0-20220721221818-c206c8b25f",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
@@ -375,7 +375,7 @@
           "images": [
             {
               "image": "mysql",
-              "tag": "8.0.28",
+              "tag": "8.0.29",
               "helmFullImageKey": "image",
               "helmTagKey": "imageTag"
             }

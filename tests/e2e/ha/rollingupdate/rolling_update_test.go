@@ -36,6 +36,8 @@ var _ = t.Describe("Rolling Update", Label("f:platform-lcm:ha"), func() {
 			eventuallyPodsReady(clientset)
 			t.Logs.Infof("Finished rolling update from node[%s] to node[%s]", node.Name, unschedulableNode.Name)
 		}
+		// Create shutdown signal once rolling update is done
+		ha.EventuallyCreateShutdownSignal(clientset, t.Logs)
 	})
 })
 
