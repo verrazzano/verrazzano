@@ -229,14 +229,20 @@ pipeline {
 		    }
 		    steps {
 		        script {
-		            int loopMax = params.INSTALL_LOOP_COUNT.toInteger()
-                    for (int count = 1; count <= loopMax; count++) {
-                        runInstallStage(count)
-                        runTestStage("Run Test", count)
+                    for (int count = 1; count <= getMaxIterations(); count++) {
+                        if (count == 1) {
+                            // Create cluster and install
+                            runInitialInstall(count)
+                        } else {
+                            // Run just the install again
+                            runInstallOnly(count)
+                        }
+                        runVerifyTests("Run Test", count)
                         runUninstall(count)
                         if (params.CHAOS_TEST_TYPE == "uninstall.interrupt.uninstall") {
-                            runReInstall(count)
-                            runTestStage("Rerun Test", count)
+                            // Run re-install once and re-verify
+                            runInstallOnly(count)
+                            runVerifyTests("Rerun Test", count)
                         }
                     }
 		        }
@@ -268,8 +274,17 @@ pipeline {
     }
 }
 
-def runInstallStage(iteration) {
-    stage("Install Verrazzano - ${iteration}") {
+def getMaxIterations() {
+    int maxIterations = 1
+    if (params.CHAOS_TEST_TYPE == "uninstall.reinstall.loop") {
+        maxIterations = params.INSTALL_LOOP_COUNT.toInteger()
+        echo "Max loop count: $maxIterations"
+    }
+    return maxIterations
+}
+
+def runInitialInstall(iteration) {
+    stage("Install Verrazzano #${iteration}") {
         env.CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources-${iteration}/pre-install-resources"
         try {
             script {
@@ -290,7 +305,7 @@ def runInstallStage(iteration) {
 }
 
 def runUninstall(iteration) {
-    stage("Uninstall Verrazzano - ${iteration}") {
+    stage("Uninstall Verrazzano #${iteration}") {
         try {
             vzUninstall(iteration)
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
@@ -305,7 +320,7 @@ def runUninstall(iteration) {
             listHelmReleases('after Verrazzano uninstall')
         }
     }
-    stage("Verify Uninstall - ${iteration}") {
+    stage("Verify Uninstall #${iteration}") {
         try {
             sh """
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources-${iteration}/post-uninstall-resources false
@@ -321,8 +336,8 @@ def runUninstall(iteration) {
     }
 }
 
-def runReInstall(iteration) {
-    stage("Reinstall Verrazzano - ${iteration}") {
+def runInstallOnly(iteration) {
+    stage("Install Verrazzano #${iteration}") {
         def vpoLogsDir = "${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/${iteration}"
         echo "Platform operator reinstall logs dir: ${vpoLogsDir}"
         try {
@@ -352,8 +367,8 @@ def runReInstall(iteration) {
     }
 }
 
-def runTestStage(stageName, iteration) {
-    stage("${stageName} - ${iteration}") {
+def runVerifyTests(stageName, iteration) {
+    stage("${stageName} #${iteration}") {
         try {
             parallel generateVerifyInfraStages()
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
@@ -391,7 +406,7 @@ def generateVerifyInfraStages() {
 
 // vzUninstall - Start parallel uninstall and chaos stages
 def vzUninstall(iteration) {
-    stage("Uninstall - ${iteration}") {
+    stage("Uninstall #${iteration}") {
         script {
             def vpoLogsDir = "${WORKSPACE}/verrazzano-platform-operator/logs/${iteration}"
             echo "Platform operator uninstall logs dir: ${vpoLogsDir}"

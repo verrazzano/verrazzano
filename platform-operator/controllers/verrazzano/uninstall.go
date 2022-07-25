@@ -293,7 +293,9 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 		return ctrl.Result{}, err
 	}
 
-	// Run Rancher Post Uninstall to delete the Rancher resources on the managed cluster
+	// Run Rancher Post Uninstall explicilty to delete any remaining Rancher resources; this may be needed in case
+	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
+	// installed explicilty.
 	if err := r.runRancherPostInstall(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -302,6 +304,8 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 }
 
 func (r *Reconciler) runRancherPostInstall(ctx spi.ComponentContext) error {
+	// Look up the rancher component and call PostUninstall expliclity, without checking if it's installed;
+	// this is to catch any lingering managed cluster resources
 	if found, comp := registry.FindComponent(rancher.ComponentName); found {
 		return comp.PostUninstall(ctx.Init(rancher.ComponentName).Operation(vzconst.UninstallOperation))
 	}
