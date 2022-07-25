@@ -15,6 +15,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const testNameDefaultVZ = "defaultVz"
+const testNameRancherEnabled = "rancher explicitly enabled in VZ"
+const testNameRancherDisabled = "rancher disabled in VZ"
+
 var falseValue = false
 var trueValue = true
 
@@ -79,9 +83,9 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 		name        string
 		verrazzanos *v1alpha1.VerrazzanoList
 	}{
-		{"defaultVz", verrazzanoList},
-		{"rancher disabled in VZ", verrazzanoListRancherDisabled},
-		{"rancher explicitly enabled in VZ", verrazzanoListRancherEnabled},
+		{testNameDefaultVZ, verrazzanoList},
+		{testNameRancherDisabled, verrazzanoListRancherDisabled},
+		{testNameRancherEnabled, verrazzanoListRancherEnabled},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -138,9 +142,9 @@ func TestCreateNoConfigMap(t *testing.T) {
 		errorExpected  bool
 		errMsgExpected string
 	}{
-		{"defaultVz", verrazzanoList, false, ""},
-		{"rancher disabled in VZ", verrazzanoListRancherDisabled, true, "The ConfigMap verrazzano-admin-cluster does not exist in namespace verrazzano-mc"},
-		{"rancher explicitly enabled in VZ", verrazzanoListRancherEnabled, false, ""},
+		{testNameDefaultVZ, verrazzanoList, false, ""},
+		{testNameRancherDisabled, verrazzanoListRancherDisabled, true, "The ConfigMap verrazzano-admin-cluster does not exist in namespace verrazzano-mc"},
+		{testNameRancherEnabled, verrazzanoListRancherEnabled, false, ""},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -191,9 +195,9 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 		errorExpected  bool
 		errMsgExpected string
 	}{
-		{"defaultVz", verrazzanoList, false, ""},
-		{"rancher disabled in VZ", verrazzanoListRancherDisabled, true, "Data with key \"server\" contains invalid url \"\" in the ConfigMap verrazzano-admin-cluster namespace verrazzano-mc"},
-		{"rancher explicitly enabled in VZ", verrazzanoListRancherEnabled, false, ""},
+		{testNameDefaultVZ, verrazzanoList, false, ""},
+		{testNameRancherDisabled, verrazzanoListRancherDisabled, true, "Data with key \"server\" contains invalid url \"\" in the ConfigMap verrazzano-admin-cluster namespace verrazzano-mc"},
+		{testNameRancherEnabled, verrazzanoListRancherEnabled, false, ""},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -280,9 +284,9 @@ func TestCreateMissingSecret(t *testing.T) {
 		errorExpected  bool
 		errMsgExpected string
 	}{
-		{"defaultVz", verrazzanoList, false, ""},
-		{"rancher disabled in VZ", verrazzanoListRancherDisabled, true, "The CA secret mySecret does not exist in namespace verrazzano-mc"},
-		{"rancher explicitly enabled in VZ", verrazzanoListRancherEnabled, false, ""},
+		{testNameDefaultVZ, verrazzanoList, false, ""},
+		{testNameRancherDisabled, verrazzanoListRancherDisabled, true, "The CA secret mySecret does not exist in namespace verrazzano-mc"},
+		{testNameRancherEnabled, verrazzanoListRancherEnabled, false, ""},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
