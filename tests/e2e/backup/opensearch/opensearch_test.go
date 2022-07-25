@@ -354,6 +354,10 @@ func CreateVeleroBackupObject() error {
 		//return fmt.Errorf("backup '%s' already created", BackupOpensearchName)
 	}
 
+	if retrievedBackupObject == "" {
+		return fmt.Errorf("backup '%s' was not created", BackupOpensearchName)
+	}
+
 	return nil
 }
 
@@ -481,10 +485,7 @@ func IsRestoreSuccessful() bool {
 		return false
 	}
 	backupIDFetched := strings.TrimSpace(strings.Trim(curlResponse.StandardOut.String(), "\n"))
-	if backupIDFetched == BackupID {
-		return true
-	}
-	return false
+	return backupIDFetched == BackupID
 }
 
 func CheckBackupProgress() error {
@@ -545,7 +546,6 @@ func CheckRestoreProgress() error {
 		//return nil
 	case "Completed":
 		t.Logs.Infof("Restore '%s' completed successfully.", BackupOpensearchName)
-
 	}
 	return nil
 }
