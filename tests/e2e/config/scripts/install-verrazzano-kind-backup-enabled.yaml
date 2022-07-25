@@ -8,5 +8,11 @@ metadata:
 spec:
   profile: prod
   components:
+    rancher:
+      enabled: false
+    kiali:
+      enabled: false
+    console:
+      enabled: false
     velero:
       enabled: true
