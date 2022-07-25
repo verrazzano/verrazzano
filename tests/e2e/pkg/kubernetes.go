@@ -441,11 +441,7 @@ func GetDynamicClient() (dynamic.Interface, error) {
 
 // GetDynamicClientInCluster returns a dynamic client needed to access Unstructured data
 func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error) {
-	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	return dynamic.NewForConfig(config)
+	return k8sutil.GetDynamicClientInCluster(kubeconfigPath)
 }
 
 // GetVerrazzanoInstallResourceInCluster returns the installed Verrazzano CR in the given cluster

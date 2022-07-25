@@ -4,7 +4,6 @@
 package rancher
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -251,12 +249,12 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	vz := ctx.EffectiveCR()
-	rest, err := configureRancherRestClient(log, c, vz)
+	rancherHostName, err := getRancherHostname(c, vz)
 	if err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
 	}
 
-	if err := rest.PutServerURL(); err != nil {
+	if err := putServerUrl(log, c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
 		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
 	}
 
@@ -299,13 +297,6 @@ func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
-	//vz := ctx.EffectiveCR()
-	//rest, err := configureRancherRestClient(log, c, vz)
-	//if err != nil {
-	//return err
-	//}ctx
-	//ctx.
-
 	err := activateDrivers(log, c)
 	if err != nil {
 		return err
@@ -318,62 +309,16 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// configureRancherRestClient configures the REST rancher client and sets the access token.
-func configureRancherRestClient(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) (*common.RESTClient, error) {
-	password, err := common.GetAdminSecret(c)
-	if err != nil {
-		return nil, log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
-	}
-
-	rancherHostName, err := getRancherHostname(c, vz)
-	if err != nil {
-		return nil, log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
-	}
-
-	rest, err := common.NewClient(c, rancherHostName, password)
-	if err != nil {
-		return nil, log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
-	}
-
-	if err := rest.SetAccessToken(); err != nil {
-		return nil, log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
-	}
-
-	return rest, nil
-}
-
 // activateDrivers activates the oci nodeDriver and oraclecontainerengine kontainerDriver
 func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
-	ociDriver := unstructured.Unstructured{}
-	ociDriver.SetKind("NodeDriver")
-	ociDriver.SetAPIVersion("management.cattle.io/v3")
-	ociDriverName := types.NamespacedName{Namespace: "default", Name: "oci"}
-	err := c.Get(context.Background(), ociDriverName, &ociDriver)
+	err := activateOCIDriver(log, c)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting OCI Driver: %s", err.Error())
+		return err
 	}
 
-	ociDriverMerge := client.MergeFrom(ociDriver.DeepCopy())
-	ociDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
-	err = c.Patch(context.Background(), &ociDriver, ociDriverMerge)
+	err = activatOKEDriver(log, c)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed patching OCI Driver: %s", err.Error())
-	}
-
-	okeDriver := unstructured.Unstructured{}
-	okeDriver.SetKind("KontainerDriver")
-	okeDriver.SetAPIVersion("management.cattle.io/v3")
-	okeDriverName := types.NamespacedName{Namespace: "default", Name: "oraclecontainerengine"}
-	err = c.Get(context.Background(), okeDriverName, &okeDriver)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting OKE Driver: %s", err.Error())
-	}
-
-	okeDriverMerge := client.MergeFrom(okeDriver.DeepCopy())
-	okeDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
-	err = c.Patch(context.Background(), &okeDriver, okeDriverMerge)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed patching OKE Driver: %s", err.Error())
+		return err
 	}
 
 	return nil
