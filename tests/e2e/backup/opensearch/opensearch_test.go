@@ -514,7 +514,8 @@ func CheckBackupProgress() error {
 	response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
 	switch response {
 	case "InProgress":
-		t.Logs.Infof("Backup '%s' is in progress", BackupOpensearchName)
+		t.Logs.Errorf("Backup '%s' is in progress", BackupOpensearchName)
+		return fmt.Errorf("Backup '%s' is in progress", BackupOpensearchName)
 	case "Completed":
 		t.Logs.Infof("Backup '%s' completed successfully", BackupOpensearchName)
 	}
@@ -545,8 +546,8 @@ func CheckRestoreProgress() error {
 	response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
 	switch response {
 	case "InProgress":
-		t.Logs.Infof("Restore '%s' is in progress", BackupOpensearchName)
-		//return nil
+		t.Logs.Errorf("Restore '%s' is in progress", BackupOpensearchName)
+		return fmt.Errorf("Restore '%s' is in progress", BackupOpensearchName)
 	case "Completed":
 		t.Logs.Infof("Restore '%s' completed successfully.", BackupOpensearchName)
 	}
