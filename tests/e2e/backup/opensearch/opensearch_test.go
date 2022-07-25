@@ -324,39 +324,41 @@ func CreateVeleroBackupObject() error {
 		//return err
 	}
 
-	// Wait for backup object to be created before checking.
-	// It has been observed that backup object gets created after a delay
-	time.Sleep(pollingInterval)
+	/*
+		// Wait for backup object to be created before checking.
+		// It has been observed that backup object gets created after a delay
+		time.Sleep(pollingInterval)
 
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "backup.velero.io")
-	cmdArgs = append(cmdArgs, "-n")
-	cmdArgs = append(cmdArgs, VeleroNameSpace)
-	cmdArgs = append(cmdArgs, BackupOpensearchName)
-	cmdArgs = append(cmdArgs, "-o")
-	cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
-	cmdArgs = append(cmdArgs, "--no-headers")
-	cmdArgs = append(cmdArgs, "--ignore-not-found")
+		var cmdArgs []string
+		cmdArgs = append(cmdArgs, "kubectl")
+		cmdArgs = append(cmdArgs, "get")
+		cmdArgs = append(cmdArgs, "backup.velero.io")
+		cmdArgs = append(cmdArgs, "-n")
+		cmdArgs = append(cmdArgs, VeleroNameSpace)
+		cmdArgs = append(cmdArgs, BackupOpensearchName)
+		cmdArgs = append(cmdArgs, "-o")
+		cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
+		cmdArgs = append(cmdArgs, "--no-headers")
+		cmdArgs = append(cmdArgs, "--ignore-not-found")
 
-	var kcmd BashCommand
-	kcmd.Timeout = 1 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-	cmdResponse := Runner(&kcmd, t.Logs)
-	if cmdResponse.CommandError != nil {
-		return cmdResponse.CommandError
-	}
+		var kcmd BashCommand
+		kcmd.Timeout = 1 * time.Minute
+		kcmd.CommandArgs = cmdArgs
+		cmdResponse := Runner(&kcmd, t.Logs)
+		if cmdResponse.CommandError != nil {
+			return cmdResponse.CommandError
+		}
 
-	retrievedBackupObject := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
-	if retrievedBackupObject == BackupOpensearchName {
-		t.Logs.Errorf("backup '%s' already created", BackupOpensearchName)
-		//return fmt.Errorf("backup '%s' already created", BackupOpensearchName)
-	}
+		retrievedBackupObject := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
+		if retrievedBackupObject == BackupOpensearchName {
+			t.Logs.Errorf("backup '%s' already created", BackupOpensearchName)
+			//return fmt.Errorf("backup '%s' already created", BackupOpensearchName)
+		}
 
-	if retrievedBackupObject == "" {
-		return fmt.Errorf("backup '%s' was not created", BackupOpensearchName)
-	}
+		if retrievedBackupObject == "" {
+			return fmt.Errorf("backup '%s' was not created", BackupOpensearchName)
+		}
+	*/
 
 	return nil
 }
@@ -377,34 +379,35 @@ func CreateVeleroRestoreObject() error {
 		t.Logs.Infof("Error creating velero restore ", zap.Error(err))
 		//return err
 	}
+	/*
+		time.Sleep(pollingInterval)
 
-	time.Sleep(pollingInterval)
+		var cmdArgs []string
+		cmdArgs = append(cmdArgs, "kubectl")
+		cmdArgs = append(cmdArgs, "get")
+		cmdArgs = append(cmdArgs, "restore.velero.io")
+		cmdArgs = append(cmdArgs, "-n")
+		cmdArgs = append(cmdArgs, VeleroNameSpace)
+		cmdArgs = append(cmdArgs, RestoreName)
+		cmdArgs = append(cmdArgs, "-o")
+		cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
+		cmdArgs = append(cmdArgs, "--no-headers")
+		cmdArgs = append(cmdArgs, "--ignore-not-found")
 
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "restore.velero.io")
-	cmdArgs = append(cmdArgs, "-n")
-	cmdArgs = append(cmdArgs, VeleroNameSpace)
-	cmdArgs = append(cmdArgs, RestoreName)
-	cmdArgs = append(cmdArgs, "-o")
-	cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
-	cmdArgs = append(cmdArgs, "--no-headers")
-	cmdArgs = append(cmdArgs, "--ignore-not-found")
+		var kcmd BashCommand
+		kcmd.Timeout = 1 * time.Minute
+		kcmd.CommandArgs = cmdArgs
+		cmdResponse := Runner(&kcmd, t.Logs)
+		if cmdResponse.CommandError != nil {
+			return cmdResponse.CommandError
+		}
 
-	var kcmd BashCommand
-	kcmd.Timeout = 1 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-	cmdResponse := Runner(&kcmd, t.Logs)
-	if cmdResponse.CommandError != nil {
-		return cmdResponse.CommandError
-	}
-
-	retrievedRestoreObject := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
-	if retrievedRestoreObject == RestoreName {
-		t.Logs.Errorf("restore '%s' already created", RestoreName)
-		//return fmt.Errorf("restore '%s' already created", RestoreName)
-	}
+		retrievedRestoreObject := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
+		if retrievedRestoreObject == RestoreName {
+			t.Logs.Errorf("restore '%s' already created", RestoreName)
+			//return fmt.Errorf("restore '%s' already created", RestoreName)
+		}
+	*/
 
 	return nil
 }
