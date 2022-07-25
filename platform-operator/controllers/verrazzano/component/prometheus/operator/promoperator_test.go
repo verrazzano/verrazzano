@@ -367,7 +367,6 @@ func TestApplySystemMonitors(t *testing.T) {
 	assert.NoError(t, err)
 
 	// expect that 3 ServiceMonitors are created
-
 	assert.Len(t, monitors.Items, 3)
 
 }

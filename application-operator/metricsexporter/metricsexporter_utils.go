@@ -99,7 +99,7 @@ func registerMetricsHandlersHelper() error {
 				errorObserved = err
 			}
 		} else {
-			//if a metric is registered, delete it from the failed metrics map so that it is not retried
+			// If a metric is registered, delete it from the failed metrics map so that it is not retried
 			delete(MetricsExp.internalConfig.failedMetrics, metric)
 		}
 	}
@@ -108,8 +108,9 @@ func registerMetricsHandlersHelper() error {
 
 // This function registers the metrics and provides error handling
 func registerMetricsHandlers(log *zap.SugaredLogger) {
-	initializeFailedMetricsArray() //Get list of metrics to register initially
-	//loop until there is no error in registering
+	// Get list of metrics to register initially
+	initializeFailedMetricsArray()
+	// Loop until there is no error in registering
 	for err := registerMetricsHandlersHelper(); err != nil; err = registerMetricsHandlersHelper() {
 		zap.S().Errorf("Failed to register metrics for VMI %v \n", err)
 		time.Sleep(time.Second)
@@ -145,7 +146,7 @@ func initConfiguration() configuration {
 func GetSimpleCounterMetric(name metricName) (*SimpleCounterMetric, error) {
 	counterMetric, ok := MetricsExp.internalData.simpleCounterMetricMap[name]
 	if !ok {
-		return nil, fmt.Errorf("%v not found in SimpleCounterMetricMap", name)
+		return nil, fmt.Errorf("%v not found in SimpleCounterMetricMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return counterMetric, nil
 }
@@ -154,7 +155,7 @@ func GetSimpleCounterMetric(name metricName) (*SimpleCounterMetric, error) {
 func GetDurationMetric(name metricName) (*DurationMetrics, error) {
 	durationMetric, ok := MetricsExp.internalData.durationMetricMap[name]
 	if !ok {
-		return nil, fmt.Errorf("%v not found in durationMetricMap", name)
+		return nil, fmt.Errorf("%v not found in durationMetricMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return durationMetric, nil
 }

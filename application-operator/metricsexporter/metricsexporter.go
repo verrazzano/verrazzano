@@ -45,9 +45,7 @@ type SimpleCounterMetric struct {
 
 func (c *SimpleCounterMetric) Inc(log *zap.SugaredLogger, err error) {
 	c.metric.Inc()
-	if err != nil {
-		log.Error(err)
-	}
+
 }
 func (c *SimpleCounterMetric) Add(num float64) {
 	c.metric.Add(num)

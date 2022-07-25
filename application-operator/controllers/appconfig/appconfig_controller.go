@@ -108,6 +108,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 

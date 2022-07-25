@@ -10,13 +10,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	asserts "github.com/stretchr/testify/assert"
 
-	//"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"go.uber.org/zap"
 )
 
-var (
-	logForTest = zap.S()
-)
+var logForTest = zap.S()
 
 func TestCollectReconcileMetrics(t *testing.T) {
 	RequiredInitialization()

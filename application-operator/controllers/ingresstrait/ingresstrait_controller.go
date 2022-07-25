@@ -14,12 +14,11 @@ import (
 	"istio.io/api/security/v1beta1"
 	v1beta12 "istio.io/api/type/v1beta1"
 
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
