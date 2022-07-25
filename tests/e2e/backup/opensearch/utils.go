@@ -6,15 +6,28 @@ package opensearch
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	"io"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	k8sYaml "k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/restmapper"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
+
+var decUnstructured = k8sYaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
 type BashCommand struct {
 	Timeout     time.Duration `json:"timeout"`
@@ -101,4 +114,83 @@ func GetVZPasswd(log *zap.SugaredLogger) (string, error) {
 		return "", err
 	}
 	return string(secret.Data["password"]), nil
+}
+
+func dynamicSSA(ctx context.Context, deploymentYAML string, log *zap.SugaredLogger) error {
+
+	kubeconfig, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Error getting kubeconfig, error: %v", err)
+		return err
+	}
+
+	// Prepare a RESTMapper to find GVR followed by creating the dynamic client
+	dc, err := discovery.NewDiscoveryClientForConfig(kubeconfig)
+	if err != nil {
+		return err
+	}
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(dc))
+
+	dynamicClient, err := dynamic.NewForConfig(kubeconfig)
+	if err != nil {
+		return err
+	}
+
+	// Convert to unstructured since this will be used for CRDS
+	obj := &unstructured.Unstructured{}
+	_, gvk, err := decUnstructured.Decode([]byte(deploymentYAML), nil, obj)
+	if err != nil {
+		return err
+	}
+	mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return err
+	}
+
+	// Create a dynamic REST interface
+	var dynamicRest dynamic.ResourceInterface
+	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
+		// namespaced resources should specify the namespace
+		dynamicRest = dynamicClient.Resource(mapping.Resource).Namespace(obj.GetNamespace())
+	} else {
+		// for cluster-wide resources
+		dynamicRest = dynamicClient.Resource(mapping.Resource)
+	}
+
+	data, err := json.Marshal(obj)
+	if err != nil {
+		return err
+	}
+
+	// Apply the Yaml
+	_, err = dynamicRest.Patch(ctx, obj.GetName(), types.ApplyPatchType, data, metav1.PatchOptions{
+		FieldManager: "backup-controller",
+	})
+	return err
+}
+
+func retryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operation, objectName string, log *zap.SugaredLogger) error {
+	retryCount := 0
+	for {
+		if retryCount >= retryLimit {
+			return fmt.Errorf("retry count execeeded while checking progress for %s '%s'", operation, objectName)
+		}
+		bashResponse := Runner(bcmd, log)
+		if bashResponse.CommandError != nil {
+			return bashResponse.CommandError
+		}
+		response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
+		switch response {
+		case "InProgress":
+			log.Infof("%s '%s' is in progress. Check back after 20 seconds", strings.ToTitle(operation), objectName)
+			time.Sleep(20 * time.Second)
+		case "Completed":
+			log.Infof("%s '%s' completed successfully", strings.ToTitle(operation), objectName)
+			return nil
+		default:
+			return fmt.Errorf("%s failed. State = '%s'", strings.ToTitle(operation), response)
+		}
+		retryCount = retryCount + 1
+	}
+
 }
