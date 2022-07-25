@@ -144,7 +144,6 @@ pipeline {
         // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
         OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
         // TODO: Update the default branch to be used for terraform-oci-olcne 
-        // Check https://gitlab-odx.oracledx.com/shashank.z.kumar/terraform-oci-olcne/-/merge_requests/1
         // OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
         OLCNE_BRANCH_TO_USE="origin/feature/VZ-6040"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
