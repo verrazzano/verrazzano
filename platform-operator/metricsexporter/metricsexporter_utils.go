@@ -80,14 +80,14 @@ const (
 	fluentdMetricName              metricName = fluentd.ComponentName
 )
 
-// This fn initalizes the metrics object, registers the metrics, and then starts the server
+// This function initalizes the metrics object, registers the metrics, and then starts the server
 func InitRegisterStart(log *zap.SugaredLogger) {
 	RequiredInitialization()
 	RegisterMetrics(log)
 	StartMetricsServer(log)
 }
 
-// This fn initalizes the metrics object, but does not register the metrics
+// This function initalizes the metrics object, but does not register the metrics
 func RequiredInitialization() {
 	MetricsExp = MetricsExporter{
 		internalConfig: initConfiguration(),
@@ -101,6 +101,7 @@ func RequiredInitialization() {
 
 }
 
+//This function begins the process of registering metrics
 func RegisterMetrics(log *zap.SugaredLogger) {
 	InitializeAllMetricsArray()
 	go registerMetricsHandlers(log)
@@ -125,6 +126,7 @@ func newMetricsComponent(name string) *MetricsComponent {
 	}
 }
 
+//This function initalizes the simpleCounterMetricMap for the metricsExporter object
 func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	return map[metricName]*SimpleCounterMetric{
 		ReconcileCounter: {
@@ -141,6 +143,8 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		},
 	}
 }
+
+// This function initalizes the metricComponentMap for the metricsExporter object
 func initMetricComponentMap() map[metricName]*MetricsComponent {
 	return map[metricName]*MetricsComponent{
 		authproxyMetricName:            newMetricsComponent("authproxy"),
@@ -172,10 +176,12 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 	}
 }
 
+// This function initalizes the simpleGaugeMetricMap for the metricsExporter object
 func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
 	return map[metricName]*SimpleGaugeMetric{}
 }
 
+// This function initalizes the durationMetricMap for the metricsExporter object
 func initDurationMetricMap() map[metricName]*DurationMetric {
 	return map[metricName]*DurationMetric{
 		ReconcileDuration: {
@@ -224,6 +230,8 @@ func metricParserHelperFunction(log vzlog.VerrazzanoLogger, componentName metric
 	}
 
 }
+
+// This function is a helper function that assists in registering metrics
 func registerMetricsHandlersHelper() error {
 	var errorObserved error
 	for metric := range MetricsExp.internalConfig.failedMetrics {
@@ -241,6 +249,8 @@ func registerMetricsHandlersHelper() error {
 	}
 	return errorObserved
 }
+
+// This function registers the metrics and provides error handling
 func registerMetricsHandlers(log *zap.SugaredLogger) {
 	initializeFailedMetricsArray() //Get list of metrics to register initially
 	//loop until there is no error in registering
@@ -249,11 +259,15 @@ func registerMetricsHandlers(log *zap.SugaredLogger) {
 		time.Sleep(time.Second)
 	}
 }
+
+// This function initalizes the failedMetrics array
 func initializeFailedMetricsArray() {
 	for i, metric := range MetricsExp.internalConfig.allMetrics {
 		MetricsExp.internalConfig.failedMetrics[metric] = i
 	}
 }
+
+// This function starts the metric server to begin emitting metrics to Prometheus
 func StartMetricsServer(log *zap.SugaredLogger) {
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
@@ -264,7 +278,7 @@ func StartMetricsServer(log *zap.SugaredLogger) {
 	}, time.Second*3, wait.NeverStop)
 }
 
-// This fn parses the VZ CR and extracts the install and update data for each component
+// This functionn parses the VZ CR and extracts the install and update data for each component
 func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verrazzano) {
 	mapOfComponents := cr.Status.Components
 	for componentName, componentStatusDetails := range mapOfComponents {
@@ -296,6 +310,7 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 	}
 }
 
+// This function initalizes the allMetrics array
 func InitializeAllMetricsArray() {
 	//loop through all metrics declarations in metric maps
 	for _, value := range MetricsExp.internalData.simpleCounterMetricMap {
@@ -308,6 +323,8 @@ func InitializeAllMetricsArray() {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.latestInstallDuration.metric, value.latestUpgradeDuration.metric)
 	}
 }
+
+// This function returns an empty struct of type configuration
 func initConfiguration() configuration {
 	return configuration{
 		allMetrics:    []prometheus.Collector{},
@@ -315,6 +332,8 @@ func initConfiguration() configuration {
 		registry:      prometheus.DefaultRegisterer,
 	}
 }
+
+// This function returns a simpleCounterMetric from the simpleCounterMetricMap given a metricName
 func GetSimpleCounterMetric(name metricName) (*SimpleCounterMetric, error) {
 	counterMetric, ok := MetricsExp.internalData.simpleCounterMetricMap[name]
 	if !ok {
@@ -322,6 +341,8 @@ func GetSimpleCounterMetric(name metricName) (*SimpleCounterMetric, error) {
 	}
 	return counterMetric, nil
 }
+
+// This function returns a durationMetric from the durationMetricMap given a metricName
 func GetDurationMetric(name metricName) (*DurationMetric, error) {
 	durationMetric, ok := MetricsExp.internalData.durationMetricMap[name]
 	if !ok {
@@ -329,6 +350,8 @@ func GetDurationMetric(name metricName) (*DurationMetric, error) {
 	}
 	return durationMetric, nil
 }
+
+// This function returns a simpleGaugeMetric from the simpleGaugeMetricMap given a metricName
 func GetSimpleGaugeMetric(name metricName) (*SimpleGaugeMetric, error) {
 	gaugeMetric, ok := MetricsExp.internalData.simpleGaugeMetricMap[name]
 	if !ok {
@@ -336,6 +359,8 @@ func GetSimpleGaugeMetric(name metricName) (*SimpleGaugeMetric, error) {
 	}
 	return gaugeMetric, nil
 }
+
+// This function returns a metricComponent from the metricComponentMap given a metricName
 func GetMetricComponent(name metricName) (*MetricsComponent, error) {
 	metricComponent, ok := MetricsExp.internalData.metricsComponentMap[name]
 	if !ok {
