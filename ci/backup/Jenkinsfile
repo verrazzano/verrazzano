@@ -12,7 +12,6 @@ def testEnvironments = ["kind","oke"]
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1" ]
 //def keepOKEClusterOnFailure = "false"
-def OKE_CLUSTER_PREFIX = ""
 
 pipeline {
     options {
@@ -138,6 +137,7 @@ pipeline {
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
         keepOKEClusterOnFailure = "false"
+        OKE_CLUSTER_PREFIX = ""
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
@@ -343,121 +343,14 @@ pipeline {
                     }
                 }
 
-
-                /*
-                stage('Setup backup storage location and start Opensearch Backup') {
-                    steps {
-                        script {
-                          sh """
-                             "${WORKSPACE}/ci/scripts/backup/backup_prerequisites.sh"
-                          """
-                        }
-                    }
-                }
-
-                stage('Start Backup and Check Progress') {
-                    steps {
-                        script {
-                           try {
-                              sh """
-                                  "${WORKSPACE}/ci/scripts/backup/backup_retry.sh"
-                              """
-                              } catch(error) {
-                                  echo "Backup failed probably due to intermittent kexec issue"
-                                  retry(3) {
-                                      sleep(30)
-                                      sh """
-                                         "${WORKSPACE}/ci/scripts/backup/backup_retry.sh"
-                                      """
-                              }
-                              println(error)
-                           }
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                 sh """
-                                 kubectl get backup.velero.io -n ${VELERO_NAMESPACE} ${BACKUP_OPENSEARCH} -o yaml
-                                 "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
-                                 """
-                            }
-                        }
-                    }
-                }
-
-                stage('Get Backup ID to be compared') {
-                    steps {
-                        script {
-                          backup_id = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/backup/backup_check.sh").trim()
-                          println("Opensearch backup done. Backup ID for verification - ${backup_id}")
-                        }
-                    }
-                }
-
-                stage('Delete Opensearch cluster for restore') {
-                    steps {
-                        script {
-                           println("Nuking opensearch")
-                           sh """
-                               "${WORKSPACE}/ci/scripts/backup/nuke_opensearch.sh"
-                           """
-                        }
-                    }
-                }
-
-                stage('Start Opensearch Restore') {
-                    steps {
-                            script {
-                                try {
-                                    sh """
-                                        "${WORKSPACE}/ci/scripts/backup/restore_start.sh"
-                                    """
-                                    } catch(error) {
-                                        echo "Restore failed probably due to intermittent kexec issue"
-                                        retry(3) {
-                                            sleep(30)
-                                            sh """
-                                               "${WORKSPACE}/ci/scripts/backup/restore_start.sh"
-                                            """
-                                       }
-                                    }
-                                }
-                           }
-                    post {
-                      always {
-                        script {
-                          sh """
-                             kubectl wait --namespace verrazzano-system --for=condition=ready pod --all --timeout=300s
-                          """
-                        }
-                      }
-                    }
-
-                }
-
-                stage('Verify Opensearch Restore') {
-                    environment {
-                        BACKUP_ID = "${backup_id}"
-                    }
-                    steps {
-                            script {
-                              sh """
-                                ${WORKSPACE}/ci/scripts/backup/restore_verify.sh
-                              """
-                         }
-                    }
-                }
-                */
-
             }
 
             post {
                 always {
                     script {
-                         sh """
-                             "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
-                          """
+                         //sh """
+                         //    "${WORKSPACE}/ci/scripts/backup/display_hook_logs.sh"
+                         //"""
                          if (params.DELETE_BUCKET) {
                               println("Delete object store bucket.")
                               deleteBucket("${OCI_OS_BUCKET_NAME}")
@@ -629,23 +522,20 @@ def getEffectiveDumpOnSuccess() {
 }
 
 def deleteCluster() {
-    sh """
-        echo "VALUE of TEST_ENV"
-        echo ${TEST_ENV}
-        if [ "${TEST_ENV}" == "kind" ]; then
-          cd ${GO_REPO_PATH}/verrazzano/platform-operator
-          make delete-cluster
-        else
-          if [ "${keepOKEClusterOnFailure}" == "false" ]; then
-            TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
-          fi
-        fi
-
-        if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-            echo "Failures seen during dumping of artifacts, treat post as failed"
-            exit 1
-        fi
-    """
+    script {
+       if (params.TEST_ENV == 'kind') {
+               sh """
+                 cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                 make delete-cluster
+               """
+           } else {
+              sh """
+                 if [ "${keepOKEClusterOnFailure}" == "false" ]; then
+                     TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh || true
+                 fi
+              """
+          }
+    }
 }
 
 def metricJobName(stageName) {

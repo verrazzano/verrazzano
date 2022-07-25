@@ -220,6 +220,12 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
+var _ = t.AfterSuite(func() {
+	start := time.Now()
+	cleanUpVelero()
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
+})
+
 var t = framework.NewTestFramework("opensearch-backup")
 
 // CreateCredentialsSecretFromFile creates opaque secret from the given map of values
@@ -255,7 +261,22 @@ func CreateCredentialsSecretFromFile(namespace string, name string) error {
 	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 	if err != nil {
 		t.Logs.Errorf("Error creating secret ", zap.Error(err))
-		//return err
+		return err
+	}
+	return nil
+}
+
+func DeleteVeleroCredential(namespace string, name string) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		t.Logs.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	err = clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		t.Logs.Errorf("Error deleting secret ", zap.Error(err))
+		return err
 	}
 	return nil
 }
@@ -302,7 +323,6 @@ func CreateVeleroBackupLocationObject() error {
 	storageNameRetrieved := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
 	if storageNameRetrieved == BackupStorageName {
 		t.Logs.Errorf("backup storage location '%s' already created", BackupStorageName)
-		//return fmt.Errorf("backup storage location '%s' already created", BackupStorageName)
 	}
 	return nil
 }
@@ -626,29 +646,59 @@ func backupPrerequisites() {
 
 }
 
+func cleanUpVelero() {
+	t.Logs.Info("Cleanup backup and restore objects")
+
+	t.Logs.Info("Cleanup restore object")
+	Eventually(func() error {
+		return veleroObjectDelete("restore", RestoreOpensearchName, VeleroNameSpace, t.Logs)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+	t.Logs.Info("Cleanup backup object")
+	Eventually(func() error {
+		return veleroObjectDelete("backup", BackupOpensearchName, VeleroNameSpace, t.Logs)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+	t.Logs.Info("Cleanup backup storage object")
+	Eventually(func() error {
+		return veleroObjectDelete("storage", BackupStorageName, VeleroNameSpace, t.Logs)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+	t.Logs.Info("Cleanup velero secrets")
+	Eventually(func() error {
+		return DeleteVeleroCredential(VeleroNameSpace, VeleroSecretName)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+}
+
 var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial, func() {
 
-	t.Logs.Infof("Start backup")
-	t.Context("after velero backup storage location created", func() {
-		WhenVeleroInstalledIt("Start velero backup", func() {
+	t.Context("Start backup after velero backup storage location created", func() {
+		WhenVeleroInstalledIt("Start backup after velero backup storage location created", func() {
 			Eventually(func() error {
 				return CreateVeleroBackupObject()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
 
-	t.Logs.Infof("Check backup")
-	t.Context("after velero backup was created", func() {
-		WhenVeleroInstalledIt("Check velero backup progress", func() {
+	t.Context("Check backup progress after velero backup object was created", func() {
+		WhenVeleroInstalledIt("Check backup progress after velero backup object was created", func() {
 			Eventually(func() error {
 				return CheckBackupProgress()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
 
-	t.Logs.Infof("Cleanup opensearch")
+	t.Context("Fetch logs after backup is complete", func() {
+		WhenVeleroInstalledIt("Fetch logs after backup is complete", func() {
+			Eventually(func() error {
+				return displayHookLogs(t.Logs)()
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+	})
+
 	t.Context("Cleanup opensearch once backup is done", func() {
-		WhenVeleroInstalledIt("Nuke opensearch", func() {
+		WhenVeleroInstalledIt("Cleanup opensearch once backup is done", func() {
 			Eventually(func() error {
 				return NukeOpensearch()
 			}, waitTimeout, pollingInterval).Should(BeNil())
@@ -656,17 +706,15 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 
 	})
 
-	t.Logs.Infof("Start restore")
-	t.Context("start restore after velero backup is completed", func() {
-		WhenVeleroInstalledIt("Start velero restore", func() {
+	t.Context("Start restore after velero backup is completed", func() {
+		WhenVeleroInstalledIt("Start restore after velero backup is completed", func() {
 			Eventually(func() error {
 				return CreateVeleroRestoreObject()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
 
-	t.Logs.Infof("Check restore")
-	t.Context("Create the velero restore object", func() {
+	t.Context("Check velero restore progress", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
 				return CheckRestoreProgress()
@@ -674,15 +722,21 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 		})
 	})
 
-	t.Logs.Infof("Verify restore")
-
-	t.Context("verify restore after velero restore is completed", func() {
-		WhenVeleroInstalledIt("Is Restore good?", func() {
+	t.Context("Is Restore good? Verify restore", func() {
+		WhenVeleroInstalledIt("Is Restore good? Verify restore", func() {
 			Eventually(func() bool {
 				return IsRestoreSuccessful()
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
+	})
+
+	t.Context("Fetch logs after restore is complete", func() {
+		WhenVeleroInstalledIt("Fetch logs after restore is complete", func() {
+			Eventually(func() error {
+				return displayHookLogs(t.Logs)()
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
 	})
 
 })

@@ -194,3 +194,72 @@ func retryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operat
 	}
 
 }
+
+func veleroObjectDelete(objectType, objectname, nameSpaceName string, log *zap.SugaredLogger) error {
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, nameSpaceName)
+	cmdArgs = append(cmdArgs, "delete")
+
+	switch objectType {
+	case "backup":
+		cmdArgs = append(cmdArgs, "backup.velero.io")
+	case "restore":
+		cmdArgs = append(cmdArgs, "restore.velero.io")
+	case "storage":
+		cmdArgs = append(cmdArgs, "backupstoragelocation.velero.io")
+	}
+	cmdArgs = append(cmdArgs, objectname)
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+	bashResponse := Runner(&kcmd, log)
+	if bashResponse.CommandError != nil {
+		return bashResponse.CommandError
+	}
+	return nil
+}
+
+func displayHookLogs(log *zap.SugaredLogger) error {
+	log.Infof("Retrieving verrazzano hook logs ...")
+	var cmdArgs []string
+	logFileCmd := "kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -alt --time=ctime /tmp/ | grep verrazzano | cut -d ' ' -f9 | head -1"
+	cmdArgs = append(cmdArgs, "/bin/sh")
+	cmdArgs = append(cmdArgs, "-c")
+	cmdArgs = append(cmdArgs, logFileCmd)
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+	bashResponse := Runner(&kcmd, log)
+	logFileName := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
+
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Failed to get config with error: %v", err)
+		return err
+	}
+
+	podSpec, err := clientset.CoreV1().Pods(constants.VerrazzanoSystemNamespace).Get(context.TODO(), "vmi-system-es-master-0", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	var execCmd []string
+	execCmd = append(execCmd, "cat")
+	execCmd = append(execCmd, fmt.Sprintf("/tmp/%s", logFileName))
+	stdout, _, err := k8sutil.ExecPod(clientset, config, podSpec, "es-master", execCmd)
+	if err != nil {
+		return err
+	}
+	log.Infof(stdout)
+	return nil
+}
