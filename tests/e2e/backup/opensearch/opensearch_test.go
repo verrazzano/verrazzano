@@ -762,9 +762,6 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 		})
 
 	})
-})
-
-var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Serial, func() {
 
 	t.Logs.Infof("Start restore")
 	t.Context("start restore after velero backup is completed", func() {
@@ -794,5 +791,4 @@ var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Ser
 		})
 
 	})
-
 })
