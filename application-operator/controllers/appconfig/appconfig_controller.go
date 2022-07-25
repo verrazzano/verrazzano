@@ -57,14 +57,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
 
-	// reconcileMetrics := metricsexporter.GetReconcileMetricsObject(controllerName)
-	// var err error
-	// logger := zap.S().With(controllerName)
-	// defer func() {
-	// 	reconcileMetrics.VerifyReconcileResult(err, logger)
-	// }()
-	// reconcileMetrics.GetDurationMetrics().DurationTimerStart(logger)
-	// defer reconcileMetrics.GetDurationMetrics().DurationTimerStop(logger)
 	zapLogForMetrics := zap.S().With(controllerName)
 	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileCounter)
 	if err != nil {

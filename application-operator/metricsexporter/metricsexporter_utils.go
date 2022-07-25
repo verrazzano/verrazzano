@@ -16,28 +16,22 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-// var MetricsExp MetricsExporter
-type metricsOperation string
 type metricName string
 
 const (
-	//millisPerSecond           float64    = 1000.0
 	AppconfigReconcileCounter  metricName = "reconcile counter"
 	AppconfigReconcileError    metricName = "reconcile error"
 	AppconfigReconcileDuration metricName = "reconcile duration"
-	// appconfigMetricName        metricName = "appconfig"
-	// cohworkloadMetricName      metricName = "cohworkload"
-	// helidonworkloadMetricName  metricName = "helidonworkload"
-	// ingresstraitMetricName     metricName = "ingresstrait"
 )
 
+// This function initalizes the metrics object, registers the metrics, and then starts the server
 func InitRegisterStart(log *zap.SugaredLogger) {
 	RequiredInitialization()
 	RegisterMetrics(log)
 	StartMetricsServer(log)
 }
 
-//This is intialized because adding the statement in the var block would create a cycle
+// This function initalizes the metrics object, but does not register the metrics
 func RequiredInitialization() {
 	MetricsExp = metricsExporter{
 		internalConfig: initConfiguration(),
@@ -48,6 +42,7 @@ func RequiredInitialization() {
 	}
 }
 
+// This function begins the process of registering metrics
 func RegisterMetrics(log *zap.SugaredLogger) {
 	InitializeAllMetricsArray()
 	go registerMetricsHandlers(log)
@@ -64,6 +59,7 @@ func InitializeAllMetricsArray() {
 
 }
 
+// This function initalizes the simpleCounterMetricMap for the metricsExporter object
 func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	return map[metricName]*SimpleCounterMetric{
 		AppconfigReconcileCounter: {
@@ -78,6 +74,8 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		},
 	}
 }
+
+// This function initalizes the DurationMetricMap for the metricsExporter object
 func initDurationMetricMap() map[metricName]*DurationMetrics {
 	return map[metricName]*DurationMetrics{
 		AppconfigReconcileDuration: {
@@ -88,6 +86,8 @@ func initDurationMetricMap() map[metricName]*DurationMetrics {
 		},
 	}
 }
+
+// This function is a helper function that assists in registering metrics
 func registerMetricsHandlersHelper() error {
 	var errorObserved error
 	for metric := range MetricsExp.internalConfig.failedMetrics {
@@ -106,6 +106,7 @@ func registerMetricsHandlersHelper() error {
 	return errorObserved
 }
 
+// This function registers the metrics and provides error handling
 func registerMetricsHandlers(log *zap.SugaredLogger) {
 	initializeFailedMetricsArray() //Get list of metrics to register initially
 	//loop until there is no error in registering
@@ -114,11 +115,15 @@ func registerMetricsHandlers(log *zap.SugaredLogger) {
 		time.Sleep(time.Second)
 	}
 }
+
+// This function initalizes the failedMetrics array
 func initializeFailedMetricsArray() {
 	for i, metric := range MetricsExp.internalConfig.allMetrics {
 		MetricsExp.internalConfig.failedMetrics[metric] = i
 	}
 }
+
+// This function starts the metric server to begin emitting metrics to Prometheus
 func StartMetricsServer(log *zap.SugaredLogger) {
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
@@ -136,6 +141,7 @@ func initConfiguration() configuration {
 	}
 }
 
+// This function returns a simpleCounterMetric from the simpleCounterMetricMap given a metricName
 func GetSimpleCounterMetric(name metricName) (*SimpleCounterMetric, error) {
 	counterMetric, ok := MetricsExp.internalData.simpleCounterMetricMap[name]
 	if !ok {
@@ -143,6 +149,8 @@ func GetSimpleCounterMetric(name metricName) (*SimpleCounterMetric, error) {
 	}
 	return counterMetric, nil
 }
+
+// This function returns a durationMetric from the durationMetricMap given a metricName
 func GetDurationMetric(name metricName) (*DurationMetrics, error) {
 	durationMetric, ok := MetricsExp.internalData.durationMetricMap[name]
 	if !ok {

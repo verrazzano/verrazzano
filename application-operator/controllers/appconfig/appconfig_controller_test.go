@@ -12,7 +12,10 @@ import (
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/stretchr/testify/assert"
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
@@ -75,6 +78,7 @@ func newAppConfig() *oamv1.ApplicationConfiguration {
 }
 
 func TestReconcileApplicationConfigurationNotFound(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
@@ -87,6 +91,7 @@ func TestReconcileApplicationConfigurationNotFound(t *testing.T) {
 }
 
 func TestReconcileNoRestartVersion(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
@@ -102,6 +107,7 @@ func TestReconcileNoRestartVersion(t *testing.T) {
 }
 
 func TestReconcileRestartVersion(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
@@ -122,6 +128,7 @@ func TestReconcileRestartVersion(t *testing.T) {
 }
 
 func TestReconcileEmptyRestartVersion(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
@@ -142,6 +149,7 @@ func TestReconcileEmptyRestartVersion(t *testing.T) {
 }
 
 func TestReconcileRestartWeblogic(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -190,6 +198,7 @@ func TestReconcileRestartWeblogic(t *testing.T) {
 }
 
 func TestReconcileRestartCoherence(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -238,6 +247,7 @@ func TestReconcileRestartCoherence(t *testing.T) {
 }
 
 func TestReconcileRestartHelidon(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -286,6 +296,7 @@ func TestReconcileRestartHelidon(t *testing.T) {
 }
 
 func TestReconcileDeploymentRestart(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -350,6 +361,7 @@ func TestReconcileDeploymentRestart(t *testing.T) {
 }
 
 func TestFailedReconcileDeploymentRestart(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -398,6 +410,7 @@ func TestFailedReconcileDeploymentRestart(t *testing.T) {
 }
 
 func TestReconcileDeploymentNoRestart(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -460,6 +473,7 @@ func TestReconcileDeploymentNoRestart(t *testing.T) {
 }
 
 func TestReconcileDaemonSetRestartDaemonSet(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -524,6 +538,7 @@ func TestReconcileDaemonSetRestartDaemonSet(t *testing.T) {
 }
 
 func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -585,6 +600,7 @@ func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 }
 
 func TestReconcileStatefulSetRestart(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -649,6 +665,7 @@ func TestReconcileStatefulSetRestart(t *testing.T) {
 }
 
 func TestReconcileStatefulSetNoRestart(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -712,6 +729,7 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 // TestReconcileKubeSystem tests to make sure we do not reconcile
 // Any resource that belong to the kube-system namespace
 func TestReconcileKubeSystem(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	cli := mocks.NewMockClient(mocker)
@@ -719,7 +737,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(vzconst.KubeSystem, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(context.TODO(), request)
+	result, err := reconciler.Reconcile(nil, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -727,18 +745,19 @@ func TestReconcileKubeSystem(t *testing.T) {
 	assert.True(result.IsZero())
 }
 
-// func TestReconcileFailed(t *testing.T) {
-// 	metricsexporter.RequiredInitialization()
-// 	assert := assert.New(t)
-// 	_ = oamcore.AddToScheme(k8scheme.Scheme)
-// 	clientBuilder := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-// 	reconciler := newReconciler(clientBuilder)
-// 	request := newRequest(testNamespace, testAppConfigName)
-// 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileError)
-// 	assert.NoError(err)
-// 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
-// 	reconciler.Reconcile(context.TODO(), request)
-// 	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
-// 	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
+func TestReconcileFailed(t *testing.T) {
+	metricsexporter.RequiredInitialization()
+	assert := assert.New(t)
+	_ = oamcore.AddToScheme(k8scheme.Scheme)
+	clientBuilder := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newReconciler(clientBuilder)
+	request := newRequest(testNamespace, testAppConfigName)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileError)
+	assert.NoError(err)
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	reconcileerrorCounterObject.Get().Inc()
+	reconciler.Reconcile(context.TODO(), request)
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 
-// }
+}

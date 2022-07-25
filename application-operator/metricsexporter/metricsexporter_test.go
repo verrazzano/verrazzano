@@ -5,6 +5,7 @@ package metricsexporter
 
 import (
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	asserts "github.com/stretchr/testify/assert"
@@ -43,11 +44,13 @@ func TestCollectReconcileMetrics(t *testing.T) {
 		reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 		assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 
-		//Duration Metric test
+		// Duration Metric test
 
-		// r.GetDurationMetrics().DurationTimerStart(zap.S())
-		// time.Sleep(time.Second)
-		// r.GetDurationMetrics().DurationTimerStop(zap.S())
+		reconcileDurationCount, _ := GetDurationMetric(AppconfigReconcileDuration)
+		reconcileDurationCount.TimerStart()
+		time.Sleep(time.Second)
+		reconcileDurationCount.TimerStop()
+
 	})
-	//}
+
 }

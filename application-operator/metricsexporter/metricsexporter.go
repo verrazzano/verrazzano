@@ -4,28 +4,27 @@
 package metricsexporter
 
 import (
-	//"time"
-
-	//"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
 var (
-	MetricsExp              = metricsExporter{}
-	DefaultLabelFunction    func(index int64) string
-	deploymentLabelFunction func() string
-	TestDelegate            = metricsDelegate{}
+	MetricsExp           = metricsExporter{}
+	DefaultLabelFunction func(index int64) string
+	TestDelegate         = metricsDelegate{}
 )
 
 type metricsExporter struct {
-	internalMetricsDelegate metricsDelegate
-	internalConfig          configuration
-	internalData            data
+	internalConfig configuration
+	internalData   data
 }
 type configuration struct {
-	allMetrics    []prometheus.Collector       // This Metric array will be automatically populated with all the metrics from each map. Metrics not included in a map can be added to thisMetric array for registration.
-	failedMetrics map[prometheus.Collector]int // This Metric map will be automatically populated with all metrics which were not registered correctly. Metrics in thisMetric map will be retried periodically.
+	// This Metric array will be automatically populated with all the metrics from each map.
+	// Metrics not included in a map can be added to thisMetric array for registration.
+	allMetrics []prometheus.Collector
+	// This Metric map will be automatically populated with all metrics which were not registered correctly.
+	// Metrics in thisMetric map will be retried periodically.
+	failedMetrics map[prometheus.Collector]int
 	registry      prometheus.Registerer
 }
 type data struct {
@@ -37,13 +36,6 @@ type data struct {
 	// 	webhookDuration   map[string]*DurationMetrics
 }
 type metricsDelegate struct {
-}
-
-type functionMetrics struct {
-	durationSeconds     DurationMetrics
-	reconcileSuccessful SimpleCounterMetric
-	reconcileFailed     SimpleCounterMetric
-	index               int64
 }
 
 // Counter Metrics
