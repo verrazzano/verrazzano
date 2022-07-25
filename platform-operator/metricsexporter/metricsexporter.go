@@ -12,8 +12,8 @@ type MetricsExporter struct {
 	internalData   data
 }
 
-// thisMetric array will be automatically populated with all the metrics from each map. Metrics not included in a map can be added to thisMetric array for registration.
-// //thisMetric map will be automatically populated with all metrics which were not registered correctly. Metrics in thisMetric map will be retried periodically.
+// The alMetrics array will be automatically populated with all the metrics from each map. Metrics not included in a map can be added to thisMetric array for registration.
+// The failedMetrics map will be automatically populated with all metrics which were not registered correctly. Metrics in thisMetric map will be retried periodically.
 type configuration struct {
 	allMetrics    []prometheus.Collector
 	failedMetrics map[prometheus.Collector]int
@@ -41,7 +41,6 @@ func (c *SimpleCounterMetric) Add(num float64) {
 }
 
 // This member function returns the underlying metric in a simpleCounterMetric
-
 func (c *SimpleCounterMetric) Get() prometheus.Counter {
 	return c.metric
 }
@@ -51,25 +50,21 @@ type SimpleGaugeMetric struct {
 }
 
 // This member function sets a SimpleGaugeMetric to a user provided float64 number
-
 func (g *SimpleGaugeMetric) Set(num float64) {
 	g.metric.Set(num)
 }
 
 // This member function sets a SimpleGaugeMetric to the current time
-
 func (g *SimpleGaugeMetric) SetToCurrentTime() {
 	g.metric.SetToCurrentTime()
 }
 
 // This member function increases a SimpleGaugeMetric by a user provided float64 number
-
 func (g *SimpleGaugeMetric) Add(num float64) {
 	g.metric.Add(num)
 }
 
 // This member function returns the underlying metric in a simpleGaugeMetric
-
 func (g *SimpleGaugeMetric) Get() prometheus.Gauge {
 	return g.metric
 }

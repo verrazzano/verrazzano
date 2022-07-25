@@ -292,7 +292,6 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 			}
 			if status.Type == vzapi.CondInstallComplete {
 				installCompletionTime = status.LastTransitionTime
-
 			}
 			if status.Type == vzapi.CondUpgradeStarted {
 				upgradeStartTime = status.LastTransitionTime
