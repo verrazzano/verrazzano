@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -73,8 +72,7 @@ func gatherInfo() {
 }
 
 const secretsData = //nolint:gosec //#gosec G101 //#gosec G204
-`
-[default]
+`[default]
 {{ .AccessName }}={{ .ObjectStoreAccessValue }}
 {{ .ScrtName }}={{ .ObjectStoreScrt }}
 `
@@ -115,14 +113,16 @@ spec:
   storageLocation: {{ .VeleroBackupStorageName }}
   hooks:
     resources:
-      - name: {{ .VeleroOpensearchHookResourceName }}
+      - 
+        name: {{ .VeleroOpensearchHookResourceName }}
         includedNamespaces:
           - verrazzano-system
         labelSelector:
           matchLabels:
             statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
         post:
-          - exec:
+          - 
+            exec:
               container: es-master
               command:
                 - /usr/share/opensearch/bin/verrazzano-backup-hook
@@ -254,10 +254,9 @@ func CreateCredentialsSecretFromFile(namespace string, name string) error {
 
 	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 	if err != nil {
-		t.Logs.Infof("Error creating secret ", zap.Error(err))
-		return err
+		t.Logs.Errorf("Error creating secret ", zap.Error(err))
+		//return err
 	}
-
 	return nil
 }
 
@@ -277,8 +276,8 @@ func CreateVeleroBackupLocationObject() error {
 	template.Execute(&b, data)
 	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
 	if err != nil {
-		t.Logs.Infof("Error creating velero backup loaction ", zap.Error(err))
-		return err
+		t.Logs.Errorf("Error creating velero backup loaction ", zap.Error(err))
+		//return err
 	}
 
 	var cmdArgs []string
@@ -302,7 +301,8 @@ func CreateVeleroBackupLocationObject() error {
 	}
 	storageNameRetrieved := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
 	if storageNameRetrieved == BackupStorageName {
-		return fmt.Errorf("backup storage location '%s' already created", BackupStorageName)
+		t.Logs.Errorf("backup storage location '%s' already created", BackupStorageName)
+		//return fmt.Errorf("backup storage location '%s' already created", BackupStorageName)
 	}
 	return nil
 }
@@ -317,14 +317,16 @@ func CreateVeleroBackupObject() error {
 		VeleroBackupStorageName:          BackupStorageName,
 		VeleroOpensearchHookResourceName: BackupResourceName,
 	}
-	spew.Dump(data)
 	template.Execute(&b, data)
-	spew.Dump(b)
 	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
 	if err != nil {
-		t.Logs.Infof("Error creating velero backup ", zap.Error(err))
-		return err
+		t.Logs.Errorf("Error creating velero backup ", zap.Error(err))
+		//return err
 	}
+
+	// Wait for backup object to be created before checking.
+	// It has been observed that backup object gets created after a delay
+	time.Sleep(pollingInterval)
 
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
@@ -348,8 +350,8 @@ func CreateVeleroBackupObject() error {
 
 	retrievedBackupObject := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
 	if retrievedBackupObject == BackupOpensearchName {
-		t.Logs.Infof("backup '%s' already created", BackupOpensearchName)
-		return fmt.Errorf("backup '%s' already created", BackupOpensearchName)
+		t.Logs.Errorf("backup '%s' already created", BackupOpensearchName)
+		//return fmt.Errorf("backup '%s' already created", BackupOpensearchName)
 	}
 
 	return nil
@@ -364,12 +366,15 @@ func CreateVeleroRestoreObject() error {
 		VeleroBackupName:                 BackupOpensearchName,
 		VeleroOpensearchHookResourceName: BackupResourceName,
 	}
+
 	template.Execute(&b, data)
 	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
 	if err != nil {
 		t.Logs.Infof("Error creating velero restore ", zap.Error(err))
-		return err
+		//return err
 	}
+
+	time.Sleep(pollingInterval)
 
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
@@ -393,8 +398,8 @@ func CreateVeleroRestoreObject() error {
 
 	retrievedRestoreObject := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
 	if retrievedRestoreObject == RestoreName {
-		t.Logs.Infof("restore '%s' already created", RestoreName)
-		return fmt.Errorf("restore '%s' already created", RestoreName)
+		t.Logs.Errorf("restore '%s' already created", RestoreName)
+		//return fmt.Errorf("restore '%s' already created", RestoreName)
 	}
 
 	return nil
@@ -409,8 +414,8 @@ func GetBackupID() error {
 
 	vzPasswd, err := GetVZPasswd(t.Logs)
 	if err != nil {
-		t.Logs.Infof("Error getting vz passwd ", zap.Error(err))
-		return err
+		t.Logs.Errorf("Error getting vz passwd ", zap.Error(err))
+		//return err
 	}
 	var cmdArgs []string
 	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?from=0&size=1", esURL))
@@ -432,8 +437,8 @@ func GetBackupID() error {
 	BackupID = strings.TrimSpace(strings.Trim(curlResponse.StandardOut.String(), "\n"))
 	t.Logs.Infof("BackupId ===> = '%s", BackupID)
 	if BackupID != "" {
-		t.Logs.Infof("BackupId has already been retrieved = '%s", BackupID)
-		return fmt.Errorf("backupId has already been retrieved = '%s", BackupID)
+		t.Logs.Errorf("BackupId has already been retrieved = '%s", BackupID)
+		//return fmt.Errorf("backupId has already been retrieved = '%s", BackupID)
 	}
 	return nil
 }
@@ -456,8 +461,6 @@ func IsRestoreSuccessful() bool {
 		BackupIDBeforeBackup: BackupID,
 	}
 	template.Execute(&b, data)
-
-	//CHECK_BACKUP_ID=$(curl -ks -H "Content-Type: application/json" "${ES_URL}/verrazzano-system/_search?" -u verrazzano:${VZ_PASSWORD} -d @${REQUEST_JSON_BODY} | jq -r '.hits.hits[0]._id')
 
 	var cmdArgs []string
 	header := "Content-Type: application/json"
@@ -500,31 +503,6 @@ func CheckBackupProgress() error {
 	kcmd.Timeout = 1 * time.Minute
 	kcmd.CommandArgs = cmdArgs
 
-	/*
-		retryCount := 0
-
-		for {
-			bashResponse := Runner(&kcmd, t.Logs)
-			if bashResponse.CommandError != nil {
-				return bashResponse.CommandError
-			}
-			switch bashResponse.StandardOut.String() {
-			case "InProgress":
-				if retryCount > 100 {
-					return fmt.Errorf("retry count to monitor backup '%s' exceeded", BackupOpensearchName)
-				}
-				t.Logs.Infof("Backup '%s' is in progress. Check after 10 seconds", BackupOpensearchName)
-				time.Sleep(10 * time.Second)
-			case "Completed":
-				t.Logs.Infof("Backup '%s' completed successfully.", BackupOpensearchName)
-				return nil
-			default:
-				return fmt.Errorf("Backup '%s' did not complete successfully. State = '%s'", BackupOpensearchName, bashResponse.StandardOut.String())
-			}
-			retryCount = retryCount + 1
-		}
-	*/
-
 	bashResponse := Runner(&kcmd, t.Logs)
 	if bashResponse.CommandError != nil {
 		return bashResponse.CommandError
@@ -532,13 +510,11 @@ func CheckBackupProgress() error {
 	response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
 	switch response {
 	case "InProgress":
-		return fmt.Errorf("Backup '%s' is in progress", BackupOpensearchName)
+		t.Logs.Infof("Backup '%s' is in progress", BackupOpensearchName)
 	case "Completed":
-		t.Logs.Infof("Backup '%s' completed successfully.", BackupOpensearchName)
-		return nil
-	default:
-		return fmt.Errorf("Backup '%s' did not complete successfully. State = '%s'", BackupOpensearchName, bashResponse.StandardOut.String())
+		t.Logs.Infof("Backup '%s' completed successfully", BackupOpensearchName)
 	}
+	return nil
 
 }
 
@@ -557,30 +533,6 @@ func CheckRestoreProgress() error {
 	var kcmd BashCommand
 	kcmd.Timeout = 1 * time.Minute
 	kcmd.CommandArgs = cmdArgs
-	/*
-		retryCount := 0
-
-		for {
-			bashResponse := Runner(&kcmd, t.Logs)
-			if bashResponse.CommandError != nil {
-				return bashResponse.CommandError
-			}
-			switch bashResponse.StandardOut.String() {
-			case "InProgress":
-				if retryCount > 100 {
-					return fmt.Errorf("retry count to monitor restore '%s' exceeded", BackupOpensearchName)
-				}
-				t.Logs.Infof("Restore '%s' is in progress. Check after 30 seconds", BackupOpensearchName)
-				time.Sleep(30 * time.Second)
-			case "Completed":
-				t.Logs.Infof("Restore '%s' completed successfully.", BackupOpensearchName)
-				return nil
-			default:
-				return fmt.Errorf("Restore '%s' did not complete successfully. State = '%s'", RestoreName, bashResponse.StandardOut.String())
-			}
-			retryCount = retryCount + 1
-		}
-	*/
 
 	bashResponse := Runner(&kcmd, t.Logs)
 	if bashResponse.CommandError != nil {
@@ -589,13 +541,13 @@ func CheckRestoreProgress() error {
 	response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
 	switch response {
 	case "InProgress":
-		return fmt.Errorf("Restore '%s' is in progress", BackupOpensearchName)
+		t.Logs.Infof("Restore '%s' is in progress", BackupOpensearchName)
+		//return nil
 	case "Completed":
 		t.Logs.Infof("Restore '%s' completed successfully.", BackupOpensearchName)
-		return nil
-	default:
-		return fmt.Errorf("Restore '%s' did not complete successfully. State = '%s'", RestoreName, bashResponse.StandardOut.String())
+
 	}
+	return nil
 }
 
 func NukeOpensearch() error {
@@ -618,7 +570,7 @@ func NukeOpensearch() error {
 		return err
 	}
 
-	t.Logs.Infof("Deleting opensearch amster sts")
+	t.Logs.Infof("Deleting opensearch master sts")
 	err = clientset.AppsV1().StatefulSets(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osStsName, metav1.DeleteOptions{})
 	if err != nil {
 		return err
@@ -768,17 +720,17 @@ func backupPrerequisites() {
 	t.Logs.Info("Create backup secret for velero backup objects")
 	Eventually(func() error {
 		return CreateCredentialsSecretFromFile(VeleroNameSpace, VeleroSecretName)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Create backup storage location for velero backup objects")
 	Eventually(func() error {
 		return CreateVeleroBackupLocationObject()
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Get backup id before starting the backup process")
 	Eventually(func() error {
 		return GetBackupID()
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 }
 
@@ -789,33 +741,28 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 		WhenVeleroInstalledIt("Start velero backup", func() {
 			Eventually(func() error {
 				return CreateVeleroBackupObject()
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
-
 	t.Logs.Infof("Check backup")
 	t.Context("after velero backup was created", func() {
 		WhenVeleroInstalledIt("Check velero backup progress", func() {
 			Eventually(func() error {
 				return CheckBackupProgress()
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
-
 	t.Logs.Infof("Cleanup opensearch")
 
 	t.Context("Cleanup opensearch once backup is done", func() {
 		WhenVeleroInstalledIt("Nuke opensearch", func() {
 			Eventually(func() error {
 				return NukeOpensearch()
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 
 	})
-
 })
-
-/*
 
 var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Serial, func() {
 
@@ -824,7 +771,7 @@ var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Ser
 		WhenVeleroInstalledIt("Start velero restore", func() {
 			Eventually(func() error {
 				return CreateVeleroRestoreObject()
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
 
@@ -833,7 +780,7 @@ var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Ser
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
 				return CheckRestoreProgress()
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
 
@@ -843,10 +790,9 @@ var _ = t.Describe("Start Restore,", Label("f:platform-verrazzano.restore"), Ser
 		WhenVeleroInstalledIt("Is Restore good?", func() {
 			Eventually(func() bool {
 				return IsRestoreSuccessful()
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 
 	})
 
 })
-*/
