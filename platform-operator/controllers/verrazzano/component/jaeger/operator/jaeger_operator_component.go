@@ -53,9 +53,20 @@ type jaegerOperatorComponent struct {
 	helm.HelmComponent
 }
 
-var certificates = []types.NamespacedName{
-	{Namespace: constants.VerrazzanoSystemNamespace, Name: jaegerCertificateName},
-}
+var (
+	certificates = []types.NamespacedName{
+		{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      jaegerCertificateName,
+		},
+	}
+	jaegerIngressNames = []types.NamespacedName{
+		{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.JaegerIngress,
+		},
+	}
+)
 
 func NewComponent() spi.Component {
 	return jaegerOperatorComponent{
@@ -71,15 +82,8 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    "image.imagePullSecrets[0].name",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
 			Dependencies:              []string{certmanager.ComponentName},
-			Certificates:              certificates,
-			IngressNames: []types.NamespacedName{
-				{
-					Namespace: constants.VerrazzanoSystemNamespace,
-					Name:      constants.JaegerIngress,
-				},
-			},
-			AppendOverridesFunc:     AppendOverrides,
-			GetInstallOverridesFunc: GetOverrides,
+			AppendOverridesFunc:       AppendOverrides,
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
@@ -123,6 +127,9 @@ func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := c.createOrUpdateJaegerResources(ctx); err != nil {
 		return err
 	}
+	// these need to be set for helm component post install processing
+	c.IngressNames = c.GetIngressNames(ctx)
+	c.Certificates = c.GetCertificateNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -165,7 +172,7 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	createInstance, err := isCreateJaegerInstance(ctx)
+	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err
 	}
@@ -196,9 +203,27 @@ func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, er
 	return true, nil
 }
 
+// GetIngressNames returns the Jaeger ingress name if Jaeger instance is enabled, otherwise returns
+// an empty slice
+func (c jaegerOperatorComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+	if jaegerInstanceEnabled, _ := isJaegerCREnabled(ctx); jaegerInstanceEnabled {
+		return jaegerIngressNames
+	}
+	return []types.NamespacedName{}
+}
+
+// GetCertificateNames returns the Jaeger certificate names if Jaeger instance is enabled, otherwise returns
+// an empty slice
+func (c jaegerOperatorComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+	if jaegerInstanceEnabled, _ := isJaegerCREnabled(ctx); jaegerInstanceEnabled {
+		return certificates
+	}
+	return []types.NamespacedName{}
+}
+
 // createOrUpdateJaegerResources create or update related Jaeger resources
 func (c jaegerOperatorComponent) createOrUpdateJaegerResources(ctx spi.ComponentContext) error {
-	jaegerCREnabled, err := isCreateJaegerInstance(ctx)
+	jaegerCREnabled, err := isJaegerCREnabled(ctx)
 	if err != nil {
 		return err
 	}

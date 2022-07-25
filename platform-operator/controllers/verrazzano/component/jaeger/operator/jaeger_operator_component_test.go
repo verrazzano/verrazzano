@@ -253,6 +253,89 @@ func TestPostInstall(t *testing.T) {
 	}
 }
 
+// TestGetIngressAndCertificateNames tests getting Jaeger ingress names and certificate names
+func TestGetIngressAndCertificateNames(t *testing.T) {
+	tests := []struct {
+		name      string
+		actualCR  vzapi.Verrazzano
+		ingresses []types.NamespacedName
+		certs     []types.NamespacedName
+	}{
+		{
+			// GIVEN a Verrazzano custom resource with Jaeger Operator component enabled
+			// WHEN we call GetIngressNames and GetCertificateNames on the Jaeger Operator component
+			// THEN we expect to find the Jaeger ingress and certs
+			name: "Test GetIngressNames and GetCertificateNames when Jaeger Operator set to enabled",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+						},
+					},
+				},
+			},
+			ingresses: jaegerIngressNames,
+			certs:     certificates,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with Jaeger Operator enabled and OpenSearch disabled
+			// WHEN we call GetIngressNames and GetCertificateNames on the Jaeger Operator component
+			// THEN we do not expect to find the Jaeger ingress and certs
+			name: "Test GetIngressNames and GetCertificateNames when OpenSearch is disabled",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+						},
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			ingresses: []types.NamespacedName{},
+			certs:     []types.NamespacedName{},
+		},
+		{
+			// GIVEN a Verrazzano custom resource with Jaeger operator is enabled and instance is disabled
+			// WHEN we call GetIngressNames and GetCertificateNames on the Jaeger Operator component
+			// THEN we do not expect to find the Jaeger ingress and certs
+			name: "Test GetIngressNames and GetCertificateNames when Jaeger instance is disabled",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(jaegerDisabledJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			ingresses: []types.NamespacedName{},
+			certs:     []types.NamespacedName{},
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false)
+			assert.Equal(t, tt.ingresses, NewComponent().GetIngressNames(ctx))
+			assert.Equal(t, tt.certs, NewComponent().GetCertificateNames(ctx))
+		})
+	}
+}
+
 // TestValidateInstall tests the validation of the Jaeger Operator installation and the Verrazzano CR
 func TestValidateInstall(t *testing.T) {
 	getControllerRuntimeClient = func() (client.Client, error) {
