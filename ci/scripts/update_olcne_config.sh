@@ -15,10 +15,6 @@ ssh -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@$API_SERVE
     --restrict-service-externalip=false \
     --force
 
-    olcnectl module validate \
-    --environment-name $TF_VAR_environment_name \
-    --name $TF_VAR_kubernetes_name
-
     # Install helm module
     olcnectl module create \
     --environment-name $TF_VAR_environment_name \
