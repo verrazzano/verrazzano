@@ -123,7 +123,6 @@ pipeline {
         OCR_CREDS=credentials('ocr-pull-and-push-account')
         NETRC_FILE=credentials('netrc')
         GITHUB_PKGS_CREDS=credentials('github-packages-credentials-rw')
-        OCIR_CREDS=credentials('ocir-pull-and-push-account')
         WEBLOGIC_PSW=credentials('weblogic-example-domain-password') // needed by install_todo.sh OAM example test
         DATABASE_PSW=credentials('todo-mysql-password') // needed by install_todo.sh OAM example test
         IMAGE_PULL_SECRET='verrazzano-container-registry'
@@ -190,8 +189,6 @@ pipeline {
         OCI_DNS_ZONE_NAME="${OCI_DNS_ZONE_SUBDOMAIN_NAME}.v8o.io"
 
         // used for cluster dump
-        DUMP_KUBECONFIG="$KUBECONFIG"
-        DUMP_COMMAND="$GO_REPO_PATH/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="$WORKSPACE/test-cluster-dumps"
         POST_DUMP_FAILED='false'
         POST_DUMP_FAILED_FILE="$WORKSPACE/post_dump_failed_file.tmp"
@@ -617,8 +614,8 @@ def generateWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
             runGinkgoAppTest('workloads/coherence', "hello-coherence", "${dumpRoot}/coherence-workload", skipDeploy, skipUndeploy)
         },
         "console ingress": {
-            // doesn't work with the deployement hooks
-            runGinkgo('ingress/console', "wls-console", "${dumpRoot}/console-ingress")
+            // doesn't work with the deployment hooks
+            runGinkgo('ingress/console', "wls-console")
         },
     ]
 }
