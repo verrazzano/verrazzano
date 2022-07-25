@@ -202,6 +202,19 @@ spec:
                       weight: 100
     keycloak:
       enabled: true
+      overrides:
+        - values:
+            replicas: 1
+            affinity: |
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app.kubernetes.io/instance: keycloak
+                          app.kubernetes.io/name: keycloak
+                      topologyKey: kubernetes.io/hostname
     kibana:
       enabled: true
       replicas: 1
