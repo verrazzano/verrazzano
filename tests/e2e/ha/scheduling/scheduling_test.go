@@ -32,5 +32,7 @@ var _ = t.Describe("Kind Scheduling", Label("f:platform-lcm:ha"), func() {
 			// Evict pods from node
 			ha.EventuallyEvictNode(clientset, workerNode.Name, t.Logs)
 		}
+		// Wait for pods to be ready after rescheduling
+		ha.EventuallyPodsReady(t.Logs, clientset)
 	})
 })

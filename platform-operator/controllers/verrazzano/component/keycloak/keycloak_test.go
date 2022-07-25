@@ -4,6 +4,7 @@
 package keycloak
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -23,7 +24,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -1265,6 +1268,128 @@ func TestIsKeycloakReady(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, false)
 			assert.Equal(t, tt.isReady, isKeycloakReady(ctx))
+		})
+	}
+}
+
+func TestUpgradeStatefulSet(t *testing.T) {
+	replicaCount := int32(1)
+	enabled := true
+
+	// Initial state of the Keycloak StatefulSet
+	statefulSet := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: &replicaCount,
+			Template: v1.PodTemplateSpec{
+				Spec: v1.PodSpec{
+					Affinity: &v1.Affinity{
+						PodAntiAffinity: &v1.PodAntiAffinity{
+							PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+								{
+									Weight: 100,
+									PodAffinityTerm: v1.PodAffinityTerm{
+										LabelSelector: &metav1.LabelSelector{
+											MatchLabels: map[string]string{"app.kubernetes.io/instance": "keycloak", "app.kubernetes.io/name": "keycloak"},
+										},
+										TopologyKey: "kubernetes.io/hostname",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	scheme := k8scheme.Scheme
+	_ = certmanager.AddToScheme(scheme)
+	var tests = []struct {
+		name                 string
+		c                    client.Client
+		vz                   *vzapi.Verrazzano
+		profilesDir          string
+		expectedReplicaCount int32
+	}{
+		{
+			"no change to StatefulSet when no affinity overrides",
+			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
+			&vzapi.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ComponentName,
+					Namespace: ComponentNamespace,
+				},
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: &enabled,
+						},
+					},
+				},
+			},
+			"",
+			int32(1),
+		},
+		{
+			"no change to StatefulSet when affinity override same as existing definition",
+			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
+			&vzapi.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ComponentName,
+					Namespace: ComponentNamespace,
+				},
+			},
+			profilesRelativePath,
+			int32(1),
+		},
+		{
+			"StatefulSet replica count scaled to 0 when ValueOverrides not same as StatefulSet",
+			fake.NewClientBuilder().WithScheme(scheme).WithObjects(statefulSet).Build(),
+			&vzapi.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ComponentName,
+					Namespace: ComponentNamespace,
+				},
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte("{\"affinity\": \"podAntiAffinity:\\n  preferredDuringSchedulingIgnoredDuringExecution:\\n    - weight: 100\\n\"}"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"",
+			int32(0),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var ctx spi.ComponentContext
+			if len(tt.profilesDir) > 0 {
+				ctx = spi.NewFakeContext(tt.c, tt.vz, false, tt.profilesDir)
+			} else {
+				ctx = spi.NewFakeContext(tt.c, tt.vz, false)
+			}
+			err := upgradeStatefulSet(ctx)
+			assert.NoError(t, err)
+
+			stsUpdated := appsv1.StatefulSet{}
+			err = tt.c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &stsUpdated)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedReplicaCount, *stsUpdated.Spec.Replicas)
 		})
 	}
 }
