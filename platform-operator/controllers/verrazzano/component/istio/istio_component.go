@@ -79,6 +79,11 @@ type istioComponent struct {
 	monitor installMonitor
 }
 
+// Namespace returns the component namespace
+func (i istioComponent) Namespace() string {
+	return IstioNamespace
+}
+
 // GetJSONName returns the json name of the verrazzano component in CRD
 func (i istioComponent) GetJSONName() string {
 	return ComponentJSONName

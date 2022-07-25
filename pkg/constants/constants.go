@@ -151,7 +151,8 @@ const (
 	ExternalDNS                   = "external-dns"
 	VerrazzanoApplicationOperator = "verrazzano-application-operator"
 	CoherenceOperator             = "coherence-operator"
-	IngressController             = "ingress-controller"
+	IngressController             = "ingress-controller-ingress-nginx-controller"
+	IngressDefaultBackend         = "ingress-controller-ingress-nginx-defaultbackend"
 	Mysql                         = "mysql"
 	CertManager                   = "cert-manager"
 	Rancher                       = "rancher"
@@ -170,6 +171,7 @@ const (
 	VerrazzanoConsole             = "verrazzano-console"
 	Verrazzano                    = "verrazzano"
 	Fluentd                       = "fluentd"
+	RancherBackup                 = "rancher-backup"
 )
 
 const (
@@ -205,4 +207,5 @@ var ComponentNameToNamespacesMap = map[string][]string{
 	VerrazzanoConsole:             {VerrazzanoSystemNamespace},
 	Verrazzano:                    {VerrazzanoSystemNamespace},
 	Fluentd:                       {VerrazzanoSystemNamespace},
+	RancherBackup:                 {platformOperatorConstants.RancherBackupNamesSpace},
 }

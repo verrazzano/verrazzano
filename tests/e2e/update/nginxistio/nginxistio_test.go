@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"strings"
 	"text/template"
@@ -40,8 +41,8 @@ const (
 	istioIngressServiceName  = "istio-ingressgateway"
 	nginxExternalIPArg       = "controller.service.externalIPs"
 	istioExternalIPArg       = "gateways.istio-ingressgateway.externalIPs"
-	waitTimeout              = 5 * time.Minute
-	pollingInterval          = 5 * time.Second
+	waitTimeout              = 10 * time.Minute
+	pollingInterval          = 10 * time.Second
 	ociLBShapeAnnotation     = "service.beta.kubernetes.io/oci-load-balancer-shape"
 	nginxLBShapeArg          = "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
 	istioLBShapeArg          = "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
@@ -51,6 +52,7 @@ const (
 	nginxTestAnnotationValue = "value-n"
 	istioTestAnnotationName  = "name-i"
 	istioTestAnnotationValue = "value-i"
+	newReplicas              = 3
 )
 
 var testNginxIngressPorts = []corev1.ServicePort{
@@ -107,10 +109,14 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
 	// update nginx
-	nginxInstallArgs := cr.Spec.Components.Ingress.NGINXInstallArgs
-	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.autoscaling.enabled", Value: "true"})
-	nginxInstallArgs = append(nginxInstallArgs, vzapi.InstallArgs{Name: "controller.autoscaling.minReplicas", Value: fmt.Sprint(m.nginxReplicas)})
-	cr.Spec.Components.Ingress.NGINXInstallArgs = nginxInstallArgs
+	overrides := []vzapi.Overrides{
+		{
+			Values: &apiextensionsv1.JSON{
+				Raw: []byte(fmt.Sprintf("{\"controller\": {\"autoscaling\": {\"enabled\": \"true\", \"minReplicas\": %v}}}", m.nginxReplicas)),
+			},
+		},
+	}
+	cr.Spec.Components.Ingress.ValueOverrides = overrides
 	// update istio ingress
 	if cr.Spec.Components.Istio.Ingress == nil {
 		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
@@ -258,16 +264,10 @@ func (u NginxIstioIngressServiceAnnotationModifier) ModifyCR(cr *vzapi.Verrazzan
 
 var t = framework.NewTestFramework("update nginx-istio")
 
-var nodeCount uint32
-
 var systemExternalIP, applicationExternalIP string
 
 var _ = t.BeforeSuite(func() {
 	var err error
-	nodeCount, err = pkg.GetNodeCount()
-	if err != nil {
-		Fail(err.Error())
-	}
 	systemExternalIP, applicationExternalIP, err = deployExternalLBs()
 	if err != nil {
 		Fail(err.Error())
@@ -280,10 +280,12 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 			cr := update.GetCR()
 
 			expectedIstioRunning := uint32(1)
+			expectedNGINXRunning := uint32(1)
 			if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 				expectedIstioRunning = 2
+				expectedNGINXRunning = 2
 			}
-			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, uint32(1), false)
+			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, expectedNGINXRunning, false)
 			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, expectedIstioRunning, false)
 		})
@@ -292,10 +294,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 	t.Describe("verrazzano-nginx-istio update ingress service annotations", Label("f:platform-lcm.nginx-istio-update-annotations"), func() {
 		t.It("nginx-istio update ingress service annotations", func() {
 			m := NginxIstioIngressServiceAnnotationModifier{nginxLBShape: "flexible", istioLBShape: "10Mbps"}
-			err := update.UpdateCR(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
 			validateServiceAnnotations(m)
 		})
@@ -303,19 +302,12 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 
 	t.Describe("verrazzano-nginx-istio update replicas", Label("f:platform-lcm.nginx-istio-update-replicas"), func() {
 		t.It("nginx-istio update replicas", func() {
-			istioCount := nodeCount - 1
-			if nodeCount == 1 {
-				istioCount = nodeCount
-			}
-			m := NginxAutoscalingIstioRelicasAffintyModifier{nginxReplicas: nodeCount, istioIngressReplicas: istioCount, istioEgressReplicas: istioCount}
-			err := update.UpdateCR(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+			m := NginxAutoscalingIstioRelicasAffintyModifier{nginxReplicas: newReplicas, istioIngressReplicas: newReplicas, istioEgressReplicas: newReplicas}
+			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
-			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, nodeCount, false)
-			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, istioCount, false)
-			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, istioCount, false)
+			update.ValidatePods(nginxLabelValue, nginxLabelKey, constants.IngressNamespace, newReplicas, false)
+			update.ValidatePods(istioIngressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, newReplicas, false)
+			update.ValidatePods(istioEgressLabelValue, istioAppLabelKey, constants.IstioSystemNamespace, newReplicas, false)
 		})
 	})
 
@@ -323,10 +315,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 		t.It("nginx-istio update ingress type to nodeport", func() {
 			t.Logs.Infof("Update nginx/istio ingresses to use NodePort type with external load balancers: %s and %s", systemExternalIP, applicationExternalIP)
 			m := NginxIstioNodePortModifier{systemExternalLBIP: systemExternalIP, applicationExternalLBIP: applicationExternalIP}
-			err := update.UpdateCR(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
 			t.Logs.Info("Validate nginx/istio ingresses for NodePort type and externalIPs")
 			validateServiceNodePortAndExternalIP(systemExternalIP, applicationExternalIP)
@@ -337,10 +326,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 		t.It("nginx-istio update ingress type to loadbalancer", func() {
 			t.Logs.Infof("Update nginx/istio ingresses to use LoadBalancer type")
 			m := NginxIstioLoadBalancerModifier{}
-			err := update.UpdateCR(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
 			t.Logs.Info("Validate nginx/istio ingresses for LoadBalancer type and loadBalancer IP")
 			validateServiceLoadBalancer()
@@ -351,10 +337,7 @@ var _ = t.Describe("Update nginx-istio", Serial, Ordered, Label("f:platform-lcm.
 		t.It("nginx-istio update ingress type to nodeport 2", func() {
 			t.Logs.Infof("Update nginx/istio ingresses to use NodePort type with external load balancers: %s and %s", systemExternalIP, applicationExternalIP)
 			m := NginxIstioNodePortModifier{systemExternalLBIP: systemExternalIP, applicationExternalLBIP: applicationExternalIP}
-			err := update.UpdateCR(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
 			t.Logs.Info("Validate nginx/istio ingresses for NodePort type and externalIPs")
 			validateServiceNodePortAndExternalIP(systemExternalIP, applicationExternalIP)

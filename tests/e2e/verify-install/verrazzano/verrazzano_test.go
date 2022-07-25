@@ -453,6 +453,43 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
+	t.Describe("ingess-nginx", Label("f:platform-lcm.install"), func() {
+		t.It("has expected controller deployment", func() {
+			if isMinVersion110 {
+				Eventually(func() (bool, error) {
+					return pkg.DoesDeploymentExist(constants.IngressNamespace, constants.IngressController)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+		t.It("has expected defaultBackend deployment", func() {
+			if isMinVersion110 {
+				Eventually(func() (bool, error) {
+					return pkg.DoesDeploymentExist(constants.IngressNamespace, constants.IngressDefaultBackend)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+
+		t.It("has correct number of  pods running", func() {
+			if isMinVersion110 {
+				validateCorrectNumberOfIngressNGINXPodsRunning()
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+
+		t.It("has affinity configured as expected", func() {
+			if isMinVersion140 {
+				assertPodAntiAffinity(map[string]string{"app": "ingress-nginx"}, constants.IngressNamespace)
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+			}
+		})
+	})
+
 	t.Describe("istio-ingressgateway", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
 			if isMinVersion110 {
@@ -562,6 +599,41 @@ func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) err
 			}
 		}
 		return runningPods == *expectedPods
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+	return nil
+}
+
+func validateCorrectNumberOfIngressNGINXPodsRunning() error {
+	// Get the controller deployment
+	var controllerDeployment *appsv1.Deployment
+	Eventually(func() (*appsv1.Deployment, error) {
+		var err error
+		controllerDeployment, err = pkg.GetDeployment(constants.IngressNamespace, constants.IngressController)
+		return controllerDeployment, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	var defaultBackendDeployment *appsv1.Deployment
+	Eventually(func() (*appsv1.Deployment, error) {
+		var err error
+		defaultBackendDeployment, err = pkg.GetDeployment(constants.IngressNamespace, constants.IngressDefaultBackend)
+		return defaultBackendDeployment, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	var pods []corev1.Pod
+	Eventually(func() bool {
+		var err error
+		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "ingress-nginx"}}, constants.IngressNamespace)
+		if err != nil {
+			return false
+		}
+		// Compare the number of running pods to the expected number
+		var runningPods int32 = 0
+		for _, pod := range pods {
+			if pod.Status.Phase == corev1.PodRunning {
+				runningPods++
+			}
+		}
+		return runningPods == *controllerDeployment.Spec.Replicas+*defaultBackendDeployment.Spec.Replicas
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 	return nil
 }

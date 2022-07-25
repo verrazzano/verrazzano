@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -148,6 +149,9 @@ func CertPool(certs ...[]byte) *x509.CertPool {
 }
 
 func HTTPClient(c client.Reader, hostname string) (*http.Client, error) {
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = 5
+	httpClient := retryClient.StandardClient()
 	rootCA, err := GetRootCA(c)
 	if err != nil {
 		return nil, err
@@ -155,24 +159,23 @@ func HTTPClient(c client.Reader, hostname string) (*http.Client, error) {
 	additionalCA := GetAdditionalCA(c)
 
 	if len(rootCA) < 1 && len(additionalCA) < 1 {
-		return &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					MinVersion: tls.VersionTLS12,
-					ServerName: hostname,
-				},
-			},
-		}, nil
-	}
-	return &http.Client{
-		Transport: &http.Transport{
+		httpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
 				MinVersion: tls.VersionTLS12,
 				ServerName: hostname,
-				RootCAs:    CertPool(rootCA, additionalCA),
 			},
+		}
+		return httpClient, nil
+	}
+
+	httpClient.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			ServerName: hostname,
+			RootCAs:    CertPool(rootCA, additionalCA),
 		},
-	}, nil
+	}
+	return httpClient, nil
 }
 
 func (r *RESTClient) SetLoginToken() error {

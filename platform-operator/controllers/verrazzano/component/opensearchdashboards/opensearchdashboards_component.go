@@ -31,6 +31,11 @@ const ComponentJSONName = "opensearch-dashboards"
 
 type opensearchDashboardsComponent struct{}
 
+// Namespace returns the component namespace
+func (d opensearchDashboardsComponent) Namespace() string {
+	return ComponentNamespace
+}
+
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
 func (d opensearchDashboardsComponent) GetDependencies() []string {
 	return []string{vmo.ComponentName}

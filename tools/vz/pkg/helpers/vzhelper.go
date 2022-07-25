@@ -104,9 +104,9 @@ func NewScheme() *runtime.Scheme {
 	return scheme
 }
 
-// GetNamespacesForNotReadyComponents returns the list of unique namespaces for the components which are not in Ready state
-func GetNamespacesForNotReadyComponents(vz vzapi.Verrazzano) []string {
-	allComponents := GetComponentsNotReady(vz)
+// GetNamespacesForAllComponents returns the list of unique namespaces of all the components included in the Verrazzano resource
+func GetNamespacesForAllComponents(vz vzapi.Verrazzano) []string {
+	allComponents := getAllComponents(vz)
 	var nsList []string
 	for _, eachComp := range allComponents {
 		nsList = append(nsList, constants.ComponentNameToNamespacesMap[eachComp]...)
@@ -117,19 +117,15 @@ func GetNamespacesForNotReadyComponents(vz vzapi.Verrazzano) []string {
 	return nsList
 }
 
-// GetComponentsNotReady returns the list of components which did not reach Ready state from the Verrazzano resource
-func GetComponentsNotReady(vzRes vzapi.Verrazzano) []string {
-	var compsNotReady = make([]string, 0)
-	if vzRes.Status.State != vzapi.VzStateReady {
-		// Verrazzano installation is not complete, find out the list of components which are not ready
-		for _, compStatusDetail := range vzRes.Status.Components {
-			if compStatusDetail.State != vzapi.CompStateReady {
-				if compStatusDetail.State == vzapi.CompStateDisabled {
-					continue
-				}
-				compsNotReady = append(compsNotReady, compStatusDetail.Name)
-			}
+// getAllComponents returns the list of components from the Verrazzano resource
+func getAllComponents(vzRes vzapi.Verrazzano) []string {
+	var compSlice = make([]string, 0)
+
+	for _, compStatusDetail := range vzRes.Status.Components {
+		if compStatusDetail.State == vzapi.CompStateDisabled {
+			continue
 		}
+		compSlice = append(compSlice, compStatusDetail.Name)
 	}
-	return compsNotReady
+	return compSlice
 }
