@@ -6,7 +6,6 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,6 +17,7 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -94,7 +94,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	// Convert MySQL install-args to helm overrides
-	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
+	kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
 
 	return kvs, nil
 }
@@ -383,4 +383,14 @@ func postUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
+}
+
+// convertOldInstallArgs changes persistence.* install args to primary.persistence.* to keep compatibility with the new chart
+func convertOldInstallArgs(kvs []bom.KeyValue) []bom.KeyValue {
+	for i, kv := range kvs {
+		if strings.HasPrefix(kv.Key, "persistence") {
+			kvs[i].Key = strings.Replace(kv.Key, "persistence", "primary.persistence", 1)
+		}
+	}
+	return kvs
 }
