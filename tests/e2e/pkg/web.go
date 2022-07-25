@@ -185,6 +185,16 @@ func CheckStatusAndResponseHeaderAbsent(httpClient *retryablehttp.Client, req *r
 	return nil
 }
 
+func EventuallyVerrazzanoRetryableHTTPClient() *retryablehttp.Client {
+	var client *retryablehttp.Client
+	gomega.Eventually(func() (*retryablehttp.Client, error) {
+		var err error
+		client, err = GetVerrazzanoRetryableHTTPClient()
+		return client, err
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil(), "Unable to get Verrazzano HTTP client")
+	return client
+}
+
 // GetVerrazzanoRetryableHTTPClient returns a retryable HTTP client configured with the CA cert
 func GetVerrazzanoRetryableHTTPClient() (*retryablehttp.Client, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

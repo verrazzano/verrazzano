@@ -7,14 +7,12 @@ import (
 	"flag"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/ha"
 	"testing"
 )
 
 var runContinuous bool
-var clientset = k8sutil.GetKubernetesClientsetOrDie()
 var t = framework.NewTestFramework("monitor")
 
 func init() {
@@ -32,7 +30,7 @@ func RunningUntilShutdownIt(description string, test func()) {
 			test()
 			// break out of the loop if we are not running the suite continuously,
 			// or the shutdown signal is set
-			if !runContinuous || ha.IsShutdownSignalSet(clientset) {
+			if !runContinuous || ha.IsShutdownSignalSet(web.clientset) {
 				t.Logs.Info("Shutting down...")
 				break
 			}
