@@ -1,0 +1,76 @@
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: my-verrazzano
+spec:
+  components:
+    rancher:
+      enabled: false
+    velero:
+      enabled: true
+    authProxy:
+      kubernetes:
+        replicas: 1
+    certManager:
+      enabled: true
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+      overrides:
+        - values:
+            replicaCount: 1
+            cainjector:
+              replicaCount: 1
+            webhook:
+              replicaCount: 1
+    console:
+      overrides:
+        - values:
+            replicas: 1
+    ingress:
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 1
+            defaultBackend:
+              replicaCount: 1
+    istio:
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    replicaCount: 1
+      ingress:
+        kubernetes:
+          replicas: 1
+      egress:
+        kubernetes:
+          replicas: 1
+    keycloak:
+      overrides:
+        - values:
+            replicas: 1
+    kiali:
+      overrides:
+        - values:
+            deployment:
+              replicas: 1
+    prometheusOperator:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 2
+                resources:
+                  requests:
+                    memory: "128Mi"
