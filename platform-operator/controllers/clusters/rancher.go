@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -36,13 +37,18 @@ const (
 	rancherTLSSecret   = "tls-rancher-ingress"  //nolint:gosec //#gosec G101
 
 	clusterPath         = "/v3/cluster"
+	clustersPath        = "/v3/clusters"
 	clustersByNamePath  = "/v3/clusters?name="
 	clusterRegTokenPath = "/v3/clusterregistrationtoken" //nolint:gosec //#gosec G101
 	manifestPath        = "/v3/import/"
 	loginPath           = "/v3-public/localProviders/local?action=login"
 
+	k8sClustersPath = "/k8s/clusters/"
+
 	// this host resolves to the cluster IP
 	nginxIngressHostName = "ingress-controller-ingress-nginx-controller.ingress-nginx"
+
+	clusterStateActive = "active"
 )
 
 type rancherConfig struct {
@@ -78,9 +84,35 @@ var rancherHTTPClient requestSender = &httpRequestSender{}
 
 // registerManagedClusterWithRancher registers a managed cluster with Rancher and returns a chunk of YAML that
 // must be applied on the managed cluster to complete the registration.
-func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, log vzlog.VerrazzanoLogger) (string, error) {
+func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, log vzlog.VerrazzanoLogger) (string, string, error) {
 	log.Oncef("Registering managed cluster in Rancher with name: %s", clusterName)
 
+	rc, err := newRancherConfig(rdr, log)
+	if err != nil {
+		return "", "", err
+	}
+
+	log.Oncef("Importing cluster %s into to Rancher", clusterName)
+	clusterID, err := importClusterToRancher(rc, clusterName, log)
+	if err != nil {
+		log.Errorf("Failed to import cluster to Rancher: %v", err)
+		return "", "", err
+	}
+
+	log.Once("Getting registration YAML from Rancher")
+	regYAML, err := getRegistrationYAMLFromRancher(rc, clusterID, log)
+	if err != nil {
+		log.Errorf("Failed to get registration YAML from Rancher: %v", err)
+		return "", "", err
+	}
+
+	regYAML = overrideRancherImageLocation(regYAML, log)
+
+	return regYAML, clusterID, nil
+}
+
+// newRancherConfig returns a populated rancherConfig struct that can be used to make calls to the Rancher API
+func newRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*rancherConfig, error) {
 	rc := &rancherConfig{baseURL: "https://" + nginxIngressHostName}
 
 	// Rancher host name is needed for TLS
@@ -88,7 +120,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	hostname, err := getRancherIngressHostname(rdr)
 	if err != nil {
 		log.Errorf("Failed to get Rancher ingress host name: %v", err)
-		return "", err
+		return nil, err
 	}
 	rc.host = hostname
 
@@ -96,7 +128,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	caCert, err := common.GetRootCA(rdr)
 	if err != nil {
 		log.Errorf("Failed to get Rancher TLS root CA: %v", err)
-		return "", err
+		return nil, err
 	}
 	rc.certificateAuthorityData = caCert
 
@@ -107,27 +139,11 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
 	if err != nil {
 		log.Errorf("Failed to get admin token from Rancher: %v", err)
-		return "", err
+		return nil, err
 	}
 	rc.apiAccessToken = adminToken
 
-	log.Oncef("Importing cluster %s into to Rancher", clusterName)
-	clusterID, err := importClusterToRancher(rc, clusterName, log)
-	if err != nil {
-		log.Errorf("Failed to import cluster to Rancher: %v", err)
-		return "", err
-	}
-
-	log.Once("Getting registration YAML from Rancher")
-	regYAML, err := getRegistrationYAMLFromRancher(rc, clusterID, log)
-	if err != nil {
-		log.Errorf("Failed to get registration YAML from Rancher: %v", err)
-		return "", err
-	}
-
-	regYAML = overrideRancherImageLocation(regYAML, log)
-
-	return regYAML, nil
+	return rc, nil
 }
 
 // overrideRancherImageLocation patches the Rancher agent image when the Verrazzano installation overrides
@@ -233,7 +249,103 @@ func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log vzlog.Ve
 	}
 
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "data.0.id", "unable to find clusterId in Rancher response")
+}
 
+// isManagedClusterActive returns true if the managed cluster is active
+func isManagedClusterActive(rdr client.Reader, clusterID string, log vzlog.VerrazzanoLogger) (bool, error) {
+	rc, err := newRancherConfig(rdr, log)
+	if err != nil {
+		return false, err
+	}
+
+	reqURL := rc.baseURL + clustersPath + "/" + clusterID
+	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
+
+	response, responseBody, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
+
+	if response != nil && response.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("tried to get cluster from Rancher but failed, response code: %d", response.StatusCode)
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	state, err := httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "state", "unable to find cluster state in Rancher response")
+	if err != nil {
+		return false, err
+	}
+
+	return state == clusterStateActive, nil
+}
+
+// getCACertFromManagedCluster attempts to get the CA cert from the managed cluster using the Rancher API proxy. It first checks for
+// the Rancher TLS secret and if that is not found it looks for the Verrazzano system TLS secret.
+func getCACertFromManagedCluster(rdr client.Reader, clusterID string, log vzlog.VerrazzanoLogger) (string, error) {
+	rc, err := newRancherConfig(rdr, log)
+	if err != nil {
+		return "", err
+	}
+
+	// first look for the Rancher TLS secret
+	caCert, err := getCACertFromManagedClusterSecret(rc, clusterID, rancherNamespace, cons.AdditionalTLS, "ca-additional.pem", log)
+	if err != nil {
+		return "", err
+	}
+
+	if caCert != "" {
+		return caCert, nil
+	}
+
+	// didn't find the Rancher secret so next look for the verrazzano-tls secret
+	caCert, err = getCACertFromManagedClusterSecret(rc, clusterID, cons.VerrazzanoSystemNamespace, constants.VerrazzanoIngressSecret, "ca.crt", log)
+	if err != nil {
+		return "", err
+	}
+
+	if caCert != "" {
+		return caCert, nil
+	}
+
+	return "", nil
+}
+
+// getCACertFromManagedClusterSecret attempts to get the CA cert from a secret on the managed cluster using the Rancher API proxy
+func getCACertFromManagedClusterSecret(rc *rancherConfig, clusterID, namespace, secretName, secretKey string, log vzlog.VerrazzanoLogger) (string, error) {
+	const k8sAPISecretPattern = "%s/api/v1/namespaces/%s/secrets/%s"
+
+	// use the Rancher API proxy on the managed cluster to fetch the secret
+	baseReqURL := rc.baseURL + k8sClustersPath + clusterID
+	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
+
+	reqURL := fmt.Sprintf(k8sAPISecretPattern, baseReqURL, namespace, secretName)
+	response, responseBody, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
+
+	if response != nil {
+		if response.StatusCode == http.StatusNotFound {
+			return "", nil
+		}
+		if response.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("tried to get managed cluster CA cert %s/%s from Rancher but failed, response code: %d", namespace, secretName, response.StatusCode)
+		}
+	}
+	if err != nil {
+		return "", err
+	}
+
+	// parse the response and pull out the secretKey value from the secret data
+	jsonString, err := gabs.ParseJSON([]byte(responseBody))
+	if err != nil {
+		return "", err
+	}
+
+	if data, ok := jsonString.Path("data").Data().(map[string]interface{}); ok {
+		if caCert, ok := data[secretKey].(string); ok {
+			return caCert, nil
+		}
+	}
+
+	return "", nil
 }
 
 // getRegistrationYAMLFromRancher creates a registration token in Rancher for the managed cluster and uses the

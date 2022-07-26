@@ -875,7 +875,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	regYAML, err := registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	regYAML, _, err := registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -903,7 +903,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return errors.NewResourceExpired("something bad happened")
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	regYAML, _, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -944,7 +944,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err := registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	regYAML, _, err := registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -987,7 +987,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	regYAML, _, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1042,7 +1042,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	regYAML, _, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1110,7 +1110,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	regYAML, _, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1164,7 +1164,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 			return resp, nil
 		}).Times(retrySteps)
 
-	_, err := registerManagedClusterWithRancher(mock, clusterName, vzlog.DefaultLogger())
+	_, _, err := registerManagedClusterWithRancher(mock, clusterName, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1889,11 +1889,6 @@ func getJob(scrapeConfigs []*gabs.Container, name string) *gabs.Container {
 		}
 	}
 	return job
-}
-
-// getCASecretName returns the ca secret for testManagedCluster
-func getCASecretName(name string) string {
-	return fmt.Sprintf("ca-secret-%s", name)
 }
 
 // getPrometheusHost returns the prometheus host for testManagedCluster
