@@ -6,20 +6,11 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
-  profile: prod
   components:
     rancher:
-      enabled: false
-    kiali:
-      enabled: false
-    console:
-      enabled: false
-    velero:
       enabled: true
-spec:
-  components:
-    rancher:
-      enabled: false
+    rancherBackup:
+      enabled: true
     velero:
       enabled: true
     authProxy:

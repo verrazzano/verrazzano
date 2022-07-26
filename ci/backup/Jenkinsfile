@@ -339,7 +339,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup"
                     }
                     steps {
-                        runGinkgoRandomize('backup/opensearch')
+                        runGinkgoRandomize('backup')
                     }
                     post {
                         always {

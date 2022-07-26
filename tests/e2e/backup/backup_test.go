@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package opensearch
+package backup
 
 import (
 	"bytes"
@@ -44,10 +44,10 @@ var (
 	VeleroNameSpace, VeleroSecretName                                                                    string
 	RancherSecretName                                                                                    string
 	OciBucketID, OciBucketName, OciOsAccessKey, OciOsAccessSecretKey, OciCompartmentID, OciNamespaceName string
-	BackupName, RestoreName, BackupResourceName, BackupOpensearchName, BackupRancherName                 string
+	BackupResourceName, BackupOpensearchName, BackupRancherName                                          string
 	RestoreOpensearchName, RestoreRancherName                                                            string
 	BackupRegion, BackupStorageName                                                                      string
-	BackupID                                                                                             string
+	BackupID, RancherBackupFileName                                                                      string
 )
 
 func gatherInfo() {
@@ -60,8 +60,6 @@ func gatherInfo() {
 	OciOsAccessSecretKey = os.Getenv("OCI_OS_ACCESS_SECRET_KEY")
 	OciCompartmentID = os.Getenv("OCI_OS_COMPARTMENT_ID")
 	OciNamespaceName = os.Getenv("OCI_OS_NAMESPACE")
-	BackupName = os.Getenv("BACKUP_NAME")
-	RestoreName = os.Getenv("RESTORE_NAME")
 	BackupResourceName = os.Getenv("BACKUP_RESOURCE")
 	BackupOpensearchName = os.Getenv("BACKUP_OPENSEARCH")
 	BackupRancherName = os.Getenv("BACKUP_RANCHER")
@@ -69,148 +67,6 @@ func gatherInfo() {
 	RestoreRancherName = os.Getenv("RESTORE_RANCHER")
 	BackupStorageName = os.Getenv("BACKUP_STORAGE")
 	BackupRegion = os.Getenv("BACKUP_REGION")
-}
-
-const secretsData = //nolint:gosec //#gosec G101 //#gosec G204
-`[default]
-{{ .AccessName }}={{ .ObjectStoreAccessValue }}
-{{ .ScrtName }}={{ .ObjectStoreScrt }}
-`
-
-const veleroBackupLocation = `
-    apiVersion: velero.io/v1
-    kind: BackupStorageLocation
-    metadata:
-      name: {{ .VeleroBackupStorageName }}
-      namespace: {{ .VeleroNamespaceName }}
-    spec:
-      provider: aws
-      objectStorage:
-        bucket: {{ .VeleroObjectStoreBucketName }}
-        prefix: opensearch
-      credential:
-        name: {{ .VeleroSecretName }}
-        key: cloud
-      config:
-        region: {{ .VeleroBackupRegion }}
-        s3ForcePathStyle: "true"
-        s3Url: https://{{ .VeleroObjectStorageNamespaceName }}.compat.objectstorage.{{ .VeleroBackupRegion }}.oraclecloud.com`
-
-const veleroBackup = `
----
-apiVersion: velero.io/v1
-kind: Backup
-metadata:
-  name: {{ .VeleroBackupName }}
-  namespace: {{ .VeleroNamespaceName }}
-spec:
-  includedNamespaces:
-    - verrazzano-system
-  labelSelector:
-    matchLabels:
-      verrazzano-component: opensearch
-  defaultVolumesToRestic: false
-  storageLocation: {{ .VeleroBackupStorageName }}
-  hooks:
-    resources:
-      - 
-        name: {{ .VeleroOpensearchHookResourceName }}
-        includedNamespaces:
-          - verrazzano-system
-        labelSelector:
-          matchLabels:
-            statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
-        post:
-          - 
-            exec:
-              container: es-master
-              command:
-                - /usr/share/opensearch/bin/verrazzano-backup-hook
-                - -operation
-                - backup
-                - -velero-backup-name
-                - {{ .VeleroBackupName }}
-              onError: Fail
-              timeout: 10m`
-
-const veleroRestore = `
----
-apiVersion: velero.io/v1
-kind: Restore
-metadata:
-  name: {{ .VeleroRestore }}
-  namespace: {{ .VeleroNamespaceName }}
-spec:
-  backupName: {{ .VeleroBackupName }}
-  includedNamespaces:
-    - verrazzano-system
-  labelSelector:
-    matchLabels:
-      verrazzano-component: opensearch
-  restorePVs: false
-  hooks:
-    resources:
-      - name: {{ .VeleroOpensearchHookResourceName }}
-        includedNamespaces:
-          - verrazzano-system
-        labelSelector:
-          matchLabels:
-            statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
-        postHooks:
-          - exec:
-              container: es-master
-              command:
-                - /usr/share/opensearch/bin/verrazzano-backup-hook
-                - -operation
-                - restore
-                - -velero-backup-name
-                - {{ .VeleroBackupName }}
-              waitTimeout: 30m
-              execTimeout: 30m
-              onError: Fail`
-
-const esQueryBody = `
-{
-	"query": {
-  		"terms": {
-			"_id": ["{{ .BackupIDBeforeBackup }}"]
-  		}
-	}
-}
-`
-
-type accessData struct {
-	AccessName             string
-	ScrtName               string
-	ObjectStoreAccessValue string
-	ObjectStoreScrt        string
-}
-
-type veleroBackupLocationObjectData struct {
-	VeleroBackupStorageName          string
-	VeleroNamespaceName              string
-	VeleroObjectStoreBucketName      string
-	VeleroSecretName                 string
-	VeleroObjectStorageNamespaceName string
-	VeleroBackupRegion               string
-}
-
-type veleroBackupObject struct {
-	VeleroBackupName                 string
-	VeleroNamespaceName              string
-	VeleroBackupStorageName          string
-	VeleroOpensearchHookResourceName string
-}
-
-type veleroRestoreObject struct {
-	VeleroRestore                    string
-	VeleroNamespaceName              string
-	VeleroBackupName                 string
-	VeleroOpensearchHookResourceName string
-}
-
-type esQueryObject struct {
-	BackupIDBeforeBackup string
 }
 
 var _ = t.BeforeSuite(func() {
@@ -266,7 +122,35 @@ func CreateCredentialsSecretFromFile(namespace string, name string) error {
 	return nil
 }
 
-func DeleteVeleroCredential(namespace string, name string) error {
+func CreateSecretFromMap(namespace string, name string) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		t.Logs.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	secretData := make(map[string]string)
+	secretData["accessKey"] = OciOsAccessKey
+	secretData["secretKey"] = OciOsAccessSecretKey
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type:       corev1.SecretTypeOpaque,
+		StringData: secretData,
+	}
+
+	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	if err != nil {
+		t.Logs.Errorf("Error creating secret ", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func DeleteSecret(namespace string, name string) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		t.Logs.Errorf("Failed to get clientset with error: %v", err)
@@ -346,11 +230,34 @@ func CreateVeleroBackupObject() error {
 	return nil
 }
 
+// CreateRancherBackupObject creates opaque secret from the given map of values
+func CreateRancherBackupObject() error {
+	var b bytes.Buffer
+	template, _ := template.New("rancher-backup").Parse(rancherBackup)
+	data := rancherBackupData{
+		RancherBackupName: BackupRancherName,
+		RancherSecretData: rancherObjectStoreData{
+			RancherSecretName:                 RancherSecretName,
+			RancherSecretNamespaceName:        VeleroNameSpace,
+			RancherObjectStoreBucketName:      OciBucketName,
+			RancherBackupRegion:               BackupRegion,
+			RancherObjectStorageNamespaceName: OciNamespaceName,
+		},
+	}
+	template.Execute(&b, data)
+	err := dynamicSSA(context.TODO(), b.String(), t.Logs)
+	if err != nil {
+		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
 func CreateVeleroRestoreObject() error {
 	var b bytes.Buffer
 	template, _ := template.New("velero-restore").Parse(veleroRestore)
 	data := veleroRestoreObject{
-		VeleroRestore:                    RestoreName,
+		VeleroRestore:                    RestoreOpensearchName,
 		VeleroNamespaceName:              VeleroNameSpace,
 		VeleroBackupName:                 BackupOpensearchName,
 		VeleroOpensearchHookResourceName: BackupResourceName,
@@ -365,6 +272,40 @@ func CreateVeleroRestoreObject() error {
 	return nil
 }
 
+// CreateRancherBackupObject creates opaque secret from the given map of values
+func CreateRancherRestoreObject() error {
+
+	rancherFileName, err := getRancherBackupFileName(BackupRancherName, t.Logs)
+	if err != nil {
+		return err
+	}
+
+	RancherBackupFileName = rancherFileName
+
+	var b bytes.Buffer
+	template, _ := template.New("rancher-backup").Parse(rancherRestore)
+	data := rancherRestoreData{
+		RancherRestoreName: RestoreRancherName,
+		BackupFileName:     RancherBackupFileName,
+		RancherSecretData: rancherObjectStoreData{
+			RancherSecretName:                 RancherSecretName,
+			RancherSecretNamespaceName:        VeleroNameSpace,
+			RancherObjectStoreBucketName:      OciBucketName,
+			RancherBackupRegion:               BackupRegion,
+			RancherObjectStorageNamespaceName: OciNamespaceName,
+		},
+	}
+
+	template.Execute(&b, data)
+	err = dynamicSSA(context.TODO(), b.String(), t.Logs)
+	if err != nil {
+		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
+		return err
+	}
+	t.Logs.Infof("Rancher backup filename = %s", RancherBackupFileName)
+	return nil
+}
+
 func GetBackupID() error {
 	esURL, err := GetEsURL(t.Logs)
 	if err != nil {
@@ -375,7 +316,7 @@ func GetBackupID() error {
 	vzPasswd, err := GetVZPasswd(t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error getting vz passwd ", zap.Error(err))
-		//return err
+		return err
 	}
 	var cmdArgs []string
 	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?from=0&size=1", esURL))
@@ -469,7 +410,7 @@ func CheckRestoreProgress() error {
 	cmdArgs = append(cmdArgs, "restore.velero.io")
 	cmdArgs = append(cmdArgs, "-n")
 	cmdArgs = append(cmdArgs, VeleroNameSpace)
-	cmdArgs = append(cmdArgs, RestoreName)
+	cmdArgs = append(cmdArgs, RestoreOpensearchName)
 	cmdArgs = append(cmdArgs, "-o")
 	cmdArgs = append(cmdArgs, "jsonpath={.status.phase}")
 	cmdArgs = append(cmdArgs, "--ignore-not-found")
@@ -478,6 +419,41 @@ func CheckRestoreProgress() error {
 	kcmd.Timeout = 1 * time.Minute
 	kcmd.CommandArgs = cmdArgs
 	return retryAndCheckShellCommandResponse(100, &kcmd, "restore", BackupOpensearchName, t.Logs)
+}
+
+func CheckOperatorOperationProgress(operator, operation string) error {
+	var cmdArgs []string
+	var k8sObjectName, kind, jsonPath string
+
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+
+	switch operator {
+	case "velero":
+		kind = "velero.io"
+		jsonPath = "{.status.phase}"
+	case "rancher":
+		kind = "resources.cattle.io"
+		jsonPath = "{.status.conditions[].message}"
+	}
+
+	switch operation {
+	case "backup":
+		k8sObjectName = BackupRancherName
+	case "restore":
+		k8sObjectName = RestoreRancherName
+
+	}
+	cmdArgs = append(cmdArgs, fmt.Sprintf("%s.%s", operation, kind))
+	cmdArgs = append(cmdArgs, k8sObjectName)
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, fmt.Sprintf("jsonpath=%s", jsonPath))
+	cmdArgs = append(cmdArgs, "--ignore-not-found")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+	return retryAndCheckShellCommandResponse(100, &kcmd, operation, k8sObjectName, t.Logs)
 }
 
 func NukeOpensearch() error {
@@ -634,6 +610,11 @@ func backupPrerequisites() {
 		return CreateCredentialsSecretFromFile(VeleroNameSpace, VeleroSecretName)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
+	t.Logs.Info("Create backup secret for rancher backup objects")
+	Eventually(func() error {
+		return CreateSecretFromMap(VeleroNameSpace, RancherSecretName)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
 	t.Logs.Info("Create backup storage location for velero backup objects")
 	Eventually(func() error {
 		return CreateVeleroBackupLocationObject()
@@ -666,7 +647,12 @@ func cleanUpVelero() {
 
 	t.Logs.Info("Cleanup velero secrets")
 	Eventually(func() error {
-		return DeleteVeleroCredential(VeleroNameSpace, VeleroSecretName)
+		return DeleteSecret(VeleroNameSpace, VeleroSecretName)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+	t.Logs.Info("Cleanup rancher secrets")
+	Eventually(func() error {
+		return DeleteSecret(VeleroNameSpace, RancherSecretName)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 }
@@ -684,7 +670,8 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check backup progress after velero backup object was created", func() {
 		WhenVeleroInstalledIt("Check backup progress after velero backup object was created", func() {
 			Eventually(func() error {
-				return CheckBackupProgress()
+				//return CheckBackupProgress()
+				return CheckOperatorOperationProgress("velero", "backup")
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
@@ -717,7 +704,8 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check velero restore progress", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
-				return CheckRestoreProgress()
+				//return CheckRestoreProgress()
+				return CheckOperatorOperationProgress("velero", "restore")
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
@@ -735,6 +723,42 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 		WhenVeleroInstalledIt("Fetch logs after restore is complete", func() {
 			Eventually(func() error {
 				return displayHookLogs(t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+	})
+
+	// Rancher backup section
+
+	t.Context("Start rancher backup", func() {
+		WhenVeleroInstalledIt("Start rancher backup", func() {
+			Eventually(func() error {
+				return CreateRancherBackupObject()
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+	})
+
+	t.Context("Check backup progress after rancher backup object was created", func() {
+		WhenVeleroInstalledIt("Check backup progress after rancher backup object was created", func() {
+			Eventually(func() error {
+				//return CheckBackupProgress()
+				return CheckOperatorOperationProgress("rancher", "backup")
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+	})
+
+	t.Context("Start restore after rancher backup is completed", func() {
+		WhenVeleroInstalledIt("Start restore after rancher backup is completed", func() {
+			Eventually(func() error {
+				return CreateRancherRestoreObject()
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+	})
+
+	t.Context("Check rancher restore progress", func() {
+		WhenVeleroInstalledIt("Check rancher restore progress", func() {
+			Eventually(func() error {
+				//return CheckRestoreProgress()
+				return CheckOperatorOperationProgress("rancher", "restore")
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})

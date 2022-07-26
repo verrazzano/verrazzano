@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package opensearch
+package backup
 
 import (
 	"bytes"
@@ -27,6 +27,169 @@ import (
 	"time"
 )
 
+const secretsData = //nolint:gosec //#gosec G101 //#gosec G204
+`[default]
+{{ .AccessName }}={{ .ObjectStoreAccessValue }}
+{{ .ScrtName }}={{ .ObjectStoreScrt }}
+`
+
+const veleroBackupLocation = `
+    apiVersion: velero.io/v1
+    kind: BackupStorageLocation
+    metadata:
+      name: {{ .VeleroBackupStorageName }}
+      namespace: {{ .VeleroNamespaceName }}
+    spec:
+      provider: aws
+      objectStorage:
+        bucket: {{ .VeleroObjectStoreBucketName }}
+        prefix: opensearch
+      credential:
+        name: {{ .VeleroSecretName }}
+        key: cloud
+      config:
+        region: {{ .VeleroBackupRegion }}
+        s3ForcePathStyle: "true"
+        s3Url: https://{{ .VeleroObjectStorageNamespaceName }}.compat.objectstorage.{{ .VeleroBackupRegion }}.oraclecloud.com`
+
+const veleroBackup = `
+---
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: {{ .VeleroBackupName }}
+  namespace: {{ .VeleroNamespaceName }}
+spec:
+  includedNamespaces:
+    - verrazzano-system
+  labelSelector:
+    matchLabels:
+      verrazzano-component: opensearch
+  defaultVolumesToRestic: false
+  storageLocation: {{ .VeleroBackupStorageName }}
+  hooks:
+    resources:
+      - 
+        name: {{ .VeleroOpensearchHookResourceName }}
+        includedNamespaces:
+          - verrazzano-system
+        labelSelector:
+          matchLabels:
+            statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+        post:
+          - 
+            exec:
+              container: es-master
+              command:
+                - /usr/share/opensearch/bin/verrazzano-backup-hook
+                - -operation
+                - backup
+                - -velero-backup-name
+                - {{ .VeleroBackupName }}
+              onError: Fail
+              timeout: 10m`
+
+const veleroRestore = `
+---
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: {{ .VeleroRestore }}
+  namespace: {{ .VeleroNamespaceName }}
+spec:
+  backupName: {{ .VeleroBackupName }}
+  includedNamespaces:
+    - verrazzano-system
+  labelSelector:
+    matchLabels:
+      verrazzano-component: opensearch
+  restorePVs: false
+  hooks:
+    resources:
+      - name: {{ .VeleroOpensearchHookResourceName }}
+        includedNamespaces:
+          - verrazzano-system
+        labelSelector:
+          matchLabels:
+            statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+        postHooks:
+          - exec:
+              container: es-master
+              command:
+                - /usr/share/opensearch/bin/verrazzano-backup-hook
+                - -operation
+                - restore
+                - -velero-backup-name
+                - {{ .VeleroBackupName }}
+              waitTimeout: 30m
+              execTimeout: 30m
+              onError: Fail`
+
+const esQueryBody = `
+{
+	"query": {
+  		"terms": {
+			"_id": ["{{ .BackupIDBeforeBackup }}"]
+  		}
+	}
+}
+`
+
+const rancherBackup = `
+---
+apiVersion: resources.cattle.io/v1
+kind: Backup
+metadata:
+name: {{ .RancherBackupName }}
+spec:
+storageLocation:
+  s3:
+	credentialSecretName: {{ .RancherSecretName }}
+	credentialSecretNamespace: {{ .RancherSecretNamespaceName }}
+	bucketName: {{ .RancherObjectStoreBucketName }}
+	folder: rancher-backup
+	region: {{ .RancherBackupRegion }}
+	endpoint: {{ .RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherBackupRegion }}.oraclecloud.com
+resourceSetName: rancher-resource-set
+`
+
+const rancherRestore = `
+---
+apiVersion: resources.cattle.io/v1
+kind: Restore
+metadata:
+  name: {{ .RancherRestoreName }}
+spec:
+  backupFilename: {{ .RancherBackupFileName }}
+  storageLocation:
+	s3:
+	  credentialSecretName: {{ .RancherSecretName }}
+	  credentialSecretNamespace: {{ .RancherSecretNamespaceName }}
+	  bucketName: {{ .RancherObjectStoreBucketName }}
+	  folder: rancher-backup
+	  region: {{ .RancherBackupRegion }}
+	  endpoint: {{ .RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherBackupRegion }}.oraclecloud.com
+`
+
+type rancherBackupData struct {
+	RancherBackupName string
+	RancherSecretData rancherObjectStoreData
+}
+
+type rancherRestoreData struct {
+	RancherRestoreName string
+	BackupFileName     string
+	RancherSecretData  rancherObjectStoreData
+}
+
+type rancherObjectStoreData struct {
+	RancherSecretName                 string
+	RancherSecretNamespaceName        string
+	RancherObjectStoreBucketName      string
+	RancherBackupRegion               string
+	RancherObjectStorageNamespaceName string
+}
+
 var decUnstructured = k8sYaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
 type BashCommand struct {
@@ -38,6 +201,40 @@ type RunnerResponse struct {
 	StandardOut  bytes.Buffer `json:"stdout"`
 	StandardErr  bytes.Buffer `json:"stderr"`
 	CommandError error        `json:"error"`
+}
+
+type accessData struct {
+	AccessName             string
+	ScrtName               string
+	ObjectStoreAccessValue string
+	ObjectStoreScrt        string
+}
+
+type veleroBackupLocationObjectData struct {
+	VeleroBackupStorageName          string
+	VeleroNamespaceName              string
+	VeleroObjectStoreBucketName      string
+	VeleroSecretName                 string
+	VeleroObjectStorageNamespaceName string
+	VeleroBackupRegion               string
+}
+
+type veleroBackupObject struct {
+	VeleroBackupName                 string
+	VeleroNamespaceName              string
+	VeleroBackupStorageName          string
+	VeleroOpensearchHookResourceName string
+}
+
+type veleroRestoreObject struct {
+	VeleroRestore                    string
+	VeleroNamespaceName              string
+	VeleroBackupName                 string
+	VeleroOpensearchHookResourceName string
+}
+
+type esQueryObject struct {
+	BackupIDBeforeBackup string
 }
 
 func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
@@ -181,9 +378,9 @@ func retryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operat
 		}
 		response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
 		switch response {
-		case "InProgress":
-			log.Infof("%s '%s' is in progress. Check back after 20 seconds", strings.ToTitle(operation), objectName)
-			time.Sleep(20 * time.Second)
+		case "InProgress", "":
+			log.Infof("%s '%s' is in progress. Check back after 60 seconds", strings.ToTitle(operation), objectName)
+			time.Sleep(60 * time.Second)
 		case "Completed":
 			log.Infof("%s '%s' completed successfully", strings.ToTitle(operation), objectName)
 			return nil
@@ -262,4 +459,24 @@ func displayHookLogs(log *zap.SugaredLogger) error {
 	}
 	log.Infof(stdout)
 	return nil
+}
+
+func getRancherBackupFileName(backupName string, log *zap.SugaredLogger) (string, error) {
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "backup.resources.cattle.io")
+	cmdArgs = append(cmdArgs, backupName)
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, "jsonpath={.status.filename}")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 2 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+
+	fileNameResponse := Runner(&kcmd, log)
+	if fileNameResponse.CommandError != nil {
+		return "", fileNameResponse.CommandError
+	}
+	return strings.TrimSpace(strings.Trim(fileNameResponse.StandardOut.String(), "\n")), nil
 }
