@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

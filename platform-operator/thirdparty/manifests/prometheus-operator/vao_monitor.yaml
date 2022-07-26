@@ -20,11 +20,7 @@ spec:
       - sourceLabels:
           - __meta_kubernetes_service_name
           - __meta_kubernetes_endpoint_port_name
-<<<<<<< HEAD
         regex: verrazzano-application-operator;http-metric
-=======
-        regex: verrazzano-application-operator;http-metric-vao
->>>>>>> master
         action: keep
       - sourceLabels:
           - __meta_kubernetes_service_label_app

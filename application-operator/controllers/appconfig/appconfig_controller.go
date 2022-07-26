@@ -56,7 +56,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-
 	zapLogForMetrics := zap.S().With(controllerName)
 	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileCounter)
 	if err != nil {
@@ -89,7 +88,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	var appConfig oamv1.ApplicationConfiguration
 	if err := r.Client.Get(ctx, req.NamespacedName, &appConfig); err != nil {
-
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())
 	}
 	log, err := clusters.GetResourceLogger("applicationconfiguration", req.NamespacedName, &appConfig)
@@ -98,7 +96,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Errorf("Failed to create controller logger for application configuration resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
-
 	log.Oncef("Reconciling application configuration resource %v, generation %v", req.NamespacedName, appConfig.Generation)
 
 	res, err := r.doReconcile(ctx, &appConfig, log)
