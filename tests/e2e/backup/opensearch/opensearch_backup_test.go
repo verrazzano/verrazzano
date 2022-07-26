@@ -230,17 +230,17 @@ func GetBackupID() error {
 	return nil
 }
 
-func IsRestoreSuccessful() bool {
+func IsRestoreSuccessful() string {
 	esURL, err := backup.GetEsURL(t.Logs)
 	if err != nil {
 		t.Logs.Infof("Error getting es url ", zap.Error(err))
-		return false
+		return ""
 	}
 
 	vzPasswd, err := backup.GetVZPasswd(t.Logs)
 	if err != nil {
 		t.Logs.Infof("Error getting vz passwd ", zap.Error(err))
-		return false
+		return ""
 	}
 	var b bytes.Buffer
 	template, _ := template.New("velero-restore-verify").Parse(backup.EsQueryBody)
@@ -265,49 +265,12 @@ func IsRestoreSuccessful() bool {
 
 	curlResponse := backup.Runner(&kcmd, t.Logs)
 	if curlResponse.CommandError != nil {
-		return false
+		return ""
 	}
 	backupIDFetched := strings.TrimSpace(strings.Trim(curlResponse.StandardOut.String(), "\n"))
-	return backupIDFetched == backup.BackupID
+	//return backupIDFetched == backup.BackupID
+	return backupIDFetched
 }
-
-/*
-func CheckBackupProgress() error {
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "backup.velero.io")
-	cmdArgs = append(cmdArgs, "-n")
-	cmdArgs = append(cmdArgs, VeleroNameSpace)
-	cmdArgs = append(cmdArgs, BackupOpensearchName)
-	cmdArgs = append(cmdArgs, "-o")
-	cmdArgs = append(cmdArgs, "jsonpath={.status.phase}")
-	cmdArgs = append(cmdArgs, "--ignore-not-found")
-
-	var kcmd BashCommand
-	kcmd.Timeout = 1 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-	return RetryAndCheckShellCommandResponse(100, &kcmd, "backup", BackupOpensearchName, t.Logs)
-}
-
-func CheckRestoreProgress() error {
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "restore.velero.io")
-	cmdArgs = append(cmdArgs, "-n")
-	cmdArgs = append(cmdArgs, VeleroNameSpace)
-	cmdArgs = append(cmdArgs, RestoreOpensearchName)
-	cmdArgs = append(cmdArgs, "-o")
-	cmdArgs = append(cmdArgs, "jsonpath={.status.phase}")
-	cmdArgs = append(cmdArgs, "--ignore-not-found")
-
-	var kcmd BashCommand
-	kcmd.Timeout = 1 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-	return RetryAndCheckShellCommandResponse(100, &kcmd, "restore", BackupOpensearchName, t.Logs)
-}
-*/
 
 func NukeOpensearch() error {
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -503,9 +466,9 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 
 	t.Context("Is Restore good? Verify restore", func() {
 		WhenVeleroInstalledIt("Is Restore good? Verify restore", func() {
-			Eventually(func() bool {
+			Eventually(func() string {
 				return IsRestoreSuccessful()
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+			}, waitTimeout, pollingInterval).Should(Equal(backup.BackupID))
 		})
 
 	})

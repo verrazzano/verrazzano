@@ -8,8 +8,10 @@ metadata:
 spec:
   components:
     rancher:
-      enabled: false
+      enabled: true
     rancherBackup:
+      enabled: true
+    elasticsearch:
       enabled: false
     velero:
       enabled: true

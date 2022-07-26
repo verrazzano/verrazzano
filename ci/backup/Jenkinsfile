@@ -402,12 +402,28 @@ pipeline {
                      }
                 }
 
-                stage('Opensearch backup tests') {
+                //stage('Opensearch backup tests') {
+                //    environment {
+                //        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
+                //    }
+                //    steps {
+                //        runGinkgoRandomize('backup/opensearch')
+                //    }
+                //    post {
+                //        always {
+                //            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                //            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                //        }
+                //    }
+                //}
+
+
+                stage('Rancher backup tests') {
                     environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
                     }
                     steps {
-                        runGinkgoRandomize('backup/opensearch')
+                        runGinkgoRandomize('backup/rancher')
                     }
                     post {
                         always {
@@ -417,22 +433,6 @@ pipeline {
                     }
                 }
 
-
-                //stage('Rancher backup tests') {
-                //    environment {
-                //        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
-                //    }
-                //    steps {
-                //        runGinkgoRandomize('backup/rancher')
-                //    }
-                //    post {
-                //        always {
-                //            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                //            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                //        }
-                //    }
-                //}
-               
 
             }
 

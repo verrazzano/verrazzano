@@ -135,6 +135,18 @@ const EsQueryBody = `
 }
 `
 
+const RancherUserTemplate = `
+{
+  "description":"Automated Tests", 
+  "me":false, 
+  "mustChangePassword":false, 
+  "name": {{ .FullName }}, 
+  "password": {{ .Password }}, 
+  "principalIds":[], 
+  "username": {{ .Username }}
+}
+`
+
 const RancherBackup = `
 ---
 apiVersion: resources.cattle.io/v1
@@ -144,12 +156,12 @@ metadata:
 spec:
   storageLocation:
     s3:
-	  credentialSecretName: {{ .RancherSecretData.RancherSecretName }}
-	  credentialSecretNamespace: {{ .RancherSecretData.RancherSecretNamespaceName }}
-	  bucketName: {{ .RancherSecretData.RancherObjectStoreBucketName }}
-	  folder: rancher-backup
-	  region: {{ .RancherSecretData.RancherBackupRegion }}
-	  endpoint: {{ .RancherSecretData.RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherSecretData.RancherBackupRegion }}.oraclecloud.com
+      credentialSecretName: {{ .RancherSecretData.RancherSecretName }}
+      credentialSecretNamespace: {{ .RancherSecretData.RancherSecretNamespaceName }}
+      bucketName: {{ .RancherSecretData.RancherObjectStoreBucketName }}
+      folder: rancher-backup
+      region: {{ .RancherSecretData.RancherBackupRegion }}
+      endpoint: {{ .RancherSecretData.RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherSecretData.RancherBackupRegion }}.oraclecloud.com
   resourceSetName: rancher-resource-set
 `
 
@@ -163,12 +175,12 @@ spec:
   backupFilename: {{ .RancherBackupFileName }}
   storageLocation:
 	s3:
-	  credentialSecretName: {{ .RancherSecretData.RancherSecretName }}
-	  credentialSecretNamespace: {{ .RancherSecretData.RancherSecretNamespaceName }}
-	  bucketName: {{ .RancherSecretData.RancherObjectStoreBucketName }}
-	  folder: rancher-backup
-	  region: {{ .RancherSecretData.RancherBackupRegion }}
-	  endpoint: {{ .RancherSecretData.RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherSecretData.RancherBackupRegion }}.oraclecloud.com
+      credentialSecretName: {{ .RancherSecretData.RancherSecretName }}
+      credentialSecretNamespace: {{ .RancherSecretData.RancherSecretNamespaceName }}
+      bucketName: {{ .RancherSecretData.RancherObjectStoreBucketName }}
+      folder: rancher-backup
+      region: {{ .RancherSecretData.RancherBackupRegion }}
+      endpoint: {{ .RancherSecretData.RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherSecretData.RancherBackupRegion }}.oraclecloud.com
 `
 
 type RancherBackupData struct {
@@ -237,14 +249,32 @@ type EsQueryObject struct {
 	BackupIDBeforeBackup string
 }
 
+type RancherUser struct {
+	FullName string
+	Password string
+	Username string
+}
+
 var (
-	VeleroNameSpace, VeleroSecretName                                                                    string
-	RancherSecretName                                                                                    string
-	OciBucketID, OciBucketName, OciOsAccessKey, OciOsAccessSecretKey, OciCompartmentID, OciNamespaceName string
-	BackupResourceName, BackupOpensearchName, BackupRancherName                                          string
-	RestoreOpensearchName, RestoreRancherName                                                            string
-	BackupRegion, BackupStorageName                                                                      string
-	BackupID, RancherBackupFileName                                                                      string
+	VeleroNameSpace       string
+	VeleroSecretName      string
+	RancherSecretName     string
+	OciBucketID           string
+	OciBucketName         string
+	OciOsAccessKey        string
+	OciOsAccessSecretKey  string
+	OciCompartmentID      string
+	OciNamespaceName      string
+	BackupResourceName    string
+	BackupOpensearchName  string
+	BackupRancherName     string
+	RestoreOpensearchName string
+	RestoreRancherName    string
+	BackupRegion          string
+	BackupStorageName     string
+	BackupID              string
+	RancherBackupFileName string
+	RancherToken          string
 )
 
 func GatherInfo() {
@@ -315,6 +345,25 @@ func GetEsURL(log *zap.SugaredLogger) (string, error) {
 	cmdArgs = append(cmdArgs, "vz")
 	cmdArgs = append(cmdArgs, "-o")
 	cmdArgs = append(cmdArgs, "jsonpath={.items[].status.instance.elasticUrl}")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+
+	bashResponse := Runner(&kcmd, log)
+	if bashResponse.CommandError != nil {
+		return "", bashResponse.CommandError
+	}
+	return bashResponse.StandardOut.String(), nil
+}
+
+func GetRancherUrl(log *zap.SugaredLogger) (string, error) {
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "vz")
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, "jsonpath={.items[].status.instance.rancherUrl}")
 
 	var kcmd BashCommand
 	kcmd.Timeout = 1 * time.Minute
