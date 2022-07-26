@@ -30,10 +30,6 @@ type configuration struct {
 type data struct {
 	simpleCounterMetricMap map[metricName]*SimpleCounterMetric
 	durationMetricMap      map[metricName]*DurationMetrics
-	//	webhookDuration   map[string]*DurationMetrics
-	// 	webhookSuccessful map[string]*simpleCounterMetric
-	// 	webhookFailed     map[string]*simpleCounterMetric
-	// 	webhookDuration   map[string]*DurationMetrics
 }
 type metricsDelegate struct {
 }
@@ -60,12 +56,12 @@ type DurationMetrics struct {
 	metric prometheus.Summary
 }
 
-//Creates a new timer, and starts the timer
+// Creates a new timer, and starts the timer
 func (d *DurationMetrics) TimerStart() {
 	d.timer = prometheus.NewTimer(d.metric)
 }
 
-//stops the timer and record the Duration since the last call to TimerStart
+// Stops the timer and record the Duration since the last call to TimerStart
 func (d *DurationMetrics) TimerStop() {
 	d.timer.ObserveDuration()
 }

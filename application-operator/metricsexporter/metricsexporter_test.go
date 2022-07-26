@@ -9,7 +9,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	asserts "github.com/stretchr/testify/assert"
-
 	"go.uber.org/zap"
 )
 
@@ -21,10 +20,8 @@ func TestCollectReconcileMetrics(t *testing.T) {
 	test := struct {
 		name string
 	}{
-
 		name: "Test that reoncile counter is incremented by one when function is Successful & reconcile counter is incremented by one when function is Failed",
 	}
-	// for _, tt := range tests {
 	t.Run(test.name, func(t *testing.T) {
 
 		reconcileCounterObject, err := GetSimpleCounterMetric(AppconfigReconcileCounter)
@@ -42,12 +39,10 @@ func TestCollectReconcileMetrics(t *testing.T) {
 		assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 
 		// Duration Metric test
-
 		reconcileDurationCount, _ := GetDurationMetric(AppconfigReconcileDuration)
 		reconcileDurationCount.TimerStart()
 		time.Sleep(time.Second)
 		reconcileDurationCount.TimerStop()
-
 	})
 
 }

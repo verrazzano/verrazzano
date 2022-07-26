@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -49,7 +47,7 @@ func RegisterMetrics(log *zap.SugaredLogger) {
 }
 
 func InitializeAllMetricsArray() {
-	//loop through all metrics declarations in metric maps
+	// Loop through all metrics declarations in metric maps
 	for _, value := range MetricsExp.internalData.simpleCounterMetricMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
