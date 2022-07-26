@@ -1,7 +1,8 @@
 #!/bin/bash
 #
-# Copyright (c), 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
 # Usage: ./process_olcne_install_yaml.sh <CONFIG_FILE_TO_EDIT> [ENVIRONMENT_NAME INSTALL_PROFILE]
 # - Updates the given yaml file
 
