@@ -142,15 +142,15 @@ kind: Backup
 metadata:
 name: {{ .RancherBackupName }}
 spec:
-storageLocation:
-  s3:
-	credentialSecretName: {{ .RancherSecretName }}
-	credentialSecretNamespace: {{ .RancherSecretNamespaceName }}
-	bucketName: {{ .RancherObjectStoreBucketName }}
-	folder: rancher-backup
-	region: {{ .RancherBackupRegion }}
-	endpoint: {{ .RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherBackupRegion }}.oraclecloud.com
-resourceSetName: rancher-resource-set
+  storageLocation:
+    s3:
+	  credentialSecretName: {{ .RancherSecretName }}
+	  credentialSecretNamespace: {{ .RancherSecretNamespaceName }}
+	  bucketName: {{ .RancherObjectStoreBucketName }}
+	  folder: rancher-backup
+	  region: {{ .RancherBackupRegion }}
+	  endpoint: {{ .RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherBackupRegion }}.oraclecloud.com
+  resourceSetName: rancher-resource-set
 `
 
 const rancherRestore = `
