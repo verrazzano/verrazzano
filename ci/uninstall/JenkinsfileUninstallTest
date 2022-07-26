@@ -235,7 +235,7 @@ pipeline {
                             runInitialInstall(count)
                         } else {
                             // Run just the install again
-                            runInstallOnly(count)
+                            runInstallOnly("Install Verrazzano", count)
                         }
                         runVerifyTests("Run Test", count)
                         runUninstall(count)
@@ -327,19 +327,20 @@ def runUninstall(iteration) {
                 ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources-${iteration}
             """
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                dumpK8sCluster('verify-uninstall-cluster-dump')
+                dumpK8sCluster('verify-uninstall-${iteration}-cluster-dump')
             }
         } catch (err) {
-            dumpK8sCluster('verify-uninstall-cluster-dump')
+            dumpK8sCluster('verify-uninstall-${iteration}-cluster-dump')
             throw err
         }
     }
 }
 
-def runInstallOnly(iteration) {
-    stage("Install Verrazzano #${iteration}") {
+def runInstallOnly(stagePrefix, iteration) {
+    def dirPrefix=stagePrefix.replaceAll("\\s","-").toLowerCase()
+    stage("${stagePrefix} #${iteration}") {
         def vpoLogsDir = "${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/${iteration}"
-        echo "Platform operator reinstall logs dir: ${vpoLogsDir}"
+        echo "Platform operator logs dir: ${vpoLogsDir}"
         try {
             sh """
                 # sleep for a period to ensure async deletion of Verrazzano components from uninstall above has completed
@@ -350,17 +351,17 @@ def runInstallOnly(iteration) {
                 GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
             """
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-               dumpK8sCluster('verrazzano-reinstall-cluster-dump')
+               dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-cluster-dump')
             }
         } catch (err) {
-            dumpK8sCluster('verrazzano-reinstall-failure-cluster-dump')
+            dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-failure-cluster-dump')
             sh """
                mkdir -p ${vpoLogsDir}
                ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${vpoLogsDir}/resources.log
             """
             throw err
         } finally {
-            dumpPodsAndLogs("reinstall-${iteration}")
+            dumpPodsAndLogs("${dirPrefix}-${iteration}")
             listNamespacesAndPods('after reinstalling Verrazzano')
             listHelmReleases('after reinstalling Verrazzano')
         }
@@ -372,10 +373,10 @@ def runVerifyTests(stageName, iteration) {
         try {
             parallel generateVerifyInfraStages()
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                dumpK8sCluster('verrazzano-testrun-after-install-cluster-dump')
+                dumpK8sCluster('verrazzano-testrun-${iteration}-cluster-dump')
             }
         } catch (err) {
-            dumpK8sCluster('verrazzano-test-failure-cluster-dump')
+            dumpK8sCluster('verrazzano-test-failure-${iteration}-cluster-dump')
             throw err
         }
     }
