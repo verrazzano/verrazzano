@@ -378,7 +378,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Check persistent volumes for prod cluster profile", func() {
 			if minVer14 {
 				Expect(len(volumeClaims)).To(Equal(7))
-				Expect(len(vzMonitoringVolumeClaims)).To(Equal(2))
+				Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
 				assertPrometheusVolume(size)
 			} else {
 				Expect(len(volumeClaims)).To(Equal(8))
@@ -611,9 +611,6 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 		return 0, err
 	}
 	var expectedReplicas int32 = 1
-	if pkg.IsProdProfile() {
-		expectedReplicas = 2
-	}
 	if vz.Spec.Components.PrometheusOperator == nil {
 		return expectedReplicas, nil
 	}
