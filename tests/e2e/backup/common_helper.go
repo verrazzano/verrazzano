@@ -125,6 +125,72 @@ spec:
               execTimeout: 30m
               onError: Fail`
 
+const MySQLBackup = `
+---
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: {{ .VeleroMysqlBackupName }}
+  namespace: {{ .VeleroNamespaceName }}
+spec:
+  includedNamespaces:
+    - keycloak  
+  defaultVolumesToRestic: true
+  storageLocation: {{ .VeleroMysqlBackupStorageName }}
+  hooks:
+    resources:
+      - 
+        name: {{ .VeleroMysqlHookResourceName }}
+        includedNamespaces:
+          - keycloak
+        labelSelector:
+          matchLabels:
+            app: mysql
+        pre:
+          - 
+            exec:
+              container: mysql
+              command:
+                - bash
+                - /etc/mysql/conf.d/mysql-hook.sh
+                - backup
+                - -o backup
+                - -f {{ .VeleroMysqlBackupName }}.sql
+              onError: Fail
+              timeout: 5m`
+
+const MySQLRestore = `
+---
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: {{ .VeleroMysqlRestore }}
+  namespace: {{ .VeleroNamespaceName }}
+spec:
+  backupName: {{ .VeleroMysqlBackupName }}
+  includedNamespaces:
+    - keycloak 
+  restorePVs: false
+  hooks:
+    resources:
+      - name: {{ .VeleroMysqlHookResourceName }}
+        includedNamespaces:
+          - keycloak
+        labelSelector:
+          matchLabels:
+            app: mysql
+        postHooks:
+          - exec:
+              container: mysql
+              command:
+                - bash
+                - /etc/mysql/conf.d/mysql-hook.sh
+                - -o restore
+                - -f {{ .VeleroMysqlBackupName }}.sql
+              waitTimeout: 5m
+              execTimeout: 5m
+              onError: Fail`
+
 const EsQueryBody = `
 {
 	"query": {
@@ -172,7 +238,7 @@ kind: Restore
 metadata:
   name: {{ .RancherRestoreName }}
 spec:
-  backupFilename: {{ .RancherBackupFileName }}
+  backupFilename: {{ .BackupFileName }}
   storageLocation:
     s3:
       credentialSecretName: {{ .RancherSecretData.RancherSecretName }}
@@ -255,6 +321,20 @@ type RancherUser struct {
 	Username string
 }
 
+type VeleroMysqlBackupObject struct {
+	VeleroMysqlBackupName        string
+	VeleroNamespaceName          string
+	VeleroMysqlBackupStorageName string
+	VeleroMysqlHookResourceName  string
+}
+
+type VeleroMysqlRestoreObject struct {
+	VeleroMysqlRestore          string
+	VeleroNamespaceName         string
+	VeleroMysqlBackupName       string
+	VeleroMysqlHookResourceName string
+}
+
 var (
 	VeleroNameSpace       string
 	VeleroSecretName      string
@@ -268,8 +348,10 @@ var (
 	BackupResourceName    string
 	BackupOpensearchName  string
 	BackupRancherName     string
+	BackupMySQLname       string
 	RestoreOpensearchName string
 	RestoreRancherName    string
+	RestoreMysqlName      string
 	BackupRegion          string
 	BackupStorageName     string
 	BackupID              string
@@ -484,6 +566,29 @@ func VeleroObjectDelete(objectType, objectname, nameSpaceName string, log *zap.S
 		cmdArgs = append(cmdArgs, "restore.velero.io")
 	case "storage":
 		cmdArgs = append(cmdArgs, "backupstoragelocation.velero.io")
+	}
+	cmdArgs = append(cmdArgs, objectname)
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+	bashResponse := Runner(&kcmd, log)
+	if bashResponse.CommandError != nil {
+		return bashResponse.CommandError
+	}
+	return nil
+}
+
+func RancherObjectDelete(objectType, objectname string, log *zap.SugaredLogger) error {
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "delete")
+
+	switch objectType {
+	case "backup":
+		cmdArgs = append(cmdArgs, "backup.resources.cattle.io")
+	case "restore":
+		cmdArgs = append(cmdArgs, "restore.resources.cattle.io")
 	}
 	cmdArgs = append(cmdArgs, objectname)
 

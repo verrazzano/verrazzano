@@ -297,6 +297,16 @@ func backupPrerequisites() {
 func cleanUpRancher() {
 	t.Logs.Info("Cleanup backup and restore objects")
 
+	t.Logs.Info("Cleanup restore object")
+	Eventually(func() error {
+		return backup.RancherObjectDelete("restore", backup.RestoreRancherName, t.Logs)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
+	t.Logs.Info("Cleanup backup object")
+	Eventually(func() error {
+		return backup.RancherObjectDelete("backup", backup.BackupRancherName, t.Logs)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
 	t.Logs.Info("Cleanup rancher secrets")
 	Eventually(func() error {
 		return DeleteSecret(backup.VeleroNameSpace, backup.RancherSecretName)
