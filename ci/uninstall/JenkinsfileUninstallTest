@@ -241,7 +241,7 @@ pipeline {
                         runUninstall(count)
                         if (params.CHAOS_TEST_TYPE == "uninstall.interrupt.uninstall") {
                             // Run re-install once and re-verify
-                            runInstallOnly(count)
+                            runInstallOnly("Reinstall Verrazzano", count)
                             runVerifyTests("Rerun Test", count)
                         }
                     }
