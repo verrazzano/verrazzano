@@ -93,7 +93,7 @@ const (
 const (
 	APIGroupRancherManagement        = "management.cattle.io"
 	APIGroupVersionRancherManagement = "v3"
-	SettingServerUrl                 = "server-url"
+	SettingServerURL                 = "server-url"
 	KontainerDriverOKE               = "oraclecontainerengine"
 	NodeDriverOCI                    = "oci"
 	ClusterLocal                     = "local"
@@ -409,18 +409,18 @@ func activatOKEDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
 	return nil
 }
 
-// putServerUrl updates the server-url Setting kontainerDriver
-func putServerUrl(log vzlog.VerrazzanoLogger, c client.Client, serverUrl string) error {
-	serverUrlSetting := unstructured.Unstructured{}
-	serverUrlSetting.SetGroupVersionKind(GVKSetting)
-	serverUrlSettingName := types.NamespacedName{Name: SettingServerUrl}
-	err := c.Get(context.Background(), serverUrlSettingName, &serverUrlSetting)
+// putServerURL updates the server-url Setting kontainerDriver
+func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string) error {
+	serverURLSetting := unstructured.Unstructured{}
+	serverURLSetting.SetGroupVersionKind(GVKSetting)
+	serverURLSettingName := types.NamespacedName{Name: SettingServerURL}
+	err := c.Get(context.Background(), serverURLSettingName, &serverURLSetting)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("Failed getting server-url Setting: %s", err.Error())
 	}
 
-	serverUrlSetting.UnstructuredContent()["value"] = serverUrl
-	err = c.Update(context.Background(), &serverUrlSetting)
+	serverURLSetting.UnstructuredContent()["value"] = serverURL
+	err = c.Update(context.Background(), &serverURLSetting)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("Failed updating server-url Setting: %s", err.Error())
 	}

@@ -16,10 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const (
-	dummyToken = "token"
-)
-
 func getScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = networking.AddToScheme(scheme)

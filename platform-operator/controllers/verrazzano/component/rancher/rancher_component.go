@@ -254,7 +254,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
 	}
 
-	if err := putServerUrl(log, c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
+	if err := putServerURL(log, c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
 		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
 	}
 

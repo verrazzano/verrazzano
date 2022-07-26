@@ -19,6 +19,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -181,6 +182,41 @@ func createAdminSecret() v1.Secret {
 			"password": []byte("foobar"),
 		},
 	}
+}
+
+func createServerUrlSetting() unstructured.Unstructured {
+	serverURLSetting := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	serverURLSetting.SetGroupVersionKind(GVKSetting)
+	serverURLSetting.SetName(SettingServerURL)
+	return serverURLSetting
+}
+
+func createOciDriver() unstructured.Unstructured {
+	ociDriver := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"active": false,
+			},
+		},
+	}
+	ociDriver.SetGroupVersionKind(GVKNodeDriver)
+	ociDriver.SetName(NodeDriverOCI)
+	return ociDriver
+}
+
+func createOkeDriver() unstructured.Unstructured {
+	okeDriver := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"active": false,
+			},
+		},
+	}
+	okeDriver.SetGroupVersionKind(GVKKontainerDriver)
+	okeDriver.SetName(KontainerDriverOKE)
+	return okeDriver
 }
 
 // TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR
