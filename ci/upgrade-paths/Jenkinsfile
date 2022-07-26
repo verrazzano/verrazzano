@@ -323,7 +323,7 @@ pipeline {
                         }
                         failure {
                             script {
-                                dumpK8sCluster("${WORKSPACE}/install-failure-cluster-dump")
+                                dumpK8sCluster("${WORKSPACE}/install-failure-cluster-snapshot")
                                 INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
                             }
                         }
@@ -421,7 +421,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-snapshot")
                     }
                 }
             }
@@ -451,7 +451,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-snapshot")
                     }
                 }
             }
@@ -578,7 +578,7 @@ pipeline {
                             post {
                                 failure {
                                     script {
-                                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump-pre-uninstall")
+                                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot-pre-uninstall")
                                     }
                                 }
                             }
@@ -605,20 +605,20 @@ pipeline {
                 failure {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot")
                     }
                 }
                 aborted {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot")
                     }
                 }
                 success {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-dump")
+                            dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot")
                         }
                     }
                 }
@@ -637,7 +637,7 @@ pipeline {
                 failure {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-snapshot")
                     }
                 }
             }
@@ -654,7 +654,7 @@ pipeline {
                 }
             }
             copyGeneratedTestReports()
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-snapshot*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -1452,7 +1452,7 @@ def dumpK8sSpecificCluster(count, dumpDirectory) {
         script {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count} -r ${dumpDirectory}-${count}/cluster-dump/analysis.report
+                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count} -r ${dumpDirectory}-${count}/cluster-snapshot/analysis.report
             """
         }
     }

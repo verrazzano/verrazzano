@@ -414,7 +414,7 @@ pipeline {
 
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
-                                    dumpK8sCluster('oci-integration-tests-oke-cluster-dump')
+                                    dumpK8sCluster('oci-integration-tests-oke-cluster-snapshot')
                                 }
                             }
 
@@ -629,7 +629,7 @@ pipeline {
 
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
-                                    dumpK8sCluster('oci-integration-tests-kind-cluster-dump')
+                                    dumpK8sCluster('oci-integration-tests-kind-cluster-snapshot')
                                 }
                             }
 
@@ -645,7 +645,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-snapshot/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -703,7 +703,7 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
     """
 }
 
