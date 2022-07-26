@@ -39,6 +39,9 @@ pipeline {
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
            // 1st choice is the default value
            choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+        choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
+                    // 1st choice is the default value
+                    choices: [ "GLOBAL","PRIVATE" ])
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
@@ -220,6 +223,9 @@ pipeline {
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
                 """
+                println("${params.OKE_CLUSTER_REGION}")
+                println("agentlabel: ${agentLabel}")
+
 
                 script {
                     try {
