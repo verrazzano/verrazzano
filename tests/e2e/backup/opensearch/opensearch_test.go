@@ -734,7 +734,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Fetch logs after restore is complete", func() {
 		WhenVeleroInstalledIt("Fetch logs after restore is complete", func() {
 			Eventually(func() error {
-				return displayHookLogs(t.Logs)()
+				return displayHookLogs(t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
