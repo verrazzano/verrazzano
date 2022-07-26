@@ -439,9 +439,19 @@ func CheckOperatorOperationProgress(operator, operation string) error {
 
 	switch operation {
 	case "backup":
-		k8sObjectName = BackupRancherName
+		if operator == "velero" {
+			k8sObjectName = BackupOpensearchName
+		}
+		if operator == "rancher" {
+			k8sObjectName = BackupRancherName
+		}
 	case "restore":
-		k8sObjectName = RestoreRancherName
+		if operator == "velero" {
+			k8sObjectName = RestoreOpensearchName
+		}
+		if operator == "rancher" {
+			k8sObjectName = RestoreRancherName
+		}
 
 	}
 	cmdArgs = append(cmdArgs, fmt.Sprintf("%s.%s", operation, kind))
