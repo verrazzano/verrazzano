@@ -160,7 +160,7 @@ pipeline {
 
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
-        OCI_CLI_AUTH="instance_principal"
+        //OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
@@ -278,7 +278,6 @@ pipeline {
                     when { expression { return params.TEST_ENV != 'kind' } }
                     environment {
                         TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-                        OCI_CLI_AUTH=""
                     }
                     steps {
                         script {
@@ -332,13 +331,10 @@ pipeline {
 
                 stage("install-platform-operator-on-OKE") {
                 when { expression { return params.TEST_ENV != 'kind' } }
-                    environment {
-                        OCI_CLI_AUTH="instance_principal"
-                    }
                     steps {
                         sh """
                             echo "Install Platform Operator"
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                            OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                             cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
 
                             # Install the verrazzano-platform-operator
@@ -515,13 +511,13 @@ pipeline {
 
 def createBucket(bucketName) {
     sh """
-        oci --region us-phoenix-1 os bucket create -c ${OCI_OS_COMPARTMENT_ID} --namespace ${OCI_OS_NAMESPACE} --name ${bucketName}
+        OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os bucket create -c ${OCI_OS_COMPARTMENT_ID} --namespace ${OCI_OS_NAMESPACE} --name ${bucketName}
     """
 }
 
 def deleteBucket(bucketName) {
     sh """
-        oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
+        OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
     """
 }
 
