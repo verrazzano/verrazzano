@@ -304,13 +304,13 @@ func cleanUpRancher() {
 
 }
 
-var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.rancher-backup"), Serial, func() {
+var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazzano.rancher-backup"), Serial, func() {
 
 	t.Context("Start rancher backup", func() {
 		WhenRancherBackupInstalledIt("Start rancher backup", func() {
 			Eventually(func() error {
 				return CreateRancherBackupObject()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Create rancher backup CRD")
 		})
 	})
 
@@ -318,7 +318,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.rancher-backup")
 		WhenRancherBackupInstalledIt("Check backup progress after rancher backup object was created", func() {
 			Eventually(func() error {
 				return backup.CheckOperatorOperationProgress("rancher", "backup", backup.VeleroNameSpace, backup.BackupRancherName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher backup operation completed successfully")
 		})
 	})
 
@@ -326,7 +326,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.rancher-backup")
 		WhenRancherBackupInstalledIt("Start restore after rancher backup is completed", func() {
 			Eventually(func() error {
 				return CreateRancherRestoreObject()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Create rancher restore CRD")
 		})
 	})
 
@@ -334,7 +334,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.rancher-backup")
 		WhenRancherBackupInstalledIt("Check rancher restore progress", func() {
 			Eventually(func() error {
 				return backup.CheckOperatorOperationProgress("rancher", "restore", backup.VeleroNameSpace, backup.RestoreRancherName, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil())
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher restore operation completed successfully")
 		})
 	})
 
@@ -342,7 +342,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.rancher-backup")
 		WhenRancherBackupInstalledIt("Get user after rancher restore is complete", func() {
 			Eventually(func() string {
 				return GetRancherUser()
-			}, waitTimeout, pollingInterval).Should(Equal(rancherFullName))
+			}, waitTimeout, pollingInterval).Should(Equal(rancherFullName), "Check if rancher user has been restored successfully")
 		})
 	})
 
