@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
+	"strings"
 	"text/template"
 	"time"
 
@@ -182,7 +183,7 @@ func CreateRancherUser() error {
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 
 	apiPath := "/v3/users"
-	req, err := retryablehttp.NewRequest("POST", fmt.Sprintf("%s/%s", url, apiPath), b)
+	req, err := retryablehttp.NewRequest("POST", fmt.Sprintf("%s/%s", url, apiPath), strings.NewReader(b.String()))
 	if err != nil {
 		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", apiPath, err))
 		return err
