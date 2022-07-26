@@ -20,12 +20,12 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -51,7 +51,7 @@ var _ = t.AfterSuite(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var t = framework.NewTestFramework("opensearch-backup")
+var t = framework.NewTestFramework("rancher-backup")
 
 func CreateSecretFromMap(namespace string, name string) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
