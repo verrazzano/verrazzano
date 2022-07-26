@@ -115,6 +115,7 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+
 })
 
 var _ = t.AfterSuite(func() {})
@@ -143,7 +144,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.It("Verify VMO function metrics can be queried from Prometheus", func() {
 			if isMinVersion140 {
 				Eventually(func() bool {
-					return metricsContainLabels("vmo_reconcile_total", map[string]string{})
+					return pkg.MetricsExistInCluster("vmo_reconcile_total", map[string]string{}, adminKubeConfig)
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			}
 		})
@@ -151,7 +152,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.It("Verify VMO simple counter metrics can be queried from Prometheus", func() {
 			if isMinVersion140 {
 				Eventually(func() bool {
-					return metricsContainLabels("vmo_deployment_update_total", map[string]string{})
+					return pkg.MetricsExistInCluster("vmo_deployment_update_total", map[string]string{}, adminKubeConfig)
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			}
 		})
@@ -159,7 +160,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.It("Verify VMO simple gauge metrics can be queried from Prometheus", func() {
 			if isMinVersion140 {
 				Eventually(func() bool {
-					return metricsContainLabels("vmo_work_queue_size", map[string]string{})
+					return pkg.MetricsExistInCluster("vmo_work_queue_size", map[string]string{}, adminKubeConfig)
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			}
 		})
@@ -167,7 +168,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.It("Verify VMO timestamp metrics can be queried from Prometheus", func() {
 			if isMinVersion140 {
 				Eventually(func() bool {
-					return metricsContainLabels("vmo_configmap_last_succesful_timestamp", map[string]string{})
+					return pkg.MetricsExistInCluster("vmo_configmap_last_succesful_timestamp", map[string]string{}, adminKubeConfig)
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			}
 		})
@@ -175,7 +176,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.It("Verify VMO error metrics can be queried from Prometheus", func() {
 			if isMinVersion140 {
 				Eventually(func() bool {
-					return metricsContainLabels("vmo_deployment_update_error_total", map[string]string{})
+					return pkg.MetricsExistInCluster("vmo_deployment_update_error_total", map[string]string{}, adminKubeConfig)
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			}
 		})
