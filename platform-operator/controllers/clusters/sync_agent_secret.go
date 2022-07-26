@@ -73,6 +73,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	// Build the kubeconfig
 	kc, err := r.buildKubeConfigUsingRancherURL(serviceAccountSecret)
 	if err != nil {
+		r.log.Oncef("Failed to build admin kubeconfig using Rancher URL: %v", err)
 		kc, err = r.buildKubeConfigUsingAdminConfigMap(serviceAccountSecret)
 	}
 	if err != nil {
@@ -95,11 +96,14 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 func (r *VerrazzanoManagedClusterReconciler) buildKubeConfigUsingRancherURL(serviceAccountSecret corev1.Secret) (*vzk8s.KubeConfig, error) {
 	vz, err := r.getVerrazzanoResource()
 	if err != nil {
-		return nil, r.log.ErrorfNewErr("Failed to build admin kubeconfig using Rancher URL. Could not find Verrazzano resource")
+		return nil, r.log.ErrorfNewErr("Could not find Verrazzano resource")
+	}
+	if vz.Status.VerrazzanoInstance == nil {
+		return nil, r.log.ErrorfNewErr("No instance information found in Verrazzano resource status")
 	}
 	rancherURL := vz.Status.VerrazzanoInstance.RancherURL
 	if rancherURL == nil {
-		return nil, r.log.ErrorfNewErr("Failed to build admin kubeconfig using Rancher URL. No Rancher URL found in Verrazzano resource status")
+		return nil, fmt.Errorf("No Rancher URL found in Verrazzano resource status")
 	}
 	caCert, err := r.getRancherCACert()
 	if err != nil {
