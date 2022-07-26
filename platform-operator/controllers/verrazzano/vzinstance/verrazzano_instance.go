@@ -6,8 +6,8 @@ package vzinstance
 import (
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 
@@ -16,10 +16,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
+	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"go.uber.org/zap"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -54,8 +54,9 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 		ElasticURL:    getComponentIngressURL(ingressList.Items, ctx, opensearch.ComponentName, constants.ElasticsearchIngress),
 		KibanaURL:     getComponentIngressURL(ingressList.Items, ctx, opensearchdashboards.ComponentName, constants.KibanaIngress),
 		GrafanaURL:    getComponentIngressURL(ingressList.Items, ctx, grafana.ComponentName, constants.GrafanaIngress),
-		PrometheusURL: getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.PrometheusIngress),
+		PrometheusURL: getComponentIngressURL(ingressList.Items, ctx, promoperator.ComponentName, constants.PrometheusIngress),
 		KialiURL:      getComponentIngressURL(ingressList.Items, ctx, kiali.ComponentName, constants.KialiIngress),
+		JaegerURL:     getComponentIngressURL(ingressList.Items, ctx, jaegeroperator.ComponentName, constants.JaegerIngress),
 	}
 	return instanceInfo
 }

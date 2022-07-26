@@ -36,7 +36,6 @@ pipeline {
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
-        booleanParam (description: 'Whether to generate the Verrazzano CLI', name: 'GENERATE_CLI', defaultValue: false)
         booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
@@ -173,52 +172,6 @@ pipeline {
             }
         }
 
-        stage('Verrazzano CLI') {
-                    when {
-                        allOf {
-                            not { buildingTag() }
-                            anyOf {
-                                branch 'master';
-                                branch 'release-*';
-                                expression {params.GENERATE_CLI == true};
-                            }
-                        }
-                    }
-                    steps {
-                        buildVerrazzanoCLI("${DOCKER_IMAGE_TAG}")
-                    }
-                    post {
-                        failure {
-                            script {
-                                SKIP_TRIGGERED_TESTS = true
-                            }
-                        }
-                        always {
-                            archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
-                        }
-                    }
-                }
-
-        stage('BOM Validator Tool') {
-            steps {
-                buildBOMValidatorTool()
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                success {
-                    sh """
-                        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
-                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/bom-validator --file ./out/linux_amd64/bom-validator
-                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ./out/linux_amd64/bom-validator
-                    """
-                }
-            }
-        }
-
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
@@ -236,29 +189,106 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            when { not { buildingTag() } }
-            steps {
-                script {
-                    VZ_BUILD_METRIC = metricJobName('build')
-                    metricTimerStart("${VZ_BUILD_METRIC}")
-                    buildImages("${DOCKER_IMAGE_TAG}")
-                }
-            }
-            post {
-                failure {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
-                        SKIP_TRIGGERED_TESTS = true
+        stage('Parallel Build, Test, and Compliance') {
+            parallel {
+                stage('Verrazzano CLI') {
+                    steps {
+                        buildVerrazzanoCLI("${DOCKER_IMAGE_TAG}")
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                        always {
+                            archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
+                        }
                     }
                 }
-                success {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
-                        archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
+
+                stage('Build Images and Save Generated Files') {
+                    when { not { buildingTag() } }
+                    steps {
+                        script {
+                            VZ_BUILD_METRIC = metricJobName('build')
+                            metricTimerStart("${VZ_BUILD_METRIC}")
+                            buildImages("${DOCKER_IMAGE_TAG}")
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                        success {
+                            echo "Saving generated files"
+                            saveGeneratedFiles()
+                            script {
+                                METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
+                                archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
+                            }
+                        }
+                    }
+                }
+
+                stage('Quality and Compliance Checks') {
+                    when { not { buildingTag() } }
+                    steps {
+                        qualityCheck()
+                        thirdpartyCheck()
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                    }
+                }
+
+                stage('Unit Tests') {
+                    when { not { buildingTag() } }
+                    steps {
+                        sh """
+                    cd ${GO_REPO_PATH}/verrazzano
+                    make -B coverage
+                """
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                        always {
+                            sh """
+                        cd ${GO_REPO_PATH}/verrazzano
+                        cp coverage.html ${WORKSPACE}
+                        cp coverage.xml ${WORKSPACE}
+                        build/copy-junit-output.sh ${WORKSPACE}
+                    """
+                            archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                            cobertura(coberturaReportFile: 'coverage.xml',
+                                    enableNewApi: true,
+                                    autoUpdateHealth: false,
+                                    autoUpdateStability: false,
+                                    failUnstable: true,
+                                    failUnhealthy: true,
+                                    failNoReports: true,
+                                    onlyStable: false,
+                                    fileCoverageTargets: '100, 0, 0',
+                                    lineCoverageTargets: '75, 75, 75',
+                                    packageCoverageTargets: '100, 0, 0',
+                            )
+                        }
                     }
                 }
             }
+
         }
 
         stage('Image Patch Operator') {
@@ -282,78 +312,6 @@ pipeline {
                     script {
                         SCAN_IMAGE_PATCH_OPERATOR = true
                     }
-                }
-            }
-        }
-
-        stage('Save Generated Files') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                }
-            }
-            steps {
-                saveGeneratedFiles()
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-            }
-        }
-
-        stage('Quality and Compliance Checks') {
-            when { not { buildingTag() } }
-            steps {
-                qualityCheck()
-                thirdpartyCheck()
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-            }
-        }
-
-        stage('Unit Tests') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make -B coverage
-                """
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                always {
-                    sh """
-                        cd ${GO_REPO_PATH}/verrazzano
-                        cp coverage.html ${WORKSPACE}
-                        cp coverage.xml ${WORKSPACE}
-                        build/copy-junit-output.sh ${WORKSPACE}
-                    """
-                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    cobertura(coberturaReportFile: 'coverage.xml',
-                      enableNewApi: true,
-                      autoUpdateHealth: false,
-                      autoUpdateStability: false,
-                      failUnstable: true,
-                      failUnhealthy: true,
-                      failNoReports: true,
-                      onlyStable: false,
-                      fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '75, 75, 75',
-                      packageCoverageTargets: '100, 0, 0',
-                    )
                 }
             }
         }
@@ -620,14 +578,6 @@ def buildVerrazzanoCLI(dockerImageTag) {
         cd ${GO_REPO_PATH}/verrazzano/tools/vz
         make go-build DOCKER_IMAGE_TAG=${dockerImageTag}
         ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
-    """
-}
-
-// Called in Stage Bom Validator Tool steps
-def buildBOMValidatorTool() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
-        make go-build
     """
 }
 

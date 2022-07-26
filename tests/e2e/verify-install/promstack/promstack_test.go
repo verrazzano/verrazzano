@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -59,7 +60,8 @@ var (
 		"--prometheus-default-base-image=" + imagePrefix + "/verrazzano/prometheus",
 		"--alertmanager-default-base-image=" + imagePrefix + "/verrazzano/alertmanager",
 	}
-	labelMatch = map[string]string{overrideKey: overrideValue}
+	labelMatch      = map[string]string{overrideKey: overrideValue}
+	isMinVersion140 bool
 )
 
 var t = framework.NewTestFramework("promstack")
@@ -119,6 +121,18 @@ func WhenPromStackInstalledIt(description string, f func()) {
 		t.Logs.Infof("Skipping check '%v', the Prometheus stack is not supported", description)
 	}
 }
+
+var _ = t.BeforeSuite(func() {
+	var err error
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	if err != nil {
+		Fail(err.Error())
+	}
+})
 
 var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {
@@ -215,6 +229,33 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 				}
 				return true
 			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		WhenPromStackInstalledIt("has affinity configured on prometheus pods", func() {
+			if isMinVersion140 {
+				var pods []corev1.Pod
+				Eventually(func() error {
+					var err error
+					selector := map[string]string{
+						"prometheus":             "prometheus-operator-kube-p-prometheus",
+						"app.kubernetes.io/name": "prometheus",
+					}
+					pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: selector}, constants.VerrazzanoMonitoringNamespace)
+					return err
+				}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+				// Check the affinity configuration. Verify only a pod anti-affinity definition exists.
+				for _, pod := range pods {
+					affinity := pod.Spec.Affinity
+					Expect(affinity).ToNot(BeNil())
+					Expect(affinity.PodAffinity).To(BeNil())
+					Expect(affinity.NodeAffinity).To(BeNil())
+					Expect(affinity.PodAntiAffinity).ToNot(BeNil())
+					Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
+				}
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not v1.4.0")
+			}
 		})
 	})
 })

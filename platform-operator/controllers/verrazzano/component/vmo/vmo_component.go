@@ -5,6 +5,9 @@ package vmo
 
 import (
 	"context"
+	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -16,7 +19,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -40,15 +42,16 @@ var _ spi.Component = vmoComponent{}
 func NewComponent() spi.Component {
 	return vmoComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			AppendOverridesFunc:     appendVMOOverrides,
-			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
-			Dependencies:            []string{nginx.ComponentName},
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			AppendOverridesFunc:       appendVMOOverrides,
+			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
+			Dependencies:              []string{nginx.ComponentName},
 		},
 	}
 }
@@ -82,10 +85,46 @@ func (c vmoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 
 // PreUpgrade VMO pre-upgrade processing
 func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
-	return common.ApplyCRDYaml(context, config.GetHelmVMOChartsDir())
+	if err := common.ApplyCRDYaml(context, config.GetHelmVMOChartsDir()); err != nil {
+		return err
+	}
+	if err := retainPrometheusPersistentVolume(context); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Upgrade VMO processing
 func (c vmoComponent) Upgrade(context spi.ComponentContext) error {
 	return c.HelmComponent.Install(context)
+}
+
+// Uninstall VMO processing
+func (c vmoComponent) Uninstall(context spi.ComponentContext) error {
+	installed, err := c.HelmComponent.IsInstalled(context)
+	if err != nil {
+		return err
+	}
+
+	// If we find that the VMO helm chart is installed, then uninstall
+	if installed {
+		return c.HelmComponent.Uninstall(context)
+	}
+
+	// Attempt to delete the VMO resources if the VMO helm chart is not installed.
+	vmoResources := common.GetVMOHelmManagedResources()
+	for _, vmoResource := range vmoResources {
+		err := resource.Resource{
+			Name:      vmoResource.NamespacedName.Name,
+			Namespace: vmoResource.NamespacedName.Namespace,
+			Client:    context.Client(),
+			Object:    vmoResource.Obj,
+			Log:       context.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

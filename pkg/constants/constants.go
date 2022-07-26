@@ -3,7 +3,10 @@
 
 package constants
 
-import "time"
+import (
+	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"time"
+)
 
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
@@ -58,9 +61,6 @@ const KeycloakNamespace = "keycloak"
 
 // RancherSystemNamespace - the Rancher cattle-system namespace
 const RancherSystemNamespace = "cattle-system"
-
-// VerrazzanoMonitoringNamespace - the keycloak namespace
-const VerrazzanoMonitoringNamespace = "monitoring"
 
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
@@ -140,3 +140,72 @@ const MetricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 
 // SecretKind is the kind for a secret
 const SecretKind = "Secret"
+
+// Components Names
+const (
+	OamKubernetesRuntime          = "oam-kubernetes-runtime"
+	KialiServer                   = "kiali-server"
+	WeblogicOperator              = "weblogic-operator"
+	VerrazzanoAuthproxy           = "verrazzano-authproxy"
+	Istio                         = "istio"
+	ExternalDNS                   = "external-dns"
+	VerrazzanoApplicationOperator = "verrazzano-application-operator"
+	CoherenceOperator             = "coherence-operator"
+	IngressController             = "ingress-controller-ingress-nginx-controller"
+	IngressDefaultBackend         = "ingress-controller-ingress-nginx-defaultbackend"
+	Mysql                         = "mysql"
+	CertManager                   = "cert-manager"
+	Rancher                       = "rancher"
+	PrometheusPushgateway         = "prometheus-pushgateway"
+	PrometheusAdapter             = "prometheus-adapter"
+	KubeStateMetrics              = "kube-state-metrics"
+	PrometheusNodeExporter        = "prometheus-node-exporter"
+	PrometheusOperator            = "prometheus-operator"
+	Keycloak                      = "keycloak"
+	VerrazzanoMonitoringOperator  = "verrazzano-monitoring-operator"
+	Grafana                       = "grafana"
+	JaegerOperator                = "jaeger-operator"
+	OpensearchDashboards          = "opensearch-dashboards"
+	Opensearch                    = "opensearch"
+	Velero                        = "velero"
+	VerrazzanoConsole             = "verrazzano-console"
+	Verrazzano                    = "verrazzano"
+	Fluentd                       = "fluentd"
+	RancherBackup                 = "rancher-backup"
+)
+
+const (
+	RancherFleetSystemNamespace      = "cattle-fleet-system"
+	RancherFleetLocalSystemNamespace = "cattle-fleet-local-system"
+)
+
+var ComponentNameToNamespacesMap = map[string][]string{
+	OamKubernetesRuntime:          {VerrazzanoSystemNamespace},
+	KialiServer:                   {VerrazzanoSystemNamespace},
+	WeblogicOperator:              {VerrazzanoSystemNamespace},
+	VerrazzanoAuthproxy:           {VerrazzanoSystemNamespace},
+	Istio:                         {IstioSystemNamespace},
+	ExternalDNS:                   {CertManagerNamespace},
+	VerrazzanoApplicationOperator: {VerrazzanoSystemNamespace},
+	CoherenceOperator:             {VerrazzanoSystemNamespace},
+	IngressController:             {platformOperatorConstants.IngressNginxNamespace},
+	Mysql:                         {KeycloakNamespace},
+	CertManager:                   {CertManagerNamespace},
+	Rancher:                       {RancherSystemNamespace, RancherFleetSystemNamespace, RancherFleetLocalSystemNamespace},
+	PrometheusPushgateway:         {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	PrometheusAdapter:             {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	KubeStateMetrics:              {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	PrometheusNodeExporter:        {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	PrometheusOperator:            {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	Keycloak:                      {KeycloakNamespace},
+	VerrazzanoMonitoringOperator:  {VerrazzanoSystemNamespace},
+	Grafana:                       {VerrazzanoSystemNamespace},
+	JaegerOperator:                {platformOperatorConstants.VerrazzanoMonitoringNamespace},
+	OpensearchDashboards:          {VerrazzanoSystemNamespace},
+	Opensearch:                    {VerrazzanoSystemNamespace},
+	Velero:                        {platformOperatorConstants.VeleroNameSpace},
+	VerrazzanoConsole:             {VerrazzanoSystemNamespace},
+	Verrazzano:                    {VerrazzanoSystemNamespace},
+	Fluentd:                       {VerrazzanoSystemNamespace},
+	RancherBackup:                 {platformOperatorConstants.RancherBackupNamesSpace},
+}

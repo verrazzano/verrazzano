@@ -5,28 +5,30 @@ package certmanager
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -203,8 +205,14 @@ func TestCertManagerPreInstall(t *testing.T) {
 func TestIsCertManagerReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		newDeployment(certManagerDeploymentName, map[string]string{"app": certManagerDeploymentName}, true),
+		newPod(certManagerDeploymentName, map[string]string{"app": certManagerDeploymentName}),
+		newReplicaSet(certManagerDeploymentName),
 		newDeployment(cainjectorDeploymentName, map[string]string{"app": "cainjector"}, true),
+		newPod(cainjectorDeploymentName, map[string]string{"app": "cainjector"}),
+		newReplicaSet(cainjectorDeploymentName),
 		newDeployment(webhookDeploymentName, map[string]string{"app": "webhook"}, true),
+		newPod(webhookDeploymentName, map[string]string{"app": "webhook"}),
+		newReplicaSet(webhookDeploymentName),
 	).Build()
 	assert.True(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
 }
@@ -459,6 +467,175 @@ func TestCustomCAConfigCleanupUnusedResources(t *testing.T) {
 	assertNotFound(t, client, caSelfSignedIssuerName, ComponentNamespace, &certv1.Issuer{})
 }
 
+// TestUninstallCertManager tests the cert-manager uninstall process
+// GIVEN a call to uninstallCertManager
+// WHEN the objects exist in the cluster
+// THEN no error is returned and all objects are deleted
+func TestUninstallCertManager(t *testing.T) {
+	vz := defaultVZConfig.DeepCopy()
+
+	controllerCM := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.KubeSystem,
+			Name:      controllerConfigMap,
+		},
+	}
+	caCM := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.KubeSystem,
+			Name:      caInjectorConfigMap,
+		},
+	}
+	certNS := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.CertManagerNamespace,
+		},
+	}
+	vzCI := certv1.ClusterIssuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: verrazzanoClusterIssuerName,
+		},
+	}
+	ssIssuer := certv1.Issuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      caSelfSignedIssuerName,
+		},
+	}
+	caCert := certv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      caCertificateName,
+		},
+	}
+	caSecret := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      defaultCACertificateSecretName,
+		},
+	}
+	caAcmeSec := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      caAcmeSecretName,
+		},
+	}
+
+	tests := []struct {
+		name    string
+		objects []clipkg.Object
+	}{
+		{
+			name: "test empty cluster",
+		},
+		{
+			name: "test controller configmap",
+			objects: []clipkg.Object{
+				&controllerCM,
+			},
+		},
+		{
+			name: "test ca configmap",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+			},
+		},
+		{
+			name: "test namespace",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+			},
+		},
+		{
+			name: "test cluster issuer",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+				&vzCI,
+			},
+		},
+		{
+			name: "test issuer",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+				&vzCI,
+				&ssIssuer,
+			},
+		},
+		{
+			name: "test ca cert",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+				&vzCI,
+				&ssIssuer,
+				&caCert,
+			},
+		},
+		{
+			name: "test ca secret",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+				&vzCI,
+				&ssIssuer,
+				&caCert,
+				&caSecret,
+			},
+		},
+		{
+			name: "test ca acme secret",
+			objects: []clipkg.Object{
+				&controllerCM,
+				&caCM,
+				&certNS,
+				&vzCI,
+				&ssIssuer,
+				&caCert,
+				&caSecret,
+				&caAcmeSec,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(tt.objects...).Build()
+			fakeContext := spi.NewFakeContext(c, vz, false, profileDir)
+			err := uninstallCertManager(fakeContext)
+			assert.NoError(t, err)
+			// expect the controller ConfigMap to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{})
+			assert.Error(t, err, "Expected the ConfigMap %s to be deleted", controllerConfigMap)
+			// expect the CA injector ConfigMap to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: caInjectorConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{})
+			assert.Error(t, err, "Expected the ConfigMap %s to be deleted", caInjectorConfigMap)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: verrazzanoClusterIssuerName, Namespace: vzconst.DefaultNamespace}, &certv1.ClusterIssuer{})
+			assert.Error(t, err, "Expected the ClusterIssuer %s to be deleted", ComponentNamespace)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: caSelfSignedIssuerName, Namespace: ComponentNamespace}, &certv1.Issuer{})
+			assert.Error(t, err, "Expected the Issuer %s to be deleted", ComponentNamespace)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: caCertificateName, Namespace: ComponentNamespace}, &certv1.Certificate{})
+			assert.Error(t, err, "Expected the Certificate %s to be deleted", ComponentNamespace)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: defaultCACertificateSecretName, Namespace: ComponentNamespace}, &v1.Secret{})
+			assert.Error(t, err, "Expected the Secret %s to be deleted", ComponentNamespace)
+			// expect the Namespace to get deleted
+			err = c.Get(context.TODO(), types.NamespacedName{Name: caAcmeSecretName, Namespace: ComponentNamespace}, &v1.Secret{})
+			assert.Error(t, err, "Expected the Secret %s to be deleted", ComponentNamespace)
+		})
+	}
+}
+
 func assertNotFound(t *testing.T, client clipkg.WithWatch, name string, namespace string, obj clipkg.Object) {
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj)
 	assert.Error(t, err)
@@ -539,6 +716,11 @@ func newDeployment(name string, labels map[string]string, updated bool) *appsv1.
 			Name:      name,
 			Labels:    labels,
 		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+		},
 		Status: appsv1.DeploymentStatus{
 			Replicas:          1,
 			AvailableReplicas: 1,
@@ -554,6 +736,32 @@ func newDeployment(name string, labels map[string]string, updated bool) *appsv1.
 		}
 	}
 	return deployment
+}
+
+func newPod(name string, labelsIn map[string]string) *v1.Pod {
+	labels := make(map[string]string)
+	labels["pod-template-hash"] = "95d8c5d96"
+	for key, element := range labelsIn {
+		labels[key] = element
+	}
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      name + "-95d8c5d96-m6mbr",
+			Labels:    labels,
+		},
+	}
+	return pod
+}
+
+func newReplicaSet(name string) *appsv1.ReplicaSet {
+	return &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   ComponentNamespace,
+			Name:        name + "-95d8c5d96",
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
+	}
 }
 
 // Create a bool pointer

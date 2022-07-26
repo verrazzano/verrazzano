@@ -5,13 +5,14 @@ package helidonsvc
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -30,6 +31,7 @@ const (
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
+	nodeExporterJobName      = "node-exporter"
 )
 
 const (
@@ -354,9 +356,9 @@ func appConfigMetricsExists() bool {
 }
 
 func nodeExporterProcsRunning() bool {
-	return pkg.MetricsExist("node_procs_running", "job", "node-exporter")
+	return pkg.MetricsExist("node_procs_running", "job", nodeExporterJobName)
 }
 
 func nodeExporterDiskIoNow() bool {
-	return pkg.MetricsExist("node_disk_io_now", "job", "node-exporter")
+	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJobName)
 }

@@ -137,6 +137,8 @@ type InstanceInfo struct {
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
 	// KialiURL The Kiali URL for this Verrazzano installation
 	KialiURL *string `json:"kialiUrl,omitempty"`
+	// JaegerURL The Jaeger UI URL for this Verrazzano installation
+	JaegerURL *string `json:"jaegerUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of Verrazzano
@@ -373,9 +375,17 @@ type ComponentSpec struct {
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
 
+	// Rancher Backup configuration
+	// +optional
+	RancherBackup *RancherBackupComponent `json:"rancherBackup,omitempty"`
+
 	// WebLogicOperator configuration
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
+
+	// Velero configuration
+	// +optional
+	Velero *VeleroComponent `json:"velero,omitempty"`
 
 	// Verrazzano configuration
 	// +optional
@@ -412,7 +422,8 @@ type OpenSearchNodeStorage struct {
 // KibanaComponent specifies the Kibana configuration.
 type KibanaComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled  *bool  `json:"enabled,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 }
 
 // KubeStateMetricsComponent specifies the kube-state-metrics configuration.
@@ -551,6 +562,9 @@ type DNSComponent struct {
 
 // IngressNginxComponent specifies the ingress-nginx configuration
 type IngressNginxComponent struct {
+	// +optional
+	// Name of the ingress class used by the ingress controller. Defaults to verrazzano-nginx
+	IngressClassName *string `json:"ingressClassName,omitempty"`
 	// Type of ingress.  Default is LoadBalancer
 	// +optional
 	Type IngressType `json:"type,omitempty"`
@@ -620,7 +634,8 @@ func (c *IstioComponent) IsInjectionEnabled() bool {
 // JaegerOperatorComponent specifies the Jaeger Operator configuration
 type JaegerOperatorComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration
@@ -661,6 +676,13 @@ type RancherComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
+// RancherBackupComponent specifies the Rancher Backup configuration
+type RancherBackupComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
+}
+
 // FluentdComponent specifies the Fluentd DaemonSet configuration
 type FluentdComponent struct {
 	// Specifies whether Fluentd is deployed or not on a cluster.  Default is true.
@@ -682,6 +704,13 @@ type FluentdComponent struct {
 
 // WebLogicOperatorComponent specifies the WebLogic Operator configuration
 type WebLogicOperatorComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
+}
+
+// VeleroComponent  specifies the Velero configuration
+type VeleroComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`

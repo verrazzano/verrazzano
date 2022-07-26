@@ -591,6 +591,45 @@ pipeline {
                 }
             }
         }
+        stage('Uninstall Verrazzano') {
+            stages {
+                stage('Uninstall') {
+                    steps {
+                        uninstallVerrazzano()
+                    }
+                }
+                stage('Verify Uninstall') {
+                    steps {
+                        verifyUninstall()
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                        dumpK8sCluster("${WORKSPACE}/multicluster-uninstall-dump")
+                    }
+                }
+                aborted {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                        dumpK8sCluster("${WORKSPACE}/multicluster-uninstall-dump")
+                    }
+                }
+                success {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster("${WORKSPACE}/multicluster-uninstall-dump")
+                        }
+                    }
+                }
+                always {
+                    archiveArtifacts artifacts: "**/multicluster-uninstall-dump/**,**/*cluster-dump*/**,**/test-cluster-dumps/**", allowEmptyArchive: true
+                }
+            }
+        }
     }
     post {
         failure {
@@ -616,7 +655,6 @@ pipeline {
                     dumpOamKubernetesRuntimeLogs()
                     dumpVerrazzanoApiLogs()
                 }
-                dumpUninstallLogs()
             }
             sh """
                 # Copy the generated test reports to WORKSPACE to archive them
@@ -624,41 +662,8 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
-
-            script {
-                 // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
-                 // - the first one will always be the Admin cluster
-                 // - clusters 2-max are managed clusters
-                 def verrazzanoUninstallStages = [:]
-                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                 for (int count = 1; count <= clusterCount; count++) {
-                     def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                     def key = "vz-mgd-${count - 1}"
-                     if (count == 1) {
-                         key = "vz-admin"
-                     }
-                     verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
-                 }
-                 parallel verrazzanoUninstallStages
-            }
-
-            script {
-                // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
-                // - the first one will always be the Admin cluster
-                // - clusters 2-max are managed clusters
-                def verifyUninstallStages = [:]
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                for (int count = 1; count <= clusterCount; count++) {
-                    def key = "vz-mgd-${count - 1}"
-                    if (count == 1) {
-                        key = "vz-admin"
-                    }
-                    verifyUninstallStages["${key}"] = verifyUninstall(count)
-                }
-                parallel verifyUninstallStages
-            }
 
             script {
                 if (params.EMIT_METRICS) {
@@ -841,6 +846,12 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
+                if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${verrazzanoConfig}
+                fi
+
                 echo "Applying \$verrazzanoConfig"
                 kubectl apply -f ${verrazzanoConfig}
 
@@ -897,12 +908,19 @@ def upgradeVerrazzano() {
                 cd ${GO_REPO_PATH}/verrazzano
                 cp ${v8oInstallFile} ${v8oUpgradeFile}
                 ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
+
+                if [ "true" == "${params.UPGRADE_VERRAZZANO}" ] ; then
+                    yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${v8oUpgradeFile}
+                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${v8oUpgradeFile}
+                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${v8oUpgradeFile}
+                fi
+
                 # Do the upgrade
                 echo "Following is the verrazzano CR file with the new version:"
                 cat ${v8oUpgradeFile}
                 kubectl apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
-                kubectl wait --timeout=30m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                kubectl wait --timeout=45m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
@@ -919,10 +937,29 @@ def upgradeVerrazzano() {
     }
 }
 
+def uninstallVerrazzano() {
+    script {
+         // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
+         // - the first one will always be the Admin cluster
+         // - clusters 2-max are managed clusters
+         def verrazzanoUninstallStages = [:]
+         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+         for (int count = 1; count <= clusterCount; count++) {
+             def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
+             def key = "vz-mgd-${count - 1}"
+             if (count == 1) {
+                 key = "vz-admin"
+             }
+             verrazzanoUninstallStages["${key}"] = uninstallVerrazzanoOnCluster(count, installerPath)
+         }
+         parallel verrazzanoUninstallStages
+    }
+}
+
 // Uninstall Verrazzano
 // - count is the cluster index into the $KUBECONFIG_DIR
 // - verrazzanoConfig is the Verrazzano CR to use to install VZ on the cluster
-def uninstallVerrazzano(count, verrazzanoConfig) {
+def uninstallVerrazzanoOnCluster(count, verrazzanoConfig) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
@@ -935,9 +972,28 @@ def uninstallVerrazzano(count, verrazzanoConfig) {
     }
 }
 
-// Verify uninstall Verrazzano
+// Verify uninstall on all clusters
+def verifyUninstall() {
+    script {
+        // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def verifyUninstallStages = [:]
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for (int count = 1; count <= clusterCount; count++) {
+            def key = "vz-mgd-${count - 1}"
+            if (count == 1) {
+                key = "vz-admin"
+            }
+            verifyUninstallStages["${key}"] = verifyUninstallOnCluster(count)
+        }
+        parallel verifyUninstallStages
+    }
+}
+
+// Verify uninstall Verrazzano on a single cluster
 // - count is the cluster index into the $KUBECONFIG_DIR
-def verifyUninstall(count) {
+def verifyUninstallOnCluster(count) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
@@ -1323,23 +1379,6 @@ def dumpInstallLogs() {
                 mkdir -p ${LOG_DIR}
                 kubectl -n ${namespace} logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
                 kubectl -n ${namespace} describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
-                echo "------------------------------------------"
-            """
-        }
-    }
-}
-
-def dumpUninstallLogs() {
-    script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/uninstall/build/logs/cluster-$count"
-            sh """
-                ## dump Verrazzano uninstall logs
-                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                mkdir -p ${LOG_DIR}
-                kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall.log --tail -1
-                kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall-job-pod.out
                 echo "------------------------------------------"
             """
         }

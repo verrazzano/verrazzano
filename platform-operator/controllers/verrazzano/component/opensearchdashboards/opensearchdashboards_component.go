@@ -5,6 +5,7 @@ package opensearchdashboards
 
 import (
 	"fmt"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -29,6 +30,11 @@ const (
 const ComponentJSONName = "opensearch-dashboards"
 
 type opensearchDashboardsComponent struct{}
+
+// Namespace returns the component namespace
+func (d opensearchDashboardsComponent) Namespace() string {
+	return ComponentNamespace
+}
 
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
 func (d opensearchDashboardsComponent) GetDependencies() []string {
@@ -96,6 +102,10 @@ func (d opensearchDashboardsComponent) PreInstall(ctx spi.ComponentContext) erro
 // Install OpenSearch-Dashboards component install processing
 func (d opensearchDashboardsComponent) Install(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
+}
+
+func (d opensearchDashboardsComponent) IsOperatorUninstallSupported() bool {
+	return false
 }
 
 func (d opensearchDashboardsComponent) PreUninstall(context spi.ComponentContext) error {

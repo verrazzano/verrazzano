@@ -1,0 +1,26 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  pspEnabled: false
+  clusterRole: true
+
+jaeger:
+  spec:
+    annotations:
+      sidecar.istio.io/inject: "true"
+      proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+    ingress:
+      enabled: false
+    storage:
+      dependencies:
+        enabled: false
+      esIndexCleaner:
+        enabled: true
+        # Number of days to wait before deleting a record
+        numberOfDays: 7
+        schedule: "55 23 * * *"
+      options:
+        es:
+          index-prefix: verrazzano

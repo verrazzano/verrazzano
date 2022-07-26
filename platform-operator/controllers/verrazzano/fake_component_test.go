@@ -3,9 +3,10 @@
 package verrazzano
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"reflect"
 	"strconv"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -45,6 +46,10 @@ func (f fakeComponent) GetSkipUpgrade() bool {
 
 func (f fakeComponent) IsOperatorInstallSupported() bool {
 	return f.SupportsOperatorInstall
+}
+
+func (f fakeComponent) IsOperatorUninstallSupported() bool {
+	return f.SupportsOperatorUninstall
 }
 
 func (f fakeComponent) GetDependencies() []string {

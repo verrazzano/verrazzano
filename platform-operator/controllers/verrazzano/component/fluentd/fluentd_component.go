@@ -6,16 +6,18 @@ package fluentd
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 const (
@@ -55,16 +57,17 @@ var _ spi.Component = fluentdComponent{}
 func NewComponent() spi.Component {
 	return fluentdComponent{
 		helm.HelmComponent{
-			ReleaseName:             HelmChartReleaseName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), HelmChartDir),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
-			AppendOverridesFunc:     appendOverrides,
-			Dependencies:            []string{},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               HelmChartReleaseName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), HelmChartDir),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    vzImagePullSecretKeyName,
+			AppendOverridesFunc:       appendOverrides,
+			Dependencies:              []string{},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
@@ -138,6 +141,37 @@ func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := checkSecretExists(ctx); err != nil {
 		return err
 	}
+	return nil
+}
+
+// Uninstall Fluentd to handle upgrade case where Fluentd was not its own helm chart.
+// In that case, we need to delete the Fluentd resources explicitly
+func (f fluentdComponent) Uninstall(context spi.ComponentContext) error {
+	installed, err := f.HelmComponent.IsInstalled(context)
+	if err != nil {
+		return err
+	}
+
+	// If the helm chart is installed, then uninstall
+	if installed {
+		return f.HelmComponent.Uninstall(context)
+	}
+
+	// Attempt to delete the Fluentd resources
+	rs := getFluentdManagedResources()
+	for _, r := range rs {
+		err := resource.Resource{
+			Name:      r.NamespacedName.Name,
+			Namespace: r.NamespacedName.Namespace,
+			Client:    context.Client(),
+			Object:    r.Obj,
+			Log:       context.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

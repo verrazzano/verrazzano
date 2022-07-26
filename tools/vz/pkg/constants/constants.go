@@ -42,7 +42,7 @@ const (
 
 	FilenameFlag          = "filename"
 	FilenameFlagShorthand = "f"
-	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files."
+	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files.  Specifying \"-\" as the filename accepts input from stdin."
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
@@ -53,6 +53,10 @@ const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases
 
 const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
 
+const VerrazzanoApplicationOperator = "verrazzano-application-operator"
+
+const VerrazzanoMonitoringOperator = "verrazzano-monitoring-operator"
+
 const VerrazzanoUninstall = "verrazzano-uninstall"
 
 const VerrazzanoInstall = "verrazzano-install"
@@ -60,6 +64,22 @@ const VerrazzanoInstall = "verrazzano-install"
 const VerrazzanoManagedCluster = "verrazzano-managed-cluster"
 
 const VerrazzanoPlatformOperatorWait = 1
+
+const OAMAppConfigurations = "applicationconfigurations"
+
+const OAMMCAppConfigurations = "multiclusterapplicationconfigurations"
+
+const OAMMCCompConfigurations = "multiclustercomponents"
+
+const OAMComponents = "components"
+
+const OAMMetricsTraits = "metricstraits"
+
+const OAMIngressTraits = "ingresstraits"
+
+const OAMProjects = "verrazzanoprojects"
+
+const OAMManagedClusters = "verrazzanomanagedclusters"
 
 // Analysis tool flags
 const (
@@ -74,4 +94,61 @@ const (
 	ReportFormatFlagName  = "report-format"
 	ReportFormatFlagValue = "simple"
 	ReportFormatFlagUsage = "The format of the report output. Valid output format is \"simple\""
+)
+
+// Constants for bug report
+const (
+	BugReportFileFlagName     = "report-file"
+	BugReportFileFlagValue    = ""
+	BugReportFileFlagShort    = "r"
+	BugReportFileFlagUsage    = "The report file to be created by bug-report command, as a .tar.gz file. Defaults to bug-report.tar.gz in the current directory."
+	BugReportFileDefaultValue = "bug-report.tar.gz"
+
+	BugReportIncludeNSFlagName  = "include-namespaces"
+	BugReportIncludeNSFlagShort = "i"
+	BugReportIncludeNSFlagUsage = "A comma separated list of additional namespaces to collect information from the cluster. This flag can be specified multiple times like --include-namespaces ns1 --include-namespaces ns..."
+
+	BugReportDir = "bug-report"
+
+	// File name for the log captured from the pod
+	LogFile = "logs.txt"
+
+	// File containing list of resources captured by the tool
+	BugReportOut = "bug-report.out"
+	BugReportErr = "bug-report.err"
+
+	BugReportError   = "ERROR: The bug report noticed one or more issues while capturing the resources. Please go through error(s) in the standard error."
+	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"
+
+	// File names for the various resources
+	VzResource       = "verrazzano-resources.json"
+	DeploymentsJSON  = "deployments.json"
+	EventsJSON       = "events.json"
+	PodsJSON         = "pods.json"
+	ServicesJSON     = "services.json"
+	ReplicaSetsJSON  = "replicasets.json"
+	DaemonSetsJSON   = "daemonsets.json"
+	IngressJSON      = "ingress.json"
+	StatefulSetsJSON = "statefulsets.json"
+	AppConfigJSON    = "application-configurations.json"
+	ComponentJSON    = "components.json"
+	IngressTraitJSON = "ingress-traits.json"
+	MetricsTraitJSON = "metrics-traits.json"
+	McAppConfigJSON  = "multicluster-application-configurations.json"
+	McComponentJSON  = "multicluster-components.json"
+	VzProjectsJSON   = "verrazzano-projects.json"
+	VmcJSON          = "verrazzano-managed-clusters.json"
+
+	// Indentation when the resource is marshalled as Json
+	JSONIndent = "  "
+
+	// The prefix used for the json.MarshalIndent
+	JSONPrefix = ""
+
+	// Top level directory for the bug report, keeping cluster-dump for now to support the analyze the command
+	BugReportRoot = "cluster-dump"
+
+	// Label for application
+	AppLabel    = "app"
+	K8SAppLabel = "k8s-app"
 )

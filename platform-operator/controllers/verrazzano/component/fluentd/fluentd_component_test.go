@@ -4,25 +4,33 @@
 package fluentd
 
 import (
+	"context"
+	"fmt"
+	"testing"
+
+	rbacv1 "k8s.io/api/rbac/v1"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var (
@@ -45,7 +53,7 @@ var fluentdEnabledCR = &vzapi.Verrazzano{
 	},
 }
 
-var vzEsInternalSecret = &v1.Secret{
+var vzEsInternalSecret = &corev1.Secret{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      globalconst.VerrazzanoESInternal,
 		Namespace: constants.VerrazzanoSystemNamespace,
@@ -401,7 +409,7 @@ func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := getFakeComponentContext(c)
 	config.SetDefaultBomFilePath(testBomFilePath)
-	helmcli.SetCmdRunner(genericTestRunner{})
+	helmcli.SetCmdRunner(os.GenericTestRunner{})
 	defer helmcli.SetDefaultRunner()
 	helm.SetUpgradeFunc(fakeUpgrade)
 	defer helm.SetDefaultUpgradeFunc()
@@ -452,13 +460,90 @@ func TestIsInstalled(t *testing.T) {
 	}
 }
 
-// genericTestRunner is used to run generic OS commands with expected results
-type genericTestRunner struct {
+// TestUninstallHelmChartInstalled tests the Fluentd Uninstall call
+// GIVEN a Fluentd component
+//  WHEN I call Uninstall with the Fluentd helm chart installed
+//  THEN no error is returned
+func TestUninstallHelmChartInstalled(t *testing.T) {
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte{},
+		Err:    nil,
+	})
+	defer helmcli.SetDefaultRunner()
+
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	assert.NoError(t, err)
 }
 
-// Run genericTestRunner executor
-func (r genericTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return nil, nil, nil
+// TestUninstallHelmChartNotInstalled tests the Fluentd Uninstall call
+// GIVEN a Fluentd component
+//  WHEN I call Uninstall with the Fluentd helm chart not installed
+//  THEN no error is returned
+func TestUninstallHelmChartNotInstalled(t *testing.T) {
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte{},
+		Err:    fmt.Errorf("Not installed"),
+	})
+	defer helmcli.SetDefaultRunner()
+
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	assert.NoError(t, err)
+}
+
+// TestUninstallResources tests the Fluentd Uninstall call
+// GIVEN a Fluentd component
+//  WHEN I call Uninstall with the Fluentd helm chart not installed
+//  THEN ensure that all Fluentd resources are explicity deleted
+func TestUninstallResources(t *testing.T) {
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte{},
+		Err:    fmt.Errorf("Not installed"),
+	})
+	defer helmcli.SetDefaultRunner()
+
+	clusterRole := &rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: ComponentName}}
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: ComponentName}}
+	configMap1 := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "fluentd-config"}}
+	configMap2 := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "fluentd-es-config"}}
+	configMap3 := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "fluentd-init"}}
+	daemonset := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: ComponentName}}
+	service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: ComponentName}}
+	serviceAccount := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: ComponentName}}
+
+	c := fake.NewClientBuilder().WithScheme(clientgoscheme.Scheme).WithObjects(
+		clusterRole,
+		clusterRoleBinding,
+		configMap1,
+		configMap2,
+		configMap3,
+		daemonset,
+		service,
+		serviceAccount,
+	).Build()
+
+	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, false))
+	assert.NoError(t, err)
+
+	// Assert that the resources have been deleted
+	err = c.Get(context.TODO(), types.NamespacedName{Name: ComponentName}, clusterRole)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Name: ComponentName}, clusterRoleBinding)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, configMap1)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, configMap2)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, configMap3)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, daemonset)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, service)
+	assert.True(t, errors.IsNotFound(err))
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, serviceAccount)
+	assert.True(t, errors.IsNotFound(err))
 }
 
 func getFakeComponentContext(c client.WithWatch) spi.ComponentContext {

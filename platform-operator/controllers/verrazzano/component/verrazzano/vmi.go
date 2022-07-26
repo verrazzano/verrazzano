@@ -10,10 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
-const (
-	nodeExporter = "node-exporter"
-)
-
 // updateFunc is passed into CreateOrUpdateVMI to create the necessary VMI resources
 func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
 	vmi.Spec.Prometheus = newPrometheus(ctx.EffectiveCR(), storage, existingVMI)

@@ -31,6 +31,11 @@ const ComponentJSONName = "opensearch"
 
 type opensearchComponent struct{}
 
+// Namespace returns the component namespace
+func (o opensearchComponent) Namespace() string {
+	return ComponentNamespace
+}
+
 // GetDependencies returns the dependencies of the OpenSearch component
 func (o opensearchComponent) GetDependencies() []string {
 	return []string{vmo.ComponentName}
@@ -93,6 +98,10 @@ func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
 // Install OpenSearch component install processing
 func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
+}
+
+func (o opensearchComponent) IsOperatorUninstallSupported() bool {
+	return false
 }
 
 func (o opensearchComponent) PreUninstall(context spi.ComponentContext) error {

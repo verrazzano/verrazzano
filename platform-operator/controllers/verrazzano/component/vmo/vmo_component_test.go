@@ -4,7 +4,9 @@
 package vmo
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -15,11 +17,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
 const profilesRelativePath = "../../../../manifests/profiles"
+
+// genericTestRunner is used to run generic OS commands with expected results
+type genericTestRunner struct {
+	stdOut []byte
+	stdErr []byte
+	err    error
+}
+
+// Run genericTestRunner executor
+func (r genericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return r.stdOut, r.stdErr, r.err
+}
 
 // TestIsEnabled tests the VMO IsEnabled call
 // GIVEN a VMO component
@@ -104,18 +119,42 @@ func TestIsNotInstalled(t *testing.T) {
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsReady(t *testing.T) {
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
-			Labels:    map[string]string{"k8s-app": ComponentName},
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
+				Labels:    map[string]string{"k8s-app": ComponentName},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"k8s-app": ComponentName},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
 		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			Replicas:          1,
-			UpdatedReplicas:   1,
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"k8s-app":           ComponentName,
+				},
+			},
 		},
-	}).Build()
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        ComponentName + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+	).Build()
 	assert.True(t, NewComponent().IsReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, true)))
 }
 
@@ -156,5 +195,37 @@ func TestPreUpgrade(t *testing.T) {
 	_ = corev1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
 	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
+	assert.NoError(t, err)
+}
+
+// TestUninstallHelmChartInstalled tests the VMO Uninstall call
+// GIVEN a VMO component
+//  WHEN I call Uninstall with the VMO helm chart installed
+//  THEN no error is returned
+func TestUninstallHelmChartInstalled(t *testing.T) {
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	assert.NoError(t, err)
+}
+
+// TestUninstallHelmChartNotInstalled tests the VMO Uninstall call
+// GIVEN a VMO component
+//  WHEN I call Uninstall with the VMO helm chart not installed
+//  THEN no error is returned
+func TestUninstallHelmChartNotInstalled(t *testing.T) {
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte{},
+		err:    fmt.Errorf("Not installed"),
+	})
+	defer helm.SetDefaultRunner()
+
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
 	assert.NoError(t, err)
 }

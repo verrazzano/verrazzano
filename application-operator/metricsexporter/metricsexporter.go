@@ -64,4 +64,5 @@ func (d *DurationMetrics) TimerStart() {
 // Stops the timer and record the Duration since the last call to TimerStart
 func (d *DurationMetrics) TimerStop() {
 	d.timer.ObserveDuration()
+
 }

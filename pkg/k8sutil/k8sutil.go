@@ -132,6 +132,15 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	return GetKubernetesClientsetWithConfig(config)
 }
 
+//GetKubernetesClientsetOrDie returns the kubernetes clientset, panic if it cannot be created.
+func GetKubernetesClientsetOrDie() *kubernetes.Clientset {
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		panic(err)
+	}
+	return clientset
+}
+
 // GetKubernetesClientsetWithConfig returns the Kubernetes clientset for the given configuration
 func GetKubernetesClientsetWithConfig(config *rest.Config) (*kubernetes.Clientset, error) {
 	var clientset *kubernetes.Clientset

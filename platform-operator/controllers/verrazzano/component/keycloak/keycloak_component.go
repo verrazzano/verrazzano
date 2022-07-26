@@ -6,6 +6,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -23,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -52,17 +52,18 @@ var certificates = []types.NamespacedName{
 func NewComponent() spi.Component {
 	return KeycloakComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
-			SupportsOperatorInstall: true,
-			AppendOverridesFunc:     AppendKeycloakOverrides,
-			Certificates:            certificates,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
+			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			AppendOverridesFunc:       AppendKeycloakOverrides,
+			Certificates:              certificates,
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -160,6 +161,12 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	return c.HelmComponent.PostInstall(ctx)
+}
+
+// PreUpgrade - component level processing for pre-upgrade
+func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	// Determine if additional processing is required for the upgrade of the StatefulSet
+	return upgradeStatefulSet(ctx)
 }
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress

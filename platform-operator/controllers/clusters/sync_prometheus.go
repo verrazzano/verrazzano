@@ -24,13 +24,9 @@ import (
 )
 
 const (
-	prometheusConfigMapName  = "vmi-system-prometheus-config"
-	prometheusYamlKey        = "prometheus.yml"
 	scrapeConfigsKey         = "scrape_configs"
 	prometheusConfigBasePath = "/etc/prometheus/config/"
 	managedCertsBasePath     = "/etc/prometheus/managed-cluster-ca-certs/"
-	configMapKind            = "ConfigMap"
-	configMapVersion         = "v1"
 	scrapeConfigTemplate     = constants.PrometheusJobNameKey + `: ##JOB_NAME##
 scrape_interval: 20s
 scrape_timeout: 15s
@@ -78,26 +74,9 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 		}
 	}
 
-	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called during an uninstall of Verrazzano.
-	promConfigMap, err := r.getPrometheusConfig(ctx, vmc)
-	if err != nil {
-		r.log.Infof("Failed adding Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err)
-		return nil
-	}
-
-	// Update Prometheus configuration to stop scraping for this VMC
-	err = r.mutatePrometheusConfigMap(vmc, promConfigMap, &secret)
-	if err != nil {
-		return err
-	}
-	err = r.Client.Update(ctx, promConfigMap)
-	if err != nil {
-		return err
-	}
-
 	// The additional scrape configs and managed cluster TLS secrets are needed by the Prometheus Operator Prometheus
 	// because the federated scrape config can't be represented in a PodMonitor, ServiceMonitor, etc.
-	err = r.mutateAdditionalScrapeConfigs(ctx, vmc, &secret)
+	err := r.mutateAdditionalScrapeConfigs(ctx, vmc, &secret)
 	if err != nil {
 		return err
 	}
@@ -105,70 +84,6 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-// getPrometheusConfig will get the ConfigMap containing the Prometheus configuration
-func (r *VerrazzanoManagedClusterReconciler) getPrometheusConfig(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (*corev1.ConfigMap, error) {
-	var promConfigMap = &corev1.ConfigMap{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: prometheusConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}, promConfigMap)
-	if err != nil {
-		return nil, err
-	}
-	return promConfigMap, nil
-}
-
-// mutatePrometheusConfigMap will add a scraper configuration and a CA cert entry to the prometheus config map
-func (r *VerrazzanoManagedClusterReconciler) mutatePrometheusConfigMap(vmc *clustersv1alpha1.VerrazzanoManagedCluster, configMap *corev1.ConfigMap, cacrtSecret *v1.Secret) error {
-	prometheusConfig, err := parsePrometheusConfig(configMap.Data[prometheusYamlKey])
-	if err != nil {
-		return err
-	}
-
-	oldScrapeConfigs := prometheusConfig.Path(scrapeConfigsKey).Children()
-	prometheusConfig.Array(scrapeConfigsKey) // zero out the array of scrape configs
-
-	// create the new scrape config
-	newScrapeConfig, err := r.newScrapeConfig(cacrtSecret, vmc)
-	if err != nil {
-		return err
-	}
-	if newScrapeConfig == nil {
-		// deletion
-		delete(configMap.Data, getCAKey(vmc))
-	}
-	existingReplaced := false
-	for _, oldScrapeConfig := range oldScrapeConfigs {
-		oldScrapeJob := oldScrapeConfig.Search(constants.PrometheusJobNameKey).Data()
-		if vmc.Name == oldScrapeJob {
-			if vmc.DeletionTimestamp == nil || vmc.DeletionTimestamp.IsZero() {
-				// need to replace existing entry for this vmc
-				prometheusConfig.ArrayAppendP(newScrapeConfig.Data(), scrapeConfigsKey)
-				cacrt := cacrtSecret.Data["cacrt"]
-				if cacrt != nil {
-					cacrtValue := string(cacrt)
-					if len(cacrtValue) > 0 {
-						// cert configured for scraper - needs to be added to config map
-						configMap.Data[getCAKey(vmc)] = cacrtValue
-					}
-				}
-				existingReplaced = true
-			}
-		} else {
-			prometheusConfig.ArrayAppendP(oldScrapeConfig.Data(), scrapeConfigsKey)
-		}
-	}
-	if !existingReplaced && newScrapeConfig != nil {
-		prometheusConfig.ArrayAppendP(newScrapeConfig.Data(), scrapeConfigsKey)
-		configMap.Data[getCAKey(vmc)] = string(cacrtSecret.Data["cacrt"])
-	}
-
-	bytes, err := yaml.JSONToYAML(prometheusConfig.Bytes())
-	if err != nil {
-		return err
-	}
-	configMap.Data[prometheusYamlKey] = string(bytes)
 
 	return nil
 }
@@ -209,24 +124,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 // deleteClusterPrometheusConfiguration deletes the managed cluster configuration from the prometheus configuration and updates the prometheus config
 // map
 func (r *VerrazzanoManagedClusterReconciler) deleteClusterPrometheusConfiguration(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called during an uninstall of Verrazzano.
-	promConfigMap, err := r.getPrometheusConfig(ctx, vmc)
-	if err != nil {
-		r.log.Infof("Failed deleting Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err)
-		return nil
-	}
-
-	// Update Prometheus configuration to stop scraping for this VMC
-	err = r.mutatePrometheusConfigMap(vmc, promConfigMap, nil)
-	if err != nil {
-		return err
-	}
-	err = r.Client.Update(ctx, promConfigMap)
-	if err != nil {
-		return err
-	}
-
-	err = r.mutateAdditionalScrapeConfigs(ctx, vmc, nil)
+	err := r.mutateAdditionalScrapeConfigs(ctx, vmc, nil)
 	if err != nil {
 		return err
 	}

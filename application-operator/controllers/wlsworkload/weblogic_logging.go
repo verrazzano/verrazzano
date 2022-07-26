@@ -38,7 +38,7 @@ const WlsFluentdParsingRules = `<match fluent.**>
 	format8 / <(?<info2>(.*?))>/
 	format9 / <(?<info3>(.*?))>/
 	format10 / <(?<sequenceNumber>(.*?))>/
-	format11 / <(?<severity>(.*?))>/
+	format11 / <\[severity-value: (?<severity>(\d+))\].*?>/
 	format12 / <(?<messageID>(.*?))>/
 	format13 / <(?<message>([\s\S]*?))>\s*$/
 	time_key timestamp
@@ -63,7 +63,7 @@ const WlsFluentdParsingRules = `<match fluent.**>
 	format8 / <(?<info2>(.*?))>/
 	format9 / <(?<info3>(.*?))>/
 	format10 / <(?<sequenceNumber>(.*?))>/
-	format11 / <(?<severity>(.*?))>/
+	format11 / <\[severity-value: (?<severity>(\d+))\].*?>/
 	format12 / <(?<messageID>(.*?))>/
 	format13 / <(?<message>([\s\S]*?))>\s*$/
 	time_key timestamp

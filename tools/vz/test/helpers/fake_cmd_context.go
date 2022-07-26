@@ -8,8 +8,13 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"k8s.io/client-go/dynamic"
 	"net/http"
+	"strings"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
@@ -20,8 +25,9 @@ import (
 )
 
 type FakeRootCmdContext struct {
-	client     client.Client
-	kubeClient kubernetes.Interface
+	client        client.Client
+	kubeClient    kubernetes.Interface
+	dynamicClient dynamic.Interface
 	genericclioptions.IOStreams
 }
 
@@ -80,9 +86,29 @@ func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
 	}
 	jsonResp, _ := json.Marshal(releaseResponse)
 
+	// Predefined response for getting operator.yaml
+	operResponse := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ServiceAccount",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano",
+			Namespace: "verrazzano",
+		},
+	}
+	jsonOperResp, _ := json.Marshal(operResponse)
+
 	return &http.Client{
 		Timeout: time.Second * 30,
 		Transport: RoundTripFunc(func(req *http.Request) *http.Response {
+			if strings.Contains(req.URL.Path, "/releases/download") {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       ioutil.NopCloser(bytes.NewBuffer(jsonOperResp)),
+					Header:     http.Header{"Content-Type": {"application/json"}},
+				}
+			}
 			return &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       ioutil.NopCloser(bytes.NewBuffer(jsonResp)),
@@ -90,6 +116,11 @@ func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
 			}
 		}),
 	}
+}
+
+// GetDynamicClient - return a dynamic client for use with the fake go-client
+func (rc *FakeRootCmdContext) GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error) {
+	return rc.dynamicClient, nil
 }
 
 func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdContext {

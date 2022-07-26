@@ -41,6 +41,11 @@ func (g grafanaComponent) Name() string {
 	return ComponentName
 }
 
+// Namespace returns the component namespace
+func (g grafanaComponent) Namespace() string {
+	return ComponentNamespace
+}
+
 // GetDependencies returns the dependencies of the Grafana component
 func (g grafanaComponent) GetDependencies() []string {
 	return []string{vmo.ComponentName}
@@ -146,6 +151,10 @@ func (g grafanaComponent) Install(ctx spi.ComponentContext) error {
 // PostInstall checks post install conditions
 func (g grafanaComponent) PostInstall(ctx spi.ComponentContext) error {
 	return common.CheckIngressesAndCerts(ctx, g)
+}
+
+func (g grafanaComponent) IsOperatorUninstallSupported() bool {
+	return false
 }
 
 func (g grafanaComponent) PreUninstall(context spi.ComponentContext) error {

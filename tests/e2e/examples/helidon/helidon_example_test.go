@@ -30,12 +30,13 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 	skipVerifications        = "Skip Verifications"
 	helloHelidon             = "hello-helidon"
+	nodeExporterJobName      = "node-exporter"
 )
 
 var (
 	t                  = framework.NewTestFramework("helidon")
 	generatedNamespace = pkg.GenerateNamespace(helloHelidon)
-	//yamlApplier              = k8sutil.YAMLApplier{}
+	// yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 )
 
@@ -210,7 +211,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		t.Logs.Errorf("Unexpected error while making http request=%v", err)
-		if resp.Body != nil {
+		if resp != nil && resp.Body != nil {
 			bodyRaw, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
@@ -261,9 +262,9 @@ func appConfigMetricsExists() bool {
 }
 
 func nodeExporterProcsRunning() bool {
-	return pkg.MetricsExist("node_procs_running", "job", "node-exporter")
+	return pkg.MetricsExist("node_procs_running", "job", nodeExporterJobName)
 }
 
 func nodeExporterDiskIoNow() bool {
-	return pkg.MetricsExist("node_disk_io_now", "job", "node-exporter")
+	return pkg.MetricsExist("node_disk_io_now", "job", nodeExporterJobName)
 }

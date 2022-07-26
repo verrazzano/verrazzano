@@ -39,15 +39,18 @@ const (
 	// Constants for various metric labels, used in the validation
 	nodeExporter        = "node-exporter"
 	istiod              = "istiod"
-	prometheus          = "prometheus"
+	pilot               = "pilot"
+	prometheus          = "prometheus-operator-kube-p-prometheus"
+	oldPrometheus       = "prometheus"
 	controllerNamespace = "controller_namespace"
 	ingressController   = "ingress-controller"
 	appK8SIOInstance    = "app_kubernetes_io_instance"
 	job                 = "job"
 	app                 = "app"
 	namespace           = "namespace"
-	pilot               = "pilot"
 	podName             = "pod_name"
+
+	failedVerifyVersionMsg = "Failed to verify the Verrazzano version was min 1.4.0: %v"
 )
 
 var clusterName = os.Getenv("CLUSTER_NAME")
@@ -156,6 +159,18 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 						app: istiod,
 						job: pilot,
 					}
+
+					minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
+						return false
+					}
+					if minVer14 {
+						kv = map[string]string{
+							app: istiod,
+							job: istiod,
+						}
+					}
 					return metricsContainLabels(sidecarInjectionRequests, kv)
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			})
@@ -164,7 +179,18 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.It("Verify sample metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
-					job: prometheus,
+					job: oldPrometheus,
+				}
+
+				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
+					return false
+				}
+				if minVer14 {
+					kv = map[string]string{
+						job: prometheus,
+					}
 				}
 				return metricsContainLabels(prometheusTargetIntervalLength, kv)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())

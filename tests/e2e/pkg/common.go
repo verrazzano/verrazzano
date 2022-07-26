@@ -62,6 +62,9 @@ const (
 	// clientSetErrorFmt - error format for reporting errors listing pods in a
 	//   particular namespace
 	podListingErrorFmt = "Error listing pods in cluster for namespace: %s, error: %v"
+
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 5 * time.Second
 )
 
 const (

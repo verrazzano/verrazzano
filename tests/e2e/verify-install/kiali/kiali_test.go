@@ -4,8 +4,10 @@
 package kiali
 
 import (
-	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
+	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -14,14 +16,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	networking "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 const (
-	systemNamespace = "verrazzano-system"
-	kiali           = "vmi-system-kiali"
 	waitTimeout     = 15 * time.Minute
 	pollingInterval = 10 * time.Second
 )
@@ -76,33 +75,45 @@ var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 
 		WhenKialiInstalledIt("should have a running pod", func() {
 			kialiPodsRunning := func() bool {
-				result, err := pkg.PodsRunning(systemNamespace, []string{kiali})
+				result, err := pkg.PodsRunning(kiali.ComponentNamespace, []string{pkg.KialiName})
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", kiali, systemNamespace, err))
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", pkg.KialiName, kiali.ComponentNamespace, err))
 				}
 				return result
 			}
 			Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
+		WhenKialiInstalledIt("should have a pod with affinity configured", func() {
+			var pods []corev1.Pod
+			var err error
+			Eventually(func() bool {
+				pods, err = pkg.GetPodsFromSelector(&v1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, constants.VerrazzanoSystemNamespace)
+				if err != nil {
+					t.Logs.Errorf("Failed to get Kiali pods: %v", err)
+					return false
+				}
+				return true
+			}, waitTimeout, pollingInterval)
+			for _, pod := range pods {
+				affinity := pod.Spec.Affinity
+				Expect(affinity).ToNot(BeNil())
+				Expect(affinity.PodAffinity).To(BeNil())
+				Expect(affinity.NodeAffinity).To(BeNil())
+				Expect(affinity.PodAntiAffinity).ToNot(BeNil())
+				Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
+			}
+		})
+
 		t.Context("should", func() {
 			var (
-				ingress   *networking.Ingress
 				kialiHost string
 				creds     *pkg.UsernamePassword
 				ingError  error
 			)
 
 			BeforeEach(func() {
-				Eventually(func() (*networking.Ingress, error) {
-					var err error
-					ingress, err = client.NetworkingV1().Ingresses(systemNamespace).Get(context.TODO(), kiali, v1.GetOptions{})
-					return ingress, err
-				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-				rules := ingress.Spec.Rules
-				Expect(len(rules)).To(Equal(1))
-				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system"))
-				kialiHost = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+				kialiHost = pkg.EventuallyGetKialiHost(client)
 				Eventually(func() (*pkg.UsernamePassword, error) {
 					creds, ingError = pkg.GetSystemVMICredentials()
 					return creds, ingError

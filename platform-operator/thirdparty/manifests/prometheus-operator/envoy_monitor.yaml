@@ -19,6 +19,11 @@ spec:
           - __meta_kubernetes_pod_container_port_name
         regex: .*-envoy-prom
         action: keep
+      # Ignore pods that are created by CronJobs and in Completed state
+      - sourceLabels:
+          - __meta_kubernetes_pod_phase
+        regex: Succeeded
+        action: drop
       - sourceLabels:
           - __address__
           - __meta_kubernetes_pod_annotation_prometheus_io_port
@@ -36,3 +41,6 @@ spec:
           - __meta_kubernetes_pod_name
         action: replace
         targetLabel: pod_name
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local

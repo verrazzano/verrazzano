@@ -5,6 +5,7 @@ package metricsbinding
 
 import (
 	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -52,19 +53,20 @@ func WhenMetricsBindingInstalledIt(description string, f func()) {
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		})
 	}
-	below, err := pkg.IsVerrazzanoBelowVersion("1.4.0", kubeconfigPath)
+	vz14OrLater, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
 			Fail(fmt.Sprintf("Failed to check Verrazzano version less than 1.4.0: %s", err.Error()))
 		})
 	}
-	above, err := pkg.IsVerrazzanoMinVersion("1.2.0", kubeconfigPath)
+	below14 := !vz14OrLater
+	above12, err := pkg.IsVerrazzanoMinVersion("1.2.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
 			Fail(fmt.Sprintf("Failed to check Verrazzano version at or above 1.2.0: %s", err.Error()))
 		})
 	}
-	if below && above {
+	if below14 && above12 {
 		t.It(description, f)
 	} else {
 		t.Logs.Infof("Skipping check '%v', the Metrics Binding is not supported", description)

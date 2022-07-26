@@ -32,23 +32,24 @@ spec:
       to:
         - operation:
             ports: ["{{ .Values.api.port }}"]
-    # verrazzano-authproxy:15090 <- vmi-system-prometheus (uses VMO SA)
+{{- if .Values.jaegerOperator.enabled }}
+    # verrazzano-authproxy:8775 <- jaeger
     - from:
         - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
+            namespaces: ["{{ .Values.jaegerOperator.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.jaegerOperator.namespace }}/sa/{{ .Values.jaegerOperator.jaegerServiceAccount }}"]
       to:
         - operation:
-            ports: ["15090"]
-    # verrazzano-authproxy:9113 <- vmi-system-prometheus (uses VMO SA)
+            ports: ["{{ .Values.api.port }}"]
+{{- end }}
+    # verrazzano-authproxy:9113,15090 <- prometheus
     - from:
         - source:
-            namespaces: [ "{{ .Release.Namespace }}" ]
-            principals: [ "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}" ]
+            namespaces: ["{{ .Values.prometheus.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.prometheus.namespace }}/sa/{{ .Values.prometheus.serviceAccount }}"]
       to:
         - operation:
-            ports: [ "9113" ]
-
+            ports: ["9113","15090"]
 ---
 {{- if .Values.elasticSearch.enabled }}
 #
@@ -81,14 +82,14 @@ spec:
       to:
         - operation:
             ports: ["9200","9300"]
-    # vmi-system-es-master:15090 <- vmi-system-prometheus (uses VMO SA)
+    # vmi-system-es-master:9200,15090 <- prometheus
     - from:
         - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
+            namespaces: ["{{ .Values.prometheus.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.prometheus.namespace }}/sa/{{ .Values.prometheus.serviceAccount }}"]
       to:
         - operation:
-            ports: ["15090"]
+            ports: ["9200","15090"]
 ---
 #
 # Istio AuthorizationPolicy for vmi-system-es-master
@@ -120,14 +121,14 @@ spec:
       to:
         - operation:
             ports: ["9200","9300"]
-    # vmi-system-es-ingest:15090 <- vmi-system-prometheus (uses VMO SA)
+    # vmi-system-es-ingest:9200,15090 <- prometheus
     - from:
         - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
+            namespaces: ["{{ .Values.prometheus.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.prometheus.namespace }}/sa/{{ .Values.prometheus.serviceAccount }}"]
       to:
         - operation:
-            ports: ["15090"]
+            ports: ["9200","15090"]
 {{- end }}
 
 ---
@@ -154,11 +155,11 @@ spec:
       to:
         - operation:
             ports: ["3000"]
-    # vmi-system-grafana:15090 <- vmi-system-prometheus
+    # vmi-system-grafana:15090 <- prometheus
     - from:
         - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
+            namespaces: ["{{ .Values.prometheus.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.prometheus.namespace }}/sa/{{ .Values.prometheus.serviceAccount }}"]
       to:
         - operation:
             ports: ["15090"]
@@ -188,53 +189,22 @@ spec:
       to:
         - operation:
             ports: ["5601"]
-    # vmi-system-kibana:15090 <- vmi-system-prometheus (uses VMO SA)
+    # vmi-system-kibana:15090 <- verrazzano-monitoring-operator
     - from:
         - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
+            namespaces: [ "{{ .Release.Namespace }}" ]
+            principals: [ "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}" ]
+      to:
+        - operation:
+            ports: ["15090","5601"]
+    # vmi-system-kibana:15090 <- prometheus
+    - from:
+        - source:
+            namespaces: ["{{ .Values.prometheus.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.prometheus.namespace }}/sa/{{ .Values.prometheus.serviceAccount }}"]
       to:
         - operation:
             ports: ["15090", "5601"]
-{{- end }}
-
----
-{{- if .Values.prometheus.enabled }}
-#
-# Istio AuthorizationPolicy for vmi-system-prometheus
-#
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: vmi-system-prometheus-authzpol
-  namespace: {{ .Release.Namespace }}
-spec:
-  selector:
-    matchLabels:
-      app: system-prometheus
-  action: ALLOW
-  rules:
-    # vmi-system-prometheus:9090 <- verrazzano-authproxy
-    # vmi-system-prometheus:9090 <- vmi-system-grafana (uses VMO SA)
-    # vmi-system-prometheus:9090 <- kiali (uses Kiali SA)
-    - from:
-        - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}",
-                         "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}",
-                         "cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.kiali.name }}"]
-      to:
-        - operation:
-            ports: ["9090"]
-
-    # vmi-system-prometheus:15090 <- vmi-system-prometheus (uses VMO SA)
-    - from:
-        - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
-      to:
-        - operation:
-            ports: ["15090"]
 {{- end }}
 
 ---
@@ -261,13 +231,78 @@ spec:
       to:
         - operation:
             ports: ["8000"]
-    # verrazzano-console:15090 <- vmi-system-prometheus (uses VMO SA)
+    # verrazzano-console:15090 <- prometheus
     - from:
         - source:
-            namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
+            namespaces: ["{{ .Values.prometheus.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.prometheus.namespace }}/sa/{{ .Values.prometheus.serviceAccount }}"]
       to:
         - operation:
             ports: ["15090"]
+{{- end }}
+---
+{{- if .Values.jaegerOperator.enabled }}
+#
+# Istio AuthorizationPolicy for Jaeger deployed by Verrazzano
+#
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: jaeger-collector-authzpol
+  namespace: {{ .Values.jaegerOperator.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: jaeger
+      app.kubernetes.io/component: collector
+      app.kubernetes.io/managed-by: jaeger-operator
+  action: ALLOW
+  rules:
+    # jaeger-collector-service:9411, 14250 <- <any>
+    - from:
+      to:
+        - operation:
+            ports: ["9411", "14250"]
+    # jaeger-collector-service:15090, 14269 <- prometheus
+    - from:
+        - source:
+            namespaces: ["{{ .Values.prometheus.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.prometheus.namespace }}/sa/{{ .Values.prometheus.serviceAccount }}"]
+      to:
+        - operation:
+            ports: ["15090", "14269"]
+
+#
+# Istio AuthorizationPolicy for Jaeger Query deployed by Verrazzano
+#
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: jaeger-query-authzpol
+  namespace: {{ .Values.jaegerOperator.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: jaeger
+      app.kubernetes.io/component: query
+      app.kubernetes.io/managed-by: jaeger-operator
+  action: ALLOW
+  rules:
+    # jaeger-collector-service:16686 <- verrazzano-authproxy
+    - from:
+        - source:
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}"]
+      to:
+        - operation:
+            ports: ["16686"]
+    # jaeger-query-service:15090, 14271, 16687 <- prometheus
+    - from:
+        - source:
+            namespaces: ["{{ .Values.prometheus.namespace }}"]
+            principals: ["cluster.local/ns/{{ .Values.prometheus.namespace }}/sa/{{ .Values.prometheus.serviceAccount }}"]
+      to:
+        - operation:
+            ports: ["15090", "14271", "16687"]
 {{- end }}
 {{- end }}

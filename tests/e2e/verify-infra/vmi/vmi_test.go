@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -25,7 +27,16 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const verrazzanoNamespace string = "verrazzano-system"
+const (
+	verrazzanoNamespace = "verrazzano-system"
+	esMasterPrefix      = "elasticsearch-master-vmi-system-es-master"
+	esMaster0           = esMasterPrefix + "-0"
+	esMaster1           = esMasterPrefix + "-1"
+	esMaster2           = esMasterPrefix + "-2"
+	esData              = "vmi-system-es-data"
+	esData1             = esData + "-1"
+	esData2             = esData + "-2"
+)
 
 var t = framework.NewTestFramework("vmi")
 
@@ -88,6 +99,8 @@ var (
 	pollingInterval        = 5 * time.Second
 	elasticWaitTimeout     = 2 * time.Minute
 	elasticPollingInterval = 5 * time.Second
+
+	vzMonitoringVolumeClaims map[string]*corev1.PersistentVolumeClaim
 )
 
 var _ = t.BeforeSuite(func() {
@@ -107,6 +120,11 @@ var _ = t.BeforeSuite(func() {
 
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		volumeClaims, err = pkg.GetPersistentVolumeClaims(verrazzanoNamespace)
+		return volumeClaims, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
+		vzMonitoringVolumeClaims, err = pkg.GetPersistentVolumeClaims(constants.VerrazzanoMonitoringNamespace)
 		return volumeClaims, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
@@ -233,6 +251,29 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			assertOidcIngressByName("vmi-system-kibana")
 		})
 
+		t.It("Prometheus helm override for replicas is in effect", Label("f:observability.monitoring.prom"), func() {
+			const stsName = "prometheus-prometheus-operator-kube-p-prometheus"
+
+			expectedReplicas, err := getExpectedPrometheusReplicaCount(kubeconfig)
+			Expect(err).ToNot(HaveOccurred())
+
+			// expect Prometheus statefulset to be configured for the expected number of replicas
+			sts, err := pkg.GetStatefulSet(constants.VerrazzanoMonitoringNamespace, stsName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sts.Spec.Replicas).ToNot(BeNil())
+			Expect(*sts.Spec.Replicas).To(Equal(expectedReplicas))
+
+			// expect the replicas to be ready
+			Eventually(func() (int32, error) {
+				sts, err := pkg.GetStatefulSet(constants.VerrazzanoMonitoringNamespace, stsName)
+				if err != nil {
+					return 0, err
+				}
+				return sts.Status.ReadyReplicas, nil
+			}, waitTimeout, pollingInterval).Should(Equal(expectedReplicas),
+				fmt.Sprintf("Statefulset %s in namespace %s does not have the expected number of ready replicas", stsName, constants.VerrazzanoMonitoringNamespace))
+		})
+
 		t.It("Prometheus endpoint should be accessible", Label("f:mesh.ingress",
 			"f:observability.monitoring.prom"), func() {
 			assertOidcIngressByName("vmi-system-prometheus")
@@ -299,35 +340,57 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		size = override.Spec.Resources.Requests.Storage().String()
 	}
 
+	minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+	Expect(err).ToNot(HaveOccurred())
+
 	if pkg.IsDevProfile() {
 		t.It("Check persistent volumes for dev profile", func() {
-			expectedVolumes := 0
 			if override != nil {
-				expectedVolumes = 3
-			}
-			Expect(len(volumeClaims)).To(Equal(expectedVolumes))
-			if expectedVolumes > 0 {
-				assertPersistentVolume("vmi-system-prometheus", size)
-				assertPersistentVolume("vmi-system-grafana", size)
-				assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
+				if minVer14 {
+					Expect(len(volumeClaims)).To(Equal(2))
+					assertPersistentVolume("vmi-system-grafana", size)
+					assertPersistentVolume(esMaster0, size)
+
+					Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
+					assertPrometheusVolume(size)
+				} else {
+					Expect(len(volumeClaims)).To(Equal(3))
+					assertPersistentVolume("vmi-system-prometheus", size)
+					assertPersistentVolume("vmi-system-grafana", size)
+					assertPersistentVolume(esMaster0, size)
+				}
+			} else {
+				Expect(len(volumeClaims)).To(Equal(0))
 			}
 		})
 	} else if isManagedClusterProfile {
 		t.It("Check persistent volumes for managed cluster profile", func() {
-			Expect(len(volumeClaims)).To(Equal(1))
-			assertPersistentVolume("vmi-system-prometheus", size)
+			if minVer14 {
+				Expect(len(volumeClaims)).To(Equal(0))
+				Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
+				assertPrometheusVolume(size)
+			} else {
+				Expect(len(volumeClaims)).To(Equal(1))
+				assertPersistentVolume("vmi-system-prometheus", size)
+			}
 		})
 	} else if pkg.IsProdProfile() {
 		t.It("Check persistent volumes for prod cluster profile", func() {
-			Expect(len(volumeClaims)).To(Equal(8))
-			assertPersistentVolume("vmi-system-prometheus", size)
+			if minVer14 {
+				Expect(len(volumeClaims)).To(Equal(7))
+				Expect(len(vzMonitoringVolumeClaims)).To(Equal(2))
+				assertPrometheusVolume(size)
+			} else {
+				Expect(len(volumeClaims)).To(Equal(8))
+				assertPersistentVolume("vmi-system-prometheus", size)
+			}
 			assertPersistentVolume("vmi-system-grafana", size)
-			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
-			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-1", size)
-			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-2", size)
-			assertPersistentVolume("vmi-system-es-data", size)
-			assertPersistentVolume("vmi-system-es-data-1", size)
-			assertPersistentVolume("vmi-system-es-data-2", size)
+			assertPersistentVolume(esMaster0, size)
+			assertPersistentVolume(esMaster1, size)
+			assertPersistentVolume(esMaster2, size)
+			assertPersistentVolume(esData, size)
+			assertPersistentVolume(esData1, size)
+			assertPersistentVolume(esData2, size)
 		})
 	}
 })
@@ -336,6 +399,17 @@ func assertPersistentVolume(key string, size string) {
 	Expect(volumeClaims).To(HaveKey(key))
 	pvc := volumeClaims[key]
 	Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(size))
+}
+
+func assertPrometheusVolume(size string) {
+	// Prometheus Operator generates the name for the PVC so look for a PVC name that contains "prometheus"
+	for key, pvc := range vzMonitoringVolumeClaims {
+		if strings.Contains(key, "prometheus") {
+			Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(size))
+			return
+		}
+	}
+	Fail("Expected to find Prometheus persistent volume claim")
 }
 
 func assertOidcIngressByName(key string) {
@@ -526,4 +600,39 @@ func assertInstanceInfoURLs() {
 	if instanceInfo.PrometheusURL != nil {
 		assertOidcIngress(*instanceInfo.PrometheusURL)
 	}
+}
+
+// getExpectedPrometheusReplicaCount returns the Prometheus replicas in the values overrides from the
+// Prometheus Operator component in the Verrazzano CR. If there is no override for replicas then the
+// default replica count of 1 is returned.
+func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
+	if err != nil {
+		return 0, err
+	}
+	var expectedReplicas int32 = 1
+	if pkg.IsProdProfile() {
+		expectedReplicas = 2
+	}
+	if vz.Spec.Components.PrometheusOperator == nil {
+		return expectedReplicas, nil
+	}
+
+	for _, override := range vz.Spec.Components.PrometheusOperator.InstallOverrides.ValueOverrides {
+		if override.Values != nil {
+			jsonString, err := gabs.ParseJSON(override.Values.Raw)
+			if err != nil {
+				return 0, err
+			}
+			if container := jsonString.Path("prometheus.prometheusSpec.replicas"); container != nil {
+				if val, ok := container.Data().(float64); ok {
+					expectedReplicas = int32(val)
+					t.Logs.Infof("Found Prometheus replicas override in Verrazzano CR, replica count is: %d", expectedReplicas)
+					break
+				}
+			}
+		}
+	}
+
+	return expectedReplicas, nil
 }

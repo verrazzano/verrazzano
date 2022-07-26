@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -38,17 +40,18 @@ var _ spi.Component = authProxyComponent{}
 func NewComponent() spi.Component {
 	return authProxyComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			AppendOverridesFunc:     AppendOverrides,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
-			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
-			GetInstallOverridesFunc: GetOverrides,
-			Dependencies:            []string{nginx.ComponentName},
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			AppendOverridesFunc:       AppendOverrides,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
+			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
+			GetInstallOverridesFunc:   GetOverrides,
+			Dependencies:              []string{nginx.ComponentName},
 			Certificates: []types.NamespacedName{
 				{Name: constants.VerrazzanoIngressSecret, Namespace: ComponentNamespace},
 			},
@@ -105,6 +108,37 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	if installed {
 		ctx.Log().Oncef("Component %s already installed, skipping PreInstall checks", ComponentName)
 		return nil
+	}
+
+	return nil
+}
+
+// Uninstall Authproxy to handle upgrade case where Authproxy was not its own helm chart.
+// In that case, we need to delete the Authproxy resources explicitly
+func (c authProxyComponent) Uninstall(context spi.ComponentContext) error {
+	installed, err := c.HelmComponent.IsInstalled(context)
+	if err != nil {
+		return err
+	}
+
+	// If the helm chart is installed, then uninstall
+	if installed {
+		return c.HelmComponent.Uninstall(context)
+	}
+
+	// Attempt to delete the Authproxy resources
+	rs := getAuthproxyManagedResources()
+	for _, r := range rs {
+		err := resource.Resource{
+			Name:      r.NamespacedName.Name,
+			Namespace: r.NamespacedName.Namespace,
+			Client:    context.Client(),
+			Object:    r.Obj,
+			Log:       context.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

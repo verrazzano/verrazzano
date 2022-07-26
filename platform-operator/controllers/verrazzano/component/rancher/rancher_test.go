@@ -5,18 +5,22 @@ package rancher
 
 import (
 	"fmt"
+	"testing"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	admv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var (
@@ -61,6 +65,9 @@ func getScheme() *runtime.Scheme {
 	_ = appsv1.AddToScheme(scheme)
 	_ = v1.AddToScheme(scheme)
 	_ = certv1.AddToScheme(scheme)
+	_ = admv1.AddToScheme(scheme)
+	_ = rbacv1.AddToScheme(scheme)
+	_ = v12.AddToScheme(scheme)
 	return scheme
 }
 

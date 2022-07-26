@@ -16,8 +16,8 @@ const (
 	helidonPollingInterval = 10 * time.Second
 	helidonWaitTimeout     = 5 * time.Minute
 
-	helidonComponentYaml = "../../../examples/hello-helidon/hello-helidon-comp.yaml"
-	helidonAppYaml       = "../../../examples/hello-helidon/hello-helidon-app.yaml"
+	helidonComponentYaml = "examples/hello-helidon/hello-helidon-comp.yaml"
+	helidonAppYaml       = "examples/hello-helidon/hello-helidon-app.yaml"
 )
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}

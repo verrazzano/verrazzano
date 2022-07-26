@@ -5,9 +5,10 @@ package verrazzano
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/fs"
 	"os"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -100,7 +101,6 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.Istio = &istioValues{Enabled: vzconfig.IsIstioEnabled(effectiveCR)}
 	overrides.Keycloak = &keycloakValues{Enabled: vzconfig.IsKeycloakEnabled(effectiveCR)}
 	overrides.Rancher = &rancherValues{Enabled: vzconfig.IsRancherEnabled(effectiveCR)}
-	overrides.NodeExporter = &nodeExporterValues{Enabled: vzconfig.IsVMOEnabled(effectiveCR)}
 	overrides.PrometheusOperator = &prometheusOperatorValues{Enabled: vzconfig.IsPrometheusOperatorEnabled(effectiveCR)}
 	overrides.PrometheusAdapter = &prometheusAdapterValues{Enabled: vzconfig.IsPrometheusAdapterEnabled(effectiveCR)}
 	overrides.KubeStateMetrics = &kubeStateMetricsValues{Enabled: vzconfig.IsKubeStateMetricsEnabled(effectiveCR)}

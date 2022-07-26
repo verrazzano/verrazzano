@@ -6,6 +6,7 @@ package system
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"regexp"
 	"strings"
 	"time"
@@ -50,6 +51,10 @@ var (
 		regexp.MustCompile(`^-+$`),
 		regexp.MustCompile(`^$`),
 	}
+	jaegerExceptions = []*regexp.Regexp{
+		regexp.MustCompile(`^.*http: TLS handshake error.*$`),
+		regexp.MustCompile(`^.*GOMAXPROCS.*$`),
+	}
 )
 
 var t = framework.NewTestFramework("system-logging")
@@ -89,7 +94,14 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validateGrafanaLogs() && valid
 		valid = validateOpenSearchLogs() && valid
 		valid = validateWeblogicOperatorLogs() && valid
-
+		kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+		Expect(err).To(BeNil())
+		isJaegerSupported, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeConfigPath)
+		Expect(err).To(BeNil())
+		if isJaegerSupported {
+			valid = validateJaegerCollectorLogs() && valid
+			valid = validateJaegerQueryLogs() && valid
+		}
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in verrazzano-system index")
@@ -289,7 +301,7 @@ func validateAuthProxyLogs() bool {
 	}
 	exceptions = append(exceptions, istioExceptions...)
 	return validateElasticsearchRecords(
-		allElasticsearchRecordValidator,
+		noLevelElasticsearchRecordValidator,
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app.keyword",
 		"verrazzano-authproxy",
@@ -510,6 +522,26 @@ func validateNodeExporterLogs() bool {
 		"node-exporter",
 		searchTimeWindow,
 		noExceptions)
+}
+
+func validateJaegerCollectorLogs() bool {
+	return validateElasticsearchRecords(
+		logLevelElasticsearchRecordValidator,
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(monitoringNamespace) },
+		"kubernetes.container_name",
+		"jaeger-collector",
+		searchTimeWindow,
+		jaegerExceptions)
+}
+
+func validateJaegerQueryLogs() bool {
+	return validateElasticsearchRecords(
+		logLevelElasticsearchRecordValidator,
+		func() (string, error) { return pkg.GetOpenSearchSystemIndex(monitoringNamespace) },
+		"kubernetes.container_name",
+		"jaeger-query",
+		searchTimeWindow,
+		jaegerExceptions)
 }
 
 func validateElasticsearchRecords(hitValidator pkg.ElasticsearchHitValidator, indexFunc func() (string, error), appLabel string, appName string, timeRange string, exceptions []*regexp.Regexp) bool {

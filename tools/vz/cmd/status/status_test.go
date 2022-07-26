@@ -36,6 +36,7 @@ func TestStatusCmd(t *testing.T) {
 	grafanaURL := "https://grafana.vmi.system.10.107.141.8.nip.io"
 	prometheusURL := "https://prometheus.vmi.system.10.107.141.8.nip.io"
 	kialiURL := "https://kiali.vmi.system.10.107.141.8.nip.io"
+	jaegerURL := "https://jaeger.default.10.107.141.8.nip.io"
 
 	vz := vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
@@ -56,6 +57,7 @@ func TestStatusCmd(t *testing.T) {
 				GrafanaURL:    &grafanaURL,
 				PrometheusURL: &prometheusURL,
 				KialiURL:      &kialiURL,
+				JaegerURL:     &jaegerURL,
 			},
 			Conditions: nil,
 			State:      vzapi.VzStateReconciling,
@@ -77,6 +79,7 @@ func TestStatusCmd(t *testing.T) {
 		"grafana_url":          grafanaURL,
 		"prometheus_url":       prometheusURL,
 		"kiali_url":            kialiURL,
+		"jaeger_url":           jaegerURL,
 		"install_profile":      string(vzapi.Dev),
 	}
 

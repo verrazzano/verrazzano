@@ -12,7 +12,10 @@ import (
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -53,6 +56,7 @@ func init() {
 	_ = oam.AddToScheme(scheme)
 
 	_ = vzapp.AddToScheme(scheme)
+	_ = vzappclusters.AddToScheme(scheme)
 
 	// Add cert-manager components to the scheme
 	_ = cmapiv1.AddToScheme(scheme)
@@ -60,6 +64,8 @@ func init() {
 	// Add the Prometheus Operator resources to the scheme
 	_ = promoperapi.AddToScheme(scheme)
 
+	// Add K8S api-extensions so that we can list CustomResourceDefinitions during uninstall of VZ
+	_ = v1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -164,7 +170,7 @@ func main() {
 
 	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
 
-	metricsexporter.InitalizeMetricsEndpoint()
+	metricsexporter.InitRegisterStart(log)
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{

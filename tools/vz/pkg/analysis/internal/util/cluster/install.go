@@ -21,6 +21,7 @@ import (
 // Compiled Regular expressions
 var installNGINXIngressControllerFailedRe = regexp.MustCompile(`Installing NGINX Ingress Controller.*\[FAILED\]`)
 var noIPForIngressControllerRegExp = regexp.MustCompile(`Failed getting DNS suffix: No IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer`)
+var errorSettingRancherTokenRegExp = regexp.MustCompile(`Failed setting Rancher access token.*no such host`)
 
 // I'm going with a more general pattern for limit reached as the supporting details should give the precise message
 // and the advice can be to refer to the supporting details on the limit that was exceeded. We can change it up
@@ -33,7 +34,7 @@ var invalidLoadBalancerParameter = regexp.MustCompile(`.*Service error:InvalidPa
 var vpoErrorMessages []string
 
 const logLevelError = "error"
-const verrazzanoResource = "verrazzano_resources.json"
+const verrazzanoResource = "verrazzano-resources.json"
 const eventsJSON = "events.json"
 const servicesJSON = "services.json"
 const podsJSON = "pods.json"
@@ -49,16 +50,19 @@ const (
 	// Function names
 	nginxIngressControllerFailed = "nginxIngressControllerFailed"
 	noIPForIngressController     = "noIPForIngressController"
+	errorSettingRancherToken     = "errorSettingRancherToken"
 )
 
 var dispatchMatchMap = map[string]*regexp.Regexp{
 	nginxIngressControllerFailed: installNGINXIngressControllerFailedRe,
 	noIPForIngressController:     noIPForIngressControllerRegExp,
+	errorSettingRancherToken:     errorSettingRancherTokenRegExp,
 }
 
 var dispatchFunctions = map[string]func(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
 	nginxIngressControllerFailed: analyzeNGINXIngressController,
 	noIPForIngressController:     analyzeNGINXIngressController,
+	errorSettingRancherToken:     analyzeNGINXIngressController,
 }
 
 func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) (err error) {
@@ -75,6 +79,7 @@ func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issue
 	if len(compsNotReady) > 0 {
 		analyzeVerrazzanoInstallIssue(log, clusterRoot, issueReporter)
 	}
+	// Handle uninstall issue here, before returning
 	return nil
 }
 
@@ -248,7 +253,9 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 	fileInfo, e := os.Stat(vzResourcesPath)
 	if e != nil || fileInfo.Size() == 0 {
 		log.Infof("Verrazzano resource file %s is either empty or there is an issue in getting the file info about it", vzResourcesPath)
-		return compsNotReady, e
+		// The cluster dump taken by the latest script is expected to contain the verrazzano-resources.json.
+		// In order to support cluster dumps taken in earlier release, return nil rather than an error.
+		return nil, nil
 	}
 
 	file, err := os.Open(vzResourcesPath)

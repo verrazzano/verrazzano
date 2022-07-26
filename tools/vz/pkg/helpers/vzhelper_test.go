@@ -33,7 +33,7 @@ func TestGetLatestReleaseVersion(t *testing.T) {
 // TestGetVerrazzanoResource
 // GIVEN the namespace and name of a verrazzano resource
 //  WHEN I call GetVerrazzanoResource
-//  THEN expect it to return a verrazzano rsource
+//  THEN expect it to return a verrazzano resource
 func TestGetVerrazzanoResource(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(NewScheme()).WithObjects(
 		&vzapi.Verrazzano{

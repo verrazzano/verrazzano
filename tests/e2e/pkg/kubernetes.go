@@ -138,7 +138,23 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	return deployments, nil
 }
 
-//GetReplicaCounts Builds a map of pod counts for a list of deployments
+// ListStatefulSets returns the list of StatefulSets in a given namespace for the cluster
+func ListStatefulSets(namespace string) (*appsv1.StatefulSetList, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+
+	statefulsets, err := clientset.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list StatefulSets in namespace %s: %v", namespace, err))
+		return nil, err
+	}
+	return statefulsets, nil
+}
+
+// GetReplicaCounts Builds a map of pod counts for a list of deployments
 // expectedDeployments - a list of namespaced names for deployments to look for
 // optsBuilder - a callback func to build the right set of options to select pods for the deployment
 func GetReplicaCounts(expectedDeployments []types.NamespacedName, optsBuilder func(name types.NamespacedName) (metav1.ListOptions, error)) (map[string]uint32, error) {
@@ -185,6 +201,21 @@ func GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment,
 		return nil, err
 	}
 	return deployment, nil
+}
+
+// DoesStatefulSetExist returns whether a StatefulSet with the given name and namespace exists for the cluster
+func DoesStatefulSetExist(namespace string, name string) (bool, error) {
+	statefulsets, err := ListStatefulSets(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list StatefulSets from namespace %s: %v", namespace, err))
+		return false, err
+	}
+	for i := range statefulsets.Items {
+		if strings.HasPrefix(statefulsets.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // GetStatefulSet returns a StatefulSet with the given name and namespace
@@ -538,26 +569,6 @@ func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, err
 	return !vzSemver.IsLessThan(minSemver), nil
 }
 
-// IsVerrazzanoBelowVersion returns true if the Verrazzano version < belowVersion
-func IsVerrazzanoBelowVersion(belowVersion string, kubeconfigpath string) (bool, error) {
-	vzVersion, err := GetVerrazzanoVersion(kubeconfigpath)
-	if err != nil {
-		return false, err
-	}
-	if len(vzVersion) == 0 {
-		return false, nil
-	}
-	vzSemver, err := semver.NewSemVersion(vzVersion)
-	if err != nil {
-		return false, err
-	}
-	maxSemver, err := semver.NewSemVersion(belowVersion)
-	if err != nil {
-		return false, err
-	}
-	return vzSemver.IsLessThan(maxSemver), nil
-}
-
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
 func IsProdProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -761,6 +772,46 @@ func IsGrafanaEnabled(kubeconfigPath string) bool {
 		return true
 	}
 	return *vz.Spec.Components.Grafana.Enabled
+}
+
+// IsKeycloakEnabled returns false if the Keycloak component is not set, or the value of its Enabled field otherwise
+func IsKeycloakEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Keycloak == nil || vz.Spec.Components.Keycloak.Enabled == nil {
+		// Keycloak component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.Keycloak.Enabled
+}
+
+// IsVeleroEnabled returns false if the Velero component is not set, or the value of its Enabled field otherwise
+func IsVeleroEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Velero == nil || vz.Spec.Components.Velero.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.Velero.Enabled
+}
+
+// IsRancherBackupEnabled returns false if the Rancher Backup component is not set, or the value of its Enabled field otherwise
+func IsRancherBackupEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.RancherBackup == nil || vz.Spec.Components.RancherBackup.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.RancherBackup.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.

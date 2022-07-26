@@ -4,19 +4,17 @@
 package registry
 
 import (
-	"testing"
-
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -34,17 +32,19 @@ import (
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 const (
@@ -63,7 +63,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 26, "Wrong number of components")
+	a.Len(comps, 28, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -90,6 +90,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[23].Name(), jaegeroperator.ComponentName)
 	a.Equal(comps[24].Name(), console.ComponentName)
 	a.Equal(comps[25].Name(), fluentd.ComponentName)
+	a.Equal(comps[26].Name(), velero.ComponentName)
+	a.Equal(comps[27].Name(), rancherbackup.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -119,11 +121,34 @@ func TestComponentDependenciesMet(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconst.VerrazzanoSystemNamespace,
 				Name:      "coherence-operator",
+				Labels:    map[string]string{"control-plane": "coherence"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"control-plane": "coherence"},
+				},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
 				Replicas:          1,
 				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconst.VerrazzanoSystemNamespace,
+				Name:      "coherence-operator" + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"control-plane":     "coherence",
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   vzconst.VerrazzanoSystemNamespace,
+				Name:        "coherence-operator" + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
 	).Build()
@@ -257,10 +282,18 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		Dependencies:   []string{oam.ComponentName, certmanager.ComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newReadyDeployment("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace),
-		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
-		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
-		newReadyDeployment(webhookDeploymentName, certManagerNamespace),
+		newReadyDeployment("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace, map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"}),
+		newPod("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace, map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"}),
+		newReplicaSet("oam-kubernetes-runtime", vzconst.VerrazzanoSystemNamespace),
+		newReadyDeployment(certManagerDeploymentName, certManagerNamespace, map[string]string{"app": certManagerDeploymentName}),
+		newPod(certManagerDeploymentName, certManagerNamespace, map[string]string{"app": certManagerDeploymentName}),
+		newReplicaSet(certManagerDeploymentName, certManagerNamespace),
+		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace, map[string]string{"app": "cainjector"}),
+		newPod(cainjectorDeploymentName, certManagerNamespace, map[string]string{"app": "cainjector"}),
+		newReplicaSet(cainjectorDeploymentName, certManagerNamespace),
+		newReadyDeployment(webhookDeploymentName, certManagerNamespace, map[string]string{"app": "webhook"}),
+		newPod(webhookDeploymentName, certManagerNamespace, map[string]string{"app": "webhook"}),
+		newReplicaSet(webhookDeploymentName, certManagerNamespace),
 	).Build()
 
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -296,10 +329,10 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		Dependencies:   []string{"istiod", "cert-manager", "istiod"},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newReadyDeployment("istiod", "istio-system"),
-		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
-		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
-		newReadyDeployment(webhookDeploymentName, certManagerNamespace)).Build()
+		newReadyDeployment("istiod", "istio-system", nil),
+		newReadyDeployment(certManagerDeploymentName, certManagerNamespace, nil),
+		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace, nil),
+		newReadyDeployment(webhookDeploymentName, certManagerNamespace, nil)).Build()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
@@ -462,12 +495,85 @@ func TestNoComponentDependencies(t *testing.T) {
 	assert.True(t, ready)
 }
 
+// TestComponentDependenciesMetStateCheckReady tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN returns true if a dependency's component status is already in Ready state
+func TestComponentDependenciesMetStateCheckReady(t *testing.T) {
+	runDepenencyStateCheckTest(t, v1alpha1.CompStateReady, true)
+}
+
+// TestComponentDependenciesMetStateCheckNotReady tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN returns false if a dependency's component status is not Ready state and the deployments are not ready
+func TestComponentDependenciesMetStateCheckNotReady(t *testing.T) {
+	runDepenencyStateCheckTest(t, v1alpha1.CompStatePreInstalling, true)
+}
+
+// TestComponentDependenciesMetStateCheckCompDisabled tests ComponentDependenciesMet
+// GIVEN a component
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN returns false if a dependency is disabled and the component status is disabled
+func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
+	runDepenencyStateCheckTest(t, v1alpha1.CompStateDisabled, false)
+}
+
+func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enabled bool) {
+	const compName = coherence.ComponentName
+	comp := fakeComponent{name: "foo", enabled: true, dependencies: []string{compName}}
+
+	dependency := fakeComponent{name: compName, enabled: true, ready: false}
+	OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			dependency,
+		}
+	})
+	defer ResetGetComponentsFn()
+
+	expectedResult := true
+	if state != v1alpha1.CompStateReady {
+		expectedResult = false
+	}
+
+	cr := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+		},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				CoherenceOperator: &v1alpha1.CoherenceOperatorComponent{
+					Enabled: &enabled,
+				},
+			},
+		},
+		Status: v1alpha1.VerrazzanoStatus{
+			Components: v1alpha1.ComponentStatusMap{
+				compName: &v1alpha1.ComponentStatusDetails{
+					Name:  compName,
+					State: state,
+				},
+			},
+		},
+	}
+
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, cr, true))
+	assert.Equal(t, expectedResult, ready)
+}
+
 // Create a new deployment object for testing
-func newReadyDeployment(name string, namespace string) *appsv1.Deployment {
+func newReadyDeployment(name string, namespace string, labels map[string]string) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -477,16 +583,48 @@ func newReadyDeployment(name string, namespace string) *appsv1.Deployment {
 	}
 }
 
+func newPod(name string, namespace string, labelsIn map[string]string) *corev1.Pod {
+	lablels := make(map[string]string)
+	lablels["pod-template-hash"] = "95d8c5d96"
+	for key, element := range labelsIn {
+		lablels[key] = element
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name + "-95d8c5d96-m6mbr",
+			Labels:    lablels,
+		},
+	}
+	return pod
+}
+
+func newReplicaSet(name string, namespace string) *appsv1.ReplicaSet {
+	return &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   namespace,
+			Name:        name + "-95d8c5d96",
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
+	}
+}
+
 type fakeComponent struct {
 	name         string
+	namespace    string
 	dependencies []string
 	enabled      bool
+	ready        bool
 }
 
 var _ spi.Component = fakeComponent{}
 
 func (f fakeComponent) Name() string {
 	return f.name
+}
+
+func (f fakeComponent) Namespace() string {
+	return f.namespace
 }
 
 func (f fakeComponent) GetJSONName() string {
@@ -506,7 +644,7 @@ func (f fakeComponent) GetDependencies() []string {
 }
 
 func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
-	return true
+	return f.ready
 }
 
 func (f fakeComponent) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
@@ -535,6 +673,10 @@ func (f fakeComponent) Install(_ spi.ComponentContext) error {
 
 func (f fakeComponent) PostInstall(_ spi.ComponentContext) error {
 	return nil
+}
+
+func (f fakeComponent) IsOperatorUninstallSupported() bool {
+	return true
 }
 
 func (f fakeComponent) PreUninstall(_ spi.ComponentContext) error {

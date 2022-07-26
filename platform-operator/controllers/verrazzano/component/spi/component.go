@@ -38,6 +38,8 @@ type ComponentContext interface {
 type ComponentInfo interface {
 	// Name returns the name of the Verrazzano component
 	Name() string
+	// Namespace returns the namespace of the Verrazzano component
+	Namespace() string
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 	// IsReady Indicates whether or not a component is available and ready
@@ -75,6 +77,9 @@ type ComponentInstaller interface {
 
 // ComponentUninstaller interface defines uninstall operations
 type ComponentUninstaller interface {
+	// IsOperatorUninstallSupported Returns true if the component supports uninstall directly via the platform operator
+	// - scaffolding while we move components from the scripts to the operator
+	IsOperatorUninstallSupported() bool
 	// PreUninstall allows components to perform any pre-processing required prior to upgrading
 	PreUninstall(context ComponentContext) error
 	// Uninstall will Uninstall the Verrazzano component specified in the CR.Version field
