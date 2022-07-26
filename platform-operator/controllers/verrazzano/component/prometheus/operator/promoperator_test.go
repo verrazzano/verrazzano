@@ -475,11 +475,11 @@ func TestApplySystemMonitors(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, monitors.Items, 2)
 
-	// expected number of ServiceMonitors is created
 	monitors = &unstructured.UnstructuredList{}
 	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
+	// expect that 7 ServiceMonitors are created
 	assert.Len(t, monitors.Items, 7)
 }
 
