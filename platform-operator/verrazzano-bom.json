@@ -251,7 +251,7 @@
             },
             {
               "image": "configmap-reload",
-              "tag": "0.7.1-20220302211236-774d907",
+              "tag": "0.7.1-20220726135554-774d907",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
@@ -421,7 +421,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "1.3.0-20220510114742-dc513a7"
+              "tag": "1.4.0-20220721182006-bd71eb4"
             }
           ]
         }
