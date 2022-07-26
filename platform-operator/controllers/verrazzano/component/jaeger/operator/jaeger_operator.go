@@ -46,6 +46,7 @@ var (
 		"fullnameOverride",
 		"serviceAccount.name",
 		"ingress.enabled",
+		"jaeger.spec.storage.dependencies.enabled",
 	}
 )
 
@@ -85,32 +86,19 @@ const extraEnvValueTemplate = `extraEnv:
     value: "{{.AllInOneImage}}"
 `
 
-// A template to define Jaeger override
+// A template to define Jaeger override for creating default Jaeger instance
 // As Jaeger Operator helm-chart does not use tpl in rendering Jaeger spec value, we can not use
 // jaeger-operator-values.yaml override file to define Jaeger value referencing other values.
-const jaegerValueTemplate = `jaeger:
+const jaegerCreateTemplate = `jaeger:
   create: true
   spec:
-    annotations:
-      sidecar.istio.io/inject: "true"
-      proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
-    ingress:
-      enabled: false
     strategy: production
     storage:
       # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
       type: elasticsearch
-      dependencies:
-        enabled: false
-      esIndexCleaner:
-        enabled: true
-        # Number of days to wait before deleting a record
-        numberOfDays: 7
-        schedule: "55 23 * * *"
       options:
         es:
           server-urls: {{.OpenSearchURL}}
-          index-prefix: verrazzano-jaeger
       secretName: {{.SecretName}}
 `
 
@@ -262,7 +250,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	}
 	if createInstance {
 		// use template to populate Jaeger spec data
-		template, err := template.New("jaeger").Parse(jaegerValueTemplate)
+		template, err := template.New("jaeger").Parse(jaegerCreateTemplate)
 		if err != nil {
 			return nil, err
 		}

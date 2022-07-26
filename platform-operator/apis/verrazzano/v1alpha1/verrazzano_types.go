@@ -375,6 +375,10 @@ type ComponentSpec struct {
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
 
+	// Rancher Backup configuration
+	// +optional
+	RancherBackup *RancherBackupComponent `json:"rancherBackup,omitempty"`
+
 	// WebLogicOperator configuration
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
@@ -667,6 +671,13 @@ type MySQLComponent struct {
 
 // RancherComponent specifies the Rancher configuration
 type RancherComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
+}
+
+// RancherBackupComponent specifies the Rancher Backup configuration
+type RancherBackupComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`

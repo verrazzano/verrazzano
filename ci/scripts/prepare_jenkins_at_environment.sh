@@ -65,21 +65,21 @@ cd ${GO_REPO_PATH}/verrazzano
 echo "Determine which yaml file to use to install the Verrazzano Platform Operator"
 cd ${GO_REPO_PATH}/verrazzano
 
-OPERATOR_FILE="${WORKSPACE}/downloaded-operator.yaml"
+TARGET_OPERATOR_FILE=${TARGET_OPERATOR_FILE:-"${WORKSPACE}/acceptance-test-operator.yaml"}
 if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
   # Derive the name of the operator.yaml file, copy or generate the file, then install
   if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage"
       oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+      cp -v ${WORKSPACE}/downloaded-operator.yaml ${TARGET_OPERATOR_FILE}
   else
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-      env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
-      OPERATOR_FILE="${WORKSPACE}/acceptance-test-operator.yaml"
+      env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${TARGET_OPERATOR_FILE}
   fi
 else
   # The operator.yaml filename was provided, install using that file.
   echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
-  OPERATOR_FILE="${OPERATOR_YAML}"
+  TARGET_OPERATOR_FILE=${OPERATOR_YAML}
 fi
 
 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
@@ -102,8 +102,9 @@ if [ -n "${CLUSTER_DUMP_DIR}" ]; then
 fi
 
 # Configure the custom resource to install Verrazzano on Kind
+VZ_INSTALL_FILE=${VZ_INSTALL_FILE:-"${WORKSPACE}/acceptance-test-config.yaml"}
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
-cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/acceptance-test-config.yaml
+cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
 
 echo "Creating Override ConfigMap"
 kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
@@ -120,8 +121,13 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Installing Verrazzano on Kind"
-cd $WORKSPACE
-./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${OPERATOR_FILE}
+if [ -f "$WORKSPACE/vz" ]; then
+  cd $WORKSPACE
+  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${OPERATOR_FILE}
+else
+  cd ${GO_REPO_PATH}/verrazzano/tools/vz
+  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
+fi
 result=$?
 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
 if [[ $result -ne 0 ]]; then
