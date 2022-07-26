@@ -305,6 +305,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectSyncCACertRancherHTTPCalls(t, mockRequestSender)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -823,7 +824,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(clustersapi.RegistrationFailed, vmc.Status.RancherRegistration.Status)
-			asserts.Equal("Failed to register managed cluster: Failed, Rancher ingress cattle-system/rancher is missing host names", vmc.Status.RancherRegistration.Message)
+			asserts.Equal("Failed to create Rancher API client: Failed, Rancher ingress cattle-system/rancher is missing host names", vmc.Status.RancherRegistration.Message)
 			return nil
 		})
 
@@ -875,11 +876,11 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	regYAML, _, err := registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	rc, err := newRancherConfig(mock, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
-	asserts.Empty(regYAML)
+	asserts.Nil(rc)
 
 	// GIVEN a call to register a managed cluster with Rancher
 	// WHEN the call to get the Rancher root CA cert secret fails
@@ -903,11 +904,11 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return errors.NewResourceExpired("something bad happened")
 		})
 
-	regYAML, _, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	rc, err = newRancherConfig(mock, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
-	asserts.Empty(regYAML)
+	asserts.Nil(rc)
 }
 
 // TestRegisterClusterWithRancherHTTPErrorCases tests errors cases using the HTTP
@@ -944,11 +945,11 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, _, err := registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	rc, err := newRancherConfig(mock, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
-	asserts.Empty(regYAML)
+	asserts.Nil(rc)
 
 	// GIVEN a call to register a managed cluster with Rancher
 	// WHEN the call to import the cluster into Rancher fails
@@ -987,7 +988,10 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, _, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	rc, err = newRancherConfig(mock, vzlog.DefaultLogger())
+	asserts.NoError(err)
+
+	regYAML, _, err := registerManagedClusterWithRancher(rc, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1042,7 +1046,10 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, _, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	rc, err = newRancherConfig(mock, vzlog.DefaultLogger())
+	asserts.NoError(err)
+
+	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1110,7 +1117,10 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, _, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
+	rc, err = newRancherConfig(mock, vzlog.DefaultLogger())
+	asserts.NoError(err)
+
+	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1122,7 +1132,6 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 // AND the error is retryable
 // THEN ensure that the request is retried
 func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
-	clusterName := "unit-test-cluster"
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1164,7 +1173,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 			return resp, nil
 		}).Times(retrySteps)
 
-	_, _, err := registerManagedClusterWithRancher(mock, clusterName, vzlog.DefaultLogger())
+	_, err := newRancherConfig(mock, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1861,6 +1870,55 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			r := ioutil.NopCloser(bytes.NewReader([]byte(rancherManifestYAML)))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
+			}
+			return resp, nil
+		})
+}
+
+func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.MockRequestSender) {
+	asserts := assert.New(t)
+
+	// Expect an HTTP request to fetch the managed cluster info from Rancher
+	requestSenderMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			asserts.Equal("/v3/clusters/unit-test-cluster-id", req.URL.Path)
+
+			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"state":"active"}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
+			}
+			return resp, nil
+		})
+
+	// Expect an HTTP request to fetch the Rancher TLS additional CA secret from the managed cluster and return an HTTP 404
+	requestSenderMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			asserts.Equal("/k8s/clusters/unit-test-cluster-id/api/v1/namespaces/cattle-system/secrets/tls-ca-additional", req.URL.Path)
+
+			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
+			resp := &http.Response{
+				StatusCode: http.StatusNotFound,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
+			}
+			return resp, nil
+		})
+
+	// Expect an HTTP request to fetch the Verrazzano system TLS CA secret from the managed cluster and return the secret
+	requestSenderMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			asserts.Equal("/k8s/clusters/unit-test-cluster-id/api/v1/namespaces/verrazzano-system/secrets/verrazzano-tls", req.URL.Path)
+
+			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
+			resp := &http.Response{
+				StatusCode: http.StatusNotFound,
 				Body:       r,
 				Request:    &http.Request{Method: http.MethodGet},
 			}

@@ -84,15 +84,9 @@ var rancherHTTPClient requestSender = &httpRequestSender{}
 
 // registerManagedClusterWithRancher registers a managed cluster with Rancher and returns a chunk of YAML that
 // must be applied on the managed cluster to complete the registration.
-func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, log vzlog.VerrazzanoLogger) (string, string, error) {
+func registerManagedClusterWithRancher(rc *rancherConfig, clusterName string, log vzlog.VerrazzanoLogger) (string, string, error) {
 	log.Oncef("Registering managed cluster in Rancher with name: %s", clusterName)
 
-	rc, err := newRancherConfig(rdr, log)
-	if err != nil {
-		return "", "", err
-	}
-
-	log.Oncef("Importing cluster %s into to Rancher", clusterName)
 	clusterID, err := importClusterToRancher(rc, clusterName, log)
 	if err != nil {
 		log.Errorf("Failed to import cluster to Rancher: %v", err)
@@ -252,12 +246,7 @@ func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log vzlog.Ve
 }
 
 // isManagedClusterActive returns true if the managed cluster is active
-func isManagedClusterActive(rdr client.Reader, clusterID string, log vzlog.VerrazzanoLogger) (bool, error) {
-	rc, err := newRancherConfig(rdr, log)
-	if err != nil {
-		return false, err
-	}
-
+func isManagedClusterActive(rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (bool, error) {
 	reqURL := rc.baseURL + clustersPath + "/" + clusterID
 	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
 
@@ -281,12 +270,7 @@ func isManagedClusterActive(rdr client.Reader, clusterID string, log vzlog.Verra
 
 // getCACertFromManagedCluster attempts to get the CA cert from the managed cluster using the Rancher API proxy. It first checks for
 // the Rancher TLS secret and if that is not found it looks for the Verrazzano system TLS secret.
-func getCACertFromManagedCluster(rdr client.Reader, clusterID string, log vzlog.VerrazzanoLogger) (string, error) {
-	rc, err := newRancherConfig(rdr, log)
-	if err != nil {
-		return "", err
-	}
-
+func getCACertFromManagedCluster(rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (string, error) {
 	// first look for the Rancher TLS secret
 	caCert, err := getCACertFromManagedClusterSecret(rc, clusterID, rancherNamespace, cons.AdditionalTLS, "ca-additional.pem", log)
 	if err != nil {
