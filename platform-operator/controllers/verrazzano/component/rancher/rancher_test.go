@@ -184,7 +184,7 @@ func createAdminSecret() v1.Secret {
 	}
 }
 
-func createServerUrlSetting() unstructured.Unstructured {
+func createServerURLSetting() unstructured.Unstructured {
 	serverURLSetting := unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
