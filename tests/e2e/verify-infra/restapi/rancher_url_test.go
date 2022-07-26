@@ -80,45 +80,47 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				}
 
 				start := time.Now()
-				Eventually(func() (string, error) {
-					clusterData, err := k8sClient.Resource(gvkToGvr(rancher.GVKCluster)).Get(context.Background(), rancher.ClusterLocal, v1.GetOptions{})
+				Eventually(func() (bool, error) {
+					clusterData, err := k8sClient.Resource(gvkToGvr(rancher.GVKCluster)).Namespace("").Get(context.Background(), rancher.ClusterLocal, v1.GetOptions{})
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("Error getting local Cluster CR: %v", err))
-						return "", err
+						return false, err
 					}
-					conditions := clusterData.UnstructuredContent()["conditions"].([]map[string]string)
+					status := clusterData.UnstructuredContent()["status"].(map[string]interface{})
+					conditions := status["conditions"].([]interface{})
 					for _, condition := range conditions {
-						if condition["status"] == "True" && condition["type"] == "Ready" {
-							return "active", nil
+						conditionStage := condition.(map[string]interface{})
+						if conditionStage["status"].(string) == "True" && conditionStage["type"].(string) == "Ready" {
+							return true, nil
 						}
 					}
-					return "inactive", fmt.Errorf("Cluster still not in active state")
-				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher local cluster not in active state")
+					return false, fmt.Errorf("Cluster still not in active state")
+				}, waitTimeout, pollingInterval).Should(Equal(true), "rancher local cluster not in active state")
 				metrics.Emit(t.Metrics.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
 
 				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 				Expect(err).ToNot(HaveOccurred())
 				if minVer14 {
 					start = time.Now()
-					Eventually(func() (string, error) {
+					Eventually(func() (bool, error) {
 						ociDriverData, err := k8sClient.Resource(gvkToGvr(rancher.GVKNodeDriver)).Get(context.Background(), rancher.NodeDriverOCI, v1.GetOptions{})
 						if err != nil {
 							t.Logs.Error(fmt.Sprintf("Error getting OCI Driver CR: %v", err))
-							return "", err
+							return false, err
 						}
-						return ociDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(string), nil
-					}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oci driver not activated")
+						return ociDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher oci driver not activated")
 					metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 
 					start = time.Now()
-					Eventually(func() (string, error) {
+					Eventually(func() (bool, error) {
 						okeDriverData, err := k8sClient.Resource(gvkToGvr(rancher.GVKKontainerDriver)).Get(context.Background(), rancher.KontainerDriverOKE, v1.GetOptions{})
 						if err != nil {
 							t.Logs.Error(fmt.Sprintf("Error getting OKE Driver CR: %v", err))
-							return "", err
+							return false, err
 						}
-						return okeDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(string), nil
-					}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oke driver not activated")
+						return okeDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher oke driver not activated")
 					metrics.Emit(t.Metrics.With("get_oke_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 				}
 			}
@@ -130,7 +132,10 @@ func gvkToGvr(gvk schema.GroupVersionKind) schema.GroupVersionResource {
 	resource := strings.ToLower(gvk.Kind)
 	if strings.HasSuffix(resource, "s") {
 		resource = resource + "es"
+	} else {
+		resource = resource + "s"
 	}
+
 	return schema.GroupVersionResource{Group: gvk.Group,
 		Version:  gvk.Version,
 		Resource: resource,
