@@ -27,13 +27,13 @@ import (
 	"time"
 )
 
-const secretsData = //nolint:gosec //#gosec G101 //#gosec G204
+const SecretsData = //nolint:gosec //#gosec G101 //#gosec G204
 `[default]
 {{ .AccessName }}={{ .ObjectStoreAccessValue }}
 {{ .ScrtName }}={{ .ObjectStoreScrt }}
 `
 
-const veleroBackupLocation = `
+const VeleroBackupLocation = `
     apiVersion: velero.io/v1
     kind: BackupStorageLocation
     metadata:
@@ -52,7 +52,7 @@ const veleroBackupLocation = `
         s3ForcePathStyle: "true"
         s3Url: https://{{ .VeleroObjectStorageNamespaceName }}.compat.objectstorage.{{ .VeleroBackupRegion }}.oraclecloud.com`
 
-const veleroBackup = `
+const VeleroBackup = `
 ---
 apiVersion: velero.io/v1
 kind: Backup
@@ -89,7 +89,7 @@ spec:
               onError: Fail
               timeout: 10m`
 
-const veleroRestore = `
+const VeleroRestore = `
 ---
 apiVersion: velero.io/v1
 kind: Restore
@@ -125,7 +125,7 @@ spec:
               execTimeout: 30m
               onError: Fail`
 
-const esQueryBody = `
+const EsQueryBody = `
 {
 	"query": {
   		"terms": {
@@ -135,7 +135,7 @@ const esQueryBody = `
 }
 `
 
-const rancherBackup = `
+const RancherBackup = `
 ---
 apiVersion: resources.cattle.io/v1
 kind: Backup
@@ -153,7 +153,7 @@ spec:
   resourceSetName: rancher-resource-set
 `
 
-const rancherRestore = `
+const RancherRestore = `
 ---
 apiVersion: resources.cattle.io/v1
 kind: Restore
@@ -171,18 +171,18 @@ spec:
 	  endpoint: {{ .RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherBackupRegion }}.oraclecloud.com
 `
 
-type rancherBackupData struct {
+type RancherBackupData struct {
 	RancherBackupName string
-	RancherSecretData rancherObjectStoreData
+	RancherSecretData RancherObjectStoreData
 }
 
-type rancherRestoreData struct {
+type RancherRestoreData struct {
 	RancherRestoreName string
 	BackupFileName     string
-	RancherSecretData  rancherObjectStoreData
+	RancherSecretData  RancherObjectStoreData
 }
 
-type rancherObjectStoreData struct {
+type RancherObjectStoreData struct {
 	RancherSecretName                 string
 	RancherSecretNamespaceName        string
 	RancherObjectStoreBucketName      string
@@ -203,14 +203,14 @@ type RunnerResponse struct {
 	CommandError error        `json:"error"`
 }
 
-type accessData struct {
+type AccessData struct {
 	AccessName             string
 	ScrtName               string
 	ObjectStoreAccessValue string
 	ObjectStoreScrt        string
 }
 
-type veleroBackupLocationObjectData struct {
+type VeleroBackupLocationObjectData struct {
 	VeleroBackupStorageName          string
 	VeleroNamespaceName              string
 	VeleroObjectStoreBucketName      string
@@ -219,22 +219,51 @@ type veleroBackupLocationObjectData struct {
 	VeleroBackupRegion               string
 }
 
-type veleroBackupObject struct {
+type VeleroBackupObject struct {
 	VeleroBackupName                 string
 	VeleroNamespaceName              string
 	VeleroBackupStorageName          string
 	VeleroOpensearchHookResourceName string
 }
 
-type veleroRestoreObject struct {
+type VeleroRestoreObject struct {
 	VeleroRestore                    string
 	VeleroNamespaceName              string
 	VeleroBackupName                 string
 	VeleroOpensearchHookResourceName string
 }
 
-type esQueryObject struct {
+type EsQueryObject struct {
 	BackupIDBeforeBackup string
+}
+
+var (
+	VeleroNameSpace, VeleroSecretName                                                                    string
+	RancherSecretName                                                                                    string
+	OciBucketID, OciBucketName, OciOsAccessKey, OciOsAccessSecretKey, OciCompartmentID, OciNamespaceName string
+	BackupResourceName, BackupOpensearchName, BackupRancherName                                          string
+	RestoreOpensearchName, RestoreRancherName                                                            string
+	BackupRegion, BackupStorageName                                                                      string
+	BackupID, RancherBackupFileName                                                                      string
+)
+
+func GatherInfo() {
+	VeleroNameSpace = os.Getenv("VELERO_NAMESPACE")
+	VeleroSecretName = os.Getenv("VELERO_SECRET_NAME")
+	RancherSecretName = os.Getenv("RANCHER_SECRET_NAME")
+	OciBucketID = os.Getenv("OCI_OS_BUCKET_ID")
+	OciBucketName = os.Getenv("OCI_OS_BUCKET_NAME")
+	OciOsAccessKey = os.Getenv("OCI_OS_ACCESS_KEY")
+	OciOsAccessSecretKey = os.Getenv("OCI_OS_ACCESS_SECRET_KEY")
+	OciCompartmentID = os.Getenv("OCI_OS_COMPARTMENT_ID")
+	OciNamespaceName = os.Getenv("OCI_OS_NAMESPACE")
+	BackupResourceName = os.Getenv("BACKUP_RESOURCE")
+	BackupOpensearchName = os.Getenv("BACKUP_OPENSEARCH")
+	BackupRancherName = os.Getenv("BACKUP_RANCHER")
+	RestoreOpensearchName = os.Getenv("RESTORE_OPENSEARCH")
+	RestoreRancherName = os.Getenv("RESTORE_RANCHER")
+	BackupStorageName = os.Getenv("BACKUP_STORAGE")
+	BackupRegion = os.Getenv("BACKUP_REGION")
 }
 
 func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
@@ -313,7 +342,7 @@ func GetVZPasswd(log *zap.SugaredLogger) (string, error) {
 	return string(secret.Data["password"]), nil
 }
 
-func dynamicSSA(ctx context.Context, deploymentYAML string, log *zap.SugaredLogger) error {
+func DynamicSSA(ctx context.Context, deploymentYAML string, log *zap.SugaredLogger) error {
 
 	kubeconfig, err := k8sutil.GetKubeConfig()
 	if err != nil {
@@ -366,7 +395,7 @@ func dynamicSSA(ctx context.Context, deploymentYAML string, log *zap.SugaredLogg
 	return err
 }
 
-func retryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operation, objectName string, log *zap.SugaredLogger) error {
+func RetryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operation, objectName string, log *zap.SugaredLogger) error {
 	retryCount := 0
 	for {
 		if retryCount >= retryLimit {
@@ -392,7 +421,7 @@ func retryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operat
 
 }
 
-func veleroObjectDelete(objectType, objectname, nameSpaceName string, log *zap.SugaredLogger) error {
+func VeleroObjectDelete(objectType, objectname, nameSpaceName string, log *zap.SugaredLogger) error {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
 	cmdArgs = append(cmdArgs, "-n")
@@ -419,7 +448,7 @@ func veleroObjectDelete(objectType, objectname, nameSpaceName string, log *zap.S
 	return nil
 }
 
-func displayHookLogs(log *zap.SugaredLogger) error {
+func DisplayHookLogs(log *zap.SugaredLogger) error {
 	log.Infof("Retrieving verrazzano hook logs ...")
 	var cmdArgs []string
 	logFileCmd := "kubectl exec -it -n verrazzano-system  vmi-system-es-master-0 -- ls -alt --time=ctime /tmp/ | grep verrazzano | cut -d ' ' -f9 | head -1"
@@ -461,7 +490,7 @@ func displayHookLogs(log *zap.SugaredLogger) error {
 	return nil
 }
 
-func getRancherBackupFileName(backupName string, log *zap.SugaredLogger) (string, error) {
+func GetRancherBackupFileName(backupName string, log *zap.SugaredLogger) (string, error) {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
 	cmdArgs = append(cmdArgs, "get")
@@ -479,4 +508,92 @@ func getRancherBackupFileName(backupName string, log *zap.SugaredLogger) (string
 		return "", fileNameResponse.CommandError
 	}
 	return strings.TrimSpace(strings.Trim(fileNameResponse.StandardOut.String(), "\n")), nil
+}
+
+func CheckPodsTerminated(labelSelector, namespace string, log *zap.SugaredLogger) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	retryCount := 0
+	for {
+		listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+		pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+		if err != nil {
+			return err
+		}
+		if len(pods.Items) > 0 {
+			if retryCount > 100 {
+				return fmt.Errorf("retry count to monitor pods exceeded")
+			}
+			log.Infof("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+			time.Sleep(10 * time.Second)
+		} else {
+			log.Infof("All pods with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
+			return nil
+		}
+		retryCount = retryCount + 1
+	}
+
+}
+
+func CheckPvcsTerminated(labelSelector, namespace string, log *zap.SugaredLogger) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	retryCount := 0
+	for {
+		listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+		pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), listOptions)
+		if err != nil {
+			return err
+		}
+		if len(pvcs.Items) > 0 {
+			if retryCount > 100 {
+				return fmt.Errorf("retry count to monitor pvcs exceeded")
+			}
+			log.Infof("Pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+			time.Sleep(10 * time.Second)
+		} else {
+			log.Infof("All pvcs with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
+			return nil
+		}
+		retryCount = retryCount + 1
+	}
+
+}
+
+func CheckOperatorOperationProgress(operator, operation, namespace, objectName string, log *zap.SugaredLogger) error {
+	var cmdArgs []string
+	var kind, jsonPath string
+
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+
+	switch operator {
+	case "velero":
+		cmdArgs = append(cmdArgs, "-n")
+		cmdArgs = append(cmdArgs, namespace)
+		kind = "velero.io"
+		jsonPath = "{.status.phase}"
+	case "rancher":
+		kind = "resources.cattle.io"
+		jsonPath = "{.status.conditions[].message}"
+	}
+
+	cmdArgs = append(cmdArgs, fmt.Sprintf("%s.%s", operation, kind))
+	cmdArgs = append(cmdArgs, objectName)
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, fmt.Sprintf("jsonpath=%s", jsonPath))
+	cmdArgs = append(cmdArgs, "--ignore-not-found")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+	return RetryAndCheckShellCommandResponse(100, &kcmd, operation, objectName, log)
 }

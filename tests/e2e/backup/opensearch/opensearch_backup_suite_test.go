@@ -12,5 +12,5 @@ import (
 
 func TestVelero(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Backup Suite")
+	ginkgo.RunSpecs(t, "Opensearch Backup Suite")
 }
