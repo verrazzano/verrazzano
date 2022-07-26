@@ -64,7 +64,7 @@ GO_BINDATA_VERSION ?= $(shell go list -m -f '{{.Version}}' 'github.com/go-bindat
 
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
-CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
+CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-snapshot
 SHELL = bash
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
@@ -184,7 +184,7 @@ OPERATOR_YAML ?= ${BUILD_DEPLOY}/operator.yaml
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
 
-CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
+CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-snapshot
 KIND_CONFIG ?= kind-config.yaml
 
 .PHONY: integ-test

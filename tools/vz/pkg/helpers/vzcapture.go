@@ -54,7 +54,7 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 		if fileInfo.Mode().IsDir() {
 			return nil
 		}
-		// make cluster-dump as the root directory in the archive, to support existing analysis tool
+		// make cluster-snapshot as the root directory in the archive, to support existing analysis tool
 		filePath := constants.BugReportRoot + path[len(captureDir):]
 		fileReader, err := os.Open(path)
 		if err != nil {

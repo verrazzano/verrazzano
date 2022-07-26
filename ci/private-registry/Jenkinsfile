@@ -522,12 +522,12 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verify-uninstall-success-cluster-dump')
+                            dumpK8sCluster('verify-uninstall-success-cluster-snapshot')
                         }
                     }
                 }
                 failure {
-                    dumpK8sCluster('verify-uninstall-failed-cluster-dump')
+                    dumpK8sCluster('verify-uninstall-failed-cluster-snapshot')
                 }
             }
         }
@@ -559,7 +559,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-snapshot/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             sh """
@@ -612,7 +612,7 @@ def runGinkgo(testSuitePath, String... extraArgs) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${DUMP_COMMAND} -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${DUMP_COMMAND} -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
     """
 }
 

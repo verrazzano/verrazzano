@@ -56,7 +56,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 KIND_CONFIG ?= kind-config.yaml
 CRD_PATH=../image-patch-operator/helm_config/charts/image-patch-operator/crds
 
-CLUSTER_DUMP_LOCATION ?= image-patch-operator-integ-cluster-dump
+CLUSTER_DUMP_LOCATION ?= image-patch-operator-integ-cluster-snapshot
 
 .PHONY: go-build
 go-build:

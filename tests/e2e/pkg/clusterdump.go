@@ -74,7 +74,7 @@ func ExecuteClusterDump(clusterDumpCommand string, kubeconfig string, clusterDum
 	if clusterDumpCommand == "" {
 		return nil
 	}
-	reportFile := fmt.Sprintf("%s/cluster-dump/analysis.report", clusterDumpDirectory)
+	reportFile := fmt.Sprintf("%s/cluster-snapshot/analysis.report", clusterDumpDirectory)
 	cmd = exec.Command(clusterDumpCommand, "-d", clusterDumpDirectory, "-r", reportFile)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
 	cmd.Stdout = os.Stdout
