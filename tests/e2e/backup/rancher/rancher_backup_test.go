@@ -25,6 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -128,6 +129,8 @@ func CreateRancherRestoreObject() error {
 
 	backup.RancherBackupFileName = rancherFileName
 
+	t.Logs.Infof("Rancher backup filename = %s", backup.RancherBackupFileName)
+
 	var b bytes.Buffer
 	template, _ := template.New("rancher-backup").Parse(backup.RancherRestore)
 	data := backup.RancherRestoreData{
@@ -141,8 +144,9 @@ func CreateRancherRestoreObject() error {
 			RancherObjectStorageNamespaceName: backup.OciNamespaceName,
 		},
 	}
-
+	spew.Dump(data)
 	template.Execute(&b, data)
+	spew.Dump(b)
 	err = backup.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
@@ -301,8 +305,6 @@ func cleanUpRancher() {
 }
 
 var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.rancher-backup"), Serial, func() {
-
-	// Rancher backup section
 
 	t.Context("Start rancher backup", func() {
 		WhenRancherBackupInstalledIt("Start rancher backup", func() {
