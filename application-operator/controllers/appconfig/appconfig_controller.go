@@ -8,27 +8,25 @@ import (
 	"fmt"
 	"time"
 
-	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-
+	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/types"
-
-	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -58,6 +56,27 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
+	zapLogForMetrics := zap.S().With(controllerName)
+	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileCounter)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return reconcile.Result{}, err
+	}
+	counterMetricObject.Inc(zapLogForMetrics, err)
+	errorCounterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileError)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return reconcile.Result{}, err
+	}
+
+	reconcileDurationMetricObject, err := metricsexporter.GetDurationMetric(metricsexporter.AppconfigReconcileDuration)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return reconcile.Result{}, err
+	}
+	reconcileDurationMetricObject.TimerStart()
+	defer reconcileDurationMetricObject.TimerStop()
+
 	if req.Namespace == constants.KubeSystem {
 		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)
 		log.Infof("Application configuration resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
@@ -73,6 +92,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	log, err := clusters.GetResourceLogger("applicationconfiguration", req.NamespacedName, &appConfig)
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		log.Errorf("Failed to create controller logger for application configuration resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
@@ -85,6 +105,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 

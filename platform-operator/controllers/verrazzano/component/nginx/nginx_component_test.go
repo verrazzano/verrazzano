@@ -4,13 +4,19 @@
 package nginx
 
 import (
+	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/test/ip"
-
-	v1 "k8s.io/api/core/v1"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var testExternalIP = ip.RandomIP()
@@ -128,7 +134,7 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						Ingress: &vzapi.IngressNginxComponent{
-							Ports: []v1.ServicePort{{Name: "https2", NodePort: 30057}},
+							Ports: []corev1.ServicePort{{Name: "https2", NodePort: 30057}},
 						},
 					},
 				},
@@ -273,4 +279,28 @@ func Test_nginxComponent_ValidateInstall(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestPostUninstall tests the PostUninstall function
+// GIVEN a call to PostUninstall
+//  WHEN the ingress-nginx namespace exists with a finalizer
+//  THEN true is returned and ingress-nginx namespace is deleted
+func TestPostUninstall(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       ComponentNamespace,
+				Finalizers: []string{"fake-finalizer"},
+			},
+		},
+	).Build()
+
+	var nComp nginxComponent
+	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
+	assert.NoError(t, nComp.PostUninstall(compContext))
+
+	// Validate that the namespace does not exist
+	ns := corev1.Namespace{}
+	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
+	assert.True(t, errors.IsNotFound(err))
 }

@@ -14,7 +14,7 @@ check: install-linter word-linter url-linter check-linter ## run all linters
 
 .PHONY: check-linter
 check-linter: install-linter ## run Go linters
-	$(LINTER) --color never run
+	$(LINTER) --color never run --timeout 300s
 
 # find or download golangci-lint
 .PHONY: install-linter

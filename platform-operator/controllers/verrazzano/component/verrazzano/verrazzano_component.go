@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -53,17 +54,18 @@ type verrazzanoComponent struct {
 func NewComponent() spi.Component {
 	return verrazzanoComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			ResolveNamespaceFunc:    resolveVerrazzanoNamespace,
-			AppendOverridesFunc:     appendVerrazzanoOverrides,
-			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
-			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			ResolveNamespaceFunc:      resolveVerrazzanoNamespace,
+			AppendOverridesFunc:       appendVerrazzanoOverrides,
+			ImagePullSecretKeyname:    vzImagePullSecretKeyName,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, authproxy.ComponentName},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
@@ -152,6 +154,11 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	}
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
 		if err := fluentd.ReassociateResources(ctx.Client()); err != nil {
+			return err
+		}
+	}
+	if vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
+		if err := jaegeroperator.ReassociateResources(ctx.Client()); err != nil {
 			return err
 		}
 	}

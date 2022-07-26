@@ -74,35 +74,33 @@ data:
     </source>
 
   prometheus.conf: |
-    # input plugin that is required to expose metrics by other Prometheus
-    # plugins, such as the prometheus_monitor input below.
+    # Prometheus Exporter Plugin
+    # input plugin that exports metrics
     <source>
       @type prometheus
-      @id prometheus
-      bind 0.0.0.0
       port 24231
       metrics_path /metrics
     </source>
-
-    # input plugin that collects metrics from MonitorAgent and exposes them
-    # as Prometheus metrics
+    # input plugin that collects metrics from MonitorAgent
     <source>
       @type prometheus_monitor
-      @id prometheus_monitor
-      # update the metrics every 20 seconds
-      interval 20
+      <labels>
+        host ${hostname}
+      </labels>
     </source>
-
+    # input plugin that collects metrics for output plugin
     <source>
       @type prometheus_output_monitor
-      @id prometheus_output_monitor
-      interval 20
+      <labels>
+        host ${hostname}
+      </labels>
     </source>
-
+    # input plugin that collects metrics for in_tail plugin
     <source>
       @type prometheus_tail_monitor
-      @id prometheus_tail_monitor
-      interval 20
+      <labels>
+        host ${hostname}
+      </labels>
     </source>
 
   systemd-input.conf: |
@@ -251,9 +249,9 @@ data:
         # the other is just a messsage
         @type multi_format
         <pattern>
-          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}\:\d{2}\:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)$/
-          time_key logtime
-          time_format %Y/%m/%d %H:%M:%S
+          format json
+          time_key @timestamp
+          time_format %Y-%m-%dT%H:%M:%S+%N
         </pattern>
         <pattern>
           format none

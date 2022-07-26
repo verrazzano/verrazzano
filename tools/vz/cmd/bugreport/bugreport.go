@@ -14,16 +14,34 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 const (
 	CommandName = "bug-report"
-	helpShort   = "Capture data from the cluster"
-	helpLong    = `Verrazzano command line utility to capture the data from the cluster, to report an issue`
-	helpExample = `# Run bug report tool by providing the name for the report file
-$vz bug-report --report-file <name of the file to include cluster data, a .tar.gz or .tgz file>
+	helpShort   = "Collect information from the cluster to report an issue"
+	helpLong    = `Verrazzano command line utility to collect data from the cluster, to report an issue`
+	helpExample = `
+# Create a bug report bugreport.tar.gz by collecting data from the cluster
+vz bug-report --report-file bugreport.tar.gz
+
+When the --report-file is not provided, the command attempts to create bug-report.tar.gz in the current directory.
+
+# Create a bug report bugreport.tgz, including additional namespace ns1 from the cluster
+vz bug-report --report-file bugreport.tgz --include-namespaces ns1
+
+The flag --include-namespaces accepts comma separated values. The flag can also be specified multiple times.
+For example, the following commands create a bug report by including additional namespaces ns1, ns2 and ns3
+   a. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2,ns3
+   b. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-namespaces ns3
+
+The values specified for the flag --include-namespaces are case-sensitive.
 `
 )
+
+const lineSeparator = "-"
+const minLineLength = 100
 
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -32,13 +50,15 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	}
 
 	cmd.Example = helpExample
-	cmd.PersistentFlags().String(constants.BugReportFileFlagName, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
-	cmd.MarkPersistentFlagRequired(constants.BugReportFileFlagName)
+	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
+	cmd.PersistentFlags().StringSliceP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, []string{}, constants.BugReportIncludeNSFlagUsage)
+
 	return cmd
 }
 
 func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
+	start := time.Now()
+	bugReportFile, err := getBugReportFile(cmd, vzHelper)
 	if err != nil {
 		return fmt.Errorf("error fetching flag: %s", err.Error())
 	}
@@ -51,6 +71,12 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 	// Get the controller runtime client
 	client, err := vzHelper.GetClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Get the dynamic client to retrieve OAM resources
+	dynamicClient, err := vzHelper.GetDynamicClient(cmd)
 	if err != nil {
 		return err
 	}
@@ -71,12 +97,49 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 	defer bugRepFile.Close()
 
-	// Generate the bug report
-	err = vzbugreport.GenerateBugReport(kubeClient, client, bugRepFile, vzHelper)
+	// Read the additional namespaces provided using flag --include-namespaces
+	moreNS, err := cmd.PersistentFlags().GetStringSlice(constants.BugReportIncludeNSFlagName)
 	if err != nil {
+		return fmt.Errorf("an error occurred while reading values for the flag --include-namespaces: %s", err.Error())
+	}
+
+	// Generate the bug report
+	err = vzbugreport.GenerateBugReport(kubeClient, dynamicClient, client, bugRepFile, moreNS, vzHelper)
+	if err != nil {
+		os.Remove(bugReportFile)
+		return fmt.Errorf(err.Error())
+	}
+
+	brf, _ := os.Stat(bugReportFile)
+	if brf.Size() > 0 {
+		msg := fmt.Sprintf("Created bug report: %s in %s\n", bugReportFile, time.Since(start))
+		fmt.Fprintf(vzHelper.GetOutputStream(), msg)
+		// Display a message to check the standard error, if the command reported any error and continued
+		if helpers.IsErrorReported() {
+			fmt.Fprintf(vzHelper.GetOutputStream(), constants.BugReportError+"\n")
+		}
+		displayWarning(msg, vzHelper)
+	} else {
+		// Verrazzano is not installed, remove the empty bug report file
 		os.Remove(bugReportFile)
 	}
 	return nil
+}
+
+// getBugReportFile determines the bug report file
+func getBugReportFile(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
+	bugReport, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
+	if err != nil {
+		return "", fmt.Errorf("error fetching flag: %s", err.Error())
+	}
+	if bugReport == "" {
+		currentDir, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("error determining the current directory: %s", err.Error())
+		}
+		return filepath.Join(currentDir, constants.BugReportFileDefaultValue), nil
+	}
+	return bugReport, nil
 }
 
 // checkExistingFile determines whether a file / directory with the name bugReportFile already exists
@@ -103,4 +166,23 @@ func checkExistingFile(bugReportFile string) error {
 		}
 	}
 	return nil
+}
+
+// displayWarning logs a warning message to check the contents of the bug report
+func displayWarning(successMessage string, helper helpers.VZHelper) {
+	// This might be the efficient way, but does the job of displaying a formatted message
+
+	// Draw a line to differentiate the warning from the info message
+	count := len(successMessage)
+	if len(successMessage) < minLineLength {
+		count = minLineLength
+	}
+	sep := strings.Repeat(lineSeparator, count)
+
+	// Any change in BugReportWarning, requires a change here to adjust the whitespace characters before the message
+	wsCount := count - len(constants.BugReportWarning)
+
+	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
+	fmt.Fprintf(helper.GetOutputStream(), strings.Repeat(" ", wsCount/2)+constants.BugReportWarning+"\n")
+	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
 }

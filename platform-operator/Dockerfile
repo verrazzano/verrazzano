@@ -12,9 +12,7 @@ COPY . .
 COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
 RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
-    && chmod +x scripts/install/*.sh \
-    && chmod +x scripts/uninstall/*.sh \
-    && chmod +x scripts/uninstall/uninstall-steps/*.sh
+    && chmod +x scripts/install/*.sh
 
 # Create the verrazzano-platform-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim
@@ -31,7 +29,7 @@ RUN yum update -y \
     && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
     && yum install -y kubectl-1.20.11-4.el7 \
     && yum install -y helm-3.8.0-1.el7 \
-    && yum install -y istio-istioctl-1.13.2-1.el7 \
+    && yum install -y istio-istioctl-1.13.5-1.el7 \
     && yum clean all \
     && rm -rf /var/cache/yum
 
@@ -54,7 +52,6 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/manifests ./platform-operator/manifests
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/hooks ./platform-operator/scripts/hooks
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/install ./platform-operator/scripts/install
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/uninstall ./platform-operator/scripts/uninstall
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/run.sh .
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/helm_config ./platform-operator/helm_config

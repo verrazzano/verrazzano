@@ -5937,6 +5937,9 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      replicas:
+                        format: int32
+                        type: integer
                     type: object
                   kubeStateMetrics:
                     description: KubeStateMetrics configuration
@@ -6264,6 +6267,59 @@ spec:
                     type: object
                   rancher:
                     description: Rancher configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          description: Overrides stores the specified overrides
+                          properties:
+                            configMapRef:
+                              description: Selects a key from a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              description: SecretKeySelector selects a key of a Secret.
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  rancherBackup:
+                    description: Rancher Backup configuration
                     properties:
                       enabled:
                         type: boolean
@@ -8296,6 +8352,9 @@ spec:
                     type: string
                   grafanaUrl:
                     description: GrafanaURL The Grafana URL for this Verrazzano installation
+                    type: string
+                  jaegerUrl:
+                    description: JaegerURL The Jaeger UI URL for this Verrazzano installation
                     type: string
                   keyCloakUrl:
                     description: KeyCloakURL The KeyCloak URL for this Verrazzano

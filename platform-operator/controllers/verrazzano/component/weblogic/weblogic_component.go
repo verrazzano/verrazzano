@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -33,18 +36,19 @@ type weblogicComponent struct {
 func NewComponent() spi.Component {
 	return weblogicComponent{
 		helm.HelmComponent{
-			ReleaseName:             ComponentName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
-			PreInstallFunc:          WeblogicOperatorPreInstall,
-			AppendOverridesFunc:     AppendWeblogicOperatorOverrides,
-			Dependencies:            []string{istio.ComponentName},
-			GetInstallOverridesFunc: GetOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
+			PreInstallFunc:            WeblogicOperatorPreInstall,
+			AppendOverridesFunc:       AppendWeblogicOperatorOverrides,
+			Dependencies:              []string{istio.ComponentName},
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
@@ -84,4 +88,15 @@ func (c weblogicComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return false
+}
+
+func (c weblogicComponent) PostUninstall(context spi.ComponentContext) error {
+	err := resource.Resource{
+		Namespace: constants.VerrazzanoSystemNamespace,
+		Name:      "weblogic-operator-sa",
+		Client:    context.Client(),
+		Object:    &corev1.ServiceAccount{},
+		Log:       context.Log(),
+	}.Delete()
+	return err
 }

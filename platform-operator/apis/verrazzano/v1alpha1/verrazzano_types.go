@@ -137,6 +137,8 @@ type InstanceInfo struct {
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
 	// KialiURL The Kiali URL for this Verrazzano installation
 	KialiURL *string `json:"kialiUrl,omitempty"`
+	// JaegerURL The Jaeger UI URL for this Verrazzano installation
+	JaegerURL *string `json:"jaegerUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of Verrazzano
@@ -373,6 +375,10 @@ type ComponentSpec struct {
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
 
+	// Rancher Backup configuration
+	// +optional
+	RancherBackup *RancherBackupComponent `json:"rancherBackup,omitempty"`
+
 	// WebLogicOperator configuration
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
@@ -416,7 +422,8 @@ type OpenSearchNodeStorage struct {
 // KibanaComponent specifies the Kibana configuration.
 type KibanaComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled  *bool  `json:"enabled,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 }
 
 // KubeStateMetricsComponent specifies the kube-state-metrics configuration.
@@ -664,6 +671,13 @@ type MySQLComponent struct {
 
 // RancherComponent specifies the Rancher configuration
 type RancherComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
+}
+
+// RancherBackupComponent specifies the Rancher Backup configuration
+type RancherBackupComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`

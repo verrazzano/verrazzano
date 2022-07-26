@@ -30,10 +30,64 @@ spec:
         ca:
           secretName: "verrazzano-ca-certificate-secret"
           clusterResourceNamespace: "cert-manager"
+      overrides:
+        - values:
+            replicaCount: 2
+            cainjector:
+              replicaCount: 2
+            webhook:
+              replicaCount: 2
+        - values:
+            replicaCount: 1
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: cert-manager
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
+            cainjector:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: cainjector
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+            webhook:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: webhook
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
     coherenceOperator:
       enabled: true
     console:
       enabled: true
+      overrides:
+        - values:
+            replicas: 2
+        - values:
+            replicas: 1
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: verrazzano-console
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
     dns:
       wildcard:
         domain: "nip.io"
@@ -70,10 +124,6 @@ spec:
           value: "10Mbps"
         - name: controller.service.externalTrafficPolicy
           value: Local
-        - name: controller.autoscaling.enabled
-          value: "true"
-        - name: controller.autoscaling.minReplicas
-          value: "3"
         - name: controller.service.externalIPs
           valueList:
             - 11.22.33.44
@@ -88,8 +138,68 @@ spec:
           port: 443
           protocol: TCP
           targetPort: 0
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 2
+            defaultBackend:
+              replicaCount: 2
+        - values:
+            controller:
+              autoscaling:
+                enabled: false
+                minReplicas: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/component: controller
+                            app.kubernetes.io/name: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+            defaultBackend:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/component: default-backend
+                            app.kubernetes.io/name: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
     istio:
       enabled: true
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    replicaCount: 2
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    affinity:
+                      podAntiAffinity:
+                        preferredDuringSchedulingIgnoredDuringExecution:
+                          - podAffinityTerm:
+                              labelSelector:
+                                matchLabels:
+                                  app: istiod
+                              topologyKey: kubernetes.io/hostname
+                            weight: 100
       istioInstallArgs:
         - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
           value: "10Mbps"
@@ -130,25 +240,69 @@ spec:
                     topologyKey: kubernetes.io/hostname
     kiali:
       enabled: true
+      overrides:
+        - values:
+            deployment:
+              replicas: 2
+        - values:
+            deployment:
+              replicas: 1
+              affinity:
+                pod_anti:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: kiali
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
     keycloak:
       enabled: true
+      overrides:
+        - values:
+            replicas: 2
+        - values:
+            replicas: 1
+            affinity: |
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app.kubernetes.io/instance: keycloak
+                          app.kubernetes.io/name: keycloak
+                      topologyKey: kubernetes.io/hostname
     kibana:
       enabled: true
+      replicas: 2
     oam:
       enabled: true
     prometheus:
       enabled: true
     prometheusOperator:
       enabled: true
-      prometheusSpec:
-        storageSpec:
-          volumeClaimTemplate:
-            spec:
-              storageClassName:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 2
                 resources:
                   requests:
-                    storage: "50Gi"
-                    memory: "128Mi"
+                    memory: 128Mi
+        - values:
+            prometheus:
+              prometheusSpec:
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/name: prometheus
+                          topologyKey: kubernetes.io/hostname
+                        weight: 100
+                replicas: 1
     rancher:
       enabled: true
     verrazzano:

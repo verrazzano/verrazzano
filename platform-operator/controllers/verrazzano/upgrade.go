@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
@@ -227,14 +228,14 @@ func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, cr 
 	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation, istio.DoesPodContainOldIstioSidecar)
 }
 
-// getNSNKey gets the key for the verrazzano resource
-func getNSNKey(cr *installv1alpha1.Verrazzano) string {
-	return fmt.Sprintf("%s-%s", cr.Namespace, cr.Name)
+// getTrackerKey gets the tracker key for the Verrazzano resource
+func getTrackerKey(cr *installv1alpha1.Verrazzano) string {
+	return fmt.Sprintf("%s-%s-%s", cr.Namespace, cr.Name, string(cr.UID))
 }
 
 // getUpgradeTracker gets the upgrade tracker for Verrazzano
 func getUpgradeTracker(cr *installv1alpha1.Verrazzano) *upgradeTracker {
-	key := getNSNKey(cr)
+	key := getTrackerKey(cr)
 	vuc, ok := upgradeTrackerMap[key]
 	// If the entry is missing or the generation is different create a new entry
 	if !ok || vuc.gen != cr.Generation {
@@ -250,7 +251,7 @@ func getUpgradeTracker(cr *installv1alpha1.Verrazzano) *upgradeTracker {
 
 // deleteUpgradeTracker deletes the upgrade tracker for the Verrazzano resource
 func deleteUpgradeTracker(cr *installv1alpha1.Verrazzano) {
-	key := getNSNKey(cr)
+	key := getTrackerKey(cr)
 	_, ok := upgradeTrackerMap[key]
 	if ok {
 		delete(upgradeTrackerMap, key)
