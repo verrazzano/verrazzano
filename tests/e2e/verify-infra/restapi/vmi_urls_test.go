@@ -38,10 +38,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 				}
 
 				Eventually(func() bool {
-					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
-					if err != nil {
-						return false
-					}
+					api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 					response, err := api.Get("apis/verrazzano.io/v1/namespaces/verrazzano-system/verrazzanomonitoringinstances/system")
 					if err != nil {
 						t.Logs.Errorf("Error fetching system VMI from api, error: %v", err)

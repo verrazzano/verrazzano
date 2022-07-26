@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -36,8 +35,6 @@ type APIEndpoint struct {
 
 func EventuallyGetAPIEndpoint(kubeconfigPath string) *APIEndpoint {
 	var api *APIEndpoint
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	gomega.Eventually(func() (*APIEndpoint, error) {
 		var err error
 		api, err = GetAPIEndpoint(kubeconfigPath)
