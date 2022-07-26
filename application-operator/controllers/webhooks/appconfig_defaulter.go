@@ -48,7 +48,6 @@ var appconfigMarshalFunc = json.Marshal
 
 // Handle handles appconfig mutate Request
 func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	//var err error
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "appconfig-defaulter")
 
 	dryRun := req.DryRun != nil && *req.DryRun

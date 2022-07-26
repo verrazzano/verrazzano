@@ -134,7 +134,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-
 	if req.Namespace == constants.KubeSystem {
 		log := zap.S().With(log2.FieldResourceNamespace, req.Namespace, log2.FieldResourceName, req.Name, log2.FieldController, controllerName)
 		log.Infof("Coherence workload resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
