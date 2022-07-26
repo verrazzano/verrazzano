@@ -91,7 +91,7 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
@@ -311,7 +311,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -328,7 +328,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -346,7 +346,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -384,7 +384,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -400,7 +400,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -416,7 +416,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -432,7 +432,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -448,7 +448,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -465,7 +465,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -481,7 +481,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -496,7 +496,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -513,7 +513,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -531,7 +531,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }

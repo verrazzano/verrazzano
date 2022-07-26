@@ -131,7 +131,7 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
 
         DUMP_COMMAND="${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
 
         // used for console artifact capture on failure and for downloading the operator.yaml file
         JENKINS_READ = credentials('jenkins-auditor')
@@ -645,7 +645,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-snapshot/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-snapshot/**,**/test-cluster-snapshots/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
