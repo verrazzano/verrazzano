@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -38,32 +37,9 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					t.Fail(err.Error())
 				}
 
-				var rancherURL string
-
-				Eventually(func() error {
-					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
-					if err != nil {
-						return err
-					}
-					ingress, err := api.GetIngress("cattle-system", "rancher")
-					if err != nil {
-						return err
-					}
-					rancherURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
-					t.Logs.Info(fmt.Sprintf("Found ingress URL: %s", rancherURL))
-					return nil
-				}, waitTimeout, pollingInterval).Should(BeNil())
-
-				Expect(rancherURL).NotTo(BeEmpty())
-				var httpClient *retryablehttp.Client
-				Eventually(func() error {
-					httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
-					if err != nil {
-						t.Logs.Error(fmt.Sprintf("Error getting HTTP client: %v", err))
-						return err
-					}
-					return nil
-				}, waitTimeout, pollingInterval).Should(BeNil())
+				api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
+				rancherURL := pkg.EventuallyGetRancherURL(t.Logs, api)
+				httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 				var httpResponse *pkg.HTTPResponse
 
 				Eventually(func() (*pkg.HTTPResponse, error) {
@@ -80,8 +56,9 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				}
 
 				start := time.Now()
+				t.Logs.Info("Verify local cluster status")
 				Eventually(func() (bool, error) {
-					clusterData, err := k8sClient.Resource(gvkToGvr(rancher.GVKCluster)).Namespace("").Get(context.Background(), rancher.ClusterLocal, v1.GetOptions{})
+					clusterData, err := k8sClient.Resource(gvkToGvr(rancher.GVKCluster)).Get(context.Background(), rancher.ClusterLocal, v1.GetOptions{})
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("Error getting local Cluster CR: %v", err))
 						return false, err
@@ -102,6 +79,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				Expect(err).ToNot(HaveOccurred())
 				if minVer14 {
 					start = time.Now()
+					t.Logs.Info("Verify OCI driver status")
 					Eventually(func() (bool, error) {
 						ociDriverData, err := k8sClient.Resource(gvkToGvr(rancher.GVKNodeDriver)).Get(context.Background(), rancher.NodeDriverOCI, v1.GetOptions{})
 						if err != nil {
@@ -113,6 +91,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 
 					start = time.Now()
+					t.Logs.Info("Verify OKE driver status")
 					Eventually(func() (bool, error) {
 						okeDriverData, err := k8sClient.Resource(gvkToGvr(rancher.GVKKontainerDriver)).Get(context.Background(), rancher.KontainerDriverOKE, v1.GetOptions{})
 						if err != nil {

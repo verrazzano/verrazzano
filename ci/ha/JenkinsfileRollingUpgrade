@@ -239,21 +239,6 @@ pipeline {
                     }
                 }
 
-                stage('Verify Install') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
-                    }
-                    steps {
-                        runGinkgoRandomize('verify-install')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
-
                 stage('Reschedule 50% of Worker Nodes') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/scheduling"
@@ -269,12 +254,59 @@ pipeline {
                     }
                 }
 
-                stage('Rolling Update') {
+                stage('Verify Install') {
                     environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/rollingupdate"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
                     }
-                    steps {
-                        runGinkgoRandomize('ha/rollingupdate')
+                    parallel {
+                        stage('verify-install') {
+                            steps {
+                                runGinkgoRandomize('verify-install')
+                            }
+                        }
+                        stage('verify-infra restapi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/restapi')
+                            }
+                        }
+                        stage('verify-infra oam') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/oam')
+                            }
+                        }
+                        stage('verify-infra vmi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/vmi')
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Parallel HA Tests and Rolling Update') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ha-tests"
+                    }
+                    parallel {
+                        stage('Rolling Update') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/rollingupdate"
+                            }
+                            steps {
+                                runGinkgoRandomize('ha/rollingupdate')
+                            }
+                        }
+
+                        stage('HA Tests') {
+                            steps {
+                                runGinkgoRandomize('ha/monitor')
+                            }
+                        }
                     }
                     post {
                         always {

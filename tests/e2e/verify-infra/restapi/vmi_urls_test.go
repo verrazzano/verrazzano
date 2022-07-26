@@ -5,12 +5,9 @@ package restapi_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -69,52 +66,32 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 					return true
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 
-				var api *pkg.APIEndpoint
 				kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
-				Eventually(func() (*pkg.APIEndpoint, error) {
-					var err error
-					api, err = pkg.GetAPIEndpoint(kubeconfigPath)
-					return api, err
-				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
-				var vmiCredentials *pkg.UsernamePassword
-				Eventually(func() (*pkg.UsernamePassword, error) {
-					var err error
-					vmiCredentials, err = pkg.GetSystemVMICredentials()
-					return vmiCredentials, err
-				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
+				api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
+				vmiCredentials := pkg.EventuallyGetSystemVMICredentials()
 				// Test VMI endpoints
-				var sysVmiHTTPClient *retryablehttp.Client
-				Eventually(func() (*retryablehttp.Client, error) {
-					var err error
-					sysVmiHTTPClient, err = pkg.GetVerrazzanoRetryableHTTPClient()
-					return sysVmiHTTPClient, err
-				}, waitTimeout, pollingInterval).ShouldNot(BeNil(), "Unable to get system VMI HTTP client")
-
+				sysVmiHTTPClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 				if isEsEnabled {
 					Eventually(func() bool {
-						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")
-					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access ElasticSearch VMI url")
+						return pkg.VerifyOpenSearchComponent(t.Logs, api, sysVmiHTTPClient, vmiCredentials)
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access OpenSearch VMI URL")
 				}
-
 				if isKibanaEnabled {
 					Eventually(func() bool {
-						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")
-					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Kibana VMI url")
+						return pkg.VerifyOpenSearchDashboardsComponent(t.Logs, api, sysVmiHTTPClient, vmiCredentials)
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access OpenSearch Dashboards VMI URL")
 				}
-
 				if isPrometheusEnabled {
 					Eventually(func() bool {
-						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-prometheus", "https://prometheus.vmi.system")
-					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Prometheus VMI url")
+						return pkg.VerifyPrometheusComponent(t.Logs, api, sysVmiHTTPClient, vmiCredentials)
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Prometheus VMI URL")
 				}
-
 				if isGrafanaEnabled {
 					Eventually(func() bool {
-						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-grafana", "https://grafana.vmi.system")
-					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Garafana VMI url")
+						return pkg.VerifyGrafanaComponent(t.Logs, api, sysVmiHTTPClient, vmiCredentials)
+					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Grafana VMI URL")
+
 				}
 			}
 		})
@@ -122,17 +99,3 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 })
 
 var _ = t.AfterEach(func() {})
-
-func verifySystemVMIComponent(api *pkg.APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedURLPrefix string) bool {
-	ingress, err := api.GetIngress("verrazzano-system", ingressName)
-	if err != nil {
-		t.Logs.Errorf("Error getting ingress from API: %v", err)
-		return false
-	}
-	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
-	if !strings.HasPrefix(vmiComponentURL, expectedURLPrefix) {
-		t.Logs.Errorf("URL '%s' does not have expected prefix: %s", vmiComponentURL, expectedURLPrefix)
-		return false
-	}
-	return pkg.AssertURLAccessibleAndAuthorized(sysVmiHTTPClient, vmiComponentURL, vmiCredentials)
-}
