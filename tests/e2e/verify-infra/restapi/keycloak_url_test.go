@@ -33,10 +33,7 @@ var _ = t.Describe("keycloak", Label("f:infra-lcm",
 				}
 
 				Eventually(func() error {
-					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
-					if err != nil {
-						return err
-					}
+					api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 					ingress, err := api.GetIngress("keycloak", "keycloak")
 					if err != nil {
 						return err
