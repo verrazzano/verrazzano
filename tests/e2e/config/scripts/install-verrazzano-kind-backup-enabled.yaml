@@ -11,8 +11,6 @@ spec:
       enabled: true
     rancherBackup:
       enabled: true
-    elasticsearch:
-      enabled: false
     velero:
       enabled: true
     authProxy:
