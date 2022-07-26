@@ -333,7 +333,7 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 			},
 		},
 	}
-	serverURLSetting := createServerUrlSetting()
+	serverURLSetting := createServerURLSetting()
 	ociDriver := createOciDriver()
 	okeDriver := createOkeDriver()
 
