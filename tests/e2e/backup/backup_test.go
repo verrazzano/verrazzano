@@ -430,6 +430,8 @@ func CheckOperatorOperationProgress(operator, operation string) error {
 
 	switch operator {
 	case "velero":
+		cmdArgs = append(cmdArgs, "-n")
+		cmdArgs = append(cmdArgs, VeleroNameSpace)
 		kind = "velero.io"
 		jsonPath = "{.status.phase}"
 	case "rancher":
