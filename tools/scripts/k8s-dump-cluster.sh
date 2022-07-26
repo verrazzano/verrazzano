@@ -18,9 +18,9 @@ function usage {
     echo " You must specify at least a tar file or a directory to capture into"
     echo " Specifying both -z and -d is valid as well, but note they are independent of each other"
     echo " -z tar_gz_file   Name of the compressed tar file to generate. Ie: capture.tar.gz"
-    echo " -d directory     Directory to capture an expanded dump into. This does not affect a tar_gz_file if that is also specified"
-    echo " -a               Call the analyzer on the captured dump and report to stdout"
-    echo " -r report_file   Call the analyzer on the captured dump and report to the file specified, requires sources and go build environment"
+    echo " -d directory     Directory to capture an expanded snapshot into. This does not affect a tar_gz_file if that is also specified"
+    echo " -a               Call the analyzer on the captured snapshot and report to stdout"
+    echo " -r report_file   Call the analyzer on the captured snapshot and report to the file specified, requires sources and go build environment"
     echo " -h               Help"
     echo ""
     exit 1
@@ -48,7 +48,7 @@ do
 done
 shift $((OPTIND -1))
 
-# We need at least a directory or a tar file specified for the dump
+# We need at least a directory or a tar file specified for the snapshot
 if [[ -z "$TAR_GZ_FILE" && -z "$DIRECTORY" ]] ; then
   usage
 fi
@@ -71,7 +71,7 @@ if [[ ! -z "$REPORT_FILE" && -f "$REPORT_FILE" ]] ; then
   exit 1
 fi
 
-# We create a temporary directory to dump info. The basic structure is along these lines.
+# We create a temporary directory to snapshot info. The basic structure is along these lines.
 #
 # $CAPTURE_DIR/cluster-snapshot
 #	directory per namespace
@@ -104,7 +104,7 @@ fi
 #
 # REVIEW: We certainly could capture some of the above per-namespace into the hierarchy
 #         created by the cluster-info.
-# NOTE: We are capturing details into json (a few version dumps aren't), this ultimately will be consumed by the triage
+# NOTE: We are capturing details into json (a few version snapshots aren't), this ultimately will be consumed by the triage
 #       tooling but it is also human readable.
 # EVOLVING: This is a first cut that captures everything (quick/easy), we may not want that to remain as an option
 #      but by default we will really want to capture details about our namespaces, and capture some info otherwise.
@@ -145,7 +145,7 @@ function dump_es_indexes() {
   fi
 }
 
-# This relies on the directory structure which is setup by kubectl cluster-info dump, so this is not a standalone function and currenntly
+# This relies on the directory structure which is setup by kubectl cluster-info snapshot, so this is not a standalone function and currenntly
 # should only be called after that has been called
 function dump_configmaps() {
   # Get list of all config maps in the cluster
@@ -172,9 +172,9 @@ function dump_configmaps() {
     done <$CAPTURE_DIR/cluster-snapshot/configmap_list.out
 }
 
-# This relies on the directory structure which is setup by kubectl cluster-info dump, so this is not a standalone function and currently
+# This relies on the directory structure which is setup by kubectl cluster-info snapshot, so this is not a standalone function and currently
 # should only be called after that has been called.
-# kubectl cluster-info dump only captures certain information, we need additional information captured though and have it placed into
+# kubectl cluster-info snapshot only captures certain information, we need additional information captured though and have it placed into
 # namespace specific directories which are created by cluster-info. We capture those things here.
 #
 function dump_extra_details_per_namespace() {
@@ -240,7 +240,7 @@ function dump_extra_details_per_namespace() {
 
 function full_k8s_cluster_dump() {
   echo "Full capture of kubernetes cluster"
-  # Get general cluster-info dump, this contains quite a bit but not everything, it also sets up the directory structure
+  # Get general cluster-info snapshot, this contains quite a bit but not everything, it also sets up the directory structure
   kubectl --insecure-skip-tls-verify cluster-info dump --all-namespaces --output-directory=$CAPTURE_DIR/cluster-snapshot >/dev/null 2>&1
 
   # Get the Verrazzano resource at the root level. The Verrazzano custom resource can define the namespace, so use all the namespaces in the command
@@ -269,7 +269,7 @@ function full_k8s_cluster_dump() {
       kubectl get secret prometheus-prometheus-operator-kube-p-prometheus -n verrazzano-monitoring -o json | jq -r '.data["prometheus.yaml.gz"]' | base64 -d | gunzip > $CAPTURE_DIR/cluster-snapshot/prom-scrape-config.yaml || true
     fi
   else
-    echo "Failed to dump cluster, verify kubectl has access to the cluster"
+    echo "Failed to snapshot cluster, verify kubectl has access to the cluster"
   fi
 }
 
@@ -299,12 +299,12 @@ function analyze_dump() {
 }
 
 function save_dump_file() {
-  # This will save the dump to a tar gz file if that was specified
+  # This will save the snapshot to a tar gz file if that was specified
   if [ ! -z $TAR_GZ_FILE ]; then
     # We only save files into cluster-snapshot and below we do not save the temp directory portion
     if [ -d $CAPTURE_DIR/cluster-snapshot ]; then
       tar -czf $TAR_GZ_FILE -C $CAPTURE_DIR cluster-snapshot
-      echo "Dump saved to $TAR_GZ_FILE"
+      echo "snapshot saved to $TAR_GZ_FILE"
     fi
   fi
 }
