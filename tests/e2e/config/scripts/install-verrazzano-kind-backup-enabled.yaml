@@ -8,9 +8,9 @@ metadata:
 spec:
   components:
     rancher:
-      enabled: true
+      enabled: false
     rancherBackup:
-      enabled: true
+      enabled: false
     velero:
       enabled: true
     authProxy:

@@ -416,7 +416,7 @@ pipeline {
                         }
                     }
                 }
-
+                /*
                 stage('Rancher backup tests') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
@@ -431,6 +431,7 @@ pipeline {
                         }
                     }
                 }
+                */
 
             }
 

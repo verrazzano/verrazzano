@@ -493,6 +493,14 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 		})
 	})
 
+	t.Context("Fetch logs after restore is complete", func() {
+		WhenVeleroInstalledIt("Fetch logs after restore is complete", func() {
+			Eventually(func() error {
+				return backup.DisplayHookLogs(t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+	})
+
 	t.Context("Is Restore good? Verify restore", func() {
 		WhenVeleroInstalledIt("Is Restore good? Verify restore", func() {
 			Eventually(func() bool {
@@ -500,14 +508,6 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-	})
-
-	t.Context("Fetch logs after restore is complete", func() {
-		WhenVeleroInstalledIt("Fetch logs after restore is complete", func() {
-			Eventually(func() error {
-				return backup.DisplayHookLogs(t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil())
-		})
 	})
 
 })
