@@ -321,7 +321,8 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.V
 
 	password, err := common.GetAdminSecret(c)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
+		log.Oncef("Skipping Rancher delete local cluster, unable to obtain admin secret: %s", err.Error())
+		return nil
 	}
 	if len(password) == 0 {
 		log.Oncef("Skipping Rancher delete local host because Rancher admin password is missing")
@@ -329,7 +330,8 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.V
 	}
 	rancherHostName, err := getRancherHostname(c, vz)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
+		log.Oncef("Skipping Rancher delete local cluster, unable to obtain Rancher hostname: %s", err.Error())
+		return nil
 	}
 	if len(rancherHostName) == 0 {
 		log.Oncef("Skipping Rancher delete local host since Rancher host name is missing")

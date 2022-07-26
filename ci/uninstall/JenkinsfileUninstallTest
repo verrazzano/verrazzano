@@ -28,7 +28,9 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "uninstall.interrupt.uninstall", "uninstall.reinstall.loop" ])
 
-        string (description: 'Install loop count', name: 'INSTALL_LOOP_COUNT', defaultValue: "1")
+        string (name: 'INSTALL_LOOP_COUNT',
+                description: 'Install loop count, valid for test type uninstall.reinstall.loop only',
+                defaultValue: "1")
 
         choice (name: 'INSTALL_PROFILE',
                 description: 'Verrazzano install profile name',
@@ -279,7 +281,7 @@ def runInstallStage(iteration) {
                 """
             }
         } finally {
-            dumpVerrazzanoPlatformOperatorLogs("post-install")
+            dumpPodsAndLogs("post-install-${iteration}")
             VZ_TEST_METRIC = metricJobName('')
             metricTimerStart("${VZ_TEST_METRIC}")
             archiveArtifacts artifacts: "**/logs/**,${env.INSTALL_CONFIG_FILE_KIND}", allowEmptyArchive: true
@@ -298,13 +300,7 @@ def runUninstall(iteration) {
             dumpK8sCluster("verrazzano-uninstall-failure-cluster-dump-${iteration}")
             throw err
         } finally {
-            sh """
-                ## dump out VPO logs
-                kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-post-uninstall-${iteration}.log
-                echo "Listing all pods in all namespaces after uninstall"
-                kubectl get pods --all-namespaces
-                echo "-----------------------------------------------------"
-            """
+            dumpPodsAndLogs("post-uninstall-${iteration}")
             listNamespacesAndPods('after Verrazzano uninstall')
             listHelmReleases('after Verrazzano uninstall')
         }
@@ -349,13 +345,7 @@ def runReInstall(iteration) {
             """
             throw err
         } finally {
-            dumpVerrazzanoSystemPods('reinstall')
-            dumpCattleSystemPods('reinstall')
-            dumpNginxIngressControllerLogs('reinstall')
-            dumpVerrazzanoPlatformOperatorLogs('reinstall')
-            dumpVerrazzanoApplicationOperatorLogs('reinstall')
-            dumpOamKubernetesRuntimeLogs('reinstall')
-            dumpVerrazzanoApiLogs('reinstall')
+            dumpPodsAndLogs("reinstall-${iteration}")
             listNamespacesAndPods('after reinstalling Verrazzano')
             listHelmReleases('after reinstalling Verrazzano')
         }
@@ -455,6 +445,7 @@ def uninstallVerrazzano(vpoLogsDir) {
 
 def kill_vpo_loop(vpoLogsDir) {
     script {
+        // Future enhancement, possibly use a random number within a range of 10-30 secs of something
         echo "Wait 15 seconds before kill loop"
         sleep 15
         for (int count = 1; count <= 2; count++) {
@@ -492,12 +483,7 @@ def runGinkgoRandomize(testSuitePath) {
 def runnerCleanup() {
     script {
         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-            dumpVerrazzanoSystemPods()
-            dumpCattleSystemPods()
-            dumpNginxIngressControllerLogs()
-            dumpVerrazzanoApplicationOperatorLogs()
-            dumpOamKubernetesRuntimeLogs()
-            dumpVerrazzanoApiLogs()
+            dumpPodsAndLogs("runnerCleanup")
         }
     }
 
@@ -523,7 +509,6 @@ def runnerCleanup() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         make delete-cluster
-        cd ${WORKSPACE}/verrazzano
         if [ -f ${POST_DUMP_FAILED_FILE} ]; then
           echo "Failures seen during dumping of artifacts, treat post as failed"
           exit 1
@@ -537,77 +522,102 @@ def dumpK8sCluster(dumpDirectory) {
     """
 }
 
-def dumpVerrazzanoSystemPods() {
+def dumpPodsAndLogs(stage) {
+    def dumpPath="${WORKSPACE}/verrazzano/logs/${stage}"
+    dumpVerrazzanoSystemPods(dumpPath)
+    dumpCattleSystemPods(dumpPath)
+    dumpNginxIngressControllerLogs(dumpPath)
+    dumpVerrazzanoPlatformOperatorLogs(dumpPath)
+    dumpVerrazzanoApplicationOperatorLogs(dumpPath)
+    dumpOamKubernetesRuntimeLogs(dumpPath)
+    dumpVerrazzanoApiLogs(dumpPath)
+}
+
+def dumpVerrazzanoSystemPods(dumpPath) {
+    createPathIfNecessary(dumpPath)
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
+        export DIAGNOSTIC_LOG="${dumpPath}/verrazzano-system-pods.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
+        export DIAGNOSTIC_LOG="${dumpPath}/verrazzano-system-certs.log"
         ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
+        export DIAGNOSTIC_LOG="${dumpPath}/verrazzano-system-kibana.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
+        export DIAGNOSTIC_LOG="${dumpPath}/verrazzano-system-es-master.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
-def dumpCattleSystemPods() {
+def dumpCattleSystemPods(dumpPath) {
+    createPathIfNecessary(dumpPath)
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
+        export DIAGNOSTIC_LOG="${dumpPath}/cattle-system-pods.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/rancher.log"
+        export DIAGNOSTIC_LOG="${dumpPath}/rancher.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
-def dumpNginxIngressControllerLogs() {
+def dumpNginxIngressControllerLogs(dumpPath) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
+        export DIAGNOSTIC_LOG="${dumpPath}/nginx-ingress-controller.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
-def dumpVerrazzanoPlatformOperatorLogs(stage) {
+def dumpVerrazzanoPlatformOperatorLogs(dumpPath) {
+    createPathIfNecessary(dumpPath)
     sh """
         ## dump out verrazzano-platform-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-        kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-${stage}-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-${stage}-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${dumpPath}/verrazzano-platform-operator-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${dumpPath}/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "------------------------------------------"
     """
 }
 
-def dumpVerrazzanoApplicationOperatorLogs() {
+def dumpVerrazzanoApplicationOperatorLogs(dumpPath) {
+    createPathIfNecessary(dumpPath)
     sh """
         ## dump out verrazzano-application-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
-        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator --tail -1 > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator --tail -1 > ${dumpPath}/verrazzano-application-operator-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${dumpPath}/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
         echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
         echo "------------------------------------------"
     """
 }
 
-def dumpOamKubernetesRuntimeLogs() {
+def dumpOamKubernetesRuntimeLogs(dumpPath) {
+    createPathIfNecessary(dumpPath)
     sh """
         ## dump out oam-kubernetes-runtime logs
-        mkdir -p ${WORKSPACE}/oam-kubernetes-runtime/logs
-        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime --tail -1 > ${WORKSPACE}/oam-kubernetes-runtime/logs/oam-kubernetes-runtime-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/verrazzano-application-operator/logs/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-application-operator logs dumped to oam-kubernetes-runtime-pod.log"
-        echo "verrazzano-application-operator pod description dumped to oam-kubernetes-runtime-pod.out"
+        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime --tail -1 > ${dumpPath}/oam-kubernetes-runtime-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${dumpPath}/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "oam-kubernetes-runtime logs dumped to oam-kubernetes-runtime-pod.log"
+        echo "oam-kubernetes-runtime pod description dumped to oam-kubernetes-runtime-pod.out"
         echo "------------------------------------------"
     """
 }
 
-def dumpVerrazzanoApiLogs() {
+def dumpVerrazzanoApiLogs(dumpPath) {
+    createPathIfNecessary(dumpPath)
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-authproxy.log"
+        export DIAGNOSTIC_LOG="${dumpPath}/verrazzano-authproxy.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-authproxy-*" -m "verrazzano api" -c verrazzano-authproxy -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def createPathIfNecessary(pathName) {
+    sh """
+        if [ ! -e ${pathName} ]; then
+            echo "Creating ${pathName}"
+            mkdir -p ${pathName}
+        else
+            echo "Dump path ${pathName} exists"
+        fi
     """
 }
 
