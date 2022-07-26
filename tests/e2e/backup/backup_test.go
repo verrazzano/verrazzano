@@ -452,7 +452,6 @@ func CheckOperatorOperationProgress(operator, operation string) error {
 		if operator == "rancher" {
 			k8sObjectName = RestoreRancherName
 		}
-
 	}
 	cmdArgs = append(cmdArgs, fmt.Sprintf("%s.%s", operation, kind))
 	cmdArgs = append(cmdArgs, k8sObjectName)
