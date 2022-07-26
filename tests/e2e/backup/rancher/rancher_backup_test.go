@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup"
 	"go.uber.org/zap"
@@ -101,7 +102,9 @@ func CreateRancherBackupObject() error {
 			RancherObjectStorageNamespaceName: backup.OciNamespaceName,
 		},
 	}
+	spew.Dump(data)
 	template.Execute(&b, data)
+	spew.Dump(b)
 	err := backup.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
@@ -134,7 +137,9 @@ func CreateRancherRestoreObject() error {
 		},
 	}
 
+	spew.Dump(data)
 	template.Execute(&b, data)
+	spew.Dump(b)
 	err = backup.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))

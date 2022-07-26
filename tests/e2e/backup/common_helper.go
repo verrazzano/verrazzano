@@ -144,12 +144,12 @@ metadata:
 spec:
   storageLocation:
     s3:
-	  credentialSecretName: {{ .RancherSecretName }}
-	  credentialSecretNamespace: {{ .RancherSecretNamespaceName }}
-	  bucketName: {{ .RancherObjectStoreBucketName }}
+	  credentialSecretName: {{ .RancherSecretData.RancherSecretName }}
+	  credentialSecretNamespace: {{ .RancherSecretData.RancherSecretNamespaceName }}
+	  bucketName: {{ .RancherSecretData.RancherObjectStoreBucketName }}
 	  folder: rancher-backup
-	  region: {{ .RancherBackupRegion }}
-	  endpoint: {{ .RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherBackupRegion }}.oraclecloud.com
+	  region: {{ .RancherSecretData.RancherBackupRegion }}
+	  endpoint: {{ .RancherSecretData.RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherSecretData.RancherBackupRegion }}.oraclecloud.com
   resourceSetName: rancher-resource-set
 `
 
@@ -163,12 +163,12 @@ spec:
   backupFilename: {{ .RancherBackupFileName }}
   storageLocation:
 	s3:
-	  credentialSecretName: {{ .RancherSecretName }}
-	  credentialSecretNamespace: {{ .RancherSecretNamespaceName }}
-	  bucketName: {{ .RancherObjectStoreBucketName }}
+	  credentialSecretName: {{ .RancherSecretData.RancherSecretName }}
+	  credentialSecretNamespace: {{ .RancherSecretData.RancherSecretNamespaceName }}
+	  bucketName: {{ .RancherSecretData.RancherObjectStoreBucketName }}
 	  folder: rancher-backup
-	  region: {{ .RancherBackupRegion }}
-	  endpoint: {{ .RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherBackupRegion }}.oraclecloud.com
+	  region: {{ .RancherSecretData.RancherBackupRegion }}
+	  endpoint: {{ .RancherSecretData.RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherSecretData.RancherBackupRegion }}.oraclecloud.com
 `
 
 type RancherBackupData struct {
