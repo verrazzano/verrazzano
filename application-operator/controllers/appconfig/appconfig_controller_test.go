@@ -759,5 +759,4 @@ func TestReconcileFailed(t *testing.T) {
 	reconciler.Reconcile(context.TODO(), request)
 	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
-
 }
