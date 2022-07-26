@@ -31,7 +31,7 @@ func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string
 // handleMain is where the main logic is at, separated here to allow for more test coverage
 func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
 	// TODO: how we surface different analysis report types will likely change up, for now it is specified here, and it may also
-	// make sense to treat all cluster dumps the same way whether single or multiple (structure the dumps the same way)
+	// make sense to treat all cluster snapshots the same way whether single or multiple (structure the snapshots the same way)
 	// We could also have different types of report output formats as well. For example, the current report format is
 	// presenting issues/actions/supporting data which would be used by someone with technical background to resolve an issue
 	// in their environment. We also could generate a more detailed "bug-report-type" which someone could call which would

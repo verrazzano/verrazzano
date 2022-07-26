@@ -78,7 +78,7 @@ func GetMatchingDirectories(log *zap.SugaredLogger, rootDirectory string, fileMa
 }
 
 // FindNamespaces relies on the directory structure of the cluster-snapshot/namespaces to
-// determine the namespaces that were found in the dump. It will return the
+// determine the namespaces that were found in the snapshot. It will return the
 // namespace only here and not the entire path.
 func FindNamespaces(log *zap.SugaredLogger, clusterRoot string) (namespaces []string, err error) {
 	fileInfos, err := ioutil.ReadDir(clusterRoot)

@@ -253,8 +253,8 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 	fileInfo, e := os.Stat(vzResourcesPath)
 	if e != nil || fileInfo.Size() == 0 {
 		log.Infof("Verrazzano resource file %s is either empty or there is an issue in getting the file info about it", vzResourcesPath)
-		// The cluster dump taken by the latest script is expected to contain the verrazzano-resources.json.
-		// In order to support cluster dumps taken in earlier release, return nil rather than an error.
+		// The cluster snapshot taken by the latest script is expected to contain the verrazzano-resources.json.
+		// In order to support cluster snapshots taken in earlier release, return nil rather than an error.
 		return nil, nil
 	}
 

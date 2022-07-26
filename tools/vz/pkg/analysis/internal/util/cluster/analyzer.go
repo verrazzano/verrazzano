@@ -35,10 +35,10 @@ var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory
 // ClusterDumpDirectoriesRe is used for finding cluster-snapshot directory name matches
 var ClusterDumpDirectoriesRe = regexp.MustCompile(`.*/cluster-snapshot$`)
 
-// LogFilesMatchRe is used for finding pod log files in a cluster dump
+// LogFilesMatchRe is used for finding pod log files in a cluster snapshot
 var LogFilesMatchRe = regexp.MustCompile(`logs.txt`)
 
-// PodFilesMatchRe is used for finding pod files in a cluster dump
+// PodFilesMatchRe is used for finding pod files in a cluster snapshot
 var PodFilesMatchRe = regexp.MustCompile(`pods.json`)
 
 // ErrorSearchRe is used for searching for case insensitive "error". This is useful when we know there is a

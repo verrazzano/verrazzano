@@ -298,7 +298,7 @@ func putIfNotPresent(path string, jsonData interface{}) {
 	cacheMutex.Unlock()
 }
 
-// TODO: Need to should make a more general json structure dump here for debugging
+// TODO: Need to should make a more general json structure snapshot here for debugging
 //func debugMap(log *zap.SugaredLogger, mapIn map[string]interface{}) {
 //	log.Debugf("debugMap")
 //	for k, v := range mapIn {
