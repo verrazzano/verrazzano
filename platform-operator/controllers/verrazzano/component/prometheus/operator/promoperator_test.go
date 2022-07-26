@@ -479,10 +479,7 @@ func TestApplySystemMonitors(t *testing.T) {
 	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
-<<<<<<< HEAD
-=======
 	// expect that 7 ServiceMonitors are created
->>>>>>> master
 	assert.Len(t, monitors.Items, 7)
 }
 
