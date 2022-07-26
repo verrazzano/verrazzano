@@ -140,7 +140,7 @@ const rancherBackup = `
 apiVersion: resources.cattle.io/v1
 kind: Backup
 metadata:
-name: {{ .RancherBackupName }}
+  name: {{ .RancherBackupName }}
 spec:
   storageLocation:
     s3:
@@ -379,7 +379,7 @@ func retryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operat
 		response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
 		switch response {
 		case "InProgress", "":
-			log.Infof("%s '%s' is in progress. Check back after 60 seconds", strings.ToTitle(operation), objectName)
+			log.Infof("%s '%s' is in progress. Check back after 60 seconds. Retry count = %v", strings.ToTitle(operation), objectName, retryCount)
 			time.Sleep(60 * time.Second)
 		case "Completed":
 			log.Infof("%s '%s' completed successfully", strings.ToTitle(operation), objectName)
