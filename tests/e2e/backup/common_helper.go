@@ -174,7 +174,7 @@ metadata:
 spec:
   backupFilename: {{ .RancherBackupFileName }}
   storageLocation:
-	s3:
+    s3:
       credentialSecretName: {{ .RancherSecretData.RancherSecretName }}
       credentialSecretNamespace: {{ .RancherSecretData.RancherSecretNamespaceName }}
       bucketName: {{ .RancherSecretData.RancherObjectStoreBucketName }}
