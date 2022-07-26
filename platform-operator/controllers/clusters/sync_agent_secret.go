@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
@@ -180,12 +181,26 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAgentSecret(secret *corev1.Se
 // getRancherCACert returns the certificate authority data from Rancher's TLS secret
 func (r *VerrazzanoManagedClusterReconciler) getRancherCACert() (string, error) {
 	ingressSecret := corev1.Secret{}
-	// TODO what about tls-ca-additional?
-	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: rancherTLSSecret, Namespace: vzconst.RancherSystemNamespace}, &ingressSecret)
-	if err != nil {
-		return "", err
+
+	errAddlTLS := r.Client.Get(context.TODO(), client.ObjectKey{
+		Namespace: vzconst.RancherSystemNamespace,
+		Name:      vzconst.AdditionalTLS,
+	}, &ingressSecret)
+	if client.IgnoreNotFound(errAddlTLS) != nil {
+		return "", errAddlTLS
 	}
-	return base64.StdEncoding.EncodeToString(ingressSecret.Data["ca.crt"]), nil
+
+	var caData []byte
+	if errAddlTLS == nil {
+		caData = ingressSecret.Data[vzconst.AdditionalTLSCAKey]
+	} else {
+		err := r.Client.Get(context.TODO(), types.NamespacedName{Name: rancherTLSSecret, Namespace: vzconst.RancherSystemNamespace}, &ingressSecret)
+		if err != nil {
+			return "", err
+		}
+		caData = ingressSecret.Data[mcconstants.CaCrtKey]
+	}
+	return base64.StdEncoding.EncodeToString(caData), nil
 }
 
 // Get the CAData from memory or a file
