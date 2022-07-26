@@ -4,9 +4,9 @@
 package kiali
 
 import (
-	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	corev1 "k8s.io/api/core/v1"
 	"time"
 
@@ -16,14 +16,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	networking "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 const (
-	systemNamespace = "verrazzano-system"
-	kiali           = "vmi-system-kiali"
 	waitTimeout     = 15 * time.Minute
 	pollingInterval = 10 * time.Second
 )
@@ -78,9 +75,9 @@ var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 
 		WhenKialiInstalledIt("should have a running pod", func() {
 			kialiPodsRunning := func() bool {
-				result, err := pkg.PodsRunning(systemNamespace, []string{kiali})
+				result, err := pkg.PodsRunning(kiali.ComponentNamespace, []string{pkg.KialiName})
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", kiali, systemNamespace, err))
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", pkg.KialiName, kiali.ComponentNamespace, err))
 				}
 				return result
 			}
@@ -110,22 +107,13 @@ var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 
 		t.Context("should", func() {
 			var (
-				ingress   *networking.Ingress
 				kialiHost string
 				creds     *pkg.UsernamePassword
 				ingError  error
 			)
 
 			BeforeEach(func() {
-				Eventually(func() (*networking.Ingress, error) {
-					var err error
-					ingress, err = client.NetworkingV1().Ingresses(systemNamespace).Get(context.TODO(), kiali, v1.GetOptions{})
-					return ingress, err
-				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-				rules := ingress.Spec.Rules
-				Expect(len(rules)).To(Equal(1))
-				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system"))
-				kialiHost = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+				kialiHost = pkg.EventuallyGetKialiHost(client)
 				Eventually(func() (*pkg.UsernamePassword, error) {
 					creds, ingError = pkg.GetSystemVMICredentials()
 					return creds, ingError

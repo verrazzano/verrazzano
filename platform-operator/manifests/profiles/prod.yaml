@@ -67,6 +67,10 @@ spec:
       egress:
         kubernetes:
           replicas: 2
+    keycloak:
+      overrides:
+        - values:
+            replicas: 2
     kibana:
       replicas: 2
     kiali:

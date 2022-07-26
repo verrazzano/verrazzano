@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -30,6 +32,18 @@ type APIEndpoint struct {
 	AccessToken string `json:"access_token"`
 	APIURL      string
 	HTTPClient  *retryablehttp.Client
+}
+
+func EventuallyGetAPIEndpoint(kubeconfigPath string) *APIEndpoint {
+	var api *APIEndpoint
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Eventually(func() (*APIEndpoint, error) {
+		var err error
+		api, err = GetAPIEndpoint(kubeconfigPath)
+		return api, err
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+	return api
 }
 
 // GetAPIEndpoint returns the APIEndpoint stub with AccessToken, from the given cluster

@@ -187,6 +187,10 @@ function dump_extra_details_per_namespace() {
     if [[ ! $NAMESPACE == *"NAMEHEADER"* ]]; then
       if [ ! -z $NAMESPACE ] ; then
         echo "Capturing $NAMESPACE namespace"
+        if ! kubectl get ns $NAMESPACE 2>&1 > /dev/null ; then
+          echo "Namespace ${NAMESPACE} not found, skipping"
+          continue
+        fi
         # The cluster-dump should create the directories for us, but just in case there is a situation where there is a namespace
         # that is present which doesn't have one created, make sure we have the directory
         if [ ! -d $CAPTURE_DIR/cluster-dump/$NAMESPACE ] ; then
@@ -261,7 +265,9 @@ function full_k8s_cluster_dump() {
     dump_es_indexes > $CAPTURE_DIR/cluster-dump/es_indexes.out || true
     process_nodes_output || true
     # dump the Prometheus scrape configuration
-    kubectl get secret prometheus-prometheus-operator-kube-p-prometheus -n verrazzano-monitoring -o json | jq -r '.data["prometheus.yaml.gz"]' | base64 -d | gunzip > $CAPTURE_DIR/cluster-dump/prom-scrape-config.yaml || true
+    if kubectl get ns verrazzano-monitoring 2>&1 > /dev/null ; then
+      kubectl get secret prometheus-prometheus-operator-kube-p-prometheus -n verrazzano-monitoring -o json | jq -r '.data["prometheus.yaml.gz"]' | base64 -d | gunzip > $CAPTURE_DIR/cluster-dump/prom-scrape-config.yaml || true
+    fi
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"
   fi

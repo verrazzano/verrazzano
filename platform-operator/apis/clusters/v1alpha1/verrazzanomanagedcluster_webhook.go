@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -50,17 +51,22 @@ func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 	if err != nil {
 		return err
 	}
-	err = v.validateVerrazzanoInstalled(client)
+	vz, err := v.validateVerrazzanoInstalled(client)
 	if err != nil {
 		return err
 	}
-	err = v.validateSecret(client)
-	if err != nil {
-		return err
-	}
-	err = v.validateConfigMap(client)
-	if err != nil {
-		return err
+
+	// The secret and configmap are required fields _only_ if Rancher is disabled
+	if !vzconfig.IsRancherEnabled(vz) {
+		err = v.validateSecret(client)
+		if err != nil {
+			return err
+		}
+
+		err = v.validateConfigMap(client)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -154,22 +160,22 @@ func (v VerrazzanoManagedCluster) validateConfigMap(client client.Client) error 
 }
 
 // validateVerrazzanoInstalled enforces that a Verrazzano installation successfully completed
-func (v VerrazzanoManagedCluster) validateVerrazzanoInstalled(localClient client.Client) error {
+func (v VerrazzanoManagedCluster) validateVerrazzanoInstalled(localClient client.Client) (*v1alpha1.Verrazzano, error) {
 	// Get the Verrazzano resource
 	verrazzano := v1alpha1.VerrazzanoList{}
 	err := localClient.List(context.TODO(), &verrazzano, &client.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("Verrazzano must be installed: %v", err)
+		return nil, fmt.Errorf("Verrazzano must be installed: %v", err)
 	}
 
 	// Verify the state is install complete
 	if len(verrazzano.Items) > 0 {
 		for _, cond := range verrazzano.Items[0].Status.Conditions {
 			if cond.Type == v1alpha1.CondInstallComplete {
-				return nil
+				return &verrazzano.Items[0], nil
 			}
 		}
 	}
 
-	return fmt.Errorf("the Verrazzano install must successfully complete (run the command %q to view the install status)", "kubectl get verrazzano -A")
+	return nil, fmt.Errorf("the Verrazzano install must successfully complete (run the command %q to view the install status)", "kubectl get verrazzano -A")
 }
