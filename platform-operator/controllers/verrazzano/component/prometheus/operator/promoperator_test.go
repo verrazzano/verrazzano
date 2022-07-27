@@ -776,11 +776,12 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
 	assert.NoError(err)
 
-	assert.Len(authPolicy.Spec.Rules, 2)
+	assert.Len(authPolicy.Spec.Rules, 3)
 	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
 	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
 	assert.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
+	assert.Contains(authPolicy.Spec.Rules[2].From[0].Source.Principals, "cluster.local/ns/verrazzano-monitoring/sa/jaeger-operator-jaeger")
 
 	// GIVEN Prometheus Operator is being installed or upgraded
 	// AND   Istio is disabled
@@ -820,8 +821,14 @@ func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
 	netPolicy := &netv1.NetworkPolicy{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: networkPolicyName, Namespace: ComponentNamespace}, netPolicy)
 	assert.NoError(t, err)
+	assert.Len(t, netPolicy.Spec.Ingress, 2)
 	assert.Equal(t, []netv1.PolicyType{netv1.PolicyTypeIngress}, netPolicy.Spec.PolicyTypes)
 	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)
+	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[1].Ports[0].Port.IntVal)
+	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "verrazzano-authproxy")
+	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "system-grafana")
+	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "kiali")
+	assert.Contains(t, netPolicy.Spec.Ingress[1].From[0].PodSelector.MatchExpressions[0].Values, "jaeger")
 }
 
 // erroringFakeClient wraps a k8s client and returns an error when Update is called
