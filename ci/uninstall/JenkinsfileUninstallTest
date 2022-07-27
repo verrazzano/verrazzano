@@ -229,7 +229,8 @@ pipeline {
 		    }
 		    steps {
 		        script {
-                    for (int count = 1; count <= getMaxIterations(); count++) {
+		            int maxIterations = getMaxIterations()
+                    for (int count = 1; count <= maxIterations; count++) {
                         if (count == 1) {
                             // Create cluster and install
                             runInitialInstall(count)
@@ -238,6 +239,9 @@ pipeline {
                             runInstallOnly("Install Verrazzano", count)
                         }
                         runVerifyTests("Run Test", count)
+                        if (count == maxIterations) {
+                            runApplicationTests()
+                        }
                         runUninstall(count)
                         if (params.CHAOS_TEST_TYPE == "uninstall.interrupt.uninstall") {
                             // Run re-install once and re-verify
@@ -477,6 +481,47 @@ def kill_vpo_loop(vpoLogsDir) {
         }
     }
 }
+
+def runApplicationTests() {
+    stage("Application Tests") {
+        try {
+            parallel getApplicationStages()
+            if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                dumpK8sCluster('verrazzano-application-test-failure-cluster-dump')
+            }
+        } catch (err) {
+            dumpK8sCluster('verrazzano-application-test-failure-cluster-dump')
+            throw err
+        }
+    }
+}
+
+def getApplicationStages() {
+    return [
+       "examples helidon": {
+           testApplication('examples/helidon', 'examples-helidon')
+       },
+       "examples socks": {
+           testApplication('examples/socks', 'examples-socks')
+       },
+       "examples springboot": {
+           testApplication('examples/springboot', 'examples-springboot')
+       },
+       "examples todo": {
+           testApplication('examples/todo', 'examples-todo')
+       },
+   ]
+}
+
+def testApplication(testSuitePath, dumpDir) {
+    environment {
+        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/${dumpDir}"
+    }
+    steps {
+        runGinkgo(testSuitePath)
+    }
+}
+
 
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
