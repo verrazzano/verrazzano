@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # Network policy for Verrazzano monitoring operator
-# Ingress: allow Prometheus to scrape Envoy stats on port 15090
+# Ingress: allow Prometheus to scrape Envoy stats on port 15090 and metrics exporter stats on port 9100
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -25,4 +25,6 @@ spec:
               app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
+          protocol: TCP
+        - port: 9100 
           protocol: TCP
