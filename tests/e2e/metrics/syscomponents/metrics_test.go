@@ -18,6 +18,8 @@ import (
 )
 
 const (
+	metricsVersion = "1.4.0"
+
 	longPollingInterval = 8 * time.Second
 	longWaitTimeout     = 10 * time.Minute
 
@@ -132,38 +134,38 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 			eventuallyMetricsContainLabels(containerStartTimeSeconds, map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO summary counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO summary counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vpo_reconcile_duration_count", map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO summary sum times can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO summary sum times can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vpo_reconcile_duration_sum", map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vpo_reconcile_counter", map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO error counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO error counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vpo_error_reconcile_counter", map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO install metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO install metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vz_nginx_install_duration_seconds", map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO upgrade counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO upgrade counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vz_nginx_upgrade_duration_seconds", map[string]string{})
 		})
 
-		t.ItMinimumVersion("Verify VMO function metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VMO function metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsExistInCluster(vmoFunctionMetric, map[string]string{}, kubeConfig)
 		})
 
-		t.ItMinimumVersion("Verify VMO counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VMO counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsExistInCluster(vmoCounterMetric, map[string]string{}, kubeConfig)
 		})
 
-		t.ItMinimumVersion("Verify VMO gauge metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VMO gauge metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsExistInCluster(vmoGaugeMetric, map[string]string{}, kubeConfig)
 		})
 
-		t.ItMinimumVersion("Verify VMO timestamp metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VMO timestamp metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsExistInCluster(vmoTimestampMetric, map[string]string{}, kubeConfig)
 		})
 
