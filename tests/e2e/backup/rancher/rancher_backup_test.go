@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
@@ -16,11 +17,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
-	"strings"
+	"os"
+	"strconv"
 	"text/template"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -35,7 +36,7 @@ const (
 	pollingInterval      = 30 * time.Second
 	rancherUserName      = "cowboy"
 	rancherFullName      = "Lone Ranger"
-	rancherPassword      = "rancher@123"
+	rancherPassword      = "rancher@newstack"
 )
 
 var _ = t.BeforeSuite(func() {
@@ -144,9 +145,7 @@ func CreateRancherRestoreObject() error {
 			RancherObjectStorageNamespaceName: backup.OciNamespaceName,
 		},
 	}
-	spew.Dump(data)
 	template.Execute(&b, data)
-	spew.Dump(b)
 	err = backup.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
@@ -169,14 +168,13 @@ func GetRancherLoginToken() string {
 	return token
 }
 
-func CreateRancherUser() error {
-
+func CreateRancherUserFromShell() error {
 	var b bytes.Buffer
 	template, _ := template.New("rancher-user").Parse(backup.RancherUserTemplate)
 	data := backup.RancherUser{
-		FullName: rancherFullName,
-		Username: rancherUserName,
-		Password: rancherPassword,
+		FullName: strconv.Quote(rancherFullName),
+		Username: strconv.Quote(rancherUserName),
+		Password: strconv.Quote(rancherPassword),
 	}
 	template.Execute(&b, data)
 
@@ -184,26 +182,49 @@ func CreateRancherUser() error {
 	if err != nil {
 		return err
 	}
-	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 
-	apiPath := "/v3/users"
-	req, err := retryablehttp.NewRequest("POST", fmt.Sprintf("%s/%s", url, apiPath), strings.NewReader(b.String()))
-	if err != nil {
-		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", apiPath, err))
+	os.WriteFile("test.json", b.Bytes(), 0644)
+	defer os.Remove("test.json")
+
+	var cmdArgs []string
+	apiPath := "v3/users"
+	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d @test.json", strconv.Quote(fmt.Sprintf("%s/%s", url, apiPath)), strconv.Quote(backup.RancherToken))
+	cmdArgs = append(cmdArgs, "/bin/sh")
+	cmdArgs = append(cmdArgs, "-c")
+	cmdArgs = append(cmdArgs, curlCmd)
+
+	var kcmd backup.BashCommand
+	kcmd.Timeout = 2 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+
+	curlResponse := backup.Runner(&kcmd, t.Logs)
+	if curlResponse.CommandError != nil {
 		return err
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", backup.RancherToken))
-	req.Header.Set("Accept", "application/json")
-	response, err := httpClient.Do(req)
+	return nil
+
+}
+
+func DeleteRancherUserFromShell() error {
+	url, err := backup.GetRancherUrl(t.Logs)
 	if err != nil {
-		t.Logs.Error(fmt.Sprintf("error invoking rancher api request %s: %v", apiPath, err))
 		return err
 	}
-	defer response.Body.Close()
 
-	err = httputil.ValidateResponseCode(response, http.StatusOK)
-	if err != nil {
+	var cmdArgs []string
+	apiPath := "v3/users"
+	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X DELETE", strconv.Quote(fmt.Sprintf("%s/%s", url, apiPath)), strconv.Quote(backup.RancherToken))
+	cmdArgs = append(cmdArgs, "/bin/sh")
+	cmdArgs = append(cmdArgs, "-c")
+	cmdArgs = append(cmdArgs, curlCmd)
+
+	var kcmd backup.BashCommand
+	kcmd.Timeout = 2 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+
+	curlResponse := backup.Runner(&kcmd, t.Logs)
+	if curlResponse.CommandError != nil {
 		return err
 	}
 
@@ -218,7 +239,7 @@ func GetRancherUser() string {
 	}
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 
-	apiPath := fmt.Sprintf("/v3/users?username=%s", rancherUserName)
+	apiPath := fmt.Sprintf("v3/users?username=%s", rancherUserName)
 	req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", url, apiPath), nil)
 	if err != nil {
 		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", apiPath, err))
@@ -245,14 +266,11 @@ func GetRancherUser() string {
 		return ""
 	}
 
-	fullName, err := httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), rancherFullName, "unable to find token in Rancher response")
+	jsonParsed, err := gabs.ParseJSON(body)
 	if err != nil {
-		t.Logs.Errorf("Failed to extra token from Rancher response: %v", err)
 		return ""
 	}
-	t.Logs.Infof("+++ FULL Name = %s ++++", fullName)
-	return fullName
-
+	return jsonParsed.Path("data.0.username").String()
 }
 
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
@@ -284,18 +302,25 @@ func backupPrerequisites() {
 		return CreateSecretFromMap(backup.VeleroNameSpace, backup.RancherSecretName)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
+	t.Logs.Info("Fetching rancher login Token")
 	Eventually(func() string {
 		backup.RancherToken = GetRancherLoginToken()
 		return backup.RancherToken
 	}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())
 
+	t.Logs.Info("Creating a user with the retrieved login token")
 	Eventually(func() error {
-		return CreateRancherUser()
+		return CreateRancherUserFromShell()
 	}, waitTimeout, pollingInterval).Should(BeNil())
 }
 
 func cleanUpRancher() {
 	t.Logs.Info("Cleanup backup and restore objects")
+
+	t.Logs.Infof("Cleanup user '%s' as part of cleanup", rancherUserName)
+	Eventually(func() error {
+		return DeleteRancherUserFromShell()
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup restore object")
 	Eventually(func() error {
@@ -348,11 +373,20 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 		})
 	})
 
+	t.Context("After restore is complete wait for rancher pods to come up", func() {
+		WhenRancherBackupInstalledIt("After restore is complete wait for rancher pods to come up", func() {
+			Eventually(func() error {
+				return backup.WaitForPodsShell("cattle-system", t.Logs)
+				//return backup.WaitForPodBySelectorRunning("cattle-system", "app=rancher", 600, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher infra is up")
+		})
+	})
+
 	t.Context("Get user after rancher restore is complete", func() {
 		WhenRancherBackupInstalledIt("Get user after rancher restore is complete", func() {
 			Eventually(func() string {
 				return GetRancherUser()
-			}, waitTimeout, pollingInterval).Should(Equal(rancherFullName), "Check if rancher user has been restored successfully")
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil(), "Check if rancher user has been restored successfully")
 		})
 	})
 

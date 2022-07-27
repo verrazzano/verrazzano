@@ -12,15 +12,19 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	"io"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sYaml "k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/kubernetes/pkg/client/conditions"
 	"os"
 	"os/exec"
 	"strings"
@@ -372,10 +376,12 @@ func GatherInfo() {
 	BackupResourceName = os.Getenv("BACKUP_RESOURCE")
 	BackupOpensearchName = os.Getenv("BACKUP_OPENSEARCH")
 	BackupRancherName = os.Getenv("BACKUP_RANCHER")
+	BackupMySQLname = os.Getenv("BACKUP_MYSQL")
 	RestoreOpensearchName = os.Getenv("RESTORE_OPENSEARCH")
 	RestoreRancherName = os.Getenv("RESTORE_RANCHER")
 	BackupStorageName = os.Getenv("BACKUP_STORAGE")
 	BackupRegion = os.Getenv("BACKUP_REGION")
+	RestoreMysqlName = os.Getenv("RESTORE_MYSQL")
 }
 
 func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
@@ -529,7 +535,7 @@ func DynamicSSA(ctx context.Context, deploymentYAML string, log *zap.SugaredLogg
 func RetryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operation, objectName string, log *zap.SugaredLogger) error {
 	retryCount := 0
 	for {
-		if retryCount >= retryLimit {
+		if retryCount > retryLimit {
 			return fmt.Errorf("retry count execeeded while checking progress for %s '%s'", operation, objectName)
 		}
 		bashResponse := Runner(bcmd, log)
@@ -539,7 +545,7 @@ func RetryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operat
 		response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
 		switch response {
 		case "InProgress", "":
-			log.Infof("%s '%s' is in progress. Check back after 60 seconds. Retry count = %v", strings.ToTitle(operation), objectName, retryCount)
+			log.Infof("%s '%s' is in progress. Check back after 60 seconds. Retry count left = (%v).", strings.ToTitle(operation), objectName, retryLimit-retryCount)
 			time.Sleep(60 * time.Second)
 		case "Completed":
 			log.Infof("%s '%s' completed successfully", strings.ToTitle(operation), objectName)
@@ -568,6 +574,7 @@ func VeleroObjectDelete(objectType, objectname, nameSpaceName string, log *zap.S
 		cmdArgs = append(cmdArgs, "backupstoragelocation.velero.io")
 	}
 	cmdArgs = append(cmdArgs, objectname)
+	cmdArgs = append(cmdArgs, "--ignore-not-found")
 
 	var kcmd BashCommand
 	kcmd.Timeout = 1 * time.Minute
@@ -591,6 +598,7 @@ func RancherObjectDelete(objectType, objectname string, log *zap.SugaredLogger) 
 		cmdArgs = append(cmdArgs, "restore.resources.cattle.io")
 	}
 	cmdArgs = append(cmdArgs, objectname)
+	cmdArgs = append(cmdArgs, "--ignore-not-found")
 
 	var kcmd BashCommand
 	kcmd.Timeout = 1 * time.Minute
@@ -693,6 +701,85 @@ func CheckPodsTerminated(labelSelector, namespace string, log *zap.SugaredLogger
 
 }
 
+func isPodRunning(k8s *kubernetes.Clientset, podName, namespace string) wait.ConditionFunc {
+	return func() (bool, error) {
+		fmt.Printf(".")
+		fmt.Println(podName)
+		pod, err := k8s.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		switch pod.Status.Phase {
+		case corev1.PodRunning:
+			return true, nil
+		case corev1.PodFailed, corev1.PodSucceeded:
+			return false, conditions.ErrPodCompleted
+		}
+		return false, nil
+	}
+}
+
+func waitForPodRunning(k8s *kubernetes.Clientset, namespace, podName string, timeout time.Duration) error {
+	fmt.Println("Inside waitForPodRunning..")
+	return wait.PollImmediate(time.Second, timeout, isPodRunning(k8s, podName, namespace))
+}
+
+func ListPods(k8s *kubernetes.Clientset, namespace, selector string) (*corev1.PodList, error) {
+	listOptions := metav1.ListOptions{LabelSelector: selector}
+	podList, err := k8s.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+
+	if err != nil {
+		return nil, err
+	}
+	return podList, nil
+}
+
+func WaitForPodBySelectorRunning(namespace, selector string, timeout int, log *zap.SugaredLogger) error {
+	k8s, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Error getting kubeconfig, error: %v", err)
+		return err
+	}
+
+	podList, err := ListPods(k8s, namespace, selector)
+	if err != nil {
+		return err
+	}
+	if len(podList.Items) == 0 {
+		return fmt.Errorf("no pods in %s with selector %s", namespace, selector)
+	}
+
+	for _, pod := range podList.Items {
+		if err := waitForPodRunning(k8s, namespace, pod.Name, time.Duration(timeout)*time.Second); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func WaitForPodsShell(namespace string, log *zap.SugaredLogger) error {
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "wait")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, namespace)
+	cmdArgs = append(cmdArgs, "--for=condition=ready")
+	cmdArgs = append(cmdArgs, "pod")
+	cmdArgs = append(cmdArgs, "--all")
+	cmdArgs = append(cmdArgs, "--timeout=10m")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 2 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+
+	waitCmd := Runner(&kcmd, log)
+	if waitCmd.CommandError != nil {
+		return waitCmd.CommandError
+	}
+	return nil
+}
+
 func CheckPvcsTerminated(labelSelector, namespace string, log *zap.SugaredLogger) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -749,5 +836,5 @@ func CheckOperatorOperationProgress(operator, operation, namespace, objectName s
 	var kcmd BashCommand
 	kcmd.Timeout = 1 * time.Minute
 	kcmd.CommandArgs = cmdArgs
-	return RetryAndCheckShellCommandResponse(100, &kcmd, operation, objectName, log)
+	return RetryAndCheckShellCommandResponse(30, &kcmd, operation, objectName, log)
 }

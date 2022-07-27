@@ -120,13 +120,15 @@ pipeline {
         OCI_OS_BUCKET_NAME = "bucket-${OCI_OS_BUCKET_ID}"
         BACKUP_NAME = "backup-${OCI_OS_BUCKET_ID}"
         RESTORE_NAME = "restore-${OCI_OS_BUCKET_ID}"
-        BACKUP_RESOURCE = "opensearch-resource-${OCI_OS_BUCKET_ID}"
+        BACKUP_RESOURCE = "velero-hook-resource-${OCI_OS_BUCKET_ID}"
         BACKUP_OPENSEARCH = "opensearch-${OCI_OS_BUCKET_ID}"
         BACKUP_RANCHER = "rancher-${OCI_OS_BUCKET_ID}"
         RESTORE_OPENSEARCH = "restore-opensearch-${OCI_OS_BUCKET_ID}"
         RESTORE_RANCHER = "restore-rancher-${OCI_OS_BUCKET_ID}"
         BACKUP_STORAGE = "storage-${OCI_OS_BUCKET_ID}"
         BACKUP_REGION  = "us-phoenix-1"
+        BACKUP_MYSQL = "mysql-${OCI_OS_BUCKET_ID}"
+        RESTORE_MYSQL = "restore-mysql-${OCI_OS_BUCKET_ID}"
 
         //Terraform vars
         TF_VAR_tenancy_id = credentials('oci-tenancy')
