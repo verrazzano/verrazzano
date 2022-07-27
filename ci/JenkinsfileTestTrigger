@@ -322,12 +322,13 @@ pipeline {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                echo "Printing latest release verion: ${getLatestReleaseVersion()}"
+                                def latestRelease = getLatestReleaseVersion()
+                                echo "Printing latest release verion: ${latestRelease}"
                                 build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'N_JOBS_FOR_EACH_BATCH', value: N_JOBS_FOR_EACH_BATCH),
-                                        string(name: 'VERSION_FOR_INSTALL', value: job[0]),
+                                        string(name: 'VERSION_FOR_INSTALL', value: latestRelease),
                                         string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
                                         string(name: 'EXCLUDE_RELEASES', value: params.EXCLUDE_RELEASES),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -560,9 +561,9 @@ def getLatestReleaseVersion() {
     final String fileContent = readFile(file: "${workspace}/tags.txt")
     List gitTags = []
     fileContent.eachLine { tag ->
-        releases << tag
+        gitTags << tag
     }
     echo "gitTags = ${gitTags}"
-    def latestReleaseVersion = gitTags.get(gitTags.size()-1) - "v"
+    def latestReleaseVersion = gitTags.get(gitTags.size()-1)
     return latestReleaseVersion
 }
