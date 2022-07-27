@@ -327,7 +327,7 @@ pipeline {
                                 build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'N_JOBS_FOR_EACH_BATCH', value: N_JOBS_FOR_EACH_BATCH),
+                                        string(name: 'N_JOBS_FOR_EACH_BATCH', value: params.N_JOBS_FOR_EACH_BATCH),
                                         string(name: 'VERSION_FOR_INSTALL', value: latestRelease),
                                         string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
                                         string(name: 'EXCLUDE_RELEASES', value: params.EXCLUDE_RELEASES),
