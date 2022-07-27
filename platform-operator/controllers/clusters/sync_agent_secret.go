@@ -30,6 +30,11 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 	getConfigFunc = f
 }
 
+// rancherBasedKubeConfigEnabled - feature flag for whether we support
+// Rancher based Kubeconfig - introduced for VZ-6448 Populate VMC with managed cluster data
+// Should be removed and enabled by default when story VZ-6449
+var rancherBasedKubeConfigEnabled = false
+
 // Create an agent secret with a kubeconfig that has a token allowing access to the managed cluster
 // with restricted access as defined in the verrazzano-managed-cluster role.
 // The code does the following:
@@ -71,8 +76,14 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	}
 
 	// Build the kubeconfig
-	kc, err := r.buildKubeConfigUsingRancherURL(serviceAccountSecret)
-	if err != nil {
+	var err error = nil
+	var kc *vzk8s.KubeConfig
+	// Check feature flag before building kubeconfig from Rancher - feature flag was introduced in
+	// VZ-6448, to be removed when VZ-6449 is completed
+	if rancherBasedKubeConfigEnabled {
+		kc, err = r.buildKubeConfigUsingRancherURL(serviceAccountSecret)
+	}
+	if err != nil || !rancherBasedKubeConfigEnabled {
 		r.log.Oncef("Failed to build admin kubeconfig using Rancher URL: %v", err)
 		kc, err = r.buildKubeConfigUsingAdminConfigMap(serviceAccountSecret)
 	}

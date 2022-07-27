@@ -37,11 +37,11 @@ echo MANAGED_KUBECONFIG: ${MANAGED_KUBECONFIG}
 echo MANAGED_CLUSTER_ENV: ${MANAGED_CLUSTER_ENV}
 echo ACME_ENVIRONMENT: ${ACME_ENVIRONMENT}
 
-# DO NOT create configmap "verrazzano-admin-cluster" on admin - should now automatically use Rancher API URL
-#if ! kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get configmap verrazzano-admin-cluster ; then
-#  export ADMIN_K8S_SERVER_ADDRESS=$(cat ${ADMIN_KUBECONFIG} | grep "server:" | awk '{ print $2 }')
-#  kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create configmap verrazzano-admin-cluster --from-literal=server=${ADMIN_K8S_SERVER_ADDRESS}
-#fi
+# create configmap "verrazzano-admin-cluster" on admin
+if ! kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get configmap verrazzano-admin-cluster ; then
+  export ADMIN_K8S_SERVER_ADDRESS=$(cat ${ADMIN_KUBECONFIG} | grep "server:" | awk '{ print $2 }')
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create configmap verrazzano-admin-cluster --from-literal=server=${ADMIN_K8S_SERVER_ADDRESS}
+fi
 
 # create managed cluster ca secret yaml on managed
 CA_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
