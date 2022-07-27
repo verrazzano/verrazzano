@@ -45,7 +45,7 @@ pipeline {
     parameters {
         string (name: 'N_JOBS_FOR_EACH_BATCH',
                 defaultValue: '3',
-                description: 'This is to define total number of jobs executed in parallel per each batch',
+                description: 'This is to define total number of jobs executed in parallel per each batch for Upgrade path minor release pipeline',
                 trim: true)
         choice (description: 'Predefined config permutations for Verrazzano installation. Prod profile is the default profile for NONE', name: 'VZ_INSTALL_CONFIG',
                 choices: ["NONE", "dev-kind-persistence"])
