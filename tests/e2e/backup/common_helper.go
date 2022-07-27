@@ -12,19 +12,15 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	"io"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sYaml "k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
-	"k8s.io/kubernetes/pkg/client/conditions"
 	"os"
 	"os/exec"
 	"strings"
@@ -699,63 +695,6 @@ func CheckPodsTerminated(labelSelector, namespace string, log *zap.SugaredLogger
 		retryCount = retryCount + 1
 	}
 
-}
-
-func isPodRunning(k8s *kubernetes.Clientset, podName, namespace string) wait.ConditionFunc {
-	return func() (bool, error) {
-		fmt.Printf(".")
-		fmt.Println(podName)
-		pod, err := k8s.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-
-		switch pod.Status.Phase {
-		case corev1.PodRunning:
-			return true, nil
-		case corev1.PodFailed, corev1.PodSucceeded:
-			return false, conditions.ErrPodCompleted
-		}
-		return false, nil
-	}
-}
-
-func waitForPodRunning(k8s *kubernetes.Clientset, namespace, podName string, timeout time.Duration) error {
-	fmt.Println("Inside waitForPodRunning..")
-	return wait.PollImmediate(time.Second, timeout, isPodRunning(k8s, podName, namespace))
-}
-
-func ListPods(k8s *kubernetes.Clientset, namespace, selector string) (*corev1.PodList, error) {
-	listOptions := metav1.ListOptions{LabelSelector: selector}
-	podList, err := k8s.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
-
-	if err != nil {
-		return nil, err
-	}
-	return podList, nil
-}
-
-func WaitForPodBySelectorRunning(namespace, selector string, timeout int, log *zap.SugaredLogger) error {
-	k8s, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		log.Errorf("Error getting kubeconfig, error: %v", err)
-		return err
-	}
-
-	podList, err := ListPods(k8s, namespace, selector)
-	if err != nil {
-		return err
-	}
-	if len(podList.Items) == 0 {
-		return fmt.Errorf("no pods in %s with selector %s", namespace, selector)
-	}
-
-	for _, pod := range podList.Items {
-		if err := waitForPodRunning(k8s, namespace, pod.Name, time.Duration(timeout)*time.Second); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func WaitForPodsShell(namespace string, log *zap.SugaredLogger) error {

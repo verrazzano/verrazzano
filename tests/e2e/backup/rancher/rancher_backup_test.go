@@ -270,7 +270,7 @@ func GetRancherUser() string {
 	if err != nil {
 		return ""
 	}
-	return jsonParsed.Path("data.0.username").String()
+	return fmt.Sprintf("%s", jsonParsed.Path("data.0.username").Data())
 }
 
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
@@ -386,7 +386,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 		WhenRancherBackupInstalledIt("Get user after rancher restore is complete", func() {
 			Eventually(func() string {
 				return GetRancherUser()
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil(), "Check if rancher user has been restored successfully")
+			}, waitTimeout, pollingInterval).Should(Equal(rancherUserName), "Check if rancher user has been restored successfully")
 		})
 	})
 
