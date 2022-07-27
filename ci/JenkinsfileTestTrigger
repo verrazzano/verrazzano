@@ -323,7 +323,7 @@ pipeline {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 def latestRelease = getLatestReleaseVersion()
-                                echo "Printing latest release verion: ${latestRelease}"
+                                echo "Printing latest release version: ${latestRelease}"
                                 build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -564,6 +564,5 @@ def getLatestReleaseVersion() {
         gitTags << tag
     }
     echo "gitTags = ${gitTags}"
-    def latestReleaseVersion = gitTags.get(0)
-    return latestReleaseVersion
+    return gitTags.pop()
 }
