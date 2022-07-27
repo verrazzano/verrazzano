@@ -1958,7 +1958,7 @@ func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.Moc
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			asserts.Equal("/v3/clusters/unit-test-cluster-id", req.URL.Path)
 
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"state":"active"}`)))
+			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"state":"active","agentImage":"test-image:1.0.0"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
