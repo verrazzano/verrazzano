@@ -441,7 +441,7 @@ func GetEsURL(log *zap.SugaredLogger) (string, error) {
 	return bashResponse.StandardOut.String(), nil
 }
 
-func GetRancherUrl(log *zap.SugaredLogger) (string, error) {
+func GetRancherURL(log *zap.SugaredLogger) (string, error) {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
 	cmdArgs = append(cmdArgs, "get")

@@ -178,7 +178,7 @@ func CreateRancherUserFromShell() error {
 	}
 	template.Execute(&b, data)
 
-	url, err := backup.GetRancherUrl(t.Logs)
+	url, err := backup.GetRancherURL(t.Logs)
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func CreateRancherUserFromShell() error {
 }
 
 func DeleteRancherUserFromShell() error {
-	url, err := backup.GetRancherUrl(t.Logs)
+	url, err := backup.GetRancherURL(t.Logs)
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func DeleteRancherUserFromShell() error {
 }
 
 func GetRancherUser() string {
-	url, err := backup.GetRancherUrl(t.Logs)
+	url, err := backup.GetRancherURL(t.Logs)
 	if err != nil {
 		return ""
 	}
@@ -377,7 +377,6 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 		WhenRancherBackupInstalledIt("After restore is complete wait for rancher pods to come up", func() {
 			Eventually(func() error {
 				return backup.WaitForPodsShell("cattle-system", t.Logs)
-				//return backup.WaitForPodBySelectorRunning("cattle-system", "app=rancher", 600, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher infra is up")
 		})
 	})
