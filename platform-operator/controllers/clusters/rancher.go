@@ -264,8 +264,14 @@ func isManagedClusterActive(rc *rancherConfig, clusterID string, log vzlog.Verra
 	if err != nil {
 		return false, err
 	}
+	agentImage, err := httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "agentImage", "unable to find agent image in Rancher response")
+	if err != nil {
+		return false, err
+	}
 
-	return state == clusterStateActive, nil
+	// Rancher temporarily sets the state of a new cluster to "active" before setting it to "pending", so we also check for the "agentImage" field
+	// to know that the cluster is really active
+	return state == clusterStateActive && len(agentImage) > 0, nil
 }
 
 // getCACertFromManagedCluster attempts to get the CA cert from the managed cluster using the Rancher API proxy. It first checks for
