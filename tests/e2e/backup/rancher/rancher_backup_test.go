@@ -301,10 +301,7 @@ func backupPrerequisites() {
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Fetching rancher login Token")
-	Eventually(func() string {
-		backup.RancherToken = GetRancherLoginToken()
-		return backup.RancherToken
-	}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())
+	backup.RancherToken = GetRancherLoginToken()
 
 	t.Logs.Info("Creating a user with the retrieved login token")
 	Eventually(func() error {
