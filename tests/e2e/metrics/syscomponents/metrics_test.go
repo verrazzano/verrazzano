@@ -388,15 +388,15 @@ func getClusterNameForPromQuery() string {
 	return ""
 }
 
-<<<<<<< HEAD
 func eventuallyMetricsExistInCluster(metricName string, labels map[string]string, kconfig string) {
 	Eventually(func() bool {
 		return pkg.MetricsExistInCluster(metricName, labels, kconfig)
-=======
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+}
+
 // Queries Prometheus for a given metric name and a map of labels for the metric
 func eventuallyMetricsContainLabels(metricName string, kv map[string]string) {
 	Eventually(func() bool {
 		return metricsContainLabels(metricName, map[string]string{})
->>>>>>> master
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 }
