@@ -26,5 +26,5 @@ spec:
       ports:
         - port: 15090
           protocol: TCP
-        - port: 9100
+        - port: 9100 #allow prometheus to scrape VMO
           protocol: TCP
