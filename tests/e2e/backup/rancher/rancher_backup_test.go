@@ -54,6 +54,7 @@ var _ = t.AfterSuite(func() {
 
 var t = framework.NewTestFramework("rancher-backup")
 
+// CreateSecretFromMap creates opaque rancher secret required for backup/restore
 func CreateSecretFromMap(namespace string, name string) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -82,22 +83,7 @@ func CreateSecretFromMap(namespace string, name string) error {
 	return nil
 }
 
-func DeleteSecret(namespace string, name string) error {
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		t.Logs.Errorf("Failed to get clientset with error: %v", err)
-		return err
-	}
-
-	err = clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
-	if err != nil {
-		t.Logs.Errorf("Error deleting secret ", zap.Error(err))
-		return err
-	}
-	return nil
-}
-
-// CreateRancherBackupObject creates opaque secret from the given map of values
+// CreateRancherBackupObject creates rancher backup object to start the backup process
 func CreateRancherBackupObject() error {
 	var b bytes.Buffer
 	template, _ := template.New("rancher-backup").Parse(backup.RancherBackup)
@@ -120,7 +106,7 @@ func CreateRancherBackupObject() error {
 	return nil
 }
 
-// CreateRancherBackupObject creates opaque secret from the given map of values
+// CreateRancherRestoreObject creates rancher restore object to start the restore process
 func CreateRancherRestoreObject() error {
 
 	rancherFileName, err := backup.GetRancherBackupFileName(backup.BackupRancherName, t.Logs)
@@ -155,6 +141,7 @@ func CreateRancherRestoreObject() error {
 	return nil
 }
 
+// GetRancherLoginToken fetches the login token for rancher console
 func GetRancherLoginToken() string {
 	rancherURL, err := backup.GetRancherURL(t.Logs)
 	if err != nil {
@@ -167,6 +154,7 @@ func GetRancherLoginToken() string {
 	return token
 }
 
+// CreateRancherUserFromShell creates a new rancher user
 func CreateRancherUserFromShell(rancherURL string) error {
 	var b bytes.Buffer
 	template, _ := template.New("rancher-user").Parse(backup.RancherUserTemplate)
@@ -200,6 +188,7 @@ func CreateRancherUserFromShell(rancherURL string) error {
 
 }
 
+// DeleteRancherUserFromShell cleans up a rancher user
 func DeleteRancherUserFromShell(rancherURL string) error {
 	var cmdArgs []string
 	apiPath := "v3/users"
@@ -221,6 +210,7 @@ func DeleteRancherUserFromShell(rancherURL string) error {
 
 }
 
+// GetRancherUser gets an existing rancher user
 func GetRancherUser(rancherURL string) string {
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 
@@ -279,6 +269,7 @@ func WhenRancherBackupInstalledIt(description string, f func()) {
 	}
 }
 
+// Run as part of BeforeSuite
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
 
@@ -296,6 +287,7 @@ func backupPrerequisites() {
 	}, waitTimeout, pollingInterval).Should(BeNil())
 }
 
+// Run as part of AfterSuite
 func cleanUpRancher() {
 	t.Logs.Info("Cleanup backup and restore objects")
 
@@ -316,7 +308,7 @@ func cleanUpRancher() {
 
 	t.Logs.Info("Cleanup rancher secrets")
 	Eventually(func() error {
-		return DeleteSecret(backup.VeleroNameSpace, backup.RancherSecretName)
+		return backup.DeleteSecret(backup.VeleroNameSpace, backup.RancherSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 }

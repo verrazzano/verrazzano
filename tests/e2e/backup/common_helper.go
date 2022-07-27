@@ -28,12 +28,14 @@ import (
 	"time"
 )
 
+// SecretsData template for creating backup credentials
 const SecretsData = //nolint:gosec //#gosec G101 //#gosec G204
 `[default]
 {{ .AccessName }}={{ .ObjectStoreAccessValue }}
 {{ .ScrtName }}={{ .ObjectStoreScrt }}
 `
 
+// VeleroBackupLocation template for creating velero backup storage location object.
 const VeleroBackupLocation = `
     apiVersion: velero.io/v1
     kind: BackupStorageLocation
@@ -53,6 +55,7 @@ const VeleroBackupLocation = `
         s3ForcePathStyle: "true"
         s3Url: https://{{ .VeleroObjectStorageNamespaceName }}.compat.objectstorage.{{ .VeleroBackupRegion }}.oraclecloud.com`
 
+// VeleroBackup template for creating velero backup object.
 const VeleroBackup = `
 ---
 apiVersion: velero.io/v1
@@ -90,6 +93,7 @@ spec:
               onError: Fail
               timeout: 10m`
 
+// VeleroRestore template for creating velero restore object.
 const VeleroRestore = `
 ---
 apiVersion: velero.io/v1
@@ -126,72 +130,7 @@ spec:
               execTimeout: 30m
               onError: Fail`
 
-const MySQLBackup = `
----
-apiVersion: velero.io/v1
-kind: Backup
-metadata:
-  name: {{ .VeleroMysqlBackupName }}
-  namespace: {{ .VeleroNamespaceName }}
-spec:
-  includedNamespaces:
-    - keycloak  
-  defaultVolumesToRestic: true
-  storageLocation: {{ .VeleroMysqlBackupStorageName }}
-  hooks:
-    resources:
-      - 
-        name: {{ .VeleroMysqlHookResourceName }}
-        includedNamespaces:
-          - keycloak
-        labelSelector:
-          matchLabels:
-            app: mysql
-        pre:
-          - 
-            exec:
-              container: mysql
-              command:
-                - bash
-                - /etc/mysql/conf.d/mysql-hook.sh
-                - backup
-                - -o backup
-                - -f {{ .VeleroMysqlBackupName }}.sql
-              onError: Fail
-              timeout: 5m`
-
-const MySQLRestore = `
----
-apiVersion: velero.io/v1
-kind: Restore
-metadata:
-  name: {{ .VeleroMysqlRestore }}
-  namespace: {{ .VeleroNamespaceName }}
-spec:
-  backupName: {{ .VeleroMysqlBackupName }}
-  includedNamespaces:
-    - keycloak 
-  restorePVs: false
-  hooks:
-    resources:
-      - name: {{ .VeleroMysqlHookResourceName }}
-        includedNamespaces:
-          - keycloak
-        labelSelector:
-          matchLabels:
-            app: mysql
-        postHooks:
-          - exec:
-              container: mysql
-              command:
-                - bash
-                - /etc/mysql/conf.d/mysql-hook.sh
-                - -o restore
-                - -f {{ .VeleroMysqlBackupName }}.sql
-              waitTimeout: 5m
-              execTimeout: 5m
-              onError: Fail`
-
+// EsQueryBody template for opensearch query
 const EsQueryBody = `
 {
 	"query": {
@@ -202,6 +141,7 @@ const EsQueryBody = `
 }
 `
 
+// RancherUserTemplate template body for creating rancher test user
 const RancherUserTemplate = `
 {
   "description":"Automated Tests", 
@@ -214,6 +154,7 @@ const RancherUserTemplate = `
 }
 `
 
+// RancherBackup template for creating rancher backup object.
 const RancherBackup = `
 ---
 apiVersion: resources.cattle.io/v1
@@ -232,6 +173,7 @@ spec:
   resourceSetName: rancher-resource-set
 `
 
+// RancherRestore template for creating rancher restore object.
 const RancherRestore = `
 ---
 apiVersion: resources.cattle.io/v1
@@ -250,17 +192,20 @@ spec:
       endpoint: {{ .RancherSecretData.RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherSecretData.RancherBackupRegion }}.oraclecloud.com
 `
 
+// RancherBackupData struct used for rancher backup templating
 type RancherBackupData struct {
 	RancherBackupName string
 	RancherSecretData RancherObjectStoreData
 }
 
+// RancherRestoreData struct used for rancher restore templating
 type RancherRestoreData struct {
 	RancherRestoreName string
 	BackupFileName     string
 	RancherSecretData  RancherObjectStoreData
 }
 
+// RancherObjectStoreData struct used for rancher secret templating
 type RancherObjectStoreData struct {
 	RancherSecretName                 string
 	RancherSecretNamespaceName        string
@@ -271,17 +216,20 @@ type RancherObjectStoreData struct {
 
 var decUnstructured = k8sYaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
+// BashCommand struct used for running bash commands
 type BashCommand struct {
 	Timeout     time.Duration `json:"timeout"`
 	CommandArgs []string      `json:"cmdArgs"`
 }
 
+// RunnerResponse is structured response for bash commands
 type RunnerResponse struct {
 	StandardOut  bytes.Buffer `json:"stdout"`
 	StandardErr  bytes.Buffer `json:"stderr"`
 	CommandError error        `json:"error"`
 }
 
+// AccessData struct used for velero secrets templating
 type AccessData struct {
 	AccessName             string
 	ScrtName               string
@@ -289,6 +237,7 @@ type AccessData struct {
 	ObjectStoreScrt        string
 }
 
+// VeleroBackupLocationObjectData holds data related to velero backup location
 type VeleroBackupLocationObjectData struct {
 	VeleroBackupStorageName          string
 	VeleroNamespaceName              string
@@ -298,6 +247,7 @@ type VeleroBackupLocationObjectData struct {
 	VeleroBackupRegion               string
 }
 
+// VeleroBackupObject holds data related to velero backup
 type VeleroBackupObject struct {
 	VeleroBackupName                 string
 	VeleroNamespaceName              string
@@ -305,6 +255,7 @@ type VeleroBackupObject struct {
 	VeleroOpensearchHookResourceName string
 }
 
+// VeleroRestoreObject holds data related to velero restore
 type VeleroRestoreObject struct {
 	VeleroRestore                    string
 	VeleroNamespaceName              string
@@ -312,30 +263,19 @@ type VeleroRestoreObject struct {
 	VeleroOpensearchHookResourceName string
 }
 
+// EsQueryObject holds data related to opensearch index query
 type EsQueryObject struct {
 	BackupIDBeforeBackup string
 }
 
+// RancherUser holds data related to rancher test user
 type RancherUser struct {
 	FullName string
 	Password string
 	Username string
 }
 
-type VeleroMysqlBackupObject struct {
-	VeleroMysqlBackupName        string
-	VeleroNamespaceName          string
-	VeleroMysqlBackupStorageName string
-	VeleroMysqlHookResourceName  string
-}
-
-type VeleroMysqlRestoreObject struct {
-	VeleroMysqlRestore          string
-	VeleroNamespaceName         string
-	VeleroMysqlBackupName       string
-	VeleroMysqlHookResourceName string
-}
-
+// Variables used across backup components
 var (
 	VeleroNameSpace       string
 	VeleroSecretName      string
@@ -361,6 +301,9 @@ var (
 	RancherToken          string
 )
 
+// GatherInfo invoked at the begining to setup all the values taken as input
+// The gingko runs will fail if any of these values are not set or set incorrectly
+// The values are originally set from the jenkins pipeline
 func GatherInfo() {
 	VeleroNameSpace = os.Getenv("VELERO_NAMESPACE")
 	VeleroSecretName = os.Getenv("VELERO_SECRET_NAME")
@@ -382,6 +325,8 @@ func GatherInfo() {
 	RestoreMysqlName = os.Getenv("RESTORE_MYSQL")
 }
 
+// Runner is a generic method that runs any bash command asynchronously with a configurable timeout
+// The command response is also returned a goland struct
 func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	var bashCommandResponse RunnerResponse
@@ -424,6 +369,7 @@ func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
 	}
 }
 
+// GetEsURL fetches the elastic search URL from the cluster
 func GetEsURL(log *zap.SugaredLogger) (string, error) {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
@@ -443,6 +389,7 @@ func GetEsURL(log *zap.SugaredLogger) (string, error) {
 	return bashResponse.StandardOut.String(), nil
 }
 
+// GetRancherURL fetches the elastic search URL from the cluster
 func GetRancherURL(log *zap.SugaredLogger) (string, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -454,6 +401,7 @@ func GetRancherURL(log *zap.SugaredLogger) (string, error) {
 	return rancherURL, nil
 }
 
+// GetVZPasswd fetches the verrazzano password from the cluster
 func GetVZPasswd(log *zap.SugaredLogger) (string, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -469,6 +417,8 @@ func GetVZPasswd(log *zap.SugaredLogger) (string, error) {
 	return string(secret.Data["password"]), nil
 }
 
+// DynamicSSA uses dynamic client to apply data without registered golang structs
+// This is used to apply configurations related to velero and rancher as they are crds
 func DynamicSSA(ctx context.Context, deploymentYAML string, log *zap.SugaredLogger) error {
 
 	kubeconfig, err := k8sutil.GetKubeConfig()
@@ -522,6 +472,8 @@ func DynamicSSA(ctx context.Context, deploymentYAML string, log *zap.SugaredLogg
 	return err
 }
 
+// RetryAndCheckShellCommandResponse utility that executes a bash command and waits on the response to be `Completed`
+// Has options to configure a retry count as well
 func RetryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operation, objectName string, log *zap.SugaredLogger) error {
 	retryCount := 0
 	for {
@@ -548,6 +500,7 @@ func RetryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operat
 
 }
 
+// VeleroObjectDelete utility to clean up velero objects in the cluster
 func VeleroObjectDelete(objectType, objectname, nameSpaceName string, log *zap.SugaredLogger) error {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
@@ -576,6 +529,7 @@ func VeleroObjectDelete(objectType, objectname, nameSpaceName string, log *zap.S
 	return nil
 }
 
+// RancherObjectDelete utility to clean up rancher backup/restore objects in the cluster
 func RancherObjectDelete(objectType, objectname string, log *zap.SugaredLogger) error {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
@@ -600,6 +554,8 @@ func RancherObjectDelete(objectType, objectname string, log *zap.SugaredLogger) 
 	return nil
 }
 
+// DisplayHookLogs is used to display the logs from the pod where the backup hook was run
+// It execs into the pod and fetches the log file contents
 func DisplayHookLogs(log *zap.SugaredLogger) error {
 	log.Infof("Retrieving verrazzano hook logs ...")
 	var cmdArgs []string
@@ -642,6 +598,7 @@ func DisplayHookLogs(log *zap.SugaredLogger) error {
 	return nil
 }
 
+// GetRancherBackupFileName gets the filename backed up to object store
 func GetRancherBackupFileName(backupName string, log *zap.SugaredLogger) (string, error) {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
@@ -662,6 +619,7 @@ func GetRancherBackupFileName(backupName string, log *zap.SugaredLogger) (string
 	return strings.TrimSpace(strings.Trim(fileNameResponse.StandardOut.String(), "\n")), nil
 }
 
+// CheckPodsTerminated utility to wait for all pods to be terminated
 func CheckPodsTerminated(labelSelector, namespace string, log *zap.SugaredLogger) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -691,6 +649,7 @@ func CheckPodsTerminated(labelSelector, namespace string, log *zap.SugaredLogger
 
 }
 
+// WaitForPodsShell utility to wait for all pods to be ready in a given namespace
 func WaitForPodsShell(namespace string, log *zap.SugaredLogger) error {
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
@@ -713,6 +672,7 @@ func WaitForPodsShell(namespace string, log *zap.SugaredLogger) error {
 	return nil
 }
 
+// CheckPvcsTerminated utility to wait for all pvcs to be terminated
 func CheckPvcsTerminated(labelSelector, namespace string, log *zap.SugaredLogger) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -742,6 +702,8 @@ func CheckPvcsTerminated(labelSelector, namespace string, log *zap.SugaredLogger
 
 }
 
+// CheckOperatorOperationProgress is a common utility to check the progress of backup and restore
+// operation for both velero and rancher.
 func CheckOperatorOperationProgress(operator, operation, namespace, objectName string, log *zap.SugaredLogger) error {
 	var cmdArgs []string
 	var kind, jsonPath string
@@ -770,4 +732,20 @@ func CheckOperatorOperationProgress(operator, operation, namespace, objectName s
 	kcmd.Timeout = 1 * time.Minute
 	kcmd.CommandArgs = cmdArgs
 	return RetryAndCheckShellCommandResponse(30, &kcmd, operation, objectName, log)
+}
+
+// DeleteSecret cleans up secrets as part of AfterSuite
+func DeleteSecret(namespace string, name string, log *zap.SugaredLogger) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	err = clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		log.Errorf("Error deleting secret ", zap.Error(err))
+		return err
+	}
+	return nil
 }

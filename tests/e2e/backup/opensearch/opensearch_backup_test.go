@@ -55,7 +55,7 @@ var _ = t.AfterSuite(func() {
 
 var t = framework.NewTestFramework("opensearch-backup")
 
-// CreateCredentialsSecretFromFile creates opaque secret from the given map of values
+// CreateCredentialsSecretFromFile creates opaque secret from a file
 func CreateCredentialsSecretFromFile(namespace string, name string) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -93,22 +93,7 @@ func CreateCredentialsSecretFromFile(namespace string, name string) error {
 	return nil
 }
 
-func DeleteSecret(namespace string, name string) error {
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		t.Logs.Errorf("Failed to get clientset with error: %v", err)
-		return err
-	}
-
-	err = clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
-	if err != nil {
-		t.Logs.Errorf("Error deleting secret ", zap.Error(err))
-		return err
-	}
-	return nil
-}
-
-// CreateVeleroBackupLocationObject creates opaque secret from the given map of values
+// CreateVeleroBackupLocationObject creates velero backup object location
 func CreateVeleroBackupLocationObject() error {
 	var b bytes.Buffer
 	template, _ := template.New("velero-backup-location").Parse(backup.VeleroBackupLocation)
@@ -154,7 +139,7 @@ func CreateVeleroBackupLocationObject() error {
 	return nil
 }
 
-// CreateVeleroBackupObject creates opaque secret from the given map of values
+// CreateVeleroBackupObject creates velero backup object that starts the backup
 func CreateVeleroBackupObject() error {
 	var b bytes.Buffer
 	template, _ := template.New("velero-backup").Parse(backup.VeleroBackup)
@@ -173,6 +158,7 @@ func CreateVeleroBackupObject() error {
 	return nil
 }
 
+// CreateVeleroRestoreObject creates velero restore object that starts restore
 func CreateVeleroRestoreObject() error {
 	var b bytes.Buffer
 	template, _ := template.New("velero-restore").Parse(backup.VeleroRestore)
@@ -192,6 +178,8 @@ func CreateVeleroRestoreObject() error {
 	return nil
 }
 
+// GetBackupID fetches an opensearch id before starting the backup
+// This will be used to compare the restore process
 func GetBackupID() error {
 	esURL, err := backup.GetEsURL(t.Logs)
 	if err != nil {
@@ -230,6 +218,7 @@ func GetBackupID() error {
 	return nil
 }
 
+// IsRestoreSuccessful fetches the same backup id and returns the result
 func IsRestoreSuccessful() string {
 	esURL, err := backup.GetEsURL(t.Logs)
 	if err != nil {
@@ -268,10 +257,11 @@ func IsRestoreSuccessful() string {
 		return ""
 	}
 	backupIDFetched := strings.TrimSpace(strings.Trim(curlResponse.StandardOut.String(), "\n"))
-	//return backupIDFetched == backup.BackupID
 	return backupIDFetched
 }
 
+// NukeOpensearch is used to destroy the opensearch cluster including data
+// This is only done after a successful backup was taken
 func NukeOpensearch() error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -361,6 +351,7 @@ func WhenVeleroInstalledIt(description string, f func()) {
 	}
 }
 
+// Run as part of BeforeSuite
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
 	t.Logs.Info("Create backup secret for velero backup objects")
@@ -380,6 +371,7 @@ func backupPrerequisites() {
 
 }
 
+// Run as part of AfterSuite
 func cleanUpVelero() {
 	t.Logs.Info("Cleanup backup and restore objects")
 
@@ -400,7 +392,7 @@ func cleanUpVelero() {
 
 	t.Logs.Info("Cleanup velero secrets")
 	Eventually(func() error {
-		return DeleteSecret(backup.VeleroNameSpace, backup.VeleroSecretName)
+		return backup.DeleteSecret(backup.VeleroNameSpace, backup.VeleroSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 }
