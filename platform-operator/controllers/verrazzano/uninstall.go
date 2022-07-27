@@ -111,9 +111,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 				tracker.vzState = vzStateUninstallMC
 				continue
 			}
-			if err := rancher.DeleteLocalCluster(log, r.Client); err != nil {
-				return ctrl.Result{}, err
-			}
+			rancher.DeleteLocalCluster(log, r.Client)
 			tracker.vzState = vzStateUninstallMC
 
 		case vzStateUninstallMC:

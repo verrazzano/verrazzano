@@ -349,7 +349,7 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 }
 
 // Delete the local cluster
-func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) error {
+func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 	log.Once("Deleting Rancher local cluster")
 
 	localCluster := unstructured.Unstructured{}
@@ -357,16 +357,17 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) error {
 	localClusterName := types.NamespacedName{Name: ClusterLocal}
 	err := c.Get(context.Background(), localClusterName, &localCluster)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting local Cluster: %s", err.Error())
+		log.Errorf("Failed getting local Cluster: %s", err.Error())
+		return
 	}
 
 	err = c.Delete(context.Background(), &localCluster)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed deleting local cluster: %s", err.Error())
+		log.Errorf("Failed deleting local cluster: %s", err.Error())
+		return
 	}
 
 	log.Once("Successfully deleted Rancher local cluster")
-	return nil
 }
 
 // activateOCIDriver activates the oci nodeDriver
