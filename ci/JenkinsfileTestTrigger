@@ -557,12 +557,17 @@ def metricBuildDuration() {
 }
 
 @NonCPS
-def getLatestReleaseVersion() {
-    final String fileContent = readFile(file: "${workspace}/tags.txt")
-    List gitTags = []
+List extractReleaseTags(final String fileContent) {
+    List releases = []
     fileContent.eachLine { tag ->
-        gitTags.add(tag)
+        releases << tag
     }
+    return releases
+}
+
+def getLatestReleaseVersion() {
+    final String releaseTags = readFile(file: "${workspace}/tags.txt")
+    list gitTags = extractReleaseTags(releaseTags)
     echo "gitTags = ${gitTags}"
     return gitTags.pop()
 }
