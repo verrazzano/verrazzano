@@ -119,18 +119,6 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-monitoring
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: prometheus
-      ports:
-        - port: 15090
-          protocol: TCP
-        - port: 9100
-          protocol: TCP
 ---
 # Network policy for OAM Kubernetes Runtime operator
 # Ingress: deny all
