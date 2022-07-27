@@ -17,3 +17,7 @@ spec:
       enabled: true
     prometheusNodeExporter:
       enabled: true
+    rancherBackup:
+      enabled: true
+    velero:
+      enabled: true
