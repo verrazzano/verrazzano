@@ -32,7 +32,7 @@ const (
 	prometheusTargetIntervalLength = "prometheus_target_interval_length_seconds"
 	envoyStatsRecentLookups        = "envoy_server_stats_recent_lookups"
 	vmoFunctionMetric              = "vmo_reconcile_total"
-	vmoCounterMetric               = "vmo_reconcile_total"
+	vmoCounterMetric               = "vmo_deployment_update_total"
 	vmoGaugeMetric                 = "vmo_work_queue_size"
 	vmoTimestampMetric             = "vmo_configmap_last_succesful_timestamp"
 
@@ -389,6 +389,7 @@ func getClusterNameForPromQuery() string {
 	return ""
 }
 
+// Queries Prometheus for a given metric, same as eventuallyMetricsExistInCluster but does not enforce the verrazzanoCluster label
 func eventuallyMetricsExistInCluster(metricName string, labels map[string]string, kconfig string) {
 	Eventually(func() bool {
 		return pkg.MetricsExistInCluster(metricName, labels, kconfig)
@@ -398,6 +399,6 @@ func eventuallyMetricsExistInCluster(metricName string, labels map[string]string
 // Queries Prometheus for a given metric name and a map of labels for the metric
 func eventuallyMetricsContainLabels(metricName string, kv map[string]string) {
 	Eventually(func() bool {
-		return metricsContainLabels(metricName, map[string]string{})
+		return metricsContainLabels(metricName, kv)
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 }
