@@ -305,7 +305,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectSyncCACertRancherHTTPCalls(t, mockRequestSender)
+	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, "")
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -328,6 +328,76 @@ func TestCreateVMCNoCACert(t *testing.T) {
 		return nil
 	}, func(secret *corev1.Secret) error {
 		asserts.Empty(secret.Data["ca-test"])
+		return nil
+	})
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+
+	// Create and make the request
+	request := newRequest(namespace, testManagedCluster)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(nil, request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
+}
+
+// TestCreateVMCFetchCACertFromManagedCluster tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
+// WHEN a VerrazzanoManagedCluster resource has been applied and the caSecret field is empty
+// THEN ensure that we fetch the CA cert secret from the managed cluster and populate the caSecret field
+func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
+	namespace := constants.VerrazzanoMultiClusterNamespace
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	mockRequestSender := mocks.NewMockRequestSender(mocker)
+	savedRancherHTTPClient := rancherHTTPClient
+	defer func() {
+		rancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherHTTPClient = mockRequestSender
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
+
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, false)
+	expectSyncServiceAccount(t, mock, testManagedCluster, true)
+	expectSyncRoleBinding(t, mock, testManagedCluster, true)
+	expectSyncAgent(t, mock, testManagedCluster)
+	expectSyncRegistration(t, mock, testManagedCluster, true)
+	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, `{"data":{"ca.crt":"base64-ca-cert"}}`)
+	expectSyncCACertRancherK8sCalls(t, mock)
+	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
+		asserts.Len(configMap.Data, 2, "no data found")
+		prometheusYaml := configMap.Data["prometheus.yml"]
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+
+		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, false)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
+		scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(scrapeConfigYaml))
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
+		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, false)
+		return nil
+	}, func(secret *corev1.Secret) error {
+		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
 		return nil
 	})
 
@@ -1877,7 +1947,9 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 		})
 }
 
-func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.MockRequestSender) {
+// expectSyncCACertRancherHTTPCalls asserts all of the expected calls on the HTTP client mock when sync'ing the managed cluster
+// CA cert secret
+func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.MockRequestSender, caCertSecretData string) {
 	asserts := assert.New(t)
 
 	// Expect an HTTP request to fetch the managed cluster info from Rancher
@@ -1916,13 +1988,37 @@ func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.Moc
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			asserts.Equal("/k8s/clusters/unit-test-cluster-id/api/v1/namespaces/verrazzano-system/secrets/verrazzano-tls", req.URL.Path)
 
-			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
+			statusCode := http.StatusOK
+			if len(caCertSecretData) == 0 {
+				statusCode = http.StatusNotFound
+			}
+			r := ioutil.NopCloser(bytes.NewReader([]byte(caCertSecretData)))
 			resp := &http.Response{
-				StatusCode: http.StatusNotFound,
+				StatusCode: statusCode,
 				Body:       r,
 				Request:    &http.Request{Method: http.MethodGet},
 			}
 			return resp, nil
+		})
+}
+
+// expectSyncCACertRancherK8sCalls asserts all of the expected calls on the Kubernetes client mock when sync'ing the managed cluster
+// CA cert secret
+func expectSyncCACertRancherK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
+	asserts := assert.New(t)
+
+	// Expect a call to get the CA cert secret for the managed cluster - return not found
+	k8sMock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: "ca-secret-test"}), gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, "ca-secret-test"))
+
+	// Expect a call to create the CA cert secret for the managed cluster
+	k8sMock.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			data := secret.Data[caCertSecretKey]
+			asserts.NotZero(len(data), "Expected data in CA cert secret")
+			return nil
 		})
 }
 
