@@ -21,6 +21,8 @@ const (
 	Prod ProfileType = "prod"
 	// ManagedCluster identifies the production managed-cluster install profile
 	ManagedCluster ProfileType = "managed-cluster"
+	// HA identifies the production highly available install profile
+	HA ProfileType = "ha"
 )
 const (
 	// LoadBalancer is an ingress type of LoadBalancer.  This is the default value.

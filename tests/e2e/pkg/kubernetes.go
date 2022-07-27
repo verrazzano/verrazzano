@@ -587,6 +587,24 @@ func IsProdProfile() bool {
 	return false
 }
 
+// IsHAProfile returns true if the deployed resource is a 'ha' profile
+func IsHAProfile() bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return false
+	}
+
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return false
+	}
+	if vz.Spec.Profile == v1alpha1.HA || vz.Spec.Profile == "" {
+		return true
+	}
+	return false
+}
+
 // IsManagedClusterProfile returns true if the deployed resource is a 'managed-cluster' profile
 func IsManagedClusterProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

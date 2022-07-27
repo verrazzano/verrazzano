@@ -13,6 +13,7 @@ import (
 const (
 	basicDevMerged                  = "testdata/basicDevMerged.yaml"
 	basicProdMerged                 = "testdata/basicProdMerged.yaml"
+	basicHAMerged                   = "testdata/basicHAMerged.yaml"
 	basicManagedClusterMerged       = "testdata/basicManagedClusterMerged.yaml"
 	devAllDisabledMerged            = "testdata/devAllDisabledMerged.yaml"
 	devOCIDNSOverrideMerged         = "testdata/devOCIOverrideMerged.yaml"
@@ -23,6 +24,10 @@ const (
 	prodElasticSearchStorageMerged  = "testdata/prodESStorageArgsMerged.yaml"
 	prodIngressIstioOverridesMerged = "testdata/prodIngressIstioOverridesMerged.yaml"
 	prodFluentdOverridesMerged      = "testdata/prodFluentdOverridesMerged.yaml"
+	haElasticSearchOveridesMerged   = "testdata/haESOverridesMerged.yaml"
+	haElasticSearchStorageMerged    = "testdata/haESStorageArgsMerged.yaml"
+	haIngressIstioOverridesMerged   = "testdata/haIngressIstioOverridesMerged.yaml"
+	haFluentdOverridesMerged        = "testdata/haFluentdOverridesMerged.yaml"
 	managedClusterEnableAllMerged   = "testdata/managedClusterEnableAllOverrideMerged.yaml"
 )
 
@@ -53,6 +58,19 @@ var basicProdWithStatus = vzapi.Verrazzano{
 	},
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: "prod",
+	},
+	Status: vzapi.VerrazzanoStatus{
+		Version:            "v1.0.1",
+		VerrazzanoInstance: &vzapi.InstanceInfo{},
+	},
+}
+
+var basicHAWithStatus = vzapi.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "default-ha",
+	},
+	Spec: vzapi.VerrazzanoSpec{
+		Profile: vzapi.HA,
 	},
 	Status: vzapi.VerrazzanoStatus{
 		Version:            "v1.0.1",
@@ -261,6 +279,45 @@ var prodElasticSearchOverrides = vzapi.Verrazzano{
 	},
 }
 
+var haElasticSearchOverrides = vzapi.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "ha-es-override",
+	},
+	Spec: vzapi.VerrazzanoSpec{
+		EnvironmentName: "haenv",
+		Profile:         vzapi.HA,
+		DefaultVolumeSource: &corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: "vmi",
+			},
+		},
+		VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"storage": pvc500Gi,
+						},
+					},
+				},
+			},
+		},
+		Components: vzapi.ComponentSpec{
+			Elasticsearch: &vzapi.ElasticsearchComponent{
+				ESInstallArgs: []vzapi.InstallArgs{
+					{Name: "nodes.master.replicas", Value: "3"},
+					{Name: "nodes.master.requests.memory", Value: "3G"},
+					{Name: "nodes.ingest.replicas", Value: "6"},
+					{Name: "nodes.ingest.requests.memory", Value: "32G"},
+					{Name: "nodes.data.replicas", Value: "6"},
+					{Name: "nodes.data.requests.memory", Value: "32G"},
+				},
+			},
+		},
+	},
+}
+
 var prodElasticSearchStorageArgs = vzapi.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "prod-es-override",
@@ -268,6 +325,30 @@ var prodElasticSearchStorageArgs = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "prodenv",
 		Profile:         "prod",
+		Components: vzapi.ComponentSpec{
+			Elasticsearch: &vzapi.ElasticsearchComponent{
+				ESInstallArgs: []vzapi.InstallArgs{
+					{Name: "nodes.master.replicas", Value: "3"},
+					{Name: "nodes.master.requests.memory", Value: "3G"},
+					{Name: "nodes.master.requests.storage", Value: "100Gi"},
+					{Name: "nodes.ingest.replicas", Value: "6"},
+					{Name: "nodes.ingest.requests.memory", Value: "32G"},
+					{Name: "nodes.data.replicas", Value: "6"},
+					{Name: "nodes.data.requests.memory", Value: "32G"},
+					{Name: "nodes.data.requests.storage", Value: "150Gi"},
+				},
+			},
+		},
+	},
+}
+
+var haElasticSearchStorageArgs = vzapi.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "ha-es-override",
+	},
+	Spec: vzapi.VerrazzanoSpec{
+		EnvironmentName: "haenv",
+		Profile:         vzapi.HA,
 		Components: vzapi.ComponentSpec{
 			Elasticsearch: &vzapi.ElasticsearchComponent{
 				ESInstallArgs: []vzapi.InstallArgs{
@@ -315,6 +396,36 @@ var prodIngressIstioOverrides = vzapi.Verrazzano{
 	},
 }
 
+var haIngressIstioOverrides = vzapi.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "ha-ingress-istio-override",
+	},
+	Spec: vzapi.VerrazzanoSpec{
+		EnvironmentName: "haenv",
+		Profile:         vzapi.HA,
+		Components: vzapi.ComponentSpec{
+			Ingress: &vzapi.IngressNginxComponent{
+				NGINXInstallArgs: []vzapi.InstallArgs{
+					{Name: "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"", Value: "10Mbps"},
+					{Name: "controller.service.externalTrafficPolicy", Value: "Local"},
+					{Name: "controller.service.externalIPs", ValueList: []string{"11.22.33.44"}},
+				},
+				Ports: []corev1.ServicePort{
+					{Name: "http", NodePort: 30080, Port: 80, Protocol: corev1.ProtocolTCP, TargetPort: intstr.FromInt(0)},
+					{Name: "https", NodePort: 30443, Port: 443, Protocol: corev1.ProtocolTCP, TargetPort: intstr.FromInt(0)},
+				},
+			},
+			Istio: &vzapi.IstioComponent{
+				IstioInstallArgs: []vzapi.InstallArgs{
+					{Name: "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"", Value: "10Mbps"},
+					{Name: "gateways.istio-ingressgateway.replicaCount", Value: "3"},
+					{Name: "gateways.istio-ingressgateway.externalIPs", ValueList: []string{"11.22.33.44"}},
+				},
+			},
+		},
+	},
+}
+
 var prodFluentdOverrides = vzapi.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "prod-fluentd-override",
@@ -322,6 +433,26 @@ var prodFluentdOverrides = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "prodenv",
 		Profile:         "prod",
+		Components: vzapi.ComponentSpec{
+			Fluentd: &vzapi.FluentdComponent{
+				ExtraVolumeMounts: []vzapi.VolumeMount{
+					{Source: "/u01/datarw", ReadOnly: &falseValue},
+					{Source: "/u01/dataro", ReadOnly: &trueValue},
+				},
+				ElasticsearchURL:    "https://myes.mycorp.com",
+				ElasticsearchSecret: "mysecret",
+			},
+		},
+	},
+}
+
+var haFluentdOverrides = vzapi.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "ha-fluentd-override",
+	},
+	Spec: vzapi.VerrazzanoSpec{
+		EnvironmentName: "haenv",
+		Profile:         vzapi.HA,
 		Components: vzapi.ComponentSpec{
 			Fluentd: &vzapi.FluentdComponent{
 				ExtraVolumeMounts: []vzapi.VolumeMount{

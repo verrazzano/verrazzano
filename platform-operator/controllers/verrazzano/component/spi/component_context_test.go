@@ -3,10 +3,11 @@
 package spi
 
 import (
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -63,6 +64,12 @@ func TestContextProfilesMerge(t *testing.T) {
 			expectedYAML: basicProdMerged,
 		},
 		{
+			name:         "TestBasicHAProfileWithStatus",
+			description:  "Tests basic ha profile overrides",
+			actualCR:     basicHAWithStatus,
+			expectedYAML: basicHAMerged,
+		},
+		{
 			name:         "TestBasicManagedClusterProfileWithStatus",
 			description:  "Tests basic managed-cluster profile overrides",
 			actualCR:     basicMgdClusterWithStatus,
@@ -111,10 +118,22 @@ func TestContextProfilesMerge(t *testing.T) {
 			expectedYAML: prodElasticSearchOveridesMerged,
 		},
 		{
+			name:         "TestHAProfileElasticsearchOverrides",
+			description:  "Tests ha profile with Elasticsearch installArg and persistence overrides",
+			actualCR:     haElasticSearchOverrides,
+			expectedYAML: haElasticSearchOveridesMerged,
+		},
+		{
 			name:         "TestProdProfileElasticsearchStorageArgs",
 			description:  "Tests prod profile with Elasticsearch storage installArgs",
 			actualCR:     prodElasticSearchStorageArgs,
 			expectedYAML: prodElasticSearchStorageMerged,
+		},
+		{
+			name:         "TestHAProfileElasticsearchStorageArgs",
+			description:  "Tests ha profile with Elasticsearch storage installArgs",
+			actualCR:     haElasticSearchStorageArgs,
+			expectedYAML: haElasticSearchStorageMerged,
 		},
 		{
 			name:         "TestProdProfileIngressIstioOverrides",
@@ -123,10 +142,22 @@ func TestContextProfilesMerge(t *testing.T) {
 			expectedYAML: prodIngressIstioOverridesMerged,
 		},
 		{
+			name:         "TestHAProfileIngressIstioOverrides",
+			description:  "Test ha profile with Istio and NGINX Ingress overrides",
+			actualCR:     haIngressIstioOverrides,
+			expectedYAML: haIngressIstioOverridesMerged,
+		},
+		{
 			name:         "TestProdProfileFluentdOverrides",
 			description:  "Test prod profile with Fluentd overrides",
 			actualCR:     prodFluentdOverrides,
 			expectedYAML: prodFluentdOverridesMerged,
+		},
+		{
+			name:         "TestHAProfileFluentdOverrides",
+			description:  "Test ha profile with Fluentd overrides",
+			actualCR:     haFluentdOverrides,
+			expectedYAML: haFluentdOverridesMerged,
 		},
 		{
 			name:         "TestManagedClusterEnableAllOverrides",

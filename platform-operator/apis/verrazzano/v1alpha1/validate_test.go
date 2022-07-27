@@ -14,21 +14,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"go.uber.org/zap"
-
-	"sigs.k8s.io/yaml"
-
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
-	"github.com/verrazzano/verrazzano/pkg/semver"
-
-	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/yaml"
 )
 
 // For unit testing
@@ -1584,12 +1580,20 @@ func TestValidateProfileEmptyProfile(t *testing.T) {
 	assert.NoError(t, ValidateProfile(""))
 }
 
-// TestValidateProfileEmptyProfile Tests ValidateProfile() for d pevrofile
+// TestValidateProfileDevProfile Tests ValidateProfile() for dev profile
 // GIVEN a request for dev profile
 // WHEN the profile provided is dev
 // THEN no error is returned
 func TestValidateProfileDevProfile(t *testing.T) {
 	assert.NoError(t, ValidateProfile(Dev))
+}
+
+// TestValidateProfileHAProfile Tests ValidateProfile() for ha profile
+// GIVEN a request for dev profile
+// WHEN the profile provided is dev
+// THEN no error is returned
+func TestValidateProfileHAProfile(t *testing.T) {
+	assert.NoError(t, ValidateProfile(HA))
 }
 
 // TestValidateProfileInvalidProfile Tests ValidateProfile() for invalid profile
