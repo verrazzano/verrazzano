@@ -48,6 +48,18 @@ var istioiocrds = map[string]bool{
 	"workloadentries.networking.istio.io":      false,
 	"workloadgroups.networking.istio.io":       false,
 }
+
+var oamdevcrds = map[string]bool{
+	"applicationconfigurations.core.oam.dev": false,
+	"components.core.oam.dev":                false,
+	"containerizedworkloads.core.oam.dev":    false,
+	"healthscopes.core.oam.dev":              false,
+	"manualscalertraits.core.oam.dev":        false,
+	"scopedefinitions.core.oam.dev":          false,
+	"traitdefinitions.core.oam.dev":          false,
+	"workloaddefinitions.core.oam.dev":       false,
+}
+
 var t = framework.NewTestFramework("uninstall verify crds")
 
 // This test verifies the CRDs found after an uninstall of Verrazzano are what is expected
@@ -63,6 +75,10 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 
 	t.It("Check for expected istio.io CRDs", func() {
 		checkCrds(crds, istioiocrds, "istio.io")
+	})
+
+	t.It("Check for expected oam.dev CRDs", func() {
+		checkCrds(crds, oamdevcrds, "oam.dev")
 	})
 
 	t.It("Check for unexpected CRDs", func() {
