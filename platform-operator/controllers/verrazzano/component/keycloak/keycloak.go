@@ -1140,7 +1140,7 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 
 	kcPod := keycloakPod()
 	if clientId := getClientID(keycloakClients, clientName); clientId != "" && uriTemplate != "" {
-		err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientId, pkceClientUrisTemplate)
+		err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientId, uriTemplate)
 		if err != nil {
 			return err
 		}
@@ -1148,12 +1148,12 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		return nil
 	}
 
-	data, err := populateSubdomainInTemplate(ctx, pkceTmpl)
+	data, err := populateSubdomainInTemplate(ctx, clientTemplate)
 	if err != nil {
 		return err
 	}
 
-	// Create verrazzano-pkce client
+	// Create client
 	clientCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
 		data +
 		"END"
