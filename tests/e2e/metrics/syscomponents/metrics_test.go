@@ -92,6 +92,9 @@ var _ = t.BeforeSuite(func() {
 	var err error
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
 	isManagedClusterProfile = pkg.IsManagedClusterProfile()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
 	if isManagedClusterProfile {
 		if !present {
 			Fail(fmt.Sprintln("Environment variable ADMIN_KUBECONFIG is required to run the test"))
@@ -110,30 +113,6 @@ var _ = t.BeforeSuite(func() {
 		Fail(err.Error())
 	}
 })
-
-// 'It' Wrapper to only run spec if metrics are supported on the current Verrazzano installation
-func WhenUsingVZMetricsIt(description string, f interface{}) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
-	}
-	// Metrics only avaliable when VZ > 1.4.0
-	if supported {
-		t.It(description, f)
-	} else {
-		t.Logs.Infof("Skipping check '%v', VZ metrics are not supported", description)
-	}
-}
-func EventuallyMetricsContainLabels(metricName string) {
-	Eventually(func() bool {
-		return metricsContainLabels(metricName, map[string]string{})
-	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-}
-
 var _ = t.AfterSuite(func() {})
 
 var _ = t.AfterEach(func() {})
@@ -142,37 +121,32 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 	// Query Prometheus for the sample metrics from the default scraping jobs
 	var _ = t.Describe("for the system components", func() {
 		t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
-				kv := map[string]string{
-					controllerNamespace: ingressNginxNamespace,
-					appK8SIOInstance:    ingressController,
-				}
-				return metricsContainLabels(ingressControllerSuccess, kv)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			eventuallyMetricsContainLabels(ingressControllerSuccess, map[string]string{
+				controllerNamespace: ingressNginxNamespace,
+				appK8SIOInstance:    ingressController,
+			})
 		})
 
 		t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
-				return metricsContainLabels(containerStartTimeSeconds, map[string]string{})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			eventuallyMetricsContainLabels(containerStartTimeSeconds, map[string]string{})
 		})
-		WhenUsingVZMetricsIt("Verify VPO summary counter metrics can be queried from Prometheus", func() {
-			EventuallyMetricsContainLabels("vpo_reconcile_duration_count")
+		t.ItMinimumVersion("Verify VPO summary counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+			eventuallyMetricsContainLabels("vpo_reconcile_duration_count", map[string]string{})
 		})
-		WhenUsingVZMetricsIt("Verify VPO summary sum times can be queried from Prometheus", func() {
-			EventuallyMetricsContainLabels("vpo_reconcile_duration_sum")
+		t.ItMinimumVersion("Verify VPO summary sum times can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+			eventuallyMetricsContainLabels("vpo_reconcile_duration_sum", map[string]string{})
 		})
-		WhenUsingVZMetricsIt("Verify VPO counter metrics can be queried from Prometheus", func() {
-			EventuallyMetricsContainLabels("vpo_reconcile_counter")
+		t.ItMinimumVersion("Verify VPO counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+			eventuallyMetricsContainLabels("vpo_reconcile_counter", map[string]string{})
 		})
-		WhenUsingVZMetricsIt("Verify VPO error counter metrics can be queried from Prometheus", func() {
-			EventuallyMetricsContainLabels("vpo_error_reconcile_counter")
+		t.ItMinimumVersion("Verify VPO error counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+			eventuallyMetricsContainLabels("vpo_error_reconcile_counter", map[string]string{})
 		})
-		WhenUsingVZMetricsIt("Verify VPO install metrics can be queried from Prometheus", func() {
-			EventuallyMetricsContainLabels("vz_nginx_install_duration_seconds")
+		t.ItMinimumVersion("Verify VPO install metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+			eventuallyMetricsContainLabels("vz_nginx_install_duration_seconds", map[string]string{})
 		})
-		WhenUsingVZMetricsIt("Verify VPO upgrade counter metrics can be queried from Prometheus", func() {
-			EventuallyMetricsContainLabels("vz_nginx_upgrade_duration_seconds")
+		t.ItMinimumVersion("Verify VPO upgrade counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+			eventuallyMetricsContainLabels("vz_nginx_upgrade_duration_seconds", map[string]string{})
 		})
 		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
@@ -392,4 +366,11 @@ func getClusterNameForPromQuery() string {
 		return "local"
 	}
 	return ""
+}
+
+// Queries Prometheus for a given metric name and a map of labels for the metric
+func eventuallyMetricsContainLabels(metricName string, kv map[string]string) {
+	Eventually(func() bool {
+		return metricsContainLabels(metricName, map[string]string{})
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 }
