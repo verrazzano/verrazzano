@@ -161,7 +161,7 @@ pipeline {
                 }
             }
             parallel {
-                /*stage('Multi Cluster Tests') {
+                stage('Multi Cluster Tests') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -317,7 +317,7 @@ pipeline {
                             }
                         }
                     }
-                }*/
+                }
                 stage('Upgrade Path Tests') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
