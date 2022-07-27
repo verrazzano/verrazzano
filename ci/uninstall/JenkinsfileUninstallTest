@@ -37,6 +37,10 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "prod", "dev", "managed-cluster" ])
 
+        booleanParam (name: 'RUN_APPLICATION_TESTS',
+                description: 'Whether to run the application tests for the final install loop',
+                defaultValue: true)
+
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
@@ -239,7 +243,7 @@ pipeline {
                             runInstallOnly("Install Verrazzano", count)
                         }
                         runVerifyTests("Run Test", count)
-                        if (count == maxIterations) {
+                        if (params.RUN_APPLICATION_TESTS && count == maxIterations) {
                             runApplicationTests()
                         }
                         runUninstall(count)
