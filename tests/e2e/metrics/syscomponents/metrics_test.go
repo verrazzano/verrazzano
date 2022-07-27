@@ -63,7 +63,6 @@ var kubeConfig = os.Getenv("KUBECONFIG")
 // will be initialized in BeforeSuite so that any log messages during init are available
 var clusterNameMetricsLabel = ""
 var isMinVersion110 bool
-var isMinVersion140 bool
 
 var adminKubeConfig string
 var isManagedClusterProfile bool
