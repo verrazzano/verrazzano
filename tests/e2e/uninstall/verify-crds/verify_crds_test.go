@@ -60,6 +60,26 @@ var oamdevcrds = map[string]bool{
 	"workloaddefinitions.core.oam.dev":       false,
 }
 
+var certmanageriocrds = map[string]bool{
+	"certificaterequests.cert-manager.io": false,
+	"certificates.cert-manager.io":        false,
+	"challenges.acme.cert-manager.io":     false,
+	"clusterissuers.cert-manager.io":      false,
+	"issuers.cert-manager.io":             false,
+	"orders.acme.cert-manager.io":         false,
+}
+
+var monitoringcoreoscomcrds = map[string]bool{
+	"alertmanagerconfigs.monitoring.coreos.com": false,
+	"alertmanagers.monitoring.coreos.com":       false,
+	"podmonitors.monitoring.coreos.com":         false,
+	"probes.monitoring.coreos.com":              false,
+	"prometheuses.monitoring.coreos.com":        false,
+	"prometheusrules.monitoring.coreos.com":     false,
+	"servicemonitors.monitoring.coreos.com":     false,
+	"thanosrulers.monitoring.coreos.com":        false,
+}
+
 var t = framework.NewTestFramework("uninstall verify crds")
 
 // This test verifies the CRDs found after an uninstall of Verrazzano are what is expected
@@ -81,9 +101,30 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 		checkCrds(crds, oamdevcrds, "oam.dev")
 	})
 
+	t.It("Check for expected cert-manager.io CRDs", func() {
+		checkCrds(crds, certmanageriocrds, "cert-manager.io")
+	})
+
+	t.It("Check for expected monitoring.coreos.com CRDs", func() {
+		checkCrds(crds, monitoringcoreoscomcrds, "monitoring.coreos.com")
+	})
+
+	t.It("Check for expected domains.weblogic.oracle CRD", func() {
+		checkCrds(crds, map[string]bool{"domains.weblogic.oracle": false}, "domains.weblogic.oracle")
+	})
+
+	t.It("Check for expected coherence.coherence.oracle.com CRD", func() {
+		checkCrds(crds, map[string]bool{"coherence.coherence.oracle.com": false}, "coherence.coherence.oracle.com")
+	})
+
+	t.It("Check for expected monitoringdashboards.monitoring.kiali.iom CRD", func() {
+		checkCrds(crds, map[string]bool{"monitoringdashboards.monitoring.kiali.io": false}, "monitoringdashboards.monitoring.kiali.io")
+	})
+
 	t.It("Check for unexpected CRDs", func() {
 		var crdsFound = make(map[string]bool)
 		for _, crd := range crds.Items {
+			// Anything other than these CRDs being checked are unexpected
 			if strings.HasSuffix(crd.Name, "projectcalico.org") ||
 				strings.HasSuffix(crd.Name, "verrazzano.io") ||
 				strings.HasSuffix(crd.Name, "istio.io") ||
@@ -91,6 +132,7 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 				strings.HasSuffix(crd.Name, "oam.dev") ||
 				strings.HasSuffix(crd.Name, "cert-manager.io") ||
 				strings.HasSuffix(crd.Name, "cluster.x-k8s.io") ||
+				strings.HasSuffix(crd.Name, "cattle.io") ||
 				crd.Name == "monitoringdashboards.monitoring.kiali.io" ||
 				crd.Name == "domains.weblogic.oracle" ||
 				crd.Name == "coherence.coherence.oracle.com" {
