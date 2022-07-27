@@ -21,6 +21,7 @@ import (
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	corev1 "k8s.io/api/core/v1"
@@ -48,7 +49,7 @@ const (
 	// this host resolves to the cluster IP
 	nginxIngressHostName = "ingress-controller-ingress-nginx-controller.ingress-nginx"
 
-	clusterStateActive = "active"
+	rancherClusterStateActive = "active"
 )
 
 type rancherConfig struct {
@@ -245,8 +246,8 @@ func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log vzlog.Ve
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "data.0.id", "unable to find clusterId in Rancher response")
 }
 
-// isManagedClusterActive returns true if the managed cluster is active
-func isManagedClusterActive(rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (bool, error) {
+// isManagedClusterActiveInRancher returns true if the managed cluster is active
+func isManagedClusterActiveInRancher(rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (bool, error) {
 	reqURL := rc.baseURL + clustersPath + "/" + clusterID
 	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
 
@@ -271,14 +272,14 @@ func isManagedClusterActive(rc *rancherConfig, clusterID string, log vzlog.Verra
 
 	// Rancher temporarily sets the state of a new cluster to "active" before setting it to "pending", so we also check for the "agentImage" field
 	// to know that the cluster is really active
-	return state == clusterStateActive && len(agentImage) > 0, nil
+	return state == rancherClusterStateActive && len(agentImage) > 0, nil
 }
 
 // getCACertFromManagedCluster attempts to get the CA cert from the managed cluster using the Rancher API proxy. It first checks for
 // the Rancher TLS secret and if that is not found it looks for the Verrazzano system TLS secret.
 func getCACertFromManagedCluster(rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (string, error) {
 	// first look for the Rancher TLS secret
-	caCert, err := getCACertFromManagedClusterSecret(rc, clusterID, rancherNamespace, cons.AdditionalTLS, "ca-additional.pem", log)
+	caCert, err := getCACertFromManagedClusterSecret(rc, clusterID, rancherNamespace, cons.AdditionalTLS, cons.AdditionalTLSCAKey, log)
 	if err != nil {
 		return "", err
 	}
@@ -288,7 +289,7 @@ func getCACertFromManagedCluster(rc *rancherConfig, clusterID string, log vzlog.
 	}
 
 	// didn't find the Rancher secret so next look for the verrazzano-tls secret
-	caCert, err = getCACertFromManagedClusterSecret(rc, clusterID, cons.VerrazzanoSystemNamespace, constants.VerrazzanoIngressSecret, "ca.crt", log)
+	caCert, err = getCACertFromManagedClusterSecret(rc, clusterID, cons.VerrazzanoSystemNamespace, constants.VerrazzanoIngressSecret, mcconstants.CaCrtKey, log)
 	if err != nil {
 		return "", err
 	}

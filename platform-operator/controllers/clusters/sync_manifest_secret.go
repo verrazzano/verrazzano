@@ -111,7 +111,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.Ve
 		return "", nil
 	}
 
-	isActive, err := isManagedClusterActive(rc, clusterID, r.log)
+	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
 	if err != nil {
 		return "", err
 	}
