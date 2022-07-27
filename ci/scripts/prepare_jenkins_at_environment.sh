@@ -123,7 +123,7 @@ fi
 echo "Installing Verrazzano on Kind"
 if [ -f "$WORKSPACE/vz" ]; then
   cd $WORKSPACE
-  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${OPERATOR_FILE}
+  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE}
 else
   cd ${GO_REPO_PATH}/verrazzano/tools/vz
   GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
