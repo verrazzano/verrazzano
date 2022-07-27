@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
 	"path/filepath"
 	"strings"
 
@@ -63,6 +64,8 @@ const istioManfiestNotInstalledError = "Istio present but verify-install needs a
 
 const istioReaderIstioSystem = "istio-reader-istio-system"
 const istiodIstioSystem = "istiod-istio-system"
+
+const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 
 // istioComponent represents an Istio component
 type istioComponent struct {
@@ -353,11 +356,14 @@ func (i istioComponent) GetDependencies() []string {
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
-	if !vzconfig.IsApplicationOperatorEnabled(context.ActualCR()) {
-		return nil
+	if vzconfig.IsApplicationOperatorEnabled(context.ActualCR()) {
+		context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
+		if err := StopDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
+			return err
+		}
 	}
-	context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
-	return StopDomainsUsingOldEnvoy(context.Log(), context.Client())
+	//Upgrading Istio may result in a duplicate mutating webhook configuration. Istioctl will recreate the webhook during upgrade.
+	return webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), istioSidecarMutatingWebhook)
 }
 
 func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
