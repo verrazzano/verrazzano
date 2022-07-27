@@ -144,7 +144,7 @@ func preInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	createInstance, err := isCreateJaegerInstance(ctx)
+	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 
-	createInstance, err := isCreateJaegerInstance(compContext)
+	createInstance, err := isCreateDefaultJaegerInstance(compContext)
 	if err != nil {
 		return nil, err
 	}
@@ -420,26 +420,62 @@ func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 	return secret, nil
 }
 
-// isCreateJaegerInstance determines if the default Jaeger instance has to be created or not.
-func isCreateJaegerInstance(ctx spi.ComponentContext) (bool, error) {
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		// Check if jaeger instance creation is disabled in the user defined Helm overrides
-		overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()))
+// isCreateDefaultJaegerInstance determines if the default Jaeger instance has to be created or not.
+func isCreateDefaultJaegerInstance(ctx spi.ComponentContext) (bool, error) {
+	// Default Jaeger instance will be created if Verrazzano's OpenSearch can be used as storage
+	if canUseVZOpenSearchStorage(ctx) {
+		jaegerCreateOverride, err := getJaegerCreateOverrideVal(ctx)
 		if err != nil {
 			return false, err
 		}
-		for _, override := range overrides {
-			jaegerCreate, err := common.ExtractValueFromOverrideString(override, jaegerCreateField)
-			if err != nil {
-				return false, err
-			}
-			if jaegerCreate != nil && !jaegerCreate.(bool) {
-				return false, nil
-			}
+		// If the jaeger instance creation is disabled in the VZ CR, do not create a Jaeger instance
+		if jaegerCreateOverride != nil && !jaegerCreateOverride.(bool) {
+			return false, nil
 		}
 		return true, nil
 	}
 	return false, nil
+}
+
+// isJaegerCREnabled determines if Jaeger instance is configured as part of Verrazzano
+func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
+	jaegerCreateOverride, err := getJaegerCreateOverrideVal(ctx)
+	if err != nil {
+		return false, err
+	}
+	// If the create jaeger instance override value is configured in VZ CR, return the same
+	if jaegerCreateOverride != nil {
+		return jaegerCreateOverride.(bool), nil
+	}
+	// Jaeger instance would be created if Verrazzano's OpenSearch can be used as storage
+	return canUseVZOpenSearchStorage(ctx), nil
+}
+
+// canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
+// As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
+func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+		return true
+	}
+	return false
+}
+
+// getJaegerCreateOverrideVal gets the Helm value specified in the VZ CR for jaeger.create
+func getJaegerCreateOverrideVal(ctx spi.ComponentContext) (interface{}, error) {
+	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()))
+	if err != nil {
+		return nil, err
+	}
+	for _, override := range overrides {
+		jaegerCreate, err := common.ExtractValueFromOverrideString(override, jaegerCreateField)
+		if err != nil {
+			return nil, err
+		}
+		if jaegerCreate != nil {
+			return jaegerCreate, nil
+		}
+	}
+	return nil, nil
 }
 
 // ReassociateResources updates the resources to ensure they are managed by this release/component.  The resource policy
