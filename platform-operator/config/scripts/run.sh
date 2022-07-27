@@ -19,10 +19,14 @@ function create-kubeconfig {
   cp /verrazzano/config/kubeconfig-template $VERRAZZANO_KUBECONFIG
   sed -i -e "s|CERTIFICATE|$default_cert|g" -e "s|SERVER_ADDRESS|$master_server|g" $VERRAZZANO_KUBECONFIG
   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+  chmod 600 ${KUBECONFIG}
+  ls -l ${KUBECONFIG}
 }
 
-# Set up a valid Kubeconfig for tools that require them
-create-kubeconfig
+if [ -n "${VERRAZZANO_KUBECONFIG}" ]; then
+  # If VERRAZZANO_KUBECONFIG is set, set up a valid Kubeconfig for tools that require them at the requested location
+  create-kubeconfig
+fi
 
 # Run the operator
 /usr/local/bin/verrazzano-platform-operator $*

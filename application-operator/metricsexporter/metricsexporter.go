@@ -4,21 +4,65 @@
 package metricsexporter
 
 import (
-	"net/http"
-	"time"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-// InitalizeMetricsEndpoint creates and serves a /metrics endpoint at 9100 for Prometheus to scrape metrics from
-func InitalizeMetricsEndpoint() {
-	go wait.Until(func() {
-		http.Handle("/metrics", promhttp.Handler())
-		err := http.ListenAndServe(":9100", nil)
-		if err != nil {
-			zap.S().Errorf("Failed to start metrics server for verrazzano-application-operator: %v", err)
-		}
-	}, time.Second*3, wait.NeverStop)
+var (
+	MetricsExp           = metricsExporter{}
+	DefaultLabelFunction func(index int64) string
+	TestDelegate         = metricsDelegate{}
+)
+
+type metricsExporter struct {
+	internalConfig configuration
+	internalData   data
+}
+type configuration struct {
+	// This Metric array will be automatically populated with all the metrics from each map.
+	// Metrics not included in a map can be added to thisMetric array for registration.
+	allMetrics []prometheus.Collector
+	// This Metric map will be automatically populated with all metrics which were not registered correctly.
+	// Metrics in thisMetric map will be retried periodically.
+	failedMetrics map[prometheus.Collector]int
+	registry      prometheus.Registerer
+}
+type data struct {
+	simpleCounterMetricMap map[metricName]*SimpleCounterMetric
+	durationMetricMap      map[metricName]*DurationMetrics
+}
+type metricsDelegate struct {
+}
+
+// Counter Metrics
+type SimpleCounterMetric struct {
+	metric prometheus.Counter
+}
+
+func (c *SimpleCounterMetric) Inc(log *zap.SugaredLogger, err error) {
+	c.metric.Inc()
+
+}
+func (c *SimpleCounterMetric) Add(num float64) {
+	c.metric.Add(num)
+}
+func (c *SimpleCounterMetric) Get() prometheus.Counter {
+	return c.metric
+}
+
+// Duration Metrics
+type DurationMetrics struct {
+	timer  *prometheus.Timer
+	metric prometheus.Summary
+}
+
+// Creates a new timer, and starts the timer
+func (d *DurationMetrics) TimerStart() {
+	d.timer = prometheus.NewTimer(d.metric)
+}
+
+// Stops the timer and record the Duration since the last call to TimerStart
+func (d *DurationMetrics) TimerStop() {
+	d.timer.ObserveDuration()
+
 }

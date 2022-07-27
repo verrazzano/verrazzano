@@ -6,29 +6,26 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-
-	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-
-	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-
 	"sync"
 	"testing"
 	"time"
 
-	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-
+	"github.com/golang/mock/gomock"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/stretchr/testify/assert"
+	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
+	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -38,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // For unit testing
@@ -102,6 +100,7 @@ func TestGetUninstallJobName(t *testing.T) {
 // THEN ensure all the objects are already created and
 //      ensure a finalizer is added if it doesn't exist
 func TestInstall(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	tests := []struct {
 		namespace string
 		name      string
@@ -187,11 +186,18 @@ func TestInstall(t *testing.T) {
 			// Create and make the request
 			request := newRequest(namespace, name)
 			reconciler := newVerrazzanoReconciler(mock)
+			reconcileCounterMetric, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
+			assert.NoError(t, err)
+			reconcileCounterBefore := testutil.ToFloat64(reconcileCounterMetric.Get())
 			result, err := reconciler.Reconcile(nil, request)
-			asserts.NoError(err)
+			reconcileCounterAfter := testutil.ToFloat64(reconcileCounterMetric.Get())
+			asserts.Equal(reconcileCounterBefore, reconcileCounterAfter-1)
+
+			assert.NoError(t, err)
 
 			// Validate the results
 			mocker.Finish()
+			asserts.NoError(err)
 			asserts.Equal(false, result.Requeue)
 			asserts.Equal(time.Duration(0), result.RequeueAfter)
 		})
@@ -543,13 +549,6 @@ func TestUninstallComplete(t *testing.T) {
 			return nil
 		})
 
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteNamespace(mock)
-
-	// Expect the Rancher Post install
-	expectRancherPostUninstall(mock, 5, 3, 0)
-
 	expectIstioCertRemoval(mock, 1)
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -639,9 +638,6 @@ func TestUninstallStarted(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-
-	// Expect the Rancher Post install
-	expectRancherPostUninstall(mock, 5, 3, 3)
 
 	expectIstioCertRemoval(mock, 1)
 
@@ -743,13 +739,6 @@ func TestUninstallSucceeded(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
 		}).AnyTimes()
-
-	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
-	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
-	expectDeleteNamespace(mock)
-
-	// Expect the Rancher Post install
-	expectRancherPostUninstall(mock, 5, 3, 0)
 
 	expectIstioCertRemoval(mock, 1)
 
@@ -1112,24 +1101,6 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 		}).AnyTimes()
 }
 
-// expectDeleteServiceAccount expects a call to delete the service account used by install
-func expectDeleteServiceAccount(mock *mocks.MockClient, namespace string, name string) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-}
-
-// expectDeleteNamespace expects a call to delete the verrazzano-system ns
-func expectDeleteNamespace(mock *mocks.MockClient) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-}
-
-// expectDeleteClusterRoleBinding expects a call to delete the ClusterRoleBinding for the Verrazzano with the given
-// namespace and name, and returns that it exists
-func expectDeleteClusterRoleBinding(mock *mocks.MockClient, namespace string, name string) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-
-	//	mock.EXPECT().Delete(gomock.Any(), types.NamespacedName{Namespace: "", Name: buildClusterRoleBindingName(namespace, name)}, gomock.Any()).Return(nil)
-}
-
 func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
 	const fakeNS = "fake"
 	for _, ns := range sharedNamespaces {
@@ -1150,17 +1121,6 @@ func expectSharedNamespaceDeletes(mock *mocks.MockClient) {
 		Get(gomock.Any(), types.NamespacedName{Name: fakeNS}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.ParseGroupResource("Namespace"), fakeNS))
 
-}
-
-// expectRancherPostUninstall creates the expects for the Rancher post-install client calls
-func expectRancherPostUninstall(mock *mocks.MockClient, numList, numDelete2, numDelete3 int) {
-	mock.EXPECT().List(gomock.Any(), gomock.Any()).Return(nil).Times(numList)
-	if numDelete2 > 0 {
-		mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(numDelete2)
-	}
-	if numDelete3 > 0 {
-		mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(numDelete3)
-	}
 }
 
 // expectIstioCertRemoval creates the expects for the Istio cert removal
@@ -1330,4 +1290,24 @@ func TestNonIntersectingMergeNestedMap(t *testing.T) {
 	assert.True(t, updated)
 	assert.Len(t, myInstance.MyMap, 3)
 	assert.Equal(t, expectedMap, myInstance.MyMap)
+}
+
+// TestReconcileErrorCounter tests Reconcile function
+// GIVEN a faulty request
+// WHEN the reconcile function is called
+// THEN an error occurs and the error counter metric is incremented
+func TestReconcileErrorCounter(t *testing.T) {
+	metricsexporter.RequiredInitialization()
+	asserts := assert.New(t)
+	clientBuilder := fakes.NewClientBuilder()
+	fakeClient := clientBuilder.Build()
+	errorRequest := newRequest("bad namespace", "test")
+	reconciler := newVerrazzanoReconciler(fakeClient)
+	reconcileErrorCounterMetric, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
+	assert.NoError(t, err)
+	errorCounterBefore := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
+	reconciler.Reconcile(nil, errorRequest)
+	errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
+	assert.NoError(t, err)
+	asserts.Equal(errorCounterBefore, errorCounterAfter-1)
 }

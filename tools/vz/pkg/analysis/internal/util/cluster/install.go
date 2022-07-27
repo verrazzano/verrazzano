@@ -34,7 +34,7 @@ var invalidLoadBalancerParameter = regexp.MustCompile(`.*Service error:InvalidPa
 var vpoErrorMessages []string
 
 const logLevelError = "error"
-const verrazzanoResource = "verrazzano_resources.json"
+const verrazzanoResource = "verrazzano-resources.json"
 const eventsJSON = "events.json"
 const servicesJSON = "services.json"
 const podsJSON = "pods.json"
@@ -253,7 +253,7 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 	fileInfo, e := os.Stat(vzResourcesPath)
 	if e != nil || fileInfo.Size() == 0 {
 		log.Infof("Verrazzano resource file %s is either empty or there is an issue in getting the file info about it", vzResourcesPath)
-		// The cluster dump taken by the latest script is expected to contain the verrazzano_resources.json.
+		// The cluster dump taken by the latest script is expected to contain the verrazzano-resources.json.
 		// In order to support cluster dumps taken in earlier release, return nil rather than an error.
 		return nil, nil
 	}

@@ -4,9 +4,9 @@
 package operator
 
 import (
+	"context"
 	"fmt"
-	"path/filepath"
-
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -14,8 +14,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 )
 
 const (
@@ -27,15 +29,44 @@ const (
 	ComponentJSONName = "jaegerOperator"
 	// ChartDir is the relative directory path for Jaeger Operator chart
 	ChartDir = "jaegertracing/jaeger-operator"
+	// ComponentServiceName is the name of the service.
+	ComponentServiceName = "jaeger-operator-metrics"
+	// ComponentWebhookServiceName is the name of the webhook service.
+	ComponentWebhookServiceName = "jaeger-operator-webhook-service"
+	// ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
+	ComponentMutatingWebhookConfigName = "jaeger-operator-mutating-webhook-configuration"
+	// ComponentValidatingWebhookConfigName is the name of the mutating webhook config.
+	ComponentValidatingWebhookConfigName = "jaeger-operator-validating-webhook-configuration"
+	// ComponentCertificateName is the name of the Certificate.
+	ComponentCertificateName = "jaeger-operator-serving-cert"
+	// ComponentSecretName  is the name of the secret.
+	ComponentSecretName = "jaeger-operator-service-cert"
+	// JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
+	JaegerCollectorDeploymentName = "jaeger-operator-jaeger-collector"
+	// JaegerQueryDeploymentName is the name of the Jaeger instance query deployment.
+	JaegerQueryDeploymentName = "jaeger-operator-jaeger-query"
+	// JaegerInstanceName is the name of the jaeger instance
+	JaegerInstanceName = "jaeger-operator-jaeger"
 )
 
 type jaegerOperatorComponent struct {
 	helm.HelmComponent
 }
 
-var certificates = []types.NamespacedName{
-	{Namespace: constants.VerrazzanoSystemNamespace, Name: jaegerCertificateName},
-}
+var (
+	certificates = []types.NamespacedName{
+		{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      jaegerCertificateName,
+		},
+	}
+	jaegerIngressNames = []types.NamespacedName{
+		{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.JaegerIngress,
+		},
+	}
+)
 
 func NewComponent() spi.Component {
 	return jaegerOperatorComponent{
@@ -51,15 +82,8 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    "image.imagePullSecrets[0].name",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
 			Dependencies:              []string{certmanager.ComponentName},
-			Certificates:              certificates,
-			IngressNames: []types.NamespacedName{
-				{
-					Namespace: constants.VerrazzanoSystemNamespace,
-					Name:      constants.JaegerIngress,
-				},
-			},
-			AppendOverridesFunc:     AppendOverrides,
-			GetInstallOverridesFunc: GetOverrides,
+			AppendOverridesFunc:       AppendOverrides,
+			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
 }
@@ -103,6 +127,9 @@ func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := c.createOrUpdateJaegerResources(ctx); err != nil {
 		return err
 	}
+	// these need to be set for helm component post install processing
+	c.IngressNames = c.GetIngressNames(ctx)
+	c.Certificates = c.GetCertificateNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -127,9 +154,76 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 	return c.validateJaegerOperator(new)
 }
 
+// PreUpgrade Jaeger component pre-upgrade processing
+func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("Jaeger pre-upgrade")
+	// Create the verrazzano-monitoring namespace if not already created
+	if err := ensureVerrazzanoMonitoringNamespace(ctx); err != nil {
+		return err
+	}
+	installed, err := helmcli.IsReleaseInstalled(ComponentName, ComponentNamespace)
+	if err != nil {
+		ctx.Log().ErrorfNewErr("Failed searching for Jaeger release: %v", err)
+	}
+	if !installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
+		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! Either disable the Verrazzano's default Jaeger instance creation by overriding jaeger.create Helm value for Jaeger Operator component to false or delete and recreate the existing Jaeger deployment in a different namespace: %v", ComponentNamespace, JaegerInstanceName, err)
+	}
+	err = removeOldJaegerResources(ctx)
+	if err != nil {
+		return err
+	}
+	createInstance, err := isCreateDefaultJaegerInstance(ctx)
+	if err != nil {
+		return err
+	}
+	if createInstance {
+		// Create Jaeger secret with the credentials present in the verrazzano-es-internal secret
+		createJaegerSecret(ctx)
+	}
+	return nil
+}
+
+// Upgrade jaegeroperator component for upgrade processing.
+func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
+
+	return c.HelmComponent.Install(ctx)
+}
+
+// IsInstalled checks if jaeger is installed
+func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	deployment := &appsv1.Deployment{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment)
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, ComponentName, err)
+		return false, err
+	}
+	return true, nil
+}
+
+// GetIngressNames returns the Jaeger ingress name if Jaeger instance is enabled, otherwise returns
+// an empty slice
+func (c jaegerOperatorComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+	if jaegerInstanceEnabled, _ := isJaegerCREnabled(ctx); jaegerInstanceEnabled {
+		return jaegerIngressNames
+	}
+	return []types.NamespacedName{}
+}
+
+// GetCertificateNames returns the Jaeger certificate names if Jaeger instance is enabled, otherwise returns
+// an empty slice
+func (c jaegerOperatorComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+	if jaegerInstanceEnabled, _ := isJaegerCREnabled(ctx); jaegerInstanceEnabled {
+		return certificates
+	}
+	return []types.NamespacedName{}
+}
+
 // createOrUpdateJaegerResources create or update related Jaeger resources
 func (c jaegerOperatorComponent) createOrUpdateJaegerResources(ctx spi.ComponentContext) error {
-	jaegerCREnabled, err := isCreateJaegerInstance(ctx)
+	jaegerCREnabled, err := isJaegerCREnabled(ctx)
 	if err != nil {
 		return err
 	}
