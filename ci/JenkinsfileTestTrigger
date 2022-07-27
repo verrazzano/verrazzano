@@ -564,6 +564,6 @@ def getLatestReleaseVersion() {
         gitTags << tag
     }
     echo "gitTags = ${gitTags}"
-    def latestReleaseVersion = gitTags.get(gitTags.size()-1)
+    def latestReleaseVersion = gitTags.get(0)
     return latestReleaseVersion
 }
