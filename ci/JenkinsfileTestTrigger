@@ -561,7 +561,7 @@ def getLatestReleaseVersion() {
     final String fileContent = readFile(file: "${workspace}/tags.txt")
     List gitTags = []
     fileContent.eachLine { tag ->
-        gitTags << tag
+        gitTags.add(tag)
     }
     echo "gitTags = ${gitTags}"
     return gitTags.pop()
