@@ -42,7 +42,7 @@ pipeline {
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         string (name: 'KIND_WORKER_NODES',
-                defaultValue: '5',
+                defaultValue: '7',
                 description: 'Number of worker nodes,',
                 trim: true)
         string (name: 'INCLUDED_TESTS',
@@ -52,6 +52,10 @@ pipeline {
         string (name: 'EXCLUDED_TESTS',
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: '',
+                description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
         booleanParam (description: 'Whether to enable debug logging of the istio envoy in the VZ API pod', name: 'ENABLE_API_ENVOY_LOGGING', defaultValue: true)
@@ -279,6 +283,14 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
+                        stage ('console') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                            }
+                            steps {
+                                sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                            }
+                        }
                     }
                     post {
                         always {
@@ -301,10 +313,17 @@ pipeline {
                                 runGinkgoRandomize('ha/rollingupdate')
                             }
                         }
-
                         stage('HA Tests') {
                             steps {
                                 runGinkgoRandomize('ha/monitor')
+                            }
+                        }
+                        stage ('console') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                            }
+                            steps {
+                                sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
                             }
                         }
                     }

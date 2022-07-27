@@ -357,13 +357,13 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 	localClusterName := types.NamespacedName{Name: ClusterLocal}
 	err := c.Get(context.Background(), localClusterName, &localCluster)
 	if err != nil {
-		log.Errorf("Failed getting local Cluster: %s", err.Error())
+		log.Oncef("Failed getting local Cluster: %s", err.Error())
 		return
 	}
 
 	err = c.Delete(context.Background(), &localCluster)
 	if err != nil {
-		log.Errorf("Failed deleting local cluster: %s", err.Error())
+		log.Oncef("Failed deleting local cluster: %s", err.Error())
 		return
 	}
 

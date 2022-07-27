@@ -135,6 +135,7 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'INSTALL_PROFILE', value: "prod"),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -151,7 +152,7 @@ pipeline {
                             build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'INSTALL_LOOP_COUNT', value: "1"),
+                                    string(name: 'INSTALL_LOOP_COUNT', value: "5"),
                                     string(name: 'INSTALL_PROFILE', value: "prod"),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -164,13 +165,13 @@ pipeline {
                         }
                     }
                 }
-                /*stage('Install Loop - Dev') {
+                stage('Install Loop - Dev') {
                     steps {
                         script {
                             build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'INSTALL_LOOP_COUNT', value: "3"),
+                                    string(name: 'INSTALL_LOOP_COUNT', value: "5"),
                                     string(name: 'INSTALL_PROFILE', value: "dev"),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -189,7 +190,7 @@ pipeline {
                             build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'INSTALL_LOOP_COUNT', value: "3"),
+                                    string(name: 'INSTALL_LOOP_COUNT', value: "5"),
                                     string(name: 'INSTALL_PROFILE', value: "managed-cluster"),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -201,7 +202,7 @@ pipeline {
                                 ], wait: true
                         }
                     }
-                }*/
+                }
             }
         }
     }
@@ -395,7 +396,7 @@ def metricBuildDuration() {
 
 def getCronSchedule() {
     if (env.BRANCH_NAME.equals("master")) {
-        return "H */2 * * *"
+        return "H */12 * * *"
     } else if (env.BRANCH_NAME.startsWith("release-1")) {
         return "@daily"
     }
