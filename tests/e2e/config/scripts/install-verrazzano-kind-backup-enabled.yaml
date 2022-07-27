@@ -6,8 +6,17 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
+  profile: prod
   components:
-    rancher:
+    prometheusOperator:
+      enabled: true
+    prometheusAdapter:
+      enabled: true
+    kubeStateMetrics:
+      enabled: true
+    prometheusPushgateway:
+      enabled: true
+    prometheusNodeExporter:
       enabled: true
     rancherBackup:
       enabled: true

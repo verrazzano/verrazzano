@@ -356,6 +356,7 @@ var (
 	BackupRegion          string
 	BackupStorageName     string
 	BackupID              string
+	RancherURL            string
 	RancherBackupFileName string
 	RancherToken          string
 )

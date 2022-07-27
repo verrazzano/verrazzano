@@ -161,12 +161,13 @@ func GetRancherLoginToken() string {
 		t.Logs.Errorf("Unable to fetch rancher url due to %v", zap.Error(err))
 		return ""
 	}
+	backup.RancherURL = rancherURL
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	token := pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
 	return token
 }
 
-func CreateRancherUserFromShell() error {
+func CreateRancherUserFromShell(rancherURL string) error {
 	var b bytes.Buffer
 	template, _ := template.New("rancher-user").Parse(backup.RancherUserTemplate)
 	data := backup.RancherUser{
@@ -176,17 +177,12 @@ func CreateRancherUserFromShell() error {
 	}
 	template.Execute(&b, data)
 
-	url, err := backup.GetRancherURL(t.Logs)
-	if err != nil {
-		return err
-	}
-
 	os.WriteFile("test.json", b.Bytes(), 0644)
 	defer os.Remove("test.json")
 
 	var cmdArgs []string
 	apiPath := "v3/users"
-	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d @test.json", strconv.Quote(fmt.Sprintf("%s/%s", url, apiPath)), strconv.Quote(backup.RancherToken))
+	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d @test.json", strconv.Quote(fmt.Sprintf("%s/%s", rancherURL, apiPath)), strconv.Quote(backup.RancherToken))
 	cmdArgs = append(cmdArgs, "/bin/sh")
 	cmdArgs = append(cmdArgs, "-c")
 	cmdArgs = append(cmdArgs, curlCmd)
@@ -197,22 +193,17 @@ func CreateRancherUserFromShell() error {
 
 	curlResponse := backup.Runner(&kcmd, t.Logs)
 	if curlResponse.CommandError != nil {
-		return err
+		return curlResponse.CommandError
 	}
 
 	return nil
 
 }
 
-func DeleteRancherUserFromShell() error {
-	url, err := backup.GetRancherURL(t.Logs)
-	if err != nil {
-		return err
-	}
-
+func DeleteRancherUserFromShell(rancherURL string) error {
 	var cmdArgs []string
 	apiPath := "v3/users"
-	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X DELETE", strconv.Quote(fmt.Sprintf("%s/%s", url, apiPath)), strconv.Quote(backup.RancherToken))
+	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X DELETE", strconv.Quote(fmt.Sprintf("%s/%s", rancherURL, apiPath)), strconv.Quote(backup.RancherToken))
 	cmdArgs = append(cmdArgs, "/bin/sh")
 	cmdArgs = append(cmdArgs, "-c")
 	cmdArgs = append(cmdArgs, curlCmd)
@@ -223,22 +214,18 @@ func DeleteRancherUserFromShell() error {
 
 	curlResponse := backup.Runner(&kcmd, t.Logs)
 	if curlResponse.CommandError != nil {
-		return err
+		return curlResponse.CommandError
 	}
 
 	return nil
 
 }
 
-func GetRancherUser() string {
-	url, err := backup.GetRancherURL(t.Logs)
-	if err != nil {
-		return ""
-	}
+func GetRancherUser(rancherURL string) string {
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 
 	apiPath := fmt.Sprintf("v3/users?username=%s", rancherUserName)
-	req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", url, apiPath), nil)
+	req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, apiPath), nil)
 	if err != nil {
 		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", apiPath, err))
 		return ""
@@ -305,7 +292,7 @@ func backupPrerequisites() {
 
 	t.Logs.Info("Creating a user with the retrieved login token")
 	Eventually(func() error {
-		return CreateRancherUserFromShell()
+		return CreateRancherUserFromShell(backup.RancherURL)
 	}, waitTimeout, pollingInterval).Should(BeNil())
 }
 
@@ -314,7 +301,7 @@ func cleanUpRancher() {
 
 	t.Logs.Infof("Cleanup user '%s' as part of cleanup", rancherUserName)
 	Eventually(func() error {
-		return DeleteRancherUserFromShell()
+		return DeleteRancherUserFromShell(backup.RancherURL)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup restore object")
@@ -379,7 +366,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Get user after rancher restore is complete", func() {
 		WhenRancherBackupInstalledIt("Get user after rancher restore is complete", func() {
 			Eventually(func() string {
-				return GetRancherUser()
+				return GetRancherUser(backup.RancherURL)
 			}, waitTimeout, pollingInterval).Should(Equal(rancherUserName), "Check if rancher user has been restored successfully")
 		})
 	})
