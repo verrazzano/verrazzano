@@ -521,9 +521,7 @@ def testApplication(testSuitePath, dumpDir) {
     environment {
         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/${dumpDir}"
     }
-    step {
-        runGinkgo(testSuitePath)
-    }
+    runGinkgo(testSuitePath)
 }
 
 
