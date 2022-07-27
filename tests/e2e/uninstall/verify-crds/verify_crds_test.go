@@ -8,10 +8,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"strings"
 )
 
-var verrazzano_io_crds = map[string]bool{
+var verrazzanoiocrds = map[string]bool{
 	"ingresstraits.oam.verrazzano.io":                              false,
 	"loggingtraits.oam.verrazzano.io":                              false,
 	"metricsbindings.app.verrazzano.io":                            false,
@@ -30,7 +31,7 @@ var verrazzano_io_crds = map[string]bool{
 	"verrazzanoweblogicworkloads.oam.verrazzano.io":                false,
 }
 
-var istio_io_crds = map[string]bool{
+var istioiocrds = map[string]bool{
 	"authorizationpolicies.security.istio.io":  false,
 	"destinationrules.networking.istio.io":     false,
 	"envoyfilters.networking.istio.io":         false,
@@ -57,53 +58,23 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 	}
 
 	t.It("Check for expected verrazzano.io CRDs", func() {
-		unexpectedCrd := false
-		for _, crd := range crds.Items {
-			_, ok := verrazzano_io_crds[crd.Name]
-			if ok {
-				verrazzano_io_crds[crd.Name] = true
-			} else {
-				if strings.HasSuffix(crd.Name, ".verrazzano.io") {
-					unexpectedCrd = true
-					pkg.Log(pkg.Error, fmt.Sprintf("Unexpected verrazzano.io CRD was found: %s", crd.Name))
-				}
-			}
-		}
-		expectedCrdNotFound := checkExpectedCrds(verrazzano_io_crds)
-		if unexpectedCrd || expectedCrdNotFound {
-			Fail("Failed to verify verrazzano.io CRDs")
-		}
+		checkCrds(crds, verrazzanoiocrds, "verrazzano.io")
 	})
 
 	t.It("Check for expected istio.io CRDs", func() {
-		unexpectedCrd := false
-		for _, crd := range crds.Items {
-			_, ok := istio_io_crds[crd.Name]
-			if ok {
-				istio_io_crds[crd.Name] = true
-			} else {
-				if strings.HasSuffix(crd.Name, ".istio.io") {
-					unexpectedCrd = true
-					pkg.Log(pkg.Error, fmt.Sprintf("Unexpected istio.io CRD was found: %s", crd.Name))
-				}
-			}
-		}
-		expectedCrdNotFound := checkExpectedCrds(istio_io_crds)
-		if unexpectedCrd || expectedCrdNotFound {
-			Fail("Failed to verify istio.io CRDs")
-		}
+		checkCrds(crds, istioiocrds, "istio.io")
 	})
 
 	t.It("Check for unexpected CRDs", func() {
 		var crdsFound = make(map[string]bool)
 		for _, crd := range crds.Items {
-			if strings.HasSuffix(crd.Name, ".projectcalico.org") ||
-				strings.HasSuffix(crd.Name, ".verrazzano.io") ||
-				strings.HasSuffix(crd.Name, ".istio.io") ||
-				strings.HasSuffix(crd.Name, ".monitoring.coreos.com") ||
-				strings.HasSuffix(crd.Name, ".oam.dev") ||
-				strings.HasSuffix(crd.Name, ".cert-manager.io") ||
-				strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") ||
+			if strings.HasSuffix(crd.Name, "projectcalico.org") ||
+				strings.HasSuffix(crd.Name, "verrazzano.io") ||
+				strings.HasSuffix(crd.Name, "istio.io") ||
+				strings.HasSuffix(crd.Name, "monitoring.coreos.com") ||
+				strings.HasSuffix(crd.Name, "oam.dev") ||
+				strings.HasSuffix(crd.Name, "cert-manager.io") ||
+				strings.HasSuffix(crd.Name, "cluster.x-k8s.io") ||
 				crd.Name == "monitoringdashboards.monitoring.kiali.io" ||
 				crd.Name == "domains.weblogic.oracle" ||
 				crd.Name == "coherence.coherence.oracle.com" {
@@ -126,13 +97,29 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 	})
 })
 
-func checkExpectedCrds(crds map[string]bool) bool {
+func checkCrds(crds *apiextv1.CustomResourceDefinitionList, expectdCrds map[string]bool, suffix string) {
+	unexpectedCrd := false
+	for _, crd := range crds.Items {
+		_, ok := expectdCrds[crd.Name]
+		if ok {
+			expectdCrds[crd.Name] = true
+		} else {
+			if strings.HasSuffix(crd.Name, suffix) {
+				unexpectedCrd = true
+				pkg.Log(pkg.Error, fmt.Sprintf("Unexpected CRD was found: %s", crd.Name))
+			}
+		}
+	}
+
 	crdNotFound := false
-	for key, value := range crds {
+	for key, value := range expectdCrds {
 		if !value {
 			crdNotFound = true
 			pkg.Log(pkg.Error, fmt.Sprintf("Expected CRD was not found: %s", key))
 		}
 	}
-	return crdNotFound
+
+	if unexpectedCrd || crdNotFound {
+		Fail(fmt.Sprintf("Failed to verify %s CRDs", suffix))
+	}
 }
