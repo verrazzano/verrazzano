@@ -127,7 +127,6 @@ pipeline {
                     sh """
                         cd ${workspace}
                         git tag | awk '/v1[.]/' >  tags.txt
-                        cat tags.txt
                     """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']

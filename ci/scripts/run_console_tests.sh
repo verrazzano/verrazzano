@@ -42,5 +42,4 @@ make run-ui-tests || exit 1
 if [ "true" == "${RUN_APP_TESTS}" ]; then
   echo "Running Application Page UI tests"
   make run-app-page-test
-  //check the exist status, if it fails do one retry.
 fi
