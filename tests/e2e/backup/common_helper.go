@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
 	"io"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -442,22 +443,14 @@ func GetEsURL(log *zap.SugaredLogger) (string, error) {
 }
 
 func GetRancherURL(log *zap.SugaredLogger) (string, error) {
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "vz")
-	cmdArgs = append(cmdArgs, "-o")
-	cmdArgs = append(cmdArgs, "jsonpath={.items[].status.instance.rancherUrl}")
-
-	var kcmd BashCommand
-	kcmd.Timeout = 1 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-
-	bashResponse := Runner(&kcmd, log)
-	if bashResponse.CommandError != nil {
-		return "", bashResponse.CommandError
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		log.Errorf("Failed to get kubeconfigPath with error: %v", err)
+		return "", err
 	}
-	return bashResponse.StandardOut.String(), nil
+	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
+	rancherURL := pkg.EventuallyGetRancherURL(log, api)
+	return rancherURL, nil
 }
 
 func GetVZPasswd(log *zap.SugaredLogger) (string, error) {

@@ -156,13 +156,11 @@ func CreateRancherRestoreObject() error {
 }
 
 func GetRancherLoginToken() string {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	rancherURL, err := backup.GetRancherURL(t.Logs)
 	if err != nil {
-		t.Logs.Errorf("Failed to get kubeconfigPath with error: %v", err)
+		t.Logs.Errorf("Unable to fetch rancher url due to %v", zap.Error(err))
 		return ""
 	}
-	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-	rancherURL := pkg.EventuallyGetRancherURL(t.Logs, api)
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	token := pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
 	return token
