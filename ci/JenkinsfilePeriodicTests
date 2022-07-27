@@ -346,7 +346,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Upgrade tests') {
+                stage('Upgrade Path Minor Release Tests') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {

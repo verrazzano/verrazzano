@@ -123,6 +123,12 @@ pipeline {
                 }
 
                 script {
+                    echo "Generate git tags and save it to tags.txt file in the workspace"
+                    sh """
+                        cd ${workspace}
+                        git tag | awk '/v1[.]/' >  tags.txt
+                        cat tags.txt
+                    """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -148,7 +154,7 @@ pipeline {
                 }
             }
             parallel {
-                stage('Multi Cluster Tests') {
+                /*stage('Multi Cluster Tests') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -304,16 +310,17 @@ pipeline {
                             }
                         }
                     }
-                }
-                //beginning of stage
-                stage('Upgrade tests') {
+                }*/
+                stage('Upgrade Path Tests') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-push-triggered-upgrade-minor-release-tests/${CLEAN_BRANCH_NAME}",
+                                echo "Printing latest release verion: ${getLatestReleaseVersion()}"
+                                build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'N_JOBS_FOR_EACH_BATCH', value: N_JOBS_FOR_EACH_BATCH),
+                                        string(name: 'VERSION_FOR_INSTALL', value: job[0]),
                                         string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
                                         string(name: 'EXCLUDE_RELEASES', value: params.EXCLUDE_RELEASES),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -328,7 +335,6 @@ pipeline {
                         }
                     }
                 }
-               //end of stage
             }
         }
     }
@@ -540,4 +546,16 @@ def metricBuildDuration() {
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
+}
+
+@NonCPS
+def getLatestReleaseVersion() {
+    final String fileContent = readFile(file: "${workspace}/tags.txt")
+    List gitTags = []
+    fileContent.eachLine { tag ->
+        releases << tag
+    }
+    echo "gitTags = ${gitTags}"
+    def latestReleaseVersion = gitTags.get(gitTags.size()-1) - "v"
+    return latestReleaseVersion
 }
