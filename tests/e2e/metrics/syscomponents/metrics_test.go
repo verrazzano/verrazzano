@@ -173,14 +173,6 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			}
 		})
 
-		t.It("Verify VMO error metrics can be queried from Prometheus", func() {
-			if isMinVersion140 {
-				Eventually(func() bool {
-					return pkg.MetricsExistInCluster("vmo_deployment_update_error_total", map[string]string{}, adminKubeConfig)
-				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-			}
-		})
-
 		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
