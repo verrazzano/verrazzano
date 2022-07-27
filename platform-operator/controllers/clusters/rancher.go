@@ -302,7 +302,7 @@ func getCACertFromManagedCluster(rc *rancherConfig, clusterID string, log vzlog.
 
 // getCACertFromManagedClusterSecret attempts to get the CA cert from a secret on the managed cluster using the Rancher API proxy
 func getCACertFromManagedClusterSecret(rc *rancherConfig, clusterID, namespace, secretName, secretKey string, log vzlog.VerrazzanoLogger) (string, error) {
-	const k8sAPISecretPattern = "%s/api/v1/namespaces/%s/secrets/%s"
+	const k8sAPISecretPattern = "%s/api/v1/namespaces/%s/secrets/%s" //nolint:gosec //#gosec G101
 
 	// use the Rancher API proxy on the managed cluster to fetch the secret
 	baseReqURL := rc.baseURL + k8sClustersPath + clusterID
