@@ -609,6 +609,22 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 						},
 					}},
 				},
+				{
+					// allow Jaeger to access Prometheus
+					From: []*securityv1beta1.Rule_From{{
+						Source: &securityv1beta1.Source{
+							Principals: []string{
+								fmt.Sprintf("cluster.local/ns/%s/sa/jaeger-operator-jaeger", constants.VerrazzanoMonitoringNamespace),
+							},
+							Namespaces: []string{constants.VerrazzanoMonitoringNamespace},
+						},
+					}},
+					To: []*securityv1beta1.Rule_To{{
+						Operation: &securityv1beta1.Operation{
+							Ports: []string{"9090"},
+						},
+					}},
+				},
 			},
 		}
 		return nil
@@ -664,6 +680,35 @@ func newNetworkPolicySpec() netv1.NetworkPolicySpec {
 										"verrazzano-authproxy",
 										"system-grafana",
 										"kiali",
+									},
+								},
+							},
+						},
+					},
+				},
+				Ports: []netv1.NetworkPolicyPort{
+					{
+						Protocol: &tcpProtocol,
+						Port:     &port,
+					},
+				},
+			},
+			{
+				// allow ingress to port 9090 from Jaeger
+				From: []netv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								vzconst.LabelVerrazzanoNamespace: constants.VerrazzanoMonitoringNamespace,
+							},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "app",
+									Operator: metav1.LabelSelectorOpIn,
+									Values: []string{
+										"jaeger",
 									},
 								},
 							},

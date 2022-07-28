@@ -24,3 +24,7 @@ jaeger:
       options:
         es:
           index-prefix: verrazzano
+    query:
+      options:
+        prometheus:
+          server-url: http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090
