@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"github.com/verrazzano/verrazzano/tests/e2e/backup"
+	"github.com/verrazzano/verrazzano/tests/e2e/backup/common"
 	"go.uber.org/zap"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
@@ -41,7 +41,7 @@ const (
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	backup.GatherInfo()
+	common.GatherInfo()
 	backupPrerequisites()
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
@@ -52,7 +52,7 @@ var _ = t.AfterSuite(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var t = framework.NewTestFramework("rancher-backup")
+var t = framework.NewTestFramework("rancher-backup-operator")
 
 // CreateSecretFromMap creates opaque rancher secret required for backup/restore
 func CreateSecretFromMap(namespace string, name string) error {
@@ -63,8 +63,8 @@ func CreateSecretFromMap(namespace string, name string) error {
 	}
 
 	secretData := make(map[string]string)
-	secretData["accessKey"] = backup.OciOsAccessKey
-	secretData["secretKey"] = backup.OciOsAccessSecretKey
+	secretData["accessKey"] = common.OciOsAccessKey
+	secretData["secretKey"] = common.OciOsAccessSecretKey
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -86,19 +86,19 @@ func CreateSecretFromMap(namespace string, name string) error {
 // CreateRancherBackupObject creates rancher backup object to start the backup process
 func CreateRancherBackupObject() error {
 	var b bytes.Buffer
-	template, _ := template.New("rancher-backup").Parse(backup.RancherBackup)
-	data := backup.RancherBackupData{
-		RancherBackupName: backup.BackupRancherName,
-		RancherSecretData: backup.RancherObjectStoreData{
-			RancherSecretName:                 backup.RancherSecretName,
-			RancherSecretNamespaceName:        backup.VeleroNameSpace,
-			RancherObjectStoreBucketName:      backup.OciBucketName,
-			RancherBackupRegion:               backup.BackupRegion,
-			RancherObjectStorageNamespaceName: backup.OciNamespaceName,
+	template, _ := template.New("rancher-backup").Parse(common.RancherBackup)
+	data := common.RancherBackupData{
+		RancherBackupName: common.BackupRancherName,
+		RancherSecretData: common.RancherObjectStoreData{
+			RancherSecretName:                 common.RancherSecretName,
+			RancherSecretNamespaceName:        common.VeleroNameSpace,
+			RancherObjectStoreBucketName:      common.OciBucketName,
+			RancherBackupRegion:               common.BackupRegion,
+			RancherObjectStorageNamespaceName: common.OciNamespaceName,
 		},
 	}
 	template.Execute(&b, data)
-	err := backup.DynamicSSA(context.TODO(), b.String(), t.Logs)
+	err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
 		return err
@@ -109,46 +109,46 @@ func CreateRancherBackupObject() error {
 // CreateRancherRestoreObject creates rancher restore object to start the restore process
 func CreateRancherRestoreObject() error {
 
-	rancherFileName, err := backup.GetRancherBackupFileName(backup.BackupRancherName, t.Logs)
+	rancherFileName, err := common.GetRancherBackupFileName(common.BackupRancherName, t.Logs)
 	if err != nil {
 		return err
 	}
 
-	backup.RancherBackupFileName = rancherFileName
+	common.RancherBackupFileName = rancherFileName
 
-	t.Logs.Infof("Rancher backup filename = %s", backup.RancherBackupFileName)
+	t.Logs.Infof("Rancher backup filename = %s", common.RancherBackupFileName)
 
 	var b bytes.Buffer
-	template, _ := template.New("rancher-backup").Parse(backup.RancherRestore)
-	data := backup.RancherRestoreData{
-		RancherRestoreName: backup.RestoreRancherName,
-		BackupFileName:     backup.RancherBackupFileName,
-		RancherSecretData: backup.RancherObjectStoreData{
-			RancherSecretName:                 backup.RancherSecretName,
-			RancherSecretNamespaceName:        backup.VeleroNameSpace,
-			RancherObjectStoreBucketName:      backup.OciBucketName,
-			RancherBackupRegion:               backup.BackupRegion,
-			RancherObjectStorageNamespaceName: backup.OciNamespaceName,
+	template, _ := template.New("rancher-backup").Parse(common.RancherRestore)
+	data := common.RancherRestoreData{
+		RancherRestoreName: common.RestoreRancherName,
+		BackupFileName:     common.RancherBackupFileName,
+		RancherSecretData: common.RancherObjectStoreData{
+			RancherSecretName:                 common.RancherSecretName,
+			RancherSecretNamespaceName:        common.VeleroNameSpace,
+			RancherObjectStoreBucketName:      common.OciBucketName,
+			RancherBackupRegion:               common.BackupRegion,
+			RancherObjectStorageNamespaceName: common.OciNamespaceName,
 		},
 	}
 	template.Execute(&b, data)
-	err = backup.DynamicSSA(context.TODO(), b.String(), t.Logs)
+	err = common.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
 		return err
 	}
-	t.Logs.Infof("Rancher backup filename = %s", backup.RancherBackupFileName)
+	t.Logs.Infof("Rancher backup filename = %s", common.RancherBackupFileName)
 	return nil
 }
 
 // GetRancherLoginToken fetches the login token for rancher console
 func GetRancherLoginToken() string {
-	rancherURL, err := backup.GetRancherURL(t.Logs)
+	rancherURL, err := common.GetRancherURL(t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Unable to fetch rancher url due to %v", zap.Error(err))
 		return ""
 	}
-	backup.RancherURL = rancherURL
+	common.RancherURL = rancherURL
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	token := pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
 	return token
@@ -157,8 +157,8 @@ func GetRancherLoginToken() string {
 // CreateRancherUserFromShell creates a new rancher user
 func CreateRancherUserFromShell(rancherURL string) error {
 	var b bytes.Buffer
-	template, _ := template.New("rancher-user").Parse(backup.RancherUserTemplate)
-	data := backup.RancherUser{
+	template, _ := template.New("rancher-user").Parse(common.RancherUserTemplate)
+	data := common.RancherUser{
 		FullName: strconv.Quote(rancherFullName),
 		Username: strconv.Quote(rancherUserName),
 		Password: strconv.Quote(rancherPassword),
@@ -170,16 +170,16 @@ func CreateRancherUserFromShell(rancherURL string) error {
 
 	var cmdArgs []string
 	apiPath := "v3/users"
-	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d @test.json", strconv.Quote(fmt.Sprintf("%s/%s", rancherURL, apiPath)), strconv.Quote(backup.RancherToken))
+	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d @test.json", strconv.Quote(fmt.Sprintf("%s/%s", rancherURL, apiPath)), strconv.Quote(common.RancherToken))
 	cmdArgs = append(cmdArgs, "/bin/sh")
 	cmdArgs = append(cmdArgs, "-c")
 	cmdArgs = append(cmdArgs, curlCmd)
 
-	var kcmd backup.BashCommand
+	var kcmd common.BashCommand
 	kcmd.Timeout = 2 * time.Minute
 	kcmd.CommandArgs = cmdArgs
 
-	curlResponse := backup.Runner(&kcmd, t.Logs)
+	curlResponse := common.Runner(&kcmd, t.Logs)
 	if curlResponse.CommandError != nil {
 		return curlResponse.CommandError
 	}
@@ -192,16 +192,16 @@ func CreateRancherUserFromShell(rancherURL string) error {
 func DeleteRancherUserFromShell(rancherURL string) error {
 	var cmdArgs []string
 	apiPath := "v3/users"
-	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X DELETE", strconv.Quote(fmt.Sprintf("%s/%s", rancherURL, apiPath)), strconv.Quote(backup.RancherToken))
+	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X DELETE", strconv.Quote(fmt.Sprintf("%s/%s", rancherURL, apiPath)), strconv.Quote(common.RancherToken))
 	cmdArgs = append(cmdArgs, "/bin/sh")
 	cmdArgs = append(cmdArgs, "-c")
 	cmdArgs = append(cmdArgs, curlCmd)
 
-	var kcmd backup.BashCommand
+	var kcmd common.BashCommand
 	kcmd.Timeout = 2 * time.Minute
 	kcmd.CommandArgs = cmdArgs
 
-	curlResponse := backup.Runner(&kcmd, t.Logs)
+	curlResponse := common.Runner(&kcmd, t.Logs)
 	if curlResponse.CommandError != nil {
 		return curlResponse.CommandError
 	}
@@ -221,7 +221,7 @@ func GetRancherUser(rancherURL string) string {
 		return ""
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", backup.RancherToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", common.RancherToken))
 	req.Header.Set("Accept", "application/json")
 	response, err := httpClient.Do(req)
 	if err != nil {
@@ -275,15 +275,15 @@ func backupPrerequisites() {
 
 	t.Logs.Info("Create backup secret for rancher backup objects")
 	Eventually(func() error {
-		return CreateSecretFromMap(backup.VeleroNameSpace, backup.RancherSecretName)
+		return CreateSecretFromMap(common.VeleroNameSpace, common.RancherSecretName)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Fetching rancher login Token")
-	backup.RancherToken = GetRancherLoginToken()
+	common.RancherToken = GetRancherLoginToken()
 
 	t.Logs.Info("Creating a user with the retrieved login token")
 	Eventually(func() error {
-		return CreateRancherUserFromShell(backup.RancherURL)
+		return CreateRancherUserFromShell(common.RancherURL)
 	}, waitTimeout, pollingInterval).Should(BeNil())
 }
 
@@ -293,22 +293,22 @@ func cleanUpRancher() {
 
 	t.Logs.Infof("Cleanup user '%s' as part of cleanup", rancherUserName)
 	Eventually(func() error {
-		return DeleteRancherUserFromShell(backup.RancherURL)
+		return DeleteRancherUserFromShell(common.RancherURL)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup restore object")
 	Eventually(func() error {
-		return backup.RancherObjectDelete("restore", backup.RestoreRancherName, t.Logs)
+		return common.RancherObjectDelete("restore", common.RestoreRancherName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup backup object")
 	Eventually(func() error {
-		return backup.RancherObjectDelete("backup", backup.BackupRancherName, t.Logs)
+		return common.RancherObjectDelete("backup", common.BackupRancherName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup rancher secrets")
 	Eventually(func() error {
-		return backup.DeleteSecret(backup.VeleroNameSpace, backup.RancherSecretName, t.Logs)
+		return common.DeleteSecret(common.VeleroNameSpace, common.RancherSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 }
@@ -326,7 +326,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Check backup progress after rancher backup object was created", func() {
 		WhenRancherBackupInstalledIt("Check backup progress after rancher backup object was created", func() {
 			Eventually(func() error {
-				return backup.CheckOperatorOperationProgress("rancher", "backup", backup.VeleroNameSpace, backup.BackupRancherName, t.Logs)
+				return common.CheckOperatorOperationProgress("rancher", "backup", common.VeleroNameSpace, common.BackupRancherName, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher backup operation completed successfully")
 		})
 	})
@@ -342,7 +342,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Check rancher restore progress", func() {
 		WhenRancherBackupInstalledIt("Check rancher restore progress", func() {
 			Eventually(func() error {
-				return backup.CheckOperatorOperationProgress("rancher", "restore", backup.VeleroNameSpace, backup.RestoreRancherName, t.Logs)
+				return common.CheckOperatorOperationProgress("rancher", "restore", common.VeleroNameSpace, common.RestoreRancherName, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher restore operation completed successfully")
 		})
 	})
@@ -350,7 +350,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("After restore is complete wait for rancher pods to come up", func() {
 		WhenRancherBackupInstalledIt("After restore is complete wait for rancher pods to come up", func() {
 			Eventually(func() error {
-				return backup.WaitForPodsShell("cattle-system", t.Logs)
+				return common.WaitForPodsShell("cattle-system", t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher infra is up")
 		})
 	})
@@ -358,7 +358,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Get user after rancher restore is complete", func() {
 		WhenRancherBackupInstalledIt("Get user after rancher restore is complete", func() {
 			Eventually(func() string {
-				return GetRancherUser(backup.RancherURL)
+				return GetRancherUser(common.RancherURL)
 			}, waitTimeout, pollingInterval).Should(Equal(rancherUserName), "Check if rancher user has been restored successfully")
 		})
 	})

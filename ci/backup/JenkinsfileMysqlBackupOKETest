@@ -343,13 +343,12 @@ pipeline {
             }
         }
 
-
-        stage('Initiate Mysql backup tests') {
+        stage('Verify Install') {
             environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
             }
             steps {
-                runGinkgoRandomize('backup/mysql')
+                runGinkgoRandomize('verify-install')
             }
             post {
                 always {
@@ -359,12 +358,12 @@ pipeline {
             }
         }
 
-        stage('Initiate opensearch backup hook tests') {
+        stage('Initiate Mysql backup tests') {
             environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
-                runGinkgoRandomize('backup/opensearch')
+                runGinkgoRandomize('backup/mysql')
             }
             post {
                 always {

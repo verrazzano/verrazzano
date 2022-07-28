@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/tests/e2e/backup"
+	"github.com/verrazzano/verrazzano/tests/e2e/backup/common"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
@@ -33,7 +33,7 @@ const (
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	backup.GatherInfo()
+	common.GatherInfo()
 	backupPrerequisites()
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
@@ -49,15 +49,15 @@ var t = framework.NewTestFramework("mysql-backup")
 // CreateMysqlVeleroBackupObject creates opaque secret from the given map of values
 func CreateMysqlVeleroBackupObject() error {
 	var b bytes.Buffer
-	template, _ := template.New("mysql-backup").Parse(backup.MySQLBackup)
-	data := backup.VeleroMysqlBackupObject{
-		VeleroNamespaceName:          backup.VeleroNameSpace,
-		VeleroMysqlBackupName:        backup.BackupMySQLName,
-		VeleroMysqlBackupStorageName: backup.BackupMySQLStorageName,
-		VeleroMysqlHookResourceName:  backup.BackupResourceName,
+	template, _ := template.New("mysql-backup").Parse(common.MySQLBackup)
+	data := common.VeleroMysqlBackupObject{
+		VeleroNamespaceName:          common.VeleroNameSpace,
+		VeleroMysqlBackupName:        common.BackupMySQLName,
+		VeleroMysqlBackupStorageName: common.BackupMySQLStorageName,
+		VeleroMysqlHookResourceName:  common.BackupResourceName,
 	}
 	template.Execute(&b, data)
-	err := backup.DynamicSSA(context.TODO(), b.String(), t.Logs)
+	err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating velero backup object", zap.Error(err))
 		return err
@@ -68,16 +68,16 @@ func CreateMysqlVeleroBackupObject() error {
 
 func CreateMysqlVeleroRestoreObject() error {
 	var b bytes.Buffer
-	template, _ := template.New("mysql-restore").Parse(backup.MySQLRestore)
-	data := backup.VeleroMysqlRestoreObject{
-		VeleroMysqlRestore:          backup.RestoreMySQLName,
-		VeleroNamespaceName:         backup.VeleroNameSpace,
-		VeleroMysqlBackupName:       backup.BackupMySQLName,
-		VeleroMysqlHookResourceName: backup.BackupResourceName,
+	template, _ := template.New("mysql-restore").Parse(common.MySQLRestore)
+	data := common.VeleroMysqlRestoreObject{
+		VeleroMysqlRestore:          common.RestoreMySQLName,
+		VeleroNamespaceName:         common.VeleroNameSpace,
+		VeleroMysqlBackupName:       common.BackupMySQLName,
+		VeleroMysqlHookResourceName: common.BackupResourceName,
 	}
 
 	template.Execute(&b, data)
-	err := backup.DynamicSSA(context.TODO(), b.String(), t.Logs)
+	err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating velero restore object ", zap.Error(err))
 		return err
@@ -92,9 +92,9 @@ func KeycloakDeleteUsers() error {
 		return err
 	}
 
-	for i := 0; i < len(backup.KeyCloakUserIDList); i++ {
-		t.Logs.Infof("Creating user with username '%s'", backup.KeyCloakUserIDList[i])
-		_ = keycloakClient.DeleteUser(constants.VerrazzanoSystemNamespace, backup.KeyCloakUserIDList[i])
+	for i := 0; i < len(common.KeyCloakUserIDList); i++ {
+		t.Logs.Infof("Creating user with username '%s'", common.KeyCloakUserIDList[i])
+		_ = keycloakClient.DeleteUser(constants.VerrazzanoSystemNamespace, common.KeyCloakUserIDList[i])
 	}
 
 	return nil
@@ -122,7 +122,7 @@ func KeycloakCreateUsers(n int) error {
 			return err
 		}
 		sqlUserID := strings.Split(location, "/")[len(strings.Split(location, "/"))-1]
-		backup.KeyCloakUserIDList = append(backup.KeyCloakUserIDList, sqlUserID)
+		common.KeyCloakUserIDList = append(common.KeyCloakUserIDList, sqlUserID)
 	}
 
 	return nil
@@ -136,15 +136,15 @@ func KeycloakVerifyUsers() bool {
 		return false
 	}
 
-	for i := 0; i < len(backup.KeyCloakUserIDList); i++ {
-		t.Logs.Infof("Verifying user with username '%s' exists affter mysql restore", backup.KeyCloakUserIDList[i])
-		ok, err := keycloakClient.VerifyUserExists(constants.VerrazzanoSystemNamespace, backup.KeyCloakUserIDList[i])
+	for i := 0; i < len(common.KeyCloakUserIDList); i++ {
+		t.Logs.Infof("Verifying user with username '%s' exists affter mysql restore", common.KeyCloakUserIDList[i])
+		ok, err := keycloakClient.VerifyUserExists(constants.VerrazzanoSystemNamespace, common.KeyCloakUserIDList[i])
 		if err != nil {
 			t.Logs.Errorf("Unable to verify keycloak user due to ", zap.Error(err))
 			return false
 		}
 		if !ok {
-			t.Logs.Errorf("User '%s' does not exist or could not be verified.", backup.KeyCloakUserIDList[i])
+			t.Logs.Errorf("User '%s' does not exist or could not be verified.", common.KeyCloakUserIDList[i])
 			return false
 		}
 	}
@@ -164,7 +164,7 @@ func NukeMysql() error {
 		return err
 	}
 
-	return backup.CheckPodsTerminated("", constants.KeycloakNamespace, t.Logs)
+	return common.CheckPodsTerminated("", constants.KeycloakNamespace, t.Logs)
 }
 
 func DisplayResticInfo(operation string) error {
@@ -180,12 +180,12 @@ func DisplayResticInfo(operation string) error {
 	}
 	cmdArgs = append(cmdArgs, fmt.Sprintf("%s.velero.io", apiResource))
 	cmdArgs = append(cmdArgs, "-n")
-	cmdArgs = append(cmdArgs, backup.VeleroNameSpace)
+	cmdArgs = append(cmdArgs, common.VeleroNameSpace)
 
-	var kcmd backup.BashCommand
+	var kcmd common.BashCommand
 	kcmd.Timeout = 1 * time.Minute
 	kcmd.CommandArgs = cmdArgs
-	cmdResponse := backup.Runner(&kcmd, t.Logs)
+	cmdResponse := common.Runner(&kcmd, t.Logs)
 	if cmdResponse.CommandError != nil {
 		return cmdResponse.CommandError
 	}
@@ -217,12 +217,12 @@ func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
 	t.Logs.Info("Create backup secret for velero backup objects")
 	Eventually(func() error {
-		return backup.CreateCredentialsSecretFromFile(backup.VeleroNameSpace, backup.VeleroMySQLSecretName, t.Logs)
+		return common.CreateCredentialsSecretFromFile(common.VeleroNameSpace, common.VeleroMySQLSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Create backup storage location for velero backup objects")
 	Eventually(func() error {
-		return backup.CreateVeleroBackupLocationObject(backup.BackupMySQLStorageName, backup.VeleroMySQLSecretName, t.Logs)
+		return common.CreateVeleroBackupLocationObject(common.BackupMySQLStorageName, common.VeleroMySQLSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Create a sample keycloak user")
@@ -237,32 +237,32 @@ func cleanUpVelero() {
 
 	t.Logs.Info("Cleanup restore object")
 	Eventually(func() error {
-		return backup.VeleroObjectDelete("restore", backup.RestoreMySQLName, backup.VeleroNameSpace, t.Logs)
+		return common.VeleroObjectDelete("restore", common.RestoreMySQLName, common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup backup object")
 	Eventually(func() error {
-		return backup.VeleroObjectDelete("backup", backup.BackupMySQLName, backup.VeleroNameSpace, t.Logs)
+		return common.VeleroObjectDelete("backup", common.BackupMySQLName, common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup backup storage object")
 	Eventually(func() error {
-		return backup.VeleroObjectDelete("storage", backup.BackupMySQLStorageName, backup.VeleroNameSpace, t.Logs)
+		return common.VeleroObjectDelete("storage", common.BackupMySQLStorageName, common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup podvolumerestores object")
 	Eventually(func() error {
-		return backup.VeleroObjectDelete("podvolumerestores", "", backup.VeleroNameSpace, t.Logs)
+		return common.VeleroObjectDelete("podvolumerestores", "", common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup podvolumebackups object")
 	Eventually(func() error {
-		return backup.VeleroObjectDelete("podvolumebackups", "", backup.VeleroNameSpace, t.Logs)
+		return common.VeleroObjectDelete("podvolumebackups", "", common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup velero secrets")
 	Eventually(func() error {
-		return backup.DeleteSecret(backup.VeleroNameSpace, backup.VeleroMySQLSecretName, t.Logs)
+		return common.DeleteSecret(common.VeleroNameSpace, common.VeleroMySQLSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Delete keycloak user")
@@ -284,7 +284,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check backup progress after velero backup object was created", func() {
 		WhenVeleroInstalledIt("Check backup progress after velero backup object was created", func() {
 			Eventually(func() error {
-				return backup.CheckOperatorOperationProgress("velero", "backup", backup.VeleroNameSpace, backup.BackupMySQLName, t.Logs)
+				return common.CheckOperatorOperationProgress("velero", "backup", common.VeleroNameSpace, common.BackupMySQLName, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
@@ -317,7 +317,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check velero restore progress", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
-				return backup.CheckOperatorOperationProgress("velero", "restore", backup.VeleroNameSpace, backup.RestoreMySQLName, t.Logs)
+				return common.CheckOperatorOperationProgress("velero", "restore", common.VeleroNameSpace, common.RestoreMySQLName, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
@@ -325,7 +325,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("After restore is complete wait for keycloak and mysql pods to come up", func() {
 		WhenVeleroInstalledIt("After restore is complete wait for keycloak and mysql pods to come up", func() {
 			Eventually(func() error {
-				return backup.WaitForPodsShell(constants.KeycloakNamespace, t.Logs)
+				return common.WaitForPodsShell(constants.KeycloakNamespace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if keycloak and mysql infra is up")
 		})
 	})
