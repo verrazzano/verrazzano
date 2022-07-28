@@ -470,8 +470,8 @@ def uninstallVerrazzano(vpoLogsDir) {
 def kill_vpo_loop(vpoLogsDir) {
     script {
         sh """
-            # Initially sleep for 10 to 30 seconds
-            SLEEP_SEC=\$[ \$RANDOM % 20 + 10 ]
+            # Initially sleep for 30 to 60 seconds
+            SLEEP_SEC=\$[ \$RANDOM % 30 + 30 ]
             echo "Sleeping for \$SLEEP_SEC seconds"
             sleep \$SLEEP_SEC
 
