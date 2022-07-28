@@ -36,6 +36,10 @@ pipeline {
     stages {
         stage('Fetch Scan Report') {
             steps {
+                sh """
+                    echo "RPT_BUILD_BRANCH = ${RPT_BUILD_BRANCH}"
+                    echo "RPT_BUILD_NUMBER = ${RPT_BUILD_NUMBER}"
+                """
                 copyArtifacts(
                     projectName: 'ocir-scan-results/${RPT_BUILD_BRANCH}',   // the name of project, as you find it from the root of jenkins
                     selector: specific(${RPT_BUILD_NUMBER}),                // selector to select the build to copy from. If not specified, latest stable build is used.
