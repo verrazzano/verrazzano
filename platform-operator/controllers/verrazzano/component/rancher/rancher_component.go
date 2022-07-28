@@ -267,6 +267,10 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
 
+	if err := configureKeycloakOIDC(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
+	}
+
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
@@ -306,6 +310,10 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	err = activateDrivers(log, rest)
 	if err != nil {
 		return err
+	}
+
+	if err := configureKeycloakOIDC(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
 	}
 
 	if err := r.HelmComponent.PostUpgrade(ctx); err != nil {

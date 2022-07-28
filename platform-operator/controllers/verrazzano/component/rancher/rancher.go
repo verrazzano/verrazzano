@@ -11,9 +11,11 @@ import (
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -365,28 +367,47 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.V
 	return nil
 }
 
-func configureKeycloakOIDC(log vzlog.VerrazzanoLogger, c client.Client) error {
+func configureKeycloakOIDC(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	c := ctx.Client()
 	keycloakAuthConfig := unstructured.Unstructured{}
-	ociDriver.SetGroupVersionKind(GVKAuthConfig)
-	ociDriver.se
-	ociDriverName := types.NamespacedName{Name: NodeDriverOCI}
-	err := c.Get(context.Background(), ociDriverName, &ociDriver)
+	keycloakAuthConfig.SetGroupVersionKind(GVKAuthConfig)
+	keycloakAuthConfigName := types.NamespacedName{Name: AuthConfigKeycloak}
+	err := c.Get(context.Background(), keycloakAuthConfigName, &keycloakAuthConfig)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting OCI Driver: %s", err.Error())
+		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak authConfig: %s", err.Error())
 	}
-	rancherHostName, err := getRancherHostname(c, vz)
 
-	ociDriverMerge := client.MergeFrom(ociDriver.DeepCopy())
-	ociDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
-	err = c.Patch(context.Background(), &ociDriver, ociDriverMerge)
+	keycloakUrl, err := k8sutil.GetURLForIngress(c, "keycloak", "keycloak")
 	if err != nil {
-		log.Oncef("Skipping Rancher delete local cluster, unable to obtain Rancher hostname: %s", err.Error())
-		return nil
-		return log.ErrorfThrottledNewErr("Failed patching OCI Driver: %s", err.Error())
+		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak url: %s", err.Error())
 	}
-	if len(rancherHostName) == 0 {
-		log.Oncef("Skipping Rancher delete local host since Rancher host name is missing")
-		return nil
+
+	rancherUrl, err := k8sutil.GetURLForIngress(c, "rancher", "cattle-system")
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch rancher url: %s", err.Error())
 	}
+
+	clientSecret, err := keycloak.GetRancherClientSecretFromKeycloak(ctx)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch rancher client secret: %s", err.Error())
+	}
+
+	authConfig := keycloakAuthConfig.UnstructuredContent()
+	authConfig["accessMode"] = "unrestricted"
+	authConfig["clientId"] = "rancher"
+	authConfig["enabled"] = true
+	authConfig["groupSearchEnabled"] = true
+	authConfig["authEndpoint"] = keycloakUrl + "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
+	authConfig["clientSecret"] = clientSecret
+	authConfig["issuer"] = keycloakUrl + "/auth/realms/verrazzano-system"
+	authConfig["rancherUrl"] = rancherUrl + "/verify-auth"
+	keycloakAuthConfig.SetUnstructuredContent(authConfig)
+
+	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher: %s", err.Error())
+	}
+
 	return nil
 }
