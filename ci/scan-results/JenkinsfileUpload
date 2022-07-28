@@ -36,14 +36,13 @@ pipeline {
     stages {
         stage('Fetch Scan Report') {
             steps {
-                def upstreamProjName = "test-pipeline/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}"
                 sh """
                     echo "RPT_BRANCH_NAME = ${RPT_BRANCH_NAME}"
-                    echo "upstreamProjName = ${upstreamProjName}"
+                    echo "PROJECT_NAME = "test-pipeline/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}"
                     echo "RPT_BUILD_NUMBER = ${RPT_BUILD_NUMBER}"
                 """
                 copyArtifacts(
-                    projectName: '${upstreamProjName}',   // the name of project, as you find it from the root of jenkins
+                    projectName: "test-pipeline/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}",   // the name of project, as you find it from the root of jenkins
                     selector: specific('${RPT_BUILD_NUMBER}'),                // selector to select the build to copy from. If not specified, latest stable build is used.
                     filter: 'foobar.txt',                  // ant-expression to filter artifacts to copy, Attention! Filter is case sensitive
                     flatten: true,                          // ignore directory structures of artifacts, Artifact will be placed at 'sources/deploy/myzip.zip'. Is the option false, you find it at 'projects/Outpu/myzip.py'
