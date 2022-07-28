@@ -165,14 +165,13 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 
 	if vmc.Status.PrometheusHost == "" {
 		log.Infof("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
-		return ctrl.Result{}, nil
-	}
-
-	log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
-	err = r.syncPrometheusScraper(ctx, vmc)
-	if err != nil {
-		r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
-		return newRequeueWithDelay(), err
+	} else {
+		log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
+		err = r.syncPrometheusScraper(ctx, vmc)
+		if err != nil {
+			r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
+			return newRequeueWithDelay(), err
+		}
 	}
 
 	return ctrl.Result{Requeue: true, RequeueAfter: constants.ReconcileLoopRequeueInterval}, nil
