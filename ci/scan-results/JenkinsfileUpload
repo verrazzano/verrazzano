@@ -45,6 +45,10 @@ pipeline {
                         optional: false,                        // do not fail the step even if no appropriate build is found.
                         fingerprintArtifacts: true,             // fingerprint artifacts to track builds using those artifacts
                     )
+                    sh """
+                        echo "ls -l"
+                        ls -l
+                    """
                 }
             }
         }
