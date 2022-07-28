@@ -38,7 +38,7 @@ pipeline {
             steps {
                 sh """
                     echo "RPT_BRANCH_NAME = ${RPT_BRANCH_NAME}"
-                    echo "PROJECT_NAME = "test-pipeline/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}"
+                    echo "PROJECT_NAME = test-pipeline/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}"
                     echo "RPT_BUILD_NUMBER = ${RPT_BUILD_NUMBER}"
                 """
                 copyArtifacts(
