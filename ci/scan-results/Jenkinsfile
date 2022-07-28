@@ -87,8 +87,7 @@ pipeline {
         success {
             build job: 'upload-scan-report', parameters: [
                 string(name: 'RPT_BRANCH_NAME', value: "${env.BRANCH_NAME}"),
-                string(name: 'RPT_BUILD_NUMBER', value: "${env.BUILD_NUMBER")
-            ]
+                string(name: 'RPT_BUILD_NUMBER', value: "${env.BUILD_NUMBER")]
         }
     }
 }
