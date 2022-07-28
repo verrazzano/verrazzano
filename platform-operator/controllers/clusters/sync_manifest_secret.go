@@ -59,18 +59,18 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	rc, err := newRancherConfig(r.Client, r.log)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to create Rancher API client: %v", err)
-		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, msg)
+		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, "", msg)
 		r.log.Infof("Unable to connect to Rancher API on admin cluster, manifest secret will not contain Rancher YAML: %v", err)
 	} else {
 		var rancherYAML string
-		rancherYAML, clusterID, err = registerManagedClusterWithRancher(rc, vmc.Name, r.log)
+		rancherYAML, clusterID, err = registerManagedClusterWithRancher(rc, vmc.Name, vmc.Status.RancherRegistration.ClusterID, r.log)
 		if err != nil {
-			msg := fmt.Sprintf("Failed to register managed cluster: %v", err)
-			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, msg)
-			r.log.Info("Failed to register managed cluster with Rancher, manifest secret will not contain Rancher YAML")
+			msg := fmt.Sprintf("Failed to register managed cluster with Rancher: %v", err)
+			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, clusterID, msg)
+			r.log.Info("Failed to register managed cluster, manifest secret will not contain Rancher YAML")
 		} else {
 			msg := "Registration of managed cluster completed successfully"
-			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, msg)
+			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, clusterID, msg)
 			sb.WriteString(rancherYAML)
 		}
 	}
@@ -88,11 +88,14 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 		// create/update a secret with the CA cert from the managed cluster (if any errors occur we just log and continue)
 		caSecretName, err := r.syncCACertSecret(vmc, rc, clusterID)
 		if err != nil {
-			r.log.Infof("Unable to get CA cert from managed cluster with id %s: %v", clusterID, err)
+			msg := fmt.Sprintf("Unable to get CA cert from managed cluster with id %s: %v", clusterID, err)
+			r.log.Infof(msg)
+			r.updateStatusManagedCARetrieved(context.TODO(), vmc, corev1.ConditionFalse, msg)
 		}
 		if len(caSecretName) > 0 {
 			vmc.Spec.CASecret = caSecretName
 		}
+		r.updateStatusManagedCARetrieved(context.TODO(), vmc, corev1.ConditionTrue, "Managed cluster CA cert retrieved successfully")
 	}
 
 	// finally, update the VMC
@@ -138,12 +141,13 @@ func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.Ve
 }
 
 // Update the Rancher registration status
-func (r *VerrazzanoManagedClusterReconciler) updateRancherStatus(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster, status clusterapi.RancherRegistrationStatus, message string) {
+func (r *VerrazzanoManagedClusterReconciler) updateRancherStatus(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster, status clusterapi.RancherRegistrationStatus, rancherClusterID string, message string) {
 	// Skip the update if the status has not changed
 	if vmc.Status.RancherRegistration.Status == status && vmc.Status.RancherRegistration.Message == message {
 		return
 	}
 	vmc.Status.RancherRegistration.Status = status
+	vmc.Status.RancherRegistration.ClusterID = rancherClusterID
 	vmc.Status.RancherRegistration.Message = message
 	err := r.Status().Update(ctx, vmc)
 	if err != nil {
