@@ -486,7 +486,6 @@ def kill_vpo_loop(vpoLogsDir) {
                 sleep \$[ $RANDOM % 45 + 15 ]
             done
         """
-        }
     }
 }
 
