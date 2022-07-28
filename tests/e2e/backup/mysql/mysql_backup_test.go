@@ -93,7 +93,7 @@ func KeycloakDeleteUsers() error {
 	}
 
 	for i := 0; i < len(common.KeyCloakUserIDList); i++ {
-		t.Logs.Infof("Creating user with username '%s'", common.KeyCloakUserIDList[i])
+		t.Logs.Infof("Deleting user with username '%s'", common.KeyCloakUserIDList[i])
 		_ = keycloakClient.DeleteUser(constants.VerrazzanoSystemNamespace, common.KeyCloakUserIDList[i])
 	}
 
