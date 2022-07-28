@@ -6,10 +6,10 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"net/http"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/admission/v1"

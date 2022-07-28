@@ -17,10 +17,16 @@ import (
 )
 
 const (
-	waitTimeout             = 3 * time.Minute
-	pollingInterval         = 10 * time.Second
-	jaegerOperatorName      = "jaeger-operator"
-	jaegerESIndexCleanerJob = "jaeger-operator-jaeger-es-index-cleaner"
+	waitTimeout                    = 3 * time.Minute
+	pollingInterval                = 10 * time.Second
+	jaegerOperatorName             = "jaeger-operator"
+	minVZVersion                   = "1.3.0"
+	minVZVersionForDefaultInstance = "1.4.0"
+	//JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
+	JaegerCollectorDeploymentName = "jaeger-operator-jaeger-collector"
+	//JaegerQueryDeploymentName is the name of the Jaeger instance query deployment.
+	JaegerQueryDeploymentName = "jaeger-operator-jaeger-query"
+	jaegerESIndexCleanerJob   = "jaeger-operator-jaeger-es-index-cleaner"
 )
 
 var (
@@ -51,17 +57,17 @@ func isJaegerOperatorEnabled() bool {
 }
 
 // 'It' Wrapper to only run spec if the Jaeger operator is supported on the current Verrazzano version
-func WhenJaegerOperatorInstalledIt(description string, f func()) {
+func WhenJaegerOperatorInstalledIt(minVersion string, description string, f func()) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		t.It(description, func() {
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		})
 	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersion(minVersion, kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
-			Fail(fmt.Sprintf("Failed to check Verrazzano version 1.3.0: %s", err.Error()))
+			Fail(fmt.Sprintf("Failed to check Verrazzano version %s: %s", minVersion, err.Error()))
 		})
 	}
 	if supported {
@@ -76,7 +82,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Jaeger Operator is installed
 		// WHEN we check to make sure the namespace exists
 		// THEN we successfully find the namespace
-		WhenJaegerOperatorInstalledIt("should have a verrazzano-monitoring namespace", func() {
+		WhenJaegerOperatorInstalledIt(minVZVersion, "should have a verrazzano-monitoring namespace", func() {
 			Eventually(func() (bool, error) {
 				if !isJaegerOperatorEnabled() {
 					return true, nil
@@ -88,7 +94,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Jaeger Operator is installed
 		// WHEN we check to make sure the pods are running
 		// THEN we successfully find the running pods
-		WhenJaegerOperatorInstalledIt("should have running pods", func() {
+		WhenJaegerOperatorInstalledIt(minVZVersion, "should have running pods", func() {
 			jaegerOperatorPodsRunning := func() bool {
 				if !isJaegerOperatorEnabled() {
 					return true
@@ -105,7 +111,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Jaeger Operator is installed
 		// WHEN we check to make sure the default Jaeger images are from Verrazzano
 		// THEN we see that the env is correctly populated
-		WhenJaegerOperatorInstalledIt("should have the correct default Jaeger images", func() {
+		WhenJaegerOperatorInstalledIt(minVZVersion, "should have the correct default Jaeger images", func() {
 			verifyImages := func() bool {
 				if isJaegerOperatorEnabled() {
 					// Check if Jaeger operator is running with the expected Verrazzano Jaeger Operator image
@@ -147,7 +153,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 			Eventually(verifyImages, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		WhenJaegerOperatorInstalledIt("should have the correct Jaeger Operator CRDs", func() {
+		WhenJaegerOperatorInstalledIt(minVZVersion, "should have the correct Jaeger Operator CRDs", func() {
 			verifyCRDList := func() bool {
 				if isJaegerOperatorEnabled() {
 					exists := false
@@ -168,7 +174,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Jaeger Operator is installed
 		// WHEN we check to make sure the Jaeger OpenSearch Index Cleaner cron job exists
 		// THEN we successfully find the expected cron job
-		WhenJaegerOperatorInstalledIt("should have a Jaeger OpenSearch Index Cleaner cron job", func() {
+		WhenJaegerOperatorInstalledIt(minVZVersion, "should have a Jaeger OpenSearch Index Cleaner cron job", func() {
 			Eventually(func() (bool, error) {
 				create, err := pkg.IsJaegerInstanceCreated()
 				if err != nil {
@@ -179,6 +185,33 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				}
 				return false, nil
 			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		WhenJaegerOperatorInstalledIt(minVZVersionForDefaultInstance, "should have a default instance Collector pod running", func() {
+			verifyDefaultInstanceCollectorPod := func() bool {
+				if !isJaegerOperatorEnabled() {
+					return true
+				}
+				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, []string{JaegerCollectorDeploymentName})
+				if err != nil {
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", JaegerCollectorDeploymentName, constants.VerrazzanoMonitoringNamespace, err))
+				}
+				return result
+			}
+			Eventually(verifyDefaultInstanceCollectorPod, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+		WhenJaegerOperatorInstalledIt(minVZVersionForDefaultInstance, "should have a default instance Query pod running", func() {
+			verifyDefaultInstanceQueryPods := func() bool {
+				if !isJaegerOperatorEnabled() {
+					return true
+				}
+				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, []string{JaegerQueryDeploymentName})
+				if err != nil {
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", JaegerQueryDeploymentName, constants.VerrazzanoMonitoringNamespace, err))
+				}
+				return result
+			}
+			Eventually(verifyDefaultInstanceQueryPods, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 

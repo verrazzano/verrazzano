@@ -9,9 +9,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"text/template"
 
@@ -22,22 +22,26 @@ import (
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -1350,4 +1354,68 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 		return effectiveCR.Spec.Components.Keycloak.ValueOverrides
 	}
 	return []vzapi.Overrides{}
+}
+
+// upgradeStatefulSet - determine if the replica count for the StatefulSet needs
+// to be scaled down before the upgrade.  The affinity rules installed by default
+// prior to the 1.4 release conflict with the new affinity rules being overridden
+// by Verrazzano (the upgrade will never complete).  The work around is to scale
+// down the replica count prior to upgrade, which terminates the keycloak pods, and
+// then do the upgrade.
+func upgradeStatefulSet(ctx spi.ComponentContext) error {
+	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
+	if keycloakComp == nil {
+		return nil
+	}
+
+	// Get the combine set of value overrides into a single array of string
+	overrides, err := common.GetInstallOverridesYAML(ctx, keycloakComp.ValueOverrides)
+	if err != nil {
+		return err
+	}
+
+	// Is there an override for affinity?
+	found := false
+	affinityOverride := &corev1.Affinity{}
+	for _, overrideYaml := range overrides {
+		if strings.Contains(overrideYaml, "affinity: |") {
+			found = true
+
+			// Convert the affinity override from yaml to a struct
+			affinityField, err := common.ExtractValueFromOverrideString(overrideYaml, "affinity")
+			if err != nil {
+				return err
+			}
+			err = yaml.Unmarshal([]byte(fmt.Sprintf("%v", affinityField)), affinityOverride)
+			if err != nil {
+				return err
+			}
+			break
+		}
+	}
+	if !found {
+		return nil
+	}
+
+	// Get the StatefulSet for Keycloak
+	client := ctx.Client()
+	statefulSet := appv1.StatefulSet{}
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &statefulSet)
+	if err != nil {
+		return err
+	}
+
+	// Nothing to do if the affinity definitions are the same
+	if reflect.DeepEqual(affinityOverride, statefulSet.Spec.Template.Spec.Affinity) {
+		return nil
+	}
+
+	// Scale replica count to 0 to cause all pods to terminate, upgrade will restore replica count
+	*statefulSet.Spec.Replicas = 0
+	err = client.Update(context.TODO(), &statefulSet)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

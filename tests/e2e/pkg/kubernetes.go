@@ -154,7 +154,7 @@ func ListDeploymentsMatchingLabels(namespace string, matchLabels map[string]stri
 	return deployments, nil
 }
 
-// ListCronJobsMatchingLabels returns the list of cronjobs in a given namespace matching the given labels for the cluster
+// ListCronJobs returns the list of cronjobs in a given namespace
 func ListCronJobs(namespace string) (*batchv1.CronJobList, error) {
 	return ListCronJobsMatchingLabels(namespace, nil)
 }
@@ -178,10 +178,25 @@ func ListCronJobsMatchingLabels(namespace string, matchLabels map[string]string)
 	}
 	cronjobs, err := clientset.BatchV1().CronJobs(namespace).List(context.TODO(), listOptions)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to list deployments in namespace %s: %v", namespace, err))
+		Log(Error, fmt.Sprintf("Failed to list cronjobs in namespace %s: %v", namespace, err))
 		return nil, err
 	}
 	return cronjobs, nil
+}
+
+// ListStatefulSets returns the list of StatefulSets in a given namespace for the cluster
+func ListStatefulSets(namespace string) (*appsv1.StatefulSetList, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	statefulsets, err := clientset.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list StatefulSets in namespace %s: %v", namespace, err))
+		return nil, err
+	}
+	return statefulsets, nil
 }
 
 // GetReplicaCounts Builds a map of pod counts for a list of deployments
@@ -246,6 +261,21 @@ func GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment,
 		return nil, err
 	}
 	return deployment, nil
+}
+
+// DoesStatefulSetExist returns whether a StatefulSet with the given name and namespace exists for the cluster
+func DoesStatefulSetExist(namespace string, name string) (bool, error) {
+	statefulsets, err := ListStatefulSets(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list StatefulSets from namespace %s: %v", namespace, err))
+		return false, err
+	}
+	for i := range statefulsets.Items {
+		if strings.HasPrefix(statefulsets.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // GetStatefulSet returns a StatefulSet with the given name and namespace
@@ -804,6 +834,20 @@ func IsGrafanaEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.Grafana.Enabled
 }
 
+// IsKeycloakEnabled returns false if the Keycloak component is not set, or the value of its Enabled field otherwise
+func IsKeycloakEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Keycloak == nil || vz.Spec.Components.Keycloak.Enabled == nil {
+		// Keycloak component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.Keycloak.Enabled
+}
+
 // IsVeleroEnabled returns false if the Velero component is not set, or the value of its Enabled field otherwise
 func IsVeleroEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
@@ -815,6 +859,19 @@ func IsVeleroEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.Velero.Enabled
+}
+
+// IsRancherBackupEnabled returns false if the Rancher Backup component is not set, or the value of its Enabled field otherwise
+func IsRancherBackupEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.RancherBackup == nil || vz.Spec.Components.RancherBackup.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.RancherBackup.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.

@@ -63,8 +63,6 @@ spec:
               value: {{ .Values.monitoringOperator.kibanaImage }}
             - name: ELASTICSEARCH_WAIT_TARGET_VERSION
               value: {{ .Values.monitoringOperator.esWaitTargetVersion }}
-            - name: CONFIG_RELOADER_IMAGE
-              value: {{ .Values.monitoringOperator.configReloaderImage }}
             - name: OIDC_PROXY_IMAGE
               value: {{ .Values.monitoringOperator.oidcProxyImage }}
             - name: OIDC_AUTH_ENABLED

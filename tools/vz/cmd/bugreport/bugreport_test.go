@@ -213,7 +213,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, buf.String(), "Capturing Verrazzano resource",
 		"Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace",
-		"Successfully created the bug report",
+		"Created the bug report",
 		"WARNING: Please examine the contents of the bug report for sensitive data", "Namespace dummy not found in the cluster")
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -247,7 +247,7 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-	assert.Contains(t, buf.String(), "Verrazzano is not installed")
+	assert.Contains(t, errBuf.String(), "Verrazzano is not installed")
 }
 
 // TestBugReportFailureUsingInvalidClient
@@ -274,7 +274,7 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 		assert.Error(t, err)
 	}
 
-	assert.Contains(t, buf.String(), "Verrazzano is not installed")
+	assert.Contains(t, errBuf.String(), "Verrazzano is not installed")
 	assert.NoFileExists(t, bugRepFile)
 }
 
