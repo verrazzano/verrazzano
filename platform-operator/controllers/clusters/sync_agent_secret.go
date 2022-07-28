@@ -199,19 +199,19 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAgentSecret(secret *corev1.Se
 func (r *VerrazzanoManagedClusterReconciler) getRancherCACert() (string, error) {
 	ingressSecret := corev1.Secret{}
 
-	errAddlTLS := r.Client.Get(context.TODO(), client.ObjectKey{
+	err := r.Client.Get(context.TODO(), client.ObjectKey{
 		Namespace: vzconst.RancherSystemNamespace,
 		Name:      vzconst.AdditionalTLS,
 	}, &ingressSecret)
-	if client.IgnoreNotFound(errAddlTLS) != nil {
-		return "", errAddlTLS
+	if client.IgnoreNotFound(err) != nil {
+		return "", err
 	}
 
 	var caData []byte
-	if errAddlTLS == nil {
+	if err == nil {
 		caData = ingressSecret.Data[vzconst.AdditionalTLSCAKey]
 	} else {
-		err := r.Client.Get(context.TODO(), types.NamespacedName{Name: rancherTLSSecret, Namespace: vzconst.RancherSystemNamespace}, &ingressSecret)
+		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: rancherTLSSecret, Namespace: vzconst.RancherSystemNamespace}, &ingressSecret)
 		if err != nil {
 			return "", err
 		}
