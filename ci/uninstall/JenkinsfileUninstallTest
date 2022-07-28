@@ -469,15 +469,17 @@ def uninstallVerrazzano(vpoLogsDir) {
 
 def kill_vpo_loop(vpoLogsDir) {
     script {
-        // Future enhancement, possibly use a random number within a range of 10-30 secs of something
-        echo "Wait 15 seconds before kill loop"
-        sleep 15
         sh """
+            # Initially sleep for 10 to 30 seconds
+            SLEEP_SEC=\$[ \$RANDOM % 20 + 10 ]
+            echo "Sleeping for \$SLEEP_SEC seconds"
+            sleep \$SLEEP_SEC
+
             VZ_STATUS=\$(kubectl get vz my-verrazzano --ignore-not-found -o jsonpath={.status.conditions[-1].type})
             while [ ! -z \$VZ_STATUS ] && [ \$VZ_STATUS == "UninstallStarted" ] ; do
                 POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                 mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-                kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-${count}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 kubectl -n verrazzano-install delete po \$POD
                 POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                 kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
