@@ -627,7 +627,7 @@ func updatePrometheusAnnotations(ctx spi.ComponentContext) error {
 
 // updateKeycloakUris invokes kcadm.sh in keycloak pod to update the client with Keycloak rewrite and weborigin uris
 func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod, clientId string, uriTemplate string) error {
-	data, err := populateSubdomainInTemplate(ctx, `{`+uriTemplate+`}`)
+	data, err := populateSubdomainInTemplate(ctx, "{"+uriTemplate+"}")
 	if err != nil {
 		return err
 	}
