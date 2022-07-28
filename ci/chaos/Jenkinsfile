@@ -502,9 +502,20 @@ pipeline {
                         # Make sure the upgrade is still in progress
                         vz_status=\$(kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}')
                         if [[ \${vz_status} == "UpgradeStarted" ]]; then
-                            echo "Uninstalling Verrazzano"
-                            cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                            GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go uninstall
+                            VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+                            echo "Downloading VZ CLI from object storage"
+                            if [[ -z "$OCI_OS_LOCATION" ]]; then
+                              OCI_OS_LOCATION="$BRANCH_NAME/\\\$(git rev-parse --short=8 HEAD)"
+                            fi
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/$VZ_CLI_TARGZ --file $VZ_CLI_TARGZ
+                            tar xzf $VZ_CLI_TARGZ
+            
+                            if [ -f "vz" ]; then
+                              ./vz install uninstall
+                            else
+                              cd ${GO_REPO_PATH}/verrazzano/tools/vz
+                              GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go uninstall
+                            fi
 
                             ## dump out uninstall logs
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
