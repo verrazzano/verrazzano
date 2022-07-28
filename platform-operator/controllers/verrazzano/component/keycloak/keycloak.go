@@ -634,9 +634,10 @@ func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	ctx.Log().Infof("data : %v", data)
 
 	// Update client
-	updateClientCmd := "/opt/jboss/keycloak/bin/kcadm.sh update clients/" + clientId + " -r " + vzSysRealm + " -f - <<\\END" +
-		data +
-		"END"
+	updateClientCmd := "/opt/jboss/keycloak/bin/kcadm.sh update clients/" + clientId + " -r " + vzSysRealm + " -b '" +
+		strings.TrimSpace(data) +
+		"'"
+	ctx.Log().Infof("updateClientCmd : %v", updateClientCmd)
 
 	ctx.Log().Debugf("updateKeycloakUris: Update client with Id = %s, Cmd = %s", clientId, updateClientCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(updateClientCmd))
