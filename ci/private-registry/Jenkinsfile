@@ -559,7 +559,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/*-cluster-snapshot/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             sh """
@@ -612,7 +612,7 @@ def runGinkgo(testSuitePath, String... extraArgs) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${DUMP_COMMAND} -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${DUMP_COMMAND} -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
     """
 }
 

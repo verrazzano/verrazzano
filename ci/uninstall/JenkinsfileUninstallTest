@@ -556,7 +556,7 @@ def runnerCleanup() {
         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
     """
-    archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+    archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**,**/*-cluster-snapshot/**,**/${TEST_REPORT}", allowEmptyArchive: true
     junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
     script {
@@ -581,7 +581,7 @@ def runnerCleanup() {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
     """
 }
 
