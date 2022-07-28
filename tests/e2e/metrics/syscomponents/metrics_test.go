@@ -18,6 +18,8 @@ import (
 )
 
 const (
+	metricsVersion = "1.4.0"
+
 	longPollingInterval = 8 * time.Second
 	longWaitTimeout     = 10 * time.Minute
 
@@ -29,6 +31,10 @@ const (
 	sidecarInjectionRequests       = "sidecar_injection_requests_total"
 	prometheusTargetIntervalLength = "prometheus_target_interval_length_seconds"
 	envoyStatsRecentLookups        = "envoy_server_stats_recent_lookups"
+	vmoFunctionMetric              = "vmo_reconcile_total"
+	vmoCounterMetric               = "vmo_deployment_update_total"
+	vmoGaugeMetric                 = "vmo_work_queue_size"
+	vmoTimestampMetric             = "vmo_configmap_last_succesful_timestamp"
 
 	// Namespaces used for validating envoy stats
 	verrazzanoSystemNamespace = "verrazzano-system"
@@ -109,8 +115,8 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-})
 
+})
 var _ = t.AfterSuite(func() {})
 
 var _ = t.AfterEach(func() {})
@@ -119,19 +125,48 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 	// Query Prometheus for the sample metrics from the default scraping jobs
 	var _ = t.Describe("for the system components", func() {
 		t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
-				kv := map[string]string{
-					controllerNamespace: ingressNginxNamespace,
-					appK8SIOInstance:    ingressController,
-				}
-				return metricsContainLabels(ingressControllerSuccess, kv)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			eventuallyMetricsContainLabels(ingressControllerSuccess, map[string]string{
+				controllerNamespace: ingressNginxNamespace,
+				appK8SIOInstance:    ingressController,
+			})
 		})
 
 		t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
-				return metricsContainLabels(containerStartTimeSeconds, map[string]string{})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			eventuallyMetricsContainLabels(containerStartTimeSeconds, map[string]string{})
+		})
+		t.ItMinimumVersion("Verify VPO summary counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels("vpo_reconcile_duration_count", map[string]string{})
+		})
+		t.ItMinimumVersion("Verify VPO summary sum times can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels("vpo_reconcile_duration_sum", map[string]string{})
+		})
+		t.ItMinimumVersion("Verify VPO counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels("vpo_reconcile_counter", map[string]string{})
+		})
+		t.ItMinimumVersion("Verify VPO error counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels("vpo_error_reconcile_counter", map[string]string{})
+		})
+		t.ItMinimumVersion("Verify VPO install metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels("vz_nginx_install_duration_seconds", map[string]string{})
+		})
+		t.ItMinimumVersion("Verify VPO upgrade counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels("vz_nginx_upgrade_duration_seconds", map[string]string{})
+		})
+
+		t.ItMinimumVersion("Verify VMO function metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsExistInCluster(vmoFunctionMetric, map[string]string{}, kubeConfig)
+		})
+
+		t.ItMinimumVersion("Verify VMO counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsExistInCluster(vmoCounterMetric, map[string]string{}, kubeConfig)
+		})
+
+		t.ItMinimumVersion("Verify VMO gauge metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsExistInCluster(vmoGaugeMetric, map[string]string{}, kubeConfig)
+		})
+
+		t.ItMinimumVersion("Verify VMO timestamp metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsExistInCluster(vmoTimestampMetric, map[string]string{}, kubeConfig)
 		})
 
 		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
@@ -352,4 +387,18 @@ func getClusterNameForPromQuery() string {
 		return "local"
 	}
 	return ""
+}
+
+// Queries Prometheus for a given metric, same as eventuallyMetricsExistInCluster but does not enforce the verrazzanoCluster label
+func eventuallyMetricsExistInCluster(metricName string, labels map[string]string, kconfig string) {
+	Eventually(func() bool {
+		return pkg.MetricsExistInCluster(metricName, labels, kconfig)
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+}
+
+// Queries Prometheus for a given metric name and a map of labels for the metric
+func eventuallyMetricsContainLabels(metricName string, kv map[string]string) {
+	Eventually(func() bool {
+		return metricsContainLabels(metricName, kv)
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 }
