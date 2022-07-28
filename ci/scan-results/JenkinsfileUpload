@@ -37,7 +37,7 @@ pipeline {
         stage('Fetch Scan Report') {
             steps {
                 sh """
-                    echo "RPT_BUILD_BRANCH = ${RPT_BUILD_BRANCH}"
+                    echo "RPT_BRANCH_NAME = ${RPT_BRANCH_NAME}"
                     echo "RPT_BUILD_NUMBER = ${RPT_BUILD_NUMBER}"
                 """
                 copyArtifacts(
