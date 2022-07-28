@@ -127,7 +127,7 @@ func IsJaegerMetricFound(kubeconfigPath, metricName string, kv map[string]string
 	return false
 }
 
-func listJaegerTraces(kubeconfigPath string, serviceName string) []string {
+func ListJaegerTraces(kubeconfigPath string, serviceName string) []string {
 	var traces []string
 	url := fmt.Sprintf("%s/api/traces?service=%s", getJaegerURL(kubeconfigPath), serviceName)
 	username, password, err := getJaegerUsernamePassword(kubeconfigPath)
@@ -152,7 +152,7 @@ func listJaegerTraces(kubeconfigPath string, serviceName string) []string {
 	return traces
 }
 
-func listServicesInJaeger(kubeconfigPath string) []string {
+func ListServicesInJaeger(kubeconfigPath string) []string {
 	var services []string
 	url := fmt.Sprintf("%s/api/services", getJaegerURL(kubeconfigPath))
 	username, password, err := getJaegerUsernamePassword(kubeconfigPath)

@@ -13,22 +13,26 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"strings"
 	"time"
 )
 
 const (
-	longWaitTimeout          = 20 * time.Minute
-	longPollingInterval      = 20 * time.Second
 	shortPollingInterval     = 10 * time.Second
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 )
 
+const (
+	testAppComponentFilePath     = "testdata/jaeger/helidon/helidon-tracing-comp.yaml"
+	testAppConfigurationFilePath = "testdata/jaeger/helidon/helidon-tracing-app.yaml"
+)
+
 var (
 	t                        = framework.NewTestFramework("jaeger")
 	generatedNamespace       = pkg.GenerateNamespace("jaeger-tracing")
-	expectedPodsHelloHelidon = []string{"hello-helidon-workload"}
+	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
 	failed                   = false
@@ -45,16 +49,17 @@ var _ = t.BeforeSuite(func() {
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(BeNil())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/jaeger/helidon/helidon-logging-comp.yaml", namespace)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(testAppComponentFilePath, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/jaeger/helidon/helidon-logging-app.yaml", namespace)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(testAppConfigurationFilePath, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
 		return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
-	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
+	}).WithPolling(imagePullPollingInterval).WithTimeout(imagePullWaitTimeout).Should(BeTrue())
+
 	// Verify hello-helidon-workload pod is running
 	Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 	beforeSuitePassed = true
@@ -74,12 +79,12 @@ var _ = t.AfterSuite(func() {
 
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/jaeger/helidon/helidon-logging-app.yaml", namespace)
+		return pkg.DeleteResourceFromFileInGeneratedNamespace(testAppComponentFilePath, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/jaeger/helidon/helidon-logging-comp.yaml", namespace)
+		return pkg.DeleteResourceFromFileInGeneratedNamespace(testAppConfigurationFilePath, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for application pods to terminate")
@@ -146,7 +151,23 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				if !isJaegerOperatorEnabled() {
 					return true, nil
 				}
-				return true, nil
+				// Check if the service name is registered in Jaeger and traces are present for that service
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				if err != nil {
+					return false, err
+				}
+				tracesFound := false
+				for _, serviceName := range pkg.ListServicesInJaeger(kubeconfigPath) {
+					if strings.HasPrefix(serviceName, "hello-helidon") {
+						traceIds := pkg.ListJaegerTraces(kubeconfigPath, serviceName)
+						tracesFound = len(traceIds) > 0
+						if !tracesFound {
+							pkg.Log(pkg.Error, fmt.Sprintf("traces not found for service: %s", serviceName))
+							return false, fmt.Errorf("traces not found for service: %s", serviceName)
+						}
+					}
+				}
+				return false, nil
 			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 

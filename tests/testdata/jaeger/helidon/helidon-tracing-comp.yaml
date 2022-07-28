@@ -10,7 +10,6 @@ spec:
     kind: VerrazzanoHelidonWorkload
     metadata:
       name: hello-helidon-workload
-      namespace: hello-helidon
       annotations:
         "sidecar.jaegertracing.io/inject": "true"
       labels:
@@ -20,7 +19,6 @@ spec:
       deploymentTemplate:
         metadata:
           name: hello-helidon-deployment
-          namespace: hello-helidon
           annotations:
             "sidecar.jaegertracing.io/inject": "true"
         podSpec:
