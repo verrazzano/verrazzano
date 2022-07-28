@@ -933,10 +933,10 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 # Display the kubectl and cluster versions
                 kubectl version
 
-                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster$count/pre-install-resources
+                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
                 kubectl get namespace verrazzano-install
-                if [ $? -ne 0 ]; then
+                if [ "\$?" -ne 0 ]; then
                   echo "Create the verrazzano-install namespace"
                   kubectl create namespace verrazzano-install
                 fi
