@@ -110,6 +110,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vao_ingresstrait_error_reconcile_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+
 		},
 	}
 }

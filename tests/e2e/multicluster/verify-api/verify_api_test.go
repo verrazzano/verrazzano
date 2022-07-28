@@ -39,24 +39,16 @@ var _ = t.Describe("Multi Cluster Verify API", Label("f:ui.api"), func() {
 		})
 
 		t.It("Get and Validate Verrazzano resource for admin cluster", func() {
+			api := pkg.EventuallyGetAPIEndpoint(adminKubeconfig)
 			Eventually(func() bool {
-				api, err := pkg.GetAPIEndpoint(adminKubeconfig)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error fetching api: %v", err))
-					return false
-				}
 				response, err := api.Get("apis/install.verrazzano.io/v1alpha1/verrazzanos")
 				return isValidVerrazzanosResponse(response, err)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.It("Get and Validate Verrazzano resource for managed cluster", func() {
+			api := pkg.EventuallyGetAPIEndpoint(adminKubeconfig)
 			Eventually(func() bool {
-				api, err := pkg.GetAPIEndpoint(adminKubeconfig)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error fetching api: %v", err))
-					return false
-				}
 				response, err := api.Get("apis/install.verrazzano.io/v1alpha1/verrazzanos?cluster=" + managedClusterName)
 				return isValidVerrazzanosResponse(response, err)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
