@@ -388,7 +388,7 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	expectVmcGetAndUpdate(t, mock, testManagedCluster, false)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
-	expectSyncAgent(t, mock, testManagedCluster)
+	expectSyncAgent(t, mock, testManagedCluster, true)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, `{"data":{"ca.crt":"base64-ca-cert"}}`)
