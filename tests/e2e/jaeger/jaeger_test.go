@@ -27,6 +27,10 @@ const (
 const (
 	testAppComponentFilePath     = "testdata/jaeger/helidon/helidon-tracing-comp.yaml"
 	testAppConfigurationFilePath = "testdata/jaeger/helidon/helidon-tracing-app.yaml"
+	jaegerOperatorSampleMetric   = "jaeger_operator_instances_managed"
+	jaegerAgentSampleMetric      = "jaeger_agent_collector_proxy_total"
+	jaegerQuerySampleMetric      = "jaeger_query_requests_total"
+	jaegerCollectorSampleMetric  = "jaeger_collector_queue_capacity"
 )
 
 var (
@@ -187,11 +191,15 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// WHEN we check for metrics related to Jaeger operator
 		// THEN we see that the metrics are present in prometheus
 		WhenJaegerOperatorInstalledIt("should have the correct default Jaeger images", func() {
-			Eventually(func() (bool, error) {
+			Eventually(func() bool {
 				if !isJaegerOperatorEnabled() {
-					return true, nil
+					return true
 				}
-				return true, nil
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				if err != nil {
+					return false
+				}
+				return pkg.IsJaegerMetricFound(kubeconfigPath, jaegerOperatorSampleMetric, nil)
 			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 
 		})
@@ -200,11 +208,17 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// WHEN we check for metrics related to Jaeger Components (jaeger-query, jaeger-collector, jaeger-agent)
 		// THEN we see that the metrics are present in prometheus
 		WhenJaegerOperatorInstalledIt("should have the correct Jaeger Operator CRDs", func() {
-			Eventually(func() (bool, error) {
+			Eventually(func() bool {
 				if !isJaegerOperatorEnabled() {
-					return true, nil
+					return true
 				}
-				return true, nil
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				if err != nil {
+					return false
+				}
+				return (pkg.IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, nil) &&
+					pkg.IsJaegerMetricFound(kubeconfigPath, jaegerQuerySampleMetric, nil) &&
+					pkg.IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, nil))
 			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 	})

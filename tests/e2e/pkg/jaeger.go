@@ -17,7 +17,7 @@ import (
 const (
 	jaegerServiceIndexPrefix = "verrazzano-jaeger-jaeger-service"
 	jaegerSpanIndexPrefix    = "verrazzano-jaeger-jaeger-span"
-	jaegerClusterNameLabel   = "verrazzano_local"
+	jaegerClusterNameLabel   = "verrazzano_cluster"
 	jaegerClusterName        = "local"
 )
 
@@ -171,9 +171,7 @@ func ListServicesInJaeger(kubeconfigPath string) []string {
 	Log(Debug, fmt.Sprintf("traces: %s", resp.Body))
 	var serviceMap map[string][]string
 	json.Unmarshal(resp.Body, &serviceMap)
-	for _, name := range serviceMap["data"] {
-		services = append(services, name)
-	}
+	services = append(services, serviceMap["data"]...)
 	return services
 }
 
