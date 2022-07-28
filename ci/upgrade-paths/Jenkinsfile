@@ -859,8 +859,6 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
                 ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
-                echo "Deploy external es and create its secret on the admin cluster if EXTERNAL_ELASTICSEARCH is true"
-                CLUSTER_NUMBER=${count}  ${CREATE_EXTERNAL_OPENSEARCH}
             """
     }
 }
@@ -926,6 +924,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
     // For parallel execution, wrap this in a Groovy enclosure {}
     return {
         script {
+            namespaceStatus = sh(returnStdout: true, script: "kubectl get --ignore-not-found ns verrazzano-install -o json | jq .status.phase -r").trim()
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 cd ${GO_REPO_PATH}/verrazzano
@@ -933,13 +932,14 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 # Display the kubectl and cluster versions
                 kubectl version
 
-                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster\${count}/pre-install-resources
+                ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
-                namespaceStatus=\$(kubectl get namespace -o=name | grep verrazzano-install)
-                if [ "\$?" -ne 0 ]; then
-                  echo "Create the verrazzano-install namespace"
-                  kubectl create namespace verrazzano-install
-                fi
+                echo "Deploy external es and create its secret on the admin cluster if EXTERNAL_ELASTICSEARCH is true"
+                CLUSTER_NUMBER=${count}  ${CREATE_EXTERNAL_OPENSEARCH}
+
+                echo "Create the verrazzano-install namespace"
+                kubectl create namespace verrazzano-install
+
 
                 echo "Create Image Pull Secrets"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
