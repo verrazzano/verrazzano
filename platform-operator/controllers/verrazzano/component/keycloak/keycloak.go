@@ -631,6 +631,7 @@ func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	if err != nil {
 		return err
 	}
+	ctx.Log().Infof("data : %v", data)
 
 	// Update client
 	updateClientCmd := "/opt/jboss/keycloak/bin/kcadm.sh update clients/" + clientId + " -r " + vzSysRealm + " -f - <<\\END" +
