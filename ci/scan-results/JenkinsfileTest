@@ -4,7 +4,7 @@
 pipeline {
     options {
         timestamps ()
-        copyArtifactPermission('upload-scan-reports')
+        copyArtifactPermission('upload-scan-report')
         // allow all the projects or branches of 'Other-folder/Multi branch Pipeline Test' and 'second Folder' to copy artifacts of this job
     }
 
