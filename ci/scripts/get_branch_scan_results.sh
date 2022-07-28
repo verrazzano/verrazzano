@@ -114,6 +114,7 @@ if [ $? -eq 0 ]; then
   ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_PERIODIC_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
   ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_PERIODIC_BOM_FILE}
   ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} "periodic" ${SCAN_DATETIME} ${BUILD_NUMBER}
+  ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh consolidated.csv > consolidated-upload.json
   publish_results "last-clean-periodic-test" ${SCAN_LAST_PERIODIC_BOM_FILE} ${SCAN_RESULTS_DIR}
 else
   echo "INFO: Did not find a periodic BOM for ${CLEAN_BRANCH_NAME}"

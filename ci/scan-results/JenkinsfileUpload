@@ -1,0 +1,67 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+        docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            label 'internal'
+        }
+    }
+
+    parameters {
+        string (name: 'RPT_BRANCH_NAME', defaultValue: 'NONE', description: 'Which branch to upload the scan report for')
+        string (name: 'RPT_BUILD_NUMBER', defaultValue: 'NONE', description: 'Build number where upload file was generated')
+    }
+
+    environment {
+        upload_file_name="consolidated-upload.json"
+        artifact_path="https://build.verrazzano.io/job/ocir-scan-results/job/${RPT_BRANCH_NAME}/${RPT_BUILD_NUMBER}/artifact/scan-results/latest-periodic/${upload_file_name}"
+
+        OCI_CLI_REGION = "us-ashburn-1"
+        OCI_CLI_AUTH="api_key"
+        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+        OCI_CLI_USER = credentials('oci-dev-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+    }
+
+    stages {
+        stage('Fetch Scan Report') {
+            steps {
+                script {
+                    sh """
+                    curl ${artifact_path} > ${upload_file_name}
+                    """
+                }
+            }
+        }
+
+        stage("Upload Scan Report") {
+            steps {
+                script{
+                    sh """
+                    curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_file_name} https://vzship-scanmanager.appoci.oraclecorp.com/scanreports
+                    """
+                }
+            }
+        }
+
+    }
+
+    post {
+        cleanup {
+            sh """
+                rm -f ${upload_file_name}
+            """
+        }
+    }
+}
+
