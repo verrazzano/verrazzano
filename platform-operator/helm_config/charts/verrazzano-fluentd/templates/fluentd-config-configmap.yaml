@@ -969,8 +969,7 @@ data:
     {
       "index_patterns":[
         "verrazzano-system",
-        "verrazzano-application*",
-        ".opendistro-*"
+        "verrazzano-application*"
       ],
       "version":60001,
       "priority": 101,
