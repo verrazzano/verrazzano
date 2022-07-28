@@ -23,14 +23,14 @@ pipeline {
 
     environment {
         upload_file_name="consolidated-upload.json"
-        artifact_path="https://build.verrazzano.io/job/ocir-scan-results/job/${RPT_BRANCH_NAME}/${RPT_BUILD_NUMBER}/artifact/scan-results/latest-periodic/${upload_file_name}"
+        //artifact_path="https://build.verrazzano.io/job/ocir-scan-results/job/${RPT_BRANCH_NAME}/${RPT_BUILD_NUMBER}/artifact/scan-results/latest-periodic/${upload_file_name}"
 
-        OCI_CLI_REGION = "us-ashburn-1"
-        OCI_CLI_AUTH="api_key"
-        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
-        OCI_CLI_USER = credentials('oci-dev-user-ocid')
-        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
-        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+        // OCI_CLI_REGION = "us-ashburn-1"
+        // OCI_CLI_AUTH="api_key"
+        // OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+        // OCI_CLI_USER = credentials('oci-dev-user-ocid')
+        // OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+        // OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
     }
 
     stages {
@@ -41,9 +41,9 @@ pipeline {
                     echo "RPT_BUILD_NUMBER = ${RPT_BUILD_NUMBER}"
                 """
                 copyArtifacts(
-                    projectName: 'ocir-scan-results/${RPT_BUILD_BRANCH}',   // the name of project, as you find it from the root of jenkins
-                    selector: specific(${RPT_BUILD_NUMBER}),                // selector to select the build to copy from. If not specified, latest stable build is used.
-                    filter: '**/consolidated.csv',                  // ant-expression to filter artifacts to copy, Attention! Filter is case sensitive
+                    projectName: 'test-pipeline/${RPT_BUILD_BRANCH}',   // the name of project, as you find it from the root of jenkins
+                    selector: specific('${RPT_BUILD_NUMBER}'),                // selector to select the build to copy from. If not specified, latest stable build is used.
+                    filter: 'foobar.txt',                  // ant-expression to filter artifacts to copy, Attention! Filter is case sensitive
                     flatten: true,                          // ignore directory structures of artifacts, Artifact will be placed at 'sources/deploy/myzip.zip'. Is the option false, you find it at 'projects/Outpu/myzip.py'
                     optional: false,                        // do not fail the step even if no appropriate build is found.
                     fingerprintArtifacts: true,             // fingerprint artifacts to track builds using those artifacts
