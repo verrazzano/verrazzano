@@ -26,7 +26,7 @@ pipeline {
                 script {
                     sh """
                         echo "Creating foobar.txt ..."
-                        echo "This is foobar.txt for build ${RPT_BRANCH_NAME}/${RPT_BUILD_NUMBER}" > foobar.txt
+                        echo "This is foobar.txt for build ${env.BRANCH_NAME}/${env.BUILD_NUMBER}" > foobar.txt
                         echo "Created foobar.txt"
                         echo "ls -l"
                         ls -l
