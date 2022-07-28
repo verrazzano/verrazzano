@@ -31,9 +31,3 @@ spec:
       enabled: true
     jaegerOperator:
       enabled: true
-    istio:
-      istioInstallArgs:
-        - name: meshConfig.enableTracing
-          value: "true"
-        - name: meshConfig.defaultConfig.tracing.sampling
-          value: "90.0"
