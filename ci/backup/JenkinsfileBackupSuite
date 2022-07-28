@@ -160,6 +160,22 @@ pipeline {
                       }
                   }
               }
+              stage('Rancher Backup Tests with Backup Restore Operator') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-mysql-backup-test-oke/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                ], wait: true
+                        }
+                    }
+            }
           }
       }
   }

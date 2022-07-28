@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
 	"io"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -25,7 +26,14 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"text/template"
 	"time"
+)
+
+const (
+	objectStoreCredsAccessKeyName       = "aws_access_key_id"     //nolint:gosec //#gosec G101 //#gosec G204
+	objectStoreCredsSecretAccessKeyName = "aws_secret_access_key" //nolint:gosec //#gosec G101 //#gosec G204
+
 )
 
 // SecretsData template for creating backup credentials
@@ -192,6 +200,71 @@ spec:
       endpoint: {{ .RancherSecretData.RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherSecretData.RancherBackupRegion }}.oraclecloud.com
 `
 
+const MySQLBackup = `
+---
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: {{ .VeleroMysqlBackupName }}
+  namespace: {{ .VeleroNamespaceName }}
+spec:
+  includedNamespaces:
+    - keycloak  
+  defaultVolumesToRestic: true
+  storageLocation: {{ .VeleroMysqlBackupStorageName }}
+  hooks:
+    resources:
+      - 
+        name: {{ .VeleroMysqlHookResourceName }}
+        includedNamespaces:
+          - keycloak
+        labelSelector:
+          matchLabels:
+            app: mysql
+        pre:
+          - 
+            exec:
+              container: mysql
+              command:
+                - bash
+                - /etc/mysql/conf.d/mysql-hook.sh
+                - -o backup
+                - -f {{ .VeleroMysqlBackupName }}.sql
+              onError: Fail
+              timeout: 5m`
+
+const MySQLRestore = `
+---
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: {{ .VeleroMysqlRestore }}
+  namespace: {{ .VeleroNamespaceName }}
+spec:
+  backupName: {{ .VeleroMysqlBackupName }}
+  includedNamespaces:
+    - keycloak 
+  restorePVs: false
+  hooks:
+    resources:
+      - name: {{ .VeleroMysqlHookResourceName }}
+        includedNamespaces:
+          - keycloak
+        labelSelector:
+          matchLabels:
+            app: mysql
+        postHooks:
+          - exec:
+              container: mysql
+              command:
+                - bash
+                - /etc/mysql/conf.d/mysql-hook.sh
+                - -o restore
+                - -f {{ .VeleroMysqlBackupName }}.sql
+              waitTimeout: 5m
+              execTimeout: 5m
+              onError: Fail`
+
 // RancherBackupData struct used for rancher backup templating
 type RancherBackupData struct {
 	RancherBackupName string
@@ -275,30 +348,47 @@ type RancherUser struct {
 	Username string
 }
 
+type VeleroMysqlBackupObject struct {
+	VeleroMysqlBackupName        string
+	VeleroNamespaceName          string
+	VeleroMysqlBackupStorageName string
+	VeleroMysqlHookResourceName  string
+}
+
+type VeleroMysqlRestoreObject struct {
+	VeleroMysqlRestore          string
+	VeleroNamespaceName         string
+	VeleroMysqlBackupName       string
+	VeleroMysqlHookResourceName string
+}
+
 // Variables used across backup components
 var (
-	VeleroNameSpace       string
-	VeleroSecretName      string
-	RancherSecretName     string
-	OciBucketID           string
-	OciBucketName         string
-	OciOsAccessKey        string
-	OciOsAccessSecretKey  string
-	OciCompartmentID      string
-	OciNamespaceName      string
-	BackupResourceName    string
-	BackupOpensearchName  string
-	BackupRancherName     string
-	BackupMySQLname       string
-	RestoreOpensearchName string
-	RestoreRancherName    string
-	RestoreMysqlName      string
-	BackupRegion          string
-	BackupStorageName     string
-	BackupID              string
-	RancherURL            string
-	RancherBackupFileName string
-	RancherToken          string
+	VeleroNameSpace             string
+	VeleroOpenSearchSecretName  string
+	VeleroMySQLSecretName       string
+	RancherSecretName           string
+	OciBucketID                 string
+	OciBucketName               string
+	OciOsAccessKey              string
+	OciOsAccessSecretKey        string
+	OciCompartmentID            string
+	OciNamespaceName            string
+	BackupResourceName          string
+	BackupOpensearchName        string
+	BackupRancherName           string
+	BackupMySQLName             string
+	RestoreOpensearchName       string
+	RestoreRancherName          string
+	RestoreMySQLName            string
+	BackupRegion                string
+	BackupOpensearchStorageName string
+	BackupMySQLStorageName      string
+	BackupID                    string
+	RancherURL                  string
+	RancherBackupFileName       string
+	RancherToken                string
+	KeyCloakUserIDList          []string
 )
 
 // GatherInfo invoked at the begining to setup all the values taken as input
@@ -306,7 +396,8 @@ var (
 // The values are originally set from the jenkins pipeline
 func GatherInfo() {
 	VeleroNameSpace = os.Getenv("VELERO_NAMESPACE")
-	VeleroSecretName = os.Getenv("VELERO_SECRET_NAME")
+	VeleroOpenSearchSecretName = os.Getenv("VELERO_SECRET_NAME")
+	VeleroMySQLSecretName = os.Getenv("VELERO_MYSQL_SECRET_NAME")
 	RancherSecretName = os.Getenv("RANCHER_SECRET_NAME")
 	OciBucketID = os.Getenv("OCI_OS_BUCKET_ID")
 	OciBucketName = os.Getenv("OCI_OS_BUCKET_NAME")
@@ -317,12 +408,14 @@ func GatherInfo() {
 	BackupResourceName = os.Getenv("BACKUP_RESOURCE")
 	BackupOpensearchName = os.Getenv("BACKUP_OPENSEARCH")
 	BackupRancherName = os.Getenv("BACKUP_RANCHER")
-	BackupMySQLname = os.Getenv("BACKUP_MYSQL")
+	BackupMySQLName = os.Getenv("BACKUP_MYSQL")
 	RestoreOpensearchName = os.Getenv("RESTORE_OPENSEARCH")
 	RestoreRancherName = os.Getenv("RESTORE_RANCHER")
-	BackupStorageName = os.Getenv("BACKUP_STORAGE")
+	RestoreMySQLName = os.Getenv("RESTORE_MYSQL")
+	BackupOpensearchStorageName = os.Getenv("BACKUP_OPENSEARCH_STORAGE")
+	BackupMySQLStorageName = os.Getenv("BACKUP_MYSQL_STORAGE")
 	BackupRegion = os.Getenv("BACKUP_REGION")
-	RestoreMysqlName = os.Getenv("RESTORE_MYSQL")
+
 }
 
 // Runner is a generic method that runs any bash command asynchronously with a configurable timeout
@@ -515,8 +608,17 @@ func VeleroObjectDelete(objectType, objectname, nameSpaceName string, log *zap.S
 		cmdArgs = append(cmdArgs, "restore.velero.io")
 	case "storage":
 		cmdArgs = append(cmdArgs, "backupstoragelocation.velero.io")
+	case "podvolumerestores":
+		cmdArgs = append(cmdArgs, "podvolumerestores.velero.io")
+	case "podvolumebackups":
+		cmdArgs = append(cmdArgs, "podvolumebackups.velero.io")
 	}
-	cmdArgs = append(cmdArgs, objectname)
+
+	if objectType == "podvolumerestores" || objectType == "podvolumebackups" {
+		cmdArgs = append(cmdArgs, "--all")
+	} else {
+		cmdArgs = append(cmdArgs, objectname)
+	}
 	cmdArgs = append(cmdArgs, "--ignore-not-found")
 
 	var kcmd BashCommand
@@ -746,6 +848,90 @@ func DeleteSecret(namespace string, name string, log *zap.SugaredLogger) error {
 	if err != nil {
 		log.Errorf("Error deleting secret ", zap.Error(err))
 		return err
+	}
+	return nil
+}
+
+// CreateCredentialsSecretFromFile creates opaque secret from a file
+func CreateCredentialsSecretFromFile(namespace string, name string, log *zap.SugaredLogger) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	var b bytes.Buffer
+	template, _ := template.New("testsecrets").Parse(SecretsData)
+	data := AccessData{
+		AccessName:             objectStoreCredsAccessKeyName,
+		ScrtName:               objectStoreCredsSecretAccessKeyName,
+		ObjectStoreAccessValue: OciOsAccessKey,
+		ObjectStoreScrt:        OciOsAccessSecretKey,
+	}
+
+	template.Execute(&b, data)
+	secretData := make(map[string]string)
+	secretData["cloud"] = b.String()
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type:       corev1.SecretTypeOpaque,
+		StringData: secretData,
+	}
+
+	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	if err != nil {
+		log.Errorf("Error creating secret ", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+// CreateVeleroBackupLocationObject creates velero backup object location
+func CreateVeleroBackupLocationObject(backupStorageName, backupSecretName string, log *zap.SugaredLogger) error {
+	var b bytes.Buffer
+	template, _ := template.New("velero-backup-location").Parse(VeleroBackupLocation)
+
+	data := VeleroBackupLocationObjectData{
+		VeleroBackupStorageName:          backupStorageName,
+		VeleroNamespaceName:              VeleroNameSpace,
+		VeleroObjectStoreBucketName:      OciBucketName,
+		VeleroSecretName:                 backupSecretName,
+		VeleroObjectStorageNamespaceName: OciNamespaceName,
+		VeleroBackupRegion:               BackupRegion,
+	}
+	template.Execute(&b, data)
+	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
+	if err != nil {
+		log.Errorf("Error creating velero backup location ", zap.Error(err))
+		//return err
+	}
+
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "backupstoragelocation.velero.io")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, VeleroNameSpace)
+	cmdArgs = append(cmdArgs, backupStorageName)
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
+	cmdArgs = append(cmdArgs, "--no-headers")
+	cmdArgs = append(cmdArgs, "--ignore-not-found")
+
+	var kcmd BashCommand
+	kcmd.Timeout = 1 * time.Minute
+	kcmd.CommandArgs = cmdArgs
+	cmdResponse := Runner(&kcmd, log)
+	if cmdResponse.CommandError != nil {
+		return cmdResponse.CommandError
+	}
+	storageNameRetrieved := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
+	if storageNameRetrieved == backupStorageName {
+		log.Errorf("backup storage location '%s' already created", backupStorageName)
 	}
 	return nil
 }

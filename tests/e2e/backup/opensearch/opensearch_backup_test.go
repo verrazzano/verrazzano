@@ -11,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup"
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strconv"
 	"strings"
@@ -26,18 +25,16 @@ import (
 )
 
 const (
-	shortWaitTimeout                    = 10 * time.Minute
-	shortPollingInterval                = 10 * time.Second
-	waitTimeout                         = 15 * time.Minute
-	pollingInterval                     = 30 * time.Second
-	vmoDeploymentName                   = "verrazzano-monitoring-operator"
-	osStsName                           = "vmi-system-es-master"
-	osStsPvcPrefix                      = "elasticsearch-master-vmi-system-es-master"
-	osDataDepPrefix                     = "vmi-system-es-data"
-	osIngestDeployment                  = "vmi-system-es-ingest"
-	osDepPvcPrefix                      = "vmi-system-es-data"
-	objectStoreCredsAccessKeyName       = "aws_access_key_id"     //nolint:gosec //#gosec G101 //#gosec G204
-	objectStoreCredsSecretAccessKeyName = "aws_secret_access_key" //nolint:gosec //#gosec G101 //#gosec G204
+	shortWaitTimeout     = 10 * time.Minute
+	shortPollingInterval = 10 * time.Second
+	waitTimeout          = 15 * time.Minute
+	pollingInterval      = 30 * time.Second
+	vmoDeploymentName    = "verrazzano-monitoring-operator"
+	osStsName            = "vmi-system-es-master"
+	osStsPvcPrefix       = "elasticsearch-master-vmi-system-es-master"
+	osDataDepPrefix      = "vmi-system-es-data"
+	osIngestDeployment   = "vmi-system-es-ingest"
+	osDepPvcPrefix       = "vmi-system-es-data"
 )
 
 var _ = t.BeforeSuite(func() {
@@ -55,90 +52,6 @@ var _ = t.AfterSuite(func() {
 
 var t = framework.NewTestFramework("opensearch-backup")
 
-// CreateCredentialsSecretFromFile creates opaque secret from a file
-func CreateCredentialsSecretFromFile(namespace string, name string) error {
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		t.Logs.Errorf("Failed to get clientset with error: %v", err)
-		return err
-	}
-
-	var b bytes.Buffer
-	template, _ := template.New("testsecrets").Parse(backup.SecretsData)
-	data := backup.AccessData{
-		AccessName:             objectStoreCredsAccessKeyName,
-		ScrtName:               objectStoreCredsSecretAccessKeyName,
-		ObjectStoreAccessValue: backup.OciOsAccessKey,
-		ObjectStoreScrt:        backup.OciOsAccessSecretKey,
-	}
-	template.Execute(&b, data)
-
-	secretData := make(map[string]string)
-	secretData["cloud"] = b.String()
-
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Type:       corev1.SecretTypeOpaque,
-		StringData: secretData,
-	}
-
-	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
-	if err != nil {
-		t.Logs.Errorf("Error creating secret ", zap.Error(err))
-		return err
-	}
-	return nil
-}
-
-// CreateVeleroBackupLocationObject creates velero backup object location
-func CreateVeleroBackupLocationObject() error {
-	var b bytes.Buffer
-	template, _ := template.New("velero-backup-location").Parse(backup.VeleroBackupLocation)
-
-	data := backup.VeleroBackupLocationObjectData{
-		VeleroBackupStorageName:          backup.BackupStorageName,
-		VeleroNamespaceName:              backup.VeleroNameSpace,
-		VeleroObjectStoreBucketName:      backup.OciBucketName,
-		VeleroSecretName:                 backup.VeleroSecretName,
-		VeleroObjectStorageNamespaceName: backup.OciNamespaceName,
-		VeleroBackupRegion:               backup.BackupRegion,
-	}
-	template.Execute(&b, data)
-	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
-	if err != nil {
-		t.Logs.Errorf("Error creating velero backup loaction ", zap.Error(err))
-		//return err
-	}
-
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "backupstoragelocation.velero.io")
-	cmdArgs = append(cmdArgs, "-n")
-	cmdArgs = append(cmdArgs, backup.VeleroNameSpace)
-	cmdArgs = append(cmdArgs, backup.BackupStorageName)
-	cmdArgs = append(cmdArgs, "-o")
-	cmdArgs = append(cmdArgs, "custom-columns=:metadata.name")
-	cmdArgs = append(cmdArgs, "--no-headers")
-	cmdArgs = append(cmdArgs, "--ignore-not-found")
-
-	var kcmd backup.BashCommand
-	kcmd.Timeout = 1 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-	cmdResponse := backup.Runner(&kcmd, t.Logs)
-	if cmdResponse.CommandError != nil {
-		return cmdResponse.CommandError
-	}
-	storageNameRetrieved := strings.TrimSpace(strings.Trim(cmdResponse.StandardOut.String(), "\n"))
-	if storageNameRetrieved == backup.BackupStorageName {
-		t.Logs.Errorf("backup storage location '%s' already created", backup.BackupStorageName)
-	}
-	return nil
-}
-
 // CreateVeleroBackupObject creates velero backup object that starts the backup
 func CreateVeleroBackupObject() error {
 	var b bytes.Buffer
@@ -146,7 +59,7 @@ func CreateVeleroBackupObject() error {
 	data := backup.VeleroBackupObject{
 		VeleroNamespaceName:              backup.VeleroNameSpace,
 		VeleroBackupName:                 backup.BackupOpensearchName,
-		VeleroBackupStorageName:          backup.BackupStorageName,
+		VeleroBackupStorageName:          backup.BackupOpensearchStorageName,
 		VeleroOpensearchHookResourceName: backup.BackupResourceName,
 	}
 	template.Execute(&b, data)
@@ -356,12 +269,12 @@ func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
 	t.Logs.Info("Create backup secret for velero backup objects")
 	Eventually(func() error {
-		return CreateCredentialsSecretFromFile(backup.VeleroNameSpace, backup.VeleroSecretName)
+		return backup.CreateCredentialsSecretFromFile(backup.VeleroNameSpace, backup.VeleroOpenSearchSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Create backup storage location for velero backup objects")
 	Eventually(func() error {
-		return CreateVeleroBackupLocationObject()
+		return backup.CreateVeleroBackupLocationObject(backup.BackupOpensearchStorageName, backup.VeleroOpenSearchSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Get backup id before starting the backup process")
@@ -387,12 +300,12 @@ func cleanUpVelero() {
 
 	t.Logs.Info("Cleanup backup storage object")
 	Eventually(func() error {
-		return backup.VeleroObjectDelete("storage", backup.BackupStorageName, backup.VeleroNameSpace, t.Logs)
+		return backup.VeleroObjectDelete("storage", backup.BackupOpensearchStorageName, backup.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup velero secrets")
 	Eventually(func() error {
-		return backup.DeleteSecret(backup.VeleroNameSpace, backup.VeleroSecretName, t.Logs)
+		return backup.DeleteSecret(backup.VeleroNameSpace, backup.VeleroOpenSearchSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 }
