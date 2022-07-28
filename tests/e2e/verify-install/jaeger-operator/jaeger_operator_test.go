@@ -102,6 +102,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, []string{jaegerOperatorName})
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", jaegerOperatorName, constants.VerrazzanoMonitoringNamespace, err))
+					return false
 				}
 				return result
 			}
@@ -153,6 +154,9 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 			Eventually(verifyImages, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
+		// GIVEN the Jaeger Operator is installed
+		// WHEN we check the CRDs created by Jaeger Operator
+		// THEN we successfully find the Jaeger CRDs
 		WhenJaegerOperatorInstalledIt(minVZVersion, "should have the correct Jaeger Operator CRDs", func() {
 			verifyCRDList := func() bool {
 				if isJaegerOperatorEnabled() {
@@ -187,6 +191,9 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
+		// GIVEN the Jaeger Operator is installed
+		// WHEN we check to make sure the collector pod are running
+		// THEN we successfully find the running pods
 		WhenJaegerOperatorInstalledIt(minVZVersionForDefaultInstance, "should have a default instance Collector pod running", func() {
 			verifyDefaultInstanceCollectorPod := func() bool {
 				if !isJaegerOperatorEnabled() {
@@ -200,6 +207,10 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 			}
 			Eventually(verifyDefaultInstanceCollectorPod, waitTimeout, pollingInterval).Should(BeTrue())
 		})
+
+		// GIVEN the Jaeger Operator is installed
+		// WHEN we check to make sure the query pod are running
+		// THEN we successfully find the running pods
 		WhenJaegerOperatorInstalledIt(minVZVersionForDefaultInstance, "should have a default instance Query pod running", func() {
 			verifyDefaultInstanceQueryPods := func() bool {
 				if !isJaegerOperatorEnabled() {
