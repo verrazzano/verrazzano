@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8s
@@ -13,7 +13,7 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// GetAPIServerURL gets the external URL of the API server
+// GetAPIServerURL gets the external URL of the API server provided by the user
 func GetAPIServerURL(client clipkg.Client) (string, error) {
 	// Get the configmap which has the info needed to build the URL
 	var cm corev1.ConfigMap
