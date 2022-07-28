@@ -45,7 +45,7 @@ pipeline {
                 copyArtifacts(
                     projectName: "${upstream_project}/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}",
                     selector: specific("${RPT_BUILD_NUMBER}"),
-                    filter: "${upload_filename}",
+                    filter: 'foobar.txt',
                     flatten: true,
                     optional: false,
                     fingerprintArtifacts: true,
