@@ -5,34 +5,38 @@ package helidonworkload
 
 import (
 	"context"
-	"github.com/go-logr/logr"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"io/ioutil"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/go-logr/logr"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 )
 
@@ -77,6 +81,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 // WHEN the controller Reconcile function is called and we attempt to fetch the workload
 // THEN return success from the controller as there is nothing more to do
 func TestReconcileWorkloadNotFound(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -92,7 +97,7 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -105,6 +110,7 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 // WHEN the controller Reconcile function is called and we attempt to fetch the workload and get an error
 // THEN return the error
 func TestReconcileFetchWorkloadError(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -120,7 +126,7 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -133,6 +139,7 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 // WHEN the controller Reconcile function is called and we attempt to validate the workload and get an error
 // THEN return the error
 func TestReconcileWorkloadMissingData(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
@@ -180,7 +187,7 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -193,6 +200,7 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Deployment and Service to be written
 func TestReconcileCreateHelidon(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
@@ -287,7 +295,7 @@ func TestReconcileCreateHelidon(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -301,6 +309,7 @@ func TestReconcileCreateHelidon(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Deployment and Service to be written with multiple containers
 func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
@@ -418,7 +427,7 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -432,6 +441,7 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Deployment, Service and Configmap to be written
 func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
@@ -530,7 +540,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 	// create a request and reconcile it
 	request := newRequest(testNamespace, "test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -545,6 +555,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 // THEN expect a Deployment, Service and Configmap to be written
 // AND expect that each application container has an associated logging sidecar container
 func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggingScope(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
@@ -658,7 +669,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 	// create a request and reconcile it
 	request := newRequest(testNamespace, "test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -784,6 +795,7 @@ func annotateRestartVersion(deployment *appsv1.Deployment, restartVersion string
 // WHEN the controller Reconcile function is called and the restart-version is specified
 // THEN the restart-version written
 func TestReconcileRestart(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
@@ -910,7 +922,7 @@ func TestReconcileRestart(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, "test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -920,6 +932,7 @@ func TestReconcileRestart(t *testing.T) {
 // TestReconcileKubeSystem tests to make sure we do not reconcile
 // Any resource that belong to the kube-system namespace
 func TestReconcileKubeSystem(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -934,4 +947,21 @@ func TestReconcileKubeSystem(t *testing.T) {
 	mocker.Finish()
 	assert.Nil(err)
 	assert.True(result.IsZero())
+}
+func TestReconcileFailed(t *testing.T) {
+	testAppConfigName := "unit-test-app-config"
+	testNamespace := "test-ns"
+	metricsexporter.RequiredInitialization()
+	assert := asserts.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	clientBuilder := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newReconciler(clientBuilder)
+	request := newRequest(testNamespace, testAppConfigName)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileError)
+	assert.NoError(err)
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	reconcileerrorCounterObject.Get().Inc()
+	reconciler.Reconcile(context.TODO(), request)
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 }

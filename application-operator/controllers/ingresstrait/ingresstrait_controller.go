@@ -23,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
@@ -116,6 +117,27 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
+	zapLogForMetrics := zap.S().With(controllerName)
+	counterMetricObject, erro := metricsexporter.GetSimpleCounterMetric(metricsexporter.IngresstraitReconcileCounter)
+	if erro != nil {
+		zapLogForMetrics.Error(erro)
+		return reconcile.Result{}, erro
+	}
+	counterMetricObject.Inc(zapLogForMetrics, erro)
+	errorCounterMetricObject, erro := metricsexporter.GetSimpleCounterMetric(metricsexporter.IngresstraitReconcileError)
+	if erro != nil {
+		zapLogForMetrics.Error(erro)
+		return reconcile.Result{}, erro
+	}
+
+	reconcileDurationMetricObject, erro := metricsexporter.GetDurationMetric(metricsexporter.IngresstraitReconcileDuration)
+	if erro != nil {
+		zapLogForMetrics.Error(erro)
+		return reconcile.Result{}, erro
+	}
+	reconcileDurationMetricObject.TimerStart()
+	defer reconcileDurationMetricObject.TimerStop()
+
 	if req.Namespace == vzconst.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
 		log.Infof("Ingress trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
@@ -136,6 +158,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	log, err := clusters.GetResourceLogger("ingresstrait", req.NamespacedName, trait)
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		zap.S().Errorf("Failed to create controller logger for ingress trait resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
@@ -148,6 +171,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 

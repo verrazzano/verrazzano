@@ -341,6 +341,6 @@ func getClusterNameForPromQuery() string {
 }
 func eventuallyMetricsContainLabels(metricName string, kv map[string]string) {
 	Eventually(func() bool {
-		return metricsContainLabels(metricName, map[string]string{})
+		return metricsContainLabels(metricName, kv)
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 }

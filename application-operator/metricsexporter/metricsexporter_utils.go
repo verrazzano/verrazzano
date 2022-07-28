@@ -18,9 +18,18 @@ import (
 type metricName string
 
 const (
-	AppconfigReconcileCounter  metricName = "reconcile counter"
-	AppconfigReconcileError    metricName = "reconcile error"
-	AppconfigReconcileDuration metricName = "reconcile duration"
+	AppconfigReconcileCounter     metricName = "reconcile counter"
+	AppconfigReconcileError       metricName = "reconcile error"
+	AppconfigReconcileDuration    metricName = "reconcile duration"
+	CohworkloadReconcileCounter   metricName = "coh reconcile counter"
+	CohworkloadReconcileError     metricName = "coh reconcile error"
+	CohworkloadReconcileDuration  metricName = "coh reconcile duration"
+	HelidonReconcileCounter       metricName = "helidon reconcile counter"
+	HelidonReconcileError         metricName = "helidon reconcile error"
+	HelidonReconcileDuration      metricName = "helidon reconcile duration"
+	IngresstraitReconcileCounter  metricName = "ingress reconcile counter"
+	IngresstraitReconcileError    metricName = "ingress reconcile error"
+	IngresstraitReconcileDuration metricName = "ingress reconcile duration"
 )
 
 // InitRegisterStart initalizes the metrics object, registers the metrics, and then starts the server
@@ -65,12 +74,42 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		AppconfigReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vao_appconfig_successful_reconcile_total",
-				Help: "Tracks how many times a the reconcile process is successful"}),
+				Help: "Tracks how many times a the appconfig reconcile process is successful"}),
 		},
 		AppconfigReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vao_appconfig_error_reconcile_total",
-				Help: "Tracks how many times a the reconcile process has failed"}),
+				Help: "Tracks how many times a the appconfig reconcile process has failed"}),
+		},
+		CohworkloadReconcileCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_cohworkload_error_reconcile_total",
+				Help: "Tracks how many times a the cohworkload reconcile process has failed"}),
+		},
+		CohworkloadReconcileError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_cohworkload_error_reconcile_total",
+				Help: "Tracks how many times a the cohworkload reconcile process has failed"}),
+		},
+		HelidonReconcileCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_helidonworkload_error_reconcile_total",
+				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+		},
+		HelidonReconcileError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_helidonworkload_error_reconcile_total",
+				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+		},
+		IngresstraitReconcileCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_ingresstrait_error_reconcile_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		IngresstraitReconcileError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_ingresstrait_error_reconcile_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 	}
 }
@@ -82,6 +121,24 @@ func initDurationMetricMap() map[metricName]*DurationMetrics {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vao_appconfig_reconcile_duration",
 				Help: "The duration in seconds of vao reconcile process",
+			}),
+		},
+		CohworkloadReconcileDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_cohworkload_reconcile_duration",
+				Help: "The duration in seconds of vao Cohworkload reconcile process",
+			}),
+		},
+		HelidonReconcileDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_helidon_reconcile_duration",
+				Help: "The duration in seconds of vao Helidon reconcile process",
+			}),
+		},
+		IngresstraitReconcileDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_ingresstrait_reconcile_duration",
+				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},
 	}
