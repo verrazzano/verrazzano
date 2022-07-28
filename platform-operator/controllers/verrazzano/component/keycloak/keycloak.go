@@ -449,6 +449,12 @@ type KeycloakUsers []struct {
 	} `json:"access"`
 }
 
+// KeycloakClientSecret represents a client-secret of a client currently configured in Keycloak
+type KeycloakClientSecret struct {
+	Type   string `json:"type"`
+	Secret string `json:"secret"`
+}
+
 type templateData struct {
 	DNSSubDomain string
 }
@@ -1165,6 +1171,7 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		return err
 	}
 	ctx.Log().Debugf("createOrUpdateClient: Created %s client", clientName)
+	ctx.Log().Oncef("Component Keycloak successfully created client %s", clientName)
 	return nil
 }
 
@@ -1429,4 +1436,60 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 	}
 
 	return b.String(), nil
+}
+
+// GetRancherClientSecretFromKeycloak returns the secret from rancher client in keycloak
+func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error) {
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return "", err
+	}
+
+	// Login to Keycloak
+	err = loginKeycloak(ctx, cfg, cli)
+	if err != nil {
+		return "", err
+	}
+
+	kcClients, err := getKeycloakClients(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	id := ""
+	for _, kcClient := range kcClients {
+		if kcClient.ClientID == "rancher" {
+			id = kcClient.ID
+		}
+	}
+
+	if id == "" {
+		ctx.Log().Debugf("GetRancherClientSecretFromKeycloak: rancher client does not exist")
+		return "", nil
+	}
+
+	var clientSecret KeycloakClientSecret
+	// Get the Client secret JSON array
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "clients/"+id+"/client-secret", "-r", vzSysRealm)
+	out, err := cmd.Output()
+	if err != nil {
+		ctx.Log().Errorf("failed retrieving rancher client secret from keycloak: %s", err)
+		return "", err
+	}
+	if len(string(out)) == 0 {
+		err = errors.New("client secret json from keycloak is zero length")
+		ctx.Log().Error(err)
+		return "", err
+	}
+	err = json.Unmarshal(out, &clientSecret)
+	if err != nil {
+		ctx.Log().Errorf("failed ummarshalling client secret json: %v", err)
+		return "", err
+	}
+
+	if clientSecret.Secret == "" {
+		return "", ctx.Log().ErrorNewErr("client secret is empty")
+	}
+
+	return clientSecret.Secret, nil
 }

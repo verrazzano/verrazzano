@@ -90,6 +90,18 @@ const (
 	useBundledSystemChartValue = "true"
 )
 
+const (
+	APIGroupRancherManagement        = "management.cattle.io"
+	APIGroupVersionRancherManagement = "v3"
+	AuthConfigKeycloak               = "keycloakoidc"
+)
+
+var GVKAuthConfig = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "AuthConfig",
+}
+
 func useAdditionalCAs(acme vzapi.Acme) bool {
 	return acme.Environment != "production"
 }
@@ -350,5 +362,31 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.V
 	}
 
 	log.Once("Successfully delete Rancher local cluster")
+	return nil
+}
+
+func configureKeycloakOIDC(log vzlog.VerrazzanoLogger, c client.Client) error {
+	keycloakAuthConfig := unstructured.Unstructured{}
+	ociDriver.SetGroupVersionKind(GVKAuthConfig)
+	ociDriver.se
+	ociDriverName := types.NamespacedName{Name: NodeDriverOCI}
+	err := c.Get(context.Background(), ociDriverName, &ociDriver)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting OCI Driver: %s", err.Error())
+	}
+	rancherHostName, err := getRancherHostname(c, vz)
+
+	ociDriverMerge := client.MergeFrom(ociDriver.DeepCopy())
+	ociDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
+	err = c.Patch(context.Background(), &ociDriver, ociDriverMerge)
+	if err != nil {
+		log.Oncef("Skipping Rancher delete local cluster, unable to obtain Rancher hostname: %s", err.Error())
+		return nil
+		return log.ErrorfThrottledNewErr("Failed patching OCI Driver: %s", err.Error())
+	}
+	if len(rancherHostName) == 0 {
+		log.Oncef("Skipping Rancher delete local host since Rancher host name is missing")
+		return nil
+	}
 	return nil
 }
