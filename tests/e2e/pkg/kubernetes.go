@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,20 +51,8 @@ const (
 
 // DoesCRDExist returns whether a CRD with the given name exists for the cluster
 func DoesCRDExist(crdName string) (bool, error) {
-	// use the current context in the kubeconfig
-	config, err := k8sutil.GetKubeConfig()
+	crds, err := ListCRDs()
 	if err != nil {
-		return false, err
-	}
-	apixClient, err := apiextv1.NewForConfig(config)
-	if err != nil {
-		Log(Error, "Could not get apix client")
-		return false, err
-	}
-
-	crds, err := apixClient.CustomResourceDefinitions().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get CRDS: %v", err))
 		return false, err
 	}
 
@@ -102,6 +91,28 @@ func DoesNamespaceExistInCluster(name string, kubeconfigPath string) (bool, erro
 	}
 
 	return namespace != nil && len(namespace.Name) > 0, nil
+}
+
+// ListCRDs returns the list of CRDs in a cluster
+func ListCRDs() (*apiext.CustomResourceDefinitionList, error) {
+	// use the current context in the kubeconfig
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return nil, err
+	}
+	apixClient, err := apiextv1.NewForConfig(config)
+	if err != nil {
+		Log(Error, "Could not get apix client")
+		return nil, err
+	}
+
+	crds, err := apixClient.CustomResourceDefinitions().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list CRDS: %v", err))
+		return nil, err
+	}
+
+	return crds, nil
 }
 
 // ListNamespaces returns a namespace list for the given list options
