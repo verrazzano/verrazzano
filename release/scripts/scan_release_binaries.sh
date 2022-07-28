@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Perform malware scan on release binaries
@@ -43,14 +43,17 @@ SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
 SCANNER_HOME="$WORK_DIR/scanner_home"
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 RELEASE_TAR_BALL="verrazzano_$RELEASE_VERSION.zip"
+RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
+VERRAZZANO_TAR_GZ_FILE="verrazzano_periodic.tar.gz"
 
 function downaload_release_tarball() {
   cd $WORK_DIR
+  mkdir -p $RELEASE_BUNDLE_DIR
   oci --region ${OCI_REGION} os object get \
         --namespace ${OBJECT_STORAGE_NS} \
         -bn ${OBJECT_STORAGE_BUCKET} \
         --name "${BRANCH}/${RELEASE_TAR_BALL}" \
-        --file "${RELEASE_TAR_BALL}"
+        --file "$RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL}"
 }
 
 function install_scanner() {
@@ -73,11 +76,17 @@ function scan_release_binaries() {
     rm -f $SCAN_REPORT
   fi
 
+  # Extract the release bundle to a directory, and scan that directory
+  cd $RELEASE_BUNDLE_DIR
+  unzip $RELEASE_TAR_BALL
+  rm $RELEASE_TAR_BALL
+  gunzip $VERRAZZANO_TAR_GZ_FILE
+
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
   # Also --REPORT option prints the output of the scan in the console, which is removed and redirected to a file
-  echo "Starting the scan of $WORK_DIR/$RELEASE_TAR_BALL, it might take a longer duration. The output of the scan is being written to $SCAN_REPORT ..."
-  ./uvscan $WORK_DIR/$RELEASE_TAR_BALL --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
+  echo "Starting the scan of $RELEASE_BUNDLE_DIR, it might take a longer duration. The output of the scan is being written to $SCAN_REPORT ..."
+  ./uvscan $RELEASE_BUNDLE_DIR --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
 
   # Extract only the last 25 lines from the scan report and create a file, which will be used for the validation
   local scan_summary="${SCAN_REPORT_DIR}/scan_summary.out"
