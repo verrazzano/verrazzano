@@ -24,10 +24,8 @@ var verrazzanoiocrds = map[string]bool{
 	"multiclustersecrets.clusters.verrazzano.io":                   false,
 	"verrazzanocoherenceworkloads.oam.verrazzano.io":               false,
 	"verrazzanohelidonworkloads.oam.verrazzano.io":                 false,
-	"verrazzanomanagedclusters.clusters.verrazzano.io":             false,
 	"verrazzanomonitoringinstances.verrazzano.io":                  false,
 	"verrazzanoprojects.clusters.verrazzano.io":                    false,
-	"verrazzanos.install.verrazzano.io":                            false,
 	"verrazzanoweblogicworkloads.oam.verrazzano.io":                false,
 }
 
@@ -78,6 +76,11 @@ var monitoringcoreoscomcrds = map[string]bool{
 	"prometheusrules.monitoring.coreos.com":     false,
 	"servicemonitors.monitoring.coreos.com":     false,
 	"thanosrulers.monitoring.coreos.com":        false,
+}
+
+var optionalcrds = []string{
+	"verrazzanomanagedclusters.clusters.verrazzano.io",
+	"verrazzanos.install.verrazzano.io",
 }
 
 var t = framework.NewTestFramework("uninstall verify crds")
@@ -163,6 +166,16 @@ func checkCrds(crds *apiextv1.CustomResourceDefinitionList, expectdCrds map[stri
 			expectdCrds[crd.Name] = true
 		} else {
 			if strings.HasSuffix(crd.Name, suffix) {
+				optionalCrdFound := false
+				for _, optionalcrd := range optionalcrds {
+					if crd.Name == optionalcrd {
+						optionalCrdFound = true
+						break
+					}
+				}
+				if optionalCrdFound {
+					continue
+				}
 				unexpectedCrd = true
 				pkg.Log(pkg.Error, fmt.Sprintf("Unexpected CRD was found: %s", crd.Name))
 			}
