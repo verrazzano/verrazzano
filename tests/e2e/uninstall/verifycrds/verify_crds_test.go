@@ -12,6 +12,7 @@ import (
 	"strings"
 )
 
+// Expected verrazzano.io CRDs after uninstall
 var verrazzanoiocrds = map[string]bool{
 	"ingresstraits.oam.verrazzano.io":                              false,
 	"loggingtraits.oam.verrazzano.io":                              false,
@@ -29,6 +30,14 @@ var verrazzanoiocrds = map[string]bool{
 	"verrazzanoweblogicworkloads.oam.verrazzano.io":                false,
 }
 
+// These CRDs are not deleted when using vz uninstall but are deleted when deleting the platform-operator.yaml.
+// Therefore, they may or may not be present after an uninstall.
+var optionalverrazzanoiocrds = []string{
+	"verrazzanomanagedclusters.clusters.verrazzano.io",
+	"verrazzanos.install.verrazzano.io",
+}
+
+// Expected istio.io CRDs after uninstall
 var istioiocrds = map[string]bool{
 	"authorizationpolicies.security.istio.io":  false,
 	"destinationrules.networking.istio.io":     false,
@@ -47,6 +56,7 @@ var istioiocrds = map[string]bool{
 	"workloadgroups.networking.istio.io":       false,
 }
 
+// Expected oam.dev CRDs after uninstall
 var oamdevcrds = map[string]bool{
 	"applicationconfigurations.core.oam.dev": false,
 	"components.core.oam.dev":                false,
@@ -58,6 +68,7 @@ var oamdevcrds = map[string]bool{
 	"workloaddefinitions.core.oam.dev":       false,
 }
 
+// Expected cert-manager.io CRDs after uninstall
 var certmanageriocrds = map[string]bool{
 	"certificaterequests.cert-manager.io": false,
 	"certificates.cert-manager.io":        false,
@@ -67,6 +78,7 @@ var certmanageriocrds = map[string]bool{
 	"orders.acme.cert-manager.io":         false,
 }
 
+// Expected monitoring.coreis.com CRDs after uninstall
 var monitoringcoreoscomcrds = map[string]bool{
 	"alertmanagerconfigs.monitoring.coreos.com": false,
 	"alertmanagers.monitoring.coreos.com":       false,
@@ -76,11 +88,6 @@ var monitoringcoreoscomcrds = map[string]bool{
 	"prometheusrules.monitoring.coreos.com":     false,
 	"servicemonitors.monitoring.coreos.com":     false,
 	"thanosrulers.monitoring.coreos.com":        false,
-}
-
-var optionalcrds = []string{
-	"verrazzanomanagedclusters.clusters.verrazzano.io",
-	"verrazzanos.install.verrazzano.io",
 }
 
 var t = framework.NewTestFramework("uninstall verify crds")
@@ -127,7 +134,7 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 	t.It("Check for unexpected CRDs", func() {
 		var crdsFound = make(map[string]bool)
 		for _, crd := range crds.Items {
-			// Anything other than these CRDs being checked are unexpected
+			// Anything other than these CRDs being checked are unexpected after an uninstall
 			if strings.HasSuffix(crd.Name, "projectcalico.org") ||
 				strings.HasSuffix(crd.Name, "verrazzano.io") ||
 				strings.HasSuffix(crd.Name, "istio.io") ||
@@ -158,6 +165,7 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 	})
 })
 
+// checkCRds checks for both expected CRDs and unexpected CRDs for a given CRDs suffix (for example, verrazzano.io)
 func checkCrds(crds *apiextv1.CustomResourceDefinitionList, expectdCrds map[string]bool, suffix string) {
 	unexpectedCrd := false
 	for _, crd := range crds.Items {
@@ -167,7 +175,7 @@ func checkCrds(crds *apiextv1.CustomResourceDefinitionList, expectdCrds map[stri
 		} else {
 			if strings.HasSuffix(crd.Name, suffix) {
 				optionalCrdFound := false
-				for _, optionalcrd := range optionalcrds {
+				for _, optionalcrd := range optionalverrazzanoiocrds {
 					if crd.Name == optionalcrd {
 						optionalCrdFound = true
 						break
