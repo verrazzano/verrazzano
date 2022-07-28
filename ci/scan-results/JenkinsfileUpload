@@ -37,9 +37,14 @@ pipeline {
         stage('Fetch Scan Report') {
             steps {
                 script {
-                    sh """
-                    curl -k -v ${artifact_path} > ${upload_file_name}
-                    """
+                    copyArtifacts(
+                        projectName: 'ocir-scan-results/${RPT_BUILD_BRANCH}',   // the name of project, as you find it from the root of jenkins
+                        selector: specific(${RPT_BUILD_NUMBER}),                // selector to select the build to copy from. If not specified, latest stable build is used.
+                        filter: '**/consolidated-upload.json',                  // ant-expression to filter artifacts to copy, Attention! Filter is case sensitive
+                        flatten: true,                          // ignore directory structures of artifacts, Artifact will be placed at 'sources/deploy/myzip.zip'. Is the option false, you find it at 'projects/Outpu/myzip.py'
+                        optional: false,                        // do not fail the step even if no appropriate build is found.
+                        fingerprintArtifacts: true,             // fingerprint artifacts to track builds using those artifacts
+                    )
                 }
             }
         }
@@ -48,7 +53,7 @@ pipeline {
             steps {
                 script{
                     sh """
-                    curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_file_name} https://vzship-scanmanager.appoci.oraclecorp.com/scanreports
+                    echo curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_file_name} https://vzship-scanmanager.appoci.oraclecorp.com/scanreports
                     """
                 }
             }
