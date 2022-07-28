@@ -373,6 +373,39 @@ pipeline {
             }
         }
 
+        stage ('Start Opensearch and Rancher Tests') {
+          parallel {
+             stage('Initiate opensearch backup hook tests') {
+                environment {
+                    DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
+                }
+                steps {
+                    runGinkgoRandomize('backup/opensearch')
+                }
+                post {
+                    always {
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    }
+                }
+            }
+            stage('Initiate rancher backup operator tests') {
+                environment {
+                    DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
+                }
+                steps {
+                    runGinkgoRandomize('backup/rancher')
+                }
+                post {
+                    always {
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    }
+                }
+            }
+
+          }
+        }
     }
     post {
         always {
