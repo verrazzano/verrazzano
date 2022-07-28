@@ -62,7 +62,7 @@ helm upgrade --install opensearch opensearch/opensearch --version "$OPENSEARCH_C
 
 kubectl get namespace -o=name | grep "verrazzano-install"
 if [ $? -ne 0 ]; then
-  echo "Create the verrazzano-install namespace"
+  echo "External OpenSearch - Create the verrazzano-install namespace"
   kubectl create namespace verrazzano-install
 fi
 cp root-ca.pem "$SCRIPT_DIR"/ca-bundle
