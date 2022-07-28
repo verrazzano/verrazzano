@@ -127,6 +127,7 @@ func IsJaegerMetricFound(kubeconfigPath, metricName string, kv map[string]string
 	return false
 }
 
+//ListJaegerTraces lists all trace ids for a given service.
 func ListJaegerTraces(kubeconfigPath string, serviceName string) []string {
 	var traces []string
 	url := fmt.Sprintf("%s/api/traces?service=%s", getJaegerURL(kubeconfigPath), serviceName)
@@ -152,6 +153,7 @@ func ListJaegerTraces(kubeconfigPath string, serviceName string) []string {
 	return traces
 }
 
+//ListServicesInJaeger lists the services whose traces are available in Jaeger
 func ListServicesInJaeger(kubeconfigPath string) []string {
 	var services []string
 	url := fmt.Sprintf("%s/api/services", getJaegerURL(kubeconfigPath))
