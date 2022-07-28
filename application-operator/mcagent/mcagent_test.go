@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -33,7 +34,7 @@ var validSecret = corev1.Secret{
 		Name:      constants.MCAgentSecret,
 		Namespace: constants.VerrazzanoSystemNamespace,
 	},
-	Data: map[string][]byte{constants.ClusterNameData: []byte("cluster1"), constants.AdminKubeconfigData: []byte("kubeconfig")},
+	Data: map[string][]byte{constants.ClusterNameData: []byte("cluster1"), mcconstants.KubeconfigKey: []byte("kubeconfig")},
 }
 
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
@@ -191,7 +192,7 @@ func TestValidateSecret(t *testing.T) {
 
 	// A secret without a cluster name
 	invalidSecret := validSecret
-	invalidSecret.Data = map[string][]byte{constants.AdminKubeconfigData: []byte("kubeconfig")}
+	invalidSecret.Data = map[string][]byte{mcconstants.KubeconfigKey: []byte("kubeconfig")}
 	err = validateAgentSecret(&invalidSecret)
 	assert.Error(err)
 	assert.Contains(err.Error(), fmt.Sprintf("missing the required field %s", constants.ClusterNameData))
@@ -200,7 +201,7 @@ func TestValidateSecret(t *testing.T) {
 	invalidSecret.Data = map[string][]byte{constants.ClusterNameData: []byte("cluster1")}
 	err = validateAgentSecret(&invalidSecret)
 	assert.Error(err)
-	assert.Contains(err.Error(), fmt.Sprintf("missing the required field %s", constants.AdminKubeconfigData))
+	assert.Contains(err.Error(), fmt.Sprintf("missing the required field %s", mcconstants.KubeconfigKey))
 }
 
 // Test_getEnvValue tests getEnvValue

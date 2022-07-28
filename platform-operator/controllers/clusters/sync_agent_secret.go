@@ -104,6 +104,8 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	return nil
 }
 
+// buildKubeConfigUsingRancherURL builds the kubeconfig using the Rancher URL as the api server, and
+// the CA cert of the Rancher ingress as the cert authority
 func (r *VerrazzanoManagedClusterReconciler) buildKubeConfigUsingRancherURL(serviceAccountSecret corev1.Secret) (*vzk8s.KubeConfig, error) {
 	vz, err := r.getVerrazzanoResource()
 	if err != nil {

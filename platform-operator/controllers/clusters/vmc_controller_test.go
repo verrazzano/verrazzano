@@ -17,7 +17,6 @@ import (
 	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	constants2 "github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
@@ -1525,7 +1524,7 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			adminKubeconfig := string(secret.Data[constants2.AdminKubeconfigData])
+			adminKubeconfig := string(secret.Data[mcconstants.KubeconfigKey])
 			if rancherEnabled && rancherBasedKubeConfigEnabled {
 				assert.Contains(t, adminKubeconfig, "server: "+rancherURL)
 			} else {
