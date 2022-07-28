@@ -38,7 +38,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    curl ${artifact_path} > ${upload_file_name}
+                    curl -k -v ${artifact_path} > ${upload_file_name}
                     """
                 }
             }
