@@ -22,8 +22,8 @@ pipeline {
     }
 
     environment {
-        upload_file_name="consolidated-upload.json"
-        //artifact_path="https://build.verrazzano.io/job/ocir-scan-results/job/${RPT_BRANCH_NAME}/${RPT_BUILD_NUMBER}/artifact/scan-results/latest-periodic/${upload_file_name}"
+        upstream_project="test-multi-pipeline"
+        upload_filename="foobar.txt"
 
         // OCI_CLI_REGION = "us-ashburn-1"
         // OCI_CLI_AUTH="api_key"
@@ -38,13 +38,14 @@ pipeline {
             steps {
                 sh """
                     echo "RPT_BRANCH_NAME = ${RPT_BRANCH_NAME}"
-                    echo "PROJECT_NAME = test-pipeline/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}"
+                    echo "PROJECT_NAME = ${upstream_pipeline}/${RPT_BRANCH_NAME}"
                     echo "RPT_BUILD_NUMBER = ${RPT_BUILD_NUMBER}"
+                    echo "upstream_filename = ${upstream_filename}"
                 """
                 copyArtifacts(
-                    projectName: "test-pipeline/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}",   // the name of project, as you find it from the root of jenkins
-                    selector: specific('${RPT_BUILD_NUMBER}'),                // selector to select the build to copy from. If not specified, latest stable build is used.
-                    filter: 'foobar.txt',                  // ant-expression to filter artifacts to copy, Attention! Filter is case sensitive
+                    projectName: "${upstream_pipeline}/${RPT_BRANCH_NAME}",   // the name of project, as you find it from the root of jenkins
+                    selector: specific("${RPT_BUILD_NUMBER}"),                // selector to select the build to copy from. If not specified, latest stable build is used.
+                    filter: "${upload_filename}",                  // ant-expression to filter artifacts to copy, Attention! Filter is case sensitive
                     flatten: true,                          // ignore directory structures of artifacts, Artifact will be placed at 'sources/deploy/myzip.zip'. Is the option false, you find it at 'projects/Outpu/myzip.py'
                     optional: false,                        // do not fail the step even if no appropriate build is found.
                     fingerprintArtifacts: true,             // fingerprint artifacts to track builds using those artifacts
@@ -52,6 +53,7 @@ pipeline {
                 sh """
                     echo "ls -l"
                     ls -l
+                    cat ${upload_filename}
                 """
             }
         }
@@ -60,7 +62,7 @@ pipeline {
             steps {
                 script{
                     sh """
-                    echo curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_file_name} https://vzship-scanmanager.appoci.oraclecorp.com/scanreports
+                    echo curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} https://vzship-scanmanager.appoci.oraclecorp.com/scanreports
                     """
                 }
             }
@@ -71,7 +73,7 @@ pipeline {
     post {
         cleanup {
             sh """
-                rm -f ${upload_file_name}
+                rm -f ${upload_filename}
             """
         }
     }
