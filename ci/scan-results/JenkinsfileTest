@@ -1,0 +1,55 @@
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    options {
+        timestamps ()
+        copyArtifactPermission('upload-scan-reports')
+        // allow all the projects or branches of 'Other-folder/Multi branch Pipeline Test' and 'second Folder' to copy artifacts of this job
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            label "VM.Standard2.2"
+        }
+    }
+
+    triggers { cron("@daily") }
+
+    environment {
+        FOOBAR='foobar.txt'
+    }
+
+    stages {
+        stage('Create foobar.txt file') {
+            steps {
+                script {
+                    sh """
+                        echo "Creating foobar.txt ..."
+                        echo "This is foobar.txt" > foobar.txt
+                        echo "Created foobar.txt"
+                        echo "ls -l"
+                        ls -l
+                    """
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'foobar.txt', allowEmptyArchive: true
+                }
+            }
+        }
+    }
+    post {
+        success {
+            script {
+                build job: 'upload-scan-report', parameters: [
+                    string(name: 'RPT_BRANCH_NAME', value: ${env.BRANCH_NAME}),
+                    string(name: 'RPT_BUILD_NUMBER', value: ${env.BUILD_NUMBER})
+                ]
+            }
+        }
+    }
+}
