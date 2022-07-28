@@ -160,7 +160,7 @@ pipeline {
                       }
                   }
               }
-              stage('Rancher Backup Tests with Backup Restore Operator') {
+              stage('MySQL Backup Tests with Velero Operator') {
                     steps {
                         script {
                             build job: "/verrazzano-mysql-backup-test-oke/${CLEAN_BRANCH_NAME}",
