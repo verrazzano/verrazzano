@@ -4,8 +4,7 @@
 pipeline {
     options {
         timestamps ()
-        copyArtifactPermission('upload-scan-reports')
-        // allow all the projects or branches of 'Other-folder/Multi branch Pipeline Test' and 'second Folder' to copy artifacts of this job
+        copyArtifactPermission('upload-scan-report')
     }
 
     agent {
@@ -87,8 +86,8 @@ pipeline {
         success {
             script {
                 build job: 'upload-scan-report', parameters: [
-                    string(name: 'RPT_BRANCH_NAME', value: ${env.BRANCH_NAME}),
-                    string(name: 'RPT_BUILD_NUMBER', value: ${env.BUILD_NUMBER})
+                    string(name: 'RPT_BRANCH_NAME', value: "${env.BRANCH_NAME}"),
+                    string(name: 'RPT_BUILD_NUMBER', value: "${env.BUILD_NUMBER}")
                 ]
             }
         }

@@ -16,8 +16,6 @@ pipeline {
         }
     }
 
-    triggers { cron("@daily") }
-
     environment {
         FOOBAR='foobar.txt'
     }
@@ -28,10 +26,12 @@ pipeline {
                 script {
                     sh """
                         echo "Creating foobar.txt ..."
-                        echo "This is foobar.txt" > foobar.txt
+                        echo "This is foobar.txt for build ${RPT_BRANCH_NAME}/${RPT_BUILD_NUMBER}" > foobar.txt
                         echo "Created foobar.txt"
                         echo "ls -l"
                         ls -l
+                        echo "cat foobar.txt"
+                        cat foobar.txt
                     """
                 }
             }
