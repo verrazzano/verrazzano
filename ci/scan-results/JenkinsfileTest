@@ -17,29 +17,29 @@ pipeline {
     }
 
     environment {
-        FOOBAR='foobar.txt'
+        UPLOAD_FILE='consolidated-upload.json'
     }
 
     stages {
-        stage('Create foobar.txt file') {
+        stage('Create consolidated-upload.json file') {
             steps {
                 script {
                     sh """
-                        echo "Creating foobar.txt ..."
-                        echo "This is foobar.txt for build ${env.BRANCH_NAME}/${env.BUILD_NUMBER}" > foobar.txt
-                        echo "Created foobar.txt"
-                        echo "ls -l"
-                        ls -l
-                        echo "cat foobar.txt"
-                        cat foobar.txt
+                        echo "Creating ${UPLOAD_FILE} ..."
+                        echo "This is ${UPLOAD_FILE} for build ${env.BRANCH_NAME}/${env.BUILD_NUMBER}" > ${UPLOAD_FILE}
+                        echo "Created ${UPLOAD_FILE}"
+                        echo "ls -ld ${UPLOAD_FILE}"
+                        ls -ld ${UPLOAD_FILE}
+                        echo "cat ${UPLOAD_FILE}"
+                        cat ${UPLOAD_FILE}
                         echo "JOB_NAME is '${env.JOB_NAME}'"
-                        echo "PROJECT_NAME is '${env.PROJECT_NAME}'"
+                        echo "BUILD_NUMBER is '${env.BUILD_NUMBER}'"
                     """
                 }
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'foobar.txt', allowEmptyArchive: true
+                    archiveArtifacts artifacts: "${UPLOAD_FILE}", allowEmptyArchive: true
                 }
             }
         }
@@ -49,8 +49,7 @@ pipeline {
             script {
                 build job: 'upload-scan-report', parameters: [
                     string(name: 'UPSTREAM_JOB', value: "${env.JOB_NAME}"),
-                    string(name: 'RPT_BRANCH_NAME', value: "${env.BRANCH_NAME}"),
-                    string(name: 'RPT_BUILD_NUMBER', value: "${env.BUILD_NUMBER}")
+                    string(name: 'UPSTREAM_BUILD', value: "${env.BUILD_NUMBER}")
                 ], propagate: false, wait: false
             }
         }

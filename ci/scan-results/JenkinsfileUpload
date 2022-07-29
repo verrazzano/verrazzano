@@ -18,20 +18,11 @@ pipeline {
 
     parameters {
         string (name: 'UPSTREAM_JOB', defaultValue: 'NONE', description: 'Name of the upstream job')
-        string (name: 'RPT_BRANCH_NAME', defaultValue: 'NONE', description: 'Which branch to upload the scan report for')
-        string (name: 'RPT_BUILD_NUMBER', defaultValue: 'NONE', description: 'Build number where upload file was generated')
+        string (name: 'UPSTREAM_BUILD', defaultValue: 'NONE', description: 'Build number to copy the upload file from')
     }
 
     environment {
-        upstream_project="test-multi-pipeline"
-        upload_filename="foobar.txt"
-
-        // OCI_CLI_REGION = "us-ashburn-1"
-        // OCI_CLI_AUTH="api_key"
-        // OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
-        // OCI_CLI_USER = credentials('oci-dev-user-ocid')
-        // OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
-        // OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+        upload_filename="consolidated-upload.json"
     }
 
     stages {
@@ -40,10 +31,11 @@ pipeline {
                 script {
                     sh """
                         echo "UPSTREAM_JOB = ${params.UPSTREAM_JOB}"
+                        echo "UPSTREAM_BUILD = ${params.UPSTREAM_BUILD}"
                     """
                     copyArtifacts(
                         projectName: params.UPSTREAM_JOB,
-                        selector: specific("${RPT_BUILD_NUMBER}"),
+                        selector: specific(params.UPSTREAM_BUILD),
                         filter: "${upload_filename}",
                         flatten: true,
                         optional: false,
