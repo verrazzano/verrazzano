@@ -39,7 +39,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                        echo "UPSTREAM_JOB = ${UPSTREAM_JOB}"
+                        echo "UPSTREAM_JOB = ${params.UPSTREAM_JOB}"
                     """
                     copyArtifacts(
                         projectName: params.UPSTREAM_JOB,
