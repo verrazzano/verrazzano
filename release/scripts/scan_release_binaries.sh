@@ -46,7 +46,7 @@ RELEASE_TAR_BALL="verrazzano_$RELEASE_VERSION.zip"
 RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
 VERRAZZANO_TAR_GZ_FILE="verrazzano_periodic.tar.gz"
 
-function downaload_release_tarball() {
+function download_release_tarball() {
   cd $WORK_DIR
   mkdir -p $RELEASE_BUNDLE_DIR
   oci --region ${OCI_REGION} os object get \
@@ -82,6 +82,9 @@ function scan_release_binaries() {
   rm $RELEASE_TAR_BALL
   gunzip $VERRAZZANO_TAR_GZ_FILE
 
+  count_files=$(ls -1q *.* | wc -l)
+  ls $RELEASE_BUNDLE_DIR
+
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
   # Also --REPORT option prints the output of the scan in the console, which is removed and redirected to a file
@@ -96,8 +99,8 @@ function scan_release_binaries() {
   tail -25 ${SCAN_REPORT} > ${scan_summary}
 
   # The following set of lines from the summary in the scan report is used here for validation.
-  declare -a expectedLines=("Total files:...................     1"
-                            "Clean:.........................     1"
+  declare -a expectedLines=("Total files:...................     $count_files"
+                            "Clean:.........................     $count_files"
                             "Not Scanned:...................     0"
                             "Possibly Infected:.............     0"
                             "Objects Possibly Infected:.....     0"
@@ -133,7 +136,7 @@ function scan_release_binaries() {
 
 mkdir -p $SCANNER_HOME
 validate_oci_cli || exit 1
-downaload_release_tarball || exit 1
+download_release_tarball || exit 1
 install_scanner || exit 1
 update_virus_definition || exit 1
 scan_release_binaries || exit 1
