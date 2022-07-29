@@ -6,6 +6,8 @@
 
 image:
   pullPolicy: IfNotPresent
+commonLabels:
+  app: "mysql"
 
 ## Add an init container to chown the data directory to be owned by the mysql user
 ## (uid=27 gid=27) so that when upgrading, mysql user can definitely access data dir
@@ -14,23 +16,30 @@ image:
 primary:
   podLabels:
     app: "mysql"
+  configuration: |-
+    [mysqld]
+    datadir=/oracle/mysql
   initContainers:
-  - command:
-      - chown
-      - -R
-      - 27:27
-      - /var/lib/mysql
-    image: "ghcr.io/oracle/oraclelinux:7-slim"
-    imagePullPolicy: IfNotPresent
-    name: chown-data-dir
-    resources:
-      requests:
-        cpu: 10m
-        memory: 10Mi
-    terminationMessagePath: /dev/termination-log
-    terminationMessagePolicy: File
-    volumeMounts:
-      - mountPath: /var/lib/mysql
-        name: data
+    - command:
+        - chown
+        - -R
+        - 999:999
+        - /oracle/mysql
+      image: "ghcr.io/oracle/oraclelinux:7-slim"
+      imagePullPolicy: IfNotPresent
+      name: chown-data-dir
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+        - mountPath: /oracle/mysql
+          name: data
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 0
+    runAsNonRoot: false
 serviceAccount:
   create: false

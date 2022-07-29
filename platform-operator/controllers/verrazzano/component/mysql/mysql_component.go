@@ -25,6 +25,12 @@ const ComponentName = "mysql"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.KeycloakNamespace
 
+// DeploymentPersistentVolumeClaim is the name of a volume claim associated with a MySQL deployment
+const DeploymentPersistentVolumeClaim = "mysql"
+
+// StatefulsetPersistentVolumeClaim is the name of a volume claim associated with a MySQL statefulset
+const StatefulsetPersistentVolumeClaim = "data-mysql-0"
+
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak.mysql"
 
@@ -79,9 +85,19 @@ func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx, c.ChartNamespace)
 }
 
+// PreUpgrade updates resources necessary for the MySQL Component upgrade
+func (c mysqlComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return preUpgrade(ctx)
+}
+
 // PostInstall calls MySQL postInstall function
 func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 	return postInstall(ctx)
+}
+
+// PostUpgrade creates/updates associated resources after this component is upgraded
+func (c mysqlComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	return postUpgrade(ctx)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
