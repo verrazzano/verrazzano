@@ -18,9 +18,9 @@ import (
 type metricName string
 
 const (
-	AppconfigReconcileCounter     metricName = "reconcile counter"
-	AppconfigReconcileError       metricName = "reconcile error"
-	AppconfigReconcileDuration    metricName = "reconcile duration"
+	AppconfigReconcileCounter     metricName = "appconfig reconcile counter"
+	AppconfigReconcileError       metricName = "appconfig reconcile error"
+	AppconfigReconcileDuration    metricName = "appconfig reconcile duration"
 	CohworkloadReconcileCounter   metricName = "coh reconcile counter"
 	CohworkloadReconcileError     metricName = "coh reconcile error"
 	CohworkloadReconcileDuration  metricName = "coh reconcile duration"
@@ -110,7 +110,6 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vao_ingresstrait_error_reconcile_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
-
 		},
 	}
 }
@@ -218,4 +217,24 @@ func GetDurationMetric(name metricName) (*DurationMetrics, error) {
 		return nil, fmt.Errorf("%v not found in durationMetricMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return durationMetric, nil
+}
+func ExposeControllerMetrics(controllerName string, successname metricName, errorname metricName, durationname metricName) (*SimpleCounterMetric, *SimpleCounterMetric, *DurationMetrics, *zap.SugaredLogger, error) {
+	zapLogForMetrics := zap.S().With(controllerName)
+	counterMetricObject, err := GetSimpleCounterMetric(successname)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return nil, nil, nil, nil, err
+	}
+	errorCounterMetricObject, err := GetSimpleCounterMetric(errorname)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return nil, nil, nil, nil, err
+	}
+
+	durationMetricObject, err := GetDurationMetric(durationname)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return nil, nil, nil, nil, err
+	}
+	return counterMetricObject, errorCounterMetricObject, durationMetricObject, zapLogForMetrics, nil
 }

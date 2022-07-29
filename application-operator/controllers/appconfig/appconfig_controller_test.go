@@ -748,7 +748,6 @@ func TestReconcileKubeSystem(t *testing.T) {
 func TestReconcileFailed(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
-	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	clientBuilder := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	reconciler := newReconciler(clientBuilder)
 	request := newRequest(testNamespace, testAppConfigName)

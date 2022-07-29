@@ -117,23 +117,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	zapLogForMetrics := zap.S().With(controllerName)
-	counterMetricObject, erro := metricsexporter.GetSimpleCounterMetric(metricsexporter.IngresstraitReconcileCounter)
-	if erro != nil {
-		zapLogForMetrics.Error(erro)
-		return reconcile.Result{}, erro
-	}
-	counterMetricObject.Inc(zapLogForMetrics, erro)
-	errorCounterMetricObject, erro := metricsexporter.GetSimpleCounterMetric(metricsexporter.IngresstraitReconcileError)
-	if erro != nil {
-		zapLogForMetrics.Error(erro)
-		return reconcile.Result{}, erro
-	}
-
-	reconcileDurationMetricObject, erro := metricsexporter.GetDurationMetric(metricsexporter.IngresstraitReconcileDuration)
-	if erro != nil {
-		zapLogForMetrics.Error(erro)
-		return reconcile.Result{}, erro
+	counterMetricObject, errorCounterMetricObject, reconcileDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics(controllerName, metricsexporter.IngresstraitReconcileCounter, metricsexporter.IngresstraitReconcileError, metricsexporter.IngresstraitReconcileDuration)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 	reconcileDurationMetricObject.TimerStart()
 	defer reconcileDurationMetricObject.TimerStop()
@@ -143,8 +129,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Infof("Ingress trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
-
-	var err error
 	var trait *vzapi.IngressTrait
 	if ctx == nil {
 		ctx = context.Background()
@@ -176,7 +160,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	log.Oncef("Finished reconciling ingress trait %v", req.NamespacedName)
-
+	counterMetricObject.Inc(zapLogForMetrics, err)
 	return ctrl.Result{}, nil
 }
 
@@ -421,7 +405,7 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 	} else {
 		// Else return an error that the workload type is not supported by this trait.
 		log.Debug("Workload not supported by trait")
-		return nil, fmt.Errorf("Workload not supported by trait")
+		return nil, fmt.Errorf("workload not supported by trait")
 	}
 }
 
@@ -846,7 +830,7 @@ func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.Authoriz
 // createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule
 func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string) (*v1beta1.Rule, error) {
 	if rule.From == nil {
-		return nil, fmt.Errorf("Authorization Policy requires 'From' clause")
+		return nil, fmt.Errorf("authorization Policy requires 'From' clause")
 	}
 	source := &v1beta1.Source{
 		RequestPrincipals: rule.From.RequestPrincipals,
@@ -1330,7 +1314,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	}
 	externalDNSAnno, ok := ingress.Annotations[externalDNSKey]
 	if !ok || len(externalDNSAnno) == 0 {
-		return "", fmt.Errorf("Annotation %s missing from Verrazzano ingress, unable to generate DNS name", externalDNSKey)
+		return "", fmt.Errorf("annotation %s missing from Verrazzano ingress, unable to generate DNS name", externalDNSKey)
 	}
 
 	domain := externalDNSAnno[len(constants.VzConsoleIngress)+1:]
@@ -1371,7 +1355,7 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
 		}
 	} else {
-		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
+		return "", fmt.Errorf("unsupported service type %s for istio_ingress", string(istio.Spec.Type))
 	}
 	domain := IP + "." + suffix
 	return domain, nil

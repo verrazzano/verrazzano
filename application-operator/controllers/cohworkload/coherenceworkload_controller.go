@@ -134,23 +134,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	zapLogForMetrics := zap.S().With(controllerName)
-	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.CohworkloadReconcileCounter)
+	counterMetricObject, errorCounterMetricObject, reconcileDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics(controllerName, metricsexporter.CohworkloadReconcileCounter, metricsexporter.CohworkloadReconcileError, metricsexporter.CohworkloadReconcileDuration)
 	if err != nil {
-		zapLogForMetrics.Error(err)
-		return reconcile.Result{}, err
-	}
-	counterMetricObject.Inc(zapLogForMetrics, err)
-	errorCounterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.CohworkloadReconcileError)
-	if err != nil {
-		zapLogForMetrics.Error(err)
-		return reconcile.Result{}, err
-	}
-
-	reconcileDurationMetricObject, err := metricsexporter.GetDurationMetric(metricsexporter.CohworkloadReconcileDuration)
-	if err != nil {
-		zapLogForMetrics.Error(err)
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 	reconcileDurationMetricObject.TimerStart()
 	defer reconcileDurationMetricObject.TimerStop()
@@ -188,8 +174,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	log.Oncef("Finished reconciling Coherence workload %v", req.NamespacedName)
-
+	counterMetricObject.Inc(zapLogForMetrics, err)
 	return ctrl.Result{}, nil
+
 }
 
 // doReconcile performs the reconciliation operations for the coherence workload
