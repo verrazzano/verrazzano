@@ -34,8 +34,8 @@ pipeline {
                         echo "UPSTREAM_BUILD = ${params.UPSTREAM_BUILD}"
                     """
                     copyArtifacts(
-                        projectName: params.UPSTREAM_JOB,
-                        selector: specific(params.UPSTREAM_BUILD),
+                        projectName: "/${params.UPSTREAM_JOB}",
+                        selector: specific("${params.UPSTREAM_BUILD}"),
                         filter: "${upload_filename}",
                         flatten: true,
                         optional: false,
