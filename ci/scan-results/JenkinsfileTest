@@ -32,6 +32,8 @@ pipeline {
                         ls -l
                         echo "cat foobar.txt"
                         cat foobar.txt
+                        echo "JOB_NAME is '${env.JOB_NAME}'"
+                        echo "PROJECT_NAME is '${env.PROJECT_NAME}'"
                     """
                 }
             }
