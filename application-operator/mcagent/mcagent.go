@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -210,9 +211,9 @@ func validateAgentSecret(secret *corev1.Secret) error {
 	}
 
 	// The secret must contain a kubeconfig
-	_, ok = secret.Data[constants.AdminKubeconfigData]
+	_, ok = secret.Data[mcconstants.KubeconfigKey]
 	if !ok {
-		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.AdminKubeconfigData)
+		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, mcconstants.KubeconfigKey)
 	}
 
 	return nil
@@ -226,7 +227,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(tmpFile.Name(), secret.Data[constants.AdminKubeconfigData], 0600)
+	err = ioutil.WriteFile(tmpFile.Name(), secret.Data[mcconstants.KubeconfigKey], 0600)
 	defer os.Remove(tmpFile.Name())
 	if err != nil {
 		return nil, err
