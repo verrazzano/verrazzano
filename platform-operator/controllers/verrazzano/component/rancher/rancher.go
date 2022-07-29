@@ -378,12 +378,12 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak authConfig: %s", err.Error())
 	}
 
-	keycloakUrl, err := k8sutil.GetURLForIngress(c, "keycloak", "keycloak")
+	keycloakURL, err := k8sutil.GetURLForIngress(c, "keycloak", "keycloak")
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak url: %s", err.Error())
 	}
 
-	rancherUrl, err := k8sutil.GetURLForIngress(c, "rancher", "cattle-system")
+	rancherURL, err := k8sutil.GetURLForIngress(c, "rancher", "cattle-system")
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch rancher url: %s", err.Error())
 	}
@@ -398,10 +398,10 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig["clientId"] = "rancher"
 	authConfig["enabled"] = true
 	authConfig["groupSearchEnabled"] = true
-	authConfig["authEndpoint"] = keycloakUrl + "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
+	authConfig["authEndpoint"] = keycloakURL + "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
 	authConfig["clientSecret"] = clientSecret
-	authConfig["issuer"] = keycloakUrl + "/auth/realms/verrazzano-system"
-	authConfig["rancherUrl"] = rancherUrl + "/verify-auth"
+	authConfig["issuer"] = keycloakURL + "/auth/realms/verrazzano-system"
+	authConfig["rancherURL"] = rancherURL + "/verify-auth"
 	keycloakAuthConfig.SetUnstructuredContent(authConfig)
 
 	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})

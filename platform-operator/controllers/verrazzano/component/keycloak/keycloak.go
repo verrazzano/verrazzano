@@ -626,7 +626,7 @@ func updatePrometheusAnnotations(ctx spi.ComponentContext) error {
 }
 
 // updateKeycloakUris invokes kcadm.sh in keycloak pod to update the client with Keycloak rewrite and weborigin uris
-func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod, clientId string, uriTemplate string) error {
+func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod, clientID string, uriTemplate string) error {
 	data, err := populateSubdomainInTemplate(ctx, "{"+uriTemplate+"}")
 	if err != nil {
 		return err
@@ -634,15 +634,15 @@ func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	ctx.Log().Infof("data : %v", data)
 
 	// Update client
-	updateClientCmd := "/opt/jboss/keycloak/bin/kcadm.sh update clients/" + clientId + " -r " + vzSysRealm + " -b '" +
+	updateClientCmd := "/opt/jboss/keycloak/bin/kcadm.sh update clients/" + clientID + " -r " + vzSysRealm + " -b '" +
 		strings.TrimSpace(data) +
 		"'"
 	ctx.Log().Infof("updateClientCmd : %v", updateClientCmd)
 
-	ctx.Log().Debugf("updateKeycloakUris: Update client with Id = %s, Cmd = %s", clientId, updateClientCmd)
+	ctx.Log().Debugf("updateKeycloakUris: Update client with Id = %s, Cmd = %s", clientID, updateClientCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(updateClientCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed updating client with Id = %s stdout = %s, stderr = %s", clientId, stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed updating client with Id = %s stdout = %s, stderr = %s", clientID, stdout, stderr)
 		return err
 	}
 
@@ -1147,14 +1147,14 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	}
 
 	kcPod := keycloakPod()
-	if clientId := getClientID(keycloakClients, clientName); clientId != "" {
+	if clientID := getClientID(keycloakClients, clientName); clientID != "" {
 		if uriTemplate != "" {
-			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientId, uriTemplate)
+			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientID, uriTemplate)
 			if err != nil {
 				return err
 			}
 		}
-		
+
 		return nil
 	}
 
