@@ -830,7 +830,7 @@ func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.Authoriz
 // createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule
 func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string) (*v1beta1.Rule, error) {
 	if rule.From == nil {
-		return nil, fmt.Errorf("authorization Policy requires 'From' clause")
+		return nil, fmt.Errorf("Authorization Policy requires 'From' clause")
 	}
 	source := &v1beta1.Source{
 		RequestPrincipals: rule.From.RequestPrincipals,
@@ -1314,7 +1314,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	}
 	externalDNSAnno, ok := ingress.Annotations[externalDNSKey]
 	if !ok || len(externalDNSAnno) == 0 {
-		return "", fmt.Errorf("annotation %s missing from Verrazzano ingress, unable to generate DNS name", externalDNSKey)
+		return "", fmt.Errorf("Annotation %s missing from Verrazzano ingress, unable to generate DNS name", externalDNSKey)
 	}
 
 	domain := externalDNSAnno[len(constants.VzConsoleIngress)+1:]
