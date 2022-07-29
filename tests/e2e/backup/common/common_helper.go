@@ -103,16 +103,61 @@ func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
 	}
 }
 
-// GetRancherURL fetches the elastic search URL from the cluster
+//// GetRancherURL fetches the elastic search URL from the cluster
 func GetRancherURL(log *zap.SugaredLogger) (string, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		log.Errorf("Failed to get kubeconfigPath with error: %v", err)
 		return "", err
 	}
+	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
+	if err != nil {
+		log.Errorf("Unable to fetch api endpoint due to %v", zap.Error(err))
+		return "", err
+	}
+	ingress, err := api.GetIngress("cattle-system", "rancher")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
+}
+
+// GetRancherLoginToken fetches the login token for rancher console
+func GetRancherLoginToken(log *zap.SugaredLogger) string {
+
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig url due to %v", zap.Error(err))
+		return ""
+	}
+
+	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		log.Errorf("Unable to fetch httpClient due to %v", zap.Error(err))
+		return ""
+	}
+
+	rancherURL, err := GetRancherURL(log)
+	if err != nil {
+		return ""
+	}
+
+	return pkg.GetRancherAdminToken(log, httpClient, rancherURL)
+}
+
+// GetEsURL fetches the elastic search URL from the cluster
+func GetEsURL(log *zap.SugaredLogger) (string, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		log.Errorf("Failed to get kubeconfigPath with error: %v", err)
+		return "", err
+	}
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-	rancherURL := pkg.EventuallyGetRancherURL(log, api)
-	return rancherURL, nil
+	ingress, err := api.GetIngress(constants.VerrazzanoSystemNamespace, "vmi-system-es-ingest")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
 }
 
 // GetVZPasswd fetches the verrazzano password from the cluster
@@ -326,4 +371,20 @@ func CreateCredentialsSecretFromFile(namespace string, name string, log *zap.Sug
 		return err
 	}
 	return nil
+}
+
+func DeleteNamespace(namespace string, log *zap.SugaredLogger) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	err = clientset.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
+	if err != nil {
+		log.Errorf("Failed to delete namespace '%s' due to: %v", namespace, err)
+		return err
+	}
+
+	return CheckPodsTerminated("", namespace, log)
 }

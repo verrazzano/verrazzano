@@ -129,5 +129,7 @@ var (
 	RancherURL                  string
 	RancherBackupFileName       string
 	RancherToken                string
+	RancherUserIDList           []string
+	RancherUserNameList         []string
 	KeyCloakUserIDList          []string
 )

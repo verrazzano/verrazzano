@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/common"
 	"go.uber.org/zap"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"text/template"
 	"time"
@@ -151,22 +150,6 @@ func KeycloakVerifyUsers() bool {
 	return true
 }
 
-func NukeMysql() error {
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		t.Logs.Errorf("Failed to get clientset with error: %v", err)
-		return err
-	}
-
-	err = clientset.CoreV1().Namespaces().Delete(context.TODO(), constants.KeycloakNamespace, metav1.DeleteOptions{})
-	if err != nil {
-		t.Logs.Errorf("Failed to delete namespace '%s' due to: %v", constants.KeycloakNamespace, err)
-		return err
-	}
-
-	return common.CheckPodsTerminated("", constants.KeycloakNamespace, t.Logs)
-}
-
 func DisplayResticInfo(operation string) error {
 	var cmdArgs []string
 	var apiResource string
@@ -300,7 +283,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Cleanup mysql once backup is done", func() {
 		WhenVeleroInstalledIt("Cleanup mysql once backup is done", func() {
 			Eventually(func() error {
-				return NukeMysql()
+				return common.DeleteNamespace(constants.KeycloakNamespace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 

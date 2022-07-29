@@ -17,26 +17,6 @@ import (
 	"time"
 )
 
-// GetEsURL fetches the elastic search URL from the cluster
-func GetEsURL(log *zap.SugaredLogger) (string, error) {
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "vz")
-	cmdArgs = append(cmdArgs, "-o")
-	cmdArgs = append(cmdArgs, "jsonpath={.items[].status.instance.elasticUrl}")
-
-	var kcmd BashCommand
-	kcmd.Timeout = 1 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-
-	bashResponse := Runner(&kcmd, log)
-	if bashResponse.CommandError != nil {
-		return "", bashResponse.CommandError
-	}
-	return bashResponse.StandardOut.String(), nil
-}
-
 // VeleroObjectDelete utility to clean up velero objects in the cluster
 func VeleroObjectDelete(objectType, objectname, nameSpaceName string, log *zap.SugaredLogger) error {
 	var cmdArgs []string
@@ -185,6 +165,7 @@ func WaitForPodsShell(namespace string, log *zap.SugaredLogger) error {
 	if waitCmd.CommandError != nil {
 		return waitCmd.CommandError
 	}
+	time.Sleep(1 * time.Minute)
 	return nil
 }
 

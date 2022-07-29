@@ -126,11 +126,10 @@ const EsQueryBody = `
 const RancherUserTemplate = `
 {
   "description":"Automated Tests", 
-  "me":false, 
   "mustChangePassword":false, 
+  "enabled": true,
   "name": {{ .FullName }}, 
   "password": {{ .Password }}, 
-  "principalIds":[], 
   "username": {{ .Username }}
 }
 `

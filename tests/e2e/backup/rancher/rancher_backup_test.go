@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/Jeffail/gabs/v2"
+	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
@@ -17,8 +18,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
-	"os"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -34,8 +35,6 @@ const (
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 15 * time.Minute
 	pollingInterval      = 30 * time.Second
-	rancherUserName      = "cowboy"
-	rancherFullName      = "Lone Ranger"
 	rancherPassword      = "rancher@newstack"
 )
 
@@ -98,7 +97,8 @@ func CreateRancherBackupObject() error {
 		},
 	}
 	template.Execute(&b, data)
-	err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
+	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
+	//err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
 		return err
@@ -132,7 +132,8 @@ func CreateRancherRestoreObject() error {
 		},
 	}
 	template.Execute(&b, data)
-	err = common.DynamicSSA(context.TODO(), b.String(), t.Logs)
+	//err = common.DynamicSSA(context.TODO(), b.String(), t.Logs)
+	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
 	if err != nil {
 		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
 		return err
@@ -141,111 +142,195 @@ func CreateRancherRestoreObject() error {
 	return nil
 }
 
-// GetRancherLoginToken fetches the login token for rancher console
-func GetRancherLoginToken() string {
-	rancherURL, err := common.GetRancherURL(t.Logs)
+func PopulateRancherUsers(token, rancherURL string, n int) error {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		t.Logs.Errorf("Unable to fetch rancher url due to %v", zap.Error(err))
-		return ""
+		t.Logs.Errorf("Unable to fetch kubeconfig url due to %v", zap.Error(err))
+		return err
 	}
-	common.RancherURL = rancherURL
-	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
-	token := pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
-	return token
-}
 
-// CreateRancherUserFromShell creates a new rancher user
-func CreateRancherUserFromShell(rancherURL string) error {
-	var b bytes.Buffer
-	template, _ := template.New("rancher-user").Parse(common.RancherUserTemplate)
-	data := common.RancherUser{
-		FullName: strconv.Quote(rancherFullName),
-		Username: strconv.Quote(rancherUserName),
-		Password: strconv.Quote(rancherPassword),
+	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		t.Logs.Errorf("Unable to fetch httpClient due to %v", zap.Error(err))
+		return err
 	}
-	template.Execute(&b, data)
 
-	os.WriteFile("test.json", b.Bytes(), 0644)
-	defer os.Remove("test.json")
-
-	var cmdArgs []string
 	apiPath := "v3/users"
-	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d @test.json", strconv.Quote(fmt.Sprintf("%s/%s", rancherURL, apiPath)), strconv.Quote(common.RancherToken))
-	cmdArgs = append(cmdArgs, "/bin/sh")
-	cmdArgs = append(cmdArgs, "-c")
-	cmdArgs = append(cmdArgs, curlCmd)
+	rancherUserCreateURL := fmt.Sprintf("%s/%s", rancherURL, apiPath)
 
-	var kcmd common.BashCommand
-	kcmd.Timeout = 2 * time.Minute
-	kcmd.CommandArgs = cmdArgs
+	for i := 0; i < n; i++ {
+		id := uuid.New().String()
+		uniqueID := strings.Split(id, "-")[len(strings.Split(id, "-"))-1]
+		fullName := fmt.Sprintf("john-smith-%v", i+1)
+		userName := fmt.Sprintf("cowboy-%v", uniqueID)
 
-	curlResponse := common.Runner(&kcmd, t.Logs)
-	if curlResponse.CommandError != nil {
-		return curlResponse.CommandError
+		var b bytes.Buffer
+		template, err := template.New("rancher-user").Parse(common.RancherUserTemplate)
+		if err != nil {
+			t.Logs.Errorf("Unable to convert template '%v'", err)
+			return err
+		}
+		data := common.RancherUser{
+			FullName: strconv.Quote(fullName),
+			Username: strconv.Quote(userName),
+			Password: strconv.Quote(rancherPassword),
+		}
+		template.Execute(&b, data)
+
+		request, err := retryablehttp.NewRequest("POST", rancherUserCreateURL, b.Bytes())
+		if err != nil {
+			t.Logs.Errorf("Unable to create a retryable http client= %v", zap.Error(err))
+			return err
+
+		}
+		request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", token))
+		request.Header.Add("Accept", "application/json")
+		response, err := httpClient.Do(request)
+		if err != nil {
+			t.Logs.Errorf("Unable to create retryable http client due to '%v'", zap.Error(err))
+			return err
+		}
+
+		if response == nil {
+			return fmt.Errorf("invalid response")
+		}
+		defer response.Body.Close()
+
+		if response.StatusCode == 201 {
+			t.Logs.Infof("Sucessfully created rancher user %v", userName)
+			common.RancherUserNameList = append(common.RancherUserNameList, userName)
+		} else {
+			t.Logs.Infof("invalid response status: %d", response.StatusCode)
+			return fmt.Errorf("invalid response status: %d", response.StatusCode)
+		}
 	}
 
 	return nil
-
 }
 
-// DeleteRancherUserFromShell cleans up a rancher user
-func DeleteRancherUserFromShell(rancherURL string) error {
-	var cmdArgs []string
-	apiPath := "v3/users"
-	curlCmd := fmt.Sprintf("curl -ks %s -u %s -X DELETE", strconv.Quote(fmt.Sprintf("%s/%s", rancherURL, apiPath)), strconv.Quote(common.RancherToken))
-	cmdArgs = append(cmdArgs, "/bin/sh")
-	cmdArgs = append(cmdArgs, "-c")
-	cmdArgs = append(cmdArgs, curlCmd)
-
-	var kcmd common.BashCommand
-	kcmd.Timeout = 2 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-
-	curlResponse := common.Runner(&kcmd, t.Logs)
-	if curlResponse.CommandError != nil {
-		return curlResponse.CommandError
-	}
-
-	return nil
-
-}
-
-// GetRancherUser gets an existing rancher user
-func GetRancherUser(rancherURL string) string {
-	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
-
-	apiPath := fmt.Sprintf("v3/users?username=%s", rancherUserName)
-	req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, apiPath), nil)
+func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, userName string, responseCode int, rawbody interface{}) (*gabs.Container, error) {
+	req, err := retryablehttp.NewRequest(method, httpURL, rawbody)
 	if err != nil {
-		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", apiPath, err))
-		return ""
+		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", httpURL, err))
+		return nil, err
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", common.RancherToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
 	req.Header.Set("Accept", "application/json")
 	response, err := httpClient.Do(req)
 	if err != nil {
-		t.Logs.Error(fmt.Sprintf("error invoking rancher api request %s: %v", apiPath, err))
-		return ""
+		t.Logs.Error(fmt.Sprintf("error invoking rancher api request %s: %v", httpURL, err))
+		return nil, err
 	}
 	defer response.Body.Close()
 
-	err = httputil.ValidateResponseCode(response, http.StatusOK)
+	err = httputil.ValidateResponseCode(response, responseCode)
 	if err != nil {
-		return ""
+		t.Logs.Errorf("did not get expected response code = %v, Error = %v", responseCode, zap.Error(err))
+		return nil, err
 	}
+
 	// extract the response body
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		t.Logs.Errorf("Failed to read Rancher token response: %v", err)
-		return ""
+		t.Logs.Errorf("Failed to read Rancher token response: %v", zap.Error(err))
+		return nil, err
 	}
 
 	jsonParsed, err := gabs.ParseJSON(body)
 	if err != nil {
-		return ""
+		t.Logs.Errorf("Failed to parse json: %v", zap.Error(err))
+		return nil, err
 	}
-	return fmt.Sprintf("%s", jsonParsed.Path("data.0.username").Data())
+
+	if userName == fmt.Sprintf("%s", jsonParsed.Path("data.0.username").Data()) {
+		//t.Logs.Infof("'%s' found in rancher after restore", common.RancherUserNameList[i])
+		return jsonParsed, nil
+	}
+	return nil, fmt.Errorf("User '%s' not found", userName)
+
+}
+
+func VerifyRancherUser(method, httpURL, token, userName string, responseCode int, rawbody interface{}) (*gabs.Container, bool) {
+	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	jsonParsed, err := HTTPHelper(httpClient, method, httpURL, token, userName, responseCode, rawbody)
+	if err != nil {
+		return nil, false
+	}
+	return jsonParsed, true
+}
+
+// VerifyRancherUsers gets an existing rancher user
+func VerifyRancherUsers(token, rancherURL string) bool {
+	for i := 0; i < len(common.RancherUserNameList); i++ {
+		rancherGetURL := fmt.Sprintf("%s/v3/users?username=%s", rancherURL, common.RancherUserNameList[i])
+		_, ok := VerifyRancherUser("GET", rancherGetURL, token, common.RancherUserNameList[i], http.StatusOK, nil)
+		if !ok {
+			return false
+		}
+		t.Logs.Infof("'%s' found in rancher after restore", common.RancherUserNameList[i])
+	}
+	return true
+}
+
+// BuildRancherUserIDList gets an existing rancher user
+func BuildRancherUserIDList(token, rancherURL string) bool {
+	for i := 0; i < len(common.RancherUserNameList); i++ {
+		rancherGetURL := fmt.Sprintf("%s/v3/users?username=%s", rancherURL, common.RancherUserNameList[i])
+		jsonParsed, ok := VerifyRancherUser("GET", rancherGetURL, token, common.RancherUserNameList[i], http.StatusOK, nil)
+		if !ok {
+			return false
+		}
+		common.RancherUserIDList = append(common.RancherUserIDList, fmt.Sprintf("%s", jsonParsed.Path("data.0.id").Data()))
+		t.Logs.Infof("'%s' found in rancher after restore", common.RancherUserNameList[i])
+	}
+	return true
+}
+
+func DeleteRancherUsers(token, rancherURL string) error {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Logs.Errorf("Unable to fetch kubeconfig url due to %v", zap.Error(err))
+		return err
+	}
+
+	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		t.Logs.Errorf("Unable to fetch httpClient due to %v", zap.Error(err))
+		return err
+	}
+
+	for i := 0; i < len(common.RancherUserNameList); i++ {
+		rancherUserDeleteURL := fmt.Sprintf("%s/v3/users/%s", rancherURL, common.RancherUserIDList[i])
+		request, err := retryablehttp.NewRequest("DELETE", rancherUserDeleteURL, nil)
+		if err != nil {
+			t.Logs.Errorf("Unable to create a retryable http client= %v", zap.Error(err))
+			return err
+
+		}
+		request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", token))
+		request.Header.Add("Accept", "application/json")
+		response, err := httpClient.Do(request)
+		if err != nil {
+			t.Logs.Errorf("Unable to create retryable http client due to '%v'", zap.Error(err))
+			return err
+		}
+
+		if response == nil {
+			return fmt.Errorf("invalid response")
+		}
+		defer response.Body.Close()
+
+		t.Logs.Infof("Status code = %v, Status Response = %v", response.StatusCode, response.Status)
+		err = httputil.ValidateResponseCode(response, http.StatusOK)
+		if err != nil {
+			t.Logs.Errorf("did not get expected response code , Error = %v", zap.Error(err))
+			return err
+		}
+		t.Logs.Infof("Sucessfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
+	}
+
+	return nil
 }
 
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
@@ -273,28 +358,45 @@ func WhenRancherBackupInstalledIt(description string, f func()) {
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
 
+	var err error
+
 	t.Logs.Info("Create backup secret for rancher backup objects")
 	Eventually(func() error {
 		return CreateSecretFromMap(common.VeleroNameSpace, common.RancherSecretName)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	t.Logs.Info("Fetching rancher login Token")
-	common.RancherToken = GetRancherLoginToken()
+	t.Logs.Info("Get rancher URL")
+	Eventually(func() (string, error) {
+		common.RancherURL, err = common.GetRancherURL(t.Logs)
+		return common.RancherURL, err
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	t.Logs.Info("Creating a user with the retrieved login token")
+	t.Logs.Info("Get rancher admin token")
+	Eventually(func() string {
+		common.RancherToken = common.GetRancherLoginToken(t.Logs)
+		return common.RancherToken
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
+	t.Logs.Info("Creating multiple user with the retrieved login token")
 	Eventually(func() error {
-		return CreateRancherUserFromShell(common.RancherURL)
+		return PopulateRancherUsers(common.RancherToken, common.RancherURL, 10)
 	}, waitTimeout, pollingInterval).Should(BeNil())
+
+	t.Logs.Info("Build user id list for rancher users")
+	Eventually(func() bool {
+		return BuildRancherUserIDList(common.RancherToken, common.RancherURL)
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+
 }
 
 // Run as part of AfterSuite
 func cleanUpRancher() {
 	t.Logs.Info("Cleanup backup and restore objects")
 
-	t.Logs.Infof("Cleanup user '%s' as part of cleanup", rancherUserName)
+	t.Logs.Info("Creating multiple user with the retrieved login token")
 	Eventually(func() error {
-		return DeleteRancherUserFromShell(common.RancherURL)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+		return DeleteRancherUsers(common.RancherToken, common.RancherURL)
+	}, waitTimeout, pollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup restore object")
 	Eventually(func() error {
@@ -357,9 +459,9 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 
 	t.Context("Get user after rancher restore is complete", func() {
 		WhenRancherBackupInstalledIt("Get user after rancher restore is complete", func() {
-			Eventually(func() string {
-				return GetRancherUser(common.RancherURL)
-			}, waitTimeout, pollingInterval).Should(Equal(rancherUserName), "Check if rancher user has been restored successfully")
+			Eventually(func() bool {
+				return VerifyRancherUsers(common.RancherToken, common.RancherURL)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if rancher user has been restored successfully")
 		})
 	})
 
