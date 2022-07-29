@@ -22,7 +22,7 @@ pipeline {
     }
 
     environment {
-        upstream_project="test-multi-pipeline"
+        upstream_project="test-pipeline"
         upload_filename="foobar.txt"
 
         // OCI_CLI_REGION = "us-ashburn-1"
@@ -43,7 +43,7 @@ pipeline {
                     echo "upload_filename = ${upload_filename}"
                 """
                 copyArtifacts(
-                    projectName: "/Scanning/${upstream_project}/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}",
+                    projectName: "${upstream_project}",
                     selector: specific("${RPT_BUILD_NUMBER}"),
                     filter: "${upload_filename}",
                     flatten: true,
