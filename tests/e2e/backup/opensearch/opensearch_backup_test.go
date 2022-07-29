@@ -12,8 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/common"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strconv"
-	"strings"
+	"net/http"
 	"text/template"
 	"time"
 
@@ -35,6 +34,8 @@ const (
 	osDataDepPrefix      = "vmi-system-es-data"
 	osIngestDeployment   = "vmi-system-es-ingest"
 	osDepPvcPrefix       = "vmi-system-es-data"
+	idSearchExactURL     = "verrazzano-system/_search?from=0&size=1"
+	idSearchAllURL       = "verrazzano-system/_search?"
 )
 
 var _ = t.BeforeSuite(func() {
@@ -99,35 +100,23 @@ func GetBackupID() error {
 		t.Logs.Infof("Error getting es url ", zap.Error(err))
 		return err
 	}
-
 	vzPasswd, err := common.GetVZPasswd(t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error getting vz passwd ", zap.Error(err))
 		return err
 	}
-	var cmdArgs []string
-	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?from=0&size=1", esURL))
+
+	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	searchURL := fmt.Sprintf("%s/%s", esURL, idSearchExactURL)
 	creds := fmt.Sprintf("verrazzano:%s", vzPasswd)
-	jqIDFetch := "| jq -r '.hits.hits[0]._id'"
-	curlCmd := fmt.Sprintf("curl -ks %s -u %s %s", url, creds, jqIDFetch)
-	cmdArgs = append(cmdArgs, "/bin/sh")
-	cmdArgs = append(cmdArgs, "-c")
-	cmdArgs = append(cmdArgs, curlCmd)
-
-	var kcmd common.BashCommand
-	kcmd.Timeout = 2 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-
-	curlResponse := common.Runner(&kcmd, t.Logs)
-	if curlResponse.CommandError != nil {
-		return curlResponse.CommandError
+	parsedJson, err := common.HTTPHelper(httpClient, "GET", searchURL, creds, "Basic", http.StatusOK, nil, t.Logs)
+	if err != nil {
+		t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
+		return err
 	}
-	common.BackupID = strings.TrimSpace(strings.Trim(curlResponse.StandardOut.String(), "\n"))
-	t.Logs.Infof("BackupId ===> = '%s", common.BackupID)
-	if common.BackupID != "" {
-		t.Logs.Errorf("BackupId has already been retrieved = '%s", common.BackupID)
-		//return fmt.Errorf("backupId has already been retrieved = '%s", BackupID)
-	}
+	common.BackupID = fmt.Sprintf("%s", parsedJson.Path("hits.hits.0._id").Data())
+
+	t.Logs.Infof("BackupId ===> = '%s'", common.BackupID)
 	return nil
 }
 
@@ -144,33 +133,16 @@ func IsRestoreSuccessful() string {
 		t.Logs.Infof("Error getting vz passwd ", zap.Error(err))
 		return ""
 	}
-	var b bytes.Buffer
-	template, _ := template.New("velero-restore-verify").Parse(common.EsQueryBody)
-	data := common.EsQueryObject{
-		BackupIDBeforeBackup: common.BackupID,
-	}
-	template.Execute(&b, data)
 
-	var cmdArgs []string
-	header := "Content-Type: application/json"
-	url := strconv.Quote(fmt.Sprintf("%s/verrazzano-system/_search?", esURL))
+	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	fetchURL := fmt.Sprintf("%s/%s", esURL, idSearchAllURL)
 	creds := fmt.Sprintf("verrazzano:%s", vzPasswd)
-	jqIDFetch := "| jq -r '.hits.hits[0]._id'"
-	curlCmd := fmt.Sprintf("curl -ks -H %s %s -u %s -d '%s' %s", strconv.Quote(header), url, creds, b.String(), jqIDFetch)
-	cmdArgs = append(cmdArgs, "/bin/sh")
-	cmdArgs = append(cmdArgs, "-c")
-	cmdArgs = append(cmdArgs, curlCmd)
-
-	var kcmd common.BashCommand
-	kcmd.Timeout = 2 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-
-	curlResponse := common.Runner(&kcmd, t.Logs)
-	if curlResponse.CommandError != nil {
+	parsedJson, err := common.HTTPHelper(httpClient, "GET", fetchURL, creds, "Basic", http.StatusOK, nil, t.Logs)
+	if err != nil {
+		t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 		return ""
 	}
-	backupIDFetched := strings.TrimSpace(strings.Trim(curlResponse.StandardOut.String(), "\n"))
-	return backupIDFetched
+	return fmt.Sprintf("%s", parsedJson.Search("hits", "hits", "0", "_id").Data())
 }
 
 // NukeOpensearch is used to destroy the opensearch cluster including data
@@ -290,17 +262,17 @@ func cleanUpVelero() {
 
 	t.Logs.Info("Cleanup restore object")
 	Eventually(func() error {
-		return common.VeleroObjectDelete("restore", common.RestoreOpensearchName, common.VeleroNameSpace, t.Logs)
+		return common.CrdPruner("velero.io", "v1", "restores", common.RestoreOpensearchName, common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup backup object")
 	Eventually(func() error {
-		return common.VeleroObjectDelete("backup", common.BackupOpensearchName, common.VeleroNameSpace, t.Logs)
+		return common.CrdPruner("velero.io", "v1", "backups", common.BackupOpensearchName, common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup backup storage object")
 	Eventually(func() error {
-		return common.VeleroObjectDelete("storage", common.BackupOpensearchStorageName, common.VeleroNameSpace, t.Logs)
+		return common.CrdPruner("velero.io", "v1", "backupstoragelocations", common.BackupOpensearchStorageName, common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup velero secrets")
@@ -323,7 +295,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check backup progress after velero backup object was created", func() {
 		WhenVeleroInstalledIt("Check backup progress after velero backup object was created", func() {
 			Eventually(func() error {
-				return common.CheckOperatorOperationProgress("velero", "backup", common.VeleroNameSpace, common.BackupOpensearchName, t.Logs)
+				return common.TrackOperationProgress(30, "velero", "backups", common.BackupOpensearchName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
@@ -356,7 +328,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check velero restore progress", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
-				return common.CheckOperatorOperationProgress("velero", "restore", common.VeleroNameSpace, common.RestoreOpensearchName, t.Logs)
+				return common.TrackOperationProgress(30, "velero", "restores", common.RestoreOpensearchName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})

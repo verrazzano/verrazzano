@@ -115,8 +115,6 @@ func CreateRancherRestoreObject() error {
 
 	common.RancherBackupFileName = rancherFileName
 
-	t.Logs.Infof("Rancher backup filename = %s", common.RancherBackupFileName)
-
 	var b bytes.Buffer
 	template, _ := template.New("rancher-backup").Parse(common.RancherRestore)
 	data := common.RancherRestoreData{
@@ -140,7 +138,7 @@ func CreateRancherRestoreObject() error {
 	return nil
 }
 
-func PopulateRancherUsers(token, rancherURL string, n int) error {
+func PopulateRancherUsers(rancherURL string, n int) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		t.Logs.Errorf("Unable to fetch kubeconfig url due to %v", zap.Error(err))
@@ -155,6 +153,7 @@ func PopulateRancherUsers(token, rancherURL string, n int) error {
 
 	apiPath := "v3/users"
 	rancherUserCreateURL := fmt.Sprintf("%s/%s", rancherURL, apiPath)
+	token := common.GetRancherLoginToken(t.Logs)
 
 	for i := 0; i < n; i++ {
 		id := uuid.New().String()
@@ -242,7 +241,6 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, userNa
 	}
 
 	if userName == fmt.Sprintf("%s", jsonParsed.Path("data.0.username").Data()) {
-		//t.Logs.Infof("'%s' found in rancher after restore", common.RancherUserNameList[i])
 		return jsonParsed, nil
 	}
 	return nil, fmt.Errorf("User '%s' not found", userName)
@@ -259,7 +257,8 @@ func VerifyRancherUser(method, httpURL, token, userName string, responseCode int
 }
 
 // VerifyRancherUsers gets an existing rancher user
-func VerifyRancherUsers(token, rancherURL string) bool {
+func VerifyRancherUsers(rancherURL string) bool {
+	token := common.GetRancherLoginToken(t.Logs)
 	for i := 0; i < len(common.RancherUserNameList); i++ {
 		rancherGetURL := fmt.Sprintf("%s/v3/users?username=%s", rancherURL, common.RancherUserNameList[i])
 		_, ok := VerifyRancherUser("GET", rancherGetURL, token, common.RancherUserNameList[i], http.StatusOK, nil)
@@ -272,7 +271,8 @@ func VerifyRancherUsers(token, rancherURL string) bool {
 }
 
 // BuildRancherUserIDList gets an existing rancher user
-func BuildRancherUserIDList(token, rancherURL string) bool {
+func BuildRancherUserIDList(rancherURL string) bool {
+	token := common.GetRancherLoginToken(t.Logs)
 	for i := 0; i < len(common.RancherUserNameList); i++ {
 		rancherGetURL := fmt.Sprintf("%s/v3/users?username=%s", rancherURL, common.RancherUserNameList[i])
 		jsonParsed, ok := VerifyRancherUser("GET", rancherGetURL, token, common.RancherUserNameList[i], http.StatusOK, nil)
@@ -280,12 +280,12 @@ func BuildRancherUserIDList(token, rancherURL string) bool {
 			return false
 		}
 		common.RancherUserIDList = append(common.RancherUserIDList, fmt.Sprintf("%s", jsonParsed.Path("data.0.id").Data()))
-		t.Logs.Infof("'%s' found in rancher after restore", common.RancherUserNameList[i])
+		t.Logs.Infof("'%s' found in rancher", common.RancherUserNameList[i])
 	}
 	return true
 }
 
-func DeleteRancherUsers(token, rancherURL string) error {
+func DeleteRancherUsers(rancherURL string) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		t.Logs.Errorf("Unable to fetch kubeconfig url due to %v", zap.Error(err))
@@ -297,7 +297,7 @@ func DeleteRancherUsers(token, rancherURL string) error {
 		t.Logs.Errorf("Unable to fetch httpClient due to %v", zap.Error(err))
 		return err
 	}
-
+	token := common.GetRancherLoginToken(t.Logs)
 	for i := 0; i < len(common.RancherUserNameList); i++ {
 		rancherUserDeleteURL := fmt.Sprintf("%s/v3/users/%s", rancherURL, common.RancherUserIDList[i])
 		request, err := retryablehttp.NewRequest("DELETE", rancherUserDeleteURL, nil)
@@ -369,20 +369,20 @@ func backupPrerequisites() {
 		return common.RancherURL, err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	t.Logs.Info("Get rancher admin token")
-	Eventually(func() string {
-		common.RancherToken = common.GetRancherLoginToken(t.Logs)
-		return common.RancherToken
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+	//t.Logs.Info("Get rancher admin token")
+	//Eventually(func() string {
+	//	common.RancherToken = common.GetRancherLoginToken(t.Logs)
+	//	return common.RancherToken
+	//}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Creating multiple user with the retrieved login token")
 	Eventually(func() error {
-		return PopulateRancherUsers(common.RancherToken, common.RancherURL, 10)
+		return PopulateRancherUsers(common.RancherURL, 10)
 	}, waitTimeout, pollingInterval).Should(BeNil())
 
 	t.Logs.Info("Build user id list for rancher users")
 	Eventually(func() bool {
-		return BuildRancherUserIDList(common.RancherToken, common.RancherURL)
+		return BuildRancherUserIDList(common.RancherURL)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
 }
@@ -393,17 +393,17 @@ func cleanUpRancher() {
 
 	t.Logs.Info("Creating multiple user with the retrieved login token")
 	Eventually(func() error {
-		return DeleteRancherUsers(common.RancherToken, common.RancherURL)
+		return DeleteRancherUsers(common.RancherURL)
 	}, waitTimeout, pollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup restore object")
 	Eventually(func() error {
-		return common.RancherObjectDelete("restore", common.RestoreRancherName, t.Logs)
+		return common.CrdPruner("resources.cattle.io", "v1", "restores", common.RestoreRancherName, "", t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup backup object")
 	Eventually(func() error {
-		return common.RancherObjectDelete("backup", common.BackupRancherName, t.Logs)
+		return common.CrdPruner("resources.cattle.io", "v1", "backupd", common.BackupRancherName, "", t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup rancher secrets")
@@ -426,7 +426,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Check backup progress after rancher backup object was created", func() {
 		WhenRancherBackupInstalledIt("Check backup progress after rancher backup object was created", func() {
 			Eventually(func() error {
-				return common.CheckOperatorOperationProgress("rancher", "backup", common.VeleroNameSpace, common.BackupRancherName, t.Logs)
+				return common.TrackOperationProgress(30, "rancher", "backups", common.BackupRancherName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher backup operation completed successfully")
 		})
 	})
@@ -442,7 +442,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Check rancher restore progress", func() {
 		WhenRancherBackupInstalledIt("Check rancher restore progress", func() {
 			Eventually(func() error {
-				return common.CheckOperatorOperationProgress("rancher", "restore", common.VeleroNameSpace, common.RestoreRancherName, t.Logs)
+				return common.TrackOperationProgress(30, "rancher", "restores", common.RestoreRancherName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher restore operation completed successfully")
 		})
 	})
@@ -458,7 +458,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Get user after rancher restore is complete", func() {
 		WhenRancherBackupInstalledIt("Get user after rancher restore is complete", func() {
 			Eventually(func() bool {
-				return VerifyRancherUsers(common.RancherToken, common.RancherURL)
+				return VerifyRancherUsers(common.RancherURL)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if rancher user has been restored successfully")
 		})
 	})

@@ -220,27 +220,27 @@ func cleanUpVelero() {
 
 	t.Logs.Info("Cleanup restore object")
 	Eventually(func() error {
-		return common.VeleroObjectDelete("restore", common.RestoreMySQLName, common.VeleroNameSpace, t.Logs)
+		return common.CrdPruner("velero.io", "v1", "restores", common.RestoreMySQLName, common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup backup object")
 	Eventually(func() error {
-		return common.VeleroObjectDelete("backup", common.BackupMySQLName, common.VeleroNameSpace, t.Logs)
+		return common.CrdPruner("velero.io", "v1", "backups", common.BackupMySQLName, common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup backup storage object")
 	Eventually(func() error {
-		return common.VeleroObjectDelete("storage", common.BackupMySQLStorageName, common.VeleroNameSpace, t.Logs)
+		return common.CrdPruner("velero.io", "v1", "backupstoragelocations", common.BackupMySQLStorageName, common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup podvolumerestores object")
 	Eventually(func() error {
-		return common.VeleroObjectDelete("podvolumerestores", "", common.VeleroNameSpace, t.Logs)
+		return common.CrdPruner("velero.io", "v1", "podvolumerestores", "", common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup podvolumebackups object")
 	Eventually(func() error {
-		return common.VeleroObjectDelete("podvolumebackups", "", common.VeleroNameSpace, t.Logs)
+		return common.CrdPruner("velero.io", "v1", "podvolumebackups", "", common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup velero secrets")
@@ -267,7 +267,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check backup progress after velero backup object was created", func() {
 		WhenVeleroInstalledIt("Check backup progress after velero backup object was created", func() {
 			Eventually(func() error {
-				return common.CheckOperatorOperationProgress("velero", "backup", common.VeleroNameSpace, common.BackupMySQLName, t.Logs)
+				return common.TrackOperationProgress(30, "velero", "backups", common.BackupMySQLName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
@@ -300,7 +300,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check velero restore progress", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
-				return common.CheckOperatorOperationProgress("velero", "restore", common.VeleroNameSpace, common.RestoreMySQLName, t.Logs)
+				return common.TrackOperationProgress(30, "velero", "restores", common.RestoreMySQLName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})

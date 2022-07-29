@@ -8,11 +8,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Jeffail/gabs/v2"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
 	"io"
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +27,7 @@ import (
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/restmapper"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -103,7 +108,7 @@ func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
 	}
 }
 
-//// GetRancherURL fetches the elastic search URL from the cluster
+// GetRancherURL fetches the elastic search URL from the cluster
 func GetRancherURL(log *zap.SugaredLogger) (string, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -224,7 +229,7 @@ func DynamicSSA(ctx context.Context, deploymentYAML string, log *zap.SugaredLogg
 		return err
 	}
 
-	// Apply the Yaml
+	//Apply the Yaml
 	_, err = dynamicRest.Patch(ctx, obj.GetName(), types.ApplyPatchType, data, metav1.PatchOptions{
 		FieldManager: "backup-controller",
 	})
@@ -387,4 +392,58 @@ func DeleteNamespace(namespace string, log *zap.SugaredLogger) error {
 	}
 
 	return CheckPodsTerminated("", namespace, log)
+}
+
+func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenType string, expectedResponseCode int, payload interface{}, log *zap.SugaredLogger) (*gabs.Container, error) {
+
+	var retryabeRequest *retryablehttp.Request
+	var err error
+
+	switch method {
+	case "GET":
+		retryabeRequest, err = retryablehttp.NewRequest(http.MethodGet, httpURL, payload)
+	case "POST":
+		retryabeRequest, err = retryablehttp.NewRequest(http.MethodPost, httpURL, payload)
+	case "DELETE":
+		retryabeRequest, err = retryablehttp.NewRequest(http.MethodDelete, httpURL, payload)
+	}
+	if err != nil {
+		log.Error(fmt.Sprintf("error creating retryable api request for %s: %v", httpURL, err))
+		return nil, err
+	}
+
+	switch tokenType {
+	case "Bearer":
+		retryabeRequest.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
+	case "Basic":
+		retryabeRequest.SetBasicAuth(strings.Split(token, ":")[0], strings.Split(token, ":")[1])
+	}
+	retryabeRequest.Header.Set("Accept", "application/json")
+	response, err := httpClient.Do(retryabeRequest)
+	if err != nil {
+		log.Error(fmt.Sprintf("error invoking rancher api request %s: %v", httpURL, err))
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	err = httputil.ValidateResponseCode(response, expectedResponseCode)
+	if err != nil {
+		log.Errorf("expected response code = %v, actual response code = %v, Error = %v", expectedResponseCode, response.StatusCode, zap.Error(err))
+		return nil, err
+	}
+
+	// extract the response body
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Errorf("Failed to read response body: %v", zap.Error(err))
+		return nil, err
+	}
+
+	jsonParsed, err := gabs.ParseJSON(body)
+	if err != nil {
+		log.Errorf("Failed to parse json: %v", zap.Error(err))
+		return nil, err
+	}
+
+	return jsonParsed, nil
 }
