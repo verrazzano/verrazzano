@@ -177,12 +177,13 @@ func removeMySQLInitFile(ctx spi.ComponentContext) {
 
 // generateVolumeSourceOverrides generates the appropriate persistence overrides given the component context
 func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	if kvs, err := doGenerateVolumeSourceOverrides(compContext.EffectiveCR(), kvs); err != nil {
+	kvs, err := doGenerateVolumeSourceOverrides(compContext.EffectiveCR(), kvs)
+	if err != nil {
 		return kvs, err
 	}
-	var pvList *v1.PersistentVolumeList
-	var err error
-	if pvList, err = common.GetPersistentVolumes(compContext, ComponentName); err != nil {
+
+	pvList, err := common.GetPersistentVolumes(compContext, ComponentName)
+	if err != nil {
 		return kvs, err
 	}
 	if len(pvList.Items) > 0 {
