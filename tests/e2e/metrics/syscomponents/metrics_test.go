@@ -53,7 +53,7 @@ const (
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-// will be initialized in BeforeSuite so that any log messages during init are available
+// Will be initialized in BeforeSuite so that any log messages during init are available
 var clusterNameMetricsLabel = ""
 var isMinVersion110 bool
 
@@ -355,7 +355,6 @@ func getClusterNameForPromQuery() string {
 	}
 	return ""
 }
-
 
 // Queries Prometheus for a given metric name and a map of labels for the metric
 func eventuallyMetricsContainLabels(metricName string, kv map[string]string) {

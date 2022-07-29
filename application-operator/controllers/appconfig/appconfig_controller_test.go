@@ -89,7 +89,6 @@ func TestReconcileApplicationConfigurationNotFound(t *testing.T) {
 	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 }
-
 func TestReconcileNoRestartVersion(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
@@ -271,7 +270,7 @@ func TestReconcileRestartHelidon(t *testing.T) {
 			return nil
 		})
 
-	// expect a call to fetch the workload
+	// Expect a call to fetch the workload
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
