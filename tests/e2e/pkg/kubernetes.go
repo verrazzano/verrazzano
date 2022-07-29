@@ -608,6 +608,7 @@ func IsManagedClusterProfile() bool {
 
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting vz install resource: %v", err))
 		return false
 	}
 	if vz.Spec.Profile == v1alpha1.ManagedCluster {
