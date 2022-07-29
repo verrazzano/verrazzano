@@ -125,7 +125,7 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.6-20220722140326-0029c0a73",
+              "tag": "v2.6.6-20220729170148-0029c0a73",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
