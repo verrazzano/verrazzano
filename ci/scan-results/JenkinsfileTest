@@ -26,8 +26,6 @@ pipeline {
             steps {
                 script {
                     sh """
-                        date --help
-                        man date
                         echo "Creating ${CONSOLIDATED} ..."
                         cat > ${CONSOLIDATED} <<END
 21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2018-25032,HIGH,oracle_weblogic-kubernetes-operator:3.4.0
