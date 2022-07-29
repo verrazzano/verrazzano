@@ -109,12 +109,12 @@ func GetBackupID() error {
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	searchURL := fmt.Sprintf("%s/%s", esURL, idSearchExactURL)
 	creds := fmt.Sprintf("verrazzano:%s", vzPasswd)
-	parsedJson, err := common.HTTPHelper(httpClient, "GET", searchURL, creds, "Basic", http.StatusOK, nil, t.Logs)
+	parsedJSON, err := common.HTTPHelper(httpClient, "GET", searchURL, creds, "Basic", http.StatusOK, nil, t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 		return err
 	}
-	common.BackupID = fmt.Sprintf("%s", parsedJson.Path("hits.hits.0._id").Data())
+	common.BackupID = fmt.Sprintf("%s", parsedJSON.Path("hits.hits.0._id").Data())
 
 	t.Logs.Infof("BackupId ===> = '%s'", common.BackupID)
 	return nil
@@ -137,12 +137,12 @@ func IsRestoreSuccessful() string {
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	fetchURL := fmt.Sprintf("%s/%s", esURL, idSearchAllURL)
 	creds := fmt.Sprintf("verrazzano:%s", vzPasswd)
-	parsedJson, err := common.HTTPHelper(httpClient, "GET", fetchURL, creds, "Basic", http.StatusOK, nil, t.Logs)
+	parsedJSON, err := common.HTTPHelper(httpClient, "GET", fetchURL, creds, "Basic", http.StatusOK, nil, t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 		return ""
 	}
-	return fmt.Sprintf("%s", parsedJson.Search("hits", "hits", "0", "_id").Data())
+	return fmt.Sprintf("%s", parsedJSON.Search("hits", "hits", "0", "_id").Data())
 }
 
 // NukeOpensearch is used to destroy the opensearch cluster including data

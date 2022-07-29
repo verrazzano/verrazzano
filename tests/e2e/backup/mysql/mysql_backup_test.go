@@ -233,16 +233,6 @@ func cleanUpVelero() {
 		return common.CrdPruner("velero.io", "v1", "backupstoragelocations", common.BackupMySQLStorageName, common.VeleroNameSpace, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
-	t.Logs.Info("Cleanup podvolumerestores object")
-	Eventually(func() error {
-		return common.CrdPruner("velero.io", "v1", "podvolumerestores", "", common.VeleroNameSpace, t.Logs)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-
-	t.Logs.Info("Cleanup podvolumebackups object")
-	Eventually(func() error {
-		return common.CrdPruner("velero.io", "v1", "podvolumebackups", "", common.VeleroNameSpace, t.Logs)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
-
 	t.Logs.Info("Cleanup velero secrets")
 	Eventually(func() error {
 		return common.DeleteSecret(common.VeleroNameSpace, common.VeleroMySQLSecretName, t.Logs)

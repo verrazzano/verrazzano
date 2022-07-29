@@ -205,7 +205,7 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 	return nil
 }
 
-func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, userName string, responseCode int, rawbody interface{}) (*gabs.Container, error) {
+func RancherHTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, userName string, responseCode int, rawbody interface{}) (*gabs.Container, error) {
 	req, err := retryablehttp.NewRequest(method, httpURL, rawbody)
 	if err != nil {
 		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", httpURL, err))
@@ -249,7 +249,7 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, userNa
 
 func VerifyRancherUser(method, httpURL, token, userName string, responseCode int, rawbody interface{}) (*gabs.Container, bool) {
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
-	jsonParsed, err := HTTPHelper(httpClient, method, httpURL, token, userName, responseCode, rawbody)
+	jsonParsed, err := RancherHTTPHelper(httpClient, method, httpURL, token, userName, responseCode, rawbody)
 	if err != nil {
 		return nil, false
 	}
@@ -368,12 +368,6 @@ func backupPrerequisites() {
 		common.RancherURL, err = common.GetRancherURL(t.Logs)
 		return common.RancherURL, err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
-	//t.Logs.Info("Get rancher admin token")
-	//Eventually(func() string {
-	//	common.RancherToken = common.GetRancherLoginToken(t.Logs)
-	//	return common.RancherToken
-	//}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Creating multiple user with the retrieved login token")
 	Eventually(func() error {
