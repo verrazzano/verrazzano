@@ -38,14 +38,14 @@ pipeline {
             steps {
                 sh """
                     echo "RPT_BRANCH_NAME = ${RPT_BRANCH_NAME}"
-                    echo "PROJECT_NAME = /${upstream_project}/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}"
+                    echo "PROJECT_NAME = ${upstream_project}/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}"
                     echo "RPT_BUILD_NUMBER = ${RPT_BUILD_NUMBER}"
                     echo "upload_filename = ${upload_filename}"
                     echo "JOB_NAME is '${env.JOB_NAME}'"
                     echo "PROJECT_NAME is '${env.PROJECT_NAME}'"
                 """
                 copyArtifacts(
-                    projectName: "/${upstream_project}/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}",
+                    projectName: "${upstream_project}/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}",
                     selector: specific("${RPT_BUILD_NUMBER}"),
                     filter: "${upload_filename}",
                     flatten: true,
