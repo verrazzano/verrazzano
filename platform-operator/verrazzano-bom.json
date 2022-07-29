@@ -342,7 +342,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.5",
+              "tag": "3.2.6",
               "helmFullImageKey": "image"
             }
           ]
