@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 pipeline {
@@ -17,6 +17,7 @@ pipeline {
     }
 
     environment {
+        CONSOLIDATED='consolidated.csv'
         UPLOAD_FILE='consolidated-upload.json'
     }
 
@@ -25,11 +26,23 @@ pipeline {
             steps {
                 script {
                     sh """
+                        echo "Creating ${CONSOLIDATED} ..."
+                        cat > ${CONSOLIDATED} <<END
+21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2018-25032,HIGH,oracle_weblogic-kubernetes-operator:3.4.0
+21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2021-3634,MEDIUM,oracle_weblogic-kubernetes-operator:3.4.0
+21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2022-1271,NONE,oracle_weblogic-kubernetes-operator:3.4.0
+21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2018-25032,HIGH,verrazzano_cert-manager-acmesolver:v1.7.1
+21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2021-3634,MEDIUM,verrazzano_cert-manager-acmesolver:v1.7.1
+21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2022-1271,NONE,verrazzano_cert-manager-acmesolver:v1.7.1
+21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2018-25032,HIGH,verrazzano_cert-manager-cainjector:v1.7.1
+21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2021-3634,MEDIUM,verrazzano_cert-manager-cainjector:v1.7.1
+21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2022-1271,NONE,verrazzano_cert-manager-cainjector:v1.7.1
+21bfde8237633cb1bd084f6d329e98916d27d572,master,periodic,20220627222943,241,OCIR,CVE-2018-25032,HIGH,verrazzano_cert-manager-controller:v1.7.1
+END
+                        echo "Created ${CONSOLIDATED}"
                         echo "Creating ${UPLOAD_FILE} ..."
-                        echo "This is ${UPLOAD_FILE} for build ${env.BRANCH_NAME}/${env.BUILD_NUMBER}" > ${UPLOAD_FILE}
+                        release/scripts/generate_upload_file.sh ${CONSOLIDATED} "testing" > ${UPLOAD_FILE}
                         echo "Created ${UPLOAD_FILE}"
-                        echo "ls -ld ${UPLOAD_FILE}"
-                        ls -ld ${UPLOAD_FILE}
                         echo "cat ${UPLOAD_FILE}"
                         cat ${UPLOAD_FILE}
                         echo "JOB_NAME is '${env.JOB_NAME}'"

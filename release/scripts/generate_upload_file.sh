@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
 
 declare reportName="Daily Scan Results"
 declare reportType="VZ_DAILY_SCAN"
@@ -63,18 +67,14 @@ output_scan_result () {
     echo "            \"verrazzanoVersion\" : \"${resultVersion}\""
 }
 
-declare _inputFile=
-
-while [[ -n $1 ]]
-do
-    case "$1" in
-    *)  _inputFile="$1" ; shift ;;
-    esac
-done
-
+declare _inputFile="${1}"
 if [[ -z ${_inputFile} || ! -f ${_inputFile} ]] ; then
     echo "Input file '${_inputFile}' not found"
     exit 1
+fi
+
+if [[ -n "${2}" ]] ; then
+    reportName="${reportName} (${2})"
 fi
 
 reportBranch=$(get_branch_from_csv_file ${_inputFile})
