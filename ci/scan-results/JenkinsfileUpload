@@ -17,6 +17,7 @@ pipeline {
     }
 
     parameters {
+        string (name: 'UPSTREAM_JOB', defaultValue: 'NONE', description: 'Name of the upstream job')
         string (name: 'RPT_BRANCH_NAME', defaultValue: 'NONE', description: 'Which branch to upload the scan report for')
         string (name: 'RPT_BUILD_NUMBER', defaultValue: 'NONE', description: 'Build number where upload file was generated')
     }
@@ -38,15 +39,10 @@ pipeline {
             steps {
                 script {
                     sh """
-                        echo "RPT_BRANCH_NAME = ${RPT_BRANCH_NAME}"
-                        echo "PROJECT_NAME = ${upstream_project}/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}"
-                        echo "RPT_BUILD_NUMBER = ${RPT_BUILD_NUMBER}"
-                        echo "upload_filename = ${upload_filename}"
-                        echo "JOB_NAME is '${env.JOB_NAME}'"
-                        echo "PROJECT_NAME is '${env.PROJECT_NAME}'"
+                        echo "UPSTREAM_JOB = ${UPSTREAM_JOB}"
                     """
                     copyArtifacts(
-                        projectName: "${upstream_project}/${RPT_BRANCH_NAME.replaceAll('/', '%2F')}",
+                        projectName: params.UPSTREAM_JOB,
                         selector: specific("${RPT_BUILD_NUMBER}"),
                         filter: "${upload_filename}",
                         flatten: true,
