@@ -19,7 +19,7 @@ if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] ||
 fi
 
 BASE_OBJ_PATH="daily-scan/${CLEAN_BRANCH_NAME}"
-SCAN_DATETIME="$(date '+%Y%m%d%H%M%S')"
+SCAN_DATETIME="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 JOB_OBJ_PATH="${BASE_OBJ_PATH}/${SCAN_DATETIME}-${BUILD_NUMBER}"
 
 # Hack to get the generated BOM from a release by pulling down the operator.yaml from the release artifacts
