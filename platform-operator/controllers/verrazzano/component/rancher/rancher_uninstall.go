@@ -53,8 +53,8 @@ var rancherSystemNS = []string{
 	"local",
 }
 
-// PostUninstall removes the objects after the Helm uninstall process finishes
-func PostUninstall(ctx spi.ComponentContext) error {
+// postUninstall removes the objects after the Helm uninstall process finishes
+func postUninstall(ctx spi.ComponentContext) error {
 	ctx.Log().Oncef("Running the Rancher uninstall system tool")
 
 	// List all the namespaces that need to be cleaned from Rancher components
