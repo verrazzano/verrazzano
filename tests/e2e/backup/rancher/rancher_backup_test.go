@@ -97,8 +97,7 @@ func CreateRancherBackupObject() error {
 		},
 	}
 	template.Execute(&b, data)
-	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
-	//err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
+	err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
 		return err
@@ -132,8 +131,7 @@ func CreateRancherRestoreObject() error {
 		},
 	}
 	template.Execute(&b, data)
-	//err = common.DynamicSSA(context.TODO(), b.String(), t.Logs)
-	err = pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
+	err = common.DynamicSSA(context.TODO(), b.String(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating rancher backup object", zap.Error(err))
 		return err
