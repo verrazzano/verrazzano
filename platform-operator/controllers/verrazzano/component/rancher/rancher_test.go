@@ -219,6 +219,15 @@ func createOkeDriver() unstructured.Unstructured {
 	return okeDriver
 }
 
+func createKeycloakAuthConfig() unstructured.Unstructured {
+	authConfig := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfig.SetName(AuthConfigKeycloak)
+	return authConfig
+}
+
 // TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR
 // GIVEN a Verrazzano CR
 //  WHEN useAdditionalCAs is called
