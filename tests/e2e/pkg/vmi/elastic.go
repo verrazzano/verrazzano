@@ -63,12 +63,7 @@ func (e *Elastic) getResponseBody(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
-		return nil, err
-	}
-
+	api := pkg.EventuallyGetAPIEndpoint(kubeConfigPath)
 	esURL, err := api.GetElasticURL()
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))

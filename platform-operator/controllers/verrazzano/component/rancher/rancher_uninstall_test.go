@@ -318,7 +318,7 @@ func TestPostUninstall(t *testing.T) {
 			crd1 := v12.CustomResourceDefinition{}
 			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
-			err := PostUninstall(ctx)
+			err := postUninstall(ctx)
 			assert.NoError(err)
 
 			// MutatingWebhookConfigurations should not exist

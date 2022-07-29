@@ -5,19 +5,19 @@ package istio
 
 import (
 	"fmt"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"time"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 const (
@@ -155,9 +155,6 @@ func getIngressReplicaCount(vz *vzapi.Verrazzano) uint32 {
 			}
 		}
 	}
-	if pkg.IsProdProfile() {
-		return 2
-	}
 	return 1
 }
 
@@ -171,9 +168,6 @@ func getEgressReplicaCount(vz *vzapi.Verrazzano) uint32 {
 			return istio.Egress.Kubernetes.Replicas
 		}
 	}
-	if pkg.IsProdProfile() {
-		return 2
-	}
 	return 1
 }
 
@@ -181,9 +175,6 @@ func getPilotReplicaCount(vz *vzapi.Verrazzano) uint32 {
 	istio := vz.Spec.Components.Istio
 	if istio != nil && !isIstioEnabled(istio) {
 		return 0
-	}
-	if pkg.IsProdProfile() {
-		return 2
 	}
 	return 1
 }
