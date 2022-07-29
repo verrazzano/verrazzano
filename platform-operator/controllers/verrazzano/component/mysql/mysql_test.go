@@ -5,6 +5,8 @@ package mysql
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
@@ -281,6 +283,173 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
+}
+
+// TestPreUpgrade tests the preUpgrade function
+// GIVEN a call to preUpgrade during upgrade
+// WHEN the PV, PVC and existing deployment exist
+// THEN the PV is released and the deployment removed
+func TestPreUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	vz := &vzapi.Verrazzano{}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			pvc.Spec.VolumeName = "volumeName"
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: "volumeName"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pv *v1.PersistentVolume) error {
+			pv.Name = "volumeName"
+			pv.Spec.PersistentVolumeReclaimPolicy = v1.PersistentVolumeReclaimDelete
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pv *v1.PersistentVolume, opts ...client.UpdateOption) error {
+			assert.Equal(t, 2, len(pv.Labels))
+			assert.Equal(t, v1.PersistentVolumeReclaimRetain, pv.Spec.PersistentVolumeReclaimPolicy)
+			return nil
+		})
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.DeleteOption) error {
+			assert.Equal(t, ComponentName, deployment.Name)
+			return nil
+		})
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.DeleteOption) error {
+			assert.Equal(t, ComponentName, pvc.Name)
+			assert.Equal(t, ComponentNamespace, pvc.Namespace)
+			return nil
+		})
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
+			pv := v1.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "volumeName",
+				},
+				Spec: v1.PersistentVolumeSpec{
+					ClaimRef: &v1.ObjectReference{
+						Namespace: ComponentNamespace,
+						Name:      DeploymentPersistentVolumeClaim,
+					},
+					PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRetain,
+				},
+				Status: v1.PersistentVolumeStatus{
+					Phase: v1.VolumeReleased,
+				},
+			}
+			list.Items = []v1.PersistentVolume{pv}
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pv *v1.PersistentVolume, opts ...client.UpdateOption) error {
+			assert.Nil(t, pv.Spec.ClaimRef)
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: "data-mysql-0"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.UpdateOption) error {
+			assert.Equal(t, "data-mysql-0", pvc.Name)
+			assert.Equal(t, "volumeName", pvc.Spec.VolumeName)
+			return nil
+		})
+
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	err := preUpgrade(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPreUpgradeForUpdatedMySQLChart tests the preUpgrade function
+// GIVEN a call to preUpgrade during upgrade
+// WHEN the resource is a statefulset rather than the old deployment
+// THEN the PV reassignment steps are skipped
+func TestPreUpgradeForUpdatedMySQLChart(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	vz := &vzapi.Verrazzano{}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			return errors.NewNotFound(schema.GroupResource{Group: ComponentNamespace, Resource: "PersistentVolumeClaim"}, "")
+		})
+
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	err := preUpgrade(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPostUpgrade tests the postUpgrade function
+// GIVEN a call to postUpgrade during upgrade
+// WHEN the PV for the stateful set exists
+// THEN the PV is updated with the original reclaim policy
+func TestPostUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	vz := &vzapi.Verrazzano{}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
+			pv := v1.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "volumeName",
+					Labels: map[string]string{vzconst.OldReclaimPolicyLabel: string(v1.PersistentVolumeReclaimDelete)},
+				},
+				Spec: v1.PersistentVolumeSpec{
+					ClaimRef: &v1.ObjectReference{
+						Namespace: ComponentNamespace,
+						Name:      "data-mysql-0",
+					},
+					PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRetain,
+				},
+				Status: v1.PersistentVolumeStatus{
+					Phase: v1.VolumeBound,
+				},
+			}
+			list.Items = []v1.PersistentVolume{pv}
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pv *v1.PersistentVolume, opts ...client.UpdateOption) error {
+			assert.Equal(t, v1.PersistentVolumeReclaimDelete, pv.Spec.PersistentVolumeReclaimPolicy)
+			_,ok := pv.Labels[vzconst.OldReclaimPolicyLabel]
+			assert.False(t, ok)
+			return nil
+		})
+
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	err := postUpgrade(ctx)
+	assert.NoError(t, err)
 }
 
 // TestAppendMySQLOverridesUpgrade tests the appendMySQLOverrides function

@@ -337,39 +337,41 @@ func preUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	deploymentPvc := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
-	err := common.RetainPersistentVolume(ctx, deploymentPvc, ComponentName)
+	pvReassignmentRequired, err := common.RetainPersistentVolume(ctx, deploymentPvc, ComponentName)
 	if err != nil {
 		return err
 	}
 
-	// get the current MySQL deployment
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
-	// delete the deployment to free up the pv/pvc
-	ctx.Log().Infof("Deleting deployment %s", ComponentName)
-	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
-		if !errors.IsNotFound(err) {
-			ctx.Log().Infof("preUpgrade - unable to delete deployment %s", ComponentName)
+	if pvReassignmentRequired {
+		// get the current MySQL deployment
+		deployment := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+			},
+		}
+		// delete the deployment to free up the pv/pvc
+		ctx.Log().Infof("Deleting deployment %s", ComponentName)
+		if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
+			if !errors.IsNotFound(err) {
+				ctx.Log().Infof("preUpgrade - unable to delete deployment %s", ComponentName)
+				return err
+			}
+		} else {
+			ctx.Log().Infof("Deployment %v deleted", deployment.ObjectMeta)
+		}
+
+		ctx.Log().Infof("Deleting PVC %v", deploymentPvc)
+		if err := common.DeleteExistingVolumeClaim(ctx, deploymentPvc); err != nil {
+			ctx.Log().Infof("preUpgrade - unable to delete existing PVC")
 			return err
 		}
-	} else {
-		ctx.Log().Infof("Deployment %v deleted", deployment.ObjectMeta)
-	}
 
-	ctx.Log().Infof("Deleting PVC %v", deploymentPvc)
-	if err := common.DeleteExistingVolumeClaim(ctx, deploymentPvc); err != nil {
-		ctx.Log().Infof("preUpgrade - unable to delete existing PVC")
-		return err
-	}
-
-	ctx.Log().Infof("Updating PV/PVC %v", deploymentPvc)
-	if err := common.UpdateExistingVolumeClaims(ctx, deploymentPvc, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
-		ctx.Log().Infof("preUpgade - unable to update PV/PVC")
-		return err
+		ctx.Log().Infof("Updating PV/PVC %v", deploymentPvc)
+		if err := common.UpdateExistingVolumeClaims(ctx, deploymentPvc, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
+			ctx.Log().Infof("preUpgade - unable to update PV/PVC")
+			return err
+		}
 	}
 
 	return nil

@@ -18,16 +18,16 @@ import (
 
 // retainPersistentVolume locates the persistent volume associated with the provided pvc
 // and sets the reclaim policy to "retain" so that it can be migrated to the new deployment/statefulset.
-func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedName, componentName string) error {
+func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedName, componentName string) (bool, error) {
 	pvc := &v1.PersistentVolumeClaim{}
 
 	if err := ctx.Client().Get(context.TODO(), pvcName, pvc); err != nil {
 		// no pvc so just log it and there's nothing left to do
 		if errors.IsNotFound(err) {
 			ctx.Log().Infof("Did not find pvc %s, Assuming PV has been updated", pvcName)
-			return nil
+			return false, nil
 		}
-		return err
+		return true, err
 	}
 
 	ctx.Log().Infof("Updating persistent volume associated with pvc %s so that the volume can be migrated", pvcName)
@@ -55,7 +55,7 @@ func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedNa
 		return nil
 	})
 
-	return err
+	return true, err
 }
 
 // UpdateExistingVolumeClaim removes a persistent volume claim from the volume if the
@@ -136,9 +136,9 @@ func ResetVolumeReclaimPolicy(ctx spi.ComponentContext, componentName string) er
 		if pv.Labels == nil {
 			continue
 		}
-		oldPolicy := pv.Labels[vzconst.OldReclaimPolicyLabel]
+		oldPolicy, ok := pv.Labels[vzconst.OldReclaimPolicyLabel]
 
-		if len(oldPolicy) > 0 {
+		if ok {
 			// found a bound volume that still has an old reclaim policy label, so reset the reclaim policy and remove the label
 			ctx.Log().Infof("Found volume, resetting reclaim policy on persistent volume %s to %s", pv.Name, oldPolicy)
 			pv.Spec.PersistentVolumeReclaimPolicy = v1.PersistentVolumeReclaimPolicy(oldPolicy)
