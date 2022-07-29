@@ -23,6 +23,7 @@ pipeline {
 
     environment {
         upload_filename="consolidated-upload.json"
+        upload_url="https://vzship-scanmanager.appoci.oraclecorp.com/scanreports"
     }
 
     stages {
@@ -30,6 +31,7 @@ pipeline {
             steps {
                 script {
                     sh """
+                        echo "Copying ${upload_filename} from upstream pipeline"
                         echo "UPSTREAM_JOB = ${params.UPSTREAM_JOB}"
                         echo "UPSTREAM_BUILD = ${params.UPSTREAM_BUILD}"
                     """
@@ -39,12 +41,12 @@ pipeline {
                         filter: "${upload_filename}",
                         flatten: true,
                         optional: false,
-                        fingerprintArtifacts: true,
+                        fingerprintArtifacts: false
                     )
                     sh """
-                        echo "ls -l"
+                        echo "Got file ${upload_filename}:"
                         ls -l
-                        cat ${upload_filename}
+                        head ${upload_filename}
                     """
                 }
             }
@@ -52,9 +54,11 @@ pipeline {
 
         stage("Upload Scan Report") {
             steps {
-                script{
+                script {
                     sh """
-                    echo curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} https://vzship-scanmanager.appoci.oraclecorp.com/scanreports
+                    echo "Uploading ${upload_filename} to ${upload_url}"
+                    echo curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} ${upload_url}
+                    echo "File uploaded"
                     """
                 }
             }
@@ -65,6 +69,7 @@ pipeline {
     post {
         cleanup {
             sh """
+                echo "Removing upload file ${upload_filename}"
                 rm -f ${upload_filename}
             """
         }
