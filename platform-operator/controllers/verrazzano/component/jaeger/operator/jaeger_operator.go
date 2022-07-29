@@ -62,9 +62,12 @@ const (
 	tmpFileCleanPattern   = tmpFilePrefix + ".*\\." + tmpSuffix
 	jaegerSecName         = "verrazzano-jaeger-secret"
 	jaegerCreateField     = "jaeger.create"
+	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"
+	prometheusServerField = "jaeger.spec.query.options.prometheus.server-url"
 	jaegerHostName        = "jaeger"
 	jaegerCertificateName = "jaeger-tls"
 	openSearchURL         = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
+	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090"
 )
 
 // Define the Jaeger images using extraEnv key.
@@ -269,6 +272,18 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 
 	// Append any installArgs overrides
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
+
+	// If metricsStorage type is set to prometheus, set the prometheus server URL override
+	if vzconfig.IsPrometheusEnabled(compContext.EffectiveCR()) {
+		metricsStorageVal, err := getOverrideVal(compContext, metricsStorageField)
+		if err != nil {
+			return kvs, err
+		}
+		if metricsStorageVal != nil && metricsStorageVal.(string) == "prometheus" {
+			kvs = append(kvs, bom.KeyValue{Key: prometheusServerField, Value: prometheusURL})
+		}
+	}
+
 	return kvs, nil
 }
 
@@ -424,7 +439,7 @@ func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 func isCreateDefaultJaegerInstance(ctx spi.ComponentContext) (bool, error) {
 	// Default Jaeger instance will be created if Verrazzano's OpenSearch can be used as storage
 	if canUseVZOpenSearchStorage(ctx) {
-		jaegerCreateOverride, err := getJaegerCreateOverrideVal(ctx)
+		jaegerCreateOverride, err := getOverrideVal(ctx, jaegerCreateField)
 		if err != nil {
 			return false, err
 		}
@@ -439,7 +454,7 @@ func isCreateDefaultJaegerInstance(ctx spi.ComponentContext) (bool, error) {
 
 // isJaegerCREnabled determines if Jaeger instance is configured as part of Verrazzano
 func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
-	jaegerCreateOverride, err := getJaegerCreateOverrideVal(ctx)
+	jaegerCreateOverride, err := getOverrideVal(ctx, jaegerCreateField)
 	if err != nil {
 		return false, err
 	}
@@ -460,19 +475,19 @@ func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
 	return false
 }
 
-// getJaegerCreateOverrideVal gets the Helm value specified in the VZ CR for jaeger.create
-func getJaegerCreateOverrideVal(ctx spi.ComponentContext) (interface{}, error) {
+// getOverrideVal gets the Helm value specified in the VZ CR for the specified override field
+func getOverrideVal(ctx spi.ComponentContext, field string) (interface{}, error) {
 	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()))
 	if err != nil {
 		return nil, err
 	}
 	for _, override := range overrides {
-		jaegerCreate, err := common.ExtractValueFromOverrideString(override, jaegerCreateField)
+		fieldVal, err := common.ExtractValueFromOverrideString(override, field)
 		if err != nil {
 			return nil, err
 		}
-		if jaegerCreate != nil {
-			return jaegerCreate, nil
+		if fieldVal != nil {
+			return fieldVal, nil
 		}
 	}
 	return nil, nil
