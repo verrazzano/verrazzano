@@ -119,6 +119,8 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
+        - port: 9100
+          protocol: TCP
   - from:
     - namespaceSelector:
       matchLabels:
