@@ -5,14 +5,17 @@ package jaeger
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -22,6 +25,7 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+	sampleRequestCount       = 10
 )
 
 const (
@@ -161,6 +165,19 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 					return false, err
 				}
 				tracesFound := false
+				// generate sample requests, so that traces can be sent to Jaeger for those requests
+				host, err := k8sutil.GetHostnameFromGateway(namespace, "")
+				if err != nil {
+					return false, err
+				}
+				url := fmt.Sprintf("https://%s/greet", host)
+				for i := 0; i < sampleRequestCount; i++ {
+					result := accessAppEndpoint(url, host)
+					if !result {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error accessing the test app with traces: %v", err))
+						//return false, err
+					}
+				}
 				for _, serviceName := range pkg.ListServicesInJaeger(kubeconfigPath) {
 					if strings.HasPrefix(serviceName, "hello-helidon") {
 						traceIds := pkg.ListJaegerTraces(kubeconfigPath, serviceName)
@@ -216,19 +233,82 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				if err != nil {
 					return false
 				}
-				return (pkg.IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, nil) &&
+				return pkg.IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, nil) &&
 					pkg.IsJaegerMetricFound(kubeconfigPath, jaegerQuerySampleMetric, nil) &&
-					pkg.IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, nil))
+					pkg.IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, nil)
 			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 	})
 
 })
 
+//helloHelidonPodsRunning checks if the helidon pods are running
 func helloHelidonPodsRunning() bool {
 	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 	return result
+}
+
+//accessAppEndpoint sends an HTTP request through the istio ingress gateway
+func accessAppEndpoint(url string, hostname string) bool {
+	req, err := retryablehttp.NewRequest("GET", url, nil)
+	if err != nil {
+		t.Logs.Errorf("Unexpected error while creating new request=%v", err)
+		return false
+	}
+
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Logs.Errorf("Unexpected error while getting kubeconfig location=%v", err)
+		return false
+	}
+
+	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		t.Logs.Errorf("Unexpected error while getting new httpClient=%v", err)
+		return false
+	}
+	req.Host = hostname
+	req.Close = true
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		t.Logs.Errorf("Unexpected error while making http request=%v", err)
+		if resp != nil && resp.Body != nil {
+			bodyRaw, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
+				return false
+			}
+
+			t.Logs.Errorf("Error Response=%v", string(bodyRaw))
+			resp.Body.Close()
+		}
+		return false
+	}
+
+	bodyRaw, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Logs.Errorf("Unexpected error marshallling response=%v", err)
+		return false
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Logs.Errorf("Unexpected status code=%v", resp.StatusCode)
+		return false
+	}
+	// HTTP Server headers should never be returned.
+	for headerName, headerValues := range resp.Header {
+		if strings.EqualFold(headerName, "Server") {
+			t.Logs.Errorf("Unexpected Server header=%v", headerValues)
+			return false
+		}
+	}
+	bodyStr := string(bodyRaw)
+	if !strings.Contains(bodyStr, "Hello World") {
+		t.Logs.Errorf("Unexpected response body=%v", bodyStr)
+		return false
+	}
+	return true
 }
