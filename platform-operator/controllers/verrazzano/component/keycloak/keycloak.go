@@ -1147,12 +1147,14 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	}
 
 	kcPod := keycloakPod()
-	if clientId := getClientID(keycloakClients, clientName); clientId != "" && uriTemplate != "" {
-		err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientId, uriTemplate)
-		if err != nil {
-			return err
+	if clientId := getClientID(keycloakClients, clientName); clientId != "" {
+		if uriTemplate != "" {
+			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientId, uriTemplate)
+			if err != nil {
+				return err
+			}
 		}
-
+		
 		return nil
 	}
 
