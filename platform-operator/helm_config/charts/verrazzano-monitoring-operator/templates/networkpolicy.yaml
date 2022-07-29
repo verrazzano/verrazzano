@@ -27,3 +27,4 @@ spec:
         - port: 15090
           protocol: TCP
         - port: 9100
+          protocol: TCP
