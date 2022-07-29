@@ -130,6 +130,8 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 	t.It("Check for expected monitoringdashboards.monitoring.kiali.io CRD", func() {
 		if !pkg.IsManagedClusterProfile() {
 			checkCrds(crds, map[string]bool{"monitoringdashboards.monitoring.kiali.io": false}, "monitoringdashboards.monitoring.kiali.io")
+		} else {
+			pkg.Log(pkg.Info, "monitoringdashboards.monitoring.kiali.io CRD is not checked on a managed-cluster profile")
 		}
 	})
 
