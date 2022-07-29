@@ -13,13 +13,7 @@ declare resultVersion=
 
 get_timestamp_from_csv_file () {
     local csv_file="${1}"
-    #head -1 ${csv_file} | cut -f4 -d,
-    # temporarily override date for testing
-    date -u +"%Y-%m-%dT%H:%M:%SZ"
-    # don't try to reformat the date: -j flag isn't portable, and the csv file now has a UTC date in the right format
-    # local date_string=$(head -1 ${csv_file} | cut -f4 -d,)
-    # date -j -f "%Y%m%d%H%M%S" "${date_string}" +"%Y-%m-%dT%H:%M:%S%z" # date with tz offset
-    # date -j -f "%Y%m%d%H%M%S" "${date_string}" +"%Y-%m-%dT%H:%M:%SZ"	# date hard-wired to Z (UTC time)
+    head -1 ${csv_file} | cut -f4 -d,
 }
 
 get_branch_from_csv_file () {
