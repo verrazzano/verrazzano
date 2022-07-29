@@ -185,7 +185,7 @@ func getPilotReplicaCount(vz *vzapi.Verrazzano) uint32 {
 				if err != nil {
 					return 1
 				}
-				if container := jsonString.Path("spec.components.pilot.k8s.replicas"); container != nil {
+				if container := jsonString.Path("spec.components.pilot.k8s.replicaCount"); container != nil {
 					if val, ok := container.Data().(float64); ok {
 						return uint32(val)
 					}
