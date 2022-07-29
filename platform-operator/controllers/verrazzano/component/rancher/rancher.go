@@ -90,6 +90,39 @@ const (
 	useBundledSystemChartValue = "true"
 )
 
+const (
+	APIGroupRancherManagement        = "management.cattle.io"
+	APIGroupVersionRancherManagement = "v3"
+	SettingServerURL                 = "server-url"
+	KontainerDriverOKE               = "oraclecontainerengine"
+	NodeDriverOCI                    = "oci"
+	ClusterLocal                     = "local"
+)
+
+var GVKSetting = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "Setting",
+}
+
+var GVKCluster = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "Cluster",
+}
+
+var GVKNodeDriver = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "NodeDriver",
+}
+
+var GVKKontainerDriver = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "KontainerDriver",
+}
+
 func useAdditionalCAs(acme vzapi.Acme) bool {
 	return acme.Environment != "production"
 }
@@ -316,41 +349,82 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 }
 
 // Delete the local cluster
-func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
+func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 	log.Once("Deleting Rancher local cluster")
 
-	password, err := common.GetAdminSecret(c)
+	localCluster := unstructured.Unstructured{}
+	localCluster.SetGroupVersionKind(GVKCluster)
+	localClusterName := types.NamespacedName{Name: ClusterLocal}
+	err := c.Get(context.Background(), localClusterName, &localCluster)
 	if err != nil {
-		log.Oncef("Skipping Rancher delete local cluster, unable to obtain admin secret: %s", err.Error())
-		return nil
-	}
-	if len(password) == 0 {
-		log.Oncef("Skipping Rancher delete local host because Rancher admin password is missing")
-		return nil
-	}
-	rancherHostName, err := getRancherHostname(c, vz)
-	if err != nil {
-		log.Oncef("Skipping Rancher delete local cluster, unable to obtain Rancher hostname: %s", err.Error())
-		return nil
-	}
-	if len(rancherHostName) == 0 {
-		log.Oncef("Skipping Rancher delete local host since Rancher host name is missing")
-		return nil
+		log.Oncef("Failed getting local Cluster: %s", err.Error())
+		return
 	}
 
-	rest, err := common.NewClient(c, rancherHostName, password)
+	err = c.Delete(context.Background(), &localCluster)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
-	}
-	if err := rest.SetAccessToken(); err != nil {
-		return log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
-	}
-	if err := rest.DeleteLocalHost(); err != nil {
-		// This is a warning
-		log.Oncef("Failed deleting Rancher local host: %s", err.Error())
-		return nil
+		log.Oncef("Failed deleting local cluster: %s", err.Error())
+		return
 	}
 
-	log.Once("Successfully delete Rancher local cluster")
+	log.Once("Successfully deleted Rancher local cluster")
+}
+
+// activateOCIDriver activates the oci nodeDriver
+func activateOCIDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
+	ociDriver := unstructured.Unstructured{}
+	ociDriver.SetGroupVersionKind(GVKNodeDriver)
+	ociDriverName := types.NamespacedName{Name: NodeDriverOCI}
+	err := c.Get(context.Background(), ociDriverName, &ociDriver)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting OCI Driver: %s", err.Error())
+	}
+
+	ociDriverMerge := client.MergeFrom(ociDriver.DeepCopy())
+	ociDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
+	err = c.Patch(context.Background(), &ociDriver, ociDriverMerge)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed patching OCI Driver: %s", err.Error())
+	}
+
+	return nil
+}
+
+// activateDrivers activates the oraclecontainerengine kontainerDriver
+func activatOKEDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
+	okeDriver := unstructured.Unstructured{}
+	okeDriver.SetGroupVersionKind(GVKKontainerDriver)
+	okeDriverName := types.NamespacedName{Name: KontainerDriverOKE}
+	err := c.Get(context.Background(), okeDriverName, &okeDriver)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting OKE Driver: %s", err.Error())
+	}
+
+	okeDriverMerge := client.MergeFrom(okeDriver.DeepCopy())
+	okeDriver.UnstructuredContent()["spec"].(map[string]interface{})["active"] = true
+	err = c.Patch(context.Background(), &okeDriver, okeDriverMerge)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed patching OKE Driver: %s", err.Error())
+	}
+
+	return nil
+}
+
+// putServerURL updates the server-url Setting kontainerDriver
+func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string) error {
+	serverURLSetting := unstructured.Unstructured{}
+	serverURLSetting.SetGroupVersionKind(GVKSetting)
+	serverURLSettingName := types.NamespacedName{Name: SettingServerURL}
+	err := c.Get(context.Background(), serverURLSettingName, &serverURLSetting)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting server-url Setting: %s", err.Error())
+	}
+
+	serverURLSetting.UnstructuredContent()["value"] = serverURL
+	err = c.Update(context.Background(), &serverURLSetting)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed updating server-url Setting: %s", err.Error())
+	}
+
 	return nil
 }

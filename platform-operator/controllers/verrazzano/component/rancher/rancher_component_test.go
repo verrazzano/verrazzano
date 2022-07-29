@@ -5,8 +5,6 @@ package rancher
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -335,11 +333,14 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 			},
 		},
 	}
+	serverURLSetting := createServerURLSetting()
+	ociDriver := createOciDriver()
+	okeDriver := createOkeDriver()
 
-	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0]).Build()
+	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver).Build()
 	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
 
-	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert).Build()
+	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver).Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
 
 	// mock the pod executor when resetting the Rancher admin password
@@ -348,21 +349,6 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
 		config, k := k8sutilfake.NewClientsetConfig()
 		return config, k, nil
-	}
-
-	// mock the HTTP responses for the Rancher API
-	common.HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
-		url := req.URL.String()
-		if strings.Contains(url, common.RancherServerURLPath) {
-			return &http.Response{
-				StatusCode: 200,
-				Body:       io.NopCloser(strings.NewReader("blahblah")),
-			}, nil
-		}
-		return &http.Response{
-			StatusCode: 200,
-			Body:       io.NopCloser(strings.NewReader(`{"token":"token"}`)),
-		}, nil
 	}
 
 	return ctxWithoutIngress, ctxWithIngress
