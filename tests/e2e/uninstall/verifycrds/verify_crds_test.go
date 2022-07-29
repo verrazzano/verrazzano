@@ -127,9 +127,11 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 		checkCrds(crds, map[string]bool{"coherence.coherence.oracle.com": false}, "coherence.coherence.oracle.com")
 	})
 
-	t.It("Check for expected monitoringdashboards.monitoring.kiali.iom CRD", func() {
-		checkCrds(crds, map[string]bool{"monitoringdashboards.monitoring.kiali.io": false}, "monitoringdashboards.monitoring.kiali.io")
-	})
+	if !pkg.IsManagedClusterProfile() {
+		t.It("Check for expected monitoringdashboards.monitoring.kiali.io CRD", func() {
+			checkCrds(crds, map[string]bool{"monitoringdashboards.monitoring.kiali.io": false}, "monitoringdashboards.monitoring.kiali.io")
+		})
+	}
 
 	t.It("Check for unexpected CRDs", func() {
 		var crdsFound = make(map[string]bool)
