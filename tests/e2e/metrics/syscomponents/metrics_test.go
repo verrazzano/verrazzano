@@ -154,19 +154,19 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		})
 
 		t.ItMinimumVersion("Verify VMO function metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsExistInCluster(vmoFunctionMetric, map[string]string{}, kubeConfig)
+			eventuallyMetricsContainLabels(vmoFunctionMetric, map[string]string{})
 		})
 
 		t.ItMinimumVersion("Verify VMO counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsExistInCluster(vmoCounterMetric, map[string]string{}, kubeConfig)
+			eventuallyMetricsContainLabels(vmoCounterMetric, map[string]string{})
 		})
 
 		t.ItMinimumVersion("Verify VMO gauge metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsExistInCluster(vmoGaugeMetric, map[string]string{}, kubeConfig)
+			eventuallyMetricsContainLabels(vmoGaugeMetric, map[string]string{})
 		})
 
 		t.ItMinimumVersion("Verify VMO timestamp metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsExistInCluster(vmoTimestampMetric, map[string]string{}, kubeConfig)
+			eventuallyMetricsContainLabels(vmoTimestampMetric, map[string]string{})
 		})
 
 		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
@@ -389,12 +389,12 @@ func getClusterNameForPromQuery() string {
 	return ""
 }
 
-// Queries Prometheus for a given metric, same as eventuallyMetricsExistInCluster but does not enforce the verrazzanoCluster label
-func eventuallyMetricsExistInCluster(metricName string, labels map[string]string, kconfig string) {
-	Eventually(func() bool {
-		return pkg.MetricsExistInCluster(metricName, labels, kconfig)
-	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-}
+// // Queries Prometheus for a given metric, same as eventuallyMetricsExistInCluster but does not enforce the verrazzanoCluster label
+// func eventuallyMetricsExistInCluster(metricName string, labels map[string]string, kconfig string) {
+// 	Eventually(func() bool {
+// 		return pkg.MetricsExistInCluster(metricName, labels, kconfig)
+// 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+// }
 
 // Queries Prometheus for a given metric name and a map of labels for the metric
 func eventuallyMetricsContainLabels(metricName string, kv map[string]string) {
