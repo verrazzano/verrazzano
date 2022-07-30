@@ -26,6 +26,19 @@ spec:
       enabled: true
     prometheusNodeExporter:
       enabled: true
+    elasticsearch:
+      enabled: true
+      policies:
+      - policyName: "verrazzano-system"
+        indexPattern: "verrazzano-system*"
+        minIndexAge: "7d"
+        rollover:
+          minIndexAge: "1d"
+      - policyName: "verrazzano-application"
+        indexPattern: "verrazzano-application*"
+        minIndexAge: "7d"
+        rollover:
+          minIndexAge: "1d"
   volumeClaimSpecTemplates:
     - metadata:
         name: mysql
