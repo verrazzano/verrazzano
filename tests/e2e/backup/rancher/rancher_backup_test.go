@@ -7,14 +7,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/Jeffail/gabs/v2"
 	"github.com/google/uuid"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/common"
 	"go.uber.org/zap"
-	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
@@ -138,6 +134,7 @@ func CreateRancherRestoreObject() error {
 	return nil
 }
 
+// PopulateRancherUsers is used to populate test users on Rancher
 func PopulateRancherUsers(rancherURL string, n int) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -162,10 +159,10 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 		userName := fmt.Sprintf("cowboy-%v", uniqueID)
 
 		var b bytes.Buffer
-		template, err := template.New("rancher-user").Parse(common.RancherUserTemplate)
-		if err != nil {
-			t.Logs.Errorf("Unable to convert template '%v'", err)
-			return err
+		template, templateErr := template.New("rancher-user").Parse(common.RancherUserTemplate)
+		if templateErr != nil {
+			t.Logs.Errorf("Unable to convert template '%v'", templateErr)
+			return templateErr
 		}
 		data := common.RancherUser{
 			FullName: strconv.Quote(fullName),
@@ -174,95 +171,31 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 		}
 		template.Execute(&b, data)
 
-		request, err := retryablehttp.NewRequest("POST", rancherUserCreateURL, b.Bytes())
+		_, err = common.HTTPHelper(httpClient, "POST", rancherUserCreateURL, token, "Bearer", http.StatusCreated, b.Bytes(), t.Logs)
 		if err != nil {
-			t.Logs.Errorf("Unable to create a retryable http client= %v", zap.Error(err))
-			return err
-
-		}
-		request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", token))
-		request.Header.Add("Accept", "application/json")
-		response, err := httpClient.Do(request)
-		if err != nil {
-			t.Logs.Errorf("Unable to create retryable http client due to '%v'", zap.Error(err))
+			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 			return err
 		}
-
-		if response == nil {
-			return fmt.Errorf("invalid response")
-		}
-		defer response.Body.Close()
-
-		if response.StatusCode == 201 {
-			t.Logs.Infof("Sucessfully created rancher user %v", userName)
-			common.RancherUserNameList = append(common.RancherUserNameList, userName)
-		} else {
-			t.Logs.Infof("invalid response status: %d", response.StatusCode)
-			return fmt.Errorf("invalid response status: %d", response.StatusCode)
-		}
+		common.RancherUserNameList = append(common.RancherUserNameList, userName)
+		t.Logs.Infof("Sucessfully created rancher user %v", userName)
 	}
 
 	return nil
 }
 
-func RancherHTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, userName string, responseCode int, rawbody interface{}) (*gabs.Container, error) {
-	req, err := retryablehttp.NewRequest(method, httpURL, rawbody)
-	if err != nil {
-		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", httpURL, err))
-		return nil, err
-	}
-
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
-	req.Header.Set("Accept", "application/json")
-	response, err := httpClient.Do(req)
-	if err != nil {
-		t.Logs.Error(fmt.Sprintf("error invoking rancher api request %s: %v", httpURL, err))
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	err = httputil.ValidateResponseCode(response, responseCode)
-	if err != nil {
-		t.Logs.Errorf("did not get expected response code = %v, Error = %v", responseCode, zap.Error(err))
-		return nil, err
-	}
-
-	// extract the response body
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		t.Logs.Errorf("Failed to read Rancher token response: %v", zap.Error(err))
-		return nil, err
-	}
-
-	jsonParsed, err := gabs.ParseJSON(body)
-	if err != nil {
-		t.Logs.Errorf("Failed to parse json: %v", zap.Error(err))
-		return nil, err
-	}
-
-	if userName == fmt.Sprintf("%s", jsonParsed.Path("data.0.username").Data()) {
-		return jsonParsed, nil
-	}
-	return nil, fmt.Errorf("User '%s' not found", userName)
-
-}
-
-func VerifyRancherUser(method, httpURL, token, userName string, responseCode int, rawbody interface{}) (*gabs.Container, bool) {
-	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
-	jsonParsed, err := RancherHTTPHelper(httpClient, method, httpURL, token, userName, responseCode, rawbody)
-	if err != nil {
-		return nil, false
-	}
-	return jsonParsed, true
-}
-
 // VerifyRancherUsers gets an existing rancher user
 func VerifyRancherUsers(rancherURL string) bool {
 	token := common.GetRancherLoginToken(t.Logs)
+	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	for i := 0; i < len(common.RancherUserNameList); i++ {
 		rancherGetURL := fmt.Sprintf("%s/v3/users?username=%s", rancherURL, common.RancherUserNameList[i])
-		_, ok := VerifyRancherUser("GET", rancherGetURL, token, common.RancherUserNameList[i], http.StatusOK, nil)
-		if !ok {
+		parsedJSON, err := common.HTTPHelper(httpClient, "GET", rancherGetURL, token, "Bearer", http.StatusOK, nil, t.Logs)
+		if err != nil {
+			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
+			return false
+		}
+		if common.RancherUserNameList[i] != fmt.Sprintf("%s", parsedJSON.Path("data.0.username").Data()) {
+			t.Logs.Errorf("Fetched Name = '%s', Expected Name = '%s'", common.RancherUserNameList[i], fmt.Sprintf("%s", parsedJSON.Path("data.0.username").Data()))
 			return false
 		}
 		t.Logs.Infof("'%s' found in rancher after restore", common.RancherUserNameList[i])
@@ -273,18 +206,21 @@ func VerifyRancherUsers(rancherURL string) bool {
 // BuildRancherUserIDList gets an existing rancher user
 func BuildRancherUserIDList(rancherURL string) bool {
 	token := common.GetRancherLoginToken(t.Logs)
+	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	for i := 0; i < len(common.RancherUserNameList); i++ {
 		rancherGetURL := fmt.Sprintf("%s/v3/users?username=%s", rancherURL, common.RancherUserNameList[i])
-		jsonParsed, ok := VerifyRancherUser("GET", rancherGetURL, token, common.RancherUserNameList[i], http.StatusOK, nil)
-		if !ok {
+		parsedJSON, err := common.HTTPHelper(httpClient, "GET", rancherGetURL, token, "Bearer", http.StatusOK, nil, t.Logs)
+		if err != nil {
+			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 			return false
 		}
-		common.RancherUserIDList = append(common.RancherUserIDList, fmt.Sprintf("%s", jsonParsed.Path("data.0.id").Data()))
+		common.RancherUserIDList = append(common.RancherUserIDList, fmt.Sprintf("%s", parsedJSON.Path("data.0.id").Data()))
 		t.Logs.Infof("'%s' found in rancher", common.RancherUserNameList[i])
 	}
 	return true
 }
 
+// DeleteRancherUsers is used to cleanup rancher users after test run
 func DeleteRancherUsers(rancherURL string) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -300,31 +236,13 @@ func DeleteRancherUsers(rancherURL string) error {
 	token := common.GetRancherLoginToken(t.Logs)
 	for i := 0; i < len(common.RancherUserNameList); i++ {
 		rancherUserDeleteURL := fmt.Sprintf("%s/v3/users/%s", rancherURL, common.RancherUserIDList[i])
-		request, err := retryablehttp.NewRequest("DELETE", rancherUserDeleteURL, nil)
-		if err != nil {
-			t.Logs.Errorf("Unable to create a retryable http client= %v", zap.Error(err))
-			return err
 
-		}
-		request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", token))
-		request.Header.Add("Accept", "application/json")
-		response, err := httpClient.Do(request)
+		_, err := common.HTTPHelper(httpClient, "DELETE", rancherUserDeleteURL, token, "Bearer", http.StatusOK, nil, t.Logs)
 		if err != nil {
-			t.Logs.Errorf("Unable to create retryable http client due to '%v'", zap.Error(err))
+			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 			return err
 		}
 
-		if response == nil {
-			return fmt.Errorf("invalid response")
-		}
-		defer response.Body.Close()
-
-		t.Logs.Infof("Status code = %v, Status Response = %v", response.StatusCode, response.Status)
-		err = httputil.ValidateResponseCode(response, http.StatusOK)
-		if err != nil {
-			t.Logs.Errorf("did not get expected response code , Error = %v", zap.Error(err))
-			return err
-		}
 		t.Logs.Infof("Sucessfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
 	}
 

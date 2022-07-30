@@ -68,7 +68,7 @@ func WaitForPodsShell(namespace string, log *zap.SugaredLogger) error {
 	cmdArgs = append(cmdArgs, "--for=condition=ready")
 	cmdArgs = append(cmdArgs, "pod")
 	cmdArgs = append(cmdArgs, "--all")
-	cmdArgs = append(cmdArgs, "--timeout=10m")
+	cmdArgs = append(cmdArgs, "--timeout=20m")
 
 	var kcmd BashCommand
 	kcmd.Timeout = 2 * time.Minute

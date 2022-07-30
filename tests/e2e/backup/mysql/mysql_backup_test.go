@@ -45,7 +45,7 @@ var _ = t.AfterSuite(func() {
 
 var t = framework.NewTestFramework("mysql-backup")
 
-// CreateMysqlVeleroBackupObject creates opaque secret from the given map of values
+// CreateMysqlVeleroBackupObject creates velero backup CR starting the backup process
 func CreateMysqlVeleroBackupObject() error {
 	var b bytes.Buffer
 	template, _ := template.New("mysql-backup").Parse(common.MySQLBackup)
@@ -65,6 +65,7 @@ func CreateMysqlVeleroBackupObject() error {
 	return nil
 }
 
+// CreateMysqlVeleroRestoreObject creates velero restore CR thereby starting the restore process
 func CreateMysqlVeleroRestoreObject() error {
 	var b bytes.Buffer
 	template, _ := template.New("mysql-restore").Parse(common.MySQLRestore)
@@ -84,6 +85,7 @@ func CreateMysqlVeleroRestoreObject() error {
 	return nil
 }
 
+// KeycloakDeleteUsers helps in cleaning up test users at the end of the run
 func KeycloakDeleteUsers() error {
 	keycloakClient, err := pkg.NewKeycloakAdminRESTClient()
 	if err != nil {
@@ -100,6 +102,7 @@ func KeycloakDeleteUsers() error {
 
 }
 
+// KeycloakCreateUsers helps in creating test users to populate data
 func KeycloakCreateUsers(n int) error {
 
 	keycloakClient, err := pkg.NewKeycloakAdminRESTClient()
@@ -128,6 +131,7 @@ func KeycloakCreateUsers(n int) error {
 
 }
 
+// KeycloakVerifyUsers helps in verifying if the user exists
 func KeycloakVerifyUsers() bool {
 	keycloakClient, err := pkg.NewKeycloakAdminRESTClient()
 	if err != nil {
@@ -150,6 +154,7 @@ func KeycloakVerifyUsers() bool {
 	return true
 }
 
+// DisplayResticInfo displays the Pvc pod volume backups/restores
 func DisplayResticInfo(operation string) error {
 	var cmdArgs []string
 	var apiResource string

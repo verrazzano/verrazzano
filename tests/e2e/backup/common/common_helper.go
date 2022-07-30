@@ -378,6 +378,7 @@ func CreateCredentialsSecretFromFile(namespace string, name string, log *zap.Sug
 	return nil
 }
 
+// DeleteNamespace method to delete a namespace
 func DeleteNamespace(namespace string, log *zap.SugaredLogger) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -394,6 +395,7 @@ func DeleteNamespace(namespace string, log *zap.SugaredLogger) error {
 	return CheckPodsTerminated("", namespace, log)
 }
 
+// HTTPHelper utility for http method use cases
 func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenType string, expectedResponseCode int, payload interface{}, log *zap.SugaredLogger) (*gabs.Container, error) {
 
 	var retryabeRequest *retryablehttp.Request
