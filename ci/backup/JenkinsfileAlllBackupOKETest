@@ -436,12 +436,12 @@ pipeline {
                         """
                     }
                 }
-            }
-            step {
-                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                    dumpK8sCluster('verrazzano-cluster-dump-post-all-backup-restore-tests')
+                step {
+                    if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                        dumpK8sCluster('verrazzano-cluster-dump-post-all-backup-restore-tests')
+                    }
                 }
-            }
+            }            
         }
         failure {
             script {
