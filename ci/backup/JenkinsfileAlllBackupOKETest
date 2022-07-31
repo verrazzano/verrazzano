@@ -354,11 +354,12 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    dumpK8sCluster('verrazzano-install-cluster-dump')
                 }
             }
         }
 
-        stage('Initiate Mysql backup tests') {
+        stage('Initiate Mysql backup and restore tests') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
@@ -369,11 +370,12 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    dumpK8sCluster('verrazzano-cluster-dump-post-mysql-backup-restore')
                 }
             }
         }
 
-        stage ('Start Opensearch and Rancher Tests') {
+        stage ('Initiate Opensearch and Rancher Backup and Restore Tests') {
           parallel {
              stage('Initiate opensearch backup hook tests') {
                 environment {
@@ -432,6 +434,7 @@ pipeline {
                     }
                 }
             }
+            dumpK8sCluster('verrazzano-cluster-dump-post-all-backup-restore-tests')
         }
         failure {
             script {
