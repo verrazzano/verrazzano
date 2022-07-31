@@ -378,17 +378,21 @@ func CrdPruner(group, version, resource, resourceName, nameSpaceName string, log
 
 	if strings.Contains(group, "velero") {
 		err = dclient.Resource(gvr).Namespace(nameSpaceName).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
-		if !k8serror.IsNotFound(err) {
-			log.Errorf("Unable to delete resource '%s' from namespace '%s' due to '%v'", resourceName, nameSpaceName, zap.Error(err))
-			return err
+		if err != nil {
+			if !k8serror.IsNotFound(err) {
+				log.Errorf("Unable to delete resource '%s' from namespace '%s' due to '%v'", resourceName, nameSpaceName, zap.Error(err))
+				return err
+			}
 		}
 	}
 
 	if strings.Contains(group, "cattle") {
 		err = dclient.Resource(gvr).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
-		if !k8serror.IsNotFound(err) {
-			log.Errorf("Unable to delete resource '%s' due to '%v'", resourceName, zap.Error(err))
-			return err
+		if err != nil {
+			if !k8serror.IsNotFound(err) {
+				log.Errorf("Unable to delete resource '%s' due to '%v'", resourceName, zap.Error(err))
+				return err
+			}
 		}
 	}
 	return nil
