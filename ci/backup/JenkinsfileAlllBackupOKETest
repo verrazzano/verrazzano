@@ -354,7 +354,6 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    dumpK8sCluster('verrazzano-install-cluster-dump')
                 }
             }
         }
@@ -370,7 +369,9 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    dumpK8sCluster('verrazzano-cluster-dump-post-mysql-backup-restore')
+                    if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                       dumpK8sCluster('verrazzano-cluster-dump-post-mysql-backup-restore')
+                    }
                 }
             }
         }
@@ -434,7 +435,9 @@ pipeline {
                     }
                 }
             }
-            dumpK8sCluster('verrazzano-cluster-dump-post-all-backup-restore-tests')
+            if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+               dumpK8sCluster('verrazzano-cluster-dump-post-all-backup-restore-tests')
+            }   
         }
         failure {
             script {
