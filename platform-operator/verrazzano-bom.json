@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "1.1.1-20220801171938-c0868153c",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "1.1.1-20220801171938-c0868153c",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.6-20220729170148-0029c0a73",
+              "tag": "v2.6.6-20220801034315-6b16223e4",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.6-20220722140326-0029c0a73"
+              "tag": "v2.6.6-20220801034315-6b16223e4"
             }
           ]
         },
@@ -186,7 +186,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20220721170525-12c063f",
+              "tag": "v1.14.5-20220801165146-12c063f",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -197,7 +197,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "1.1.1-20220801171938-c0868153c",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
