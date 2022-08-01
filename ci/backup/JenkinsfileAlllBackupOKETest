@@ -365,7 +365,7 @@ pipeline {
             steps {
                 runGinkgoRandomize('backup/mysql')
                 script {
-                  println("Wait for pods in keycloak and verrazzano-system to be ready"
+                  println("Wait for pods in keycloak and verrazzano-system to be ready")
                   sh """
                      kubectl wait -n keycloak -n verrazzano-system --for=condition=ready pod --all --timeout 10m
                   """
