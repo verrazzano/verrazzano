@@ -11,6 +11,19 @@ spec:
     persistentVolumeClaim:
       claimName: vmi     # set storage for the metrics stack
   components:
+    elasticsearch:
+      enabled: true
+      policies:
+        - policyName: "verrazzano-system"
+          indexPattern: "verrazzano-system*"
+          minIndexAge: "7d"
+          rollover:
+            minIndexAge: "1d"
+        - policyName: "verrazzano-application"
+          indexPattern: "verrazzano-application*"
+          minIndexAge: "7d"
+          rollover:
+            minIndexAge: "1d"
     keycloak:
       mysql:
         volumeSource:
