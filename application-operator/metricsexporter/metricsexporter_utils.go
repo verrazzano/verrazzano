@@ -41,7 +41,7 @@ const (
 	LabelerPodHandleDuration               metricName = "LabelerPod hanlde duration"
 	BindingUpdaterHandleCounter            metricName = "BindingUpdater handle counter"
 	BindingUpdaterHandleError              metricName = "BindingUpdater handle error"
-	BindingUpdaterHandleDuration           metricName = "BindingUpdater hanlde duration"
+	BindingUpdaterHandleDuration           metricName = "BindingUpdater handle duration"
 	MultiClusterAppconfigPodHandleCounter  metricName = "MultiClusterAppconfig handle counter"
 	MultiClusterAppconfigPodHandleError    metricName = "MultiClusterAppconfig handle error"
 	MultiClusterAppconfigPodHandleDuration metricName = "MultiClusterAppconfig hanlde duration"
@@ -281,7 +281,7 @@ func initDurationMetricMap() map[metricName]*DurationMetrics {
 		},
 		MultiClusterConfigmapHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vao_bindingupdater_handle_duration",
+				Name: "vao_multiclusterconfigmap_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},
@@ -306,6 +306,12 @@ func initDurationMetricMap() map[metricName]*DurationMetrics {
 		VzProjHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vao_vzproj_handle_duration",
+				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+			}),
+		},
+		BindingUpdaterHandleDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_bindingupdater_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},

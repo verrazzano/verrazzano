@@ -54,7 +54,6 @@ func (a *LabelerPodWebhook) Handle(ctx context.Context, req admission.Request) a
 	}
 	durationMetricHandle.TimerStart()
 	defer durationMetricHandle.TimerStop()
-
 	metricsexporter.GetSimpleCounterMetric(metricsexporter.LabelerPodHandleCounter)
 	return a.handlePodResource(req, log)
 }

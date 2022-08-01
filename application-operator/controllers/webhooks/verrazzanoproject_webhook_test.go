@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,6 +34,7 @@ func newVerrazzanoProjectValidator() VerrazzanoProjectValidator {
 // WHEN the VerrazzanoProject is properly formed
 // THEN the validation should succeed
 func TestVerrazzanoProject(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
 
@@ -55,6 +57,7 @@ func TestVerrazzanoProject(t *testing.T) {
 // WHEN the VerrazzanoProject contains an invalid namespace
 // THEN the validation should fail
 func TestInvalidNamespace(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
 
@@ -82,6 +85,7 @@ func TestInvalidNamespace(t *testing.T) {
 // WHEN the VerrazzanoProject contains an invalid namespace list
 // THEN the validation should fail
 func TestInvalidNamespaces(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
 
@@ -109,6 +113,7 @@ func TestInvalidNamespaces(t *testing.T) {
 // WHEN the VerrazzanoProject has a NetworkPolicyTemplate with a namespace that exists in the project
 // THEN the validation should succeed
 func TestNetworkPolicyNamespace(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
 
@@ -133,6 +138,7 @@ func TestNetworkPolicyNamespace(t *testing.T) {
 // WHEN the VerrazzanoProject has a NetworkPolicyTemplate with a namespace that does not exist in the project
 // THEN the validation should fail
 func TestNetworkPolicyMissingNamespace(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
 
@@ -160,6 +166,7 @@ func TestNetworkPolicyMissingNamespace(t *testing.T) {
 // WHEN the VerrazzanoProject has a a namespace that conflicts with any pre-existing projects
 // THEN the validation should fail
 func TestNamespaceUniquenessForProjects(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	v := newVerrazzanoProjectValidator()
 
 	// When creating the fake client, prepopulate it with 2 Verrazzano projects
@@ -382,6 +389,7 @@ func TestValidationFailureForProjectCreationWithoutTargetClusters(t *testing.T) 
 // WHEN the VerrazzanoProject resource references a VerrazzanoManagedCluster that does not exist
 // THEN the validation should fail.
 func TestValidationFailureForProjectCreationTargetingMissingManagedCluster(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
 	p := v1alpha12.VerrazzanoProject{
@@ -422,6 +430,7 @@ func TestValidationFailureForProjectCreationTargetingMissingManagedCluster(t *te
 // WHEN the VerrazzanoProject resource references a VerrazzanoManagedCluster that does exist
 // THEN the validation should pass.
 func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
 	c := v1alpha1.VerrazzanoManagedCluster{
@@ -473,6 +482,7 @@ func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *t
 // AND the validation is being done on a managed cluster
 // THEN the validation should succeed.
 func TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluster(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
 	s := corev1.Secret{
@@ -519,6 +529,7 @@ func TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluste
 // AND the validation is being done on the admin cluster
 // THEN the validation should succeed.
 func TestValidationSuccessForProjectCreationTargetingLocalCluster(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newVerrazzanoProjectValidator()
 	p := v1alpha12.VerrazzanoProject{
