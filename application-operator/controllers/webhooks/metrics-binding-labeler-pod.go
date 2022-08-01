@@ -52,9 +52,13 @@ func (a *LabelerPodWebhook) Handle(ctx context.Context, req admission.Request) a
 	if err != nil {
 		return admission.Response{}
 	}
+	counterMetricHandle, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.LabelerPodHandleCounter)
+	if err != nil {
+		return admission.Response{}
+	}
 	durationMetricHandle.TimerStart()
 	defer durationMetricHandle.TimerStop()
-	metricsexporter.GetSimpleCounterMetric(metricsexporter.LabelerPodHandleCounter)
+	counterMetricHandle.Inc(zap.S(), err)
 	return a.handlePodResource(req, log)
 }
 

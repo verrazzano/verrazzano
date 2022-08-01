@@ -48,9 +48,13 @@ func (a *WorkloadWebhook) Handle(ctx context.Context, req admission.Request) adm
 	if err != nil {
 		return admission.Response{}
 	}
+	counterMetricHandle, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.BindingUpdaterHandleCounter)
+	if err != nil {
+		return admission.Response{}
+	}
 	durationMetricHandle.TimerStart()
 	defer durationMetricHandle.TimerStop()
-	metricsexporter.GetSimpleCounterMetric(metricsexporter.BindingUpdaterHandleCounter)
+	counterMetricHandle.Inc(zap.S(), err)
 	return a.handleWorkloadResource(ctx, req, log)
 }
 

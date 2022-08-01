@@ -18,6 +18,8 @@ import (
 )
 
 const (
+	metricsVersion = "1.4.0"
+
 	longPollingInterval = 8 * time.Second
 	longWaitTimeout     = 10 * time.Minute
 
@@ -29,6 +31,10 @@ const (
 	sidecarInjectionRequests       = "sidecar_injection_requests_total"
 	prometheusTargetIntervalLength = "prometheus_target_interval_length_seconds"
 	envoyStatsRecentLookups        = "envoy_server_stats_recent_lookups"
+	vmoFunctionMetric              = "vmo_reconcile_total"
+	vmoCounterMetric               = "vmo_deployment_update_total"
+	vmoGaugeMetric                 = "vmo_work_queue_size"
+	vmoTimestampMetric             = "vmo_configmap_last_succesful_timestamp"
 
 	// Namespaces used for validating envoy stats
 	verrazzanoSystemNamespace = "verrazzano-system"
@@ -39,21 +45,24 @@ const (
 	// Constants for various metric labels, used in the validation
 	nodeExporter        = "node-exporter"
 	istiod              = "istiod"
-	prometheus          = "prometheus"
+	pilot               = "pilot"
+	prometheus          = "prometheus-operator-kube-p-prometheus"
+	oldPrometheus       = "prometheus"
 	controllerNamespace = "controller_namespace"
 	ingressController   = "ingress-controller"
 	appK8SIOInstance    = "app_kubernetes_io_instance"
 	job                 = "job"
 	app                 = "app"
 	namespace           = "namespace"
-	pilot               = "pilot"
 	podName             = "pod_name"
+
+	failedVerifyVersionMsg = "Failed to verify the Verrazzano version was min 1.4.0: %v"
 )
 
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-// Will be initialized in BeforeSuite so that any log messages during init are available
+// will be initialized in BeforeSuite so that any log messages during init are available
 var clusterNameMetricsLabel = ""
 var isMinVersion110 bool
 
@@ -106,6 +115,7 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+
 })
 var _ = t.AfterSuite(func() {})
 
@@ -115,14 +125,6 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 	// Query Prometheus for the sample metrics from the default scraping jobs
 	var _ = t.Describe("for the system components", func() {
 		t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
-				kv := map[string]string{
-					controllerNamespace: ingressNginxNamespace,
-					appK8SIOInstance:    ingressController,
-				}
-				return metricsContainLabels(ingressControllerSuccess, kv)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-
 			eventuallyMetricsContainLabels(ingressControllerSuccess, map[string]string{
 				controllerNamespace: ingressNginxNamespace,
 				appK8SIOInstance:    ingressController,
@@ -132,23 +134,39 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 			eventuallyMetricsContainLabels(containerStartTimeSeconds, map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO summary counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO summary counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vpo_reconcile_duration_count", map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO summary sum times can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO summary sum times can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vpo_reconcile_duration_sum", map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vpo_reconcile_counter", map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO error counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO error counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vpo_error_reconcile_counter", map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO install metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO install metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vz_nginx_install_duration_seconds", map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VPO upgrade counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
+		t.ItMinimumVersion("Verify VPO upgrade counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vz_nginx_upgrade_duration_seconds", map[string]string{})
+		})
+
+		t.ItMinimumVersion("Verify VMO function metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels(vmoFunctionMetric, map[string]string{})
+		})
+
+		t.ItMinimumVersion("Verify VMO counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels(vmoCounterMetric, map[string]string{})
+		})
+
+		t.ItMinimumVersion("Verify VMO gauge metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels(vmoGaugeMetric, map[string]string{})
+		})
+
+		t.ItMinimumVersion("Verify VMO timestamp metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels(vmoTimestampMetric, map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VAO successful counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
 			eventuallyMetricsContainLabels("vao_appconfig_successful_reconcile_total", map[string]string{})
@@ -159,6 +177,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.ItMinimumVersion("Verify VAO Duration summary metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
 			eventuallyMetricsContainLabels("vao_appconfig_reconcile_duration_count", map[string]string{})
 		})
+
 		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
@@ -184,6 +203,18 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 						app: istiod,
 						job: pilot,
 					}
+
+					minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
+						return false
+					}
+					if minVer14 {
+						kv = map[string]string{
+							app: istiod,
+							job: istiod,
+						}
+					}
 					return metricsContainLabels(sidecarInjectionRequests, kv)
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 			})
@@ -192,7 +223,18 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.It("Verify sample metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
-					job: prometheus,
+					job: oldPrometheus,
+				}
+
+				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
+					return false
+				}
+				if minVer14 {
+					kv = map[string]string{
+						job: prometheus,
+					}
 				}
 				return metricsContainLabels(prometheusTargetIntervalLength, kv)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
@@ -359,6 +401,6 @@ func getClusterNameForPromQuery() string {
 // Queries Prometheus for a given metric name and a map of labels for the metric
 func eventuallyMetricsContainLabels(metricName string, kv map[string]string) {
 	Eventually(func() bool {
-		return metricsContainLabels(metricName, map[string]string{})
+		return metricsContainLabels(metricName, kv)
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 }
