@@ -137,7 +137,18 @@ func ListPods(namespace string, opts metav1.ListOptions) (*corev1.PodList, error
 
 // ListDeployments returns the list of deployments in a given namespace for the cluster
 func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
-	return ListDeploymentsMatchingLabels(namespace, nil)
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	listOptions := metav1.ListOptions{}
+	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list deployments in namespace %s: %v", namespace, err))
+		return nil, err
+	}
+	return deployments, nil
 }
 
 // ListDeployments returns the list of deployments in a given namespace matching the given labels for the cluster
