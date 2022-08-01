@@ -18,16 +18,16 @@ import (
 
 // retainPersistentVolume locates the persistent volume associated with the provided pvc
 // and sets the reclaim policy to "retain" so that it can be migrated to the new deployment/statefulset.
-func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedName, componentName string) (bool, error) {
+func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedName, componentName string) error {
 	pvc := &v1.PersistentVolumeClaim{}
 
 	if err := ctx.Client().Get(context.TODO(), pvcName, pvc); err != nil {
 		// no pvc so just log it and there's nothing left to do
 		if errors.IsNotFound(err) {
-			ctx.Log().Infof("Did not find pvc %s, Assuming PV has been updated", pvcName)
-			return false, nil
+			ctx.Log().Infof("Did not find pvc %s", pvcName)
+			return nil
 		}
-		return true, err
+		return err
 	}
 
 	ctx.Log().Infof("Updating persistent volume associated with pvc %s so that the volume can be migrated", pvcName)
@@ -55,7 +55,7 @@ func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedNa
 		return nil
 	})
 
-	return true, err
+	return err
 }
 
 // UpdateExistingVolumeClaim removes a persistent volume claim from the volume if the

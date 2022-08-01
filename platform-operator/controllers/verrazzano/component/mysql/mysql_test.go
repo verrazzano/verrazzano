@@ -300,7 +300,7 @@ func TestPreUpgrade(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
 			pvc.Spec.VolumeName = "volumeName"
 			return nil
@@ -377,11 +377,11 @@ func TestPreUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPreUpgradeForUpdatedMySQLChart tests the preUpgrade function
+// TestPreUpgradeForStatefulSetMySQL tests the preUpgrade function
 // GIVEN a call to preUpgrade during upgrade
 // WHEN the resource is a statefulset rather than the old deployment
 // THEN the PV reassignment steps are skipped
-func TestPreUpgradeForUpdatedMySQLChart(t *testing.T) {
+func TestPreUpgradeForStatefulSetMySQL(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
@@ -392,9 +392,25 @@ func TestPreUpgradeForUpdatedMySQLChart(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
-			return errors.NewNotFound(schema.GroupResource{Group: ComponentNamespace, Resource: "PersistentVolumeClaim"}, "")
+			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeClaim"}, name.Name)
+		})
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.DeleteOption) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, deployment.Name)
+		})
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.DeleteOption) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeClaim"}, pvc.Name)
+		})
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
+			list.Items = []v1.PersistentVolume{}
+			return nil
 		})
 
 	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
