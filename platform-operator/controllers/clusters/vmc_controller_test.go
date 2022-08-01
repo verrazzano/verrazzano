@@ -143,7 +143,7 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	})
 
 	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -212,7 +212,7 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	})
 
 	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -281,7 +281,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	})
 
 	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -349,8 +349,8 @@ func TestCreateVMCNoCACert(t *testing.T) {
 		return nil
 	})
 
-	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+	// expect status updated with condition Ready=true and ManagedCARetrieved=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", true)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -419,8 +419,8 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 		return nil
 	})
 
-	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+	// expect status updated with condition Ready=true and ManagedCARetrieved
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", true)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -501,7 +501,7 @@ scrape_configs:
 	})
 
 	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -581,7 +581,7 @@ scrape_configs:
 	})
 
 	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -651,7 +651,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	})
 
 	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -684,7 +684,7 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 	expectSyncServiceAccount(t, mock, testManagedCluster, false)
 
 	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionFalse, "failing syncServiceAccount")
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionFalse, "failing syncServiceAccount", false)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -720,7 +720,7 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 	expectSyncRoleBinding(t, mock, name, false)
 
 	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionFalse, "failing syncRoleBinding")
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionFalse, "failing syncRoleBinding", false)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1338,7 +1338,7 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	})
 
 	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -2103,24 +2103,38 @@ func getCaCrt() string {
 		"    -----END CERTIFICATE-----"
 }
 
-func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.MockClient, mockStatus *mocks.MockStatusWriter, expectReady corev1.ConditionStatus, msg string) {
+func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.MockClient, mockStatus *mocks.MockStatusWriter, expectReady corev1.ConditionStatus, msg string, assertManagedCACondition bool) {
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			found := false
+			readyFound := false
+			managedCaFound := false
 			readyConditionCount := 0
+			managedCaConditionCount := 0
 			for _, condition := range vmc.Status.Conditions {
 				if condition.Type == clustersapi.ConditionReady {
 					readyConditionCount++
 					if condition.Status == expectReady {
-						found = true
+						readyFound = true
 						asserts.Contains(condition.Message, msg)
 					}
 				}
+				if condition.Type == clustersapi.ConditionManagedCARetrieved {
+					managedCaConditionCount++
+					if condition.Status == expectReady {
+						managedCaFound = true
+						// asserts.Contains(condition.Message, msg)
+					}
+				}
 			}
-			asserts.True(found, "Expected Ready condition on VMC not found")
+			asserts.True(readyFound, "Expected Ready condition on VMC not found")
 			asserts.Equal(1, readyConditionCount, "Found more than one Ready condition")
+			if assertManagedCACondition {
+				asserts.True(managedCaFound, "Expected ManagedCARetrieved condition on VMC not found")
+				asserts.Equal(1, managedCaConditionCount, "Found more than one ManagedCARetrieved condition")
+			}
+
 			return nil
 		})
 }

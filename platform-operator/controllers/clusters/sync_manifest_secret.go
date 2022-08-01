@@ -90,12 +90,12 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 		if err != nil {
 			msg := fmt.Sprintf("Unable to get CA cert from managed cluster with id %s: %v", clusterID, err)
 			r.log.Infof(msg)
-			r.updateStatusManagedCARetrieved(context.TODO(), vmc, corev1.ConditionFalse, msg)
+			r.setStatusConditionManagedCARetrieved(vmc, corev1.ConditionFalse, msg)
 		}
 		if len(caSecretName) > 0 {
 			vmc.Spec.CASecret = caSecretName
 		}
-		r.updateStatusManagedCARetrieved(context.TODO(), vmc, corev1.ConditionTrue, "Managed cluster CA cert retrieved successfully")
+		r.setStatusConditionManagedCARetrieved(vmc, corev1.ConditionTrue, "Managed cluster CA cert retrieved successfully")
 	}
 
 	// finally, update the VMC
