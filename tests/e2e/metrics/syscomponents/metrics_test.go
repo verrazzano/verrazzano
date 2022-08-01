@@ -239,7 +239,6 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 				return metricsContainLabels(prometheusTargetIntervalLength, kv)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
-
 		if istioInjection == "enabled" {
 			t.It("Verify envoy stats", func() {
 				Eventually(func() bool {
