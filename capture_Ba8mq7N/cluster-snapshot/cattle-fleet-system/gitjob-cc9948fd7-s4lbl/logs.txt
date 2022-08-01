@@ -1,0 +1,20 @@
+==== START logs for container gitjob of pod cattle-fleet-system/gitjob-cc9948fd7-s4lbl ====
+time="2022-07-14T00:31:38Z" level=info msg="Starting controller"
+time="2022-07-14T00:31:38Z" level=debug msg="Loglevel set to [debug]"
+W0714 00:31:38.493983       1 client_config.go:614] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+time="2022-07-14T00:31:38Z" level=info msg="Setting up webhook listener"
+I0714 00:31:38.496955       1 leaderelection.go:243] attempting to acquire leader lease cattle-fleet-system/gitjob...
+I0714 00:31:38.525654       1 leaderelection.go:253] successfully acquired lease cattle-fleet-system/gitjob
+E0714 00:31:38.536064       1 reflector.go:138] pkg/mod/k8s.io/client-go@v0.20.2/tools/cache/reflector.go:167: Failed to watch *v1.GitJob: failed to list *v1.GitJob: the server could not find the requested resource (get gitjobs.meta.k8s.io)
+E0714 00:31:40.094902       1 reflector.go:138] pkg/mod/k8s.io/client-go@v0.20.2/tools/cache/reflector.go:167: Failed to watch *v1.GitJob: failed to list *v1.GitJob: the server could not find the requested resource (get gitjobs.meta.k8s.io)
+E0714 00:31:42.800363       1 reflector.go:138] pkg/mod/k8s.io/client-go@v0.20.2/tools/cache/reflector.go:167: Failed to watch *v1.GitJob: failed to list *v1.GitJob: the server could not find the requested resource (get gitjobs.meta.k8s.io)
+E0714 00:31:46.219603       1 reflector.go:138] pkg/mod/k8s.io/client-go@v0.20.2/tools/cache/reflector.go:167: Failed to watch *v1.GitJob: failed to list *v1.GitJob: the server could not find the requested resource (get gitjobs.meta.k8s.io)
+E0714 00:31:53.626264       1 reflector.go:138] pkg/mod/k8s.io/client-go@v0.20.2/tools/cache/reflector.go:167: Failed to watch *v1.GitJob: failed to list *v1.GitJob: the server could not find the requested resource (get gitjobs.meta.k8s.io)
+time="2022-07-14T00:32:07Z" level=info msg="Starting gitjob.cattle.io/v1, Kind=GitJob controller"
+time="2022-07-14T00:32:08Z" level=info msg="Starting /v1, Kind=Pod controller"
+time="2022-07-14T00:32:08Z" level=info msg="Starting /v1, Kind=Secret controller"
+time="2022-07-14T00:32:08Z" level=info msg="Starting batch/v1, Kind=Job controller"
+E0714 04:03:30.188753       1 leaderelection.go:325] error retrieving resource lock cattle-fleet-system/gitjob: rpc error: code = Unavailable desc = error reading from server: read tcp 168.254.5.2:46568->168.254.5.1:2379: read: connection timed out
+E0722 08:03:22.731237       1 leaderelection.go:325] error retrieving resource lock cattle-fleet-system/gitjob: rpc error: code = Unavailable desc = error reading from server: read tcp 168.254.5.2:58010->168.254.5.1:2379: read: connection timed out
+E0723 03:20:54.964751       1 leaderelection.go:325] error retrieving resource lock cattle-fleet-system/gitjob: rpc error: code = Unavailable desc = error reading from server: read tcp 168.254.5.2:51540->168.254.5.1:2379: read: connection timed out
+==== END logs for container gitjob of pod cattle-fleet-system/gitjob-cc9948fd7-s4lbl ====

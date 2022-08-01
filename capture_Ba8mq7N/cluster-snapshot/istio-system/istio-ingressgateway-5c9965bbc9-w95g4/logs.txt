@@ -1,0 +1,760 @@
+==== START logs for container istio-proxy of pod istio-system/istio-ingressgateway-5c9965bbc9-w95g4 ====
+2022-07-14T00:25:05.981769Z	info	FLAG: --concurrency="0"
+2022-07-14T00:25:05.981810Z	info	FLAG: --domain="istio-system.svc.cluster.local"
+2022-07-14T00:25:05.981820Z	info	FLAG: --help="false"
+2022-07-14T00:25:05.981826Z	info	FLAG: --log_as_json="false"
+2022-07-14T00:25:05.981833Z	info	FLAG: --log_caller=""
+2022-07-14T00:25:05.981840Z	info	FLAG: --log_output_level="default:info"
+2022-07-14T00:25:05.981846Z	info	FLAG: --log_rotate=""
+2022-07-14T00:25:05.981854Z	info	FLAG: --log_rotate_max_age="30"
+2022-07-14T00:25:05.981861Z	info	FLAG: --log_rotate_max_backups="1000"
+2022-07-14T00:25:05.981868Z	info	FLAG: --log_rotate_max_size="104857600"
+2022-07-14T00:25:05.981875Z	info	FLAG: --log_stacktrace_level="default:none"
+2022-07-14T00:25:05.981886Z	info	FLAG: --log_target="[stdout]"
+2022-07-14T00:25:05.981893Z	info	FLAG: --meshConfig="./etc/istio/config/mesh"
+2022-07-14T00:25:05.981899Z	info	FLAG: --outlierLogPath=""
+2022-07-14T00:25:05.981906Z	info	FLAG: --proxyComponentLogLevel="misc:error"
+2022-07-14T00:25:05.981913Z	info	FLAG: --proxyLogLevel="warning"
+2022-07-14T00:25:05.981920Z	info	FLAG: --serviceCluster="istio-proxy"
+2022-07-14T00:25:05.981927Z	info	FLAG: --stsPort="0"
+2022-07-14T00:25:05.981934Z	info	FLAG: --templateFile=""
+2022-07-14T00:25:05.981958Z	info	FLAG: --tokenManagerPlugin="GoogleTokenExchange"
+2022-07-14T00:25:05.981977Z	info	FLAG: --vklog="0"
+2022-07-14T00:25:05.981987Z	info	Version 1.13.2-f84f69d1028e874d568f2942c5bab5271fcdeda7-Clean
+2022-07-14T00:25:05.982450Z	info	Proxy role	ips=[10.244.0.137 fe80::1cbd:9bff:fea3:e5a0] type=router id=istio-ingressgateway-5c9965bbc9-w95g4.istio-system domain=istio-system.svc.cluster.local
+2022-07-14T00:25:05.982583Z	info	Apply mesh config from file defaultConfig:
+  discoveryAddress: istiod.istio-system.svc:15012
+  proxyMetadata: {}
+  tracing:
+    zipkin:
+      address: zipkin.istio-system:9411
+enablePrometheusMerge: false
+enableTracing: false
+rootNamespace: istio-system
+trustDomain: cluster.local
+2022-07-14T00:25:05.984041Z	info	Effective config: binaryPath: /usr/local/bin/envoy
+configPath: ./etc/istio/proxy
+controlPlaneAuthPolicy: MUTUAL_TLS
+discoveryAddress: istiod.istio-system.svc:15012
+drainDuration: 45s
+parentShutdownDuration: 60s
+proxyAdminPort: 15000
+proxyMetadata: {}
+serviceCluster: istio-proxy
+statNameLength: 189
+statusPort: 15020
+terminationDrainDuration: 5s
+tracing:
+  zipkin:
+    address: zipkin.istio-system:9411
+
+2022-07-14T00:25:05.984074Z	info	JWT policy is third-party-jwt
+2022-07-14T00:25:05.986332Z	info	CA Endpoint istiod.istio-system.svc:15012, provider Citadel
+2022-07-14T00:25:05.986355Z	info	Opening status port 15020
+2022-07-14T00:25:05.986401Z	info	Using CA istiod.istio-system.svc:15012 cert with certs: var/run/secrets/istio/root-cert.pem
+2022-07-14T00:25:05.986558Z	info	citadelclient	Citadel client using custom root cert: var/run/secrets/istio/root-cert.pem
+2022-07-14T00:25:06.001231Z	info	ads	All caches have been synced up in 23.652068ms, marking server ready
+2022-07-14T00:25:06.001912Z	info	sds	SDS server for workload certificates started, listening on "etc/istio/proxy/SDS"
+2022-07-14T00:25:06.001954Z	info	xdsproxy	Initializing with upstream address "istiod.istio-system.svc:15012" and cluster "Kubernetes"
+2022-07-14T00:25:06.001959Z	info	sds	Starting SDS grpc server
+2022-07-14T00:25:06.002651Z	info	starting Http service at 127.0.0.1:15004
+2022-07-14T00:25:06.003933Z	info	Pilot SAN: [istiod.istio-system.svc]
+2022-07-14T00:25:06.006144Z	info	Starting proxy agent
+2022-07-14T00:25:06.006205Z	info	Epoch 0 starting
+2022-07-14T00:25:06.006236Z	info	Envoy command: [-c etc/istio/proxy/envoy-rev0.json --restart-epoch 0 --drain-time-s 45 --drain-strategy immediate --parent-shutdown-time-s 60 --local-address-ip-version v4 --file-flush-interval-msec 1000 --disable-hot-restart --log-format %Y-%m-%dT%T.%fZ	%l	envoy %n	%v -l warning --component-log-level misc:error]
+2022-07-14T00:25:06.339933Z	info	cache	generated new workload certificate	latency=338.337965ms ttl=23h59m59.66007952s
+2022-07-14T00:25:06.339969Z	info	cache	Root cert has changed, start rotating root cert
+2022-07-14T00:25:06.339991Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:0 Version:
+2022-07-14T00:25:06.340046Z	info	cache	returned workload trust anchor from cache	ttl=23h59m59.659956637s
+2022-07-14T00:25:06.700724Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T00:25:06.845346Z	info	ads	ADS: new connection for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system-1
+2022-07-14T00:25:06.845550Z	info	cache	returned workload trust anchor from cache	ttl=23h59m59.154460391s
+2022-07-14T00:25:06.846088Z	info	ads	SDS: PUSH request for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:2.0kB resource:ROOTCA
+2022-07-14T00:25:06.885653Z	info	ads	ADS: new connection for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system-2
+2022-07-14T00:25:06.885784Z	info	cache	returned workload certificate from cache	ttl=23h59m59.114222936s
+2022-07-14T00:25:06.885980Z	info	ads	SDS: PUSH request for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-14T00:25:07.248043Z	info	Readiness succeeded in 1.269060643s
+2022-07-14T00:25:07.248586Z	info	Envoy proxy is ready
+2022-07-14T00:53:31.478820Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T01:23:59.606613Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T01:52:38.150565Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T02:22:08.704747Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T02:49:45.842063Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T03:22:39.558868Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T03:50:38.729862Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T04:20:40.332557Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T04:48:07.312655Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T05:17:44.303947Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T05:50:45.198923Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T06:18:37.056012Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T06:48:31.027562Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T07:19:58.544138Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T07:51:18.596287Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T08:20:20.705286Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T08:47:39.248355Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T09:15:19.051579Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T09:44:25.807845Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T10:12:38.643489Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T10:41:58.245263Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T11:14:10.684357Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T11:42:54.293253Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T12:14:24.307611Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T12:25:06.170647Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-14T12:25:06.476025Z	info	cache	generated new workload certificate	latency=304.634158ms ttl=23h59m59.523984693s
+2022-07-14T12:25:06.476136Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-14T12:43:01.453990Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T13:15:00.180061Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T13:43:55.986857Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T14:16:41.943616Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T14:44:00.412513Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T15:15:01.668488Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T15:43:46.887379Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T16:15:31.364862Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T16:42:43.879293Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T17:11:24.937143Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T17:44:22.251801Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T18:11:40.608393Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T18:40:27.975947Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T19:12:48.280254Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T19:44:49.207229Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T20:15:07.757741Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T20:42:53.601507Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T21:13:20.439034Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T21:44:52.494968Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T22:14:55.762249Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T22:43:26.437533Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T23:16:06.125693Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T23:43:38.935010Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T00:13:45.033222Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T00:25:06.239037Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-15T00:25:06.685341Z	info	cache	generated new workload certificate	latency=445.484689ms ttl=23h59m59.314675147s
+2022-07-15T00:25:06.685517Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-15T00:45:30.636832Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T01:15:31.499062Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T01:46:17.931563Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T02:19:26.134948Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T02:49:45.975676Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T03:21:38.567893Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T03:51:30.012155Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T04:23:48.158827Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T04:51:36.069845Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T05:21:26.522879Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T05:52:27.917321Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T06:21:06.360491Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T06:50:07.286503Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T07:20:30.295844Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T07:48:38.252621Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T08:20:16.083823Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T08:52:43.036888Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T09:19:58.726730Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T09:49:54.643864Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T10:20:08.062854Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T10:47:56.076867Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T11:20:06.420518Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T11:49:52.774776Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T12:19:52.583351Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T12:25:06.343486Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-15T12:25:06.698349Z	info	cache	generated new workload certificate	latency=354.117268ms ttl=23h59m59.301661382s
+2022-07-15T12:25:06.698493Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-15T12:47:08.743664Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T13:18:30.576227Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T13:49:05.653370Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T14:20:02.099589Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T14:52:06.388004Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T15:22:02.698429Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T15:53:59.611875Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T16:26:01.153332Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T16:56:06.682213Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T17:28:53.295158Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T17:59:57.792472Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T18:28:55.401287Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T18:58:14.708593Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T19:26:22.148557Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T19:58:59.261592Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T20:27:20.709102Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T20:55:45.830155Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T21:24:50.326998Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T21:57:24.158276Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T22:27:23.057843Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T22:56:41.342921Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T23:29:45.742446Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T23:59:02.486755Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T00:25:06.349712Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-16T00:25:06.945000Z	info	cache	generated new workload certificate	latency=594.423608ms ttl=23h59m59.055013269s
+2022-07-16T00:25:06.945111Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-16T00:31:06.482254Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T01:00:51.569745Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T01:31:05.605634Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T01:59:58.015648Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T02:29:44.163224Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T02:57:07.463989Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T03:29:33.391135Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T04:01:09.131140Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T04:31:54.902755Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T05:00:55.449062Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T05:31:01.804167Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T06:00:45.413626Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T06:27:59.702274Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T06:57:30.653434Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T07:25:01.385078Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T07:54:37.740682Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T08:23:41.846958Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T08:55:55.029243Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T09:28:05.381281Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T09:59:32.199855Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T10:27:58.071829Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T10:57:55.770583Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T11:28:54.985253Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T11:57:07.414029Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T12:25:06.472851Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-16T12:25:06.735170Z	info	cache	generated new workload certificate	latency=261.582873ms ttl=23h59m59.264839585s
+2022-07-16T12:25:06.735315Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-16T12:29:30.080507Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T13:02:16.507618Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T13:33:12.246191Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T14:00:42.573511Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T14:31:30.667032Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T14:59:59.448576Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T15:32:48.878737Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T16:04:18.607062Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T16:33:16.849715Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T17:04:01.905707Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T17:34:56.026780Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T18:07:00.114730Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T18:39:50.756749Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T19:12:13.055262Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T19:43:53.306627Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T20:15:05.887223Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T20:43:38.144559Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T21:14:31.330964Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T21:45:01.187600Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T22:16:35.630094Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T22:45:30.275332Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T23:17:50.997468Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T23:46:48.977255Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T00:18:03.561519Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T00:25:06.367731Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-17T00:25:06.816649Z	info	cache	generated new workload certificate	latency=448.07601ms ttl=23h59m59.18336763s
+2022-07-17T00:25:06.816755Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-17T00:49:35.174304Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T01:20:56.651541Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T01:51:00.482086Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T02:18:37.961907Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T02:51:27.818247Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T03:22:10.498600Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T03:54:56.069099Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T04:25:31.086096Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T04:57:08.115070Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T05:29:32.344393Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T06:00:56.778848Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T06:30:44.007474Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T06:58:07.599544Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T07:26:25.288379Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T07:55:56.717343Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T08:27:05.532264Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T09:00:12.449818Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T09:27:33.712869Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T09:55:12.204100Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T10:23:58.736173Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T10:56:40.551200Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T11:23:57.889292Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T11:55:34.713930Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T12:23:15.257315Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T12:25:06.408605Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-17T12:25:06.533650Z	info	cache	generated new workload certificate	latency=124.178278ms ttl=23h59m59.466373224s
+2022-07-17T12:25:06.533814Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-17T12:53:29.017886Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T13:25:22.015739Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T13:56:22.772327Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T14:28:39.910147Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T15:00:41.721244Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T15:32:45.684028Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T16:01:07.040191Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T16:29:05.026669Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T17:00:25.248055Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T17:31:50.050098Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T18:03:34.164774Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T18:32:43.144865Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T19:00:37.510050Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T19:32:49.994182Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T20:00:02.685060Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T20:27:31.631662Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T20:55:23.458965Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T21:26:12.808784Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T21:55:37.613510Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T22:23:15.076499Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T22:51:55.521805Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T23:21:29.971458Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T23:52:27.398878Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T00:19:40.073258Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T00:25:06.267366Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-18T00:25:06.506362Z	info	cache	generated new workload certificate	latency=238.152678ms ttl=23h59m59.493648571s
+2022-07-18T00:25:06.506511Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-18T00:48:50.770791Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T01:16:26.252085Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T01:48:50.198871Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T02:16:30.522385Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T02:47:11.362666Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T03:19:14.969540Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T03:51:27.540671Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T04:21:02.054463Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T04:53:15.757038Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T05:22:21.401332Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T05:52:46.470694Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T06:25:39.902017Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T06:57:30.668440Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T07:24:57.880996Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T07:57:03.411488Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T08:26:10.704363Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T08:56:13.013758Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T09:28:36.726920Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T09:59:55.463869Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T10:28:44.541152Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T10:57:40.566531Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T11:29:44.811472Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T11:58:07.707755Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T12:25:06.253795Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-18T12:25:06.472229Z	info	cache	generated new workload certificate	latency=217.365506ms ttl=23h59m59.527784113s
+2022-07-18T12:25:06.472356Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-18T12:28:10.309316Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T12:58:07.383570Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T13:25:36.308815Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T13:53:55.852550Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T14:21:56.804246Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T14:51:19.117053Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T15:18:49.654317Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T15:50:53.096540Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T16:20:26.145707Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T16:51:22.886550Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T17:18:33.953895Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T17:48:50.255991Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T18:20:39.679676Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T18:49:40.107544Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T19:17:51.020425Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T19:50:45.341656Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T20:20:08.725129Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T20:51:54.319854Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T21:24:21.568593Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T21:52:38.597785Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T22:25:38.783644Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T22:57:16.591760Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T23:25:30.513447Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T23:53:35.484623Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T00:21:01.304716Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T00:25:06.236657Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-19T00:25:06.406229Z	info	cache	generated new workload certificate	latency=168.831062ms ttl=23h59m59.593782951s
+2022-07-19T00:25:06.406325Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-19T00:50:58.508194Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T01:22:52.666518Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T01:52:53.013666Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T02:23:36.498385Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T02:50:56.238248Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T03:19:37.669792Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T03:48:30.611208Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T04:19:03.637814Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T04:48:37.243070Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T05:21:36.730541Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T05:50:03.902545Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T06:22:08.584253Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T06:52:27.482357Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T07:21:09.840114Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T07:52:51.996935Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T08:21:37.331682Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T08:54:32.668387Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T09:22:14.486450Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T09:53:52.497052Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T10:22:40.966515Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T10:55:47.814382Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T11:28:36.569882Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T11:59:06.377716Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T12:25:06.203631Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-19T12:25:06.428728Z	info	cache	generated new workload certificate	latency=224.047907ms ttl=23h59m59.571282872s
+2022-07-19T12:25:06.428825Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-19T12:28:57.220080Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T12:56:10.722221Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T13:28:36.798721Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T13:56:11.464389Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T14:24:23.849535Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T14:52:34.413687Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T15:25:37.564786Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T15:54:21.905700Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T16:22:30.159548Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T16:49:44.613225Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T17:18:46.157798Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T17:47:34.867644Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T18:16:09.864891Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T18:48:32.517389Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T19:16:37.534987Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T19:44:51.271845Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T20:14:40.809381Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T20:45:43.055873Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T21:18:21.970855Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T21:46:14.262833Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T22:17:54.028962Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T22:47:42.663236Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T23:17:12.301461Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T23:46:59.213993Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T00:18:39.984241Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T00:25:06.214972Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-20T00:25:06.431319Z	info	cache	generated new workload certificate	latency=215.513829ms ttl=23h59m59.56869345s
+2022-07-20T00:25:06.431498Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-20T00:51:38.541525Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T01:24:24.560376Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T01:52:05.238057Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T02:20:52.292161Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T02:52:57.840253Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T03:25:56.807118Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T03:56:40.057825Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T04:29:25.158293Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T04:56:45.988567Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T05:28:14.518554Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T06:01:11.702775Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T06:29:43.856394Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T06:57:59.428454Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T07:29:39.801892Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T08:02:43.341906Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T08:32:33.441094Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T09:05:18.060245Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T09:33:11.455993Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T10:05:59.057955Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T10:35:26.286810Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T11:04:42.825436Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T11:37:06.446676Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T12:08:33.372609Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T12:25:06.216455Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-20T12:25:06.510670Z	info	cache	generated new workload certificate	latency=293.377047ms ttl=23h59m59.489340797s
+2022-07-20T12:25:06.510794Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-20T12:40:50.118951Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T13:11:27.980315Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T13:43:26.795569Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T14:14:28.438527Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T14:45:05.356340Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T15:14:20.382024Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T15:41:47.959490Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T16:12:33.977312Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T16:41:27.314432Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T17:10:54.568485Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T17:39:09.887194Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T18:07:37.307971Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T18:37:19.593439Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T19:04:33.767025Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T19:33:58.224054Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T20:01:20.745469Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T20:29:01.044149Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T20:56:43.890689Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T21:27:19.262706Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T21:58:33.421854Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T22:30:52.946083Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T22:58:35.039037Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T23:31:06.059336Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T00:00:59.558137Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T00:25:06.255536Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-21T00:25:06.469339Z	info	cache	generated new workload certificate	latency=212.999712ms ttl=23h59m59.530672461s
+2022-07-21T00:25:06.469488Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-21T00:34:02.755928Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T01:05:46.781155Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T01:36:45.594323Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T02:04:46.072068Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T02:32:45.033201Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T03:01:27.745034Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T03:30:45.202183Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T04:00:48.459068Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T04:31:51.780201Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T05:01:00.724621Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T05:30:00.275487Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T05:57:28.942632Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T06:29:44.450903Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T06:57:23.689911Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T07:29:05.967613Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T07:57:09.264040Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T08:25:01.162915Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T08:53:00.593894Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T09:20:21.729365Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T09:53:00.696043Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T10:22:14.339710Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T10:52:51.901331Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T11:24:07.046988Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T11:53:21.394722Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T12:25:06.235515Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-21T12:25:06.622603Z	info	cache	generated new workload certificate	latency=386.335974ms ttl=23h59m59.377409558s
+2022-07-21T12:25:06.622729Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-21T12:25:12.908681Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T12:55:25.950695Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T13:26:26.662438Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T13:57:04.860888Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T14:28:25.949870Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T14:56:40.852398Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T15:25:11.344056Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T15:53:00.062938Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T16:20:48.679882Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T16:52:28.776952Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T17:22:21.849457Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T17:50:48.815978Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T18:19:05.883959Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T18:49:10.183080Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T19:20:34.488679Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T19:52:56.534434Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T20:20:52.270259Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T20:49:28.935054Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T21:17:54.793734Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T21:50:55.842579Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T22:22:03.026938Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T22:53:11.019274Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T23:25:21.894805Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T23:53:04.555024Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T00:21:02.270008Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T00:25:06.312457Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-22T00:25:06.608030Z	info	cache	generated new workload certificate	latency=294.878652ms ttl=23h59m59.391979771s
+2022-07-22T00:25:06.608454Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-22T00:48:50.800965Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T01:17:07.389294Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T01:48:10.566903Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T02:18:35.653739Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T02:45:49.658140Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T03:18:17.035290Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T03:45:32.548536Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T04:16:25.049752Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T04:48:52.997064Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T05:21:46.381560Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T05:49:46.790177Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T06:21:14.626510Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T06:52:13.348655Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T07:25:11.912352Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T07:56:11.301304Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T08:25:29.654148Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T08:55:09.656946Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T09:27:01.561818Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T09:54:24.208962Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T10:26:31.190285Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T10:59:19.332914Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T11:27:22.829844Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T11:55:10.870736Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T12:23:06.172155Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T12:25:06.305195Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-22T12:25:06.470608Z	info	cache	generated new workload certificate	latency=164.620728ms ttl=23h59m59.529412928s
+2022-07-22T12:25:06.470827Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-22T12:53:01.820117Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T13:22:18.764352Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T13:50:06.491970Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T14:19:47.737884Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T14:47:31.068956Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T15:15:01.742039Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T15:43:48.418108Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T16:11:13.239702Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T16:43:34.800821Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T17:12:39.562626Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T17:41:00.580544Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T18:08:19.766526Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T18:40:57.613227Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T19:14:07.865719Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T19:43:48.437686Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T20:13:16.442436Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T20:44:05.076155Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T21:13:32.541695Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T21:43:06.365589Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T22:13:40.425330Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T22:46:38.997360Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T23:18:06.423476Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T23:46:37.785061Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T00:14:46.707037Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T00:25:06.236248Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-23T00:25:06.562100Z	info	cache	generated new workload certificate	latency=324.944281ms ttl=23h59m59.437915325s
+2022-07-23T00:25:06.562248Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-23T00:42:58.697569Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T01:12:29.237052Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T01:44:11.652712Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T02:15:53.248706Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T02:45:14.304277Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T03:16:06.054913Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T03:47:59.936510Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T04:18:48.071322Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T04:51:38.458665Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T05:19:55.086497Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T05:47:38.595619Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T06:17:18.873736Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T06:45:49.876565Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T07:17:55.401167Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T07:46:02.640827Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T08:16:57.481423Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T08:47:04.195994Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T09:15:07.360081Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T09:45:04.079335Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T10:12:59.270992Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T10:41:12.624514Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T11:13:34.640552Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T11:44:55.482768Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T12:17:06.096799Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T12:25:06.281400Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-23T12:25:06.709197Z	info	cache	generated new workload certificate	latency=426.986495ms ttl=23h59m59.290812553s
+2022-07-23T12:25:06.709296Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-23T12:48:46.970717Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T13:19:00.152182Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T13:51:32.908104Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T14:22:44.159884Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T14:55:49.337928Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T15:23:14.698269Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T15:55:10.486384Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T16:28:19.335082Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T16:59:18.906109Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T17:27:33.905563Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T17:55:24.464792Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T18:25:55.971551Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T18:54:57.005861Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T19:22:39.383562Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T19:54:47.208321Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T20:26:30.281463Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T20:53:55.790245Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T21:24:11.677822Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T21:54:03.359270Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T22:26:49.337528Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T22:59:31.299520Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T23:29:21.640889Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T23:58:24.766289Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T00:25:06.355528Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-24T00:25:06.776059Z	info	cache	generated new workload certificate	latency=419.869709ms ttl=23h59m59.223954514s
+2022-07-24T00:25:06.776210Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-24T00:30:39.341395Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T01:03:15.861543Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T01:34:43.377786Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T02:04:27.821587Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T02:36:41.318849Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T03:05:23.268357Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T03:37:05.123514Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T04:09:13.422769Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T04:38:29.535071Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T05:05:57.025660Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T05:39:03.477441Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T06:10:48.333806Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T06:39:23.199651Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T07:10:27.805748Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T07:43:11.739423Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T08:11:25.038549Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T08:43:11.944389Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T09:12:26.150248Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T09:40:49.239700Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T10:08:13.673544Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T10:39:13.218216Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T11:08:15.306905Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T11:40:43.231579Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T12:08:29.724510Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T12:25:06.388279Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-24T12:25:06.650999Z	info	cache	generated new workload certificate	latency=261.586512ms ttl=23h59m59.349016948s
+2022-07-24T12:25:06.651172Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-24T12:37:47.755927Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T13:06:01.332734Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T13:38:21.234487Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T14:06:12.728683Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T14:35:47.696100Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T15:04:22.190735Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T15:34:20.741607Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T16:02:53.852974Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T16:33:50.938927Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T17:06:23.719324Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T17:37:07.776124Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T18:10:01.911145Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T18:40:47.798935Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T19:12:11.237853Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T19:44:19.172993Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T20:12:36.481295Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T20:39:55.405390Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T21:09:04.793926Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T21:41:40.133976Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T22:09:08.924787Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T22:39:22.560970Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T23:12:09.433972Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T23:44:17.692567Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T00:13:28.480800Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T00:25:06.326590Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-25T00:25:06.626974Z	info	cache	generated new workload certificate	latency=299.299469ms ttl=23h59m59.373041228s
+2022-07-25T00:25:06.627123Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-25T00:44:48.024857Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T01:14:36.848990Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T01:43:01.700099Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T02:10:43.385202Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T02:40:46.203065Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T03:08:03.572681Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T03:37:16.975567Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T04:05:40.592340Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T04:34:54.648076Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T05:02:50.687399Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T05:33:17.628796Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T06:01:53.845266Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T06:34:05.174246Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T07:06:56.976792Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T07:37:46.146388Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T08:09:09.422921Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T08:37:09.902224Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T09:06:15.459646Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T09:35:09.741875Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T10:02:35.537596Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T10:32:19.403312Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T11:04:44.359174Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T11:33:21.421934Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T12:06:28.323992Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T12:25:06.314232Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-25T12:25:06.431608Z	info	cache	generated new workload certificate	latency=116.537356ms ttl=23h59m59.568409836s
+2022-07-25T12:25:06.431803Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-25T12:35:17.580379Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T13:07:01.940481Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T13:39:42.482434Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T14:10:25.022214Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T14:37:59.160781Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T15:09:29.710730Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T15:42:21.970863Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T16:14:50.768854Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T16:46:21.785795Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T17:18:51.912651Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T17:49:24.876647Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T18:19:24.190951Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T18:48:28.033672Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T19:18:12.278103Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T19:45:56.205114Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T20:16:52.950150Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T20:44:42.269924Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T21:15:22.339395Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T21:45:00.066833Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T22:14:01.948581Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T22:46:25.502435Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T23:13:56.296357Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T23:42:07.273616Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T00:09:51.185896Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T00:25:06.215995Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-26T00:25:06.728114Z	info	cache	generated new workload certificate	latency=511.260433ms ttl=23h59m59.271908714s
+2022-07-26T00:25:06.728309Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-26T00:37:53.521325Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T01:09:02.580395Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T01:36:37.014343Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T02:06:33.630208Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T02:39:12.924808Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T03:07:45.347303Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T03:40:31.369254Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T04:10:33.504706Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T04:40:24.742944Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T05:10:07.680555Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T05:42:25.736294Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T06:12:15.504723Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T06:39:39.898874Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T07:12:11.513839Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T07:43:50.612946Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T08:13:33.794916Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T08:43:13.847805Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T09:15:24.082644Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T09:44:34.437180Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T10:17:39.992306Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T10:46:56.471784Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T11:16:21.498610Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T11:47:31.205566Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T12:19:06.889130Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T12:25:06.365258Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-26T12:25:06.649983Z	info	cache	generated new workload certificate	latency=283.817311ms ttl=23h59m59.350032346s
+2022-07-26T12:25:06.650161Z	info	ads	SDS: PUSH for node:istio-ingressgateway-5c9965bbc9-w95g4.istio-system resources:1 size:9.2kB resource:default
+2022-07-26T12:46:45.341121Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T13:18:44.483081Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T13:50:52.182952Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T14:22:15.155588Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T14:52:12.657775Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T15:23:50.710959Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T15:55:14.900458Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T16:23:33.268347Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T16:54:46.207291Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+==== END logs for container istio-proxy of pod istio-system/istio-ingressgateway-5c9965bbc9-w95g4 ====

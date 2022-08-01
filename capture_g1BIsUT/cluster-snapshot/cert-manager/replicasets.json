@@ -1,0 +1,745 @@
+{
+    "kind": "ReplicaSetList",
+    "apiVersion": "apps/v1",
+    "metadata": {
+        "resourceVersion": "28809413"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "cert-manager-6f469f86bd",
+                "namespace": "cert-manager",
+                "uid": "b3748664-27d1-49e9-be93-39380fafbbe6",
+                "resourceVersion": "20235960",
+                "generation": 1,
+                "creationTimestamp": "2022-07-14T00:24:58Z",
+                "labels": {
+                    "app": "cert-manager",
+                    "app.kubernetes.io/component": "controller",
+                    "app.kubernetes.io/instance": "cert-manager",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "app.kubernetes.io/name": "cert-manager",
+                    "app.kubernetes.io/version": "v1.7.1",
+                    "helm.sh/chart": "cert-manager-v1.7.1",
+                    "pod-template-hash": "6f469f86bd"
+                },
+                "annotations": {
+                    "deployment.kubernetes.io/desired-replicas": "1",
+                    "deployment.kubernetes.io/max-replicas": "2",
+                    "deployment.kubernetes.io/revision": "1",
+                    "meta.helm.sh/release-name": "cert-manager",
+                    "meta.helm.sh/release-namespace": "cert-manager"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "Deployment",
+                        "name": "cert-manager",
+                        "uid": "06d3ab0c-20a2-46eb-bedf-57eb14ff41e6",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ],
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "apps/v1",
+                        "time": "2022-07-14T00:24:58Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:deployment.kubernetes.io/desired-replicas": {},
+                                    "f:deployment.kubernetes.io/max-replicas": {},
+                                    "f:deployment.kubernetes.io/revision": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app": {},
+                                    "f:app.kubernetes.io/component": {},
+                                    "f:app.kubernetes.io/instance": {},
+                                    "f:app.kubernetes.io/managed-by": {},
+                                    "f:app.kubernetes.io/name": {},
+                                    "f:app.kubernetes.io/version": {},
+                                    "f:helm.sh/chart": {},
+                                    "f:pod-template-hash": {}
+                                },
+                                "f:ownerReferences": {
+                                    ".": {},
+                                    "k:{\"uid\":\"06d3ab0c-20a2-46eb-bedf-57eb14ff41e6\"}": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:replicas": {},
+                                "f:selector": {},
+                                "f:template": {
+                                    "f:metadata": {
+                                        "f:annotations": {
+                                            ".": {},
+                                            "f:prometheus.io/path": {},
+                                            "f:prometheus.io/port": {},
+                                            "f:prometheus.io/scrape": {}
+                                        },
+                                        "f:labels": {
+                                            ".": {},
+                                            "f:app": {},
+                                            "f:app.kubernetes.io/component": {},
+                                            "f:app.kubernetes.io/instance": {},
+                                            "f:app.kubernetes.io/managed-by": {},
+                                            "f:app.kubernetes.io/name": {},
+                                            "f:app.kubernetes.io/version": {},
+                                            "f:helm.sh/chart": {},
+                                            "f:pod-template-hash": {}
+                                        }
+                                    },
+                                    "f:spec": {
+                                        "f:containers": {
+                                            "k:{\"name\":\"cert-manager\"}": {
+                                                ".": {},
+                                                "f:args": {},
+                                                "f:env": {
+                                                    ".": {},
+                                                    "k:{\"name\":\"POD_NAMESPACE\"}": {
+                                                        ".": {},
+                                                        "f:name": {},
+                                                        "f:valueFrom": {
+                                                            ".": {},
+                                                            "f:fieldRef": {}
+                                                        }
+                                                    }
+                                                },
+                                                "f:image": {},
+                                                "f:imagePullPolicy": {},
+                                                "f:name": {},
+                                                "f:ports": {
+                                                    ".": {},
+                                                    "k:{\"containerPort\":9402,\"protocol\":\"TCP\"}": {
+                                                        ".": {},
+                                                        "f:containerPort": {},
+                                                        "f:protocol": {}
+                                                    }
+                                                },
+                                                "f:resources": {},
+                                                "f:terminationMessagePath": {},
+                                                "f:terminationMessagePolicy": {}
+                                            }
+                                        },
+                                        "f:dnsPolicy": {},
+                                        "f:restartPolicy": {},
+                                        "f:schedulerName": {},
+                                        "f:securityContext": {
+                                            ".": {},
+                                            "f:runAsNonRoot": {}
+                                        },
+                                        "f:serviceAccount": {},
+                                        "f:serviceAccountName": {},
+                                        "f:terminationGracePeriodSeconds": {}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "apps/v1",
+                        "time": "2022-07-14T00:25:01Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:availableReplicas": {},
+                                "f:fullyLabeledReplicas": {},
+                                "f:observedGeneration": {},
+                                "f:readyReplicas": {},
+                                "f:replicas": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "matchLabels": {
+                        "app.kubernetes.io/component": "controller",
+                        "app.kubernetes.io/instance": "cert-manager",
+                        "app.kubernetes.io/name": "cert-manager",
+                        "pod-template-hash": "6f469f86bd"
+                    }
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "app": "cert-manager",
+                            "app.kubernetes.io/component": "controller",
+                            "app.kubernetes.io/instance": "cert-manager",
+                            "app.kubernetes.io/managed-by": "Helm",
+                            "app.kubernetes.io/name": "cert-manager",
+                            "app.kubernetes.io/version": "v1.7.1",
+                            "helm.sh/chart": "cert-manager-v1.7.1",
+                            "pod-template-hash": "6f469f86bd"
+                        },
+                        "annotations": {
+                            "prometheus.io/path": "/metrics",
+                            "prometheus.io/port": "9402",
+                            "prometheus.io/scrape": "true"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "cert-manager",
+                                "image": "ghcr.io/verrazzano/cert-manager-controller:v1.7.1",
+                                "args": [
+                                    "--v=2",
+                                    "--cluster-resource-namespace=cert-manager",
+                                    "--leader-election-namespace=kube-system",
+                                    "--acme-http01-solver-image=ghcr.io/verrazzano/cert-manager-acmesolver:v1.7.1",
+                                    "--default-issuer-name=verrazzano-cluster-issuer",
+                                    "--default-issuer-kind=ClusterIssuer"
+                                ],
+                                "ports": [
+                                    {
+                                        "containerPort": 9402,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "env": [
+                                    {
+                                        "name": "POD_NAMESPACE",
+                                        "valueFrom": {
+                                            "fieldRef": {
+                                                "apiVersion": "v1",
+                                                "fieldPath": "metadata.namespace"
+                                            }
+                                        }
+                                    }
+                                ],
+                                "resources": {},
+                                "terminationMessagePath": "/dev/termination-log",
+                                "terminationMessagePolicy": "File",
+                                "imagePullPolicy": "IfNotPresent"
+                            }
+                        ],
+                        "restartPolicy": "Always",
+                        "terminationGracePeriodSeconds": 30,
+                        "dnsPolicy": "ClusterFirst",
+                        "serviceAccountName": "cert-manager",
+                        "serviceAccount": "cert-manager",
+                        "securityContext": {
+                            "runAsNonRoot": false
+                        },
+                        "schedulerName": "default-scheduler"
+                    }
+                }
+            },
+            "status": {
+                "replicas": 1,
+                "fullyLabeledReplicas": 1,
+                "readyReplicas": 1,
+                "availableReplicas": 1,
+                "observedGeneration": 1
+            }
+        },
+        {
+            "metadata": {
+                "name": "cert-manager-cainjector-74cc67688d",
+                "namespace": "cert-manager",
+                "uid": "105dc972-fe68-4d13-9bda-6d44710ac476",
+                "resourceVersion": "20235952",
+                "generation": 1,
+                "creationTimestamp": "2022-07-14T00:24:58Z",
+                "labels": {
+                    "app": "cainjector",
+                    "app.kubernetes.io/component": "cainjector",
+                    "app.kubernetes.io/instance": "cert-manager",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "app.kubernetes.io/name": "cainjector",
+                    "app.kubernetes.io/version": "v1.7.1",
+                    "helm.sh/chart": "cert-manager-v1.7.1",
+                    "pod-template-hash": "74cc67688d"
+                },
+                "annotations": {
+                    "deployment.kubernetes.io/desired-replicas": "1",
+                    "deployment.kubernetes.io/max-replicas": "2",
+                    "deployment.kubernetes.io/revision": "1",
+                    "meta.helm.sh/release-name": "cert-manager",
+                    "meta.helm.sh/release-namespace": "cert-manager"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "Deployment",
+                        "name": "cert-manager-cainjector",
+                        "uid": "312168d9-da32-4c98-8763-d13fca027508",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ],
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "apps/v1",
+                        "time": "2022-07-14T00:24:58Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:deployment.kubernetes.io/desired-replicas": {},
+                                    "f:deployment.kubernetes.io/max-replicas": {},
+                                    "f:deployment.kubernetes.io/revision": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app": {},
+                                    "f:app.kubernetes.io/component": {},
+                                    "f:app.kubernetes.io/instance": {},
+                                    "f:app.kubernetes.io/managed-by": {},
+                                    "f:app.kubernetes.io/name": {},
+                                    "f:app.kubernetes.io/version": {},
+                                    "f:helm.sh/chart": {},
+                                    "f:pod-template-hash": {}
+                                },
+                                "f:ownerReferences": {
+                                    ".": {},
+                                    "k:{\"uid\":\"312168d9-da32-4c98-8763-d13fca027508\"}": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:replicas": {},
+                                "f:selector": {},
+                                "f:template": {
+                                    "f:metadata": {
+                                        "f:labels": {
+                                            ".": {},
+                                            "f:app": {},
+                                            "f:app.kubernetes.io/component": {},
+                                            "f:app.kubernetes.io/instance": {},
+                                            "f:app.kubernetes.io/managed-by": {},
+                                            "f:app.kubernetes.io/name": {},
+                                            "f:app.kubernetes.io/version": {},
+                                            "f:helm.sh/chart": {},
+                                            "f:pod-template-hash": {}
+                                        }
+                                    },
+                                    "f:spec": {
+                                        "f:containers": {
+                                            "k:{\"name\":\"cert-manager\"}": {
+                                                ".": {},
+                                                "f:args": {},
+                                                "f:env": {
+                                                    ".": {},
+                                                    "k:{\"name\":\"POD_NAMESPACE\"}": {
+                                                        ".": {},
+                                                        "f:name": {},
+                                                        "f:valueFrom": {
+                                                            ".": {},
+                                                            "f:fieldRef": {}
+                                                        }
+                                                    }
+                                                },
+                                                "f:image": {},
+                                                "f:imagePullPolicy": {},
+                                                "f:name": {},
+                                                "f:resources": {},
+                                                "f:terminationMessagePath": {},
+                                                "f:terminationMessagePolicy": {}
+                                            }
+                                        },
+                                        "f:dnsPolicy": {},
+                                        "f:restartPolicy": {},
+                                        "f:schedulerName": {},
+                                        "f:securityContext": {
+                                            ".": {},
+                                            "f:runAsNonRoot": {}
+                                        },
+                                        "f:serviceAccount": {},
+                                        "f:serviceAccountName": {},
+                                        "f:terminationGracePeriodSeconds": {}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "apps/v1",
+                        "time": "2022-07-14T00:25:01Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:availableReplicas": {},
+                                "f:fullyLabeledReplicas": {},
+                                "f:observedGeneration": {},
+                                "f:readyReplicas": {},
+                                "f:replicas": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "matchLabels": {
+                        "app.kubernetes.io/component": "cainjector",
+                        "app.kubernetes.io/instance": "cert-manager",
+                        "app.kubernetes.io/name": "cainjector",
+                        "pod-template-hash": "74cc67688d"
+                    }
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "app": "cainjector",
+                            "app.kubernetes.io/component": "cainjector",
+                            "app.kubernetes.io/instance": "cert-manager",
+                            "app.kubernetes.io/managed-by": "Helm",
+                            "app.kubernetes.io/name": "cainjector",
+                            "app.kubernetes.io/version": "v1.7.1",
+                            "helm.sh/chart": "cert-manager-v1.7.1",
+                            "pod-template-hash": "74cc67688d"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "cert-manager",
+                                "image": "ghcr.io/verrazzano/cert-manager-cainjector:v1.7.1",
+                                "args": [
+                                    "--v=2",
+                                    "--leader-election-namespace=kube-system"
+                                ],
+                                "env": [
+                                    {
+                                        "name": "POD_NAMESPACE",
+                                        "valueFrom": {
+                                            "fieldRef": {
+                                                "apiVersion": "v1",
+                                                "fieldPath": "metadata.namespace"
+                                            }
+                                        }
+                                    }
+                                ],
+                                "resources": {},
+                                "terminationMessagePath": "/dev/termination-log",
+                                "terminationMessagePolicy": "File",
+                                "imagePullPolicy": "IfNotPresent"
+                            }
+                        ],
+                        "restartPolicy": "Always",
+                        "terminationGracePeriodSeconds": 30,
+                        "dnsPolicy": "ClusterFirst",
+                        "serviceAccountName": "cert-manager-cainjector",
+                        "serviceAccount": "cert-manager-cainjector",
+                        "securityContext": {
+                            "runAsNonRoot": false
+                        },
+                        "schedulerName": "default-scheduler"
+                    }
+                }
+            },
+            "status": {
+                "replicas": 1,
+                "fullyLabeledReplicas": 1,
+                "readyReplicas": 1,
+                "availableReplicas": 1,
+                "observedGeneration": 1
+            }
+        },
+        {
+            "metadata": {
+                "name": "cert-manager-webhook-85fbc8dd5c",
+                "namespace": "cert-manager",
+                "uid": "a1b94ba0-4f9b-4024-bcd3-b2bfa082e023",
+                "resourceVersion": "20236172",
+                "generation": 1,
+                "creationTimestamp": "2022-07-14T00:24:58Z",
+                "labels": {
+                    "app": "webhook",
+                    "app.kubernetes.io/component": "webhook",
+                    "app.kubernetes.io/instance": "cert-manager",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "app.kubernetes.io/name": "webhook",
+                    "app.kubernetes.io/version": "v1.7.1",
+                    "helm.sh/chart": "cert-manager-v1.7.1",
+                    "pod-template-hash": "85fbc8dd5c"
+                },
+                "annotations": {
+                    "deployment.kubernetes.io/desired-replicas": "1",
+                    "deployment.kubernetes.io/max-replicas": "2",
+                    "deployment.kubernetes.io/revision": "1",
+                    "meta.helm.sh/release-name": "cert-manager",
+                    "meta.helm.sh/release-namespace": "cert-manager"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "Deployment",
+                        "name": "cert-manager-webhook",
+                        "uid": "0a5998a7-b10b-43d6-8bbc-6b91effee45f",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ],
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "apps/v1",
+                        "time": "2022-07-14T00:24:58Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:deployment.kubernetes.io/desired-replicas": {},
+                                    "f:deployment.kubernetes.io/max-replicas": {},
+                                    "f:deployment.kubernetes.io/revision": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app": {},
+                                    "f:app.kubernetes.io/component": {},
+                                    "f:app.kubernetes.io/instance": {},
+                                    "f:app.kubernetes.io/managed-by": {},
+                                    "f:app.kubernetes.io/name": {},
+                                    "f:app.kubernetes.io/version": {},
+                                    "f:helm.sh/chart": {},
+                                    "f:pod-template-hash": {}
+                                },
+                                "f:ownerReferences": {
+                                    ".": {},
+                                    "k:{\"uid\":\"0a5998a7-b10b-43d6-8bbc-6b91effee45f\"}": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:replicas": {},
+                                "f:selector": {},
+                                "f:template": {
+                                    "f:metadata": {
+                                        "f:labels": {
+                                            ".": {},
+                                            "f:app": {},
+                                            "f:app.kubernetes.io/component": {},
+                                            "f:app.kubernetes.io/instance": {},
+                                            "f:app.kubernetes.io/managed-by": {},
+                                            "f:app.kubernetes.io/name": {},
+                                            "f:app.kubernetes.io/version": {},
+                                            "f:helm.sh/chart": {},
+                                            "f:pod-template-hash": {}
+                                        }
+                                    },
+                                    "f:spec": {
+                                        "f:containers": {
+                                            "k:{\"name\":\"cert-manager\"}": {
+                                                ".": {},
+                                                "f:args": {},
+                                                "f:env": {
+                                                    ".": {},
+                                                    "k:{\"name\":\"POD_NAMESPACE\"}": {
+                                                        ".": {},
+                                                        "f:name": {},
+                                                        "f:valueFrom": {
+                                                            ".": {},
+                                                            "f:fieldRef": {}
+                                                        }
+                                                    }
+                                                },
+                                                "f:image": {},
+                                                "f:imagePullPolicy": {},
+                                                "f:livenessProbe": {
+                                                    ".": {},
+                                                    "f:failureThreshold": {},
+                                                    "f:httpGet": {
+                                                        ".": {},
+                                                        "f:path": {},
+                                                        "f:port": {},
+                                                        "f:scheme": {}
+                                                    },
+                                                    "f:initialDelaySeconds": {},
+                                                    "f:periodSeconds": {},
+                                                    "f:successThreshold": {},
+                                                    "f:timeoutSeconds": {}
+                                                },
+                                                "f:name": {},
+                                                "f:ports": {
+                                                    ".": {},
+                                                    "k:{\"containerPort\":10250,\"protocol\":\"TCP\"}": {
+                                                        ".": {},
+                                                        "f:containerPort": {},
+                                                        "f:name": {},
+                                                        "f:protocol": {}
+                                                    }
+                                                },
+                                                "f:readinessProbe": {
+                                                    ".": {},
+                                                    "f:failureThreshold": {},
+                                                    "f:httpGet": {
+                                                        ".": {},
+                                                        "f:path": {},
+                                                        "f:port": {},
+                                                        "f:scheme": {}
+                                                    },
+                                                    "f:initialDelaySeconds": {},
+                                                    "f:periodSeconds": {},
+                                                    "f:successThreshold": {},
+                                                    "f:timeoutSeconds": {}
+                                                },
+                                                "f:resources": {},
+                                                "f:terminationMessagePath": {},
+                                                "f:terminationMessagePolicy": {}
+                                            }
+                                        },
+                                        "f:dnsPolicy": {},
+                                        "f:restartPolicy": {},
+                                        "f:schedulerName": {},
+                                        "f:securityContext": {
+                                            ".": {},
+                                            "f:runAsNonRoot": {}
+                                        },
+                                        "f:serviceAccount": {},
+                                        "f:serviceAccountName": {},
+                                        "f:terminationGracePeriodSeconds": {}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "apps/v1",
+                        "time": "2022-07-14T00:25:08Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:availableReplicas": {},
+                                "f:fullyLabeledReplicas": {},
+                                "f:observedGeneration": {},
+                                "f:readyReplicas": {},
+                                "f:replicas": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "matchLabels": {
+                        "app.kubernetes.io/component": "webhook",
+                        "app.kubernetes.io/instance": "cert-manager",
+                        "app.kubernetes.io/name": "webhook",
+                        "pod-template-hash": "85fbc8dd5c"
+                    }
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "app": "webhook",
+                            "app.kubernetes.io/component": "webhook",
+                            "app.kubernetes.io/instance": "cert-manager",
+                            "app.kubernetes.io/managed-by": "Helm",
+                            "app.kubernetes.io/name": "webhook",
+                            "app.kubernetes.io/version": "v1.7.1",
+                            "helm.sh/chart": "cert-manager-v1.7.1",
+                            "pod-template-hash": "85fbc8dd5c"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "cert-manager",
+                                "image": "ghcr.io/verrazzano/cert-manager-webhook:v1.7.1",
+                                "args": [
+                                    "--v=2",
+                                    "--secure-port=10250",
+                                    "--dynamic-serving-ca-secret-namespace=$(POD_NAMESPACE)",
+                                    "--dynamic-serving-ca-secret-name=cert-manager-webhook-ca",
+                                    "--dynamic-serving-dns-names=cert-manager-webhook,cert-manager-webhook.cert-manager,cert-manager-webhook.cert-manager.svc"
+                                ],
+                                "ports": [
+                                    {
+                                        "name": "https",
+                                        "containerPort": 10250,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "env": [
+                                    {
+                                        "name": "POD_NAMESPACE",
+                                        "valueFrom": {
+                                            "fieldRef": {
+                                                "apiVersion": "v1",
+                                                "fieldPath": "metadata.namespace"
+                                            }
+                                        }
+                                    }
+                                ],
+                                "resources": {},
+                                "livenessProbe": {
+                                    "httpGet": {
+                                        "path": "/livez",
+                                        "port": 6080,
+                                        "scheme": "HTTP"
+                                    },
+                                    "initialDelaySeconds": 60,
+                                    "timeoutSeconds": 1,
+                                    "periodSeconds": 10,
+                                    "successThreshold": 1,
+                                    "failureThreshold": 3
+                                },
+                                "readinessProbe": {
+                                    "httpGet": {
+                                        "path": "/healthz",
+                                        "port": 6080,
+                                        "scheme": "HTTP"
+                                    },
+                                    "initialDelaySeconds": 5,
+                                    "timeoutSeconds": 1,
+                                    "periodSeconds": 5,
+                                    "successThreshold": 1,
+                                    "failureThreshold": 3
+                                },
+                                "terminationMessagePath": "/dev/termination-log",
+                                "terminationMessagePolicy": "File",
+                                "imagePullPolicy": "IfNotPresent"
+                            }
+                        ],
+                        "restartPolicy": "Always",
+                        "terminationGracePeriodSeconds": 30,
+                        "dnsPolicy": "ClusterFirst",
+                        "serviceAccountName": "cert-manager-webhook",
+                        "serviceAccount": "cert-manager-webhook",
+                        "securityContext": {
+                            "runAsNonRoot": false
+                        },
+                        "schedulerName": "default-scheduler"
+                    }
+                }
+            },
+            "status": {
+                "replicas": 1,
+                "fullyLabeledReplicas": 1,
+                "readyReplicas": 1,
+                "availableReplicas": 1,
+                "observedGeneration": 1
+            }
+        }
+    ]
+}

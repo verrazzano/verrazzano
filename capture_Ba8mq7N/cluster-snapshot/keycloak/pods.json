@@ -1,0 +1,2061 @@
+{
+    "kind": "PodList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "28804449"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "keycloak-0",
+                "generateName": "keycloak-",
+                "namespace": "keycloak",
+                "uid": "5ee3dfa3-3b61-4260-9f00-df93188638c4",
+                "resourceVersion": "20240851",
+                "creationTimestamp": "2022-07-14T00:27:19Z",
+                "labels": {
+                    "app.kubernetes.io/instance": "keycloak",
+                    "app.kubernetes.io/name": "keycloak",
+                    "controller-revision-hash": "keycloak-7dbfc7dddc",
+                    "security.istio.io/tlsMode": "istio",
+                    "service.istio.io/canonical-name": "keycloak",
+                    "service.istio.io/canonical-revision": "latest",
+                    "statefulset.kubernetes.io/pod-name": "keycloak-0"
+                },
+                "annotations": {
+                    "checksum/config-startup": "81710203936914d8f3cd1da3830974e98b32b880798d2a230d2d53f0ef86e377",
+                    "checksum/secrets": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+                    "kubectl.kubernetes.io/default-container": "keycloak",
+                    "kubectl.kubernetes.io/default-logs-container": "keycloak",
+                    "sidecar.istio.io/status": "{\"initContainers\":[\"istio-init\"],\"containers\":[\"istio-proxy\"],\"volumes\":[\"istio-envoy\",\"istio-data\",\"istio-podinfo\",\"istio-token\",\"istiod-ca-cert\"],\"imagePullSecrets\":null,\"revision\":\"default\"}"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "StatefulSet",
+                        "name": "keycloak",
+                        "uid": "6d7a0ba1-4a97-4e0f-97ca-3b64ea491dd3",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ],
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:27:19Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:checksum/config-startup": {},
+                                    "f:checksum/secrets": {}
+                                },
+                                "f:generateName": {},
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app.kubernetes.io/instance": {},
+                                    "f:app.kubernetes.io/name": {},
+                                    "f:controller-revision-hash": {},
+                                    "f:statefulset.kubernetes.io/pod-name": {}
+                                },
+                                "f:ownerReferences": {
+                                    ".": {},
+                                    "k:{\"uid\":\"6d7a0ba1-4a97-4e0f-97ca-3b64ea491dd3\"}": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:affinity": {
+                                    ".": {},
+                                    "f:podAntiAffinity": {
+                                        ".": {},
+                                        "f:preferredDuringSchedulingIgnoredDuringExecution": {},
+                                        "f:requiredDuringSchedulingIgnoredDuringExecution": {}
+                                    }
+                                },
+                                "f:containers": {
+                                    "k:{\"name\":\"keycloak\"}": {
+                                        ".": {},
+                                        "f:env": {
+                                            ".": {},
+                                            "k:{\"name\":\"DB_ADDR\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"DB_DATABASE\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"DB_PASSWORD\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:valueFrom": {
+                                                    ".": {},
+                                                    "f:secretKeyRef": {}
+                                                }
+                                            },
+                                            "k:{\"name\":\"DB_PORT\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"DB_USER\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"DB_VENDOR\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"KEYCLOAK_PASSWORD\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:valueFrom": {
+                                                    ".": {},
+                                                    "f:secretKeyRef": {}
+                                                }
+                                            },
+                                            "k:{\"name\":\"KEYCLOAK_USER\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"PROXY_ADDRESS_FORWARDING\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            }
+                                        },
+                                        "f:image": {},
+                                        "f:imagePullPolicy": {},
+                                        "f:livenessProbe": {
+                                            ".": {},
+                                            "f:failureThreshold": {},
+                                            "f:httpGet": {
+                                                ".": {},
+                                                "f:path": {},
+                                                "f:port": {},
+                                                "f:scheme": {}
+                                            },
+                                            "f:periodSeconds": {},
+                                            "f:successThreshold": {},
+                                            "f:timeoutSeconds": {}
+                                        },
+                                        "f:name": {},
+                                        "f:ports": {
+                                            ".": {},
+                                            "k:{\"containerPort\":8080,\"protocol\":\"TCP\"}": {
+                                                ".": {},
+                                                "f:containerPort": {},
+                                                "f:name": {},
+                                                "f:protocol": {}
+                                            },
+                                            "k:{\"containerPort\":8443,\"protocol\":\"TCP\"}": {
+                                                ".": {},
+                                                "f:containerPort": {},
+                                                "f:name": {},
+                                                "f:protocol": {}
+                                            },
+                                            "k:{\"containerPort\":9990,\"protocol\":\"TCP\"}": {
+                                                ".": {},
+                                                "f:containerPort": {},
+                                                "f:name": {},
+                                                "f:protocol": {}
+                                            }
+                                        },
+                                        "f:readinessProbe": {
+                                            ".": {},
+                                            "f:failureThreshold": {},
+                                            "f:httpGet": {
+                                                ".": {},
+                                                "f:path": {},
+                                                "f:port": {},
+                                                "f:scheme": {}
+                                            },
+                                            "f:initialDelaySeconds": {},
+                                            "f:periodSeconds": {},
+                                            "f:successThreshold": {},
+                                            "f:timeoutSeconds": {}
+                                        },
+                                        "f:resources": {},
+                                        "f:securityContext": {
+                                            ".": {},
+                                            "f:runAsNonRoot": {},
+                                            "f:runAsUser": {}
+                                        },
+                                        "f:startupProbe": {
+                                            ".": {},
+                                            "f:failureThreshold": {},
+                                            "f:httpGet": {
+                                                ".": {},
+                                                "f:path": {},
+                                                "f:port": {},
+                                                "f:scheme": {}
+                                            },
+                                            "f:initialDelaySeconds": {},
+                                            "f:periodSeconds": {},
+                                            "f:successThreshold": {},
+                                            "f:timeoutSeconds": {}
+                                        },
+                                        "f:terminationMessagePath": {},
+                                        "f:terminationMessagePolicy": {},
+                                        "f:volumeMounts": {
+                                            ".": {},
+                                            "k:{\"mountPath\":\"/etc/keycloak-http\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            },
+                                            "k:{\"mountPath\":\"/opt/jboss/keycloak/themes/oracle\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            },
+                                            "k:{\"mountPath\":\"/opt/jboss/startup-scripts/keycloak.cli\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {},
+                                                "f:readOnly": {},
+                                                "f:subPath": {}
+                                            }
+                                        }
+                                    }
+                                },
+                                "f:dnsPolicy": {},
+                                "f:enableServiceLinks": {},
+                                "f:hostname": {},
+                                "f:initContainers": {
+                                    ".": {},
+                                    "k:{\"name\":\"theme-provider\"}": {
+                                        ".": {},
+                                        "f:args": {},
+                                        "f:command": {},
+                                        "f:image": {},
+                                        "f:imagePullPolicy": {},
+                                        "f:name": {},
+                                        "f:resources": {},
+                                        "f:terminationMessagePath": {},
+                                        "f:terminationMessagePolicy": {},
+                                        "f:volumeMounts": {
+                                            ".": {},
+                                            "k:{\"mountPath\":\"/cacerts\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            },
+                                            "k:{\"mountPath\":\"/theme\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            }
+                                        }
+                                    }
+                                },
+                                "f:restartPolicy": {},
+                                "f:schedulerName": {},
+                                "f:securityContext": {
+                                    ".": {},
+                                    "f:fsGroup": {}
+                                },
+                                "f:serviceAccount": {},
+                                "f:serviceAccountName": {},
+                                "f:subdomain": {},
+                                "f:terminationGracePeriodSeconds": {},
+                                "f:volumes": {
+                                    ".": {},
+                                    "k:{\"name\":\"cacerts\"}": {
+                                        ".": {},
+                                        "f:emptyDir": {},
+                                        "f:name": {}
+                                    },
+                                    "k:{\"name\":\"keycloak-http\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:secret": {
+                                            ".": {},
+                                            "f:defaultMode": {},
+                                            "f:secretName": {}
+                                        }
+                                    },
+                                    "k:{\"name\":\"startup\"}": {
+                                        ".": {},
+                                        "f:configMap": {
+                                            ".": {},
+                                            "f:defaultMode": {},
+                                            "f:items": {},
+                                            "f:name": {}
+                                        },
+                                        "f:name": {}
+                                    },
+                                    "k:{\"name\":\"theme\"}": {
+                                        ".": {},
+                                        "f:emptyDir": {},
+                                        "f:name": {}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:30:45Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:conditions": {
+                                    "k:{\"type\":\"ContainersReady\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    },
+                                    "k:{\"type\":\"Initialized\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    },
+                                    "k:{\"type\":\"Ready\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    }
+                                },
+                                "f:containerStatuses": {},
+                                "f:hostIP": {},
+                                "f:initContainerStatuses": {},
+                                "f:phase": {},
+                                "f:podIP": {},
+                                "f:podIPs": {
+                                    ".": {},
+                                    "k:{\"ip\":\"10.244.0.20\"}": {
+                                        ".": {},
+                                        "f:ip": {}
+                                    }
+                                },
+                                "f:startTime": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "istio-envoy",
+                        "emptyDir": {
+                            "medium": "Memory"
+                        }
+                    },
+                    {
+                        "name": "istio-data",
+                        "emptyDir": {}
+                    },
+                    {
+                        "name": "istio-podinfo",
+                        "downwardAPI": {
+                            "items": [
+                                {
+                                    "path": "labels",
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.labels"
+                                    }
+                                },
+                                {
+                                    "path": "annotations",
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.annotations"
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "istio-token",
+                        "projected": {
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "audience": "istio-ca",
+                                        "expirationSeconds": 43200,
+                                        "path": "istio-token"
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "istiod-ca-cert",
+                        "configMap": {
+                            "name": "istio-ca-root-cert",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "startup",
+                        "configMap": {
+                            "name": "keycloak-startup",
+                            "items": [
+                                {
+                                    "key": "keycloak.cli",
+                                    "path": "keycloak.cli"
+                                }
+                            ],
+                            "defaultMode": 365
+                        }
+                    },
+                    {
+                        "name": "theme",
+                        "emptyDir": {}
+                    },
+                    {
+                        "name": "cacerts",
+                        "emptyDir": {}
+                    },
+                    {
+                        "name": "keycloak-http",
+                        "secret": {
+                            "secretName": "keycloak-http",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "kube-api-access-hmdqt",
+                        "projected": {
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "name": "kube-root-ca.crt",
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "path": "namespace",
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    }
+                ],
+                "initContainers": [
+                    {
+                        "name": "theme-provider",
+                        "image": "ghcr.io/verrazzano/keycloak-oracle-theme:1.3.0-20220510114742-dc513a7",
+                        "command": [
+                            "sh"
+                        ],
+                        "args": [
+                            "-c",
+                            "echo \"Copying theme...\"\ncp -R /oracle/* /theme\n"
+                        ],
+                        "resources": {},
+                        "volumeMounts": [
+                            {
+                                "name": "theme",
+                                "mountPath": "/theme"
+                            },
+                            {
+                                "name": "cacerts",
+                                "mountPath": "/cacerts"
+                            },
+                            {
+                                "name": "kube-api-access-hmdqt",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    },
+                    {
+                        "name": "istio-init",
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "args": [
+                            "istio-iptables",
+                            "-p",
+                            "15001",
+                            "-z",
+                            "15006",
+                            "-u",
+                            "1337",
+                            "-m",
+                            "REDIRECT",
+                            "-i",
+                            "*",
+                            "-x",
+                            "",
+                            "-b",
+                            "*",
+                            "-d",
+                            "15090,15021,15020"
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "kube-api-access-hmdqt",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {
+                                "add": [
+                                    "NET_ADMIN",
+                                    "NET_RAW"
+                                ],
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "privileged": false,
+                            "runAsUser": 0,
+                            "runAsGroup": 0,
+                            "runAsNonRoot": false,
+                            "readOnlyRootFilesystem": false,
+                            "allowPrivilegeEscalation": false
+                        }
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "keycloak",
+                        "image": "ghcr.io/verrazzano/keycloak:15.0.2-20220510113519-620b97bc83",
+                        "ports": [
+                            {
+                                "name": "http",
+                                "containerPort": 8080,
+                                "protocol": "TCP"
+                            },
+                            {
+                                "name": "https",
+                                "containerPort": 8443,
+                                "protocol": "TCP"
+                            },
+                            {
+                                "name": "http-management",
+                                "containerPort": 9990,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "DB_VENDOR",
+                                "value": "mysql"
+                            },
+                            {
+                                "name": "DB_ADDR",
+                                "value": "mysql"
+                            },
+                            {
+                                "name": "DB_PORT",
+                                "value": "3306"
+                            },
+                            {
+                                "name": "DB_DATABASE",
+                                "value": "keycloak"
+                            },
+                            {
+                                "name": "DB_USER",
+                                "value": "keycloak"
+                            },
+                            {
+                                "name": "DB_PASSWORD",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "name": "mysql",
+                                        "key": "mysql-password"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "PROXY_ADDRESS_FORWARDING",
+                                "value": "true"
+                            },
+                            {
+                                "name": "KEYCLOAK_USER",
+                                "value": "keycloakadmin"
+                            },
+                            {
+                                "name": "KEYCLOAK_PASSWORD",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "name": "keycloak-http",
+                                        "key": "password"
+                                    }
+                                }
+                            }
+                        ],
+                        "resources": {},
+                        "volumeMounts": [
+                            {
+                                "name": "startup",
+                                "readOnly": true,
+                                "mountPath": "/opt/jboss/startup-scripts/keycloak.cli",
+                                "subPath": "keycloak.cli"
+                            },
+                            {
+                                "name": "theme",
+                                "mountPath": "/opt/jboss/keycloak/themes/oracle"
+                            },
+                            {
+                                "name": "keycloak-http",
+                                "mountPath": "/etc/keycloak-http"
+                            },
+                            {
+                                "name": "kube-api-access-hmdqt",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "livenessProbe": {
+                            "httpGet": {
+                                "path": "/app-health/keycloak/livez",
+                                "port": 15020,
+                                "scheme": "HTTP"
+                            },
+                            "timeoutSeconds": 5,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 3
+                        },
+                        "readinessProbe": {
+                            "httpGet": {
+                                "path": "/app-health/keycloak/readyz",
+                                "port": 15020,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 30,
+                            "timeoutSeconds": 1,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 3
+                        },
+                        "startupProbe": {
+                            "httpGet": {
+                                "path": "/app-health/keycloak/startupz",
+                                "port": 15020,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 30,
+                            "timeoutSeconds": 1,
+                            "periodSeconds": 5,
+                            "successThreshold": 1,
+                            "failureThreshold": 60
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "runAsUser": 0,
+                            "runAsNonRoot": false
+                        }
+                    },
+                    {
+                        "name": "istio-proxy",
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "args": [
+                            "proxy",
+                            "sidecar",
+                            "--domain",
+                            "$(POD_NAMESPACE).svc.cluster.local",
+                            "--proxyLogLevel=warning",
+                            "--proxyComponentLogLevel=misc:error",
+                            "--log_output_level=default:info",
+                            "--concurrency",
+                            "2"
+                        ],
+                        "ports": [
+                            {
+                                "name": "http-envoy-prom",
+                                "containerPort": 15090,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "JWT_POLICY",
+                                "value": "third-party-jwt"
+                            },
+                            {
+                                "name": "PILOT_CERT_PROVIDER",
+                                "value": "istiod"
+                            },
+                            {
+                                "name": "CA_ADDR",
+                                "value": "istiod.istio-system.svc:15012"
+                            },
+                            {
+                                "name": "POD_NAME",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.name"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "POD_NAMESPACE",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.namespace"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "INSTANCE_IP",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "status.podIP"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "SERVICE_ACCOUNT",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "spec.serviceAccountName"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "HOST_IP",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "status.hostIP"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "PROXY_CONFIG",
+                                "value": "{}\n"
+                            },
+                            {
+                                "name": "ISTIO_META_POD_PORTS",
+                                "value": "[\n    {\"name\":\"http\",\"containerPort\":8080,\"protocol\":\"TCP\"}\n    ,{\"name\":\"https\",\"containerPort\":8443,\"protocol\":\"TCP\"}\n    ,{\"name\":\"http-management\",\"containerPort\":9990,\"protocol\":\"TCP\"}\n]"
+                            },
+                            {
+                                "name": "ISTIO_META_APP_CONTAINERS",
+                                "value": "keycloak"
+                            },
+                            {
+                                "name": "ISTIO_META_CLUSTER_ID",
+                                "value": "Kubernetes"
+                            },
+                            {
+                                "name": "ISTIO_META_INTERCEPTION_MODE",
+                                "value": "REDIRECT"
+                            },
+                            {
+                                "name": "ISTIO_META_WORKLOAD_NAME",
+                                "value": "keycloak"
+                            },
+                            {
+                                "name": "ISTIO_META_OWNER",
+                                "value": "kubernetes://apis/apps/v1/namespaces/keycloak/statefulsets/keycloak"
+                            },
+                            {
+                                "name": "ISTIO_META_MESH_ID",
+                                "value": "cluster.local"
+                            },
+                            {
+                                "name": "TRUST_DOMAIN",
+                                "value": "cluster.local"
+                            },
+                            {
+                                "name": "ISTIO_KUBE_APP_PROBERS",
+                                "value": "{\"/app-health/keycloak/livez\":{\"httpGet\":{\"path\":\"/auth/\",\"port\":8080,\"scheme\":\"HTTP\"},\"timeoutSeconds\":5},\"/app-health/keycloak/readyz\":{\"httpGet\":{\"path\":\"/auth/realms/master\",\"port\":8080,\"scheme\":\"HTTP\"},\"timeoutSeconds\":1},\"/app-health/keycloak/startupz\":{\"httpGet\":{\"path\":\"/auth/\",\"port\":8080,\"scheme\":\"HTTP\"},\"timeoutSeconds\":1}}"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "istiod-ca-cert",
+                                "mountPath": "/var/run/secrets/istio"
+                            },
+                            {
+                                "name": "istio-data",
+                                "mountPath": "/var/lib/istio/data"
+                            },
+                            {
+                                "name": "istio-envoy",
+                                "mountPath": "/etc/istio/proxy"
+                            },
+                            {
+                                "name": "istio-token",
+                                "mountPath": "/var/run/secrets/tokens"
+                            },
+                            {
+                                "name": "istio-podinfo",
+                                "mountPath": "/etc/istio/pod"
+                            },
+                            {
+                                "name": "kube-api-access-hmdqt",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "readinessProbe": {
+                            "httpGet": {
+                                "path": "/healthz/ready",
+                                "port": 15021,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 1,
+                            "timeoutSeconds": 3,
+                            "periodSeconds": 2,
+                            "successThreshold": 1,
+                            "failureThreshold": 90
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "privileged": false,
+                            "runAsUser": 1337,
+                            "runAsGroup": 1337,
+                            "runAsNonRoot": true,
+                            "readOnlyRootFilesystem": true,
+                            "allowPrivilegeEscalation": false
+                        }
+                    }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 60,
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "keycloak",
+                "serviceAccount": "keycloak",
+                "nodeName": "10.196.0.41",
+                "securityContext": {
+                    "fsGroup": 1000
+                },
+                "hostname": "keycloak-0",
+                "subdomain": "keycloak-headless",
+                "affinity": {
+                    "podAntiAffinity": {
+                        "requiredDuringSchedulingIgnoredDuringExecution": [
+                            {
+                                "labelSelector": {
+                                    "matchLabels": {
+                                        "app.kubernetes.io/instance": "keycloak",
+                                        "app.kubernetes.io/name": "keycloak"
+                                    },
+                                    "matchExpressions": [
+                                        {
+                                            "key": "app.kubernetes.io/component",
+                                            "operator": "NotIn",
+                                            "values": [
+                                                "test"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "topologyKey": "kubernetes.io/hostname"
+                            }
+                        ],
+                        "preferredDuringSchedulingIgnoredDuringExecution": [
+                            {
+                                "weight": 100,
+                                "podAffinityTerm": {
+                                    "labelSelector": {
+                                        "matchLabels": {
+                                            "app.kubernetes.io/instance": "keycloak",
+                                            "app.kubernetes.io/name": "keycloak"
+                                        },
+                                        "matchExpressions": [
+                                            {
+                                                "key": "app.kubernetes.io/component",
+                                                "operator": "NotIn",
+                                                "values": [
+                                                    "test"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "topologyKey": "failure-domain.beta.kubernetes.io/zone"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "schedulerName": "default-scheduler",
+                "tolerations": [
+                    {
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "priority": 0,
+                "enableServiceLinks": true,
+                "preemptionPolicy": "PreemptLowerPriority"
+            },
+            "status": {
+                "phase": "Running",
+                "conditions": [
+                    {
+                        "type": "Initialized",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-07-14T00:27:47Z"
+                    },
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-07-14T00:30:45Z"
+                    },
+                    {
+                        "type": "ContainersReady",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-07-14T00:30:45Z"
+                    },
+                    {
+                        "type": "PodScheduled",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-07-14T00:27:19Z"
+                    }
+                ],
+                "hostIP": "10.196.0.41",
+                "podIP": "10.244.0.20",
+                "podIPs": [
+                    {
+                        "ip": "10.244.0.20"
+                    }
+                ],
+                "startTime": "2022-07-14T00:27:20Z",
+                "initContainerStatuses": [
+                    {
+                        "name": "theme-provider",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 0,
+                                "reason": "Completed",
+                                "startedAt": "2022-07-14T00:27:45Z",
+                                "finishedAt": "2022-07-14T00:27:45Z",
+                                "containerID": "cri-o://0dba69cc7696cfacf039f924cab679803e44853fe14a044cb11a1bc8b1de1fad"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/keycloak-oracle-theme:1.3.0-20220510114742-dc513a7",
+                        "imageID": "ghcr.io/verrazzano/keycloak-oracle-theme@sha256:db7cc2e4ad9406247831106ff27819ff052916ddd7d51df4c52852278a811192",
+                        "containerID": "cri-o://0dba69cc7696cfacf039f924cab679803e44853fe14a044cb11a1bc8b1de1fad"
+                    },
+                    {
+                        "name": "istio-init",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 0,
+                                "reason": "Completed",
+                                "startedAt": "2022-07-14T00:27:46Z",
+                                "finishedAt": "2022-07-14T00:27:46Z",
+                                "containerID": "cri-o://a2475da3561a3d9b5df3ed714c1bc7499b8baf0ec798d54954e4fd2a854cecd0"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "imageID": "ghcr.io/verrazzano/proxyv2@sha256:6ef03b1904cde5bb20c12321b5ec5910a50e08ff67a1b5c7c48c16e9ad265f5f",
+                        "containerID": "cri-o://a2475da3561a3d9b5df3ed714c1bc7499b8baf0ec798d54954e4fd2a854cecd0"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "name": "istio-proxy",
+                        "state": {
+                            "running": {
+                                "startedAt": "2022-07-14T00:29:10Z"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "imageID": "ghcr.io/verrazzano/proxyv2@sha256:6ef03b1904cde5bb20c12321b5ec5910a50e08ff67a1b5c7c48c16e9ad265f5f",
+                        "containerID": "cri-o://6354d77fefd8281ed47b7b54a66b0b1cdb32cee95e91defe1c9af7c38c903989",
+                        "started": true
+                    },
+                    {
+                        "name": "keycloak",
+                        "state": {
+                            "running": {
+                                "startedAt": "2022-07-14T00:29:09Z"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/keycloak:15.0.2-20220510113519-620b97bc83",
+                        "imageID": "ghcr.io/verrazzano/keycloak@sha256:f44774f8ac8c18218e8f405739d4ce7b4472152c1ce449d3abb82988eddb0184",
+                        "containerID": "cri-o://69229e71078a0a171c61395113cf9fc5a540a8692b57ec24b4fffb18014f6398",
+                        "started": true
+                    }
+                ],
+                "qosClass": "Burstable"
+            }
+        },
+        {
+            "metadata": {
+                "name": "mysql-5df654b5fd-llf62",
+                "generateName": "mysql-5df654b5fd-",
+                "namespace": "keycloak",
+                "uid": "6a289a95-a63a-41c2-85d7-d8ed2b0e88ea",
+                "resourceVersion": "20237791",
+                "creationTimestamp": "2022-07-14T00:25:40Z",
+                "labels": {
+                    "app": "mysql",
+                    "pod-template-hash": "5df654b5fd",
+                    "release": "mysql",
+                    "security.istio.io/tlsMode": "istio",
+                    "service.istio.io/canonical-name": "mysql",
+                    "service.istio.io/canonical-revision": "latest"
+                },
+                "annotations": {
+                    "kubectl.kubernetes.io/default-container": "mysql",
+                    "kubectl.kubernetes.io/default-logs-container": "mysql",
+                    "sidecar.istio.io/status": "{\"initContainers\":[\"istio-init\"],\"containers\":[\"istio-proxy\"],\"volumes\":[\"istio-envoy\",\"istio-data\",\"istio-podinfo\",\"istio-token\",\"istiod-ca-cert\"],\"imagePullSecrets\":null,\"revision\":\"default\"}"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "ReplicaSet",
+                        "name": "mysql-5df654b5fd",
+                        "uid": "b071e6b0-5630-4a16-a076-a50dc5e31a97",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ],
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:25:40Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:generateName": {},
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app": {},
+                                    "f:pod-template-hash": {},
+                                    "f:release": {}
+                                },
+                                "f:ownerReferences": {
+                                    ".": {},
+                                    "k:{\"uid\":\"b071e6b0-5630-4a16-a076-a50dc5e31a97\"}": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:containers": {
+                                    "k:{\"name\":\"mysql\"}": {
+                                        ".": {},
+                                        "f:env": {
+                                            ".": {},
+                                            "k:{\"name\":\"MYSQL_DATABASE\"}": {
+                                                ".": {},
+                                                "f:name": {}
+                                            },
+                                            "k:{\"name\":\"MYSQL_PASSWORD\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:valueFrom": {
+                                                    ".": {},
+                                                    "f:secretKeyRef": {}
+                                                }
+                                            },
+                                            "k:{\"name\":\"MYSQL_ROOT_PASSWORD\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:valueFrom": {
+                                                    ".": {},
+                                                    "f:secretKeyRef": {}
+                                                }
+                                            },
+                                            "k:{\"name\":\"MYSQL_USER\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            }
+                                        },
+                                        "f:image": {},
+                                        "f:imagePullPolicy": {},
+                                        "f:livenessProbe": {
+                                            ".": {},
+                                            "f:exec": {
+                                                ".": {},
+                                                "f:command": {}
+                                            },
+                                            "f:failureThreshold": {},
+                                            "f:initialDelaySeconds": {},
+                                            "f:periodSeconds": {},
+                                            "f:successThreshold": {},
+                                            "f:timeoutSeconds": {}
+                                        },
+                                        "f:name": {},
+                                        "f:ports": {
+                                            ".": {},
+                                            "k:{\"containerPort\":3306,\"protocol\":\"TCP\"}": {
+                                                ".": {},
+                                                "f:containerPort": {},
+                                                "f:name": {},
+                                                "f:protocol": {}
+                                            }
+                                        },
+                                        "f:readinessProbe": {
+                                            ".": {},
+                                            "f:exec": {
+                                                ".": {},
+                                                "f:command": {}
+                                            },
+                                            "f:failureThreshold": {},
+                                            "f:initialDelaySeconds": {},
+                                            "f:periodSeconds": {},
+                                            "f:successThreshold": {},
+                                            "f:timeoutSeconds": {}
+                                        },
+                                        "f:resources": {
+                                            ".": {},
+                                            "f:requests": {
+                                                ".": {},
+                                                "f:cpu": {},
+                                                "f:memory": {}
+                                            }
+                                        },
+                                        "f:terminationMessagePath": {},
+                                        "f:terminationMessagePolicy": {},
+                                        "f:volumeMounts": {
+                                            ".": {},
+                                            "k:{\"mountPath\":\"/docker-entrypoint-initdb.d\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            },
+                                            "k:{\"mountPath\":\"/etc/mysql/conf.d/mysql-hook.sh\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {},
+                                                "f:subPath": {}
+                                            },
+                                            "k:{\"mountPath\":\"/var/lib/mysql\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            }
+                                        }
+                                    }
+                                },
+                                "f:dnsPolicy": {},
+                                "f:enableServiceLinks": {},
+                                "f:initContainers": {
+                                    ".": {},
+                                    "k:{\"name\":\"chown-data-dir\"}": {
+                                        ".": {},
+                                        "f:command": {},
+                                        "f:image": {},
+                                        "f:imagePullPolicy": {},
+                                        "f:name": {},
+                                        "f:resources": {
+                                            ".": {},
+                                            "f:requests": {
+                                                ".": {},
+                                                "f:cpu": {},
+                                                "f:memory": {}
+                                            }
+                                        },
+                                        "f:terminationMessagePath": {},
+                                        "f:terminationMessagePolicy": {},
+                                        "f:volumeMounts": {
+                                            ".": {},
+                                            "k:{\"mountPath\":\"/var/lib/mysql\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            }
+                                        }
+                                    },
+                                    "k:{\"name\":\"remove-lost-found\"}": {
+                                        ".": {},
+                                        "f:command": {},
+                                        "f:image": {},
+                                        "f:imagePullPolicy": {},
+                                        "f:name": {},
+                                        "f:resources": {
+                                            ".": {},
+                                            "f:requests": {
+                                                ".": {},
+                                                "f:cpu": {},
+                                                "f:memory": {}
+                                            }
+                                        },
+                                        "f:terminationMessagePath": {},
+                                        "f:terminationMessagePolicy": {},
+                                        "f:volumeMounts": {
+                                            ".": {},
+                                            "k:{\"mountPath\":\"/var/lib/mysql\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            }
+                                        }
+                                    }
+                                },
+                                "f:restartPolicy": {},
+                                "f:schedulerName": {},
+                                "f:securityContext": {},
+                                "f:serviceAccount": {},
+                                "f:serviceAccountName": {},
+                                "f:terminationGracePeriodSeconds": {},
+                                "f:volumes": {
+                                    ".": {},
+                                    "k:{\"name\":\"configurations\"}": {
+                                        ".": {},
+                                        "f:configMap": {
+                                            ".": {},
+                                            "f:defaultMode": {},
+                                            "f:name": {}
+                                        },
+                                        "f:name": {}
+                                    },
+                                    "k:{\"name\":\"data\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:persistentVolumeClaim": {
+                                            ".": {},
+                                            "f:claimName": {}
+                                        }
+                                    },
+                                    "k:{\"name\":\"migrations\"}": {
+                                        ".": {},
+                                        "f:configMap": {
+                                            ".": {},
+                                            "f:defaultMode": {},
+                                            "f:name": {}
+                                        },
+                                        "f:name": {}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "manager": "kube-scheduler",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:25:40Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:conditions": {
+                                    ".": {},
+                                    "k:{\"type\":\"PodScheduled\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:message": {},
+                                        "f:reason": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:27:14Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:conditions": {
+                                    "k:{\"type\":\"ContainersReady\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    },
+                                    "k:{\"type\":\"Initialized\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    },
+                                    "k:{\"type\":\"Ready\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    }
+                                },
+                                "f:containerStatuses": {},
+                                "f:hostIP": {},
+                                "f:initContainerStatuses": {},
+                                "f:phase": {},
+                                "f:podIP": {},
+                                "f:podIPs": {
+                                    ".": {},
+                                    "k:{\"ip\":\"10.244.0.17\"}": {
+                                        ".": {},
+                                        "f:ip": {}
+                                    }
+                                },
+                                "f:startTime": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "istio-envoy",
+                        "emptyDir": {
+                            "medium": "Memory"
+                        }
+                    },
+                    {
+                        "name": "istio-data",
+                        "emptyDir": {}
+                    },
+                    {
+                        "name": "istio-podinfo",
+                        "downwardAPI": {
+                            "items": [
+                                {
+                                    "path": "labels",
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.labels"
+                                    }
+                                },
+                                {
+                                    "path": "annotations",
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.annotations"
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "istio-token",
+                        "projected": {
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "audience": "istio-ca",
+                                        "expirationSeconds": 43200,
+                                        "path": "istio-token"
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "istiod-ca-cert",
+                        "configMap": {
+                            "name": "istio-ca-root-cert",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "configurations",
+                        "configMap": {
+                            "name": "mysql-configuration",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "migrations",
+                        "configMap": {
+                            "name": "mysql-initialization",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "data",
+                        "persistentVolumeClaim": {
+                            "claimName": "mysql"
+                        }
+                    },
+                    {
+                        "name": "kube-api-access-c7stk",
+                        "projected": {
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "name": "kube-root-ca.crt",
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ]
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "path": "namespace",
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ],
+                            "defaultMode": 420
+                        }
+                    }
+                ],
+                "initContainers": [
+                    {
+                        "name": "remove-lost-found",
+                        "image": "ghcr.io/oracle/oraclelinux:7-slim",
+                        "command": [
+                            "rm",
+                            "-fr",
+                            "/var/lib/mysql/lost+found"
+                        ],
+                        "resources": {
+                            "requests": {
+                                "cpu": "10m",
+                                "memory": "10Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "data",
+                                "mountPath": "/var/lib/mysql"
+                            },
+                            {
+                                "name": "kube-api-access-c7stk",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    },
+                    {
+                        "name": "chown-data-dir",
+                        "image": "ghcr.io/oracle/oraclelinux:7-slim",
+                        "command": [
+                            "chown",
+                            "-R",
+                            "27:27",
+                            "/var/lib/mysql"
+                        ],
+                        "resources": {
+                            "requests": {
+                                "cpu": "10m",
+                                "memory": "10Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "data",
+                                "mountPath": "/var/lib/mysql"
+                            },
+                            {
+                                "name": "kube-api-access-c7stk",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    },
+                    {
+                        "name": "istio-init",
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "args": [
+                            "istio-iptables",
+                            "-p",
+                            "15001",
+                            "-z",
+                            "15006",
+                            "-u",
+                            "1337",
+                            "-m",
+                            "REDIRECT",
+                            "-i",
+                            "*",
+                            "-x",
+                            "",
+                            "-b",
+                            "*",
+                            "-d",
+                            "15090,15021,15020"
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "kube-api-access-c7stk",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {
+                                "add": [
+                                    "NET_ADMIN",
+                                    "NET_RAW"
+                                ],
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "privileged": false,
+                            "runAsUser": 0,
+                            "runAsGroup": 0,
+                            "runAsNonRoot": false,
+                            "readOnlyRootFilesystem": false,
+                            "allowPrivilegeEscalation": false
+                        }
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "mysql",
+                        "image": "ghcr.io/verrazzano/mysql:8.0.28",
+                        "ports": [
+                            {
+                                "name": "mysql",
+                                "containerPort": 3306,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "MYSQL_ROOT_PASSWORD",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "name": "mysql",
+                                        "key": "mysql-root-password"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "MYSQL_PASSWORD",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "name": "mysql",
+                                        "key": "mysql-password"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "MYSQL_USER",
+                                "value": "keycloak"
+                            },
+                            {
+                                "name": "MYSQL_DATABASE"
+                            }
+                        ],
+                        "resources": {
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "256Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "data",
+                                "mountPath": "/var/lib/mysql"
+                            },
+                            {
+                                "name": "configurations",
+                                "mountPath": "/etc/mysql/conf.d/mysql-hook.sh",
+                                "subPath": "mysql-hook.sh"
+                            },
+                            {
+                                "name": "migrations",
+                                "mountPath": "/docker-entrypoint-initdb.d"
+                            },
+                            {
+                                "name": "kube-api-access-c7stk",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "livenessProbe": {
+                            "exec": {
+                                "command": [
+                                    "sh",
+                                    "-c",
+                                    "mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD}"
+                                ]
+                            },
+                            "initialDelaySeconds": 30,
+                            "timeoutSeconds": 5,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 3
+                        },
+                        "readinessProbe": {
+                            "exec": {
+                                "command": [
+                                    "sh",
+                                    "-c",
+                                    "mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD}"
+                                ]
+                            },
+                            "initialDelaySeconds": 5,
+                            "timeoutSeconds": 1,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 3
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    },
+                    {
+                        "name": "istio-proxy",
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "args": [
+                            "proxy",
+                            "sidecar",
+                            "--domain",
+                            "$(POD_NAMESPACE).svc.cluster.local",
+                            "--proxyLogLevel=warning",
+                            "--proxyComponentLogLevel=misc:error",
+                            "--log_output_level=default:info",
+                            "--concurrency",
+                            "2"
+                        ],
+                        "ports": [
+                            {
+                                "name": "http-envoy-prom",
+                                "containerPort": 15090,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "JWT_POLICY",
+                                "value": "third-party-jwt"
+                            },
+                            {
+                                "name": "PILOT_CERT_PROVIDER",
+                                "value": "istiod"
+                            },
+                            {
+                                "name": "CA_ADDR",
+                                "value": "istiod.istio-system.svc:15012"
+                            },
+                            {
+                                "name": "POD_NAME",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.name"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "POD_NAMESPACE",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.namespace"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "INSTANCE_IP",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "status.podIP"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "SERVICE_ACCOUNT",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "spec.serviceAccountName"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "HOST_IP",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "status.hostIP"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "PROXY_CONFIG",
+                                "value": "{}\n"
+                            },
+                            {
+                                "name": "ISTIO_META_POD_PORTS",
+                                "value": "[\n    {\"name\":\"mysql\",\"containerPort\":3306,\"protocol\":\"TCP\"}\n]"
+                            },
+                            {
+                                "name": "ISTIO_META_APP_CONTAINERS",
+                                "value": "mysql"
+                            },
+                            {
+                                "name": "ISTIO_META_CLUSTER_ID",
+                                "value": "Kubernetes"
+                            },
+                            {
+                                "name": "ISTIO_META_INTERCEPTION_MODE",
+                                "value": "REDIRECT"
+                            },
+                            {
+                                "name": "ISTIO_META_WORKLOAD_NAME",
+                                "value": "mysql"
+                            },
+                            {
+                                "name": "ISTIO_META_OWNER",
+                                "value": "kubernetes://apis/apps/v1/namespaces/keycloak/deployments/mysql"
+                            },
+                            {
+                                "name": "ISTIO_META_MESH_ID",
+                                "value": "cluster.local"
+                            },
+                            {
+                                "name": "TRUST_DOMAIN",
+                                "value": "cluster.local"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "istiod-ca-cert",
+                                "mountPath": "/var/run/secrets/istio"
+                            },
+                            {
+                                "name": "istio-data",
+                                "mountPath": "/var/lib/istio/data"
+                            },
+                            {
+                                "name": "istio-envoy",
+                                "mountPath": "/etc/istio/proxy"
+                            },
+                            {
+                                "name": "istio-token",
+                                "mountPath": "/var/run/secrets/tokens"
+                            },
+                            {
+                                "name": "istio-podinfo",
+                                "mountPath": "/etc/istio/pod"
+                            },
+                            {
+                                "name": "kube-api-access-c7stk",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "readinessProbe": {
+                            "httpGet": {
+                                "path": "/healthz/ready",
+                                "port": 15021,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 1,
+                            "timeoutSeconds": 3,
+                            "periodSeconds": 2,
+                            "successThreshold": 1,
+                            "failureThreshold": 90
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "capabilities": {
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "privileged": false,
+                            "runAsUser": 1337,
+                            "runAsGroup": 1337,
+                            "runAsNonRoot": true,
+                            "readOnlyRootFilesystem": true,
+                            "allowPrivilegeEscalation": false
+                        }
+                    }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 30,
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "10.196.0.41",
+                "securityContext": {},
+                "schedulerName": "default-scheduler",
+                "tolerations": [
+                    {
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "priority": 0,
+                "enableServiceLinks": true,
+                "preemptionPolicy": "PreemptLowerPriority"
+            },
+            "status": {
+                "phase": "Running",
+                "conditions": [
+                    {
+                        "type": "Initialized",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-07-14T00:26:39Z"
+                    },
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-07-14T00:27:14Z"
+                    },
+                    {
+                        "type": "ContainersReady",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-07-14T00:27:14Z"
+                    },
+                    {
+                        "type": "PodScheduled",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2022-07-14T00:25:54Z"
+                    }
+                ],
+                "hostIP": "10.196.0.41",
+                "podIP": "10.244.0.17",
+                "podIPs": [
+                    {
+                        "ip": "10.244.0.17"
+                    }
+                ],
+                "startTime": "2022-07-14T00:25:54Z",
+                "initContainerStatuses": [
+                    {
+                        "name": "remove-lost-found",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 0,
+                                "reason": "Completed",
+                                "startedAt": "2022-07-14T00:26:36Z",
+                                "finishedAt": "2022-07-14T00:26:36Z",
+                                "containerID": "cri-o://ac3d26afe59d0ec078c003d267a7b4ee279757c50d40b2bed79e0ddd4e92e876"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/oracle/oraclelinux:7-slim",
+                        "imageID": "ghcr.io/oracle/oraclelinux@sha256:01146bd74c06a6bdbd55e9da959de40941476b32c9c04e9fd3fbb34ee16674f4",
+                        "containerID": "cri-o://ac3d26afe59d0ec078c003d267a7b4ee279757c50d40b2bed79e0ddd4e92e876"
+                    },
+                    {
+                        "name": "chown-data-dir",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 0,
+                                "reason": "Completed",
+                                "startedAt": "2022-07-14T00:26:37Z",
+                                "finishedAt": "2022-07-14T00:26:37Z",
+                                "containerID": "cri-o://931e9a6963a34ab174d283d5421fbfe3c21b940ee10fa89554599d26b2a626ed"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/oracle/oraclelinux:7-slim",
+                        "imageID": "ghcr.io/oracle/oraclelinux@sha256:01146bd74c06a6bdbd55e9da959de40941476b32c9c04e9fd3fbb34ee16674f4",
+                        "containerID": "cri-o://931e9a6963a34ab174d283d5421fbfe3c21b940ee10fa89554599d26b2a626ed"
+                    },
+                    {
+                        "name": "istio-init",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 0,
+                                "reason": "Completed",
+                                "startedAt": "2022-07-14T00:26:38Z",
+                                "finishedAt": "2022-07-14T00:26:38Z",
+                                "containerID": "cri-o://ff06c494316b8d8b74070915cf729db33f94919dd639e5dfb94a749a9e84815a"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "imageID": "ghcr.io/verrazzano/proxyv2@sha256:6ef03b1904cde5bb20c12321b5ec5910a50e08ff67a1b5c7c48c16e9ad265f5f",
+                        "containerID": "cri-o://ff06c494316b8d8b74070915cf729db33f94919dd639e5dfb94a749a9e84815a"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "name": "istio-proxy",
+                        "state": {
+                            "running": {
+                                "startedAt": "2022-07-14T00:26:39Z"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/proxyv2:1.13.2",
+                        "imageID": "ghcr.io/verrazzano/proxyv2@sha256:6ef03b1904cde5bb20c12321b5ec5910a50e08ff67a1b5c7c48c16e9ad265f5f",
+                        "containerID": "cri-o://70c190f3f03924c0c5b760130d5a9878c6013755cfcb83bdf43951f722b8e458",
+                        "started": true
+                    },
+                    {
+                        "name": "mysql",
+                        "state": {
+                            "running": {
+                                "startedAt": "2022-07-14T00:26:39Z"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/mysql:8.0.28",
+                        "imageID": "ghcr.io/verrazzano/mysql@sha256:e2afe059923128afbbd2f663ae0308ffa243ebb28a490841d4c06bb6e31c3c6e",
+                        "containerID": "cri-o://0bcaddf18f7b52eaa05ccddacfd26c510b08eb8e1b348d978c5c1f0cb66a47bb",
+                        "started": true
+                    }
+                ],
+                "qosClass": "Burstable"
+            }
+        }
+    ]
+}

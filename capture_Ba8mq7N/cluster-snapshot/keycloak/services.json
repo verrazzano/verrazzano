@@ -1,0 +1,285 @@
+{
+    "kind": "ServiceList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "28804449"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "keycloak-headless",
+                "namespace": "keycloak",
+                "uid": "af992462-1223-4713-ae9b-cb9739dbce90",
+                "resourceVersion": "20238032",
+                "creationTimestamp": "2022-07-14T00:27:19Z",
+                "labels": {
+                    "app.kubernetes.io/component": "headless",
+                    "app.kubernetes.io/instance": "keycloak",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "app.kubernetes.io/name": "keycloak",
+                    "app.kubernetes.io/version": "15.0.2-20220510113519-620b97bc83",
+                    "helm.sh/chart": "keycloak-15.1.0"
+                },
+                "annotations": {
+                    "meta.helm.sh/release-name": "keycloak",
+                    "meta.helm.sh/release-namespace": "keycloak"
+                },
+                "managedFields": [
+                    {
+                        "manager": "helm",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:27:19Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app.kubernetes.io/component": {},
+                                    "f:app.kubernetes.io/instance": {},
+                                    "f:app.kubernetes.io/managed-by": {},
+                                    "f:app.kubernetes.io/name": {},
+                                    "f:app.kubernetes.io/version": {},
+                                    "f:helm.sh/chart": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:clusterIP": {},
+                                "f:internalTrafficPolicy": {},
+                                "f:ports": {
+                                    ".": {},
+                                    "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    }
+                                },
+                                "f:selector": {},
+                                "f:sessionAffinity": {},
+                                "f:type": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "http",
+                        "protocol": "TCP",
+                        "port": 80,
+                        "targetPort": "http"
+                    }
+                ],
+                "selector": {
+                    "app.kubernetes.io/instance": "keycloak",
+                    "app.kubernetes.io/name": "keycloak"
+                },
+                "clusterIP": "None",
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "metadata": {
+                "name": "keycloak-http",
+                "namespace": "keycloak",
+                "uid": "bca568db-157c-444b-a390-04ce2ea8c59f",
+                "resourceVersion": "20238037",
+                "creationTimestamp": "2022-07-14T00:27:19Z",
+                "labels": {
+                    "app.kubernetes.io/component": "http",
+                    "app.kubernetes.io/instance": "keycloak",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "app.kubernetes.io/name": "keycloak",
+                    "app.kubernetes.io/version": "15.0.2-20220510113519-620b97bc83",
+                    "helm.sh/chart": "keycloak-15.1.0"
+                },
+                "annotations": {
+                    "meta.helm.sh/release-name": "keycloak",
+                    "meta.helm.sh/release-namespace": "keycloak"
+                },
+                "managedFields": [
+                    {
+                        "manager": "helm",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:27:19Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app.kubernetes.io/component": {},
+                                    "f:app.kubernetes.io/instance": {},
+                                    "f:app.kubernetes.io/managed-by": {},
+                                    "f:app.kubernetes.io/name": {},
+                                    "f:app.kubernetes.io/version": {},
+                                    "f:helm.sh/chart": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:internalTrafficPolicy": {},
+                                "f:ports": {
+                                    ".": {},
+                                    "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    },
+                                    "k:{\"port\":8443,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    },
+                                    "k:{\"port\":9990,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    }
+                                },
+                                "f:selector": {},
+                                "f:sessionAffinity": {},
+                                "f:type": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "http",
+                        "protocol": "TCP",
+                        "port": 80,
+                        "targetPort": "http"
+                    },
+                    {
+                        "name": "https",
+                        "protocol": "TCP",
+                        "port": 8443,
+                        "targetPort": "https"
+                    },
+                    {
+                        "name": "http-management",
+                        "protocol": "TCP",
+                        "port": 9990,
+                        "targetPort": "http-management"
+                    }
+                ],
+                "selector": {
+                    "app.kubernetes.io/instance": "keycloak",
+                    "app.kubernetes.io/name": "keycloak"
+                },
+                "clusterIP": "10.96.32.185",
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "metadata": {
+                "name": "mysql",
+                "namespace": "keycloak",
+                "uid": "14818292-9399-4542-b8fe-257c20070d13",
+                "resourceVersion": "20236526",
+                "creationTimestamp": "2022-07-14T00:25:40Z",
+                "labels": {
+                    "app": "mysql",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "chart": "mysql-1.6.9",
+                    "heritage": "Helm",
+                    "release": "mysql"
+                },
+                "annotations": {
+                    "meta.helm.sh/release-name": "mysql",
+                    "meta.helm.sh/release-namespace": "keycloak"
+                },
+                "managedFields": [
+                    {
+                        "manager": "helm",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:25:40Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app": {},
+                                    "f:app.kubernetes.io/managed-by": {},
+                                    "f:chart": {},
+                                    "f:heritage": {},
+                                    "f:release": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:internalTrafficPolicy": {},
+                                "f:ports": {
+                                    ".": {},
+                                    "k:{\"port\":3306,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    }
+                                },
+                                "f:selector": {},
+                                "f:sessionAffinity": {},
+                                "f:type": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "mysql",
+                        "protocol": "TCP",
+                        "port": 3306,
+                        "targetPort": "mysql"
+                    }
+                ],
+                "selector": {
+                    "app": "mysql"
+                },
+                "clusterIP": "10.96.238.102",
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        }
+    ]
+}

@@ -1,0 +1,251 @@
+{
+    "kind": "ServiceList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "28809246"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "rancher",
+                "namespace": "cattle-system",
+                "uid": "45c48660-34b7-4ed1-ac54-9514b8d0b49e",
+                "resourceVersion": "20237482",
+                "creationTimestamp": "2022-07-14T00:27:07Z",
+                "labels": {
+                    "app": "rancher",
+                    "app.kubernetes.io/managed-by": "Helm",
+                    "chart": "rancher-2.6.4",
+                    "heritage": "Helm",
+                    "release": "rancher"
+                },
+                "annotations": {
+                    "meta.helm.sh/release-name": "rancher",
+                    "meta.helm.sh/release-namespace": "cattle-system"
+                },
+                "managedFields": [
+                    {
+                        "manager": "helm",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:27:07Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app": {},
+                                    "f:app.kubernetes.io/managed-by": {},
+                                    "f:chart": {},
+                                    "f:heritage": {},
+                                    "f:release": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:internalTrafficPolicy": {},
+                                "f:ports": {
+                                    ".": {},
+                                    "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    },
+                                    "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    }
+                                },
+                                "f:selector": {},
+                                "f:sessionAffinity": {},
+                                "f:type": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "http",
+                        "protocol": "TCP",
+                        "port": 80,
+                        "targetPort": 80
+                    },
+                    {
+                        "name": "https-internal",
+                        "protocol": "TCP",
+                        "port": 443,
+                        "targetPort": 444
+                    }
+                ],
+                "selector": {
+                    "app": "rancher"
+                },
+                "clusterIP": "10.96.168.71",
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "metadata": {
+                "name": "rancher-webhook",
+                "namespace": "cattle-system",
+                "uid": "20dc655f-9c4d-46ef-96ab-9d986db0a13e",
+                "resourceVersion": "20243833",
+                "creationTimestamp": "2022-07-14T00:33:14Z",
+                "labels": {
+                    "app.kubernetes.io/managed-by": "Helm"
+                },
+                "annotations": {
+                    "meta.helm.sh/release-name": "rancher-webhook",
+                    "meta.helm.sh/release-namespace": "cattle-system"
+                },
+                "managedFields": [
+                    {
+                        "manager": "helm",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:33:14Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app.kubernetes.io/managed-by": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:internalTrafficPolicy": {},
+                                "f:ports": {
+                                    ".": {},
+                                    "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    }
+                                },
+                                "f:selector": {},
+                                "f:sessionAffinity": {},
+                                "f:type": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "https",
+                        "protocol": "TCP",
+                        "port": 443,
+                        "targetPort": 9443
+                    }
+                ],
+                "selector": {
+                    "app": "rancher-webhook"
+                },
+                "clusterIP": "10.96.47.212",
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "metadata": {
+                "name": "webhook-service",
+                "namespace": "cattle-system",
+                "uid": "24dccc7c-9f26-420b-83c3-8084b52358c0",
+                "resourceVersion": "20243837",
+                "creationTimestamp": "2022-07-14T00:33:14Z",
+                "labels": {
+                    "app.kubernetes.io/managed-by": "Helm"
+                },
+                "annotations": {
+                    "meta.helm.sh/release-name": "rancher-webhook",
+                    "meta.helm.sh/release-namespace": "cattle-system",
+                    "need-a-cert.cattle.io/secret-name": "rancher-webhook-tls"
+                },
+                "managedFields": [
+                    {
+                        "manager": "helm",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:33:14Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {},
+                                    "f:need-a-cert.cattle.io/secret-name": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app.kubernetes.io/managed-by": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:internalTrafficPolicy": {},
+                                "f:ports": {
+                                    ".": {},
+                                    "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    }
+                                },
+                                "f:selector": {},
+                                "f:sessionAffinity": {},
+                                "f:type": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "https",
+                        "protocol": "TCP",
+                        "port": 443,
+                        "targetPort": 8777
+                    }
+                ],
+                "selector": {
+                    "app": "rancher-webhook"
+                },
+                "clusterIP": "10.96.141.242",
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        }
+    ]
+}

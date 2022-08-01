@@ -152,6 +152,7 @@ const (
 	VerrazzanoApplicationOperator = "verrazzano-application-operator"
 	CoherenceOperator             = "coherence-operator"
 	IngressController             = "ingress-controller"
+	IngressDefaultBackend         = "ingress-controller-ingress-nginx-defaultbackend"
 	Mysql                         = "mysql"
 	CertManager                   = "cert-manager"
 	Rancher                       = "rancher"

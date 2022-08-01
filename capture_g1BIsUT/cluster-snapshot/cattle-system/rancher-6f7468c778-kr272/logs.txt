@@ -1,0 +1,1678 @@
+==== START logs for container rancher of pod cattle-system/rancher-6f7468c778-kr272 ====
+2022/07/14 00:30:10 [INFO] Listening on /tmp/log.sock
+2022/07/14 00:30:10 [INFO] Rancher version v2.6.4-20220504205847-7131173f2 (7131173f2) is starting
+2022/07/14 00:30:10 [INFO] Rancher arguments {ACMEDomains:[] AddLocal:true Embedded:false BindHost: HTTPListenPort:80 HTTPSListenPort:443 K8sMode:auto Debug:false Trace:false NoCACerts:false AuditLogPath:/var/log/auditlog/rancher-api-audit.log AuditLogMaxage:10 AuditLogMaxsize:100 AuditLogMaxbackup:10 AuditLevel:0 Features: ClusterRegistry:}
+2022/07/14 00:30:11 [INFO] Running in clustered mode with ID 10.244.0.25, monitoring endpoint cattle-system/rancher
+2022/07/14 00:30:16 [INFO] Applying CRD features.management.cattle.io
+2022/07/14 00:30:23 [INFO] Applying CRD navlinks.ui.cattle.io
+2022/07/14 00:30:23 [INFO] Applying CRD clusters.management.cattle.io
+2022/07/14 00:30:25 [INFO] Applying CRD apiservices.management.cattle.io
+2022/07/14 00:30:25 [INFO] Applying CRD clusterregistrationtokens.management.cattle.io
+2022/07/14 00:30:27 [INFO] Applying CRD settings.management.cattle.io
+2022/07/14 00:30:28 [INFO] Applying CRD preferences.management.cattle.io
+2022/07/14 00:30:28 [INFO] Applying CRD features.management.cattle.io
+2022/07/14 00:30:29 [INFO] Applying CRD clusterrepos.catalog.cattle.io
+2022/07/14 00:30:30 [INFO] Applying CRD operations.catalog.cattle.io
+2022/07/14 00:30:31 [INFO] Applying CRD apps.catalog.cattle.io
+2022/07/14 00:30:31 [INFO] Applying CRD fleetworkspaces.management.cattle.io
+2022/07/14 00:30:32 [INFO] Applying CRD managedcharts.management.cattle.io
+2022/07/14 00:30:32 [INFO] Applying CRD clusters.provisioning.cattle.io
+2022/07/14 00:30:33 [INFO] Applying CRD clusters.provisioning.cattle.io
+2022/07/14 00:30:33 [INFO] Applying CRD rkeclusters.rke.cattle.io
+2022/07/14 00:30:34 [INFO] Applying CRD rkecontrolplanes.rke.cattle.io
+2022/07/14 00:30:34 [INFO] Applying CRD rkebootstraps.rke.cattle.io
+2022/07/14 00:30:35 [INFO] Applying CRD rkebootstraptemplates.rke.cattle.io
+2022/07/14 00:30:35 [INFO] Applying CRD rkecontrolplanes.rke.cattle.io
+2022/07/14 00:30:36 [INFO] Applying CRD custommachines.rke.cattle.io
+2022/07/14 00:30:36 [INFO] Applying CRD etcdsnapshots.rke.cattle.io
+2022/07/14 00:30:37 [INFO] Applying CRD clusters.cluster.x-k8s.io
+2022/07/14 00:30:38 [INFO] Applying CRD machinedeployments.cluster.x-k8s.io
+2022/07/14 00:30:38 [INFO] Applying CRD machinehealthchecks.cluster.x-k8s.io
+2022/07/14 00:30:39 [INFO] Applying CRD machines.cluster.x-k8s.io
+2022/07/14 00:30:40 [INFO] Applying CRD machinesets.cluster.x-k8s.io
+2022/07/14 00:30:54 [INFO] Starting project.cattle.io/v3, Kind=SourceCodeRepository controller
+2022/07/14 00:30:54 [INFO] Starting /v1, Kind=ConfigMap controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=PodSecurityPolicyTemplate controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=CisConfig controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=ClusterRegistrationToken controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=GlobalRoleBinding controller
+2022/07/14 00:30:54 [INFO] Starting /v1, Kind=Namespace controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=GlobalDns controller
+2022/07/14 00:30:54 [INFO] Starting API controllers
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=MultiClusterAppRevision controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=CisBenchmarkVersion controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=User controller
+2022/07/14 00:30:54 [INFO] Starting /v1, Kind=Endpoints controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=GlobalRole controller
+2022/07/14 00:30:54 [INFO] Adding peer wss://10.244.0.144/v3/connect, 10.244.0.144
+2022/07/14 00:30:54 [INFO] Adding peer wss://10.244.1.10/v3/connect, 10.244.1.10
+2022/07/14 00:30:54 [INFO] Starting project.cattle.io/v3, Kind=App controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=APIService controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=ClusterTemplate controller
+2022/07/14 00:30:54 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=Role controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=PodSecurityPolicyTemplateProjectBinding controller
+2022/07/14 00:30:54 [INFO] Starting /v1, Kind=ServiceAccount controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Token controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=RoleTemplate controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=NodePool controller
+2022/07/14 00:30:54 [INFO] Starting apiregistration.k8s.io/v1, Kind=APIService controller
+2022/07/14 00:30:54 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=ProjectLogging controller
+2022/07/14 00:30:54 [INFO] Starting project.cattle.io/v3, Kind=Pipeline controller
+2022/07/14 00:30:54 [INFO] Starting apiextensions.k8s.io/v1, Kind=CustomResourceDefinition controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Project controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=KontainerDriver controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=CatalogTemplate controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=AuthConfig controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=ClusterTemplateRevision controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=RkeAddon controller
+2022/07/14 00:30:54 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRole controller
+I0714 00:30:54.132419      11 leaderelection.go:248] attempting to acquire leader lease kube-system/cattle-controllers...
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Node controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Cluster controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=RkeK8sServiceOption controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=GroupMember controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=ClusterRoleTemplateBinding controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=UserAttribute controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Group controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Catalog controller
+2022/07/14 00:30:54 [INFO] Starting cluster.x-k8s.io/v1beta1, Kind=Machine controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=CatalogTemplateVersion controller
+2022/07/14 00:30:54 [INFO] Starting project.cattle.io/v3, Kind=SourceCodeCredential controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=NodeTemplate controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Preference controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=NodeDriver controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Setting controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=ProjectCatalog controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=DynamicSchema controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Feature controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=ClusterCatalog controller
+2022/07/14 00:30:54 [INFO] Starting project.cattle.io/v3, Kind=PipelineExecution controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=MultiClusterApp controller
+2022/07/14 00:30:54 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=RoleBinding controller
+2022/07/14 00:30:54 [INFO] Starting provisioning.cattle.io/v1, Kind=Cluster controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=RkeK8sSystemImage controller
+2022/07/14 00:30:54 [INFO] Starting rke.cattle.io/v1, Kind=RKEBootstrap controller
+2022/07/14 00:30:54 [INFO] Starting catalog.cattle.io/v1, Kind=ClusterRepo controller
+2022/07/14 00:30:54 [INFO] Starting /v1, Kind=Secret controller
+2022/07/14 00:30:54 [ERROR] Failed to connect to peer wss://10.244.0.144/v3/connect [local ID=10.244.0.25]: websocket: bad handshake
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=ProjectRoleTemplateBinding controller
+2022/07/14 00:30:54 [ERROR] Failed to connect to peer wss://10.244.1.10/v3/connect [local ID=10.244.0.25]: websocket: bad handshake
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=User controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Token controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=GroupMember controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Cluster controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=UserAttribute controller
+2022/07/14 00:30:54 [INFO] Starting management.cattle.io/v3, Kind=Group controller
+2022/07/14 00:30:54 [INFO] Starting /v1, Kind=Secret controller
+2022/07/14 00:30:54 [INFO] Listening on :80
+2022/07/14 00:30:54 [INFO] Listening on :443
+2022/07/14 00:30:54 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:30:54 +0000 UTC
+2022/07/14 00:30:54 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:30:54 +0000 UTC
+2022/07/14 00:30:54 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:30:54 +0000 UTC
+2022/07/14 00:30:54 [INFO] Updating TLS secret for serving-cert (count: 7): map[listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=E8F3C6A6AEF3E98CE701556AA091A50963FE35CC]
+2022/07/14 00:30:54 [INFO] Active TLS secret serving-cert (ver=20240915) (count 7): map[listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=E8F3C6A6AEF3E98CE701556AA091A50963FE35CC]
+2022/07/14 00:30:54 [INFO] Listening on :444
+2022/07/14 00:30:54 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:30:54 +0000 UTC
+2022/07/14 00:30:54 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:30:54 +0000 UTC
+2022/07/14 00:30:54 [INFO] Updating TLS secret for tls-rancher-internal (count: 1): map[listener.cattle.io/cn-10.96.168.71:10.96.168.71 listener.cattle.io/fingerprint:SHA1=BAC3663126841374A06E18FA9D6B257FB311C914]
+2022/07/14 00:30:54 [INFO] Active TLS secret tls-rancher-internal (ver=20240919) (count 1): map[listener.cattle.io/cn-10.96.168.71:10.96.168.71 listener.cattle.io/fingerprint:SHA1=BAC3663126841374A06E18FA9D6B257FB311C914]
+2022/07/14 00:30:54 [INFO] Starting /v1, Kind=Secret controller
+2022/07/14 00:30:54 [INFO] Active TLS secret serving-cert (ver=20240920) (count 7): map[listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=029FA58AED233A60F52FA3FD0CD3B3F0379E7F9F]
+W0714 00:30:57.187731      11 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=CatalogTemplateVersion
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.k8s.io/v1, Kind=Ingress
+2022/07/14 00:30:57 [INFO] Watching metadata for admissionregistration.k8s.io/v1, Kind=MutatingWebhookConfiguration
+2022/07/14 00:30:57 [INFO] Watching metadata for storage.k8s.io/v1, Kind=VolumeAttachment
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=RkeK8sSystemImage
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=ConfigMap
+2022/07/14 00:30:57 [INFO] Watching metadata for batch/v1, Kind=CronJob
+2022/07/14 00:30:57 [INFO] Watching metadata for apps/v1, Kind=Deployment
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=CisConfig
+2022/07/14 00:30:57 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=LoggingTrait
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=VirtualService
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=RkeAddon
+2022/07/14 00:30:57 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=PrometheusRule
+2022/07/14 00:30:57 [INFO] Watching metadata for app.verrazzano.io/v1alpha1, Kind=MetricsBinding
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=AuthConfig
+2022/07/14 00:30:57 [INFO] Watching metadata for rke.cattle.io/v1, Kind=RKECluster
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=MultiClusterApp
+2022/07/14 00:30:57 [INFO] Watching metadata for node.k8s.io/v1, Kind=RuntimeClass
+2022/07/14 00:30:57 [INFO] Watching metadata for apps/v1, Kind=ControllerRevision
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=Pod
+2022/07/14 00:30:57 [INFO] Watching metadata for flowcontrol.apiserver.k8s.io/v1beta1, Kind=FlowSchema
+2022/07/14 00:30:57 [INFO] Watching metadata for cert-manager.io/v1, Kind=ClusterIssuer
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Feature
+2022/07/14 00:30:57 [INFO] Watching metadata for acme.cert-manager.io/v1, Kind=Order
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=PodSecurityPolicyTemplate
+2022/07/14 00:30:57 [INFO] Watching metadata for storage.k8s.io/v1, Kind=CSINode
+2022/07/14 00:30:57 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=Prometheus
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterLogging
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=UserAttribute
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=ReplicationController
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=User
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=WorkloadEntry
+2022/07/14 00:30:57 [INFO] Watching metadata for policy/v1beta1, Kind=PodSecurityPolicy
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectRoleTemplateBinding
+2022/07/14 00:30:57 [INFO] Watching metadata for acme.cert-manager.io/v1, Kind=Challenge
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.k8s.io/v1, Kind=NetworkPolicy
+2022/07/14 00:30:57 [INFO] Watching metadata for scheduling.k8s.io/v1, Kind=PriorityClass
+2022/07/14 00:30:57 [INFO] Watching metadata for app.verrazzano.io/v1alpha1, Kind=MetricsTemplate
+2022/07/14 00:30:57 [INFO] Watching metadata for project.cattle.io/v3, Kind=App
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterScan
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=FleetWorkspace
+2022/07/14 00:30:57 [INFO] Watching metadata for provisioning.cattle.io/v1, Kind=Cluster
+2022/07/14 00:30:57 [INFO] Watching metadata for weblogic.oracle/v8, Kind=Domain
+2022/07/14 00:30:57 [INFO] Watching metadata for events.k8s.io/v1, Kind=Event
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=DynamicSchema
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Setting
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=Secret
+2022/07/14 00:30:57 [INFO] Watching metadata for apiextensions.k8s.io/v1, Kind=CustomResourceDefinition
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=TemplateVersion
+2022/07/14 00:30:57 [INFO] Watching metadata for install.verrazzano.io/v1alpha1, Kind=Verrazzano
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectCatalog
+2022/07/14 00:30:57 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=VerrazzanoProject
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ComposeConfig
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=Node
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectAlertRule
+2022/07/14 00:30:57 [INFO] Watching metadata for rbac.authorization.k8s.io/v1, Kind=Role
+2022/07/14 00:30:57 [INFO] Watching metadata for cluster.x-k8s.io/v1beta1, Kind=MachineDeployment
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=ServiceEntry
+2022/07/14 00:30:57 [INFO] Watching metadata for install.istio.io/v1alpha1, Kind=IstioOperator
+2022/07/14 00:30:57 [INFO] Watching metadata for rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding
+2022/07/14 00:30:57 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=VerrazzanoManagedCluster
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterAlertGroup
+2022/07/14 00:30:57 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=ApplicationConfiguration
+2022/07/14 00:30:57 [INFO] Watching metadata for apps/v1, Kind=DaemonSet
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=GroupMember
+2022/07/14 00:30:57 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=VerrazzanoCoherenceWorkload
+2022/07/14 00:30:57 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=MetricsTrait
+2022/07/14 00:30:57 [INFO] Watching metadata for cluster.x-k8s.io/v1beta1, Kind=Machine
+2022/07/14 00:30:57 [INFO] Watching metadata for project.cattle.io/v3, Kind=PipelineSetting
+2022/07/14 00:30:57 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=MultiClusterComponent
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=PersistentVolumeClaim
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Notifier
+2022/07/14 00:30:57 [INFO] Watching metadata for apps/v1, Kind=StatefulSet
+2022/07/14 00:30:57 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=Cluster
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Cluster
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectNetworkPolicy
+2022/07/14 00:30:57 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=MultiClusterConfigMap
+2022/07/14 00:30:57 [INFO] Watching metadata for apps/v1, Kind=ReplicaSet
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Group
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=APIService
+2022/07/14 00:30:57 [INFO] Watching metadata for rbac.authorization.k8s.io/v1, Kind=RoleBinding
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=GlobalRole
+2022/07/14 00:30:57 [INFO] Watching metadata for project.cattle.io/v3, Kind=PipelineExecution
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterAlertRule
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=NodePool
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Preference
+2022/07/14 00:30:57 [INFO] Watching metadata for ui.cattle.io/v1, Kind=NavLink
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=NodeTemplate
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Node
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=Namespace
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=Endpoints
+2022/07/14 00:30:57 [INFO] Watching metadata for security.istio.io/v1beta1, Kind=RequestAuthentication
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=PersistentVolume
+2022/07/14 00:30:57 [INFO] Watching metadata for project.cattle.io/v3, Kind=SourceCodeProviderConfig
+2022/07/14 00:30:57 [INFO] Watching metadata for cluster.x-k8s.io/v1beta1, Kind=MachineSet
+2022/07/14 00:30:57 [INFO] Watching metadata for catalog.cattle.io/v1, Kind=ClusterRepo
+2022/07/14 00:30:57 [INFO] Watching metadata for catalog.cattle.io/v1, Kind=App
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=MultiClusterAppRevision
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=ProxyConfig
+2022/07/14 00:30:57 [INFO] Watching metadata for rke.cattle.io/v1, Kind=CustomMachine
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=Gateway
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.istio.io/v1alpha3, Kind=EnvoyFilter
+2022/07/14 00:30:57 [INFO] Watching metadata for extensions.istio.io/v1alpha1, Kind=WasmPlugin
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=SamlToken
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=CatalogTemplate
+2022/07/14 00:30:57 [INFO] Watching metadata for security.istio.io/v1beta1, Kind=AuthorizationPolicy
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterAlert
+2022/07/14 00:30:57 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=VerrazzanoHelidonWorkload
+2022/07/14 00:30:57 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=IngressTrait
+2022/07/14 00:30:57 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=ManualScalerTrait
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectLogging
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.k8s.io/v1, Kind=IngressClass
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectAlert
+2022/07/14 00:30:57 [INFO] Watching metadata for rke.cattle.io/v1, Kind=RKEBootstrap
+2022/07/14 00:30:57 [INFO] Watching metadata for catalog.cattle.io/v1, Kind=Operation
+2022/07/14 00:30:57 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=Component
+2022/07/14 00:30:57 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=HealthScope
+2022/07/14 00:30:57 [INFO] Watching metadata for monitoring.kiali.io/v1alpha1, Kind=MonitoringDashboard
+2022/07/14 00:30:57 [INFO] Watching metadata for discovery.k8s.io/v1, Kind=EndpointSlice
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=Service
+2022/07/14 00:30:57 [INFO] Watching metadata for coherence.oracle.com/v1, Kind=Coherence
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=KontainerDriver
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=RoleTemplate
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=NodeDriver
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterMonitorGraph
+2022/07/14 00:30:57 [INFO] Watching metadata for oam.verrazzano.io/v1alpha1, Kind=VerrazzanoWebLogicWorkload
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Catalog
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=LimitRange
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Template
+2022/07/14 00:30:57 [INFO] Watching metadata for policy/v1, Kind=PodDisruptionBudget
+2022/07/14 00:30:57 [INFO] Watching metadata for project.cattle.io/v3, Kind=SourceCodeRepository
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Token
+2022/07/14 00:30:57 [INFO] Watching metadata for rbac.authorization.k8s.io/v1, Kind=ClusterRole
+2022/07/14 00:30:57 [INFO] Watching metadata for autoscaling/v2beta2, Kind=HorizontalPodAutoscaler
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ManagedChart
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=Sidecar
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=Project
+2022/07/14 00:30:57 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=ScopeDefinition
+2022/07/14 00:30:57 [INFO] Watching metadata for verrazzano.io/v1, Kind=VerrazzanoMonitoringInstance
+2022/07/14 00:30:57 [INFO] Watching metadata for admissionregistration.k8s.io/v1, Kind=ValidatingWebhookConfiguration
+2022/07/14 00:30:57 [INFO] Watching metadata for storage.k8s.io/v1, Kind=CSIDriver
+2022/07/14 00:30:57 [INFO] Watching metadata for certificates.k8s.io/v1, Kind=CertificateSigningRequest
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=RkeK8sServiceOption
+2022/07/14 00:30:57 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=Alertmanager
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=MonitorMetric
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterCatalog
+2022/07/14 00:30:57 [INFO] Watching metadata for project.cattle.io/v3, Kind=AppRevision
+2022/07/14 00:30:57 [INFO] Watching metadata for batch/v1, Kind=Job
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=GlobalDnsProvider
+2022/07/14 00:30:57 [INFO] Watching metadata for project.cattle.io/v3, Kind=SourceCodeCredential
+2022/07/14 00:30:57 [INFO] Watching metadata for cluster.x-k8s.io/v1beta1, Kind=MachineHealthCheck
+2022/07/14 00:30:57 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=Bundle
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=DestinationRule
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=Event
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectMonitorGraph
+2022/07/14 00:30:57 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=MultiClusterSecret
+2022/07/14 00:30:57 [INFO] Watching metadata for rke.cattle.io/v1, Kind=RKEControlPlane
+2022/07/14 00:30:57 [INFO] Watching metadata for rke.cattle.io/v1, Kind=RKEBootstrapTemplate
+2022/07/14 00:30:57 [INFO] Watching metadata for cert-manager.io/v1, Kind=Certificate
+2022/07/14 00:30:57 [INFO] Watching metadata for telemetry.istio.io/v1alpha1, Kind=Telemetry
+2022/07/14 00:30:57 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=ContainerizedWorkload
+2022/07/14 00:30:57 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=WorkloadDefinition
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterRoleTemplateBinding
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=ResourceQuota
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=TemplateContent
+2022/07/14 00:30:57 [INFO] Watching metadata for cluster.x-k8s.io/v1beta1, Kind=Cluster
+2022/07/14 00:30:57 [INFO] Watching metadata for coordination.k8s.io/v1, Kind=Lease
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterTemplate
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterRegistrationToken
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=ServiceAccount
+2022/07/14 00:30:57 [INFO] Watching metadata for monitoring.coreos.com/v1, Kind=ServiceMonitor
+2022/07/14 00:30:57 [INFO] Watching metadata for networking.istio.io/v1beta1, Kind=WorkloadGroup
+2022/07/14 00:30:57 [INFO] Watching metadata for cert-manager.io/v1, Kind=CertificateRequest
+2022/07/14 00:30:57 [INFO] Watching metadata for project.cattle.io/v3, Kind=Pipeline
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=EtcdBackup
+2022/07/14 00:30:57 [INFO] Watching metadata for rke.cattle.io/v1, Kind=ETCDSnapshot
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ClusterTemplateRevision
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=CisBenchmarkVersion
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=GlobalDns
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=ProjectAlertGroup
+2022/07/14 00:30:57 [INFO] Watching metadata for storage.k8s.io/v1, Kind=StorageClass
+2022/07/14 00:30:57 [INFO] Watching metadata for security.istio.io/v1beta1, Kind=PeerAuthentication
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=PodSecurityPolicyTemplateProjectBinding
+2022/07/14 00:30:57 [INFO] Watching metadata for core.oam.dev/v1alpha2, Kind=TraitDefinition
+2022/07/14 00:30:57 [INFO] Watching metadata for management.cattle.io/v3, Kind=GlobalRoleBinding
+2022/07/14 00:30:57 [INFO] Watching metadata for /v1, Kind=PodTemplate
+2022/07/14 00:30:57 [INFO] Watching metadata for cert-manager.io/v1, Kind=Issuer
+2022/07/14 00:30:57 [INFO] Watching metadata for apiregistration.k8s.io/v1, Kind=APIService
+2022/07/14 00:30:57 [INFO] Watching metadata for storage.k8s.io/v1beta1, Kind=CSIStorageCapacity
+2022/07/14 00:30:57 [INFO] Watching metadata for flowcontrol.apiserver.k8s.io/v1beta1, Kind=PriorityLevelConfiguration
+2022/07/14 00:30:57 [INFO] Watching metadata for clusters.verrazzano.io/v1alpha1, Kind=MultiClusterApplicationConfiguration
+W0714 00:30:57.437628      11 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+W0714 00:30:57.770139      11 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+2022/07/14 00:30:59 [ERROR] Failed to connect to peer wss://10.244.1.10/v3/connect [local ID=10.244.0.25]: EOF
+2022/07/14 00:30:59 [ERROR] Failed to connect to peer wss://10.244.0.144/v3/connect [local ID=10.244.0.25]: EOF
+2022/07/14 00:31:04 [ERROR] Failed to connect to peer wss://10.244.1.10/v3/connect [local ID=10.244.0.25]: websocket: bad handshake
+2022/07/14 00:31:04 [ERROR] Failed to connect to peer wss://10.244.0.144/v3/connect [local ID=10.244.0.25]: websocket: bad handshake
+2022/07/14 00:31:07 [INFO] Starting cluster controllers for local
+2022/07/14 00:31:08 [INFO] Handling backend connection request [10.244.0.144]
+2022/07/14 00:31:08 [INFO] Handling backend connection request [10.244.1.10]
+2022/07/14 00:31:08 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=RoleBinding controller
+2022/07/14 00:31:08 [INFO] Starting /v1, Kind=Namespace controller
+2022/07/14 00:31:08 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=Role controller
+2022/07/14 00:31:08 [INFO] Starting /v1, Kind=Secret controller
+2022/07/14 00:31:08 [INFO] Starting /v1, Kind=ServiceAccount controller
+2022/07/14 00:31:08 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding controller
+2022/07/14 00:31:08 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRole controller
+2022/07/14 00:31:08 [INFO] Starting cluster agent for local [owner=false]
+2022/07/14 00:31:12 [INFO] Active TLS secret serving-cert (ver=20241891) (count 8): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=029FA58AED233A60F52FA3FD0CD3B3F0379E7F9F]
+2022/07/14 00:31:13 [INFO] Active TLS secret tls-rancher-internal (ver=20241955) (count 2): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.96.168.71:10.96.168.71 listener.cattle.io/fingerprint:SHA1=BAC3663126841374A06E18FA9D6B257FB311C914]
+W0714 00:31:22.922199      11 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=DigitaloceanMachineTemplate
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=DigitaloceanMachine
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=Amazonec2MachineTemplate
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=LinodeConfig
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=HarvesterMachineTemplate
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=Amazonec2Machine
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=AzureConfig
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=LinodeMachineTemplate
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachine
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=HarvesterConfig
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=HarvesterMachine
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=LinodeMachine
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=Amazonec2Config
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachineTemplate
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=DigitaloceanConfig
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=AzureMachineTemplate
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=VmwarevsphereConfig
+2022/07/14 00:31:24 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=AzureMachine
+W0714 00:31:31.472790      11 warnings.go:80] policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
+2022/07/14 00:31:46 [INFO] Removing peer 10.244.1.10
+2022/07/14 00:31:46 [INFO] Stopping cluster agent for local
+2022/07/14 00:31:46 [INFO] Shutting down rbac.authorization.k8s.io/v1, Kind=ClusterRole workers
+2022/07/14 00:31:46 [INFO] Shutting down rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding workers
+2022/07/14 00:31:46 [INFO] Shutting down /v1, Kind=ServiceAccount workers
+2022/07/14 00:31:46 [INFO] Shutting down /v1, Kind=Secret workers
+2022/07/14 00:31:46 [INFO] Shutting down rbac.authorization.k8s.io/v1, Kind=Role workers
+2022/07/14 00:31:46 [INFO] Shutting down /v1, Kind=Namespace workers
+2022/07/14 00:31:46 [INFO] Shutting down rbac.authorization.k8s.io/v1, Kind=RoleBinding workers
+2022/07/14 00:31:46 [ERROR] Failed to serve peer connection 10.244.1.10: websocket: close 1006 (abnormal closure): unexpected EOF
+2022/07/14 00:31:46 [INFO] error in remotedialer server [400]: websocket: close 1006 (abnormal closure): unexpected EOF
+2022/07/14 00:31:47 [INFO] Starting /v1, Kind=ConfigMap controller
+2022/07/14 00:31:47 [INFO] Starting /v1, Kind=ConfigMap controller
+2022/07/14 00:31:47 [INFO] Registering istio for cluster "local"
+2022/07/14 00:31:47 [INFO] Starting cluster controllers for local
+2022/07/14 00:31:47 [INFO] Starting management.cattle.io/v3, Kind=ClusterScan controller
+2022/07/14 00:31:47 [INFO] Starting management.cattle.io/v3, Kind=Notifier controller
+2022/07/14 00:31:47 [INFO] Starting rke.cattle.io/v1, Kind=ETCDSnapshot controller
+2022/07/14 00:31:47 [INFO] Starting management.cattle.io/v3, Kind=ClusterLogging controller
+2022/07/14 00:31:47 [INFO] Starting management.cattle.io/v3, Kind=ClusterAlert controller
+2022/07/14 00:31:47 [INFO] Starting /v1, Kind=Node controller
+2022/07/14 00:31:47 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=Role controller
+2022/07/14 00:31:47 [INFO] Starting /v1, Kind=Secret controller
+2022/07/14 00:31:47 [INFO] Starting apiregistration.k8s.io/v1, Kind=APIService controller
+2022/07/14 00:31:47 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=RoleBinding controller
+2022/07/14 00:31:47 [INFO] Starting /v1, Kind=ServiceAccount controller
+2022/07/14 00:31:47 [INFO] Starting /v1, Kind=Namespace controller
+2022/07/14 00:31:47 [INFO] Starting /v1, Kind=LimitRange controller
+2022/07/14 00:31:47 [INFO] Starting /v1, Kind=ResourceQuota controller
+2022/07/14 00:31:47 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRole controller
+2022/07/14 00:31:47 [INFO] Starting cluster agent for local [owner=true]
+2022/07/14 00:31:47 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding controller
+I0714 00:31:48.327443      11 leaderelection.go:258] successfully acquired lease kube-system/cattle-controllers
+2022/07/14 00:31:48 [INFO] Reconciling GlobalRoles
+2022/07/14 00:31:48 [INFO] Reconciling RoleTemplates
+2022/07/14 00:31:48 [INFO] Steve auth startup complete
+2022/07/14 00:31:48 [INFO] Registering namespaceHandler for adding labels 
+2022/07/14 00:31:49 [INFO] adding kontainer driver rancherKubernetesEngine
+2022/07/14 00:31:49 [INFO] adding kontainer driver googleKubernetesEngine
+2022/07/14 00:31:49 [INFO] adding kontainer driver azureKubernetesService
+2022/07/14 00:31:49 [INFO] adding kontainer driver amazonElasticContainerService
+2022/07/14 00:31:49 [INFO] adding kontainer driver baiducloudcontainerengine
+2022/07/14 00:31:49 [INFO] adding kontainer driver aliyunkubernetescontainerservice
+2022/07/14 00:31:49 [INFO] adding kontainer driver tencentkubernetesengine
+2022/07/14 00:31:49 [INFO] adding kontainer driver huaweicontainercloudengine
+2022/07/14 00:31:49 [INFO] adding kontainer driver oraclecontainerengine
+2022/07/14 00:31:49 [INFO] adding kontainer driver linodekubernetesengine
+2022/07/14 00:31:49 [INFO] adding kontainer driver opentelekomcloudcontainerengine
+2022/07/14 00:31:49 [INFO] Starting catalog controller
+2022/07/14 00:31:49 [INFO] Starting project-level catalog controller
+2022/07/14 00:31:49 [INFO] Starting cluster-level catalog controller
+2022/07/14 00:31:50 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/14 00:31:50 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/14 00:31:50 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/14 00:31:50 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/14 00:31:50 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/14 00:31:50 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/14 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/14 00:31:50 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/14 00:31:50 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/14 00:31:50 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/14 00:31:50 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/14 00:31:50 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/14 00:31:50 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/14 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/14 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/14 00:31:50 [INFO] Watching metadata for cluster.x-k8s.io/v1alpha3, Kind=Cluster
+2022/07/14 00:31:50 [INFO] Starting admissionregistration.k8s.io/v1, Kind=ValidatingWebhookConfiguration controller
+2022/07/14 00:31:50 [INFO] Starting rke.cattle.io/v1, Kind=RKECluster controller
+2022/07/14 00:31:50 [INFO] Starting apps/v1, Kind=StatefulSet controller
+2022/07/14 00:31:50 [INFO] Starting catalog.cattle.io/v1, Kind=Operation controller
+2022/07/14 00:31:50 [INFO] Starting catalog.cattle.io/v1, Kind=App controller
+2022/07/14 00:31:50 [INFO] Starting rke.cattle.io/v1, Kind=RKEControlPlane controller
+2022/07/14 00:31:50 [INFO] Starting management.cattle.io/v3, Kind=ClusterAlertRule controller
+2022/07/14 00:31:50 [INFO] Starting batch/v1beta1, Kind=CronJob controller
+2022/07/14 00:31:50 [INFO] Starting apps/v1, Kind=Deployment controller
+2022/07/14 00:31:50 [INFO] Starting admissionregistration.k8s.io/v1, Kind=MutatingWebhookConfiguration controller
+2022/07/14 00:31:50 [INFO] Starting cluster.x-k8s.io/v1beta1, Kind=Cluster controller
+2022/07/14 00:31:50 [INFO] Starting management.cattle.io/v3, Kind=ClusterAlertGroup controller
+2022/07/14 00:31:50 [INFO] Starting cluster.x-k8s.io/v1beta1, Kind=MachineDeployment controller
+2022/07/14 00:31:50 [INFO] Starting rke.cattle.io/v1, Kind=CustomMachine controller
+2022/07/14 00:31:50 [INFO] Starting management.cattle.io/v3, Kind=ManagedChart controller
+2022/07/14 00:31:50 [INFO] Starting /v1, Kind=Node controller
+2022/07/14 00:31:50 [INFO] Starting /v1, Kind=Pod controller
+2022/07/14 00:31:50 [INFO] Starting networking.k8s.io/v1, Kind=Ingress controller
+2022/07/14 00:31:50 [INFO] Starting apps/v1, Kind=DaemonSet controller
+2022/07/14 00:31:50 [INFO] Starting fleet.cattle.io/v1alpha1, Kind=Bundle controller
+2022/07/14 00:31:50 [INFO] Starting /v1, Kind=ReplicationController controller
+2022/07/14 00:31:50 [INFO] Starting apps/v1, Kind=ReplicaSet controller
+2022/07/14 00:31:50 [INFO] Starting rke.cattle.io/v1, Kind=RKEBootstrapTemplate controller
+2022/07/14 00:31:50 [INFO] Starting management.cattle.io/v3, Kind=FleetWorkspace controller
+2022/07/14 00:31:50 [INFO] Starting management.cattle.io/v3, Kind=EtcdBackup controller
+2022/07/14 00:31:50 [INFO] Starting fleet.cattle.io/v1alpha1, Kind=Cluster controller
+2022/07/14 00:31:50 [INFO] Starting management.cattle.io/v3, Kind=GlobalDnsProvider controller
+2022/07/14 00:31:50 [INFO] Starting /v1, Kind=Service controller
+2022/07/14 00:31:50 [INFO] Starting management.cattle.io/v3, Kind=ComposeConfig controller
+2022/07/14 00:31:50 [INFO] Starting batch/v1, Kind=Job controller
+2022/07/14 00:31:50 [INFO] Rancher startup complete
+2022/07/14 00:31:50 [INFO] checking configmap cattle-system/admincreated to determine if orphan bindings cleanup needs to run
+2022/07/14 00:31:50 [INFO] checking configmap cattle-system/admincreated to determine if duplicate bindings cleanup needs to run
+2022/07/14 00:31:50 [INFO] bindings cleanup needed, waiting 3 minutes before starting
+2022/07/14 00:31:50 [INFO] [CleanupOrphanBindingsDone] orphan bindings cleanup has already run, skipping
+2022/07/14 00:31:50 [INFO] checking configmap cattle-system/admincreated to determine if orphan bindings cleanup needs to run
+2022/07/14 00:31:50 [INFO] [clean-catalog-orphan-bindings] cleaning up orphaned catalog bindings
+2022/07/14 00:31:50 [INFO] [clean-catalog-orphan-bindings] Processing 2 rolebindings
+2022/07/14 00:31:50 [INFO] [clean-catalog-orphan-bindings] Deleting orphaned role global-catalog
+2022/07/14 00:31:50 [WARNING] [clean-catalog-orphan-bindings] Error when deleting role global-catalog, roles.rbac.authorization.k8s.io "global-catalog" not found
+2022/07/14 00:31:50 [WARNING] [CleanupOrphanCatalogBindingsDone] error during orphan binding cleanup: roles.rbac.authorization.k8s.io "global-catalog" not found
+2022/07/14 00:31:50 [ERROR] failed to cleanup orphan catalog bindings
+2022/07/14 00:31:50 [INFO] Starting cluster.x-k8s.io/v1alpha3, Kind=Cluster controller
+2022/07/14 00:31:50 [INFO] Watching metadata for cluster.x-k8s.io/v1alpha3, Kind=Machine
+2022/07/14 00:31:50 [INFO] Starting cluster.x-k8s.io/v1alpha3, Kind=Machine controller
+2022/07/14 00:31:50 [INFO] Watching metadata for cluster.x-k8s.io/v1alpha3, Kind=MachineDeployment
+2022/07/14 00:31:50 [INFO] Starting cluster.x-k8s.io/v1alpha3, Kind=MachineDeployment controller
+2022/07/14 00:31:50 [INFO] Watching metadata for cluster.x-k8s.io/v1alpha3, Kind=MachineHealthCheck
+2022/07/14 00:31:50 [INFO] Starting cluster.x-k8s.io/v1alpha3, Kind=MachineHealthCheck controller
+2022/07/14 00:31:50 [INFO] Watching metadata for cluster.x-k8s.io/v1alpha3, Kind=MachineSet
+2022/07/14 00:31:50 [INFO] Starting cluster.x-k8s.io/v1alpha3, Kind=MachineSet controller
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=Amazonec2Config
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=AzureConfig
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=DigitaloceanConfig
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=VmwarevsphereConfig
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=LinodeConfig
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=HarvesterConfig
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=HarvesterMachine
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=LinodeMachine
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachineTemplate
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=Amazonec2Machine
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=DigitaloceanMachineTemplate
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachine
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=Amazonec2MachineTemplate
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=HarvesterMachineTemplate
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=DigitaloceanMachine
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=AzureMachine
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=AzureMachineTemplate
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=LinodeMachineTemplate
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine-config.cattle.io/v1, Kind=Amazonec2Config
+E0714 00:31:50.899229      11 request.go:1085] Unexpected error when reading response body: context canceled
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine-config.cattle.io/v1, Kind=AzureConfig
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine-config.cattle.io/v1, Kind=DigitaloceanConfig
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine-config.cattle.io/v1, Kind=LinodeConfig
+E0714 00:31:50.899531      11 request.go:1085] Unexpected error when reading response body: context canceled
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine-config.cattle.io/v1, Kind=HarvesterConfig
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=HarvesterMachine
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=LinodeMachine
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachineTemplate
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=Amazonec2Machine
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=DigitaloceanMachineTemplate
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachine
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=Amazonec2MachineTemplate
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=HarvesterMachineTemplate
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=DigitaloceanMachine
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=AzureMachine
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=AzureMachineTemplate
+2022/07/14 00:31:50 [ERROR] failed to sync cache for rke-machine.cattle.io/v1, Kind=LinodeMachineTemplate
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine-config.cattle.io/v1, Kind=Amazonec2Config: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine-config.cattle.io/v1, Kind=AzureConfig: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine-config.cattle.io/v1, Kind=DigitaloceanConfig: failed to wait for caches to sync
+2022/07/14 00:31:50 [INFO] Starting provisioning.cattle.io/v1, Kind=Cluster controller
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine-config.cattle.io/v1, Kind=LinodeConfig: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine-config.cattle.io/v1, Kind=HarvesterConfig: failed to wait for caches to sync
+2022/07/14 00:31:50 [INFO] Starting rke-machine-config.cattle.io/v1, Kind=VmwarevsphereConfig controller
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=HarvesterMachine: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=LinodeMachine: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachineTemplate: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=Amazonec2Machine: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=DigitaloceanMachineTemplate: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachine: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=Amazonec2MachineTemplate: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=HarvesterMachineTemplate: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=DigitaloceanMachine: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=AzureMachine: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=AzureMachineTemplate: failed to wait for caches to sync
+2022/07/14 00:31:50 [ERROR] failed to start controller for rke-machine.cattle.io/v1, Kind=LinodeMachineTemplate: failed to wait for caches to sync
+E0714 00:31:50.901216      11 gvks.go:69] failed to sync schemas: failed to sync cache for rke-machine-config.cattle.io/v1, Kind=Amazonec2Config
+2022/07/14 00:31:50 [INFO] Starting rke.cattle.io/v1, Kind=CustomMachine controller
+2022/07/14 00:31:50 [INFO] Starting rke.cattle.io/v1, Kind=RKECluster controller
+2022/07/14 00:31:50 [INFO] Starting rke.cattle.io/v1, Kind=RKEControlPlane controller
+2022/07/14 00:31:50 [INFO] Starting rke.cattle.io/v1, Kind=RKEBootstrapTemplate controller
+2022/07/14 00:31:50 [INFO] Starting rke.cattle.io/v1, Kind=ETCDSnapshot controller
+2022/07/14 00:31:50 [INFO] Starting rke.cattle.io/v1, Kind=RKEBootstrap controller
+2022/07/14 00:31:50 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=Amazonec2Config
+2022/07/14 00:31:51 [INFO] Starting rke-machine-config.cattle.io/v1, Kind=Amazonec2Config controller
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=AzureConfig
+2022/07/14 00:31:51 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/14 00:31:51 [INFO] Starting monitoring.coreos.com/v1, Kind=Prometheus controller
+2022/07/14 00:31:51 [INFO] Starting management.cattle.io/v3, Kind=SamlToken controller
+2022/07/14 00:31:51 [INFO] Starting monitoring.coreos.com/v1, Kind=ServiceMonitor controller
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=DigitaloceanConfig
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=LinodeConfig
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine-config.cattle.io/v1, Kind=HarvesterConfig
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=HarvesterMachine
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=LinodeMachine
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachineTemplate
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=Amazonec2Machine
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=DigitaloceanMachineTemplate
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=VmwarevsphereMachine
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=Amazonec2MachineTemplate
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=HarvesterMachineTemplate
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=DigitaloceanMachine
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=AzureMachine
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=AzureMachineTemplate
+2022/07/14 00:31:51 [INFO] Watching metadata for rke-machine.cattle.io/v1, Kind=LinodeMachineTemplate
+2022/07/14 00:31:51 [INFO] Starting rke-machine-config.cattle.io/v1, Kind=AzureConfig controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine-config.cattle.io/v1, Kind=DigitaloceanConfig controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine-config.cattle.io/v1, Kind=LinodeConfig controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine-config.cattle.io/v1, Kind=HarvesterConfig controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=HarvesterMachine controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=LinodeMachine controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=VmwarevsphereMachineTemplate controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=Amazonec2Machine controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=DigitaloceanMachineTemplate controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=LinodeMachineTemplate controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=VmwarevsphereMachine controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=Amazonec2MachineTemplate controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=HarvesterMachineTemplate controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=DigitaloceanMachine controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=AzureMachineTemplate controller
+2022/07/14 00:31:51 [INFO] Starting rke-machine.cattle.io/v1, Kind=AzureMachine controller
+2022/07/14 00:31:51 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/14 00:31:51 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/14 00:31:51 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/14 00:31:52 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/14 00:31:52 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/14 00:31:52 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/14 00:31:52 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/14 00:31:52 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/14 00:31:52 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/14 00:31:53 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/14 00:31:53 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/14 00:31:55 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:45023
+2022/07/14 00:31:55 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:34181
+2022/07/14 00:31:55 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:42349
+2022/07/14 00:31:55 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/14 00:31:55 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/14 00:31:55 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/14 00:31:55 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/14 00:31:55 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/14 00:31:55 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+E0714 00:32:03.216195      11 gvks.go:69] failed to sync schemas: unable to retrieve the complete list of server APIs: gitjob.cattle.io/v1: the server could not find the requested resource
+2022/07/14 00:32:05 [ERROR] error syncing 'cattle-fleet-system/helm-operation-6k6gw': handler helm-operation: an error on the server ("container not found (\"proxy\")") has prevented the request from succeeding (get pods helm-operation-6k6gw), requeuing
+2022/07/14 00:32:05 [ERROR] error syncing 'cattle-fleet-system/helm-operation-6k6gw': handler helm-operation: an error on the server ("container not found (\"proxy\")") has prevented the request from succeeding (get pods helm-operation-6k6gw), requeuing
+2022/07/14 00:32:06 [INFO] Watching metadata for gitjob.cattle.io/v1, Kind=GitJob
+2022/07/14 00:32:06 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=BundleDeployment
+2022/07/14 00:32:06 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=GitRepoRestriction
+2022/07/14 00:32:06 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=Content
+2022/07/14 00:32:06 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=ClusterGroup
+2022/07/14 00:32:06 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=BundleNamespaceMapping
+2022/07/14 00:32:06 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=ImageScan
+2022/07/14 00:32:06 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=GitRepo
+2022/07/14 00:32:06 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=ClusterRegistrationToken
+2022/07/14 00:32:06 [INFO] Watching metadata for fleet.cattle.io/v1alpha1, Kind=ClusterRegistration
+2022/07/14 00:32:24 [INFO] namespaceHandler: addProjectIDLabelToNamespace: adding label field.cattle.io/projectId=p-tchqx to namespace=cluster-fleet-local-local-1a3d67d0a899
+2022/07/14 00:32:24 [ERROR] namespaceHandler: Sync: error adding project id label to namespace err=Operation cannot be fulfilled on namespaces "cluster-fleet-local-local-1a3d67d0a899": the object has been modified; please apply your changes to the latest version and try again
+2022/07/14 00:32:24 [INFO] namespaceHandler: addProjectIDLabelToNamespace: adding label field.cattle.io/projectId=p-tchqx to namespace=cluster-fleet-local-local-1a3d67d0a899
+2022/07/14 00:32:24 [ERROR] namespaceHandler: Sync: error adding project id label to namespace err=Operation cannot be fulfilled on namespaces "cluster-fleet-local-local-1a3d67d0a899": the object has been modified; please apply your changes to the latest version and try again
+2022/07/14 00:32:25 [INFO] namespaceHandler: addProjectIDLabelToNamespace: adding label field.cattle.io/projectId=p-tchqx to namespace=cluster-fleet-local-local-1a3d67d0a899
+2022/07/14 00:32:25 [ERROR] defaultSvcAccountHandler: Sync: error handling default ServiceAccount of namespace key=cattle-fleet-local-system, err=Operation cannot be fulfilled on namespaces "cattle-fleet-local-system": the object has been modified; please apply your changes to the latest version and try again
+2022/07/14 00:32:25 [INFO] namespaceHandler: addProjectIDLabelToNamespace: adding label field.cattle.io/projectId=p-tchqx to namespace=cattle-fleet-local-system
+2022/07/14 00:32:25 [ERROR] namespaceHandler: Sync: error adding project id label to namespace err=Operation cannot be fulfilled on namespaces "cattle-fleet-local-system": the object has been modified; please apply your changes to the latest version and try again
+2022/07/14 00:32:26 [INFO] namespaceHandler: addProjectIDLabelToNamespace: adding label field.cattle.io/projectId=p-tchqx to namespace=cattle-fleet-local-system
+2022/07/14 00:32:52 [ERROR] Failed to install system chart fleet-crd: pod cattle-system/helm-operation-lzqtm failed, watch closed
+2022/07/14 00:33:06 [ERROR] error syncing 'cattle-fleet-system/helm-operation-lzqtm': handler helm-operation: an error on the server ("container not found (\"proxy\")") has prevented the request from succeeding (get pods helm-operation-lzqtm), requeuing
+2022/07/14 00:33:07 [ERROR] error syncing 'cattle-fleet-system/helm-operation-lzqtm': handler helm-operation: an error on the server ("container not found (\"proxy\")") has prevented the request from succeeding (get pods helm-operation-lzqtm), requeuing
+2022/07/14 00:33:15 [ERROR] error syncing 'mutating-webhook-configuration': handler need-a-cert: secrets "rancher-webhook-tls" already exists, requeuing
+2022/07/14 00:33:22 [INFO] error in remotedialer server [400]: read tcp 10.244.0.25:443->10.244.0.144:47938: use of closed network connection
+2022/07/14 00:33:22 [ERROR] Failed to serve peer connection 10.244.0.144: websocket: close 1006 (abnormal closure): unexpected EOF
+2022/07/14 00:33:24 [ERROR] error syncing 'cattle-system/helm-operation-5nz27': handler helm-operation: an error on the server ("container not found (\"proxy\")") has prevented the request from succeeding (get pods helm-operation-5nz27), requeuing
+2022/07/14 00:33:24 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:33:24 +0000 UTC
+2022/07/14 00:33:24 [INFO] Updating TLS secret for serving-cert (count: 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=B1DC2E5C690B772EED224B30ACD18EBE2005989A]
+2022/07/14 00:33:24 [INFO] Updating TLS secret for serving-cert (count: -1): map[]
+2022/07/14 00:33:24 [ERROR] error syncing 'cattle-system/serving-cert': handler tls-storage: Secret "serving-cert" is invalid: [data[tls.crt]: Required value, data[tls.key]: Required value], requeuing
+2022/07/14 00:33:24 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:33:24 +0000 UTC
+2022/07/14 00:33:24 [INFO] Updating TLS secret for serving-cert (count: 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=2B6FB3855B826638A23BEB4C29A0EE6129D34C12]
+2022/07/14 00:33:24 [INFO] Active TLS secret serving-cert (ver=20243995) (count 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=2B6FB3855B826638A23BEB4C29A0EE6129D34C12]
+2022/07/14 00:33:24 [INFO] Updating TLS secret for serving-cert (count: 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=278331093EA3A99DA1E8E985F471FADEF85627F8]
+2022/07/14 00:33:24 [INFO] Active TLS secret serving-cert (ver=20243996) (count 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=278331093EA3A99DA1E8E985F471FADEF85627F8]
+2022/07/14 00:33:25 [INFO] Updating TLS secret for serving-cert (count: 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=2B6FB3855B826638A23BEB4C29A0EE6129D34C12]
+2022/07/14 00:33:25 [INFO] Active TLS secret serving-cert (ver=20243998) (count 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=2B6FB3855B826638A23BEB4C29A0EE6129D34C12]
+2022/07/14 00:33:25 [INFO] Updating TLS secret for serving-cert (count: 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=278331093EA3A99DA1E8E985F471FADEF85627F8]
+2022/07/14 00:33:25 [INFO] Active TLS secret serving-cert (ver=20243999) (count 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=278331093EA3A99DA1E8E985F471FADEF85627F8]
+2022/07/14 00:33:25 [INFO] Updating TLS secret for serving-cert (count: 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=2B6FB3855B826638A23BEB4C29A0EE6129D34C12]
+2022/07/14 00:33:25 [INFO] Active TLS secret serving-cert (ver=20244000) (count 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=2B6FB3855B826638A23BEB4C29A0EE6129D34C12]
+2022/07/14 00:33:25 [INFO] Updating TLS secret for serving-cert (count: 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=278331093EA3A99DA1E8E985F471FADEF85627F8]
+2022/07/14 00:33:25 [INFO] Active TLS secret serving-cert (ver=20244001) (count 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=278331093EA3A99DA1E8E985F471FADEF85627F8]
+2022/07/14 00:33:25 [INFO] Updating TLS secret for serving-cert (count: 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=2B6FB3855B826638A23BEB4C29A0EE6129D34C12]
+2022/07/14 00:33:25 [INFO] Active TLS secret serving-cert (ver=20244002) (count 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=2B6FB3855B826638A23BEB4C29A0EE6129D34C12]
+2022/07/14 00:33:25 [INFO] Updating TLS secret for serving-cert (count: 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=278331093EA3A99DA1E8E985F471FADEF85627F8]
+2022/07/14 00:33:25 [INFO] Active TLS secret serving-cert (ver=20244003) (count 9): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/fingerprint:SHA1=278331093EA3A99DA1E8E985F471FADEF85627F8]
+2022/07/14 00:33:25 [INFO] Active TLS secret tls-rancher-internal (ver=20244004) (count 1): map[listener.cattle.io/cn-10.96.168.71:10.96.168.71 listener.cattle.io/fingerprint:SHA1=92C892ED060F7285385099CFD9BA76F5F80FFA48]
+2022/07/14 00:33:27 [ERROR] Failed to connect to peer wss://10.244.0.144/v3/connect [local ID=10.244.0.25]: EOF
+2022/07/14 00:33:27 [ERROR] Failed to handling tunnel request from remote address 10.244.1.17:45494: response 400: cluster not found
+2022/07/14 00:33:32 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:33:32 +0000 UTC
+2022/07/14 00:33:32 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:33:32 +0000 UTC
+2022/07/14 00:33:32 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:33:32 +0000 UTC
+2022/07/14 00:33:32 [INFO] Updating TLS secret for serving-cert (count: 10): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/cn-rancher.default.138.3.78.28.nip.io:rancher.default.138.3.78.28.nip.io listener.cattle.io/fingerprint:SHA1=5366C78FB6CD485177A97F202968BD6601E86676]
+2022/07/14 00:33:32 [ERROR] Failed to connect to peer wss://10.244.0.144/v3/connect [local ID=10.244.0.25]: EOF
+2022/07/14 00:33:32 [INFO] Updating TLS secret for serving-cert (count: -1): map[]
+2022/07/14 00:33:32 [INFO] failed to create TLS cert for: 10.244.0.25, Secret "serving-cert" is invalid: [data[tls.crt]: Required value, data[tls.key]: Required value]
+2022/07/14 00:33:32 [INFO] certificate CN=dynamic,O=dynamic signed by CN=dynamiclistener-ca,O=dynamiclistener-org: notBefore=2022-07-14 00:30:04 +0000 UTC notAfter=2023-07-14 00:33:32 +0000 UTC
+2022/07/14 00:33:32 [INFO] Updating TLS secret for serving-cert (count: 10): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/cn-rancher.default.138.3.78.28.nip.io:rancher.default.138.3.78.28.nip.io listener.cattle.io/fingerprint:SHA1=A442FCEFB98F6F11C8A28175070F95854B089FF4]
+2022/07/14 00:33:32 [INFO] Active TLS secret serving-cert (ver=20244106) (count 10): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/cn-rancher.default.138.3.78.28.nip.io:rancher.default.138.3.78.28.nip.io listener.cattle.io/fingerprint:SHA1=A442FCEFB98F6F11C8A28175070F95854B089FF4]
+2022/07/14 00:33:32 [INFO] Updating TLS secret for serving-cert (count: 10): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/cn-rancher.default.138.3.78.28.nip.io:rancher.default.138.3.78.28.nip.io listener.cattle.io/fingerprint:SHA1=E06F4A1D9CA17115635D8E01830B0964CF59D72E]
+2022/07/14 00:33:32 [INFO] Active TLS secret serving-cert (ver=20244108) (count 10): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/cn-rancher.default.138.3.78.28.nip.io:rancher.default.138.3.78.28.nip.io listener.cattle.io/fingerprint:SHA1=E06F4A1D9CA17115635D8E01830B0964CF59D72E]
+2022/07/14 00:33:32 [INFO] Updating TLS secret for serving-cert (count: 10): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/cn-rancher.default.138.3.78.28.nip.io:rancher.default.138.3.78.28.nip.io listener.cattle.io/fingerprint:SHA1=A442FCEFB98F6F11C8A28175070F95854B089FF4]
+2022/07/14 00:33:32 [INFO] Active TLS secret serving-cert (ver=20244109) (count 10): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/cn-rancher.default.138.3.78.28.nip.io:rancher.default.138.3.78.28.nip.io listener.cattle.io/fingerprint:SHA1=A442FCEFB98F6F11C8A28175070F95854B089FF4]
+2022/07/14 00:33:32 [INFO] Updating TLS secret for serving-cert (count: 10): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/cn-rancher.default.138.3.78.28.nip.io:rancher.default.138.3.78.28.nip.io listener.cattle.io/fingerprint:SHA1=E06F4A1D9CA17115635D8E01830B0964CF59D72E]
+2022/07/14 00:33:32 [INFO] Active TLS secret serving-cert (ver=20244111) (count 10): map[field.cattle.io/projectId:local:p-tchqx listener.cattle.io/cn-10.244.0.144:10.244.0.144 listener.cattle.io/cn-10.244.0.19:10.244.0.19 listener.cattle.io/cn-10.244.0.25:10.244.0.25 listener.cattle.io/cn-10.244.1.10:10.244.1.10 listener.cattle.io/cn-10.244.1.17:10.244.1.17 listener.cattle.io/cn-127.0.0.1:127.0.0.1 listener.cattle.io/cn-localhost:localhost listener.cattle.io/cn-rancher.cattle-system:rancher.cattle-system listener.cattle.io/cn-rancher.default.138.3.78.28.nip.io:rancher.default.138.3.78.28.nip.io listener.cattle.io/fingerprint:SHA1=E06F4A1D9CA17115635D8E01830B0964CF59D72E]
+2022/07/14 00:33:37 [ERROR] Failed to connect to peer wss://10.244.0.144/v3/connect [local ID=10.244.0.25]: EOF
+2022/07/14 00:33:37 [ERROR] Failed to handling tunnel request from remote address 10.244.1.17:45730: response 400: cluster not found
+2022/07/14 00:33:37 [INFO] Handling backend connection request [10.244.0.144]
+2022/07/14 00:33:37 [ERROR] error syncing 'cattle-fleet-system/helm-operation-zxr9t': handler helm-operation: an error on the server ("container not found (\"proxy\")") has prevented the request from succeeding (get pods helm-operation-zxr9t), requeuing
+2022/07/14 00:33:37 [ERROR] error syncing 'cattle-fleet-system/helm-operation-zxr9t': handler helm-operation: an error on the server ("container not found (\"proxy\")") has prevented the request from succeeding (get pods helm-operation-zxr9t), requeuing
+2022/07/14 00:33:38 [ERROR] error syncing 'cattle-fleet-system/helm-operation-zxr9t': handler helm-operation: an error on the server ("container not found (\"proxy\")") has prevented the request from succeeding (get pods helm-operation-zxr9t), requeuing
+2022/07/14 00:33:42 [ERROR] Failed to handling tunnel request from remote address 10.244.1.17:45768: response 400: cluster not found
+2022/07/14 00:33:47 [INFO] Adding peer wss://10.244.1.17/v3/connect, 10.244.1.17
+2022/07/14 00:33:47 [INFO] Stopping cluster agent for local
+2022/07/14 00:33:47 [INFO] Shutting down /v1, Kind=Secret workers
+2022/07/14 00:33:47 [INFO] Shutting down rbac.authorization.k8s.io/v1, Kind=ClusterRole workers
+2022/07/14 00:33:47 [INFO] Shutting down /v1, Kind=ResourceQuota workers
+2022/07/14 00:33:47 [INFO] Shutting down /v1, Kind=LimitRange workers
+2022/07/14 00:33:47 [INFO] Shutting down /v1, Kind=Namespace workers
+2022/07/14 00:33:47 [INFO] Shutting down /v1, Kind=Node workers
+2022/07/14 00:33:47 [INFO] Shutting down /v1, Kind=ServiceAccount workers
+2022/07/14 00:33:47 [INFO] Shutting down rbac.authorization.k8s.io/v1, Kind=RoleBinding workers
+2022/07/14 00:33:47 [INFO] Shutting down rbac.authorization.k8s.io/v1, Kind=Role workers
+2022/07/14 00:33:47 [INFO] Shutting down apiregistration.k8s.io/v1, Kind=APIService workers
+2022/07/14 00:33:47 [INFO] Shutting down rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding workers
+2022/07/14 00:33:47 [INFO] Shutting down /v1, Kind=ConfigMap workers
+2022/07/14 00:33:47 [INFO] Shutting down /v1, Kind=ConfigMap workers
+2022/07/14 00:33:47 [INFO] Starting cluster controllers for local
+2022/07/14 00:33:47 [INFO] Handling backend connection request [10.244.1.17]
+2022/07/14 00:33:47 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=RoleBinding controller
+2022/07/14 00:33:47 [INFO] Starting /v1, Kind=Secret controller
+2022/07/14 00:33:47 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=Role controller
+2022/07/14 00:33:47 [INFO] Starting cluster agent for local [owner=false]
+2022/07/14 00:33:47 [INFO] Starting /v1, Kind=Namespace controller
+2022/07/14 00:33:47 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding controller
+2022/07/14 00:33:47 [INFO] Starting /v1, Kind=ServiceAccount controller
+2022/07/14 00:33:47 [INFO] Starting rbac.authorization.k8s.io/v1, Kind=ClusterRole controller
+2022/07/14 00:34:50 [INFO] starting duplicate binding cleanup
+2022/07/14 00:34:50 [INFO] [clean-dupe-bindings] starting bindings cleanup
+2022/07/14 00:34:50 [INFO] [clean-dupe-bindings] total PRTB duplicate clusterRoleBindings 0, roleBindings 0
+2022/07/14 00:34:50 [INFO] [clean-dupe-bindings] binding with deterministic name not found, will delete all except the oldest binding
+2022/07/14 00:34:50 [INFO] [clean-dupe-bindings] binding with deterministic name not found, will delete all except the oldest binding
+2022/07/14 00:34:50 [INFO] [clean-dupe-bindings] binding with deterministic name not found, will delete all except the oldest binding
+2022/07/14 00:34:50 [INFO] [clean-dupe-bindings] binding with deterministic name not found, will delete all except the oldest binding
+2022/07/14 00:34:50 [INFO] [clean-dupe-bindings] total CRTB duplicate clusterRoleBindings 0, roleBindings 0
+2022/07/14 00:34:50 [INFO] successfully cleaned up duplicate bindings
+2022/07/14 10:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/14 10:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/14 10:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/14 10:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/14 10:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/14 10:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/14 10:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/14 10:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/14 10:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/14 10:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/14 10:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/14 10:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/14 10:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/14 10:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/14 10:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/14 10:30:56 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/14 10:30:56 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/14 10:30:56 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/14 10:30:57 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/14 10:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:44767
+2022/07/14 10:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:45737
+2022/07/14 10:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:37981
+2022/07/14 10:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/14 10:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/14 10:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/14 10:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/14 10:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/14 10:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/14 17:24:32 [INFO] Purged 1 expired tokens
+2022/07/14 20:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/14 20:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/14 20:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/14 20:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/14 20:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/14 20:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/14 20:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/14 20:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/14 20:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/14 20:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/14 20:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/14 20:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/14 20:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/14 20:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/14 20:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/14 20:30:55 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/14 20:30:55 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/14 20:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/14 20:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/14 20:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:37535
+2022/07/14 20:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:33161
+2022/07/14 20:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:37909
+2022/07/14 20:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/14 20:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/14 20:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/14 20:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/14 20:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/14 20:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/15 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/15 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/15 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/15 00:31:50 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/15 00:31:50 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/15 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/15 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/15 06:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/15 06:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/15 06:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/15 06:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/15 06:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/15 06:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/15 06:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/15 06:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/15 06:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/15 06:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/15 06:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/15 06:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/15 06:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/15 06:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/15 06:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/15 06:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/15 06:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/15 06:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/15 06:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/15 06:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:33355
+2022/07/15 06:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:38693
+2022/07/15 06:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:34525
+2022/07/15 06:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/15 06:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/15 06:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/15 06:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/15 06:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/15 06:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/15 16:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/15 16:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/15 16:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/15 16:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/15 16:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/15 16:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/15 16:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/15 16:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/15 16:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/15 16:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/15 16:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/15 16:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/15 16:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/15 16:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/15 16:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/15 16:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/15 16:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/15 16:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/15 16:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/15 16:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:38723
+2022/07/15 16:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:38773
+2022/07/15 16:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:37709
+2022/07/15 16:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/15 16:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/15 16:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/15 16:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/15 16:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/15 16:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/16 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/16 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/16 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/16 00:31:51 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/16 00:31:51 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/16 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/16 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/16 02:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/16 02:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/16 02:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/16 02:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/16 02:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/16 02:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/16 02:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/16 02:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/16 02:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/16 02:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/16 02:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/16 02:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/16 02:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/16 02:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/16 02:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/16 02:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/16 02:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/16 02:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/16 02:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/16 02:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:38421
+2022/07/16 02:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:44719
+2022/07/16 02:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:46493
+2022/07/16 02:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/16 02:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/16 02:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/16 02:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/16 02:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/16 02:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/16 12:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/16 12:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/16 12:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/16 12:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/16 12:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/16 12:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/16 12:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/16 12:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/16 12:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/16 12:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/16 12:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/16 12:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/16 12:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/16 12:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/16 12:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/16 12:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/16 12:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/16 12:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/16 12:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/16 12:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:43135
+2022/07/16 12:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:46089
+2022/07/16 12:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:37121
+2022/07/16 12:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/16 12:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/16 12:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/16 12:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/16 12:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/16 12:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/16 22:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/16 22:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/16 22:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/16 22:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/16 22:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/16 22:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/16 22:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/16 22:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/16 22:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/16 22:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/16 22:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/16 22:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/16 22:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/16 22:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/16 22:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/16 22:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/16 22:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/16 22:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/16 22:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/16 22:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:43531
+2022/07/16 22:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:36187
+2022/07/16 22:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:45579
+2022/07/16 22:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/16 22:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/16 22:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/16 22:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/16 22:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/16 22:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/17 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/17 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/17 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/17 00:31:51 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/17 00:31:51 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/17 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/17 00:31:52 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/17 08:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/17 08:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/17 08:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/17 08:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/17 08:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/17 08:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/17 08:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/17 08:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/17 08:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/17 08:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/17 08:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/17 08:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/17 08:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/17 08:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/17 08:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/17 08:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/17 08:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/17 08:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/17 08:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/17 08:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:45605
+2022/07/17 08:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:33917
+2022/07/17 08:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:33599
+2022/07/17 08:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/17 08:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/17 08:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/17 08:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/17 08:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/17 08:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/17 18:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/17 18:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/17 18:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/17 18:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/17 18:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/17 18:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/17 18:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/17 18:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/17 18:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/17 18:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/17 18:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/17 18:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/17 18:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/17 18:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/17 18:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/17 18:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/17 18:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/17 18:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/17 18:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/17 18:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:38337
+2022/07/17 18:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:34585
+2022/07/17 18:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/17 18:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/17 18:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/17 18:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/17 18:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:45137
+2022/07/17 18:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/17 18:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/18 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/18 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/18 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/18 00:31:51 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/18 00:31:51 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/18 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/18 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/18 04:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/18 04:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/18 04:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/18 04:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/18 04:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/18 04:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/18 04:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/18 04:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/18 04:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/18 04:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/18 04:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/18 04:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/18 04:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/18 04:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/18 04:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/18 04:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/18 04:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/18 04:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/18 04:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/18 04:30:59 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:42397
+2022/07/18 04:30:59 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/18 04:30:59 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/18 04:30:59 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:41031
+2022/07/18 04:30:59 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/18 04:30:59 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/18 04:30:59 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:44831
+2022/07/18 04:30:59 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/18 04:30:59 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/18 14:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/18 14:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/18 14:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/18 14:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/18 14:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/18 14:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/18 14:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/18 14:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/18 14:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/18 14:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/18 14:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/18 14:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/18 14:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/18 14:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/18 14:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/18 14:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/18 14:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/18 14:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/18 14:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/18 14:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:35287
+2022/07/18 14:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/18 14:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/18 14:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:35379
+2022/07/18 14:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/18 14:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/18 14:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:44531
+2022/07/18 14:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/18 14:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/19 00:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/19 00:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/19 00:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/19 00:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/19 00:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/19 00:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/19 00:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/19 00:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/19 00:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/19 00:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/19 00:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/19 00:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/19 00:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/19 00:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/19 00:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/19 00:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/19 00:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/19 00:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/19 00:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/19 00:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:45785
+2022/07/19 00:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/19 00:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/19 00:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:32837
+2022/07/19 00:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:42683
+2022/07/19 00:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/19 00:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/19 00:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/19 00:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/19 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/19 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/19 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/19 00:31:50 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/19 00:31:50 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/19 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/19 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/19 10:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/19 10:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/19 10:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/19 10:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/19 10:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/19 10:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/19 10:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/19 10:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/19 10:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/19 10:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/19 10:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/19 10:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/19 10:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/19 10:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/19 10:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/19 10:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/19 10:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/19 10:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/19 10:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/19 10:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:46059
+2022/07/19 10:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:42755
+2022/07/19 10:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/19 10:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/19 10:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/19 10:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/19 10:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:33861
+2022/07/19 10:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/19 10:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+I0719 14:28:39.949014      11 trace.go:205] Trace[395842259]: "Reflector ListAndWatch" name:pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168 (19-Jul-2022 14:28:29.755) (total time: 10193ms):
+Trace[395842259]: ---"Objects listed" error:<nil> 10193ms (14:28:39.948)
+Trace[395842259]: [10.193383194s] [10.193383194s] END
+2022/07/19 20:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/19 20:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/19 20:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/19 20:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/19 20:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/19 20:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/19 20:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/19 20:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/19 20:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/19 20:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/19 20:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/19 20:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/19 20:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/19 20:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/19 20:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/19 20:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/19 20:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/19 20:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/19 20:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/19 20:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:38867
+2022/07/19 20:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:36485
+2022/07/19 20:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:45735
+2022/07/19 20:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/19 20:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/19 20:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/19 20:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/19 20:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/19 20:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+E0719 23:37:43.902439      11 leaderelection.go:367] Failed to update lock: Put "https://10.96.0.1:443/api/v1/namespaces/kube-system/configmaps/cattle-controllers?timeout=15m0s": read tcp 10.244.0.25:37098->10.96.0.1:443: read: connection reset by peer
+E0719 23:37:43.906383      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *v3.Cluster: Get "https://10.96.0.1:443/apis/management.cattle.io/v3/clusters?allowWatchBookmarks=true&resourceVersion=24262091&timeout=8m54s&timeoutSeconds=534&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.906558      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *summary.SummarizedObject: Get "https://10.96.0.1:443/apis/batch/v1/cronjobs?allowWatchBookmarks=true&resourceVersion=24261810&timeout=15m0s&timeoutSeconds=486&watch=true": http2: client connection force closed via ClientConn.Close
+W0719 23:37:43.906692      11 reflector.go:443] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: watch of *v3.Pipeline ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection force closed via ClientConn.Close") has prevented the request from succeeding
+W0719 23:37:43.906802      11 reflector.go:443] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: watch of *v1beta1.MachineSet ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection force closed via ClientConn.Close") has prevented the request from succeeding
+E0719 23:37:43.906987      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *v3.ClusterAlert: Get "https://10.96.0.1:443/apis/management.cattle.io/v3/clusteralerts?allowWatchBookmarks=true&resourceVersion=24261694&timeout=8m5s&timeoutSeconds=485&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.907127      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *summary.SummarizedObject: Get "https://10.96.0.1:443/apis/flowcontrol.apiserver.k8s.io/v1beta1/prioritylevelconfigurations?allowWatchBookmarks=true&resourceVersion=24258538&timeout=15m0s&timeoutSeconds=544&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.907253      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *summary.SummarizedObject: Get "https://10.96.0.1:443/apis/clusters.verrazzano.io/v1alpha1/verrazzanomanagedclusters?allowWatchBookmarks=true&resourceVersion=24260709&timeout=15m0s&timeoutSeconds=529&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.907354      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *summary.SummarizedObject: Get "https://10.96.0.1:443/apis/management.cattle.io/v3/nodepools?allowWatchBookmarks=true&resourceVersion=24262119&timeout=15m0s&timeoutSeconds=362&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.907460      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *summary.SummarizedObject: Get "https://10.96.0.1:443/apis/management.cattle.io/v3/clusteralertrules?allowWatchBookmarks=true&resourceVersion=24258884&timeout=15m0s&timeoutSeconds=403&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.907633      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *unstructured.Unstructured: Get "https://10.96.0.1:443/apis/rke-machine-config.cattle.io/v1/amazonec2configs?allowWatchBookmarks=true&resourceVersion=24260762&timeout=7m5s&timeoutSeconds=425&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.907829      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *summary.SummarizedObject: Get "https://10.96.0.1:443/apis/monitoring.kiali.io/v1alpha1/monitoringdashboards?allowWatchBookmarks=true&resourceVersion=24261594&timeout=15m0s&timeoutSeconds=529&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.907950      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *summary.SummarizedObject: Get "https://10.96.0.1:443/apis/management.cattle.io/v3/preferences?allowWatchBookmarks=true&resourceVersion=24258483&timeout=15m0s&timeoutSeconds=379&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.908126      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *v1.ConfigMap: Get "https://10.96.0.1:443/api/v1/configmaps?allowWatchBookmarks=true&resourceVersion=24262447&timeout=7m17s&timeoutSeconds=437&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.908225      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *summary.SummarizedObject: Get "https://10.96.0.1:443/apis/networking.istio.io/v1beta1/proxyconfigs?allowWatchBookmarks=true&resourceVersion=24258617&timeout=15m0s&timeoutSeconds=358&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.908317      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *summary.SummarizedObject: Get "https://10.96.0.1:443/apis/management.cattle.io/v3/templates?allowWatchBookmarks=true&resourceVersion=24260671&timeout=15m0s&timeoutSeconds=408&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.908416      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *v3.GlobalDns: Get "https://10.96.0.1:443/apis/management.cattle.io/v3/globaldnses?allowWatchBookmarks=true&resourceVersion=24258378&timeout=8m46s&timeoutSeconds=526&watch=true": http2: client connection force closed via ClientConn.Close
+E0719 23:37:43.908567      11 reflector.go:139] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: Failed to watch *summary.SummarizedObject: Get "https://10.96.0.1:443/apis/cluster.x-k8s.io/v1beta1/machinehealthchecks?allowWatchBookmarks=true&resourceVersion=24258073&timeout=15m0s&timeoutSeconds=503&watch=true": http2: client connection force closed via ClientConn.Close
+W0719 23:37:43.909663      11 reflector.go:443] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: watch of *summary.SummarizedObject ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection force closed via ClientConn.Close") has prevented the request from succeeding
+W0719 23:37:43.909787      11 reflector.go:443] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: watch of *summary.SummarizedObject ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection force closed via ClientConn.Close") has prevented the request from succeeding
+W0719 23:37:43.909881      11 reflector.go:443] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: watch of *summary.SummarizedObject ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection force closed via ClientConn.Close") has prevented the request from succeeding
+W0719 23:37:43.909953      11 reflector.go:443] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: watch of *summary.SummarizedObject ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection force closed via ClientConn.Close") has prevented the request from succeeding
+W0719 23:37:43.910017      11 reflector.go:443] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: watch of *summary.SummarizedObject ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection force closed via ClientConn.Close") has prevented the request from succeeding
+W0719 23:37:43.910114      11 reflector.go:443] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: watch of *summary.SummarizedObject ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection force closed via ClientConn.Close") has prevented the request from succeeding
+W0719 23:37:43.910191      11 reflector.go:443] pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168: watch of *summary.SummarizedObject ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection force closed via ClientConn.Close") has prevented the request from succeeding
+I0719 23:38:06.966485      11 trace.go:205] Trace[1937326262]: "Reflector ListAndWatch" name:pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168 (19-Jul-2022 23:37:45.311) (total time: 21655ms):
+Trace[1937326262]: ---"Objects listed" error:<nil> 21655ms (23:38:06.966)
+Trace[1937326262]: [21.655287698s] [21.655287698s] END
+I0719 23:38:06.980339      11 trace.go:205] Trace[1625029851]: "Reflector ListAndWatch" name:pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168 (19-Jul-2022 23:37:45.371) (total time: 21609ms):
+Trace[1625029851]: ---"Objects listed" error:<nil> 21609ms (23:38:06.980)
+Trace[1625029851]: [21.60910387s] [21.60910387s] END
+I0719 23:38:07.216204      11 trace.go:205] Trace[908962702]: "Reflector ListAndWatch" name:pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168 (19-Jul-2022 23:37:44.708) (total time: 22507ms):
+Trace[908962702]: ---"Objects listed" error:<nil> 22507ms (23:38:07.216)
+Trace[908962702]: [22.507558158s] [22.507558158s] END
+I0719 23:38:07.216244      11 trace.go:205] Trace[1522083923]: "Reflector ListAndWatch" name:pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168 (19-Jul-2022 23:37:45.465) (total time: 21751ms):
+Trace[1522083923]: ---"Objects listed" error:<nil> 21751ms (23:38:07.216)
+Trace[1522083923]: [21.751108874s] [21.751108874s] END
+I0719 23:38:07.216830      11 trace.go:205] Trace[386157767]: "Reflector ListAndWatch" name:pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168 (19-Jul-2022 23:37:45.388) (total time: 21828ms):
+Trace[386157767]: ---"Objects listed" error:<nil> 21828ms (23:38:07.216)
+Trace[386157767]: [21.828230886s] [21.828230886s] END
+I0719 23:38:07.217733      11 trace.go:205] Trace[2016205236]: "Reflector ListAndWatch" name:pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168 (19-Jul-2022 23:37:45.456) (total time: 21760ms):
+Trace[2016205236]: ---"Objects listed" error:<nil> 21760ms (23:38:07.217)
+Trace[2016205236]: [21.760184994s] [21.760184994s] END
+I0719 23:38:07.228682      11 trace.go:205] Trace[1387593684]: "Reflector ListAndWatch" name:pkg/mod/github.com/rancher/client-go@v1.23.3-rancher2/tools/cache/reflector.go:168 (19-Jul-2022 23:37:44.961) (total time: 22267ms):
+Trace[1387593684]: ---"Objects listed" error:<nil> 22267ms (23:38:07.228)
+Trace[1387593684]: [22.267181472s] [22.267181472s] END
+2022/07/20 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/20 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/20 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/20 00:31:51 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/20 00:31:51 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/20 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/20 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/20 06:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/20 06:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/20 06:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/20 06:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/20 06:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/20 06:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/20 06:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/20 06:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/20 06:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/20 06:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/20 06:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/20 06:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/20 06:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/20 06:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/20 06:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/20 06:30:55 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/20 06:30:55 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/20 06:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/20 06:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/20 06:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:36623
+2022/07/20 06:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:33359
+2022/07/20 06:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:36003
+2022/07/20 06:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/20 06:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/20 06:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/20 06:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/20 06:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/20 06:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/20 16:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/20 16:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/20 16:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/20 16:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/20 16:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/20 16:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/20 16:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/20 16:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/20 16:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/20 16:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/20 16:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/20 16:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/20 16:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/20 16:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/20 16:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/20 16:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/20 16:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/20 16:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/20 16:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/20 16:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:44303
+2022/07/20 16:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:33255
+2022/07/20 16:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:35023
+2022/07/20 16:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/20 16:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/20 16:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/20 16:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/20 16:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/20 16:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/21 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/21 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/21 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/21 00:31:51 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/21 00:31:51 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/21 00:31:52 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/21 00:31:52 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/21 02:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/21 02:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/21 02:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/21 02:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/21 02:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/21 02:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/21 02:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/21 02:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/21 02:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/21 02:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/21 02:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/21 02:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/21 02:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/21 02:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/21 02:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/21 02:30:56 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/21 02:30:56 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/21 02:30:56 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/21 02:30:56 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/21 02:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:40459
+2022/07/21 02:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:46289
+2022/07/21 02:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/21 02:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/21 02:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/21 02:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/21 02:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:39467
+2022/07/21 02:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/21 02:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/21 12:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/21 12:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/21 12:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/21 12:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/21 12:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/21 12:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/21 12:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/21 12:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/21 12:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/21 12:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/21 12:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/21 12:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/21 12:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/21 12:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/21 12:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/21 12:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/21 12:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/21 12:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/21 12:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/21 12:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:41911
+2022/07/21 12:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:35475
+2022/07/21 12:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:43609
+2022/07/21 12:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/21 12:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/21 12:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/21 12:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/21 12:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/21 12:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/21 22:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/21 22:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/21 22:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/21 22:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/21 22:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/21 22:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/21 22:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/21 22:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/21 22:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/21 22:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/21 22:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/21 22:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/21 22:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/21 22:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/21 22:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/21 22:30:55 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/21 22:30:55 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/21 22:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/21 22:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/21 22:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:45491
+2022/07/21 22:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/21 22:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/21 22:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:45039
+2022/07/21 22:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:42081
+2022/07/21 22:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/21 22:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/21 22:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/21 22:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/22 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/22 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/22 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/22 00:31:50 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/22 00:31:50 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/22 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/22 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+E0722 08:03:22.730492      11 leaderelection.go:330] error retrieving resource lock kube-system/cattle-controllers: rpc error: code = Unavailable desc = error reading from server: read tcp 168.254.5.2:58010->168.254.5.1:2379: read: connection timed out
+2022/07/22 08:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/22 08:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/22 08:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/22 08:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/22 08:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/22 08:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/22 08:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/22 08:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/22 08:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/22 08:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/22 08:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/22 08:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/22 08:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/22 08:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/22 08:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/22 08:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/22 08:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/22 08:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/22 08:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/22 08:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:37833
+2022/07/22 08:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:41103
+2022/07/22 08:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:37099
+2022/07/22 08:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/22 08:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/22 08:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/22 08:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/22 08:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/22 08:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/22 18:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/22 18:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/22 18:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/22 18:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/22 18:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/22 18:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/22 18:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/22 18:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/22 18:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/22 18:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/22 18:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/22 18:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/22 18:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/22 18:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/22 18:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/22 18:30:55 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/22 18:30:55 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/22 18:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/22 18:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/22 18:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:40583
+2022/07/22 18:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/22 18:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/22 18:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:42349
+2022/07/22 18:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:35685
+2022/07/22 18:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/22 18:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/22 18:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/22 18:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/23 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/23 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/23 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/23 00:31:51 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/23 00:31:51 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/23 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/23 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+E0723 03:20:54.960584      11 leaderelection.go:330] error retrieving resource lock kube-system/cattle-controllers: rpc error: code = Unavailable desc = error reading from server: read tcp 168.254.5.2:51540->168.254.5.1:2379: read: connection timed out
+2022/07/23 04:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/23 04:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/23 04:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/23 04:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/23 04:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/23 04:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/23 04:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/23 04:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/23 04:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/23 04:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/23 04:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/23 04:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/23 04:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/23 04:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/23 04:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/23 04:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/23 04:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/23 04:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/23 04:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/23 04:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:45313
+2022/07/23 04:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:35949
+2022/07/23 04:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/23 04:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/23 04:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/23 04:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/23 04:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:35401
+2022/07/23 04:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/23 04:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/23 14:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/23 14:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/23 14:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/23 14:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/23 14:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/23 14:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/23 14:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/23 14:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/23 14:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/23 14:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/23 14:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/23 14:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/23 14:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/23 14:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/23 14:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/23 14:30:55 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/23 14:30:55 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/23 14:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/23 14:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/23 14:30:59 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:32901
+2022/07/23 14:30:59 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:39953
+2022/07/23 14:30:59 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/23 14:30:59 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/23 14:30:59 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/23 14:30:59 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/23 14:30:59 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:37665
+2022/07/23 14:30:59 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/23 14:30:59 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/24 00:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/24 00:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/24 00:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/24 00:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/24 00:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/24 00:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/24 00:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/24 00:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/24 00:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/24 00:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/24 00:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/24 00:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/24 00:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/24 00:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/24 00:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/24 00:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/24 00:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/24 00:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/24 00:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/24 00:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:42011
+2022/07/24 00:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:40715
+2022/07/24 00:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/24 00:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/24 00:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/24 00:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/24 00:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:39041
+2022/07/24 00:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/24 00:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/24 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/24 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/24 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/24 00:31:51 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/24 00:31:51 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/24 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/24 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/24 10:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/24 10:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/24 10:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/24 10:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/24 10:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/24 10:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/24 10:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/24 10:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/24 10:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/24 10:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/24 10:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/24 10:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/24 10:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/24 10:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/24 10:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/24 10:30:56 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/24 10:30:56 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/24 10:30:56 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/24 10:30:56 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/24 10:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:35475
+2022/07/24 10:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:33133
+2022/07/24 10:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/24 10:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/24 10:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/24 10:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/24 10:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:42225
+2022/07/24 10:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/24 10:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/24 20:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/24 20:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/24 20:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/24 20:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/24 20:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/24 20:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/24 20:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/24 20:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/24 20:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/24 20:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/24 20:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/24 20:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/24 20:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/24 20:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/24 20:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/24 20:30:55 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/24 20:30:55 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/24 20:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/24 20:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/24 20:30:59 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:36377
+2022/07/24 20:30:59 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/24 20:30:59 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/24 20:30:59 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:35609
+2022/07/24 20:30:59 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/24 20:30:59 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/24 20:30:59 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:39651
+2022/07/24 20:30:59 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/24 20:30:59 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/25 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/25 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/25 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/25 00:31:50 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/25 00:31:50 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/25 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/25 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/25 06:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/25 06:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/25 06:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/25 06:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/25 06:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/25 06:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/25 06:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/25 06:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/25 06:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/25 06:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/25 06:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/25 06:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/25 06:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/25 06:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/25 06:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/25 06:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/25 06:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/25 06:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/25 06:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/25 06:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:38233
+2022/07/25 06:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:44211
+2022/07/25 06:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/25 06:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/25 06:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/25 06:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/25 06:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:35789
+2022/07/25 06:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/25 06:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/25 16:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/25 16:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/25 16:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/25 16:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/25 16:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/25 16:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/25 16:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/25 16:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/25 16:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/25 16:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/25 16:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/25 16:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/25 16:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/25 16:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/25 16:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/25 16:30:55 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/25 16:30:55 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/25 16:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/25 16:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/25 16:30:59 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:43589
+2022/07/25 16:30:59 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/25 16:30:59 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/25 16:30:59 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:34805
+2022/07/25 16:30:59 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:42643
+2022/07/25 16:30:59 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/25 16:30:59 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/25 16:30:59 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/25 16:30:59 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/26 00:31:50 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/26 00:31:50 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/26 00:31:50 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/26 00:31:51 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/26 00:31:51 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/26 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/26 00:31:51 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/26 02:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/26 02:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/26 02:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/26 02:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/26 02:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/26 02:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/26 02:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/26 02:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/26 02:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/26 02:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/26 02:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/26 02:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/26 02:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/26 02:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/26 02:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/26 02:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/26 02:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/26 02:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/26 02:30:55 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/26 02:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:44579
+2022/07/26 02:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/26 02:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/26 02:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:35789
+2022/07/26 02:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:43197
+2022/07/26 02:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/26 02:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+2022/07/26 02:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/26 02:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/26 12:30:53 [INFO] Refreshing driverMetadata in 1440 minutes
+2022/07/26 12:30:53 [ERROR] error parsing azure-group-cache-size, skipping update strconv.Atoi: parsing "": invalid syntax
+2022/07/26 12:30:53 [INFO] update kontainerdriver aliyunkubernetescontainerservice
+2022/07/26 12:30:53 [INFO] getReleaseConfig: reloading config for k3s
+2022/07/26 12:30:53 [INFO] update kontainerdriver amazonelasticcontainerservice
+2022/07/26 12:30:53 [INFO] getReleaseConfig: reloading config for rke2
+2022/07/26 12:30:53 [INFO] update kontainerdriver baiducloudcontainerengine
+2022/07/26 12:30:53 [INFO] update kontainerdriver oraclecontainerengine
+2022/07/26 12:30:53 [INFO] update kontainerdriver rancherkubernetesengine
+2022/07/26 12:30:53 [INFO] update kontainerdriver tencentkubernetesengine
+2022/07/26 12:30:53 [INFO] update kontainerdriver azurekubernetesservice
+2022/07/26 12:30:53 [INFO] update kontainerdriver huaweicontainercloudengine
+2022/07/26 12:30:53 [INFO] update kontainerdriver linodekubernetesengine
+2022/07/26 12:30:53 [INFO] update kontainerdriver googlekubernetesengine
+2022/07/26 12:30:53 [INFO] update kontainerdriver opentelekomcloudcontainerengine
+2022/07/26 12:30:54 [INFO] driverMetadata: refreshing data from upstream https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json
+2022/07/26 12:30:54 [INFO] Retrieve data.json from local path /var/lib/rancher-data/driver-metadata/data.json
+2022/07/26 12:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/26 12:30:54 [INFO] Loaded configuration from &{} in [0x6f36500]
+2022/07/26 12:30:58 [INFO] kontainerdriver googlekubernetesengine listening on address 127.0.0.1:41579
+2022/07/26 12:30:58 [INFO] kontainerdriver amazonelasticcontainerservice listening on address 127.0.0.1:38613
+2022/07/26 12:30:58 [INFO] kontainerdriver azurekubernetesservice listening on address 127.0.0.1:34385
+2022/07/26 12:30:58 [INFO] kontainerdriver amazonelasticcontainerservice stopped
+2022/07/26 12:30:58 [INFO] dynamic schema for kontainerdriver amazonelasticcontainerservice updating
+2022/07/26 12:30:58 [INFO] kontainerdriver googlekubernetesengine stopped
+2022/07/26 12:30:58 [INFO] dynamic schema for kontainerdriver googlekubernetesengine updating
+2022/07/26 12:30:58 [INFO] kontainerdriver azurekubernetesservice stopped
+2022/07/26 12:30:58 [INFO] dynamic schema for kontainerdriver azurekubernetesservice updating
+==== END logs for container rancher of pod cattle-system/rancher-6f7468c778-kr272 ====

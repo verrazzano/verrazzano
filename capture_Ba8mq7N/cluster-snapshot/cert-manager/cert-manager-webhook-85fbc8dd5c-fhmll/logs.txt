@@ -1,0 +1,84 @@
+==== START logs for container cert-manager of pod cert-manager/cert-manager-webhook-85fbc8dd5c-fhmll ====
+I0714 00:25:00.959801       1 feature_gate.go:245] feature gates: &{map[]}
+W0714 00:25:00.959929       1 client_config.go:617] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+I0714 00:25:00.976652       1 webhook.go:129] cert-manager "msg"="using dynamic certificate generating using CA stored in Secret resource"  "secret_name"="cert-manager-webhook-ca" "secret_namespace"="cert-manager"
+I0714 00:25:00.977056       1 server.go:133] cert-manager/webhook "msg"="listening for insecure healthz connections"  "address"=":6080"
+I0714 00:25:00.977188       1 server.go:197] cert-manager/webhook "msg"="listening for secure connections"  "address"=":10250"
+I0714 00:25:02.021655       1 dynamic_source.go:267] cert-manager/webhook "msg"="Updated serving TLS certificate"  
+I0714 00:25:10.511952       1 logs.go:59] http: TLS handshake error from 10.244.1.0:39764: remote error: tls: bad certificate
+I0714 00:25:13.051274       1 logs.go:59] http: TLS handshake error from 10.244.1.0:39828: remote error: tls: bad certificate
+I0714 00:25:16.108720       1 logs.go:59] http: TLS handshake error from 10.244.0.1:57620: remote error: tls: bad certificate
+I0714 00:25:18.488192       1 logs.go:59] http: TLS handshake error from 10.244.0.128:52150: remote error: tls: bad certificate
+I0714 00:25:21.107950       1 logs.go:59] http: TLS handshake error from 10.244.0.128:52170: remote error: tls: bad certificate
+I0714 00:25:23.512261       1 logs.go:59] http: TLS handshake error from 10.244.0.1:57664: remote error: tls: bad certificate
+I0714 00:25:25.884017       1 logs.go:59] http: TLS handshake error from 10.244.0.1:57680: remote error: tls: bad certificate
+I0714 00:25:29.124747       1 logs.go:59] http: TLS handshake error from 10.244.1.0:40218: remote error: tls: bad certificate
+I0714 00:25:31.688905       1 logs.go:59] http: TLS handshake error from 10.244.0.1:57716: remote error: tls: bad certificate
+I0714 00:25:34.125907       1 logs.go:59] http: TLS handshake error from 10.244.0.1:57730: remote error: tls: bad certificate
+I0714 00:25:38.277413       1 logs.go:59] http: TLS handshake error from 10.244.0.1:57758: remote error: tls: bad certificate
+I0714 00:25:46.090955       1 logs.go:59] http: TLS handshake error from 10.244.1.0:40510: remote error: tls: bad certificate
+I0714 00:25:50.204920       1 logs.go:59] http: TLS handshake error from 10.244.1.0:40606: remote error: tls: bad certificate
+I0714 00:25:53.777174       1 logs.go:59] http: TLS handshake error from 10.244.1.0:40692: remote error: tls: bad certificate
+I0714 00:25:57.212614       1 logs.go:59] http: TLS handshake error from 10.244.1.0:40780: remote error: tls: bad certificate
+I0714 00:26:00.347594       1 logs.go:59] http: TLS handshake error from 10.244.1.0:40866: remote error: tls: bad certificate
+I0714 00:26:03.318374       1 logs.go:59] http: TLS handshake error from 10.244.1.0:40940: remote error: tls: bad certificate
+I0714 00:26:06.350159       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41022: remote error: tls: bad certificate
+I0714 00:26:09.797076       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41100: remote error: tls: bad certificate
+I0714 00:26:12.990696       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41176: remote error: tls: bad certificate
+I0714 00:26:16.046678       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41252: remote error: tls: bad certificate
+I0714 00:26:19.207404       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41334: remote error: tls: bad certificate
+I0714 00:26:22.275013       1 logs.go:59] http: TLS handshake error from 10.244.0.128:52594: remote error: tls: bad certificate
+I0714 00:26:25.412134       1 logs.go:59] http: TLS handshake error from 10.244.0.1:58184: remote error: tls: bad certificate
+I0714 00:26:28.426595       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41566: remote error: tls: bad certificate
+I0714 00:26:31.359876       1 logs.go:59] http: TLS handshake error from 10.244.0.128:52658: remote error: tls: bad certificate
+I0714 00:26:34.448039       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41716: remote error: tls: bad certificate
+I0714 00:26:37.813233       1 logs.go:59] http: TLS handshake error from 10.244.0.128:52700: remote error: tls: bad certificate
+I0714 00:26:43.771169       1 logs.go:59] http: TLS handshake error from 10.244.0.128:52742: EOF
+I0714 00:27:21.233147       1 logs.go:59] http: TLS handshake error from 10.244.0.1:58920: EOF
+I0714 00:27:44.372108       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41912: EOF
+I0714 00:27:45.853960       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41920: EOF
+I0714 00:27:53.097386       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41976: EOF
+I0714 00:27:53.918758       1 logs.go:59] http: TLS handshake error from 10.244.0.128:52850: EOF
+I0714 00:27:53.951129       1 logs.go:59] http: TLS handshake error from 10.244.1.0:41996: EOF
+I0714 00:28:07.331188       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42062: EOF
+I0714 00:28:08.159745       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42090: EOF
+I0714 00:28:08.257583       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42096: EOF
+I0714 00:28:15.789977       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42306: EOF
+I0714 00:28:16.291055       1 logs.go:59] http: TLS handshake error from 10.244.0.128:53292: EOF
+I0714 00:28:17.737749       1 logs.go:59] http: TLS handshake error from 10.244.0.128:53308: EOF
+I0714 00:28:18.138953       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42368: EOF
+I0714 00:28:19.594045       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42396: EOF
+I0714 00:28:20.051934       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42420: EOF
+I0714 00:28:20.070898       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42424: EOF
+I0714 00:28:20.105107       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42426: EOF
+I0714 00:28:20.186062       1 logs.go:59] http: TLS handshake error from 10.244.0.1:58850: EOF
+I0714 00:28:20.232570       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42434: EOF
+I0714 00:28:20.639362       1 logs.go:59] http: TLS handshake error from 10.244.0.1:58864: EOF
+I0714 00:28:20.668212       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42456: EOF
+I0714 00:28:20.668321       1 logs.go:59] http: TLS handshake error from 10.244.0.128:53344: EOF
+I0714 00:28:20.752186       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42460: EOF
+I0714 00:28:20.801056       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42464: EOF
+I0714 00:28:21.039351       1 logs.go:59] http: TLS handshake error from 10.244.0.1:58904: EOF
+I0714 00:28:21.090182       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42468: EOF
+I0714 00:28:21.107141       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42472: EOF
+I0714 00:28:21.116792       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42474: EOF
+I0714 00:28:21.116943       1 logs.go:59] http: TLS handshake error from 10.244.0.1:58910: EOF
+I0714 00:28:21.117205       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42476: EOF
+I0714 00:28:21.200876       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42478: EOF
+I0714 00:28:21.228439       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42480: EOF
+I0714 00:28:21.295611       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42486: EOF
+I0714 00:28:21.328955       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42490: EOF
+I0714 00:28:21.354835       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42494: EOF
+I0714 00:28:21.407210       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42496: EOF
+I0714 00:28:21.425163       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42500: EOF
+I0714 00:28:21.604657       1 logs.go:59] http: TLS handshake error from 10.244.1.0:42506: EOF
+I0714 00:32:47.024038       1 logs.go:59] http: TLS handshake error from 10.244.0.1:35182: EOF
+I0714 00:32:47.377281       1 logs.go:59] http: TLS handshake error from 10.244.0.1:35186: EOF
+I0714 00:32:47.433372       1 logs.go:59] http: TLS handshake error from 10.244.0.1:35188: EOF
+I0714 00:32:47.475318       1 logs.go:59] http: TLS handshake error from 10.244.0.1:35190: EOF
+I0714 00:32:47.521603       1 logs.go:59] http: TLS handshake error from 10.244.0.1:35192: EOF
+I0718 16:25:01.001137       1 dynamic_source.go:169] cert-manager/webhook "msg"="Serving certificate requires renewal, regenerating"  
+I0718 16:25:01.045855       1 dynamic_source.go:267] cert-manager/webhook "msg"="Updated serving TLS certificate"  
+I0723 08:25:01.000770       1 dynamic_source.go:169] cert-manager/webhook "msg"="Serving certificate requires renewal, regenerating"  
+I0723 08:25:01.050997       1 dynamic_source.go:267] cert-manager/webhook "msg"="Updated serving TLS certificate"  
+==== END logs for container cert-manager of pod cert-manager/cert-manager-webhook-85fbc8dd5c-fhmll ====

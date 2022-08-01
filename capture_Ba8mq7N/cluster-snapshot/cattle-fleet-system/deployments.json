@@ -1,0 +1,475 @@
+{
+    "kind": "DeploymentList",
+    "apiVersion": "apps/v1",
+    "metadata": {
+        "resourceVersion": "28803545"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "fleet-controller",
+                "namespace": "cattle-fleet-system",
+                "uid": "599d3969-8099-46f1-a32d-d74449ff986c",
+                "resourceVersion": "20242517",
+                "generation": 1,
+                "creationTimestamp": "2022-07-14T00:31:28Z",
+                "labels": {
+                    "app.kubernetes.io/managed-by": "Helm"
+                },
+                "annotations": {
+                    "deployment.kubernetes.io/revision": "1",
+                    "meta.helm.sh/release-name": "fleet",
+                    "meta.helm.sh/release-namespace": "cattle-fleet-system"
+                },
+                "managedFields": [
+                    {
+                        "manager": "helm",
+                        "operation": "Update",
+                        "apiVersion": "apps/v1",
+                        "time": "2022-07-14T00:31:28Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app.kubernetes.io/managed-by": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:progressDeadlineSeconds": {},
+                                "f:replicas": {},
+                                "f:revisionHistoryLimit": {},
+                                "f:selector": {},
+                                "f:strategy": {
+                                    "f:rollingUpdate": {
+                                        ".": {},
+                                        "f:maxSurge": {},
+                                        "f:maxUnavailable": {}
+                                    },
+                                    "f:type": {}
+                                },
+                                "f:template": {
+                                    "f:metadata": {
+                                        "f:labels": {
+                                            ".": {},
+                                            "f:app": {}
+                                        }
+                                    },
+                                    "f:spec": {
+                                        "f:containers": {
+                                            "k:{\"name\":\"fleet-controller\"}": {
+                                                ".": {},
+                                                "f:command": {},
+                                                "f:env": {
+                                                    ".": {},
+                                                    "k:{\"name\":\"NAMESPACE\"}": {
+                                                        ".": {},
+                                                        "f:name": {},
+                                                        "f:valueFrom": {
+                                                            ".": {},
+                                                            "f:fieldRef": {}
+                                                        }
+                                                    }
+                                                },
+                                                "f:image": {},
+                                                "f:imagePullPolicy": {},
+                                                "f:name": {},
+                                                "f:resources": {},
+                                                "f:terminationMessagePath": {},
+                                                "f:terminationMessagePolicy": {}
+                                            }
+                                        },
+                                        "f:dnsPolicy": {},
+                                        "f:nodeSelector": {},
+                                        "f:restartPolicy": {},
+                                        "f:schedulerName": {},
+                                        "f:securityContext": {},
+                                        "f:serviceAccount": {},
+                                        "f:serviceAccountName": {},
+                                        "f:terminationGracePeriodSeconds": {},
+                                        "f:tolerations": {}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "apps/v1",
+                        "time": "2022-07-14T00:31:39Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    "f:deployment.kubernetes.io/revision": {}
+                                }
+                            },
+                            "f:status": {
+                                "f:availableReplicas": {},
+                                "f:conditions": {
+                                    ".": {},
+                                    "k:{\"type\":\"Available\"}": {
+                                        ".": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:lastUpdateTime": {},
+                                        "f:message": {},
+                                        "f:reason": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    },
+                                    "k:{\"type\":\"Progressing\"}": {
+                                        ".": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:lastUpdateTime": {},
+                                        "f:message": {},
+                                        "f:reason": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    }
+                                },
+                                "f:observedGeneration": {},
+                                "f:readyReplicas": {},
+                                "f:replicas": {},
+                                "f:updatedReplicas": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "matchLabels": {
+                        "app": "fleet-controller"
+                    }
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "app": "fleet-controller"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "fleet-controller",
+                                "image": "rancher/fleet:v0.3.9",
+                                "command": [
+                                    "fleetcontroller"
+                                ],
+                                "env": [
+                                    {
+                                        "name": "NAMESPACE",
+                                        "valueFrom": {
+                                            "fieldRef": {
+                                                "apiVersion": "v1",
+                                                "fieldPath": "metadata.namespace"
+                                            }
+                                        }
+                                    }
+                                ],
+                                "resources": {},
+                                "terminationMessagePath": "/dev/termination-log",
+                                "terminationMessagePolicy": "File",
+                                "imagePullPolicy": "IfNotPresent"
+                            }
+                        ],
+                        "restartPolicy": "Always",
+                        "terminationGracePeriodSeconds": 30,
+                        "dnsPolicy": "ClusterFirst",
+                        "nodeSelector": {
+                            "kubernetes.io/os": "linux"
+                        },
+                        "serviceAccountName": "fleet-controller",
+                        "serviceAccount": "fleet-controller",
+                        "securityContext": {},
+                        "schedulerName": "default-scheduler",
+                        "tolerations": [
+                            {
+                                "key": "cattle.io/os",
+                                "operator": "Equal",
+                                "value": "linux",
+                                "effect": "NoSchedule"
+                            }
+                        ]
+                    }
+                },
+                "strategy": {
+                    "type": "RollingUpdate",
+                    "rollingUpdate": {
+                        "maxUnavailable": "25%",
+                        "maxSurge": "25%"
+                    }
+                },
+                "revisionHistoryLimit": 10,
+                "progressDeadlineSeconds": 600
+            },
+            "status": {
+                "observedGeneration": 1,
+                "replicas": 1,
+                "updatedReplicas": 1,
+                "readyReplicas": 1,
+                "availableReplicas": 1,
+                "conditions": [
+                    {
+                        "type": "Available",
+                        "status": "True",
+                        "lastUpdateTime": "2022-07-14T00:31:39Z",
+                        "lastTransitionTime": "2022-07-14T00:31:39Z",
+                        "reason": "MinimumReplicasAvailable",
+                        "message": "Deployment has minimum availability."
+                    },
+                    {
+                        "type": "Progressing",
+                        "status": "True",
+                        "lastUpdateTime": "2022-07-14T00:31:39Z",
+                        "lastTransitionTime": "2022-07-14T00:31:29Z",
+                        "reason": "NewReplicaSetAvailable",
+                        "message": "ReplicaSet \"fleet-controller-5746685958\" has successfully progressed."
+                    }
+                ]
+            }
+        },
+        {
+            "metadata": {
+                "name": "gitjob",
+                "namespace": "cattle-fleet-system",
+                "uid": "2449147c-99d8-4f17-9ae8-0bf40def1135",
+                "resourceVersion": "20242521",
+                "generation": 1,
+                "creationTimestamp": "2022-07-14T00:31:28Z",
+                "labels": {
+                    "app.kubernetes.io/managed-by": "Helm"
+                },
+                "annotations": {
+                    "deployment.kubernetes.io/revision": "1",
+                    "meta.helm.sh/release-name": "fleet",
+                    "meta.helm.sh/release-namespace": "cattle-fleet-system"
+                },
+                "managedFields": [
+                    {
+                        "manager": "helm",
+                        "operation": "Update",
+                        "apiVersion": "apps/v1",
+                        "time": "2022-07-14T00:31:28Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app.kubernetes.io/managed-by": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:progressDeadlineSeconds": {},
+                                "f:replicas": {},
+                                "f:revisionHistoryLimit": {},
+                                "f:selector": {},
+                                "f:strategy": {
+                                    "f:rollingUpdate": {
+                                        ".": {},
+                                        "f:maxSurge": {},
+                                        "f:maxUnavailable": {}
+                                    },
+                                    "f:type": {}
+                                },
+                                "f:template": {
+                                    "f:metadata": {
+                                        "f:labels": {
+                                            ".": {},
+                                            "f:app": {}
+                                        }
+                                    },
+                                    "f:spec": {
+                                        "f:containers": {
+                                            "k:{\"name\":\"gitjob\"}": {
+                                                ".": {},
+                                                "f:command": {},
+                                                "f:env": {
+                                                    ".": {},
+                                                    "k:{\"name\":\"NAMESPACE\"}": {
+                                                        ".": {},
+                                                        "f:name": {},
+                                                        "f:valueFrom": {
+                                                            ".": {},
+                                                            "f:fieldRef": {}
+                                                        }
+                                                    }
+                                                },
+                                                "f:image": {},
+                                                "f:imagePullPolicy": {},
+                                                "f:name": {},
+                                                "f:resources": {},
+                                                "f:terminationMessagePath": {},
+                                                "f:terminationMessagePolicy": {}
+                                            }
+                                        },
+                                        "f:dnsPolicy": {},
+                                        "f:nodeSelector": {},
+                                        "f:restartPolicy": {},
+                                        "f:schedulerName": {},
+                                        "f:securityContext": {},
+                                        "f:serviceAccount": {},
+                                        "f:serviceAccountName": {},
+                                        "f:terminationGracePeriodSeconds": {},
+                                        "f:tolerations": {}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "apps/v1",
+                        "time": "2022-07-14T00:31:39Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    "f:deployment.kubernetes.io/revision": {}
+                                }
+                            },
+                            "f:status": {
+                                "f:availableReplicas": {},
+                                "f:conditions": {
+                                    ".": {},
+                                    "k:{\"type\":\"Available\"}": {
+                                        ".": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:lastUpdateTime": {},
+                                        "f:message": {},
+                                        "f:reason": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    },
+                                    "k:{\"type\":\"Progressing\"}": {
+                                        ".": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:lastUpdateTime": {},
+                                        "f:message": {},
+                                        "f:reason": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    }
+                                },
+                                "f:observedGeneration": {},
+                                "f:readyReplicas": {},
+                                "f:replicas": {},
+                                "f:updatedReplicas": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "matchLabels": {
+                        "app": "gitjob"
+                    }
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "app": "gitjob"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "gitjob",
+                                "image": "rancher/gitjob:v0.1.26",
+                                "command": [
+                                    "gitjob",
+                                    "--tekton-image",
+                                    "rancher/tekton-utils:v0.1.5"
+                                ],
+                                "env": [
+                                    {
+                                        "name": "NAMESPACE",
+                                        "valueFrom": {
+                                            "fieldRef": {
+                                                "apiVersion": "v1",
+                                                "fieldPath": "metadata.namespace"
+                                            }
+                                        }
+                                    }
+                                ],
+                                "resources": {},
+                                "terminationMessagePath": "/dev/termination-log",
+                                "terminationMessagePolicy": "File",
+                                "imagePullPolicy": "IfNotPresent"
+                            }
+                        ],
+                        "restartPolicy": "Always",
+                        "terminationGracePeriodSeconds": 30,
+                        "dnsPolicy": "ClusterFirst",
+                        "nodeSelector": {
+                            "kubernetes.io/os": "linux"
+                        },
+                        "serviceAccountName": "gitjob",
+                        "serviceAccount": "gitjob",
+                        "securityContext": {},
+                        "schedulerName": "default-scheduler",
+                        "tolerations": [
+                            {
+                                "key": "cattle.io/os",
+                                "operator": "Equal",
+                                "value": "linux",
+                                "effect": "NoSchedule"
+                            }
+                        ]
+                    }
+                },
+                "strategy": {
+                    "type": "RollingUpdate",
+                    "rollingUpdate": {
+                        "maxUnavailable": "25%",
+                        "maxSurge": "25%"
+                    }
+                },
+                "revisionHistoryLimit": 10,
+                "progressDeadlineSeconds": 600
+            },
+            "status": {
+                "observedGeneration": 1,
+                "replicas": 1,
+                "updatedReplicas": 1,
+                "readyReplicas": 1,
+                "availableReplicas": 1,
+                "conditions": [
+                    {
+                        "type": "Available",
+                        "status": "True",
+                        "lastUpdateTime": "2022-07-14T00:31:39Z",
+                        "lastTransitionTime": "2022-07-14T00:31:39Z",
+                        "reason": "MinimumReplicasAvailable",
+                        "message": "Deployment has minimum availability."
+                    },
+                    {
+                        "type": "Progressing",
+                        "status": "True",
+                        "lastUpdateTime": "2022-07-14T00:31:39Z",
+                        "lastTransitionTime": "2022-07-14T00:31:29Z",
+                        "reason": "NewReplicaSetAvailable",
+                        "message": "ReplicaSet \"gitjob-cc9948fd7\" has successfully progressed."
+                    }
+                ]
+            }
+        }
+    ]
+}

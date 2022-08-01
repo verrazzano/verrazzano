@@ -1,0 +1,82 @@
+{
+    "kind": "ServiceList",
+    "apiVersion": "v1",
+    "metadata": {
+        "resourceVersion": "28803543"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "gitjob",
+                "namespace": "cattle-fleet-system",
+                "uid": "1c9a3aa7-81df-426d-9425-dfc39f5cca88",
+                "resourceVersion": "20242364",
+                "creationTimestamp": "2022-07-14T00:31:28Z",
+                "labels": {
+                    "app.kubernetes.io/managed-by": "Helm"
+                },
+                "annotations": {
+                    "meta.helm.sh/release-name": "fleet",
+                    "meta.helm.sh/release-namespace": "cattle-fleet-system"
+                },
+                "managedFields": [
+                    {
+                        "manager": "helm",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2022-07-14T00:31:28Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:meta.helm.sh/release-name": {},
+                                    "f:meta.helm.sh/release-namespace": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app.kubernetes.io/managed-by": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:internalTrafficPolicy": {},
+                                "f:ports": {
+                                    ".": {},
+                                    "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    }
+                                },
+                                "f:selector": {},
+                                "f:sessionAffinity": {},
+                                "f:type": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "http-80",
+                        "protocol": "TCP",
+                        "port": 80,
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "app": "gitjob"
+                },
+                "clusterIP": "10.96.68.6",
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        }
+    ]
+}

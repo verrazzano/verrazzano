@@ -1,0 +1,994 @@
+==== START logs for container keycloak of pod keycloak/keycloak-0 ====
+Added 'keycloakadmin' to '/opt/jboss/keycloak/standalone/configuration/keycloak-add-user.json', restart server to load user
+-b 0.0.0.0
+=========================================================================
+
+  Using MySQL database
+
+=========================================================================
+
+[0m00:29:15,293 INFO  [org.jboss.modules] (CLI command executor) JBoss Modules version 1.11.0.Final
+[0m[0m00:29:15,391 INFO  [org.jboss.msc] (CLI command executor) JBoss MSC version 1.4.12.Final
+[0m[0m00:29:15,404 INFO  [org.jboss.threads] (CLI command executor) JBoss Threads version 2.4.0.Final
+[0m[0m00:29:15,566 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0049: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) starting
+[0m[0m00:29:16,660 INFO  [org.wildfly.security] (ServerService Thread Pool -- 19) ELY00001: WildFly Elytron version 1.15.3.Final
+[0m[0m00:29:17,174 INFO  [org.jboss.as.controller.management-deprecated] (ServerService Thread Pool -- 24) WFLYCTL0033: Extension 'security' is deprecated and may not be supported in future versions
+[0m[0m00:29:17,512 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/core-service=management/management-interface=http-interface' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m00:29:17,670 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/subsystem=undertow/server=default-server/https-listener=https' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[33m00:29:17,826 WARN  [org.wildfly.extension.elytron] (MSC service thread 1-2) WFLYELY00023: KeyStore file '/opt/jboss/keycloak/standalone/configuration/application.keystore' does not exist. Used blank.
+[0m[33m00:29:17,841 WARN  [org.wildfly.extension.elytron] (MSC service thread 1-2) WFLYELY01084: KeyStore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self-signed certificate for host localhost
+[0mWARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by org.wildfly.extension.elytron.SSLDefinitions (jar:file:/opt/jboss/keycloak/modules/system/layers/base/org/wildfly/extension/elytron/main/wildfly-elytron-integration-15.0.1.Final.jar!/) to method com.sun.net.ssl.internal.ssl.Provider.isFIPS()
+WARNING: Please consider reporting this to the maintainers of org.wildfly.extension.elytron.SSLDefinitions
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+[0m00:29:17,878 INFO  [org.jboss.as.patching] (MSC service thread 1-1) WFLYPAT0050: Keycloak cumulative patch ID is: base, one-off patches include: none
+[0m[33m00:29:17,906 WARN  [org.jboss.as.domain.management.security] (MSC service thread 1-1) WFLYDM0111: Keystore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self signed certificate for host localhost
+[0m[0m00:29:18,051 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0212: Resuming server
+[0m[0m00:29:18,056 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) started in 2746ms - Started 59 of 82 services (32 services are lazy, passive or on-demand)
+[0mThe batch executed successfully
+[0m00:29:18,343 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0050: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) stopped in 22ms
+[0m[0m00:29:20,864 INFO  [org.jboss.modules] (CLI command executor) JBoss Modules version 1.11.0.Final
+[0m[0m00:29:20,933 INFO  [org.jboss.msc] (CLI command executor) JBoss MSC version 1.4.12.Final
+[0m[0m00:29:20,944 INFO  [org.jboss.threads] (CLI command executor) JBoss Threads version 2.4.0.Final
+[0m[0m00:29:21,082 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0049: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) starting
+[0m[0m00:29:21,923 INFO  [org.wildfly.security] (ServerService Thread Pool -- 22) ELY00001: WildFly Elytron version 1.15.3.Final
+[0m[0m00:29:22,357 INFO  [org.jboss.as.controller.management-deprecated] (ServerService Thread Pool -- 25) WFLYCTL0033: Extension 'security' is deprecated and may not be supported in future versions
+[0m[0m00:29:22,623 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/core-service=management/management-interface=http-interface' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m00:29:22,740 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/subsystem=undertow/server=default-server/https-listener=https' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[33m00:29:22,852 WARN  [org.wildfly.extension.elytron] (MSC service thread 1-1) WFLYELY00023: KeyStore file '/opt/jboss/keycloak/standalone/configuration/application.keystore' does not exist. Used blank.
+[0m[33m00:29:22,858 WARN  [org.wildfly.extension.elytron] (MSC service thread 1-2) WFLYELY01084: KeyStore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self-signed certificate for host localhost
+[0mWARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by org.wildfly.extension.elytron.SSLDefinitions (jar:file:/opt/jboss/keycloak/modules/system/layers/base/org/wildfly/extension/elytron/main/wildfly-elytron-integration-15.0.1.Final.jar!/) to method com.sun.net.ssl.internal.ssl.Provider.isFIPS()
+WARNING: Please consider reporting this to the maintainers of org.wildfly.extension.elytron.SSLDefinitions
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+[0m00:29:22,869 INFO  [org.jboss.as.patching] (MSC service thread 1-1) WFLYPAT0050: Keycloak cumulative patch ID is: base, one-off patches include: none
+[0m[33m00:29:22,907 WARN  [org.jboss.as.domain.management.security] (MSC service thread 1-1) WFLYDM0111: Keystore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self signed certificate for host localhost
+[0m[0m00:29:23,297 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0212: Resuming server
+[0m[0m00:29:23,298 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) started in 2426ms - Started 59 of 89 services (39 services are lazy, passive or on-demand)
+[0mThe batch executed successfully
+[0m00:29:23,911 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0050: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) stopped in 16ms
+[0mExecuting cli script: /opt/jboss/startup-scripts/keycloak.cli
+[0m00:29:25,708 INFO  [org.jboss.modules] (CLI command executor) JBoss Modules version 1.11.0.Final
+[0m[0m00:29:25,785 INFO  [org.jboss.msc] (CLI command executor) JBoss MSC version 1.4.12.Final
+[0m[0m00:29:25,795 INFO  [org.jboss.threads] (CLI command executor) JBoss Threads version 2.4.0.Final
+[0m[0m00:29:25,927 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0049: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) starting
+[0m[0m00:29:26,681 INFO  [org.wildfly.security] (ServerService Thread Pool -- 6) ELY00001: WildFly Elytron version 1.15.3.Final
+[0m[0m00:29:27,158 INFO  [org.jboss.as.controller.management-deprecated] (ServerService Thread Pool -- 3) WFLYCTL0033: Extension 'security' is deprecated and may not be supported in future versions
+[0m[0m00:29:27,543 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/core-service=management/management-interface=http-interface' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m00:29:27,724 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/subsystem=undertow/server=default-server/https-listener=https' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[33m00:29:27,877 WARN  [org.wildfly.extension.elytron] (MSC service thread 1-1) WFLYELY00023: KeyStore file '/opt/jboss/keycloak/standalone/configuration/application.keystore' does not exist. Used blank.
+[0m[33m00:29:27,901 WARN  [org.wildfly.extension.elytron] (MSC service thread 1-2) WFLYELY01084: KeyStore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self-signed certificate for host localhost
+[0mWARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by org.wildfly.extension.elytron.SSLDefinitions (jar:file:/opt/jboss/keycloak/modules/system/layers/base/org/wildfly/extension/elytron/main/wildfly-elytron-integration-15.0.1.Final.jar!/) to method com.sun.net.ssl.internal.ssl.Provider.isFIPS()
+WARNING: Please consider reporting this to the maintainers of org.wildfly.extension.elytron.SSLDefinitions
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+[0m00:29:27,939 INFO  [org.jboss.as.patching] (MSC service thread 1-2) WFLYPAT0050: Keycloak cumulative patch ID is: base, one-off patches include: none
+[0m[33m00:29:27,966 WARN  [org.jboss.as.domain.management.security] (MSC service thread 1-2) WFLYDM0111: Keystore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self signed certificate for host localhost
+[0m[0m00:29:28,160 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0212: Resuming server
+[0m[0m00:29:28,163 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) started in 2448ms - Started 59 of 89 services (39 services are lazy, passive or on-demand)
+[0mConfiguring node identifier
+Finished configuring node identifier
+The batch executed successfully
+[0m00:29:28,375 INFO  [org.jboss.as] (MSC service thread 1-1) WFLYSRV0050: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) stopped in 15ms
+[0m=========================================================================
+
+  JBoss Bootstrap Environment
+
+  JBOSS_HOME: /opt/jboss/keycloak
+
+  JAVA: java
+
+  JAVA_OPTS:  -server -Xms64m -Xmx512m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true   --add-exports=java.base/sun.nio.ch=ALL-UNNAMED --add-exports=jdk.unsupported/sun.misc=ALL-UNNAMED --add-exports=jdk.unsupported/sun.reflect=ALL-UNNAMED
+
+=========================================================================
+
+[0m00:29:29,522 INFO  [org.jboss.modules] (main) JBoss Modules version 1.11.0.Final
+[0m[0m00:29:30,170 INFO  [org.jboss.msc] (main) JBoss MSC version 1.4.12.Final
+[0m[0m00:29:30,182 INFO  [org.jboss.threads] (main) JBoss Threads version 2.4.0.Final
+[0m[0m00:29:30,348 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0049: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) starting
+[0m[0m00:29:31,330 INFO  [org.wildfly.security] (ServerService Thread Pool -- 5) ELY00001: WildFly Elytron version 1.15.3.Final
+[0m[0m00:29:31,835 INFO  [org.jboss.as.controller.management-deprecated] (ServerService Thread Pool -- 24) WFLYCTL0033: Extension 'security' is deprecated and may not be supported in future versions
+[0m[0m00:29:32,136 INFO  [org.jboss.as.controller.management-deprecated] (Controller Boot Thread) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/core-service=management/management-interface=http-interface' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m00:29:32,184 INFO  [org.jboss.as.controller.management-deprecated] (ServerService Thread Pool -- 14) WFLYCTL0028: Attribute 'security-realm' in the resource at address '/subsystem=undertow/server=default-server/https-listener=https' is deprecated, and may be removed in a future version. See the attribute description in the output of the read-resource-description operation to learn more about the deprecation.
+[0m[0m00:29:32,382 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0039: Creating http management service using socket-binding (management-http)
+[0m[0m00:29:32,403 INFO  [org.xnio] (MSC service thread 1-2) XNIO version 3.8.4.Final
+[0m[0m00:29:32,425 INFO  [org.xnio.nio] (MSC service thread 1-2) XNIO NIO Implementation Version 3.8.4.Final
+[0m[0m00:29:32,472 INFO  [org.jboss.as.clustering.jgroups] (ServerService Thread Pool -- 43) WFLYCLJG0001: Activating JGroups subsystem. JGroups version 4.2.11
+[0m[0m00:29:32,475 INFO  [org.jboss.as.naming] (ServerService Thread Pool -- 50) WFLYNAM0001: Activating Naming Subsystem
+[0m[0m00:29:32,485 INFO  [org.jboss.as.security] (ServerService Thread Pool -- 53) WFLYSEC0002: Activating Security Subsystem
+[0m[0m00:29:32,487 INFO  [org.jboss.remoting] (MSC service thread 1-1) JBoss Remoting version 5.0.20.Final
+[0m[0m00:29:32,492 INFO  [org.wildfly.extension.health] (ServerService Thread Pool -- 38) WFLYHEALTH0001: Activating Base Health Subsystem
+[0m[0m00:29:32,510 INFO  [org.wildfly.extension.io] (ServerService Thread Pool -- 40) WFLYIO001: Worker 'default' has auto-configured to 2 IO threads with 16 max task threads based on your 1 available processors
+[0m[0m00:29:32,496 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 39) WFLYCLINF0001: Activating Infinispan subsystem.
+[0m[0m00:29:32,546 INFO  [org.jboss.as.jaxrs] (ServerService Thread Pool -- 41) WFLYRS0016: RESTEasy version 3.15.1.Final
+[0m[0m00:29:32,549 INFO  [org.wildfly.extension.metrics] (ServerService Thread Pool -- 48) WFLYMETRICS0001: Activating Base Metrics Subsystem
+[0m[0m00:29:32,564 INFO  [org.jboss.as.connector.subsystems.datasources] (ServerService Thread Pool -- 33) WFLYJCA0004: Deploying JDBC-compliant driver class org.h2.Driver (version 2.1)
+[0m[0m00:29:32,613 INFO  [org.jboss.as.security] (MSC service thread 1-2) WFLYSEC0001: Current PicketBox version=5.0.3.Final-redhat-00007
+[0m[0m00:29:32,656 INFO  [org.jboss.as.connector.subsystems.datasources] (ServerService Thread Pool -- 33) WFLYJCA0005: Deploying non-JDBC-compliant driver class com.mysql.cj.jdbc.Driver (version 8.0)
+[0m[33m00:29:32,693 WARN  [org.wildfly.clustering.web.undertow] (ServerService Thread Pool -- 56) WFLYCLWEBUT0007: No routing provider found for default-server; using legacy provider based on static configuration
+[0m[0m00:29:32,735 INFO  [org.jboss.as.connector] (MSC service thread 1-1) WFLYJCA0009: Starting Jakarta Connectors Subsystem (WildFly/IronJacamar 1.4.27.Final)
+[0m[0m00:29:32,748 INFO  [org.wildfly.extension.undertow] (ServerService Thread Pool -- 56) WFLYUT0014: Creating file handler for path '/opt/jboss/keycloak/welcome-content' with options [directory-listing: 'false', follow-symlink: 'false', case-sensitive: 'true', safe-symlink-paths: '[]']
+[0m[0m00:29:32,767 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-1) WFLYUT0003: Undertow 2.2.5.Final starting
+[0m[0m00:29:32,805 INFO  [org.jboss.as.naming] (MSC service thread 1-1) WFLYNAM0003: Starting Naming Service
+[0m[0m00:29:32,826 INFO  [org.jboss.as.connector.deployers.jdbc] (MSC service thread 1-2) WFLYJCA0018: Started Driver service with driver-name = mysql
+[0m[0m00:29:32,834 INFO  [org.jboss.as.connector.deployers.jdbc] (MSC service thread 1-1) WFLYJCA0018: Started Driver service with driver-name = h2
+[0m[0m00:29:32,882 INFO  [org.jboss.as.ejb3] (MSC service thread 1-2) WFLYEJB0482: Strict pool mdb-strict-max-pool is using a max instance size of 4 (per class), which is derived from the number of CPUs on this host.
+[0m[0m00:29:32,885 INFO  [org.jboss.as.ejb3] (MSC service thread 1-1) WFLYEJB0481: Strict pool slsb-strict-max-pool is using a max instance size of 16 (per class), which is derived from thread worker pool sizing.
+[0m[0m00:29:32,889 INFO  [org.jboss.as.mail.extension] (MSC service thread 1-1) WFLYMAIL0001: Bound mail session [java:jboss/mail/Default]
+[0m[33m00:29:33,000 WARN  [org.wildfly.extension.elytron] (MSC service thread 1-2) WFLYELY00023: KeyStore file '/opt/jboss/keycloak/standalone/configuration/application.keystore' does not exist. Used blank.
+[0m[33m00:29:33,235 WARN  [org.wildfly.extension.elytron] (MSC service thread 1-1) WFLYELY01084: KeyStore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self-signed certificate for host localhost
+[0m[0m00:29:33,238 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0012: Started server default-server.
+[0m[0m00:29:33,253 INFO  [org.jboss.as.patching] (MSC service thread 1-1) WFLYPAT0050: Keycloak cumulative patch ID is: base, one-off patches include: none
+[0mWARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by org.wildfly.extension.elytron.SSLDefinitions (jar:file:/opt/jboss/keycloak/modules/system/layers/base/org/wildfly/extension/elytron/main/wildfly-elytron-integration-15.0.1.Final.jar!/) to method com.sun.net.ssl.internal.ssl.Provider.isFIPS()
+WARNING: Please consider reporting this to the maintainers of org.wildfly.extension.elytron.SSLDefinitions
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+[0m00:29:33,268 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) Queuing requests.
+[0m[0m00:29:33,269 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0018: Host default-host starting
+[0m[0m00:29:33,322 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0006: Undertow HTTP listener default listening on 0.0.0.0:8080
+[0m[0m00:29:33,327 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-2) WFLYUT0006: Undertow AJP listener ajp listening on 0.0.0.0:8009
+[0m[0m00:29:33,375 INFO  [org.jboss.as.ejb3] (MSC service thread 1-1) WFLYEJB0493: Jakarta Enterprise Beans subsystem suspension complete
+[0m[33m00:29:33,384 WARN  [org.jboss.as.domain.management.security] (MSC service thread 1-1) WFLYDM0111: Keystore /opt/jboss/keycloak/standalone/configuration/application.keystore not found, it will be auto generated on first use with a self signed certificate for host localhost
+[0m[0m00:29:33,386 INFO  [org.jboss.as.server.deployment.scanner] (MSC service thread 1-1) WFLYDS0013: Started FileSystemDeploymentService for directory /opt/jboss/keycloak/standalone/deployments
+[0m[0m00:29:33,388 INFO  [org.jboss.modcluster] (ServerService Thread Pool -- 58) MODCLUSTER000001: Initializing mod_cluster version 1.4.3.Final
+[0m[0m00:29:33,399 INFO  [org.jboss.modcluster] (ServerService Thread Pool -- 58) MODCLUSTER000032: Listening to proxy advertisements on /224.0.1.105:23364
+[0m[0m00:29:33,402 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-1) WFLYSRV0027: Starting deployment of "keycloak-server.war" (runtime-name: "keycloak-server.war")
+[0m[0m00:29:33,553 INFO  [org.wildfly.extension.undertow] (MSC service thread 1-1) WFLYUT0006: Undertow HTTPS listener https listening on 0.0.0.0:8443
+[0m[0m00:29:33,561 INFO  [org.jboss.as.connector.subsystems.datasources] (MSC service thread 1-1) WFLYJCA0001: Bound data source [java:jboss/datasources/KeycloakDS]
+[0m[0m00:29:33,561 INFO  [org.jboss.as.connector.subsystems.datasources] (MSC service thread 1-1) WFLYJCA0001: Bound data source [java:jboss/datasources/ExampleDS]
+[0m[33m00:29:34,005 WARN  [org.jgroups.protocols.UDP] (ServerService Thread Pool -- 58) JGRP000015: the receive buffer of socket ManagedMulticastSocketBinding was set to 20.00MB, but the OS only allocated 12.58MB
+[0m[33m00:29:34,006 WARN  [org.jgroups.protocols.UDP] (ServerService Thread Pool -- 58) JGRP000015: the receive buffer of socket ManagedMulticastSocketBinding was set to 25.00MB, but the OS only allocated 12.58MB
+[0m[0m00:29:37,019 INFO  [org.jgroups.protocols.pbcast.GMS] (ServerService Thread Pool -- 58) keycloak-0: no members discovered after 3004 ms: creating cluster as coordinator
+[0m[0m00:29:37,697 INFO  [org.infinispan.CONTAINER] (ServerService Thread Pool -- 60) ISPN000128: Infinispan version: Infinispan 'Corona Extra' 11.0.9.Final
+[0m[0m00:29:37,724 INFO  [org.infinispan.PERSISTENCE] (ServerService Thread Pool -- 60) ISPN000556: Starting user marshaller 'org.wildfly.clustering.infinispan.marshalling.jboss.JBossMarshaller'
+[0m[0m00:29:37,763 INFO  [org.infinispan.PERSISTENCE] (ServerService Thread Pool -- 58) ISPN000556: Starting user marshaller 'org.wildfly.clustering.infinispan.spi.marshalling.InfinispanProtoStreamMarshaller'
+[0m[0m00:29:37,769 INFO  [org.infinispan.PERSISTENCE] (ServerService Thread Pool -- 61) ISPN000556: Starting user marshaller 'org.wildfly.clustering.infinispan.marshalling.jboss.JBossMarshaller'
+[0m[0m00:29:37,769 INFO  [org.infinispan.PERSISTENCE] (ServerService Thread Pool -- 62) ISPN000556: Starting user marshaller 'org.wildfly.clustering.infinispan.spi.marshalling.InfinispanProtoStreamMarshaller'
+[0m[0m00:29:37,769 INFO  [org.infinispan.PERSISTENCE] (ServerService Thread Pool -- 59) ISPN000556: Starting user marshaller 'org.wildfly.clustering.infinispan.spi.marshalling.InfinispanProtoStreamMarshaller'
+[0m[0m00:29:37,913 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 58) ISPN000078: Starting JGroups channel ejb
+[0m[0m00:29:37,917 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 60) ISPN000078: Starting JGroups channel ejb
+[0m[0m00:29:37,917 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 59) ISPN000078: Starting JGroups channel ejb
+[0m[0m00:29:37,921 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 59) ISPN000094: Received new cluster view for channel ejb: [keycloak-0|0] (1) [keycloak-0]
+[0m[0m00:29:37,919 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 61) ISPN000078: Starting JGroups channel ejb
+[0m[0m00:29:37,924 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 61) ISPN000094: Received new cluster view for channel ejb: [keycloak-0|0] (1) [keycloak-0]
+[0m[0m00:29:37,917 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 58) ISPN000094: Received new cluster view for channel ejb: [keycloak-0|0] (1) [keycloak-0]
+[0m[0m00:29:37,923 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 62) ISPN000078: Starting JGroups channel ejb
+[0m[0m00:29:37,924 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 62) ISPN000094: Received new cluster view for channel ejb: [keycloak-0|0] (1) [keycloak-0]
+[0m[0m00:29:37,921 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 60) ISPN000094: Received new cluster view for channel ejb: [keycloak-0|0] (1) [keycloak-0]
+[0m[0m00:29:37,935 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 60) ISPN000079: Channel ejb local address is keycloak-0, physical addresses are [10.244.0.20:55200]
+[0m[0m00:29:37,935 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 59) ISPN000079: Channel ejb local address is keycloak-0, physical addresses are [10.244.0.20:55200]
+[0m[0m00:29:37,935 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 62) ISPN000079: Channel ejb local address is keycloak-0, physical addresses are [10.244.0.20:55200]
+[0m[0m00:29:37,940 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 61) ISPN000079: Channel ejb local address is keycloak-0, physical addresses are [10.244.0.20:55200]
+[0m[0m00:29:37,940 INFO  [org.infinispan.CLUSTER] (ServerService Thread Pool -- 58) ISPN000079: Channel ejb local address is keycloak-0, physical addresses are [10.244.0.20:55200]
+[0m[0m00:29:38,016 INFO  [org.infinispan.CONFIG] (MSC service thread 1-1) ISPN000152: Passivation configured without an eviction policy being selected. Only manually evicted entities will be passivated.
+[0m[0m00:29:38,018 INFO  [org.infinispan.CONFIG] (MSC service thread 1-1) ISPN000152: Passivation configured without an eviction policy being selected. Only manually evicted entities will be passivated.
+[0m[0m00:29:38,358 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 58) WFLYCLINF0002: Started http-remoting-connector cache from ejb container
+[0m[0m00:29:38,426 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 67) WFLYCLINF0002: Started loginFailures cache from keycloak container
+[0m[0m00:29:38,426 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 65) WFLYCLINF0002: Started sessions cache from keycloak container
+[0m[0m00:29:38,432 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 60) WFLYCLINF0002: Started offlineSessions cache from keycloak container
+[0m[0m00:29:38,432 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 61) WFLYCLINF0002: Started actionTokens cache from keycloak container
+[0m[0m00:29:38,451 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 70) WFLYCLINF0002: Started authenticationSessions cache from keycloak container
+[0m[0m00:29:38,461 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 69) WFLYCLINF0002: Started work cache from keycloak container
+[0m[0m00:29:38,462 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 64) WFLYCLINF0002: Started clientSessions cache from keycloak container
+[0m[0m00:29:38,462 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 66) WFLYCLINF0002: Started offlineClientSessions cache from keycloak container
+[0m[0m00:29:38,501 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 59) WFLYCLINF0002: Started users cache from keycloak container
+[0m[0m00:29:38,502 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 62) WFLYCLINF0002: Started realms cache from keycloak container
+[0m[0m00:29:38,501 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 68) WFLYCLINF0002: Started keys cache from keycloak container
+[0m[0m00:29:38,504 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 63) WFLYCLINF0002: Started authorization cache from keycloak container
+[0m[33m00:29:38,622 WARN  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0273: Excluded subsystem webservices via jboss-deployment-structure.xml does not exist.
+[0m[0m00:29:39,662 INFO  [org.keycloak.services] (ServerService Thread Pool -- 62) KC-SERVICES0001: Loading config from standalone.xml or domain.xml
+[0m[0m00:29:40,021 INFO  [org.keycloak.url.DefaultHostnameProviderFactory] (ServerService Thread Pool -- 62) Frontend: <request>, Admin: <frontend>, Backend: <request>
+[0m[0m00:29:40,339 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 62) WFLYCLINF0002: Started realmRevisions cache from keycloak container
+[0m[0m00:29:40,345 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 62) WFLYCLINF0002: Started userRevisions cache from keycloak container
+[0m[0m00:29:40,352 INFO  [org.jboss.as.clustering.infinispan] (ServerService Thread Pool -- 62) WFLYCLINF0002: Started authorizationRevisions cache from keycloak container
+[0m[0m00:29:40,353 INFO  [org.keycloak.connections.infinispan.DefaultInfinispanConnectionProviderFactory] (ServerService Thread Pool -- 62) Node name: keycloak-0, Site name: null
+[0m[0m00:29:42,096 INFO  [org.keycloak.connections.jpa.DefaultJpaConnectionProviderFactory] (ServerService Thread Pool -- 62) Database info: {databaseUrl=jdbc:mysql://mysql:3306/keycloak, databaseUser=keycloak@127.0.0.6, databaseProduct=MySQL 8.0.28, databaseDriver=MySQL Connector/J mysql-connector-java-8.0.26 (Revision: 9aae1e450989d62c06616c1dcda3e404ef84df70)}
+[0m[0m00:29:44,815 INFO  [org.keycloak.connections.jpa.updater.liquibase.LiquibaseJpaUpdaterProvider] (ServerService Thread Pool -- 62) Initializing database schema. Using changelog META-INF/jpa-changelog-master.xml
+[0m[0m00:30:34,442 INFO  [org.hibernate.jpa.internal.util.LogHelper] (ServerService Thread Pool -- 62) HHH000204: Processing PersistenceUnitInfo [name: keycloak-default]
+[0m[0m00:30:34,489 INFO  [org.hibernate.Version] (ServerService Thread Pool -- 62) HHH000412: Hibernate ORM core version 5.4.24.Final
+[0m[0m00:30:34,637 INFO  [org.hibernate.annotations.common.Version] (ServerService Thread Pool -- 62) HCANN000001: Hibernate Commons Annotations {5.0.5.Final}
+[0m[0m00:30:34,894 INFO  [org.hibernate.dialect.Dialect] (ServerService Thread Pool -- 62) HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+[0m[0m00:30:34,935 INFO  [org.hibernate.envers.boot.internal.EnversServiceImpl] (ServerService Thread Pool -- 62) Envers integration enabled? : true
+[0m[0m00:30:35,431 INFO  [org.hibernate.orm.beans] (ServerService Thread Pool -- 62) HHH10005002: No explicit CDI BeanManager reference was passed to Hibernate, but CDI is available on the Hibernate ClassLoader.
+[0m[0m00:30:35,495 INFO  [org.hibernate.validator.internal.util.Version] (ServerService Thread Pool -- 62) HV000001: Hibernate Validator 6.0.22.Final
+[0m[0m00:30:36,679 INFO  [org.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator] (ServerService Thread Pool -- 62) HHH000490: Using JtaPlatform implementation: [org.keycloak.connections.jpa.DefaultJpaConnectionProviderFactory$1]
+[0m[0m00:30:37,326 INFO  [org.keycloak.services] (ServerService Thread Pool -- 62) KC-SERVICES0050: Initializing master realm
+[0m[0m00:30:40,056 INFO  [org.keycloak.services] (ServerService Thread Pool -- 62) KC-SERVICES0006: Importing users from '/opt/jboss/keycloak/standalone/configuration/keycloak-add-user.json'
+[0m[0m00:30:40,696 INFO  [org.keycloak.services] (ServerService Thread Pool -- 62) KC-SERVICES0009: Added user 'keycloakadmin' to realm 'master'
+[0m[0m00:30:40,786 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 62) RESTEASY002225: Deploying javax.ws.rs.core.Application: class org.keycloak.services.resources.KeycloakApplication
+[0m[0m00:30:40,788 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 62) RESTEASY002200: Adding class resource org.keycloak.services.resources.ThemeResource from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m00:30:40,788 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 62) RESTEASY002205: Adding provider class org.keycloak.services.error.KeycloakErrorHandler from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m00:30:40,789 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 62) RESTEASY002205: Adding provider class org.keycloak.services.filters.KeycloakSecurityHeadersFilter from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m00:30:40,789 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 62) RESTEASY002200: Adding class resource org.keycloak.services.resources.JsResource from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m00:30:40,789 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 62) RESTEASY002220: Adding singleton resource org.keycloak.services.resources.RealmsResource from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m00:30:40,790 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 62) RESTEASY002220: Adding singleton resource org.keycloak.services.resources.WelcomeResource from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m00:30:40,790 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 62) RESTEASY002210: Adding provider singleton org.keycloak.services.util.ObjectMapperResolver from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m00:30:40,790 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 62) RESTEASY002220: Adding singleton resource org.keycloak.services.resources.admin.AdminRoot from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m00:30:40,790 INFO  [org.jboss.resteasy.resteasy_jaxrs.i18n] (ServerService Thread Pool -- 62) RESTEASY002220: Adding singleton resource org.keycloak.services.resources.RobotsResource from Application class org.keycloak.services.resources.KeycloakApplication
+[0m[0m00:30:40,876 INFO  [org.wildfly.extension.undertow] (ServerService Thread Pool -- 62) WFLYUT0021: Registered web context: '/auth' for server 'default-server'
+[0m[0m00:30:42,284 INFO  [org.jboss.as.server] (ServerService Thread Pool -- 46) WFLYSRV0010: Deployed "keycloak-server.war" (runtime-name : "keycloak-server.war")
+[0m[0m00:30:42,370 INFO  [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0212: Resuming server
+[0m[0m00:30:42,373 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: Keycloak 15.0.2 (WildFly Core 15.0.1.Final) started in 73418ms - Started 693 of 978 services (686 services are lazy, passive or on-demand)
+[0m[0m00:30:42,375 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0060: Http management interface listening on http://127.0.0.1:9990/management
+[0m[0m00:30:42,375 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0051: Admin console listening on http://127.0.0.1:9990
+[0m==== END logs for container keycloak of pod keycloak/keycloak-0 ====
+==== START logs for container istio-proxy of pod keycloak/keycloak-0 ====
+2022-07-14T00:29:10.257979Z	info	FLAG: --concurrency="2"
+2022-07-14T00:29:10.258018Z	info	FLAG: --domain="keycloak.svc.cluster.local"
+2022-07-14T00:29:10.258035Z	info	FLAG: --help="false"
+2022-07-14T00:29:10.258042Z	info	FLAG: --log_as_json="false"
+2022-07-14T00:29:10.258048Z	info	FLAG: --log_caller=""
+2022-07-14T00:29:10.258060Z	info	FLAG: --log_output_level="default:info"
+2022-07-14T00:29:10.258067Z	info	FLAG: --log_rotate=""
+2022-07-14T00:29:10.258073Z	info	FLAG: --log_rotate_max_age="30"
+2022-07-14T00:29:10.258106Z	info	FLAG: --log_rotate_max_backups="1000"
+2022-07-14T00:29:10.258114Z	info	FLAG: --log_rotate_max_size="104857600"
+2022-07-14T00:29:10.258121Z	info	FLAG: --log_stacktrace_level="default:none"
+2022-07-14T00:29:10.258136Z	info	FLAG: --log_target="[stdout]"
+2022-07-14T00:29:10.258143Z	info	FLAG: --meshConfig="./etc/istio/config/mesh"
+2022-07-14T00:29:10.258149Z	info	FLAG: --outlierLogPath=""
+2022-07-14T00:29:10.258161Z	info	FLAG: --proxyComponentLogLevel="misc:error"
+2022-07-14T00:29:10.258192Z	info	FLAG: --proxyLogLevel="warning"
+2022-07-14T00:29:10.258199Z	info	FLAG: --serviceCluster="istio-proxy"
+2022-07-14T00:29:10.258206Z	info	FLAG: --stsPort="0"
+2022-07-14T00:29:10.258218Z	info	FLAG: --templateFile=""
+2022-07-14T00:29:10.258226Z	info	FLAG: --tokenManagerPlugin="GoogleTokenExchange"
+2022-07-14T00:29:10.258234Z	info	FLAG: --vklog="0"
+2022-07-14T00:29:10.258245Z	info	Version 1.13.2-f84f69d1028e874d568f2942c5bab5271fcdeda7-Clean
+2022-07-14T00:29:10.259838Z	info	Proxy role	ips=[10.244.0.20 fe80::146c:5ff:fe0f:319] type=sidecar id=keycloak-0.keycloak domain=keycloak.svc.cluster.local
+2022-07-14T00:29:10.260056Z	info	Apply proxy config from env {}
+
+2022-07-14T00:29:10.262551Z	info	Effective config: binaryPath: /usr/local/bin/envoy
+concurrency: 2
+configPath: ./etc/istio/proxy
+controlPlaneAuthPolicy: MUTUAL_TLS
+discoveryAddress: istiod.istio-system.svc:15012
+drainDuration: 45s
+parentShutdownDuration: 60s
+proxyAdminPort: 15000
+serviceCluster: istio-proxy
+statNameLength: 189
+statusPort: 15020
+terminationDrainDuration: 5s
+tracing:
+  zipkin:
+    address: zipkin.istio-system:9411
+
+2022-07-14T00:29:10.262672Z	info	JWT policy is third-party-jwt
+2022-07-14T00:29:10.289879Z	info	CA Endpoint istiod.istio-system.svc:15012, provider Citadel
+2022-07-14T00:29:10.289944Z	info	Using CA istiod.istio-system.svc:15012 cert with certs: var/run/secrets/istio/root-cert.pem
+2022-07-14T00:29:10.290193Z	info	citadelclient	Citadel client using custom root cert: var/run/secrets/istio/root-cert.pem
+2022-07-14T00:29:10.291172Z	info	Opening status port 15020
+2022-07-14T00:29:10.317928Z	info	ads	All caches have been synced up in 66.74162ms, marking server ready
+2022-07-14T00:29:10.318535Z	info	sds	SDS server for workload certificates started, listening on "etc/istio/proxy/SDS"
+2022-07-14T00:29:10.318573Z	info	xdsproxy	Initializing with upstream address "istiod.istio-system.svc:15012" and cluster "Kubernetes"
+2022-07-14T00:29:10.319030Z	info	sds	Starting SDS grpc server
+2022-07-14T00:29:10.320744Z	info	starting Http service at 127.0.0.1:15004
+2022-07-14T00:29:10.321373Z	info	Pilot SAN: [istiod.istio-system.svc]
+2022-07-14T00:29:10.323330Z	info	Starting proxy agent
+2022-07-14T00:29:10.323368Z	info	Epoch 0 starting
+2022-07-14T00:29:10.323399Z	info	Envoy command: [-c etc/istio/proxy/envoy-rev0.json --restart-epoch 0 --drain-time-s 45 --drain-strategy immediate --parent-shutdown-time-s 60 --local-address-ip-version v4 --file-flush-interval-msec 1000 --disable-hot-restart --log-format %Y-%m-%dT%T.%fZ	%l	envoy %n	%v -l warning --component-log-level misc:error --concurrency 2]
+2022-07-14T00:29:10.679732Z	info	cache	generated new workload certificate	latency=361.309295ms ttl=23h59m59.320285487s
+2022-07-14T00:29:10.679803Z	info	cache	Root cert has changed, start rotating root cert
+2022-07-14T00:29:10.679924Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:0 Version:
+2022-07-14T00:29:10.680036Z	info	cache	returned workload trust anchor from cache	ttl=23h59m59.319970468s
+2022-07-14T00:29:11.217044Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T00:29:11.681675Z	info	ads	ADS: new connection for node:keycloak-0.keycloak-1
+2022-07-14T00:29:11.685338Z	info	cache	returned workload trust anchor from cache	ttl=23h59m58.314710438s
+2022-07-14T00:29:11.686127Z	info	ads	SDS: PUSH request for node:keycloak-0.keycloak resources:1 size:2.0kB resource:ROOTCA
+2022-07-14T00:29:11.719739Z	info	ads	ADS: new connection for node:keycloak-0.keycloak-2
+2022-07-14T00:29:11.719900Z	info	cache	returned workload certificate from cache	ttl=23h59m58.280108404s
+2022-07-14T00:29:11.720125Z	info	ads	SDS: PUSH request for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-14T00:29:14.038431Z	info	Readiness succeeded in 3.785419589s
+2022-07-14T00:29:14.038996Z	info	Envoy proxy is ready
+2022-07-14T00:29:41.027232Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:29:46.026417Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:29:51.027140Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:29:56.026295Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:30:01.026799Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:30:06.026379Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:30:11.035380Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:30:16.029978Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:30:21.028390Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:30:26.026249Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:30:31.028293Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:30:36.026186Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:30:41.026068Z	error	Request to probe app failed: Get "http://10.244.0.20:8080/auth/": context deadline exceeded (Client.Timeout exceeded while awaiting headers), original URL path = /app-health/keycloak/startupz
+app URL path = /auth/
+2022-07-14T00:57:10.403641Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T01:25:57.584915Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T01:56:17.093956Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T02:25:05.224854Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T02:55:54.004586Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T03:26:09.743400Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T03:57:58.306866Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T04:27:53.347020Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T04:55:56.259647Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T05:24:40.618022Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T05:52:30.229666Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T06:21:53.947437Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T06:50:46.120792Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T07:18:53.871597Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T07:49:31.526232Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T08:17:02.391329Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T08:48:01.886532Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T09:18:12.088189Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T09:48:49.001885Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T10:17:33.761655Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T10:48:36.208032Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T11:16:42.082077Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T11:45:05.545579Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T12:17:31.655141Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T12:29:10.340579Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-14T12:29:10.619292Z	info	cache	generated new workload certificate	latency=277.907761ms ttl=23h59m59.38071895s
+2022-07-14T12:29:10.619436Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-14T12:46:46.063118Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T13:14:22.972317Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T13:45:21.515346Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T14:16:38.405568Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T14:45:57.816538Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T15:13:27.642187Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T15:46:13.413271Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T16:15:34.856831Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T16:44:45.657941Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T17:13:42.097814Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T17:42:18.473880Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T18:15:08.762502Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T18:44:41.988480Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T19:15:01.677213Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T19:45:27.449757Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T20:18:29.264795Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T20:47:57.612608Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T21:20:40.075696Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T21:50:15.906782Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T22:20:13.904053Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T22:48:16.401546Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T23:18:51.390142Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-14T23:48:16.737618Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T00:17:23.255708Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T00:29:10.310302Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-15T00:29:10.524647Z	info	cache	generated new workload certificate	latency=213.685527ms ttl=23h59m59.475364966s
+2022-07-15T00:29:10.524737Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-15T00:49:44.025329Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T01:19:20.986259Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T01:47:08.506547Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T02:19:10.599709Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T02:48:25.183971Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T03:17:59.576614Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T03:46:06.906052Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T04:14:34.102246Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T04:47:11.427053Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T05:19:50.975717Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T05:52:36.891256Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T06:22:35.190910Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T06:51:43.037520Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T07:21:30.910192Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T07:50:50.824402Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T08:23:39.707624Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T08:53:19.808842Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T09:22:30.117780Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T09:55:16.976712Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T10:24:00.070960Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T10:51:34.230026Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T11:22:38.566348Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T11:51:53.006754Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T12:22:22.222595Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T12:29:10.262635Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-15T12:29:10.454127Z	info	cache	generated new workload certificate	latency=190.80214ms ttl=23h59m59.545884188s
+2022-07-15T12:29:10.454233Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-15T12:50:23.104328Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T13:22:55.741497Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T13:55:46.231157Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T14:26:05.781359Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T14:58:25.722662Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T15:27:56.506990Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T15:57:03.150046Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T16:25:57.715485Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T16:57:35.912683Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T17:26:15.032381Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T17:54:09.789992Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T18:23:26.708697Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T18:55:36.609479Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T19:28:35.859313Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T19:57:35.592342Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T20:26:22.593692Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T20:58:35.460901Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T21:30:02.219520Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T22:01:05.394780Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T22:31:39.809276Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T23:00:02.821859Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-15T23:32:44.875659Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T00:02:08.549896Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T00:29:10.227679Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-16T00:29:10.479366Z	info	cache	generated new workload certificate	latency=250.983557ms ttl=23h59m59.520644684s
+2022-07-16T00:29:10.479495Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-16T00:33:14.740104Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T01:02:22.099304Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T01:35:16.723517Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T02:07:26.440623Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T02:39:31.732833Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T03:12:00.781577Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T03:43:57.582704Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T04:14:08.933599Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T04:46:44.250371Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T05:16:41.309592Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T05:44:19.758261Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T06:16:09.091214Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T06:49:00.794639Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T07:20:47.644558Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T07:52:30.919349Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T08:21:21.654725Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T08:49:19.505410Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T09:18:42.429636Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T09:47:46.075255Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T10:20:35.095823Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T10:50:57.839846Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T11:18:56.677729Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T11:46:29.379308Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T12:16:58.265132Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T12:29:10.240179Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-16T12:29:10.712847Z	info	cache	generated new workload certificate	latency=471.966652ms ttl=23h59m59.287163849s
+2022-07-16T12:29:10.713198Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-16T12:45:53.467963Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T13:17:17.251856Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T13:45:59.836441Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T14:16:56.212906Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T14:44:26.110703Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T15:17:32.877315Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T15:49:21.978499Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T16:19:35.712053Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T16:48:31.935053Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T17:20:29.456067Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T17:48:18.574380Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T18:17:23.474797Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T18:46:21.754227Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T19:15:25.766289Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T19:46:46.164420Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T20:17:40.067637Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T20:48:06.445975Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T21:18:10.638217Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T21:46:29.833569Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T22:16:31.488643Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T22:48:21.624321Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T23:21:30.938335Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-16T23:52:32.870350Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T00:24:15.197469Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T00:29:10.357437Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-17T00:29:10.580527Z	info	cache	generated new workload certificate	latency=222.303778ms ttl=23h59m59.419486289s
+2022-07-17T00:29:10.580685Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-17T00:55:56.802285Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T01:28:30.155269Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T01:56:36.830337Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T02:23:59.025752Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T02:53:35.221575Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T03:23:39.821551Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T03:55:59.575358Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T04:23:32.905274Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T04:52:02.255632Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T05:23:27.032451Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T05:54:58.602471Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T06:23:49.493910Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T06:54:54.851247Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T07:23:03.749675Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T07:52:23.967772Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T08:25:31.510027Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T08:55:59.328004Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T09:26:03.121890Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T09:53:41.531417Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T10:25:19.964308Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T10:53:00.714990Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T11:24:12.624188Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T11:52:05.550675Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T12:20:01.546670Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T12:29:10.291177Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-17T12:29:10.527334Z	info	cache	generated new workload certificate	latency=235.44409ms ttl=23h59m59.472676982s
+2022-07-17T12:29:10.527465Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-17T12:49:48.698319Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T13:17:02.788063Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T13:48:17.323757Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T14:15:38.880874Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T14:46:19.443577Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T15:15:22.581710Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T15:44:53.796005Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T16:17:47.653718Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T16:50:40.910119Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T17:21:15.759272Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T17:51:47.586556Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T18:20:07.405731Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T18:47:58.596897Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T19:16:34.201150Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T19:45:19.557989Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T20:13:18.100185Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T20:45:23.676702Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T21:16:43.186781Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T21:49:18.798414Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T22:19:35.169242Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T22:48:15.492061Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T23:17:04.859835Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-17T23:50:00.157142Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T00:18:27.505279Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T00:29:10.264466Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-18T00:29:10.371724Z	info	cache	generated new workload certificate	latency=106.415698ms ttl=23h59m59.62828657s
+2022-07-18T00:29:10.372039Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-18T00:49:18.232633Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T01:18:47.632927Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T01:47:57.314052Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T02:15:50.851293Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T02:44:38.513395Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T03:13:21.824455Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T03:45:54.962582Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T04:15:48.757410Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T04:47:37.034228Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T05:17:09.921354Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T05:47:25.485256Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T06:19:09.486390Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T06:51:12.050335Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T07:20:02.563238Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T07:49:55.932603Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T08:20:58.127025Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T08:50:18.411876Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T09:18:02.664137Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T09:48:15.252502Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T10:20:35.130005Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T10:49:49.530668Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T11:19:37.828758Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T11:48:43.197007Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T12:19:35.418247Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T12:29:10.187017Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-18T12:29:10.699543Z	info	cache	generated new workload certificate	latency=511.596743ms ttl=23h59m59.300476607s
+2022-07-18T12:29:10.700148Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-18T12:49:42.715777Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T13:20:31.737858Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T13:48:56.915061Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T14:19:05.883380Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T14:50:12.440596Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T15:19:47.820055Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T15:50:54.010167Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T16:22:33.141349Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T16:50:16.384839Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T17:19:00.789406Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T17:47:20.295448Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T18:14:42.660411Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T18:42:07.237247Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T19:10:39.504297Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T19:38:26.853333Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T20:10:45.785152Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T20:39:19.012631Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T21:11:58.879614Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T21:40:30.313749Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T22:13:38.628818Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T22:45:23.608110Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T23:12:59.427842Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-18T23:41:01.040422Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T00:13:55.171632Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T00:29:10.350369Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-19T00:29:10.460997Z	info	cache	generated new workload certificate	latency=109.928219ms ttl=23h59m59.539016382s
+2022-07-19T00:29:10.461240Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-19T00:42:36.906930Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T01:15:46.198914Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T01:46:30.235729Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T02:17:21.966035Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T02:48:56.763641Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T03:19:11.928495Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T03:47:37.394006Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T04:15:10.932694Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T04:42:38.059114Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T05:11:30.408354Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T05:40:14.260285Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T06:11:55.309540Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T06:42:04.910551Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T07:09:48.821027Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T07:41:46.197645Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T08:10:19.116293Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T08:42:52.703618Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T09:10:40.379571Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T09:43:02.602693Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T10:11:21.335680Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T10:38:48.849253Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T11:11:22.545003Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T11:42:22.458294Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T12:11:29.660975Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T12:29:10.230812Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-19T12:29:10.697140Z	info	cache	generated new workload certificate	latency=465.495025ms ttl=23h59m59.302888048s
+2022-07-19T12:29:10.697375Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-19T12:39:10.206924Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T13:09:48.309164Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T13:42:08.492682Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T14:11:13.273657Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T14:39:03.518124Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T15:07:20.631361Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T15:40:13.606247Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T16:12:23.538756Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T16:42:11.767325Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T17:14:01.463908Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T17:41:35.680454Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T18:14:11.142389Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T18:42:27.844197Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T19:09:40.956468Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T19:40:49.156740Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T20:11:49.535464Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T20:41:43.604057Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T21:10:31.297473Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T21:40:35.053770Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T22:11:02.308613Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T22:44:01.450015Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T23:12:46.403410Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-19T23:41:22.308675Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T00:12:23.208233Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T00:29:10.349834Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-20T00:29:10.629944Z	info	cache	generated new workload certificate	latency=279.216739ms ttl=23h59m59.370084499s
+2022-07-20T00:29:10.630298Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-20T00:44:29.768890Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T01:12:02.869053Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T01:42:23.696889Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T02:13:02.249327Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T02:40:24.653026Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T03:10:34.941542Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T03:41:50.175305Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T04:09:16.418179Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T04:41:04.104954Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T05:13:38.608437Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T05:45:33.582112Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T06:14:01.067556Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T06:44:51.900950Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T07:17:59.459727Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T07:47:55.827203Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T08:17:52.100474Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T08:45:56.896450Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T09:14:15.705959Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T09:42:23.502409Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T10:14:37.279056Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T10:45:55.977685Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T11:15:05.294368Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T11:43:07.110868Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T12:15:33.941745Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T12:29:10.315126Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-20T12:29:10.485989Z	info	cache	generated new workload certificate	latency=170.16765ms ttl=23h59m59.514024164s
+2022-07-20T12:29:10.486163Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-20T12:47:09.233822Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T13:19:11.295292Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T13:51:40.604874Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T14:22:56.822818Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T14:52:37.869275Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T15:21:15.668484Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T15:52:55.341045Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T16:23:53.398948Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T16:52:14.730656Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T17:24:15.076755Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T17:56:44.171927Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T18:27:24.372445Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T19:00:23.759401Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T19:30:39.443193Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T20:01:17.916992Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T20:29:17.673964Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T20:56:49.722362Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T21:26:50.543215Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T21:56:55.696387Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T22:27:45.593395Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T23:00:34.765303Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T23:28:13.514839Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-20T23:59:07.839728Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T00:28:44.233205Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T00:29:10.243217Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-21T00:29:10.429457Z	info	cache	generated new workload certificate	latency=185.344789ms ttl=23h59m59.570555797s
+2022-07-21T00:29:10.429728Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-21T00:57:58.680310Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T01:25:47.685286Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T01:54:42.822298Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T02:27:17.229001Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T02:56:48.047718Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T03:26:00.005141Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T03:54:29.613377Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T04:24:57.868918Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T04:57:29.061743Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T05:26:19.628826Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T05:53:56.219340Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T06:24:48.571413Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T06:55:32.589453Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T07:28:32.712670Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T07:58:40.959546Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T08:26:58.691912Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T08:57:21.989952Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T09:26:13.070599Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T09:54:40.829147Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T10:25:10.183202Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T10:58:04.162527Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T11:28:57.159039Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T11:58:10.543209Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T12:25:30.796198Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T12:29:10.215385Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-21T12:29:10.627585Z	info	cache	generated new workload certificate	latency=411.369532ms ttl=23h59m59.37243247s
+2022-07-21T12:29:10.627851Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-21T12:57:50.298767Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T13:29:57.647080Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T14:01:15.324660Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T14:31:17.912309Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T14:59:47.979567Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T15:27:08.963618Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T15:58:25.603398Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T16:28:33.544957Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T16:57:28.918986Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T17:25:07.230236Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T17:52:53.750459Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T18:21:48.404291Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T18:54:33.665518Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T19:24:46.309210Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T19:56:54.470294Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T20:26:24.706035Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T20:54:46.329744Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T21:25:55.678823Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T21:57:07.798378Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T22:24:39.280231Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T22:55:28.178373Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T23:27:44.772936Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-21T23:56:23.832861Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T00:25:13.041915Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T00:29:10.314382Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-22T00:29:10.486886Z	info	cache	generated new workload certificate	latency=171.651044ms ttl=23h59m59.513132402s
+2022-07-22T00:29:10.487164Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-22T00:53:04.019630Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T01:23:01.224468Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T01:51:07.855647Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T02:23:20.795841Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T02:51:13.640943Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T03:22:00.510129Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T03:50:52.362834Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T04:24:00.029734Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T04:52:20.712609Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T05:23:42.837614Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T05:52:34.845625Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T06:21:28.146377Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T06:51:30.329195Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T07:22:42.453318Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T07:51:28.934258Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T08:22:15.625517Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T08:50:41.781932Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T09:18:44.879417Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T09:47:59.927605Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T10:17:01.234064Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T10:45:45.244362Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T11:17:18.803220Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T11:48:39.487732Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T12:20:50.525134Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T12:29:10.244139Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-22T12:29:10.458487Z	info	cache	generated new workload certificate	latency=213.360185ms ttl=23h59m59.541527092s
+2022-07-22T12:29:10.458712Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-22T12:50:55.572800Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T13:19:13.761984Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T13:50:53.770224Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T14:18:47.380436Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T14:47:27.958766Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T15:19:48.234072Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T15:50:33.681780Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T16:17:59.256378Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T16:51:07.918402Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T17:23:23.032358Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T17:51:37.278422Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T18:20:22.329067Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T18:49:13.312065Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T19:16:47.248954Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T19:49:57.391850Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T20:19:39.250398Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T20:46:59.617594Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T21:16:04.358356Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T21:49:11.386454Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T22:20:47.785709Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T22:49:34.317610Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T23:21:57.154140Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-22T23:51:42.853781Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T00:23:33.267558Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T00:29:10.229705Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-23T00:29:10.626130Z	info	cache	generated new workload certificate	latency=395.457411ms ttl=23h59m59.373923755s
+2022-07-23T00:29:10.626461Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-23T00:56:15.833812Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T01:26:23.654125Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T01:54:55.900290Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T02:26:22.523761Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T02:55:08.712225Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T03:28:15.427762Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T03:58:07.050784Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T04:28:01.933240Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T04:55:59.571430Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T05:24:56.796932Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T05:57:51.336020Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T06:25:23.268697Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T06:53:54.355188Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T07:26:18.603551Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T07:56:17.528401Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T08:23:46.855968Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T08:54:14.125057Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T09:24:04.454670Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T09:52:59.413255Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T10:22:48.148152Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T10:50:48.532478Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T11:20:46.373234Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T11:48:39.594760Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T12:16:56.038448Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T12:29:10.313390Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-23T12:29:10.731563Z	info	cache	generated new workload certificate	latency=417.258209ms ttl=23h59m59.268449237s
+2022-07-23T12:29:10.732143Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-23T12:44:43.736187Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T13:17:30.133950Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T13:46:11.669296Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T14:15:39.214031Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T14:45:36.517028Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T15:14:20.074611Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T15:42:39.088713Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T16:11:00.854746Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T16:42:59.216913Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T17:14:28.753493Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T17:43:20.598039Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T18:13:18.230932Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T18:43:57.540115Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T19:12:57.472890Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T19:42:27.649366Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T20:12:23.539034Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T20:43:22.322637Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T21:15:42.243448Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T21:46:53.885926Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T22:14:35.568711Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T22:44:10.001561Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T23:11:25.579185Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-23T23:40:30.370161Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T00:12:41.446118Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T00:29:10.367266Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-24T00:29:10.732360Z	info	cache	generated new workload certificate	latency=364.034908ms ttl=23h59m59.267651662s
+2022-07-24T00:29:10.732800Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-24T00:45:40.918800Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T01:18:14.848730Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T01:50:33.923297Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T02:20:53.375357Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T02:51:32.340230Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T03:19:16.204237Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T03:50:57.947893Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T04:23:55.224100Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T04:55:36.538816Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T05:27:23.594837Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T05:59:51.564068Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T06:32:54.116250Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T07:01:05.176492Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T07:31:15.306054Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T08:02:02.037774Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T08:31:03.054011Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T09:01:16.755929Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T09:30:55.089293Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T10:03:40.718635Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T10:33:57.410438Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T11:06:36.047915Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T11:36:11.383002Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T12:04:33.339517Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T12:29:10.367440Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-24T12:29:10.533344Z	info	cache	generated new workload certificate	latency=164.958656ms ttl=23h59m59.466671659s
+2022-07-24T12:29:10.533624Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-24T12:36:47.283995Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T13:09:55.135018Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T13:38:56.007760Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T14:08:15.843770Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T14:39:18.778028Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T15:10:49.063379Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T15:38:16.875238Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T16:07:37.092986Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T16:35:56.460365Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T17:08:11.805685Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T17:41:15.334733Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T18:08:54.394907Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T18:40:32.112416Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T19:08:21.648199Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T19:39:42.701733Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T20:07:10.669943Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T20:34:50.060656Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T21:05:22.422267Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T21:35:49.432452Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T22:08:10.816447Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T22:38:12.534316Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T23:10:53.044842Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-24T23:43:55.592988Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T00:16:51.521688Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T00:29:10.267345Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-25T00:29:10.383509Z	info	cache	generated new workload certificate	latency=115.061857ms ttl=23h59m59.616512279s
+2022-07-25T00:29:10.383718Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-25T00:47:26.415103Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T01:14:50.980207Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T01:46:46.843586Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T02:18:45.232171Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T02:49:14.896342Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T03:18:11.075690Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T03:48:27.346224Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T04:16:56.794857Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T04:45:46.759921Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T05:14:23.700077Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T05:46:28.391967Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T06:18:26.472493Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T06:49:15.921671Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T07:21:42.466636Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T07:54:18.499394Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T08:26:31.589207Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T08:59:06.354763Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T09:31:08.514326Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T10:01:17.275883Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T10:33:34.221133Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T11:05:13.307686Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T11:36:30.133352Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T12:08:59.818995Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T12:29:10.191976Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-25T12:29:10.477747Z	info	cache	generated new workload certificate	latency=284.773396ms ttl=23h59m59.522273851s
+2022-07-25T12:29:10.478039Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-25T12:38:54.585811Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T13:11:13.395120Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T13:41:30.088549Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T14:10:17.048678Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T14:38:06.806977Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T15:06:13.194608Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T15:34:54.741869Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T16:04:53.833810Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T16:36:09.851946Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T17:06:02.577332Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T17:38:20.909337Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T18:10:04.546898Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T18:40:05.779429Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T19:13:03.538405Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T19:43:51.341676Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T20:11:33.369741Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T20:44:00.433499Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T21:12:00.655253Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T21:39:15.994567Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T22:09:48.401247Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T22:39:29.644674Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T23:09:12.930078Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-25T23:42:11.166612Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T00:13:49.490652Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T00:29:10.239401Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-26T00:29:10.490753Z	info	cache	generated new workload certificate	latency=250.544087ms ttl=23h59m59.509261435s
+2022-07-26T00:29:10.490918Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-26T00:42:25.832928Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T01:14:17.014807Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T01:41:39.488906Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T02:12:47.394892Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T02:42:15.534376Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T03:14:46.160333Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T03:47:25.816649Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T04:19:48.899526Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T04:52:36.235398Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T05:23:19.448390Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T05:53:38.165065Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T06:23:41.058958Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T06:55:39.077057Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T07:28:07.565948Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T08:00:48.581462Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T08:29:31.111028Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T09:01:54.444042Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T09:34:24.623570Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T10:02:56.922784Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T10:34:56.015893Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T11:06:53.444558Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T11:36:12.399164Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T12:07:57.103706Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T12:29:10.246443Z	info	ads	XDS: Incremental Pushing:0 ConnectedEndpoints:2 Version:
+2022-07-26T12:29:10.604259Z	info	cache	generated new workload certificate	latency=356.935962ms ttl=23h59m59.395752026s
+2022-07-26T12:29:10.604462Z	info	ads	SDS: PUSH for node:keycloak-0.keycloak resources:1 size:9.2kB resource:default
+2022-07-26T12:35:42.272875Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T13:08:24.840494Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T13:37:57.739879Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T14:11:05.039556Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T14:39:04.422171Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T15:11:32.538236Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T15:39:57.915317Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T16:11:09.625826Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+2022-07-26T16:41:31.345976Z	info	xdsproxy	connected to upstream XDS server: istiod.istio-system.svc:15012
+==== END logs for container istio-proxy of pod keycloak/keycloak-0 ====
