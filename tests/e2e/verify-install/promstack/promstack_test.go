@@ -89,6 +89,8 @@ func isPrometheusOperatorEnabled() bool {
 	return pkg.IsPrometheusOperatorEnabled(kubeconfigPath)
 }
 
+// areOverridesEnabled - return true if the override value prometheusOperator.podAnnotations.override
+// is present and set to "true"
 func areOverridesEnabled() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -105,7 +107,7 @@ func areOverridesEnabled() bool {
 		return false
 	}
 
-	// Look for the operator value
+	// The overrides are enabled if the override value prometheusOperator.podAnnotations.override = "true"
 	for _, override := range promOper.ValueOverrides {
 		if override.Values != nil {
 			jsonString, err := gabs.ParseJSON(override.Values.Raw)
