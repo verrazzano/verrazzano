@@ -142,6 +142,9 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 		if err != nil {
 			Fail("Error getting retention period for system logs from VZ CR - " + err.Error())
 		}
+		if systemRetentionPolicy.MinIndexAge == nil {
+			Skip("ISM policy configured for system logs does not have a retention period. Skipping the test")
+		}
 		oldLogsFound, err := pkg.ContainsDocsOlderThanRetentionPeriod(pkg.VerrazzanoNamespace, *systemRetentionPolicy.MinIndexAge)
 		if err != nil {
 			Fail("Error checking if docs older than retention period for system logs are present - " + err.Error())
@@ -157,6 +160,9 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 		applicationRetentionPolicy, err := pkg.GetVerrazzanoRetentionPolicy(pkg.ApplicationLogIsmPolicyName)
 		if err != nil {
 			Fail("Error getting retention period for system logs from VZ CR - " + err.Error())
+		}
+		if applicationRetentionPolicy.MinIndexAge == nil {
+			Skip("ISM policy configured for application logs does not have a retention period. Skipping the test")
 		}
 		applicationDataStreams, err := pkg.GetApplicationDataStreamNames()
 		if err != nil {

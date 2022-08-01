@@ -181,7 +181,8 @@ func GetVerrazzanoRetentionPolicy(retentionPolicyName string) (v12.IndexManageme
 		return retentionPolicy, fmt.Errorf(clientSetErrorFmt, err)
 	}
 	var retentionPolicies []v12.IndexManagementPolicy
-	if clientset.Spec.Components.Elasticsearch != nil {
+	if clientset.Spec.Components.Elasticsearch != nil  &&
+		clientset.Spec.Components.Elasticsearch.Policies != nil {
 		retentionPolicies = clientset.Spec.Components.Elasticsearch.Policies
 	} else {
 		return retentionPolicy, nil
