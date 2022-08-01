@@ -247,7 +247,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
-			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for %s to complete\n", timeout.String(), getOperationString(condType)))
+			return fmt.Errorf("Timeout %v exceeded waiting for %s to complete", timeout.String(), getOperationString(condType))
 		}
 	}
 
