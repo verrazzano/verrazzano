@@ -24,7 +24,7 @@ func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedNa
 	if err := ctx.Client().Get(context.TODO(), pvcName, pvc); err != nil {
 		// no pvc so just log it and there's nothing left to do
 		if errors.IsNotFound(err) {
-			ctx.Log().Infof("Did not find pvc %s", pvcName)
+			ctx.Log().Debugf("Did not find pvc %s", pvcName)
 			return nil
 		}
 		return err
@@ -61,7 +61,7 @@ func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedNa
 // UpdateExistingVolumeClaim removes a persistent volume claim from the volume if the
 // status is "released". This allows the new deployment to bind to the existing volume.
 func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.NamespacedName, newClaimName string, componentName string) error {
-	ctx.Log().Info("Removing old claim from persistent volume if a volume exists")
+	ctx.Log().Debugf("Removing old claim from persistent volume if a volume exists")
 
 	pvList, err := GetPersistentVolumes(ctx, componentName)
 	if err != nil {
@@ -72,13 +72,13 @@ func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.Namespac
 	// find a volume that has been released but still has a claim for old deployment
 	for i := range pvs {
 		pv := pvs[i] // avoids "Implicit memory aliasing in for loop" linter complaint
-		ctx.Log().Infof("UpdateExistingVolumeClaims - PV %s status: %s", pv.Name, pv.Status.Phase)
+		ctx.Log().Debugf("Update PV %s.  Current status: %s", pv.Name, pv.Status.Phase)
 		if pv.Status.Phase == v1.VolumeBound {
 			return ctx.Log().ErrorfNewErr("PV %s is still bound", pv.Namespace)
 		}
 
 		if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace == pvcName.Namespace && pv.Spec.ClaimRef.Name == pvcName.Name {
-			ctx.Log().Infof("Found volume, removing old claim from persistent volume %s", pv.Name)
+			ctx.Log().Infof("Removing old claim from persistent volume %s", pv.Name)
 			pv.Spec.ClaimRef = nil
 			if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
 				return ctx.Log().ErrorfNewErr("Failed removing claim from persistent volume %s: %v", pv.Name, err)
@@ -95,7 +95,7 @@ func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.Namespac
 
 // DeleteExistingVolumeClaims removes a persistent volume claim in order to allow the pv to be reclaimed by a new PVC.
 func DeleteExistingVolumeClaim(ctx spi.ComponentContext, pvcName types.NamespacedName) error {
-	ctx.Log().Infof("Removing PVC %v", pvcName)
+	ctx.Log().Debugf("Removing PVC %v", pvcName)
 
 	// get the PVC in order to update it
 	pvc := &v1.PersistentVolumeClaim{
@@ -104,7 +104,7 @@ func DeleteExistingVolumeClaim(ctx spi.ComponentContext, pvcName types.Namespace
 			Namespace: pvcName.Namespace,
 		},
 	}
-	ctx.Log().Infof("DeleteExistingVolumeClaim - deleting pvc %v", pvcName)
+	ctx.Log().Debugf("Deleting pvc %v", pvcName)
 	if err := ctx.Client().Delete(context.TODO(), pvc); err != nil {
 		if errors.IsNotFound(err) {
 			ctx.Log().Infof("PVC %v is not found", pvcName)
@@ -119,7 +119,7 @@ func DeleteExistingVolumeClaim(ctx spi.ComponentContext, pvcName types.Namespace
 
 // ResetVolumeReclaimPolicy resets the reclaim policy on a volume to its original value (prior to upgrade).
 func ResetVolumeReclaimPolicy(ctx spi.ComponentContext, componentName string) error {
-	ctx.Log().Info("Resetting reclaim policy on volume if a volume exists")
+	ctx.Log().Debugf("Resetting reclaim policy on volume if a volume exists")
 
 	pvList, err := GetPersistentVolumes(ctx, componentName)
 	if err != nil {
@@ -140,7 +140,7 @@ func ResetVolumeReclaimPolicy(ctx spi.ComponentContext, componentName string) er
 
 		if ok {
 			// found a bound volume that still has an old reclaim policy label, so reset the reclaim policy and remove the label
-			ctx.Log().Infof("Found volume, resetting reclaim policy on persistent volume %s to %s", pv.Name, oldPolicy)
+			ctx.Log().Debugf("Resetting reclaim policy on persistent volume %s to %s", pv.Name, oldPolicy)
 			pv.Spec.PersistentVolumeReclaimPolicy = v1.PersistentVolumeReclaimPolicy(oldPolicy)
 			delete(pv.Labels, vzconst.OldReclaimPolicyLabel)
 
@@ -162,7 +162,7 @@ func GetPersistentVolumes(ctx spi.ComponentContext, componentName string) (*v1.P
 		}
 		return nil, ctx.Log().ErrorfNewErr("Failed listing persistent volumes: %v", err)
 	}
-	ctx.Log().Infof("Found %d volumes associated with component %s", len(pvList.Items), componentName)
+	ctx.Log().Debugf("Found %d volumes associated with component %s", len(pvList.Items), componentName)
 	return pvList, nil
 }
 

@@ -350,25 +350,25 @@ func preUpgrade(ctx spi.ComponentContext) error {
 		},
 	}
 	// delete the deployment to free up the pv/pvc
-	ctx.Log().Infof("Deleting deployment %s", ComponentName)
+	ctx.Log().Debugf("Deleting deployment %s", ComponentName)
 	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
 		if !errors.IsNotFound(err) {
-			ctx.Log().Infof("preUpgrade - unable to delete deployment %s", ComponentName)
+			ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
 			return err
 		}
 	} else {
-		ctx.Log().Infof("Deployment %v deleted", deployment.ObjectMeta)
+		ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
 	}
 
-	ctx.Log().Infof("Deleting PVC %v", deploymentPvc)
+	ctx.Log().Debugf("Deleting PVC %v", deploymentPvc)
 	if err := common.DeleteExistingVolumeClaim(ctx, deploymentPvc); err != nil {
-		ctx.Log().Infof("preUpgrade - unable to delete existing PVC")
+		ctx.Log().Debugf("Unable to delete existing PVC %v", deploymentPvc)
 		return err
 	}
 
-	ctx.Log().Infof("Updating PV/PVC %v", deploymentPvc)
+	ctx.Log().Debugf("Updating PV/PVC %v", deploymentPvc)
 	if err := common.UpdateExistingVolumeClaims(ctx, deploymentPvc, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
-		ctx.Log().Infof("preUpgade - unable to update PV/PVC")
+		ctx.Log().Debugf("Unable to update PV/PVC")
 		return err
 	}
 
