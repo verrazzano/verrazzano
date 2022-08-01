@@ -4,19 +4,21 @@
 package restapi_test
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = t.Describe("rancher", Label("f:infra-lcm",
@@ -46,33 +48,58 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
 
 				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
-				var token string
+
+				k8sClient, err := pkg.GetDynamicClientInCluster(kubeconfigPath)
+				if err != nil {
+					t.Logs.Error(fmt.Sprintf("Error getting K8S client: %v", err))
+					t.Fail(err.Error())
+				}
+
 				start := time.Now()
-				Eventually(func() string {
-					token = pkg.GetRancherAdminToken(t.Logs, httpClient, rancherURL)
-					return token
-				}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())
-				metrics.Emit(t.Metrics.With("get_token_elapsed_time", time.Since(start).Milliseconds()))
-				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
-				start = time.Now()
-				Eventually(func() (string, error) {
-					return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/clusters/local", token, httpClient, "state")
-				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher local cluster not in active state")
+				t.Logs.Info("Verify local cluster status")
+				Eventually(func() (bool, error) {
+					clusterData, err := k8sClient.Resource(gvkToGvr(rancher.GVKCluster)).Get(context.Background(), rancher.ClusterLocal, v1.GetOptions{})
+					if err != nil {
+						t.Logs.Error(fmt.Sprintf("Error getting local Cluster CR: %v", err))
+						return false, err
+					}
+					status := clusterData.UnstructuredContent()["status"].(map[string]interface{})
+					conditions := status["conditions"].([]interface{})
+					for _, condition := range conditions {
+						conditionStage := condition.(map[string]interface{})
+						if conditionStage["status"].(string) == "True" && conditionStage["type"].(string) == "Ready" {
+							return true, nil
+						}
+					}
+					return false, fmt.Errorf("Cluster still not in active state")
+				}, waitTimeout, pollingInterval).Should(Equal(true), "rancher local cluster not in active state")
 				metrics.Emit(t.Metrics.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
 
 				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 				Expect(err).ToNot(HaveOccurred())
 				if minVer14 {
 					start = time.Now()
-					Eventually(func() (string, error) {
-						return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/nodeDrivers/oci", token, httpClient, "state")
-					}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oci driver not activated")
+					t.Logs.Info("Verify OCI driver status")
+					Eventually(func() (bool, error) {
+						ociDriverData, err := k8sClient.Resource(gvkToGvr(rancher.GVKNodeDriver)).Get(context.Background(), rancher.NodeDriverOCI, v1.GetOptions{})
+						if err != nil {
+							t.Logs.Error(fmt.Sprintf("Error getting OCI Driver CR: %v", err))
+							return false, err
+						}
+						return ociDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher oci driver not activated")
 					metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 
 					start = time.Now()
-					Eventually(func() (string, error) {
-						return getFieldOrErrorFromRancherAPIResponse(rancherURL, "v3/kontainerDrivers/oraclecontainerengine", token, httpClient, "state")
-					}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher oke driver not activated")
+					t.Logs.Info("Verify OKE driver status")
+					Eventually(func() (bool, error) {
+						okeDriverData, err := k8sClient.Resource(gvkToGvr(rancher.GVKKontainerDriver)).Get(context.Background(), rancher.KontainerDriverOKE, v1.GetOptions{})
+						if err != nil {
+							t.Logs.Error(fmt.Sprintf("Error getting OKE Driver CR: %v", err))
+							return false, err
+						}
+						return okeDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher oke driver not activated")
 					metrics.Emit(t.Metrics.With("get_oke_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 				}
 			}
@@ -80,35 +107,18 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 	})
 })
 
-func getFieldOrErrorFromRancherAPIResponse(rancherURL string, apiPath string, token string, httpClient *retryablehttp.Client, field string) (string, error) {
-	req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, apiPath), nil)
-	if err != nil {
-		t.Logs.Error(fmt.Sprintf("error creating rancher api request for %s: %v", apiPath, err))
-		return "", err
+func gvkToGvr(gvk schema.GroupVersionKind) schema.GroupVersionResource {
+	resource := strings.ToLower(gvk.Kind)
+	if strings.HasSuffix(resource, "s") {
+		resource = resource + "es"
+	} else {
+		resource = resource + "s"
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
-	req.Header.Set("Accept", "application/json")
-	response, err := httpClient.Do(req)
-	if err != nil {
-		t.Logs.Error(fmt.Sprintf("error invoking rancher api request %s: %v", apiPath, err))
-		return "", err
+	return schema.GroupVersionResource{Group: gvk.Group,
+		Version:  gvk.Version,
+		Resource: resource,
 	}
-
-	err = httputil.ValidateResponseCode(response, http.StatusOK)
-	if err != nil {
-		return "", err
-	}
-
-	defer response.Body.Close()
-
-	// extract the response body
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), field, fmt.Sprintf("unable to find %s in rancher api response for %s", field, apiPath))
 }
 
 var _ = t.AfterEach(func() {})

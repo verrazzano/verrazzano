@@ -342,6 +342,17 @@ def runUninstall(iteration) {
             throw err
         }
     }
+    stage("Verify CRDs #${iteration}") {
+        try {
+            runGinkgo('uninstall/verifycrds')
+            if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                dumpK8sCluster('verify-crds-${iteration}-cluster-dump')
+            }
+        } catch (err) {
+            dumpK8sCluster('verify-crds-${iteration}-cluster-dump')
+            throw err
+        }
+    }
 }
 
 def runInstallOnly(stagePrefix, iteration) {
@@ -469,20 +480,35 @@ def uninstallVerrazzano(vpoLogsDir) {
 
 def kill_vpo_loop(vpoLogsDir) {
     script {
-        // Future enhancement, possibly use a random number within a range of 10-30 secs of something
-        echo "Wait 15 seconds before kill loop"
-        sleep 15
-        for (int count = 1; count <= 2; count++) {
-            sh """
+        echo "Stopping the VPO on loop in 15 to 60 second intervals"
+
+        sh """
+            # Initially sleep for 30 to 60 seconds
+            SLEEP_SEC=\$[ \$RANDOM % 30 + 30 ]
+            echo "Sleeping for \$SLEEP_SEC seconds"
+            sleep \$SLEEP_SEC
+
+            VZ_STATUS=\$(kubectl get vz my-verrazzano --ignore-not-found -o jsonpath={.status.conditions[-1].type})
+            RESTARTS=1
+            while [ ! -z \$VZ_STATUS ] && [ \$VZ_STATUS == "UninstallStarted" ] ; do
                 POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                 mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-                kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-${count}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator >> ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-\${RESTARTS}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 kubectl -n verrazzano-install delete po \$POD
                 POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                 kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
                 echo "VPO \$POD successfully restarted"
-            """
-        }
+                
+                # Sleep a random interval between 15 and 60 seconds
+                SLEEP_SEC=\$[ \$RANDOM % 45 + 15 ]
+                echo "Sleeping for \$SLEEP_SEC seconds"
+                sleep \$SLEEP_SEC
+
+                # Update the Verrazzano status and update restart counter
+                VZ_STATUS=\$(kubectl get vz my-verrazzano --ignore-not-found -o jsonpath={.status.conditions[-1].type})
+                ((RESTARTS++))
+            done
+        """
     }
 }
 

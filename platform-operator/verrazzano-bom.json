@@ -342,7 +342,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.5",
+              "tag": "3.2.6",
               "helmFullImageKey": "image"
             }
           ]
@@ -679,7 +679,7 @@
           "images": [
             {
               "image": "backup-restore-operator",
-              "tag": "v2.1.0-20220716000233-1a1d2a1",
+              "tag": "v2.1.0-20220728055921-09d528e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
