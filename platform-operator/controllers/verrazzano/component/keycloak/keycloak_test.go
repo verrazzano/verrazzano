@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"testing"
@@ -331,21 +332,23 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			execCommand = fakeExecCommand
+			podExecResult := k8sutilfake.PodExecResult
 			if tt.wantErr && tt.name == "testFailForAuthenticationToKeycloak" {
-				execCommand = fakeFailExecCommand
+				k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
+					return "", "", fmt.Errorf("failed authenticating")
+				}
 			}
 			if tt.wantErr && tt.name == "testFailForNoKeycloakClientsReturned" {
-				execCommand = fakeFailExecCommandNoClients
+				k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
+					return "", "[]", nil
+				}
 			}
 			if tt.wantErr && tt.name == "testFailForKeycloakUserNotFound" {
-				execCommand = fakeFailExecCommandNoUser
+				k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
+					return "", "", fmt.Errorf("invalid user")
+				}
 			}
-			setBashFunc(fakeBash)
-			if tt.wantErr && tt.name == "testScriptFailure" {
-				setBashFunc(fakeBashFail)
-			}
-			defer func() { execCommand = exec.Command }()
+			defer func() { k8sutilfake.PodExecResult = podExecResult }()
 			if err := updateKeycloakUris(tt.args, cfg, cli, keycloakPod(), "", ""); (err != nil) != tt.wantErr {
 				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -389,7 +392,6 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		isErr       bool
 		errContains string
 		execFunc    func(command string, args ...string) *exec.Cmd
-		bashFunc    bashFuncSig
 	}{
 		{
 			"should fail when login fails",
@@ -398,7 +400,6 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"secrets \"keycloak-http\" not found",
 			fakeCreateUserGroupCommand,
-			defaultBashFunc,
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is empty",
@@ -407,7 +408,6 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"Component Keycloak failed; user group ID from Keycloak is zero length",
 			fakeCreateUserGroupCommandFail,
-			defaultBashFunc,
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is incorrect",
@@ -416,7 +416,6 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"failed parsing output returned from Users Group",
 			fakeCreateUserGroupParseCommandFail,
-			defaultBashFunc,
 		},
 		{
 			"should fail when Verrazzano secret is not present",
@@ -425,7 +424,6 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"secrets \"verrazzano\" not found",
 			fakeCreateUserGroupCommand,
-			defaultBashFunc,
 		},
 		{
 			"should fail when Verrazzano secret has no password",
@@ -443,7 +441,6 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"password field empty in secret",
 			fakeCreateUserGroupCommand,
-			defaultBashFunc,
 		},
 		{
 			"should fail when nginx service is not present",
@@ -479,7 +476,6 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"services \"ingress-controller-ingress-nginx-controller\" not found",
 			fakeConfigureRealmCommands,
-			defaultBashFunc,
 		},
 		{
 			"bashFunc fails during updateKeycloakURIs",
@@ -553,7 +549,6 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			false,
 			"",
 			fakeConfigureRealmCommands,
-			defaultBashFunc,
 		},
 	}
 
@@ -563,7 +558,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			execCommand = tt.execFunc
 			bashFunc = tt.bashFunc
 			defer func() { bashFunc = vzos.RunBash }()
-			k8sutilfake.PodSTDOUT = tt.stdout
+			k8sutilfake.PodExecResult = func(url *url.URL) string { return tt.stdout }
 			err := configureKeycloakRealms(ctx)
 			if tt.isErr {
 				assert.Error(t, err)
@@ -701,7 +696,7 @@ func TestLoginKeycloak(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k8sutilfake.PodSTDOUT = "blah"
+			k8sutilfake.PodExecResult = func(url *url.URL) string { return "blah" }
 			err := loginKeycloak(spi.NewFakeContext(tt.c, testVZ, false), cfg, restclient)
 			if tt.isErr {
 				assert.Error(t, err)

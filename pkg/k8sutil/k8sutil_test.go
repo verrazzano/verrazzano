@@ -4,11 +4,13 @@ package k8sutil_test
 
 import (
 	"fmt"
+	"net/url"
+	"os"
+	"testing"
+
 	spdyfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -292,7 +294,7 @@ func TestGetHostnameFromGatewayGatewaysForAppConfigExists(t *testing.T) {
 //  THEN ExecPod return the stdout, stderr, and a nil error
 func TestExecPod(t *testing.T) {
 	k8sutil.NewPodExecutor = spdyfake.NewPodExecutor
-	spdyfake.PodSTDOUT = "foobar"
+	spdyfake.PodExecResult = func(url *url.URL) (string, string, error) { return "{\"result\":\"result\"}", "", nil }
 	cfg, client := spdyfake.NewClientsetConfig()
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -302,5 +304,5 @@ func TestExecPod(t *testing.T) {
 	}
 	stdout, _, err := k8sutil.ExecPod(client, cfg, pod, "container", []string{"run", "some", "command"})
 	assert.Nil(t, err)
-	assert.Equal(t, spdyfake.PodSTDOUT, stdout)
+	assert.Equal(t, spdyfake.PodExecResult, stdout)
 }

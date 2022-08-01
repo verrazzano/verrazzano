@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -23,7 +24,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -357,20 +360,35 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	ociDriver := createOciDriver()
 	okeDriver := createOkeDriver()
 	authConfig := createKeycloakAuthConfig()
+	kcSecret := createKeycloakSecret()
 
-	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress).Build()
+	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret).Build()
 	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
 
-	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress).Build()
+	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret).Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
-
 	// mock the pod executor when resetting the Rancher admin password
+	scheme.Scheme.AddKnownTypes(schema.GroupVersion{Group: "", Version: "v1"}, &corev1.PodExecOptions{})
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
-	k8sutilfake.PodSTDOUT = "password"
+	k8sutilfake.PodExecResult = func(url *url.URL) string {
+		var commands []string
+		if commands = url.Query()["command"]; len(commands) == 3 {
+			if strings.Contains(commands[2], "id,clientId") {
+				return "[{\"id\":\"something\", \"clientId\":\"rancher\",\"clientSecret\":\"abcdef\"}]"
+			}
+
+			if strings.Contains(commands[2], "client-secret") {
+				return "{\"type\":\"secret\",\"secret\":\"abcdef\"}"
+			}
+
+		}
+		return "blahblah"
+	}
 	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
 		config, k := k8sutilfake.NewClientsetConfig()
 		return config, k, nil
 	}
+	//keycloak.GetRancherClientSecretFromKeycloak = func(ctx spi.ComponentContext) (string, error) { return "abcdef", nil }
 
 	return ctxWithoutIngress, ctxWithIngress
 
