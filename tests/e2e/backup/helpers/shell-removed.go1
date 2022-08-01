@@ -1,0 +1,58 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+package common
+
+import (
+	"context"
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
+)
+
+// DisplayHookLogs is used to display the logs from the pod where the backup hook was run
+// It execs into the pod and fetches the log file contents
+func DisplayHookLogs(log *zap.SugaredLogger) error {
+
+	log.Infof("Retrieving verrazzano hook logs ...")
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Failed to get config with error: %v", err)
+		return err
+	}
+
+	podSpec, err := clientset.CoreV1().Pods(constants.VerrazzanoSystemNamespace).Get(context.TODO(), "vmi-system-es-master-0", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	cmdLogFileName := []string{"/bin/sh", "-c", "ls -alt --time=ctime /tmp/ | grep verrazzano | head -1"}
+	stdout, _, err := k8sutil.ExecPod(clientset, config, podSpec, "es-master", cmdLogFileName)
+	if err != nil {
+		log.Errorf("Error = %v", zap.Error(err))
+		return err
+	}
+
+	logFileData := strings.TrimSpace(strings.Trim(stdout, "\n"))
+	logFileName := strings.Split(logFileData, " ")[len(strings.Split(logFileData, " "))-1]
+
+	var execCmd []string
+	execCmd = append(execCmd, "cat")
+	execCmd = append(execCmd, fmt.Sprintf("/tmp/%s", logFileName))
+	stdout, _, err = k8sutil.ExecPod(clientset, config, podSpec, "es-master", execCmd)
+	if err != nil {
+		log.Errorf("Error = %v", zap.Error(err))
+		return err
+	}
+	log.Infof(stdout)
+	return nil
+}

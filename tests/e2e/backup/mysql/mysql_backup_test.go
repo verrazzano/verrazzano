@@ -158,28 +158,33 @@ func KeycloakVerifyUsers() bool {
 
 // DisplayResticInfo displays the Pvc pod volume backups/restores
 func DisplayResticInfo(operation string) error {
-	var cmdArgs []string
-	var apiResource string
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "get")
 	switch operation {
 	case "backup":
-		apiResource = "podvolumebackups"
-	case "restore":
-		apiResource = "podvolumerestores"
-	}
-	cmdArgs = append(cmdArgs, fmt.Sprintf("%s.velero.io", apiResource))
-	cmdArgs = append(cmdArgs, "-n")
-	cmdArgs = append(cmdArgs, common.VeleroNameSpace)
+		podVolumeBackups, err := common.GetPodVolumeBackups(constants.VeleroNameSpace, t.Logs)
+		if err != nil {
+			return err
+		}
+		for _, item := range podVolumeBackups.Items {
+			t.Logs.Infof("Name=%s\t,Status=%s\t,Namespace=%s\t,Pod=%s\tVolume=%s\t,repo=%s\t,Storage=%s\t", item.PodVolume.Metadata.Name, item.PodVolume.Status.Phase,
+				item.PodVolume.Metadata.Namespace, item.PodVolume.Spec.Pod.Name, item.PodVolume.Spec.Volume, item.PodVolume.Spec.RepoIdentifier, item.PodVolume.Spec.BackupStorageLocation)
+		}
+		return nil
 
-	var kcmd common.BashCommand
-	kcmd.Timeout = 1 * time.Minute
-	kcmd.CommandArgs = cmdArgs
-	cmdResponse := common.Runner(&kcmd, t.Logs)
-	if cmdResponse.CommandError != nil {
-		return cmdResponse.CommandError
+	case "restore":
+		podVolumeRestores, err := common.GetPodVolumeRestores(constants.VeleroNameSpace, t.Logs)
+		if err != nil {
+			return err
+		}
+		for _, item := range podVolumeRestores.Items {
+			t.Logs.Infof("Name=%s\t,Namespace=%s\t,Pod=%s\tVolume=%s\t,Status=%s\t,TotalBytes=%s\t,BytesDone=%s\t", item.PodRestore.Metadata.Name,
+				item.PodRestore.Metadata.Namespace, item.PodRestore.Spec.Pod.Name, item.PodRestore.Spec.Volume, item.PodRestore.Status.Phase, item.PodRestore.Status.Progress.TotalBytes, item.PodRestore.Status.Progress.BytesDone)
+		}
+		return nil
+	default:
+		t.Logs.Errorf("Invalid operation to display")
+		return fmt.Errorf("Invalid opeartion")
 	}
-	return nil
+
 }
 
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
@@ -209,7 +214,6 @@ func checkPodsRunning(namespace string, expectedPods []string) bool {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
-	fmt.Printf("Result = %v")
 	return result
 }
 

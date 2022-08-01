@@ -280,7 +280,6 @@ func checkPodsRunning(namespace string, expectedPods []string) bool {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
-	fmt.Printf("Result = %v", result)
 	return result
 }
 

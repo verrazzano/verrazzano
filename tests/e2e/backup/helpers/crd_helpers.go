@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
@@ -48,6 +49,33 @@ func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, 
 	}
 	if err != nil {
 		log.Errorf("Unable to fetch %s %s %s due to '%v'", component, resource, resourceName, zap.Error(err))
+		return nil, err
+	}
+	return dataFetched, nil
+}
+
+func getUnstructuredDataList(group, version, resource, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
+		return nil, err
+	}
+	dclient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		return nil, err
+	}
+
+	log.Infof("Fetching %s %s", component, resource)
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+
+	dataFetched, err := dclient.Resource(gvr).Namespace(nameSpaceName).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		log.Errorf("Unable to fetch %s %s due to '%v'", component, resource, zap.Error(err))
 		return nil, err
 	}
 	return dataFetched, nil
@@ -155,6 +183,62 @@ func GetVeleroRestore(namespace, restoreName string, log *zap.SugaredLogger) (*V
 	}
 
 	return &restore, nil
+}
+
+// GetPodVolumeBackups Retrieves Velero pod volume backups object from the cluster
+func GetPodVolumeBackups(namespace string, log *zap.SugaredLogger) (*VeleroPodVolumeBackupList, error) {
+
+	podVolumeBackupsFetched, err := getUnstructuredDataList("velero.io", "v1", "podvolumebackups", namespace, "velero", log)
+	if err != nil {
+		log.Errorf("Unable to fetch velero podvolumebackups due to '%v'", zap.Error(err))
+		return nil, err
+	}
+
+	if podVolumeBackupsFetched == nil {
+		log.Infof("No Velero podvolumebackups in namespace '%s' was detected ", namespace)
+	}
+
+	var podVolumeBackups VeleroPodVolumeBackupList
+	bdata, err := json.Marshal(podVolumeBackups)
+	if err != nil {
+		log.Errorf("Json marshalling error %v", zap.Error(err))
+		return nil, err
+	}
+	err = json.Unmarshal(bdata, &podVolumeBackups)
+	if err != nil {
+		log.Errorf("Json unmarshall error %v", zap.Error(err))
+		return nil, err
+	}
+	spew.Dump(podVolumeBackups)
+	return &podVolumeBackups, nil
+}
+
+// GetPodVolumeRestores Retrieves Velero pod volume restores object from the cluster
+func GetPodVolumeRestores(namespace string, log *zap.SugaredLogger) (*VeleroPodVolumeRestoreList, error) {
+
+	restoreFetched, err := getUnstructuredDataList("velero.io", "v1", "podvolumerestores", namespace, "velero", log)
+	if err != nil {
+		log.Errorf("Unable to fetch velero podvolumebackups due to '%v'", zap.Error(err))
+		return nil, err
+	}
+
+	if restoreFetched == nil {
+		log.Infof("No Velero podvolumebackups in namespace '%s' was detected ", namespace)
+	}
+
+	var podVolumeRestores VeleroPodVolumeRestoreList
+	bdata, err := json.Marshal(restoreFetched)
+	if err != nil {
+		log.Errorf("Json marshalling error %v", zap.Error(err))
+		return nil, err
+	}
+	err = json.Unmarshal(bdata, &podVolumeRestores)
+	if err != nil {
+		log.Errorf("Json unmarshall error %v", zap.Error(err))
+		return nil, err
+	}
+
+	return &podVolumeRestores, nil
 }
 
 func GetRancherBackup(backupName string, log *zap.SugaredLogger) (*RancherBackupModel, error) {

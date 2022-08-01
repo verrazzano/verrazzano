@@ -326,6 +326,133 @@ type RancherRestoreModel struct {
 	} `json:"status"`
 }
 
+type VeleroPodVolumeBackups struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Metadata   struct {
+		CreationTimestamp time.Time `json:"creationTimestamp"`
+		GenerateName      string    `json:"generateName"`
+		Generation        int       `json:"generation"`
+		Labels            struct {
+			VeleroIoBackupName string `json:"velero.io/backup-name"`
+			VeleroIoBackupUID  string `json:"velero.io/backup-uid"`
+		} `json:"labels"`
+		Name            string `json:"name"`
+		Namespace       string `json:"namespace"`
+		OwnerReferences []struct {
+			APIVersion string `json:"apiVersion"`
+			Controller bool   `json:"controller"`
+			Kind       string `json:"kind"`
+			Name       string `json:"name"`
+			UID        string `json:"uid"`
+		} `json:"ownerReferences"`
+		ResourceVersion string `json:"resourceVersion"`
+		UID             string `json:"uid"`
+	} `json:"metadata"`
+	Spec struct {
+		BackupStorageLocation string `json:"backupStorageLocation"`
+		Node                  string `json:"node"`
+		Pod                   struct {
+			Kind      string `json:"kind"`
+			Name      string `json:"name"`
+			Namespace string `json:"namespace"`
+			UID       string `json:"uid"`
+		} `json:"pod"`
+		RepoIdentifier string `json:"repoIdentifier"`
+		Tags           struct {
+			Backup    string `json:"backup"`
+			BackupUID string `json:"backup-uid"`
+			Ns        string `json:"ns"`
+			Pod       string `json:"pod"`
+			PodUID    string `json:"pod-uid"`
+			Volume    string `json:"volume"`
+		} `json:"tags"`
+		Volume string `json:"volume"`
+	} `json:"spec"`
+	Status struct {
+		CompletionTimestamp time.Time `json:"completionTimestamp"`
+		Path                string    `json:"path"`
+		Phase               string    `json:"phase"`
+		Progress            struct {
+			BytesDone  int `json:"bytesDone"`
+			TotalBytes int `json:"totalBytes"`
+		} `json:"progress"`
+		SnapshotID     string    `json:"snapshotID"`
+		StartTimestamp time.Time `json:"startTimestamp"`
+	} `json:"status"`
+}
+
+type VeleroPodVolumeRestores struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Metadata   struct {
+		CreationTimestamp time.Time `json:"creationTimestamp"`
+		GenerateName      string    `json:"generateName"`
+		Generation        int       `json:"generation"`
+		Labels            struct {
+			VeleroIoPodUID      string `json:"velero.io/pod-uid"`
+			VeleroIoRestoreName string `json:"velero.io/restore-name"`
+			VeleroIoRestoreUID  string `json:"velero.io/restore-uid"`
+		} `json:"labels"`
+		Name            string `json:"name"`
+		Namespace       string `json:"namespace"`
+		OwnerReferences []struct {
+			APIVersion string `json:"apiVersion"`
+			Controller bool   `json:"controller"`
+			Kind       string `json:"kind"`
+			Name       string `json:"name"`
+			UID        string `json:"uid"`
+		} `json:"ownerReferences"`
+		ResourceVersion string `json:"resourceVersion"`
+		UID             string `json:"uid"`
+	} `json:"metadata"`
+	Spec struct {
+		BackupStorageLocation string `json:"backupStorageLocation"`
+		Pod                   struct {
+			Kind      string `json:"kind"`
+			Name      string `json:"name"`
+			Namespace string `json:"namespace"`
+			UID       string `json:"uid"`
+		} `json:"pod"`
+		RepoIdentifier string `json:"repoIdentifier"`
+		SnapshotID     string `json:"snapshotID"`
+		Volume         string `json:"volume"`
+	} `json:"spec"`
+	Status struct {
+		CompletionTimestamp time.Time `json:"completionTimestamp"`
+		Phase               string    `json:"phase"`
+		Progress            struct {
+			BytesDone  int `json:"bytesDone"`
+			TotalBytes int `json:"totalBytes"`
+		} `json:"progress"`
+		StartTimestamp time.Time `json:"startTimestamp"`
+	} `json:"status"`
+}
+
+type VeleroPodVolumeBackupList struct {
+	APIVersion string `json:"apiVersion"`
+	Items      []struct {
+		PodVolume VeleroPodVolumeBackups
+	} `json:"items"`
+	Kind     string `json:"kind"`
+	Metadata struct {
+		ResourceVersion string `json:"resourceVersion"`
+		SelfLink        string `json:"selfLink"`
+	} `json:"metadata"`
+}
+
+type VeleroPodVolumeRestoreList struct {
+	APIVersion string `json:"apiVersion"`
+	Items      []struct {
+		PodRestore VeleroPodVolumeRestores
+	} `json:"items"`
+	Kind     string `json:"kind"`
+	Metadata struct {
+		ResourceVersion string `json:"resourceVersion"`
+		SelfLink        string `json:"selfLink"`
+	} `json:"metadata"`
+}
+
 // Variables used across backup components
 var (
 	VeleroNameSpace             string
