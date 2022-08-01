@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -98,7 +99,28 @@ func areOverridesEnabled() bool {
 		AbortSuite(fmt.Sprintf("Failed to get vz resource in cluster: %s", err.Error()))
 		return false
 	}
-	return vz.Spec.Components.PrometheusOperator != nil && len(vz.Spec.Components.PrometheusOperator.ValueOverrides) > 0
+
+	promOper := vz.Spec.Components.PrometheusOperator
+	if promOper == nil || len(promOper.ValueOverrides) == 0 {
+		return false
+	}
+
+	// Look for the operator value
+	for _, override := range promOper.ValueOverrides {
+		if override.Values != nil {
+			jsonString, err := gabs.ParseJSON(override.Values.Raw)
+			if err != nil {
+				return false
+			}
+			if container := jsonString.Path("prometheusOperator.podAnnotations.override"); container != nil {
+				if val, ok := container.Data().(string); ok {
+					return "true" == string(val)
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 // 'It' Wrapper to only run spec if the Prometheus Stack is supported on the current Verrazzano version
