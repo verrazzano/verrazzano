@@ -421,7 +421,7 @@ func TestPostUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
 			pv := v1.PersistentVolume{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "volumeName",
+					Name:   "volumeName",
 					Labels: map[string]string{vzconst.OldReclaimPolicyLabel: string(v1.PersistentVolumeReclaimDelete)},
 				},
 				Spec: v1.PersistentVolumeSpec{
@@ -442,7 +442,7 @@ func TestPostUpgrade(t *testing.T) {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, pv *v1.PersistentVolume, opts ...client.UpdateOption) error {
 			assert.Equal(t, v1.PersistentVolumeReclaimDelete, pv.Spec.PersistentVolumeReclaimPolicy)
-			_,ok := pv.Labels[vzconst.OldReclaimPolicyLabel]
+			_, ok := pv.Labels[vzconst.OldReclaimPolicyLabel]
 			assert.False(t, ok)
 			return nil
 		})
