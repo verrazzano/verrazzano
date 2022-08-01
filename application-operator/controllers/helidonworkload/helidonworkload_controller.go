@@ -207,6 +207,10 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoH
 // convertWorkloadToDeployment converts a VerrazzanoHelidonWorkload into a Deployment.
 func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelidonWorkload, log vzlog.VerrazzanoLogger) (*appsv1.Deployment, error) {
 
+	if workload.Spec.DeploymentTemplate.Selector.MatchLabels == nil {
+		workload.Spec.DeploymentTemplate.Selector.MatchLabels = make(map[string]string)
+	}
+	workload.Spec.DeploymentTemplate.Selector.MatchLabels[labelKey] = string(workload.GetUID())
 	d := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       deploymentKind,
