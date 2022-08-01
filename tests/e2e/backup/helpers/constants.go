@@ -6,7 +6,8 @@ package common
 const (
 	ObjectStoreCredsAccessKeyName       = "aws_access_key_id"     //nolint:gosec //#gosec G101 //#gosec G204
 	ObjectStoreCredsSecretAccessKeyName = "aws_secret_access_key" //nolint:gosec //#gosec G101 //#gosec G204
-
+	RancherUserCount                    = 3
+	KeycloakUserCount                   = 3
 )
 
 // SecretsData template for creating backup credentials

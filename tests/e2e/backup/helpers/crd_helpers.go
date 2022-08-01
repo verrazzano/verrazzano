@@ -13,12 +13,45 @@ import (
 	"go.uber.org/zap"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"strings"
 	"text/template"
-	"time"
 )
+
+func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+	var dataFetched *unstructured.Unstructured
+	var err error
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
+		return nil, err
+	}
+	dclient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		return nil, err
+	}
+
+	log.Infof("Fetching %s %s %s", component, resource, resourceName)
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+
+	if nameSpaceName != "" {
+		dataFetched, err = dclient.Resource(gvr).Namespace(nameSpaceName).Get(context.TODO(), resourceName, metav1.GetOptions{})
+	} else {
+		dataFetched, err = dclient.Resource(gvr).Get(context.TODO(), resourceName, metav1.GetOptions{})
+	}
+	if err != nil {
+		log.Errorf("Unable to fetch %s %s %s due to '%v'", component, resource, resourceName, zap.Error(err))
+		return nil, err
+	}
+	return dataFetched, nil
+}
 
 // CreateVeleroBackupLocationObject creates velero backup object location
 func CreateVeleroBackupLocationObject(backupStorageName, backupSecretName string, log *zap.SugaredLogger) error {
@@ -46,29 +79,11 @@ func CreateVeleroBackupLocationObject(backupStorageName, backupSecretName string
 func GetRancherBackupFileName(backupName string, log *zap.SugaredLogger) (string, error) {
 
 	log.Infof("Fetching uploaded filename from backup '%s'", backupName)
-	config, err := k8sutil.GetKubeConfig()
-	if err != nil {
-		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
-		return "", err
-	}
-	dclient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
-		return "", err
-	}
-
-	gvr := schema.GroupVersionResource{
-		Group:    "resources.cattle.io",
-		Version:  "v1",
-		Resource: "backups",
-	}
-
-	backupFetched, err := dclient.Resource(gvr).Get(context.TODO(), backupName, metav1.GetOptions{})
+	backupFetched, err := getUnstructuredData("resources.cattle.io", "v1", "backups", backupName, "", "rancher", log)
 	if err != nil {
 		log.Errorf("Unable to fetch Rancher backup '%s' due to '%v'", backupName, zap.Error(err))
 		return "", err
 	}
-
 	if backupFetched == nil {
 		log.Infof("No Rancher backup with name '%s'' was detected", backupName)
 	}
@@ -89,26 +104,7 @@ func GetRancherBackupFileName(backupName string, log *zap.SugaredLogger) (string
 
 // GetVeleroBackup Retrieves Velero backup object from the cluster
 func GetVeleroBackup(namespace, backupName string, log *zap.SugaredLogger) (*VeleroBackupModel, error) {
-
-	config, err := k8sutil.GetKubeConfig()
-	if err != nil {
-		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
-		return nil, err
-	}
-	dclient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
-		return nil, err
-	}
-
-	log.Infof("Fetching Velero backup '%s' in namespace '%s'", backupName, namespace)
-	gvr := schema.GroupVersionResource{
-		Group:    "velero.io",
-		Version:  "v1",
-		Resource: "backups",
-	}
-
-	backupFetched, err := dclient.Resource(gvr).Namespace(namespace).Get(context.TODO(), backupName, metav1.GetOptions{})
+	backupFetched, err := getUnstructuredData("velero.io", "v1", "backups", backupName, namespace, "velero", log)
 	if err != nil {
 		log.Errorf("Unable to fetch Velero backup '%s' due to '%v'", backupName, zap.Error(err))
 		return nil, err
@@ -136,36 +132,18 @@ func GetVeleroBackup(namespace, backupName string, log *zap.SugaredLogger) (*Vel
 // GetVeleroRestore Retrieves Velero backup object from the cluster
 func GetVeleroRestore(namespace, restoreName string, log *zap.SugaredLogger) (*VeleroRestoreModel, error) {
 
-	config, err := k8sutil.GetKubeConfig()
+	restoreFetched, err := getUnstructuredData("velero.io", "v1", "restores", restoreName, namespace, "velero", log)
 	if err != nil {
-		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
-		return nil, err
-	}
-	dclient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
+		log.Errorf("Unable to fetch velero restore '%s' due to '%v'", restoreName, zap.Error(err))
 		return nil, err
 	}
 
-	log.Infof("Fetching Velero restore '%s' in namespace '%s'", restoreName, namespace)
-	gvr := schema.GroupVersionResource{
-		Group:    "velero.io",
-		Version:  "v1",
-		Resource: "restores",
-	}
-
-	backupFetched, err := dclient.Resource(gvr).Namespace(namespace).Get(context.TODO(), restoreName, metav1.GetOptions{})
-	if err != nil {
-		log.Errorf("Unable to fetch Velero restore '%s' due to '%v'", restoreName, zap.Error(err))
-		return nil, err
-	}
-
-	if backupFetched == nil {
+	if restoreFetched == nil {
 		log.Infof("No Velero restore with name '%s' in namespace '%s' was detected", restoreName, namespace)
 	}
 
 	var restore VeleroRestoreModel
-	bdata, err := json.Marshal(backupFetched)
+	bdata, err := json.Marshal(restoreFetched)
 	if err != nil {
 		log.Errorf("Json marshalling error %v", zap.Error(err))
 		return nil, err
@@ -181,25 +159,7 @@ func GetVeleroRestore(namespace, restoreName string, log *zap.SugaredLogger) (*V
 
 func GetRancherBackup(backupName string, log *zap.SugaredLogger) (*RancherBackupModel, error) {
 
-	config, err := k8sutil.GetKubeConfig()
-	if err != nil {
-		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
-		return nil, err
-	}
-	dclient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
-		return nil, err
-	}
-
-	log.Infof("Fetching Rancher backup '%s'", backupName)
-	gvr := schema.GroupVersionResource{
-		Group:    "resources.cattle.io",
-		Version:  "v1",
-		Resource: "backups",
-	}
-
-	backupFetched, err := dclient.Resource(gvr).Get(context.TODO(), backupName, metav1.GetOptions{})
+	backupFetched, err := getUnstructuredData("resources.cattle.io", "v1", "backups", backupName, "", "rancher", log)
 	if err != nil {
 		log.Errorf("Unable to fetch Rancher backup '%s' due to '%v'", backupName, zap.Error(err))
 		return nil, err
@@ -226,36 +186,18 @@ func GetRancherBackup(backupName string, log *zap.SugaredLogger) (*RancherBackup
 
 func GetRancherRestore(restoreName string, log *zap.SugaredLogger) (*RancherRestoreModel, error) {
 
-	config, err := k8sutil.GetKubeConfig()
-	if err != nil {
-		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
-		return nil, err
-	}
-	dclient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		log.Errorf("Unable to create dynamic client %v", zap.Error(err))
-		return nil, err
-	}
-
-	log.Infof("Fetching Rancher restore '%s'", restoreName)
-	gvr := schema.GroupVersionResource{
-		Group:    "resources.cattle.io",
-		Version:  "v1",
-		Resource: "restores",
-	}
-
-	backupFetched, err := dclient.Resource(gvr).Get(context.TODO(), restoreName, metav1.GetOptions{})
+	restoreFetched, err := getUnstructuredData("resources.cattle.io", "v1", "restores", restoreName, "", "rancher", log)
 	if err != nil {
 		log.Errorf("Unable to fetch Rancher restore '%s' due to '%v'", restoreName, zap.Error(err))
 		return nil, err
 	}
 
-	if backupFetched == nil {
+	if restoreFetched == nil {
 		log.Infof("No Rancher restore with name '%s'' was detected", restoreName)
 	}
 
 	var restore RancherRestoreModel
-	bdata, err := json.Marshal(backupFetched)
+	bdata, err := json.Marshal(restoreFetched)
 	if err != nil {
 		log.Errorf("Json marshalling error %v", zap.Error(err))
 		return nil, err
@@ -269,92 +211,85 @@ func GetRancherRestore(restoreName string, log *zap.SugaredLogger) (*RancherRest
 	return &restore, nil
 }
 
-func TrackOperationProgress(retryLimit int, operator, operation, objectName, namespace string, log *zap.SugaredLogger) error {
+func TrackOperationProgress(operator, operation, objectName, namespace string, log *zap.SugaredLogger) error {
 	var response string
-	retryCount := 0
-	for {
-		if retryCount > retryLimit {
-			return fmt.Errorf("retry count execeeded while checking progress for %s '%s'", operation, objectName)
-		}
-
-		switch operator {
-		case "velero":
-			switch operation {
-			case "backups":
-				backupInfo, err := GetVeleroBackup(namespace, objectName, log)
-				if err != nil {
-					log.Errorf("Unable to fetch backup '%s' due to '%v'", objectName, zap.Error(err))
-				}
-				response = backupInfo.Status.Phase
-
-			case "restores":
-				restoreInfo, err := GetVeleroRestore(namespace, objectName, log)
-				if err != nil {
-					log.Errorf("Unable to fetch restore '%s' due to '%v'", objectName, zap.Error(err))
-				}
-				response = restoreInfo.Status.Phase
-			default:
-				log.Errorf("Invalid operation specified for Velero = %s'", operation)
-				response = "NAN"
+	switch operator {
+	case "velero":
+		switch operation {
+		case "backups":
+			backupInfo, err := GetVeleroBackup(namespace, objectName, log)
+			if err != nil {
+				log.Errorf("Unable to fetch backup '%s' due to '%v'", objectName, zap.Error(err))
 			}
+			response = backupInfo.Status.Phase
 
-		case "rancher":
-			switch operation {
-			case "backups":
-				backupInfo, err := GetRancherBackup(objectName, log)
-				if err != nil {
-					log.Errorf("Unable to fetch backup '%s' due to '%v'", objectName, zap.Error(err))
-				}
-
-				if backupInfo.Status.Conditions != nil {
-					for _, cond := range backupInfo.Status.Conditions {
-						if cond.Type == "Ready" {
-							response = cond.Message
-						} else {
-							log.Infof("Rancher backup status : Type = %v, Status = %v", cond.Type, cond.Status)
-						}
-					}
-				}
-
-			case "restores":
-				restoreInfo, err := GetRancherRestore(objectName, log)
-				if err != nil {
-					log.Errorf("Unable to fetch restore '%s' due to '%v'", objectName, zap.Error(err))
-				}
-				if restoreInfo.Status.Conditions != nil {
-					for _, cond := range restoreInfo.Status.Conditions {
-						if cond.Type == "Ready" {
-							response = cond.Message
-						} else {
-							log.Infof("Rancher restore status : Type = %v, Status = %v", cond.Type, cond.Status)
-						}
-					}
-				}
-
-			default:
-				log.Errorf("Invalid operation specified for Rancher = %s'", operation)
-				response = "NAN"
+		case "restores":
+			restoreInfo, err := GetVeleroRestore(namespace, objectName, log)
+			if err != nil {
+				log.Errorf("Unable to fetch restore '%s' due to '%v'", objectName, zap.Error(err))
 			}
-
+			response = restoreInfo.Status.Phase
 		default:
-			log.Errorf("Invalid operator specified = %s'", operator)
+			log.Errorf("Invalid operation specified for Velero = %s'", operation)
 			response = "NAN"
-
 		}
 
-		switch response {
-		case "InProgress", "":
-			log.Infof("%s '%s' is in progress. Check back after 60 seconds. (Retry count left = %v).", strings.ToTitle(operation), objectName, retryLimit-retryCount)
-			time.Sleep(60 * time.Second)
-		case "Completed":
-			log.Infof("%s '%s' completed successfully", strings.ToTitle(operation), objectName)
-			return nil
+	case "rancher":
+		switch operation {
+		case "backups":
+			backupInfo, err := GetRancherBackup(objectName, log)
+			if err != nil {
+				log.Errorf("Unable to fetch backup '%s' due to '%v'", objectName, zap.Error(err))
+			}
+
+			if backupInfo.Status.Conditions != nil {
+				for _, cond := range backupInfo.Status.Conditions {
+					if cond.Type == "Ready" {
+						response = cond.Message
+					} else {
+						log.Infof("Rancher backup status : Type = %v, Status = %v", cond.Type, cond.Status)
+					}
+				}
+			}
+
+		case "restores":
+			restoreInfo, err := GetRancherRestore(objectName, log)
+			if err != nil {
+				log.Errorf("Unable to fetch restore '%s' due to '%v'", objectName, zap.Error(err))
+			}
+			if restoreInfo.Status.Conditions != nil {
+				for _, cond := range restoreInfo.Status.Conditions {
+					if cond.Type == "Ready" {
+						response = cond.Message
+					} else {
+						log.Infof("Rancher restore status : Type = %v, Status = %v", cond.Type, cond.Status)
+					}
+				}
+			}
+
 		default:
-			return fmt.Errorf("%s failed. State = '%s'", strings.ToTitle(operation), response)
+			log.Errorf("Invalid operation specified for Rancher = %s'", operation)
+			response = "NAN"
 		}
-		retryCount = retryCount + 1
+
+	default:
+		log.Errorf("Invalid operator specified = %s'", operator)
+		response = "NAN"
+
 	}
 
+	switch response {
+	case "InProgress", "":
+		//log.Infof("%s '%s' is in progress. Check back after 60 seconds. (Retry count left = %v).", strings.ToTitle(operation), objectName, retryLimit-retryCount)
+		log.Infof("%s '%s' is in progress.", strings.ToTitle(operation), objectName)
+		//time.Sleep(60 * time.Second)
+		return fmt.Errorf("%s '%s' is in progress.", strings.ToTitle(operation), objectName)
+	case "Completed":
+		log.Infof("%s '%s' completed successfully", strings.ToTitle(operation), objectName)
+		return nil
+	default:
+		return fmt.Errorf("%s failed. State = '%s'", strings.ToTitle(operation), response)
+	}
 }
 
 func CrdPruner(group, version, resource, resourceName, nameSpaceName string, log *zap.SugaredLogger) error {

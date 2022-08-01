@@ -8,8 +8,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"github.com/verrazzano/verrazzano/tests/e2e/backup/common"
+	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +33,10 @@ const (
 	waitTimeout          = 15 * time.Minute
 	pollingInterval      = 30 * time.Second
 	rancherPassword      = "rancher@newstack"
+	rancherUserPrefix    = "thor"
 )
+
+var rancherPods = []string{"rancher"}
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
@@ -156,7 +160,7 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 		id := uuid.New().String()
 		uniqueID := strings.Split(id, "-")[len(strings.Split(id, "-"))-1]
 		fullName := fmt.Sprintf("john-smith-%v", i+1)
-		userName := fmt.Sprintf("cowboy-%v", uniqueID)
+		userName := fmt.Sprintf("%s-%v", rancherUserPrefix, uniqueID)
 
 		var b bytes.Buffer
 		template, templateErr := template.New("rancher-user").Parse(common.RancherUserTemplate)
@@ -270,6 +274,16 @@ func WhenRancherBackupInstalledIt(description string, f func()) {
 	}
 }
 
+// checkPodsRunning checks whether the pods are ready in a given namespace
+func checkPodsRunning(namespace string, expectedPods []string) bool {
+	result, err := pkg.PodsRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	fmt.Printf("Result = %v", result)
+	return result
+}
+
 // Run as part of BeforeSuite
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
@@ -289,7 +303,7 @@ func backupPrerequisites() {
 
 	t.Logs.Info("Creating multiple user with the retrieved login token")
 	Eventually(func() error {
-		return PopulateRancherUsers(common.RancherURL, 10)
+		return PopulateRancherUsers(common.RancherURL, common.RancherUserCount)
 	}, waitTimeout, pollingInterval).Should(BeNil())
 
 	t.Logs.Info("Build user id list for rancher users")
@@ -297,13 +311,14 @@ func backupPrerequisites() {
 		return BuildRancherUserIDList(common.RancherURL)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
+	time.Sleep(60 * time.Second)
 }
 
 // Run as part of AfterSuite
 func cleanUpRancher() {
 	t.Logs.Info("Cleanup backup and restore objects")
 
-	t.Logs.Info("Creating multiple user with the retrieved login token")
+	t.Logs.Info("Deleting multiple user with the retrieved login token")
 	Eventually(func() error {
 		return DeleteRancherUsers(common.RancherURL)
 	}, waitTimeout, pollingInterval).Should(BeNil())
@@ -338,7 +353,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Check backup progress after rancher backup object was created", func() {
 		WhenRancherBackupInstalledIt("Check backup progress after rancher backup object was created", func() {
 			Eventually(func() error {
-				return common.TrackOperationProgress(30, "rancher", "backups", common.BackupRancherName, common.VeleroNameSpace, t.Logs)
+				return common.TrackOperationProgress("rancher", "backups", common.BackupRancherName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher backup operation completed successfully")
 		})
 	})
@@ -354,16 +369,16 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Check rancher restore progress", func() {
 		WhenRancherBackupInstalledIt("Check rancher restore progress", func() {
 			Eventually(func() error {
-				return common.TrackOperationProgress(30, "rancher", "restores", common.RestoreRancherName, common.VeleroNameSpace, t.Logs)
+				return common.TrackOperationProgress("rancher", "restores", common.RestoreRancherName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher restore operation completed successfully")
 		})
 	})
 
 	t.Context("After restore is complete wait for rancher pods to come up", func() {
 		WhenRancherBackupInstalledIt("After restore is complete wait for rancher pods to come up", func() {
-			Eventually(func() error {
-				return common.WaitForPodsShell("cattle-system", t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher infra is up")
+			Eventually(func() bool {
+				return checkPodsRunning(constants.RancherSystemNamespace, rancherPods)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if rancher infra is up")
 		})
 	})
 

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/tests/e2e/backup/common"
+	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
@@ -295,7 +295,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check backup progress after velero backup object was created", func() {
 		WhenVeleroInstalledIt("Check backup progress after velero backup object was created", func() {
 			Eventually(func() error {
-				return common.TrackOperationProgress(30, "velero", "backups", common.BackupOpensearchName, common.VeleroNameSpace, t.Logs)
+				return common.TrackOperationProgress("velero", "backups", common.BackupOpensearchName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
@@ -308,46 +308,49 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 		})
 	})
 
-	t.Context("Cleanup opensearch once backup is done", func() {
-		WhenVeleroInstalledIt("Cleanup opensearch once backup is done", func() {
-			Eventually(func() error {
-				return NukeOpensearch()
-			}, waitTimeout, pollingInterval).Should(BeNil())
+	/*
+
+		t.Context("Cleanup opensearch once backup is done", func() {
+			WhenVeleroInstalledIt("Cleanup opensearch once backup is done", func() {
+				Eventually(func() error {
+					return NukeOpensearch()
+				}, waitTimeout, pollingInterval).Should(BeNil())
+			})
+
 		})
 
-	})
-
-	t.Context("Start restore after velero backup is completed", func() {
-		WhenVeleroInstalledIt("Start restore after velero backup is completed", func() {
-			Eventually(func() error {
-				return CreateVeleroRestoreObject()
-			}, waitTimeout, pollingInterval).Should(BeNil())
-		})
-	})
-
-	t.Context("Check velero restore progress", func() {
-		WhenVeleroInstalledIt("Check velero restore progress", func() {
-			Eventually(func() error {
-				return common.TrackOperationProgress(30, "velero", "restores", common.RestoreOpensearchName, common.VeleroNameSpace, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil())
-		})
-	})
-
-	t.Context("Fetch logs after restore is complete", func() {
-		WhenVeleroInstalledIt("Fetch logs after restore is complete", func() {
-			Eventually(func() error {
-				return common.DisplayHookLogs(t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil())
-		})
-	})
-
-	t.Context("Is Restore good? Verify restore", func() {
-		WhenVeleroInstalledIt("Is Restore good? Verify restore", func() {
-			Eventually(func() string {
-				return IsRestoreSuccessful()
-			}, waitTimeout, pollingInterval).Should(Equal(common.BackupID))
+		t.Context("Start restore after velero backup is completed", func() {
+			WhenVeleroInstalledIt("Start restore after velero backup is completed", func() {
+				Eventually(func() error {
+					return CreateVeleroRestoreObject()
+				}, waitTimeout, pollingInterval).Should(BeNil())
+			})
 		})
 
-	})
+		t.Context("Check velero restore progress", func() {
+			WhenVeleroInstalledIt("Check velero restore progress", func() {
+				Eventually(func() error {
+					return common.TrackOperationProgress("velero", "restores", common.RestoreOpensearchName, common.VeleroNameSpace, t.Logs)
+				}, waitTimeout, pollingInterval).Should(BeNil())
+			})
+		})
+
+		t.Context("Fetch logs after restore is complete", func() {
+			WhenVeleroInstalledIt("Fetch logs after restore is complete", func() {
+				Eventually(func() error {
+					return common.DisplayHookLogs(t.Logs)
+				}, waitTimeout, pollingInterval).Should(BeNil())
+			})
+		})
+
+		t.Context("Is Restore good? Verify restore", func() {
+			WhenVeleroInstalledIt("Is Restore good? Verify restore", func() {
+				Eventually(func() string {
+					return IsRestoreSuccessful()
+				}, waitTimeout, pollingInterval).Should(Equal(common.BackupID))
+			})
+
+		})
+	*/
 
 })

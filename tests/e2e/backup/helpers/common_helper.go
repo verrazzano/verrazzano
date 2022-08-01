@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
-	"io"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -29,15 +28,13 @@ import (
 	"k8s.io/client-go/restmapper"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 	"text/template"
-	"time"
 )
 
 var decUnstructured = k8sYaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
-// GatherInfo invoked at the begining to setup all the values taken as input
+// GatherInfo invoked at the beginning to set up all the values taken as input
 // The gingko runs will fail if any of these values are not set or set incorrectly
 // The values are originally set from the jenkins pipeline
 func GatherInfo() {
@@ -62,50 +59,6 @@ func GatherInfo() {
 	BackupMySQLStorageName = os.Getenv("BACKUP_MYSQL_STORAGE")
 	BackupRegion = os.Getenv("BACKUP_REGION")
 
-}
-
-// Runner is a generic method that runs any bash command asynchronously with a configurable timeout
-// The command response is also returned a goland struct
-func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
-	var stdoutBuf, stderrBuf bytes.Buffer
-	var bashCommandResponse RunnerResponse
-	bashCommand := exec.Command(bcmd.CommandArgs[0], bcmd.CommandArgs[1:]...) //nolint:gosec
-	bashCommand.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
-	bashCommand.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
-
-	log.Infof("Executing command '%v'", bashCommand.String())
-	err := bashCommand.Start()
-	if err != nil {
-		log.Errorf("Cmd '%v' execution failed due to '%v'", bashCommand.String(), zap.Error(err))
-		bashCommandResponse.CommandError = err
-		return &bashCommandResponse
-	}
-	done := make(chan error, 1)
-	go func() {
-		done <- bashCommand.Wait()
-	}()
-	select {
-	case <-time.After(bcmd.Timeout):
-		if err = bashCommand.Process.Kill(); err != nil {
-			log.Errorf("Failed to kill cmd '%v' due to '%v'", bashCommand.String(), zap.Error(err))
-			bashCommandResponse.CommandError = err
-			return &bashCommandResponse
-		}
-		log.Errorf("Cmd '%v' timeout expired", bashCommand.String())
-		bashCommandResponse.CommandError = err
-		return &bashCommandResponse
-	case err = <-done:
-		if err != nil {
-			log.Errorf("Cmd '%v' execution failed due to '%v'", bashCommand.String(), zap.Error(err))
-			bashCommandResponse.StandardErr = stderrBuf
-			bashCommandResponse.CommandError = err
-			return &bashCommandResponse
-		}
-		log.Debugf("Command '%s' execution successful", bashCommand.String())
-		bashCommandResponse.StandardOut = stdoutBuf
-		bashCommandResponse.CommandError = err
-		return &bashCommandResponse
-	}
 }
 
 // GetRancherURL fetches the elastic search URL from the cluster
@@ -236,34 +189,6 @@ func DynamicSSA(ctx context.Context, deploymentYAML string, log *zap.SugaredLogg
 	return err
 }
 
-// RetryAndCheckShellCommandResponse utility that executes a bash command and waits on the response to be `Completed`
-// Has options to configure a retry count as well
-func RetryAndCheckShellCommandResponse(retryLimit int, bcmd *BashCommand, operation, objectName string, log *zap.SugaredLogger) error {
-	retryCount := 0
-	for {
-		if retryCount > retryLimit {
-			return fmt.Errorf("retry count execeeded while checking progress for %s '%s'", operation, objectName)
-		}
-		bashResponse := Runner(bcmd, log)
-		if bashResponse.CommandError != nil {
-			return bashResponse.CommandError
-		}
-		response := strings.TrimSpace(strings.Trim(bashResponse.StandardOut.String(), "\n"))
-		switch response {
-		case "InProgress", "":
-			log.Infof("%s '%s' is in progress. Check back after 60 seconds. Retry count left = (%v).", strings.ToTitle(operation), objectName, retryLimit-retryCount)
-			time.Sleep(60 * time.Second)
-		case "Completed":
-			log.Infof("%s '%s' completed successfully", strings.ToTitle(operation), objectName)
-			return nil
-		default:
-			return fmt.Errorf("%s failed. State = '%s'", strings.ToTitle(operation), response)
-		}
-		retryCount = retryCount + 1
-	}
-
-}
-
 // CheckPodsTerminated utility to wait for all pods to be terminated
 func CheckPodsTerminated(labelSelector, namespace string, log *zap.SugaredLogger) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -272,26 +197,18 @@ func CheckPodsTerminated(labelSelector, namespace string, log *zap.SugaredLogger
 		return err
 	}
 
-	retryCount := 0
-	for {
-		listOptions := metav1.ListOptions{LabelSelector: labelSelector}
-		pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
-		if err != nil {
-			return err
-		}
-		if len(pods.Items) > 0 {
-			if retryCount > 100 {
-				return fmt.Errorf("retry count to monitor pods exceeded")
-			}
-			log.Infof("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
-			time.Sleep(10 * time.Second)
-		} else {
-			log.Infof("All pods with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
-			return nil
-		}
-		retryCount = retryCount + 1
+	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		return err
 	}
-
+	if len(pods.Items) > 0 {
+		log.Infof("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+		return fmt.Errorf("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+	} else {
+		log.Infof("All pods with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
+		return nil
+	}
 }
 
 // CheckPvcsTerminated utility to wait for all pvcs to be terminated
@@ -302,24 +219,17 @@ func CheckPvcsTerminated(labelSelector, namespace string, log *zap.SugaredLogger
 		return err
 	}
 
-	retryCount := 0
-	for {
-		listOptions := metav1.ListOptions{LabelSelector: labelSelector}
-		pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), listOptions)
-		if err != nil {
-			return err
-		}
-		if len(pvcs.Items) > 0 {
-			if retryCount > 100 {
-				return fmt.Errorf("retry count to monitor pvcs exceeded")
-			}
-			log.Infof("Pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
-			time.Sleep(10 * time.Second)
-		} else {
-			log.Infof("All pvcs with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
-			return nil
-		}
-		retryCount = retryCount + 1
+	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
+	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		return err
+	}
+	if len(pvcs.Items) > 0 {
+		log.Infof("Pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+		return fmt.Errorf("Pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
+	} else {
+		log.Infof("All pvcs with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
+		return nil
 	}
 
 }
@@ -423,7 +333,7 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenT
 	retryabeRequest.Header.Set("Accept", "application/json")
 	response, err := httpClient.Do(retryabeRequest)
 	if err != nil {
-		log.Error(fmt.Sprintf("error invoking rancher api request %s: %v", httpURL, err))
+		log.Error(fmt.Sprintf("error invoking api request %s: %v", httpURL, err))
 		return nil, err
 	}
 	defer response.Body.Close()
@@ -448,4 +358,48 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenT
 	}
 
 	return jsonParsed, nil
+}
+
+// DisplayHookLogs is used to display the logs from the pod where the backup hook was run
+// It execs into the pod and fetches the log file contents
+func DisplayHookLogs(log *zap.SugaredLogger) error {
+
+	log.Infof("Retrieving verrazzano hook logs ...")
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		log.Errorf("Failed to get config with error: %v", err)
+		return err
+	}
+
+	podSpec, err := clientset.CoreV1().Pods(constants.VerrazzanoSystemNamespace).Get(context.TODO(), "vmi-system-es-master-0", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	cmdLogFileName := []string{"/bin/sh", "-c", "ls -alt --time=ctime /tmp/ | grep verrazzano | head -1"}
+	stdout, _, err := k8sutil.ExecPod(clientset, config, podSpec, "es-master", cmdLogFileName)
+	if err != nil {
+		log.Errorf("Error = %v", zap.Error(err))
+		return err
+	}
+
+	logFileData := strings.TrimSpace(strings.Trim(stdout, "\n"))
+	logFileName := strings.Split(logFileData, " ")[len(strings.Split(logFileData, " "))-1]
+
+	var execCmd []string
+	execCmd = append(execCmd, "cat")
+	execCmd = append(execCmd, fmt.Sprintf("/tmp/%s", logFileName))
+	stdout, _, err = k8sutil.ExecPod(clientset, config, podSpec, "es-master", execCmd)
+	if err != nil {
+		log.Errorf("Error = %v", zap.Error(err))
+		return err
+	}
+	log.Infof(stdout)
+	return nil
 }

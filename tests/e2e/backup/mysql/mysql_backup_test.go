@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/tests/e2e/backup/common"
+	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"go.uber.org/zap"
 	"strings"
 	"text/template"
@@ -29,6 +29,8 @@ const (
 	waitTimeout          = 15 * time.Minute
 	pollingInterval      = 30 * time.Second
 )
+
+var keycloakPods = []string{"keycloak", "mysql"}
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
@@ -201,6 +203,16 @@ func WhenVeleroInstalledIt(description string, f func()) {
 	}
 }
 
+// checkPodsRunning checks whether the pods are ready in a given namespace
+func checkPodsRunning(namespace string, expectedPods []string) bool {
+	result, err := pkg.PodsRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	fmt.Printf("Result = %v")
+	return result
+}
+
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
 	t.Logs.Info("Create backup secret for velero backup objects")
@@ -215,7 +227,7 @@ func backupPrerequisites() {
 
 	t.Logs.Info("Create a sample keycloak user")
 	Eventually(func() error {
-		return KeycloakCreateUsers(10)
+		return KeycloakCreateUsers(common.KeycloakUserCount)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 }
@@ -262,7 +274,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check backup progress after velero backup object was created", func() {
 		WhenVeleroInstalledIt("Check backup progress after velero backup object was created", func() {
 			Eventually(func() error {
-				return common.TrackOperationProgress(30, "velero", "backups", common.BackupMySQLName, common.VeleroNameSpace, t.Logs)
+				return common.TrackOperationProgress("velero", "backups", common.BackupMySQLName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
@@ -295,16 +307,16 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check velero restore progress", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
-				return common.TrackOperationProgress(30, "velero", "restores", common.RestoreMySQLName, common.VeleroNameSpace, t.Logs)
+				return common.TrackOperationProgress("velero", "restores", common.RestoreMySQLName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
 
 	t.Context("After restore is complete wait for keycloak and mysql pods to come up", func() {
 		WhenVeleroInstalledIt("After restore is complete wait for keycloak and mysql pods to come up", func() {
-			Eventually(func() error {
-				return common.WaitForPodsShell(constants.KeycloakNamespace, t.Logs)
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if keycloak and mysql infra is up")
+			Eventually(func() bool {
+				return checkPodsRunning(constants.KeycloakNamespace, keycloakPods)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if keycloak and mysql infra is up")
 		})
 	})
 
