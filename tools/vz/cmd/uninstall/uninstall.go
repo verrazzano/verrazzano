@@ -320,6 +320,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 		}
 	}()
 
+	var timeoutErr error
 	select {
 	case result := <-resChan:
 		// Delete remaining Verrazzano resources, excluding CRDs
@@ -328,12 +329,12 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
 			feedbackChan <- true
-			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for uninstall to complete\n", timeout.String()))
+			timeoutErr = fmt.Errorf("Timeout %v exceeded waiting for uninstall to complete", timeout.String())
 		}
 	}
 	// Delete remaining Verrazzano resources, excluding CRDs
 	_ = cleanupResources(client, vzHelper)
-	return nil
+	return timeoutErr
 }
 
 // getUninstallJobLogStream returns the stream to the uninstall job log file
