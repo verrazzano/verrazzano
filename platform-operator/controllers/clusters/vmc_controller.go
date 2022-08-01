@@ -10,6 +10,7 @@ import (
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -165,14 +166,13 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 
 	if vmc.Status.PrometheusHost == "" {
 		log.Infof("Managed cluster Prometheus Host not found in VMC Status for VMC %s. Waiting for VMC to be registered...", vmc.Name)
-		return ctrl.Result{}, nil
-	}
-
-	log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
-	err = r.syncPrometheusScraper(ctx, vmc)
-	if err != nil {
-		r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
-		return newRequeueWithDelay(), err
+	} else {
+		log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
+		err = r.syncPrometheusScraper(ctx, vmc)
+		if err != nil {
+			r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
+			return newRequeueWithDelay(), err
+		}
 	}
 
 	return ctrl.Result{Requeue: true, RequeueAfter: constants.ReconcileLoopRequeueInterval}, nil
@@ -324,8 +324,8 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 	if vmc.Status.LastAgentConnectTime != nil {
 
 		currentTime := metav1.Now()
-		//Using the current plus added time to find the difference with lastAgentConnectTime to validate
-		//if it exceeds the max allowed time before changing the state of the vmc resource.
+		// Using the current plus added time to find the difference with lastAgentConnectTime to validate
+		// if it exceeds the max allowed time before changing the state of the vmc resource.
 		maxPollingTime := currentTime.Add(vzconstants.VMCAgentPollingTimeInterval * vzconstants.MaxTimesVMCAgentPollingTime)
 		timeDiff := maxPollingTime.Sub(vmc.Status.LastAgentConnectTime.Time)
 		if int(timeDiff.Minutes()) > vzconstants.MaxTimesVMCAgentPollingTime {
@@ -338,6 +338,17 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 	}
 	r.log.Debugf("Updating Status of VMC %s with condition type %s = %s: %v", vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
 	return r.Status().Update(ctx, vmc)
+}
+
+// getVerrazzanoResource gets the installed Verrazzano resource in the cluster (of which only one is expected)
+func (r *VerrazzanoManagedClusterReconciler) getVerrazzanoResource() (*v1alpha1.Verrazzano, error) {
+	// Get the Verrazzano resource
+	verrazzano := v1alpha1.VerrazzanoList{}
+	err := r.Client.List(context.TODO(), &verrazzano, &client.ListOptions{})
+	if err != nil || len(verrazzano.Items) == 0 {
+		return nil, fmt.Errorf("Verrazzano must be installed: %v", err)
+	}
+	return &verrazzano.Items[0], nil
 }
 
 // Create a new Result that will cause a reconcile requeue after a short delay

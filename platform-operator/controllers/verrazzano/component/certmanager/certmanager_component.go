@@ -98,7 +98,6 @@ func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 // The cert-manager namespace is created
 // The cert-manager manifest is patched if needed and applied to create necessary CRDs
 func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error {
-
 	vz := compContext.EffectiveCR()
 	cli := compContext.Client()
 	log := compContext.Log()

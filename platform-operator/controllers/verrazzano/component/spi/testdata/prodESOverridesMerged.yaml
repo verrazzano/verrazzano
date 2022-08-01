@@ -21,7 +21,7 @@ spec:
     authProxy:
       enabled: true
       kubernetes:
-        replicas: 2
+        replicas: 1
         affinity:
           podAntiAffinity:
             preferredDuringSchedulingIgnoredDuringExecution:
@@ -41,12 +41,6 @@ spec:
           secretName: "verrazzano-ca-certificate-secret"
           clusterResourceNamespace: "cert-manager"
       overrides:
-        - values:
-            replicaCount: 2
-            cainjector:
-              replicaCount: 2
-            webhook:
-              replicaCount: 2
         - values:
             replicaCount: 1
             affinity:
@@ -85,8 +79,6 @@ spec:
     console:
       enabled: true
       overrides:
-        - values:
-            replicas: 2
         - values:
             replicas: 1
             affinity:
@@ -133,13 +125,6 @@ spec:
         - values:
             controller:
               autoscaling:
-                enabled: true
-                minReplicas: 2
-            defaultBackend:
-              replicaCount: 2
-        - values:
-            controller:
-              autoscaling:
                 enabled: false
                 minReplicas: 1
               affinity:
@@ -174,14 +159,6 @@ spec:
               components:
                 pilot:
                   k8s:
-                    replicaCount: 2
-        - values:
-            apiVersion: install.istio.io/v1alpha1
-            kind: IstioOperator
-            spec:
-              components:
-                pilot:
-                  k8s:
                     affinity:
                       podAntiAffinity:
                         preferredDuringSchedulingIgnoredDuringExecution:
@@ -193,7 +170,7 @@ spec:
                             weight: 100
       ingress:
         kubernetes:
-          replicas: 2
+          replicas: 1
           affinity:
             podAntiAffinity:
               preferredDuringSchedulingIgnoredDuringExecution:
@@ -208,7 +185,7 @@ spec:
                     topologyKey: kubernetes.io/hostname
       egress:
         kubernetes:
-          replicas: 2
+          replicas: 1
           affinity:
             podAntiAffinity:
               preferredDuringSchedulingIgnoredDuringExecution:
@@ -226,9 +203,6 @@ spec:
       overrides:
         - values:
             deployment:
-              replicas: 2
-        - values:
-            deployment:
               replicas: 1
               affinity:
                 pod_anti:
@@ -241,9 +215,22 @@ spec:
                       weight: 100
     keycloak:
       enabled: true
+      overrides:
+        - values:
+            replicas: 1
+            affinity: |
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app.kubernetes.io/instance: keycloak
+                          app.kubernetes.io/name: keycloak
+                      topologyKey: kubernetes.io/hostname
     kibana:
       enabled: true
-      replicas: 2
+      replicas: 1
     oam:
       enabled: true
     prometheus:
@@ -254,7 +241,6 @@ spec:
         - values:
             prometheus:
               prometheusSpec:
-                replicas: 2
                 resources:
                   requests:
                     memory: 128Mi

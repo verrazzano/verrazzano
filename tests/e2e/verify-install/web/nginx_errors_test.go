@@ -39,11 +39,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 						t.Logs.Errorf("Error getting kubeconfig: %v", err)
 						return "", err
 					}
-					api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-					if err != nil {
-						t.Logs.Errorf("Error getting API endpoint: %v", err)
-						return "", err
-					}
+					api := pkg.EventuallyGetAPIEndpoint(kubeConfigPath)
 					esURL, err := api.GetElasticURL()
 					if err != nil {
 						t.Logs.Errorf("Error getting Elasticsearch URL: %v", err)
@@ -74,11 +70,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 						t.Logs.Errorf("Error getting kubeconfig: %v", err)
 						return "", err
 					}
-					api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-					if err != nil {
-						t.Logs.Errorf("Error getting API endpoint: %v", err)
-						return "", err
-					}
+					api := pkg.EventuallyGetAPIEndpoint(kubeConfigPath)
 					esURL, err := api.GetElasticURL()
 					if err != nil {
 						t.Logs.Errorf("Error getting Elasticsearch URL: %v", err)
@@ -97,18 +89,14 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Incorrect host returns a 404", minimumVersion, kubeconfigPath, func() {
-			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" {
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OLCNE" {
 				Eventually(func() (string, error) {
 					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 					if err != nil {
 						t.Logs.Errorf("Error getting kubeconfig: %v", err)
 						return "", err
 					}
-					api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-					if err != nil {
-						t.Logs.Errorf("Error getting API endpoint: %v", err)
-						return "", err
-					}
+					api := pkg.EventuallyGetAPIEndpoint(kubeConfigPath)
 					vzURL, err := api.GetVerrazzanoIngressURL()
 					if err != nil {
 						t.Logs.Errorf("Error getting Verrazzano Ingress URL: %v", err)
@@ -133,13 +121,9 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Directory traversal returns a 400", minimumVersion, kubeconfigPath, func() {
-			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" {
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OLCNE" {
 				Eventually(func() (string, error) {
-					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
-					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
-						return "", err
-					}
+					api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 					vzURL, err := api.GetVerrazzanoIngressURL()
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Ingress URL: %v", err))
@@ -161,11 +145,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 
 func checkNGINXErrorPage(req *retryablehttp.Request, expectedStatus int) (string, error) {
 	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} //nolint:gosec //#gosec G402
-	c, err := pkg.GetVerrazzanoRetryableHTTPClient()
-	if err != nil {
-		t.Logs.Errorf("Error getting HTTP client: %v", err)
-		return "", err
-	}
+	c := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	c.HTTPClient.Transport = transport
 	c.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if resp == nil {
