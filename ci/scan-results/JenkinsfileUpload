@@ -23,7 +23,7 @@ pipeline {
 
     environment {
         upload_filename = "consolidated-upload.json"
-        upload_url = ${env.SCANMANAGER_URL}
+        upload_url = "${env.SCANMANAGER_URL}"
     }
 
     stages {
