@@ -157,7 +157,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			eventuallyMetricsContainLabels("vao_appconfig_error_reconcile_total", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VAO Duration summary metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
-			eventuallyMetricsContainLabels("vao_appconfig_reconcile_duration", map[string]string{})
+			eventuallyMetricsContainLabels("vao_appconfig_reconcile_duration_count", map[string]string{})
 		})
 		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
