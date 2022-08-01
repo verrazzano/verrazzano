@@ -120,7 +120,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 	// Return an error when the command fails to collect anything from the cluster
 	// There will be bug-report.out and bug-report.err in bugReportDir, ignore them
-	if helpers.IsDirEmpty(bugReportDir, 2) {
+	if isDirEmpty(bugReportDir, 2) {
 		return fmt.Errorf("The bug-report command did not collect any file from the cluster. " +
 			"Please go through errors (if any), in the standard output.\n")
 	}
@@ -206,4 +206,13 @@ func displayWarning(successMessage string, helper helpers.VZHelper) {
 	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
 	fmt.Fprintf(helper.GetOutputStream(), strings.Repeat(" ", wsCount/2)+constants.BugReportWarning+"\n")
 	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
+}
+
+// isDirEmpty returns whether the directory is empty or not, ignoring ignoreFilesCount number of files
+func isDirEmpty(directory string, ignoreFilesCount int) bool {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return false
+	}
+	return len(entries) == ignoreFilesCount
 }

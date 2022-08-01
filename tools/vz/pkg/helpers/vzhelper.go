@@ -6,23 +6,21 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"io"
-	"k8s.io/client-go/dynamic"
-	"net/http"
-	"os"
-
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
+	"io"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -129,13 +127,4 @@ func getAllComponents(vzRes vzapi.Verrazzano) []string {
 		compSlice = append(compSlice, compStatusDetail.Name)
 	}
 	return compSlice
-}
-
-// isDirEmpty returns whether the directory is empty or not
-func IsDirEmpty(directory string, filesToIgnore int) bool {
-	entries, err := os.ReadDir(directory)
-	if err != nil {
-		return false
-	}
-	return len(entries) == filesToIgnore
 }
