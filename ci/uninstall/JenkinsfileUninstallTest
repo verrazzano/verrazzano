@@ -333,8 +333,8 @@ def runUninstall(iteration) {
             sh """
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources-${iteration}/post-uninstall-resources false
                 ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources-${iteration}
-                runGinkgo('uninstall/verifycrds')
             """
+            runGinkgo('uninstall/verifycrds')
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                 dumpK8sCluster('verify-uninstall-${iteration}-cluster-dump')
             }
