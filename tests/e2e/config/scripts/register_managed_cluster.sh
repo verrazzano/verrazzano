@@ -43,44 +43,64 @@ if ! kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get configmap ver
   kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create configmap verrazzano-admin-cluster --from-literal=server=${ADMIN_K8S_SERVER_ADDRESS}
 fi
 
-# create managed cluster ca secret yaml on managed
-CA_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
-TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret ${MANAGED_CLUSTER_ENV}-secret -o json | jq -r '.data."ca.crt"')
-if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
-  CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret ${MANAGED_CLUSTER_ENV}-secret -o json | jq -r '.data."ca.crt"' | base64 --decode)
-else
-  TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano-tls -o json | jq -r '.data."ca.crt"')
+VERSION=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vz -o jsonpath='{.items[0].status.version}')
+MAJOR_VERSION=$(echo ${VERSION} | cut -d. -f1)
+MINOR_VERSION=$(echo ${VERSION} | cut -d. -f2)
+
+# if installed VZ version is < 1.4, create the CA cert secret for the managed cluster, otherwise this is now automatic
+if [ $((MAJOR_VERSION)) -eq 1 ] && [ $((MINOR_VERSION)) -lt 4 ] ; then
+  echo "Admin cluster VZ version is < 1.4, creating CA secret for managed cluster"
+
+  # create managed cluster ca secret yaml on managed
+  CA_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
+  TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret ${MANAGED_CLUSTER_ENV}-secret -o json | jq -r '.data."ca.crt"')
   if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
-    CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
-  fi
-fi
-
-if [ ! -z "${CA_CERT}" ] ; then
-  kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
-else
-  # When the CA is publicly available/accessible, ca.crt would be empty in tls secret on the admin cluster. So, set an empty string for cacrt
-  if [ "production" == "${ACME_ENVIRONMENT}" ] ; then
-    kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
+    CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret ${MANAGED_CLUSTER_ENV}-secret -o json | jq -r '.data."ca.crt"' | base64 --decode)
   else
-    echo "Failed to create CA secret file, required to create a secret on the admin cluster containing the certificate for the managed cluster."
-    exit 1
+    TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano-tls -o json | jq -r '.data."ca.crt"')
+    if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
+      CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
+    fi
   fi
-fi
 
-# create managed cluster ca secret on admin
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f ${CA_SECRET_FILE}
+  if [ ! -z "${CA_CERT}" ] ; then
+    kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
+  else
+    # When the CA is publicly available/accessible, ca.crt would be empty in tls secret on the admin cluster. So, set an empty string for cacrt
+    if [ "production" == "${ACME_ENVIRONMENT}" ] ; then
+      kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
+    else
+      echo "Failed to create CA secret file, required to create a secret on the admin cluster containing the certificate for the managed cluster."
+      exit 1
+    fi
+  fi
 
-# create VerrazzanoManagedCluster on admin
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f <<EOF -
-apiVersion: clusters.verrazzano.io/v1alpha1
-kind: VerrazzanoManagedCluster
-metadata:
-  name: ${MANAGED_CLUSTER_NAME}
-  namespace: verrazzano-mc
-spec:
-  description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
-  caSecret: ca-secret-${MANAGED_CLUSTER_NAME}
+  # create managed cluster ca secret on admin
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f ${CA_SECRET_FILE}
+
+  # create VerrazzanoManagedCluster on admin
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f <<EOF -
+  apiVersion: clusters.verrazzano.io/v1alpha1
+  kind: VerrazzanoManagedCluster
+  metadata:
+    name: ${MANAGED_CLUSTER_NAME}
+    namespace: verrazzano-mc
+  spec:
+    description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
+    caSecret: ca-secret-${MANAGED_CLUSTER_NAME}
 EOF
+else
+  # create VerrazzanoManagedCluster on admin, note caSecret is not specified and will be auto populated
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f <<EOF -
+  apiVersion: clusters.verrazzano.io/v1alpha1
+  kind: VerrazzanoManagedCluster
+  metadata:
+    name: ${MANAGED_CLUSTER_NAME}
+    namespace: verrazzano-mc
+  spec:
+    description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
+EOF
+fi
 
 # wait for VMC to be ready - that means the manifest has been created
 echo "Creating VMC for ${MANAGED_CLUSTER_NAME}"
