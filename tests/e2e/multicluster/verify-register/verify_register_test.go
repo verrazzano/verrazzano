@@ -30,6 +30,9 @@ import (
 const waitTimeout = 10 * time.Minute
 const pollingInterval = 10 * time.Second
 
+const longWaitTimeout = 20 * time.Minute
+const longPollingInterval = 30 * time.Second
+
 const multiclusterNamespace = "verrazzano-mc"
 const verrazzanoSystemNamespace = "verrazzano-system"
 
@@ -216,7 +219,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric with label %s with value %s", clusterNameMetricsLabel, managedClusterName))
 			Eventually(func() bool {
 				return pkg.MetricsExist("up", clusterNameMetricsLabel, managedClusterName)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a metrics from managed cluster")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find metrics from managed cluster")
 		})
 
 		t.It("Fluentd should point to the correct ES", func() {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -173,8 +174,24 @@ func getEgressReplicaCount(vz *vzapi.Verrazzano) uint32 {
 
 func getPilotReplicaCount(vz *vzapi.Verrazzano) uint32 {
 	istio := vz.Spec.Components.Istio
-	if istio != nil && !isIstioEnabled(istio) {
-		return 0
+	if istio != nil {
+		if !isIstioEnabled(istio) {
+			return 0
+		}
+
+		for _, override := range istio.ValueOverrides {
+			if override.Values != nil {
+				jsonString, err := gabs.ParseJSON(override.Values.Raw)
+				if err != nil {
+					return 1
+				}
+				if container := jsonString.Path("spec.components.pilot.k8s.replicaCount"); container != nil {
+					if val, ok := container.Data().(float64); ok {
+						return uint32(val)
+					}
+				}
+			}
+		}
 	}
 	return 1
 }

@@ -76,11 +76,11 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 
 	// The additional scrape configs and managed cluster TLS secrets are needed by the Prometheus Operator Prometheus
 	// because the federated scrape config can't be represented in a PodMonitor, ServiceMonitor, etc.
-	err := r.mutateAdditionalScrapeConfigs(ctx, vmc, &secret)
+	err := r.mutateManagedClusterCACertsSecret(ctx, vmc, &secret)
 	if err != nil {
 		return err
 	}
-	err = r.mutateManagedClusterCACertsSecret(ctx, vmc, &secret)
+	err = r.mutateAdditionalScrapeConfigs(ctx, vmc, &secret)
 	if err != nil {
 		return err
 	}
