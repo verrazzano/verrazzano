@@ -337,12 +337,12 @@ func preUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	deploymentPvc := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
-	pvReassignmentRequired, err := common.RetainPersistentVolume(ctx, deploymentPvc, ComponentName)
+	pvRetensionRequired, err := common.RetainPersistentVolume(ctx, deploymentPvc, ComponentName)
 	if err != nil {
 		return err
 	}
 
-	if pvReassignmentRequired {
+	if pvRetensionRequired {
 		// get the current MySQL deployment
 		deployment := &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
