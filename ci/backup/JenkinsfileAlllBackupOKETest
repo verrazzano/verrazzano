@@ -364,6 +364,9 @@ pipeline {
             }
             steps {
                 runGinkgoRandomize('backup/mysql')
+                sh """
+                   kubectl wait --all-namespaces --for=condition=ready pod --all --timeout 10m
+                """
             }
             post {
                 always {
