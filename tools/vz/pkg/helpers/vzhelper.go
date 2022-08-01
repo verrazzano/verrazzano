@@ -10,6 +10,7 @@ import (
 	"io"
 	"k8s.io/client-go/dynamic"
 	"net/http"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -128,4 +129,13 @@ func getAllComponents(vzRes vzapi.Verrazzano) []string {
 		compSlice = append(compSlice, compStatusDetail.Name)
 	}
 	return compSlice
+}
+
+// isDirEmpty returns whether the directory is empty or not
+func IsDirEmpty(directory string, filesToIgnore int) bool {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return false
+	}
+	return len(entries) == filesToIgnore
 }
