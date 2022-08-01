@@ -196,8 +196,6 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 
 			t.Entry("Checking Deployment vmi-system-kiali", constants.VerrazzanoSystemNamespace, kiali.ComponentName, "vmi-system-kiali"),
 
-			t.Entry("Checking Deployment mysql", mysql.ComponentNamespace, mysql.ComponentName, "mysql"),
-
 			t.Entry("Checking Deployment ingress-controller-ingress-nginx-controller", nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-controller"),
 			t.Entry("Checking Deployment ingress-controller-ingress-nginx-defaultbackend", nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-defaultbackend"),
 
@@ -264,6 +262,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			},
 			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
 			t.Entry("Checking StatefulSet keycloak", keycloak.ComponentNamespace, keycloak.ComponentName, "keycloak"),
+			t.Entry("Checking StatefulSet mysql", mysql.ComponentNamespace, mysql.ComponentName, "mysql"),
 		)
 	})
 
