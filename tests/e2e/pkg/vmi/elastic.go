@@ -170,12 +170,6 @@ func (e *Elastic) CheckHealth(kubeconfigPath string) bool {
 		pkg.Log(pkg.Info, "Skipping Elasticsearch cluster health check since version < 1.1.0")
 		return true
 	}
-	indexSettings, err := e.getResponseBody("/_settings")
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster health: %v", err))
-		return false
-	}
-	pkg.Log(pkg.Info, fmt.Sprintf("Response body %v", string(indexSettings)))
 	body, err := e.getResponseBody("/_cluster/health")
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster health: %v", err))
