@@ -1,8 +1,0 @@
-{
-    "kind": "ReplicationControllerList",
-    "apiVersion": "v1",
-    "metadata": {
-        "resourceVersion": "28809241"
-    },
-    "items": []
-}

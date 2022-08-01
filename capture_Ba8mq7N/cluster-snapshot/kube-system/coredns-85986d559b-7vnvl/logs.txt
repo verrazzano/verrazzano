@@ -1,3 +1,0 @@
-==== START logs for container coredns of pod kube-system/coredns-85986d559b-7vnvl ====
-Request log error: unexpected EOF
-==== END logs for container coredns of pod kube-system/coredns-85986d559b-7vnvl ====

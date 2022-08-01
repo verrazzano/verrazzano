@@ -1,1 +1,0 @@
-==== START logs for container coredns of pod kube-system/coredns-85986d559b-dszl2 ====
