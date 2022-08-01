@@ -10,12 +10,12 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelpers "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"io"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"os"
+	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sync"
 )
@@ -46,11 +46,29 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 	}
 	defer os.RemoveAll(bugReportDir)
 
+	// Create a file to capture the standard out to a file
+	stdOutFile, err := os.OpenFile(filepath.Join(bugReportDir, constants.BugReportOut), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		return fmt.Errorf("an error occurred while creating the file include the summary of the resources captured: %s", err.Error())
+	}
+	defer stdOutFile.Close()
+
+	// Create a file to capture the standard err to a file
+	stdErrFile, err := os.OpenFile(filepath.Join(bugReportDir, constants.BugReportErr), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		return fmt.Errorf("an error occurred while creating the file include the summary of the resources captured: %s", err.Error())
+	}
+	defer stdErrFile.Close()
+
+	// Create MultiWriters for standard out and err
+	pkghelpers.SetMultiWriterOut(vzHelper.GetOutputStream(), stdOutFile)
+	pkghelpers.SetMultiWriterErr(vzHelper.GetErrorStream(), stdErrFile)
+
 	// Verrazzano as a list is required for the analysis tool
 	vz := vzapi.VerrazzanoList{}
 	err = client.List(context.TODO(), &vz)
 	if (err != nil && len(vz.Items) == 0) || len(vz.Items) == 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Verrazzano is not installed ...\n")
+		fmt.Fprintf(pkghelpers.GetMultiWriterErr(), "Verrazzano is not installed, so not generating the bug report.\n")
 		return nil
 	}
 
@@ -60,21 +78,22 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
 	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetErrorStream(), "There is an error with capturing the Verrazzano resources: %s", err.Error())
+		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
 
 	// Capture OAM resources from the namespaces specified using --include-namespaces
 	if len(additionalNS) > 0 {
 		if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
-			fmt.Fprintf(vzHelper.GetErrorStream(), "There is an error in capturing the resources : %s", err.Error())
+			pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
 		}
 		if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
-			fmt.Fprintf(vzHelper.GetErrorStream(), "There is an error in capturing the multi-cluster resources : %s", err.Error())
+			pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
 		}
 	}
 
 	// Return an error when the command fails to collect anything from the cluster
-	if isDirEmpty(bugReportDir) {
+	// There will be bug-report.out and bug-report.err in bugReportDir, ignore them
+	if isDirEmpty(bugReportDir, 2) {
 		return fmt.Errorf("The bug-report command did not collect any file from the cluster. " +
 			"Please go through errors (if any), in the standard output.\n")
 	}
@@ -159,7 +178,7 @@ func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kuber
 		return
 	}
 	// This won't work when there are more than one pods for the same app label
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Capturing log from pod %s in %s namespace ...\n", pods[0].Name, namespace))
+	fmt.Fprintf(pkghelpers.GetMultiWriterOut(), fmt.Sprintf("Capturing log from pod %s in %s namespace ...\n", pods[0].Name, namespace))
 	err := pkghelpers.CapturePodLog(kubeClient, pods[0], namespace, bugReportDir, vzHelper)
 	if err != nil {
 		ec <- ErrorsChannelLogs{PodName: pods[0].Name, ErrorMessage: err.Error()}
@@ -175,15 +194,12 @@ func captureK8SResources(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient k
 }
 
 // isDirEmpty returns whether the directory is empty or not
-func isDirEmpty(directory string) bool {
-	d, err := os.Open(directory)
+func isDirEmpty(directory string, filesToIgnore int) bool {
+	entries, err := os.ReadDir(directory)
 	if err != nil {
 		return false
 	}
-	defer d.Close()
-
-	_, err = d.Readdirnames(1)
-	return err == io.EOF
+	return len(entries) == filesToIgnore
 }
 
 // collectNamespaces gathers list of unique namespaces, to be considered to collect the information

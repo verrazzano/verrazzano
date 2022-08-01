@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,6 +25,14 @@ import (
 )
 
 const profilesRelativePath = "../../../../../manifests/profiles"
+
+const (
+	nameOverrideJSON       = "{\"nameOverride\": \"test\"}"
+	fullnameOverrideJSON   = "{\"fullnameOverride\": \"testFullName\"}"
+	serviceAccountNameJSON = "{\"serviceAccount\": {\"name\": \"testServiceAccount\"}}"
+	ingressJSON            = "{\"ingress\": {\"enabled\": true}}"
+	validOverrideJSON      = "{\"serviceAccount\": {\"create\": false}}"
+)
 
 var enabled = true
 var jaegerEnabledCR = &vzapi.Verrazzano{
@@ -244,8 +253,94 @@ func TestPostInstall(t *testing.T) {
 	}
 }
 
+// TestGetIngressAndCertificateNames tests getting Jaeger ingress names and certificate names
+func TestGetIngressAndCertificateNames(t *testing.T) {
+	tests := []struct {
+		name      string
+		actualCR  vzapi.Verrazzano
+		ingresses []types.NamespacedName
+		certs     []types.NamespacedName
+	}{
+		{
+			// GIVEN a Verrazzano custom resource with Jaeger Operator component enabled
+			// WHEN we call GetIngressNames and GetCertificateNames on the Jaeger Operator component
+			// THEN we expect to find the Jaeger ingress and certs
+			name: "Test GetIngressNames and GetCertificateNames when Jaeger Operator set to enabled",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+						},
+					},
+				},
+			},
+			ingresses: jaegerIngressNames,
+			certs:     certificates,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with Jaeger Operator enabled and OpenSearch disabled
+			// WHEN we call GetIngressNames and GetCertificateNames on the Jaeger Operator component
+			// THEN we do not expect to find the Jaeger ingress and certs
+			name: "Test GetIngressNames and GetCertificateNames when OpenSearch is disabled",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+						},
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			ingresses: []types.NamespacedName{},
+			certs:     []types.NamespacedName{},
+		},
+		{
+			// GIVEN a Verrazzano custom resource with Jaeger operator is enabled and instance is disabled
+			// WHEN we call GetIngressNames and GetCertificateNames on the Jaeger Operator component
+			// THEN we do not expect to find the Jaeger ingress and certs
+			name: "Test GetIngressNames and GetCertificateNames when Jaeger instance is disabled",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(jaegerDisabledJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			ingresses: []types.NamespacedName{},
+			certs:     []types.NamespacedName{},
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false)
+			assert.Equal(t, tt.ingresses, NewComponent().GetIngressNames(ctx))
+			assert.Equal(t, tt.certs, NewComponent().GetCertificateNames(ctx))
+		})
+	}
+}
+
 // TestValidateInstall tests the validation of the Jaeger Operator installation and the Verrazzano CR
 func TestValidateInstall(t *testing.T) {
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithRuntimeObjects().Build(), nil
+	}
 	tests := []struct {
 		name        string
 		vz          vzapi.Verrazzano
@@ -287,6 +382,84 @@ func TestValidateInstall(t *testing.T) {
 			},
 			expectError: false,
 		},
+		// GIVEN a Verrazzano CR with Jaeger Component enabled and nameOverride set,
+		// WHEN we call the ValidateInstall function
+		// THEN an error is returned.
+		{
+			name: "test jaeger operator override name",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(nameOverrideJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		},
+		// GIVEN a Verrazzano CR with Jaeger Component enabled and fullNameOverride value set,
+		// WHEN we call the ValidateInstall function,
+		// THEN an error is returned.
+		{
+			name: "test jaeger operator override full name",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(fullnameOverrideJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		},
+		// GIVEN a Verrazzano CR with Jaeger Component enabled and valid override value set,
+		// WHEN we call the ValidateInstall function
+		// THEN no error is returned.
+		{
+			name: "test jaeger operator override allowed value",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(validOverrideJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
 	}
 	c := jaegerOperatorComponent{}
 	for _, tt := range tests {
@@ -303,6 +476,9 @@ func TestValidateInstall(t *testing.T) {
 
 // TestValidateUpdate tests the Jaeger Operator ValidateUpdate function
 func TestValidateUpdate(t *testing.T) {
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithRuntimeObjects().Build(), nil
+	}
 	oldVZ := vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -321,14 +497,96 @@ func TestValidateUpdate(t *testing.T) {
 			},
 		},
 	}
-	// GIVEN a default Verrazzano custom resource with Jaeger Operator component enabled,
-	// WHEN we try to update Verrazzano CR to disable Jaeger Component,
-	// THEN an error is returned.
-	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
-	// GIVEN a default Verrazzano custom resource with Jaeger Operator component enabled,
-	// WHEN we try to update Verrazzano CR with no changes,
-	// THEN no error is returned.
-	assert.NoError(t, NewComponent().ValidateUpdate(&oldVZ, &oldVZ))
+	tests := []struct {
+		name        string
+		oldVZ       vzapi.Verrazzano
+		newVZ       vzapi.Verrazzano
+		expectError bool
+	}{
+		// GIVEN a default Verrazzano custom resource with Jaeger Operator component enabled,
+		// WHEN we try to update Verrazzano CR to disable Jaeger Component,
+		// THEN an error is returned.
+		{
+			name:        "test disable jaeger operator post installation",
+			oldVZ:       oldVZ,
+			newVZ:       newVZ,
+			expectError: true,
+		},
+		// GIVEN a default Verrazzano custom resource with Jaeger Operator component enabled,
+		// WHEN we try to update Verrazzano CR with no changes,
+		// THEN no error is returned.
+		{
+			name:        "test jaeger operator with no changes",
+			oldVZ:       oldVZ,
+			newVZ:       oldVZ,
+			expectError: false,
+		},
+		// GIVEN a Verrazzano CR with Jaeger Component enabled and service account name override value set,
+		// WHEN we call the ValidateInstall function
+		// THEN an error is returned.
+		{
+			name:  "test jaeger operator override service account name",
+			oldVZ: oldVZ,
+			newVZ: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(serviceAccountNameJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		},
+		// GIVEN a Verrazzano CR with Jaeger Component enabled and ingress override value set,
+		// WHEN we call the ValidateInstall function
+		// THEN an error is returned.
+		{
+			name:  "test jaeger operator override ingress setting",
+			oldVZ: oldVZ,
+			newVZ: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(ingressJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		},
+	}
+	c := jaegerOperatorComponent{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := c.ValidateUpdate(&tt.oldVZ, &tt.newVZ)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 // TestPostUpgrade tests the component PostUpgrade function

@@ -62,6 +62,9 @@ const (
 	// clientSetErrorFmt - error format for reporting errors listing pods in a
 	//   particular namespace
 	podListingErrorFmt = "Error listing pods in cluster for namespace: %s, error: %v"
+
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 5 * time.Second
 )
 
 const (
@@ -178,7 +181,8 @@ func GetVerrazzanoRetentionPolicy(retentionPolicyName string) (v12.IndexManageme
 		return retentionPolicy, fmt.Errorf(clientSetErrorFmt, err)
 	}
 	var retentionPolicies []v12.IndexManagementPolicy
-	if clientset.Spec.Components.Elasticsearch != nil {
+	if clientset.Spec.Components.Elasticsearch != nil &&
+		clientset.Spec.Components.Elasticsearch.Policies != nil {
 		retentionPolicies = clientset.Spec.Components.Elasticsearch.Policies
 	} else {
 		return retentionPolicy, nil

@@ -147,7 +147,7 @@ func TestDeleteNotExists(t *testing.T) {
 
 // TestRemoveFinalizers tests the removing a finalizers from a resource
 // GIVEN a Kubernetes resource
-// WHEN removeFinalizers is called
+// WHEN RemoveFinalizers is called
 // THEN the resource will have finalizers removed
 func TestRemoveFinalizers(t *testing.T) {
 	asserts := assert.New(t)
@@ -176,7 +176,7 @@ func TestRemoveFinalizers(t *testing.T) {
 		Client: c,
 		Object: &corev1.Namespace{},
 		Log:    vzlog.DefaultLogger(),
-	}.removeFinalizers()
+	}.RemoveFinalizers()
 
 	// Validate that resource is updated with no finalizer
 	asserts.NoError(err)
@@ -187,8 +187,8 @@ func TestRemoveFinalizers(t *testing.T) {
 
 // TestRemoveFinalizersNotExists tests the removal of finalizer from a resource
 // GIVEN a resource that doesn't exist
-// WHEN removeFinalizers is called
-// THEN the removeFinalizers function should not return an error
+// WHEN RemoveFinalizers is called
+// THEN the RemoveFinalizers function should not return an error
 func TestRemoveFinalizersNotExists(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -208,7 +208,7 @@ func TestRemoveFinalizersNotExists(t *testing.T) {
 		Client: c,
 		Object: &corev1.Pod{},
 		Log:    vzlog.DefaultLogger(),
-	}.removeFinalizers()
+	}.RemoveFinalizers()
 	asserts.NoError(err)
 }
 

@@ -7,23 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"istio.io/api/security/v1beta1"
-	v1beta12 "istio.io/api/type/v1beta1"
 	"reflect"
 	"strings"
 	"time"
-
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -37,8 +23,15 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
+	"istio.io/api/security/v1beta1"
+	v1beta12 "istio.io/api/type/v1beta1"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -53,7 +46,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (

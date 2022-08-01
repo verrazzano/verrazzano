@@ -29,6 +29,7 @@ const (
 var isMinVersion110 bool
 var isMinVersion120 bool
 var isMinVersion140 bool
+var keycloakEnabled bool
 
 var t = framework.NewTestFramework("verrazzano")
 
@@ -52,6 +53,7 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+	keycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 })
 
 var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
@@ -546,6 +548,39 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
+	if keycloakEnabled {
+		t.Describe("keycloak", Label("f:platform-lcm.install"), func() {
+			t.It("has expected statefulset", func() {
+				if isMinVersion110 {
+					Eventually(func() (bool, error) {
+						return pkg.DoesStatefulSetExist(constants.KeycloakNamespace, constants.Keycloak)
+					}, waitTimeout, pollingInterval).Should(BeTrue())
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+				}
+			})
+
+			t.It("has correct number of pods running", func() {
+				if isMinVersion110 {
+					err := validateCorrectNumberOfPodsRunningSts(constants.Keycloak, constants.KeycloakNamespace, "app.kubernetes.io/name")
+					Expect(err).To(BeNil())
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+				}
+			})
+
+			t.It("has affinity configured as expected", func() {
+				if isMinVersion140 {
+					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": constants.Keycloak}, constants.KeycloakNamespace)
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+				}
+			})
+		})
+	} else {
+		t.Logs.Info("Skipping Keycloak check because it is not enabled")
+	}
+
 	t.Describe("service resources in verrazzano-system", Label("f:platform-lcm.install"), func() {
 		t.It("have expected Istio port names", func() {
 			validateVerrazzanoSystemServicePorts()
@@ -554,7 +589,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 })
 
-func validateIstioGatewayAffinity(gwName string, gwNamespace string) error {
+func validateIstioGatewayAffinity(gwName string, gwNamespace string) {
 	var pods []corev1.Pod
 	Eventually(func() error {
 		var err error
@@ -571,10 +606,9 @@ func validateIstioGatewayAffinity(gwName string, gwNamespace string) error {
 		Expect(affinity.PodAntiAffinity).ToNot(BeNil())
 		Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
 	}
-	return nil
 }
 
-func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) error {
+func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) {
 	// Get the deployment
 	var deployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
@@ -600,10 +634,9 @@ func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) err
 		}
 		return runningPods == *expectedPods
 	}, waitTimeout, pollingInterval).Should(BeTrue())
-	return nil
 }
 
-func validateCorrectNumberOfIngressNGINXPodsRunning() error {
+func validateCorrectNumberOfIngressNGINXPodsRunning() {
 	// Get the controller deployment
 	var controllerDeployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
@@ -635,12 +668,41 @@ func validateCorrectNumberOfIngressNGINXPodsRunning() error {
 		}
 		return runningPods == *controllerDeployment.Spec.Replicas+*defaultBackendDeployment.Spec.Replicas
 	}, waitTimeout, pollingInterval).Should(BeTrue())
+}
+
+// validateCorrectNumberOfPodsRunningSts - validate the expected number of pods is running for a statefulset
+func validateCorrectNumberOfPodsRunningSts(stsName string, nameSpace string, label string) error {
+	// Get the deployment
+	var statefulset *appsv1.StatefulSet
+	Eventually(func() (*appsv1.StatefulSet, error) {
+		var err error
+		statefulset, err = pkg.GetStatefulSet(nameSpace, stsName)
+		return statefulset, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	var expectedPods = statefulset.Spec.Replicas
+	var pods []corev1.Pod
+	Eventually(func() bool {
+		var err error
+		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{label: stsName}}, nameSpace)
+		if err != nil {
+			return false
+		}
+		// Compare the number of running pods to the expected number
+		var runningPods int32 = 0
+		for _, pod := range pods {
+			if pod.Status.Phase == corev1.PodRunning {
+				runningPods++
+			}
+		}
+		return runningPods == *expectedPods
+	}, waitTimeout, pollingInterval).Should(BeTrue())
 	return nil
 }
 
 // Validate the verrazzano-system service ports to make sure they follow Istio conventions for
 // naming ports.  Ports should have the prefix of "http-" or "https-" or be equal to "http" or "https".
-func validateVerrazzanoSystemServicePorts() error {
+func validateVerrazzanoSystemServicePorts() {
 	// Get the list of verrazzano-system services
 	var services *corev1.ServiceList
 	Eventually(func() (*corev1.ServiceList, error) {
@@ -672,7 +734,6 @@ func validateVerrazzanoSystemServicePorts() error {
 			}
 		}
 	}
-	return nil
 }
 
 func assertPodAntiAffinity(matchLabels map[string]string, namespace string) {

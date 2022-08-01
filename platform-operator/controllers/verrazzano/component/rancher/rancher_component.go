@@ -249,16 +249,16 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	vz := ctx.EffectiveCR()
-	rest, err := configureRancherRestClient(log, c, vz)
+	rancherHostName, err := getRancherHostname(c, vz)
 	if err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
 	}
 
-	if err := rest.PutServerURL(); err != nil {
+	if err := putServerURL(log, c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
 		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
 	}
 
-	err = activateDrivers(log, rest)
+	err = activateDrivers(log, c)
 	if err != nil {
 		return err
 	}
@@ -273,13 +273,13 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// PostUninstall handles the deletion of all Rancher resources after the Helm uninstall
+// postUninstall handles the deletion of all Rancher resources after the Helm uninstall
 func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
-		ctx.Log().Debug("Rancher PostUninstall dry run")
+		ctx.Log().Debug("Rancher postUninstall dry run")
 		return nil
 	}
-	return PostUninstall(ctx)
+	return postUninstall(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
@@ -297,13 +297,7 @@ func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
-	vz := ctx.EffectiveCR()
-	rest, err := configureRancherRestClient(log, c, vz)
-	if err != nil {
-		return err
-	}
-
-	err = activateDrivers(log, rest)
+	err := activateDrivers(log, c)
 	if err != nil {
 		return err
 	}
@@ -315,38 +309,16 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// configureRancherRestClient configures the REST rancher client and sets the access token.
-func configureRancherRestClient(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) (*common.RESTClient, error) {
-	password, err := common.GetAdminSecret(c)
-	if err != nil {
-		return nil, log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
-	}
-
-	rancherHostName, err := getRancherHostname(c, vz)
-	if err != nil {
-		return nil, log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
-	}
-
-	rest, err := common.NewClient(c, rancherHostName, password)
-	if err != nil {
-		return nil, log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
-	}
-
-	if err := rest.SetAccessToken(); err != nil {
-		return nil, log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
-	}
-
-	return rest, nil
-}
-
 // activateDrivers activates the oci nodeDriver and oraclecontainerengine kontainerDriver
-func activateDrivers(log vzlog.VerrazzanoLogger, rest *common.RESTClient) error {
-	if err := rest.ActivateOCIDriver(); err != nil {
-		return log.ErrorfThrottledNewErr("Failed activating OCI Driver: %s", err.Error())
+func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
+	err := activateOCIDriver(log, c)
+	if err != nil {
+		return err
 	}
 
-	if err := rest.ActivateOKEDriver(); err != nil {
-		return log.ErrorfThrottledNewErr("Failed activating OKE Driver: %s", err.Error())
+	err = activatOKEDriver(log, c)
+	if err != nil {
+		return err
 	}
 
 	return nil

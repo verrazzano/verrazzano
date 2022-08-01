@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,20 +51,8 @@ const (
 
 // DoesCRDExist returns whether a CRD with the given name exists for the cluster
 func DoesCRDExist(crdName string) (bool, error) {
-	// use the current context in the kubeconfig
-	config, err := k8sutil.GetKubeConfig()
+	crds, err := ListCRDs()
 	if err != nil {
-		return false, err
-	}
-	apixClient, err := apiextv1.NewForConfig(config)
-	if err != nil {
-		Log(Error, "Could not get apix client")
-		return false, err
-	}
-
-	crds, err := apixClient.CustomResourceDefinitions().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get CRDS: %v", err))
 		return false, err
 	}
 
@@ -104,6 +93,28 @@ func DoesNamespaceExistInCluster(name string, kubeconfigPath string) (bool, erro
 	return namespace != nil && len(namespace.Name) > 0, nil
 }
 
+// ListCRDs returns the list of CRDs in a cluster
+func ListCRDs() (*apiext.CustomResourceDefinitionList, error) {
+	// use the current context in the kubeconfig
+	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return nil, err
+	}
+	apixClient, err := apiextv1.NewForConfig(config)
+	if err != nil {
+		Log(Error, "Could not get apix client")
+		return nil, err
+	}
+
+	crds, err := apixClient.CustomResourceDefinitions().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list CRDS: %v", err))
+		return nil, err
+	}
+
+	return crds, nil
+}
+
 // ListNamespaces returns a namespace list for the given list options
 func ListNamespaces(opts metav1.ListOptions) (*corev1.NamespaceList, error) {
 	client, err := k8sutil.GetKubernetesClientset()
@@ -136,6 +147,22 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 		return nil, err
 	}
 	return deployments, nil
+}
+
+// ListStatefulSets returns the list of StatefulSets in a given namespace for the cluster
+func ListStatefulSets(namespace string) (*appsv1.StatefulSetList, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+
+	statefulsets, err := clientset.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list StatefulSets in namespace %s: %v", namespace, err))
+		return nil, err
+	}
+	return statefulsets, nil
 }
 
 // GetReplicaCounts Builds a map of pod counts for a list of deployments
@@ -185,6 +212,21 @@ func GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment,
 		return nil, err
 	}
 	return deployment, nil
+}
+
+// DoesStatefulSetExist returns whether a StatefulSet with the given name and namespace exists for the cluster
+func DoesStatefulSetExist(namespace string, name string) (bool, error) {
+	statefulsets, err := ListStatefulSets(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list StatefulSets from namespace %s: %v", namespace, err))
+		return false, err
+	}
+	for i := range statefulsets.Items {
+		if strings.HasPrefix(statefulsets.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // GetStatefulSet returns a StatefulSet with the given name and namespace
@@ -441,11 +483,7 @@ func GetDynamicClient() (dynamic.Interface, error) {
 
 // GetDynamicClientInCluster returns a dynamic client needed to access Unstructured data
 func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error) {
-	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	return dynamic.NewForConfig(config)
+	return k8sutil.GetDynamicClientInCluster(kubeconfigPath)
 }
 
 // GetVerrazzanoInstallResourceInCluster returns the installed Verrazzano CR in the given cluster
@@ -566,6 +604,7 @@ func IsManagedClusterProfile() bool {
 
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting vz install resource: %v", err))
 		return false
 	}
 	if vz.Spec.Profile == v1alpha1.ManagedCluster {
@@ -743,6 +782,20 @@ func IsGrafanaEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.Grafana.Enabled
 }
 
+// IsKeycloakEnabled returns false if the Keycloak component is not set, or the value of its Enabled field otherwise
+func IsKeycloakEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.Keycloak == nil || vz.Spec.Components.Keycloak.Enabled == nil {
+		// Keycloak component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.Keycloak.Enabled
+}
+
 // IsVeleroEnabled returns false if the Velero component is not set, or the value of its Enabled field otherwise
 func IsVeleroEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
@@ -754,6 +807,19 @@ func IsVeleroEnabled(kubeconfigPath string) bool {
 		return false
 	}
 	return *vz.Spec.Components.Velero.Enabled
+}
+
+// IsRancherBackupEnabled returns false if the Rancher Backup component is not set, or the value of its Enabled field otherwise
+func IsRancherBackupEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.RancherBackup == nil || vz.Spec.Components.RancherBackup.Enabled == nil {
+		return false
+	}
+	return *vz.Spec.Components.RancherBackup.Enabled
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
