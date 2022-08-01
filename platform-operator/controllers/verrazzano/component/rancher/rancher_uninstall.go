@@ -13,12 +13,12 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/os"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	admv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/strings/slices"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -269,7 +269,7 @@ func deleteMatchingObject(ctx spi.ComponentContext, matches []string, obj client
 
 // isRancherNamespace determines whether the namespace given is a Rancher ns
 func isRancherNamespace(ns *corev1.Namespace) bool {
-	if slices.Contains(rancherSystemNS, ns.Name) {
+	if vzstring.SliceContainsString(rancherSystemNS, ns.Name) {
 		return true
 	}
 	if ns.Annotations == nil {

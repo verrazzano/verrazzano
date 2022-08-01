@@ -134,9 +134,9 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 
 	// Run install command
 	err := cmd.Execute()
-	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Timeout 2s exceeded waiting for install to complete")
+	assert.Error(t, err)
+	assert.Equal(t, "Error: Timeout 2s exceeded waiting for install to complete\n", errBuf.String())
+	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
 }
 
 // TestInstallCmdDefaultNoVPO

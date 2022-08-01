@@ -10,40 +10,16 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	"time"
 )
 
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 1 * time.Minute
-	longWaitTimeout      = 10 * time.Minute
 	indexDocumentURL     = "%s/_doc"
 )
 
 var t = framework.NewTestFramework("field-mappings")
-
-var _ = t.BeforeSuite(func() {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		Fail(err.Error())
-	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		Fail(err.Error())
-	}
-	if supported {
-		pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
-		m := pkg.ElasticSearchISMPolicyAddModifier{}
-		update.UpdateCR(m)
-		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
-		// Wait for sufficient time to allow the VMO reconciliation to complete
-		pkg.WaitForISMPolicyUpdate(shortPollingInterval, longWaitTimeout)
-	}
-	pkg.Log(pkg.Info, "Before suite setup completed")
-})
 
 var failed = false
 var _ = t.AfterEach(func() {
