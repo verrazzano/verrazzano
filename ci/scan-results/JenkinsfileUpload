@@ -22,8 +22,8 @@ pipeline {
     }
 
     environment {
-        upload_filename="consolidated-upload.json"
-        upload_url="https://vzship-scanmanager.appoci.oraclecorp.com/scanreports"
+        upload_filename = "consolidated-upload.json"
+        upload_url = credentials('scanmanager-url')
     }
 
     stages {
