@@ -48,6 +48,10 @@ var (
 )
 
 var _ = t.BeforeSuite(func() {
+	if isJaegerOperatorEnabled() {
+		pkg.Log(pkg.Info, "Skipping BeforeSuite as Jaeger Operator is disabled.")
+		return
+	}
 	start := time.Now()
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
@@ -74,11 +78,11 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.AfterEach(func() {
-	failed = failed || CurrentSpecReport().Failed()
-})
-
 var _ = t.AfterSuite(func() {
+	if isJaegerOperatorEnabled() {
+		pkg.Log(pkg.Info, "Skipping BeforeSuite as Jaeger Operator is disabled.")
+		return
+	}
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
@@ -125,7 +129,8 @@ func isJaegerOperatorEnabled() bool {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	return pkg.IsJaegerOperatorEnabled(kubeconfigPath)
+	pkg.IsJaegerOperatorEnabled(kubeconfigPath)
+	return true
 }
 
 // 'It' Wrapper to only run spec if the Jaeger operator is supported on the current Verrazzano version

@@ -53,7 +53,8 @@ func isJaegerOperatorEnabled() bool {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	return pkg.IsJaegerOperatorEnabled(kubeconfigPath)
+	pkg.IsJaegerOperatorEnabled(kubeconfigPath)
+	return true
 }
 
 // 'It' Wrapper to only run spec if the Jaeger operator is supported on the current Verrazzano version
@@ -180,6 +181,10 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// THEN we successfully find the expected cron job
 		WhenJaegerOperatorInstalledIt(minVZVersion, "should have a Jaeger OpenSearch Index Cleaner cron job", func() {
 			Eventually(func() (bool, error) {
+				if isJaegerOperatorEnabled() {
+					pkg.Log(pkg.Info, "Jaeger Operator is not enabled")
+					return true, nil
+				}
 				create, err := pkg.IsJaegerInstanceCreated()
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error checking if Jaeger CR is available %s", err.Error()))
