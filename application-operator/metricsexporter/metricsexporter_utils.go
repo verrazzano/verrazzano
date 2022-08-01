@@ -18,18 +18,45 @@ import (
 type metricName string
 
 const (
-	AppconfigReconcileCounter     metricName = "appconfig reconcile counter"
-	AppconfigReconcileError       metricName = "appconfig reconcile error"
-	AppconfigReconcileDuration    metricName = "appconfig reconcile duration"
-	CohworkloadReconcileCounter   metricName = "coh reconcile counter"
-	CohworkloadReconcileError     metricName = "coh reconcile error"
-	CohworkloadReconcileDuration  metricName = "coh reconcile duration"
-	HelidonReconcileCounter       metricName = "helidon reconcile counter"
-	HelidonReconcileError         metricName = "helidon reconcile error"
-	HelidonReconcileDuration      metricName = "helidon reconcile duration"
-	IngresstraitReconcileCounter  metricName = "ingress reconcile counter"
-	IngresstraitReconcileError    metricName = "ingress reconcile error"
-	IngresstraitReconcileDuration metricName = "ingress reconcile duration"
+	AppconfigReconcileCounter              metricName = "appconfig reconcile counter"
+	AppconfigReconcileError                metricName = "appconfig reconcile error"
+	AppconfigReconcileDuration             metricName = "appconfig reconcile duration"
+	CohworkloadReconcileCounter            metricName = "coh reconcile counter"
+	CohworkloadReconcileError              metricName = "coh reconcile error"
+	CohworkloadReconcileDuration           metricName = "coh reconcile duration"
+	HelidonReconcileCounter                metricName = "helidon reconcile counter"
+	HelidonReconcileError                  metricName = "helidon reconcile error"
+	HelidonReconcileDuration               metricName = "helidon reconcile duration"
+	IngresstraitReconcileCounter           metricName = "ingress reconcile counter"
+	IngresstraitReconcileError             metricName = "ingress reconcile error"
+	IngresstraitReconcileDuration          metricName = "ingress reconcile duration"
+	AppconfigHandleCounter                 metricName = "appconfig handle counter"
+	AppconfigHandleError                   metricName = "appconfig handle error"
+	AppconfigHandleDuration                metricName = "appconfig hanlde duration"
+	IstioHandleCounter                     metricName = "istio handle counter"
+	IstioHandleError                       metricName = "istio handle error"
+	IstioHandleDuration                    metricName = "istio hanlde duration"
+	LabelerPodHandleCounter                metricName = "LabelerPod handle counter"
+	LabelerPodHandleError                  metricName = "LabelerPod handle error"
+	LabelerPodHandleDuration               metricName = "LabelerPod hanlde duration"
+	BindingUpdaterHandleCounter            metricName = "BindingUpdater handle counter"
+	BindingUpdaterHandleError              metricName = "BindingUpdater handle error"
+	BindingUpdaterHandleDuration           metricName = "BindingUpdater hanlde duration"
+	MultiClusterAppconfigPodHandleCounter  metricName = "MultiClusterAppconfig handle counter"
+	MultiClusterAppconfigPodHandleError    metricName = "MultiClusterAppconfig handle error"
+	MultiClusterAppconfigPodHandleDuration metricName = "MultiClusterAppconfig hanlde duration"
+	MultiClusterCompHandleCounter          metricName = "MultiClusterComp handle counter"
+	MultiClusterCompHandleError            metricName = "MultiClusterComp handle error"
+	MultiClusterCompHandleDuration         metricName = "MultiClusterComp hanlde duration"
+	MultiClusterConfigmapHandleCounter     metricName = "MultiClusterConfigmap  handle counter"
+	MultiClusterConfigmapHandleError       metricName = "MultiClusterConfigmap  handle error"
+	MultiClusterConfigmapHandleDuration    metricName = "MultiClusterConfigmap  handle duration"
+	MultiClusterSecretHandleCounter        metricName = "MultiClusterSecret handle counter"
+	MultiClusterSecretHandleError          metricName = "MultiClusterSecret handle error"
+	MultiClusterSecretHandleDuration       metricName = "MultiClusterSecret hanlde duration"
+	VzProjHandleCounter                    metricName = "VzProj handle counter"
+	VzProjHandleError                      metricName = "VzProj handle error"
+	VzProjHandleDuration                   metricName = "VzProj hanlde duration"
 )
 
 // InitRegisterStart initalizes the metrics object, registers the metrics, and then starts the server
@@ -111,6 +138,99 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 				Name: "vao_ingresstrait_error_reconcile_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
+		AppconfigHandleCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_appconfig_handle__total",
+				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+		},
+		AppconfigHandleError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_appconfig_error_handle_total",
+				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+		},
+		IstioHandleCounter: {
+
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_istio_handle_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		IstioHandleError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_istio_error_handle_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		LabelerPodHandleCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_labelerPod_handle__total",
+				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+		},
+		LabelerPodHandleError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_labelerpod_error_handle_total",
+				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+		},
+		BindingUpdaterHandleCounter: {
+
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_bindingupdater_handle_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		BindingUpdaterHandleError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_bindingupdater_error_handle_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		MultiClusterAppconfigPodHandleCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_multiclusterappconfig_handle__total",
+				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+		},
+		MultiClusterAppconfigPodHandleError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_multiclusterappconfig_error_handle_total",
+				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+		},
+		MultiClusterCompHandleCounter: {
+
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_multiclustercomp_handle_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		MultiClusterCompHandleError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_multiclustercomp_error_handle_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		MultiClusterConfigmapHandleCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_multiclustercomp_handle_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		MultiClusterConfigmapHandleError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_multiclustercomp_error_handle_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		MultiClusterSecretHandleCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_multiclustersecret_handle_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		MultiClusterSecretHandleError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_multiclustersecret_error_handle_total",
+				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+		},
+		VzProjHandleCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_vzproj_handle__total",
+				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+		},
+		VzProjHandleError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_vzproj_error_handle_total",
+				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+		},
 	}
 }
 
@@ -138,6 +258,54 @@ func initDurationMetricMap() map[metricName]*DurationMetrics {
 		IngresstraitReconcileDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vao_ingresstrait_reconcile_duration",
+				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+			}),
+		},
+		AppconfigHandleDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_appconfig_handle_duration",
+				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+			}),
+		},
+		IstioHandleDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_istio_handle_duration",
+				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+			}),
+		},
+		LabelerPodHandleDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_labelerpod_handle_duration",
+				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+			}),
+		},
+		MultiClusterConfigmapHandleDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_bindingupdater_handle_duration",
+				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+			}),
+		},
+		MultiClusterAppconfigPodHandleDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_multiclusterappconfig_handle_duration",
+				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+			}),
+		},
+		MultiClusterCompHandleDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_multiclustercomp_handle_duration",
+				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+			}),
+		},
+		MultiClusterSecretHandleDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_multiclustersecret_handle_duration",
+				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+			}),
+		},
+		VzProjHandleDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_vzproj_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
 			}),
 		},

@@ -129,8 +129,8 @@ spec:
         matchLabels:
           app.kubernetes.io/name: prometheus
   ports:
-      -port: 9100
-      protocol: TCP
+      - port: 9100
+        protocol: TCP
 ---
 # Network policy for OAM Kubernetes Runtime operator
 # Ingress: deny all
