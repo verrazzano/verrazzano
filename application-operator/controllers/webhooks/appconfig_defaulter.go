@@ -49,7 +49,7 @@ var appconfigMarshalFunc = json.Marshal
 
 // Handle handles appconfig mutate Request
 func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics(AppConfigDefaulterPath, metricsexporter.AppconfigHandleCounter, metricsexporter.AppconfigHandleError, metricsexporter.AppconfigHandleDuration)
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("AppConfigDefaulter", metricsexporter.AppconfigHandleCounter, metricsexporter.AppconfigHandleError, metricsexporter.AppconfigHandleDuration)
 	if err != nil {
 		return admission.Response{}
 	}

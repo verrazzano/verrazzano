@@ -4238,11 +4238,10 @@ func createReconcilerWithFake(initObjs ...client.Object) Reconciler {
 func TestReconcileFailed(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	reconciler := newIngressTraitReconciler(cli)
 	request := newRequest(testNamespace, "Test-Name")
-	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileError)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.IngresstraitReconcileError)
 	assert.NoError(err)
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconcileerrorCounterObject.Get().Inc()

@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -204,4 +205,28 @@ func TestValidationSuccessForMultiClusterSecretCreationWithoutTargetClustersOnMa
 	req = newAdmissionRequest(admissionv1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster secret validation to succeed with missing placement information on managed cluster.")
+}
+func TestMultiClusterSecretHandleFailed(t *testing.T) {
+	metricsexporter.RequiredInitialization()
+	assert := assert.New(t)
+	mcc := v1alpha12.MultiClusterComponent{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-mccomponent-error",
+			Namespace: "application-ns",
+		},
+		Spec: v1alpha12.MultiClusterComponentSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "valid-cluster-name"}},
+			},
+		},
+	}
+	v := newMultiClusterComponentValidator()
+	req := newAdmissionRequest(admissionv1.Create, mcc)
+	v.Handle(context.TODO(), req)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.MultiClusterSecretHandleError)
+	assert.NoError(err)
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	reconcileerrorCounterObject.Get().Inc()
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 }

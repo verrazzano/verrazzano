@@ -120,7 +120,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		},
 		HelidonReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_helidonworkload_error_reconcile_total",
+				Name: "vao_helidonworkload_success_reconcile_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		HelidonReconcileError: {
@@ -130,7 +130,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		},
 		IngresstraitReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_ingresstrait_error_reconcile_total",
+				Name: "vao_ingresstrait_success_reconcile_total",
 				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
 		},
 		IngresstraitReconcileError: {
@@ -140,7 +140,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		},
 		AppconfigHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_appconfig_handle__total",
+				Name: "vao_appconfig_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		AppconfigHandleError: {
@@ -149,10 +149,9 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		IstioHandleCounter: {
-
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vao_istio_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times a the ingresstrait reconcile process has been successful"}),
 		},
 		IstioHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
@@ -182,7 +181,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		},
 		MultiClusterAppconfigPodHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_multiclusterappconfig_handle__total",
+				Name: "vao_multiclusterappconfig_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		MultiClusterAppconfigPodHandleError: {
@@ -270,19 +269,19 @@ func initDurationMetricMap() map[metricName]*DurationMetrics {
 		IstioHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vao_istio_handle_duration",
-				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+				Help: "The duration in seconds of vao Ingresstrait handle process",
 			}),
 		},
 		LabelerPodHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vao_labelerpod_handle_duration",
-				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+				Help: "The duration in seconds of vao Ingresstrait hanlde process",
 			}),
 		},
 		MultiClusterConfigmapHandleDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vao_multiclusterconfigmap_handle_duration",
-				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+				Help: "The duration in seconds of vao Ingresstrait handle process",
 			}),
 		},
 		MultiClusterAppconfigPodHandleDuration: {

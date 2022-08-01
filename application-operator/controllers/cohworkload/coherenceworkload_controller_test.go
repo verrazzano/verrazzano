@@ -1578,13 +1578,11 @@ func TestReconcileKubeSystem(t *testing.T) {
 	assert.True(result.IsZero())
 }
 func TestReconcileFailed(t *testing.T) {
-
 	testAppConfigName := "unit-test-app-config"
 	testNamespace := "test-ns"
 	scheme := k8scheme.Scheme
 	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
-	_ = vzapi.AddToScheme(scheme)
 	clientBuilder := fake.NewClientBuilder().WithScheme(scheme).Build()
 	reconciler := newReconciler(clientBuilder)
 	request := newRequest(testNamespace, testAppConfigName)

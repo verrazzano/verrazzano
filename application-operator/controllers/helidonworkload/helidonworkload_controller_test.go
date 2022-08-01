@@ -953,11 +953,10 @@ func TestReconcileFailed(t *testing.T) {
 	testNamespace := "test-ns"
 	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
-	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	clientBuilder := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	reconciler := newReconciler(clientBuilder)
 	request := newRequest(testNamespace, testAppConfigName)
-	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileError)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.HelidonReconcileError)
 	assert.NoError(err)
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconcileerrorCounterObject.Get().Inc()

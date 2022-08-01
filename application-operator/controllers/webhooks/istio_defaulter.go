@@ -49,7 +49,7 @@ type IstioWebhook struct {
 // Handle is the entry point for the mutating webhook.
 // This function is called for any pods that are created in a namespace with the label istio-injection=enabled.
 func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics(AppConfigDefaulterPath, metricsexporter.IstioHandleCounter, metricsexporter.IstioHandleError, metricsexporter.IstioHandleDuration)
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("IstioDefaulter", metricsexporter.IstioHandleCounter, metricsexporter.IstioHandleError, metricsexporter.IstioHandleDuration)
 	if err != nil {
 		return admission.Response{}
 	}

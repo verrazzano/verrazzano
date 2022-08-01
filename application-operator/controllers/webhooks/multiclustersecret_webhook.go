@@ -34,7 +34,7 @@ func (v *MultiClusterSecretValidator) InjectDecoder(d *admission.Decoder) error 
 
 // Handle performs validation of created or updated MultiClusterSecret resources.
 func (v *MultiClusterSecretValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("MultiClusterComponentValidator", metricsexporter.MultiClusterSecretHandleCounter, metricsexporter.MultiClusterSecretHandleError, metricsexporter.MultiClusterSecretHandleDuration)
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("MultiClusterSecretValidator", metricsexporter.MultiClusterSecretHandleCounter, metricsexporter.MultiClusterSecretHandleError, metricsexporter.MultiClusterSecretHandleDuration)
 	if err != nil {
 		return admission.Response{}
 	}

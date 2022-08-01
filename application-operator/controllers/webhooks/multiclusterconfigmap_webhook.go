@@ -34,7 +34,7 @@ func (v *MultiClusterConfigmapValidator) InjectDecoder(d *admission.Decoder) err
 
 // Handle performs validation of created or updated MultiClusterConfigmap resources.
 func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("MultiClusterComponentValidator", metricsexporter.MultiClusterConfigmapHandleCounter, metricsexporter.MultiClusterConfigmapHandleError, metricsexporter.MultiClusterConfigmapHandleDuration)
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("MultiClusterConfigmapValidator", metricsexporter.MultiClusterConfigmapHandleCounter, metricsexporter.MultiClusterConfigmapHandleError, metricsexporter.MultiClusterConfigmapHandleDuration)
 	if err != nil {
 		return admission.Response{}
 	}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -560,4 +561,19 @@ func TestValidationSuccessForProjectCreationTargetingLocalCluster(t *testing.T) 
 	req = newAdmissionRequest(admissionv1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected project validation to succeed with placement targeting local cluster.")
+}
+func TestVzProjHandleFailed(t *testing.T) {
+	metricsexporter.RequiredInitialization()
+	assert := assert.New(t)
+	v := newVerrazzanoProjectValidator()
+	// Test data
+	testVP := testProject
+	req := newAdmissionRequest(admissionv1.Create, testVP)
+	v.Handle(context.TODO(), req)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.VzProjHandleError)
+	assert.NoError(err)
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	reconcileerrorCounterObject.Get().Inc()
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 }
