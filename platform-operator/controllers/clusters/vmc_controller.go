@@ -158,6 +158,16 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		return newRequeueWithDelay(), err
 	}
 
+	// create/update a secret with the CA cert from the managed cluster (if any errors occur we just log and continue)
+	err = r.syncCACertSecret(vmc)
+	if err != nil {
+		msg := fmt.Sprintf("Unable to get CA cert from managed cluster %s with id %s: %v", vmc.Name, vmc.Status.RancherRegistration.ClusterID, err)
+		r.log.Infof(msg)
+		r.setStatusConditionManagedCARetrieved(vmc, corev1.ConditionFalse, msg)
+	} else {
+		r.setStatusConditionManagedCARetrieved(vmc, corev1.ConditionTrue, "Managed cluster CA cert retrieved successfully")
+	}
+
 	r.setStatusConditionReady(vmc, "Ready")
 	statusErr := r.updateStatus(ctx, vmc)
 	if statusErr != nil {

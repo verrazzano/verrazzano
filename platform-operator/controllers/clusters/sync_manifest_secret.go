@@ -84,20 +84,6 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	// Save the ClusterRegistrationSecret name in the VMC
 	vmc.Spec.ManagedClusterManifestSecret = GetManifestSecretName(vmc.Name)
 
-	if rc != nil && len(vmc.Spec.CASecret) == 0 {
-		// create/update a secret with the CA cert from the managed cluster (if any errors occur we just log and continue)
-		caSecretName, err := r.syncCACertSecret(vmc, rc, clusterID)
-		if err != nil {
-			msg := fmt.Sprintf("Unable to get CA cert from managed cluster with id %s: %v", clusterID, err)
-			r.log.Infof(msg)
-			r.setStatusConditionManagedCARetrieved(vmc, corev1.ConditionFalse, msg)
-		}
-		if len(caSecretName) > 0 {
-			vmc.Spec.CASecret = caSecretName
-		}
-		r.setStatusConditionManagedCARetrieved(vmc, corev1.ConditionTrue, "Managed cluster CA cert retrieved successfully")
-	}
-
 	// finally, update the VMC
 	err = r.Update(context.TODO(), vmc)
 	if err != nil {
@@ -109,35 +95,52 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 
 // syncCACertSecret gets the CA cert from the managed cluster (if the cluster is active) and creates or updates the CA cert secret.
 // If there is a CA cert on the managed cluster, then this function returns the secret name containing the CA cert.
-func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.VerrazzanoManagedCluster, rc *rancherConfig, clusterID string) (string, error) {
+func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
+	clusterID := vmc.Status.RancherRegistration.ClusterID
 	if len(clusterID) == 0 {
-		return "", nil
+		return nil
+	}
+	rc, err := newRancherConfig(r.Client, r.log)
+	if err != nil {
+		return err
+	}
+	if rc == nil || len(vmc.Spec.CASecret) > 0 {
+		return nil
 	}
 
 	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if !isActive {
 		r.log.Infof("Waiting for managed cluster with id %s to become active before fetching CA cert", clusterID)
-		return "", nil
+		return nil
 	}
 
 	caCert, err := getCACertFromManagedCluster(rc, clusterID, r.log)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if len(caCert) > 0 {
 		caSecretName := getCASecretName(vmc.Name)
 		r.log.Infof("Retrieved CA cert from managed cluster with id %s, creating/updating secret %s", clusterID, caSecretName)
 		if _, err := r.createOrUpdateCASecret(vmc, caCert); err != nil {
-			return "", err
+			return err
 		}
-		return caSecretName, nil
+		if len(caSecretName) > 0 {
+			vmc.Spec.CASecret = caSecretName
+			// update the VMC with ca secret name
+			r.log.Infof("Updating VMC %s with managed cluster CA secret %s", vmc.Name, caSecretName)
+			err = r.Update(context.TODO(), vmc)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
-	return "", nil
+	return nil
 }
 
 // Update the Rancher registration status
