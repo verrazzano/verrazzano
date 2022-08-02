@@ -16,7 +16,7 @@ import (
 	c "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// retainPersistentVolume locates the persistent volume associated with the provided pvc
+// RetainPersistentVolume locates the persistent volume associated with the provided pvc
 // and sets the reclaim policy to "retain" so that it can be migrated to the new deployment/statefulset.
 func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedName, componentName string) error {
 	pvc := &v1.PersistentVolumeClaim{}
@@ -106,10 +106,10 @@ func DeleteExistingVolumeClaim(ctx spi.ComponentContext, pvcName types.Namespace
 	ctx.Log().Debugf("Deleting pvc %v", pvcName)
 	if err := ctx.Client().Delete(context.TODO(), pvc); err != nil {
 		if errors.IsNotFound(err) {
-			ctx.Log().Infof("PVC %v is not found", pvcName)
+			ctx.Log().Debugf("PVC %v is not found", pvcName)
 			return nil
 		}
-		ctx.Log().Infof("DeleteExistingVolumeClaim - unable to delete PVC")
+		ctx.Log().Errorf("Unable to delete PVC %v", pvcName)
 		return err
 	}
 
