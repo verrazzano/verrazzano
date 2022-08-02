@@ -101,7 +101,7 @@ var _ = t.AfterSuite(func() {
 
 	t.Logs.Info("Wait for application pods to terminate")
 	Eventually(func() bool {
-		podsTerminated, _ := pkg.PodsNotRunning("helidon-logging", expectedPodsHelloHelidon)
+		podsTerminated, _ := pkg.PodsNotRunning(namespace, expectedPodsHelloHelidon)
 		return podsTerminated
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 
@@ -112,12 +112,12 @@ var _ = t.AfterSuite(func() {
 
 	t.Logs.Info("Wait for Finalizer to be removed")
 	Eventually(func() bool {
-		return pkg.CheckNamespaceFinalizerRemoved("helidon-logging")
+		return pkg.CheckNamespaceFinalizerRemoved(namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 
 	t.Logs.Info("Wait for namespace to be deleted")
 	Eventually(func() bool {
-		_, err := pkg.GetNamespace("helidon-logging")
+		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 
@@ -129,8 +129,8 @@ func isJaegerOperatorEnabled() bool {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	return pkg.IsJaegerOperatorEnabled(kubeconfigPath)
-	//return false
+	pkg.IsJaegerOperatorEnabled(kubeconfigPath)
+	return false
 }
 
 // 'It' Wrapper to only run spec if the Jaeger operator is supported on the current Verrazzano version
@@ -171,7 +171,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				}
 				tracesFound := false
 				// generate sample requests, so that traces can be sent to Jaeger for those requests
-				//host, err := k8sutil.GetHostnameFromGateway(generatedNamespace, "")
+				//host, err := k8sutil.GetHostnameFromGateway(namespace, "")
 				//if err != nil {
 				//	return false, err
 				//}
@@ -191,7 +191,6 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 						if !tracesFound {
 							pkg.Log(pkg.Error, fmt.Sprintf("traces not found for service: %s", serviceName))
 							return false, fmt.Errorf("traces not found for service: %s", serviceName)
-							continue
 						}
 						break
 					}
