@@ -48,4 +48,4 @@ spec:
       enabled: true
       istioInstallArgs:
         - name: "meshConfig.enableTracing"
-          value: "true"
+          value: "false"
