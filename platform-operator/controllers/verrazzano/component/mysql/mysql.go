@@ -40,7 +40,6 @@ const (
 	mySQLKey            = "mysql-password"
 	mySQLRootKey        = "mysql-root-password"
 	mySQLInitFilePrefix = "init-mysql-"
-	//mySQLHookFile       = "platform-operator/scripts/hooks/mysql-hook.sh"
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
