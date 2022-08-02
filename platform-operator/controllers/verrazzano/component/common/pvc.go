@@ -146,7 +146,6 @@ func ResetVolumeReclaimPolicy(ctx spi.ComponentContext, componentName string) er
 			if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
 				return ctx.Log().ErrorfNewErr("Failed resetting reclaim policy on persistent volume %s: %v", pv.Name, err)
 			}
-			break
 		}
 	}
 	return nil
