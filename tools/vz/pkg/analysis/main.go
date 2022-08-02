@@ -8,6 +8,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
+	"os"
+	"path/filepath"
 )
 
 var analyzerTypeFunctions = map[string]func(log *zap.SugaredLogger, args string) (err error){
@@ -22,9 +24,12 @@ var minImpact int
 var minConfidence int
 var logger *zap.SugaredLogger
 
+var liveCluster bool
+
 // The analyze tool will analyze information which has already been captured from an environment
 func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
 	logger = zap.S()
+	liveCluster = isLiveCluster(directory)
 	return handleMain(vzHelper, directory, reportFile, reportFormat)
 }
 
@@ -65,4 +70,16 @@ func Analyze(logger *zap.SugaredLogger, analyzerType string, rootDirectory strin
 		return err
 	}
 	return nil
+}
+
+func isLiveCluster(directory string) bool {
+	fileInfo, _ := os.Stat(filepath.Join(directory, "livecluster.log"))
+	if fileInfo != nil {
+		return true
+	}
+	return false
+}
+
+func IsLiveCluster() bool {
+	return liveCluster
 }

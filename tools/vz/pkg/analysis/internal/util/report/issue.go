@@ -301,3 +301,19 @@ func SingleMessage(message string) (messages []string) {
 	messages[0] = message
 	return messages
 }
+
+func GetRelatedPodMessage(pod, ns string) string {
+	return "Pod \"" + pod + "\" in namespace \"" + ns + "\""
+}
+
+func GetRelatedEventMessage(ns string) string {
+	return "Event(s) in namespace \"" + ns + "\""
+}
+
+func GetRelatedVZResourceMessage() string {
+	return "Verrazzano custom resource"
+}
+
+func GetRelatedLogFromPodMessage(pod, ns string) string {
+	return "Log from pod \"" + pod + "\" in namespace \"" + ns + "\""
+}

@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	"os"
@@ -229,7 +230,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 						}
 					}
 					if len(data.RelatedFiles) > 0 {
-						_, err = fmt.Fprintf(writeOut, "\t\t\trelated files:\n")
+						_, err = fmt.Fprintf(writeOut, "\t\t\trelated resource(s):\n")
 						if err != nil {
 							return err
 						}

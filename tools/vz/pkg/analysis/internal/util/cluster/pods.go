@@ -7,6 +7,7 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
@@ -161,7 +162,14 @@ func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile 
 	messages := make(StringSlice, 1)
 	messages[0] = initialMessage
 	messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, image, podEvents))
-	files := []string{podFile}
+
+	var files []string
+	if analysis.IsLiveCluster() {
+		files = []string{report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)}
+	} else {
+		files = []string{podFile}
+	}
+
 	reported := 0
 	for _, message := range messages {
 		if dockerPullRateLimitRe.MatchString(message) {
@@ -214,7 +222,8 @@ func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFil
 			}
 		}
 		if len(messages) > 0 {
-			files := []string{podFile}
+			reportPod := "Pod " + pod.ObjectMeta.Name + " in namespace " + pod.ObjectMeta.Namespace
+			files := []string{reportPod}
 			issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages, files)
 		}
 	}
@@ -392,6 +401,7 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			}
 		}
 	}
+	fmt.Println("HA HA matches ", matches)
 	supportingData := make([]report.SupportData, 1)
 	supportingData[0] = report.SupportData{
 		Messages:    messages,
