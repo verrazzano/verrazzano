@@ -224,35 +224,6 @@ func BuildRancherUserIDList(rancherURL string) bool {
 	return true
 }
 
-// DeleteRancherUsers is used to cleanup rancher users after test run
-func DeleteRancherUsers(rancherURL string) error {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		t.Logs.Errorf("Unable to fetch kubeconfig url due to %v", zap.Error(err))
-		return err
-	}
-
-	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
-	if err != nil {
-		t.Logs.Errorf("Unable to fetch httpClient due to %v", zap.Error(err))
-		return err
-	}
-	token := common.GetRancherLoginToken(t.Logs)
-	for i := 0; i < len(common.RancherUserNameList); i++ {
-		rancherUserDeleteURL := fmt.Sprintf("%s/v3/users/%s", rancherURL, common.RancherUserIDList[i])
-
-		_, err := common.HTTPHelper(httpClient, "DELETE", rancherUserDeleteURL, token, "Bearer", http.StatusOK, nil, t.Logs)
-		if err != nil {
-			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
-			return err
-		}
-
-		t.Logs.Infof("Sucessfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
-	}
-
-	return nil
-}
-
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
 func WhenRancherBackupInstalledIt(description string, f func()) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -316,11 +287,6 @@ func backupPrerequisites() {
 // Run as part of AfterSuite
 func cleanUpRancher() {
 	t.Logs.Info("Cleanup backup and restore objects")
-
-	//t.Logs.Info("Deleting multiple user with the retrieved login token")
-	//Eventually(func() error {
-	//	return DeleteRancherUsers(common.RancherURL)
-	//}, waitTimeout, pollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup restore object")
 	Eventually(func() error {

@@ -43,13 +43,13 @@ var esPods = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-syste
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
 	common.GatherInfo()
-	//backupPrerequisites()
+	backupPrerequisites()
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var _ = t.AfterSuite(func() {
 	start := time.Now()
-	//cleanUpVelero()
+	cleanUpVelero()
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
