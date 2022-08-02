@@ -97,7 +97,6 @@ func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.Namespac
 func DeleteExistingVolumeClaim(ctx spi.ComponentContext, pvcName types.NamespacedName) error {
 	ctx.Log().Debugf("Removing PVC %v", pvcName)
 
-	// get the PVC in order to update it
 	pvc := &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      pvcName.Name,

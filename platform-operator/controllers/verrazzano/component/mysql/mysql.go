@@ -79,7 +79,6 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 		kvs = append(kvs, bom.KeyValue{Key: "initdbScripts.create-db\\.sql", Value: mySQLInitFile, SetFile: true})
-		//kvs = append(kvs, bom.KeyValue{Key: "primary.lifecycleHooks.mysql-hook\\.sh", Value: mySQLHookFile, SetFile: true})
 		kvs, err = appendMySQLSecret(compContext, kvs)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
