@@ -1,0 +1,78 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+        docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            label 'internal'
+        }
+    }
+
+    parameters {
+        string (name: 'UPSTREAM_JOB', defaultValue: 'NONE', description: 'Name of the upstream job')
+        string (name: 'UPSTREAM_BUILD', defaultValue: 'NONE', description: 'Build number to copy the upload file from')
+    }
+
+    environment {
+        upload_filename = "consolidated-upload.json"
+        upload_url = "${env.SCANMANAGER_URL}"
+    }
+
+    stages {
+        stage('Fetch Scan Report') {
+            steps {
+                script {
+                    sh """
+                        echo "Copying ${upload_filename} from upstream pipeline"
+                        echo "UPSTREAM_JOB = ${params.UPSTREAM_JOB}"
+                        echo "UPSTREAM_BUILD = ${params.UPSTREAM_BUILD}"
+                    """
+                    copyArtifacts(
+                        projectName: "/${params.UPSTREAM_JOB}",
+                        selector: specific("${params.UPSTREAM_BUILD}"),
+                        filter: "${upload_filename}",
+                        flatten: true,
+                        optional: false,
+                        fingerprintArtifacts: false
+                    )
+                    sh """
+                        echo "Got file ${upload_filename}:"
+                        ls -l
+                        head ${upload_filename}
+                    """
+                }
+            }
+        }
+
+        stage("Upload Scan Report") {
+            steps {
+                script {
+                    sh """
+                    echo "Uploading ${upload_filename} to ${upload_url}"
+                    echo curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} ${upload_url}
+                    echo "File uploaded"
+                    """
+                }
+            }
+        }
+
+    }
+
+    post {
+        cleanup {
+            sh """
+                echo "Removing upload file ${upload_filename}"
+                rm -f ${upload_filename}
+            """
+        }
+    }
+}
+
