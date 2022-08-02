@@ -72,9 +72,13 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			var client *vmcClient.Clientset
 			// If registration happend in VZ versions 1.4 and above on admin cluster, check the ManagedCARetrieved condition as well
 			adminVersionAtRegistration := os.Getenv("ADMIN_VZ_VERSION_AT_REGISTRATION")
-			regVersion14, err := pkg.IsMinVersion(adminVersionAtRegistration, "1.4.0")
-			if err != nil {
-				Fail(err.Error())
+			regVersion14 := false
+			var err error
+			if adminVersionAtRegistration != "" {
+				regVersion14, err = pkg.IsMinVersion(adminVersionAtRegistration, "1.4.0")
+				if err != nil {
+					Fail(err.Error())
+				}
 			}
 			curAdminVersion14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeconfig)
 			if err != nil {
