@@ -13,6 +13,7 @@ import (
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -47,6 +48,17 @@ type LabelerPodWebhook struct {
 func (a *LabelerPodWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "metrics-binding-labeler-pod")
 	log.Debug("metrics-binding-labeler-pod webhook called")
+	durationMetricHandle, err := metricsexporter.GetDurationMetric(metricsexporter.LabelerPodHandleDuration)
+	if err != nil {
+		return admission.Response{}
+	}
+	counterMetricHandle, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.LabelerPodHandleCounter)
+	if err != nil {
+		return admission.Response{}
+	}
+	durationMetricHandle.TimerStart()
+	defer durationMetricHandle.TimerStop()
+	counterMetricHandle.Inc(zap.S(), err)
 	return a.handlePodResource(req, log)
 }
 
