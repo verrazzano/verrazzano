@@ -105,7 +105,7 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dump"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshot"
 
         // Ideally use the TIBURON-DEV compartment, but we need permissions
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
@@ -287,7 +287,7 @@ pipeline {
                         success {
                             script {
                                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                                    dumpK8sCluster('install-success-cluster-dump')
+                                    dumpK8sCluster('install-success-cluster-snapshot')
                                 }
                             }
                         }
@@ -461,14 +461,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('tests-failure-cluster-dump')
+                            dumpK8sCluster('tests-failure-cluster-snapshot')
                         }
                     }
                 }
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('tests-success-cluster-dump')
+                            dumpK8sCluster('tests-success-cluster-snapshot')
                         }
                     }
                 }
@@ -502,10 +502,10 @@ pipeline {
                     listHelmReleases('after Verrazzano uninstall')
                 }
                 failure {
-                    dumpK8sCluster('uninstall-failure-cluster-dump')
+                    dumpK8sCluster('uninstall-failure-cluster-snapshot')
                 }
                 aborted {
-                    dumpK8sCluster('uninstall-aborted-cluster-dump')
+                    dumpK8sCluster('uninstall-aborted-cluster-snapshot')
                 }
             }
         }
@@ -522,12 +522,12 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verify-uninstall-success-cluster-dump')
+                            dumpK8sCluster('verify-uninstall-success-cluster-snapshot')
                         }
                     }
                 }
                 failure {
-                    dumpK8sCluster('verify-uninstall-failed-cluster-dump')
+                    dumpK8sCluster('verify-uninstall-failed-cluster-snapshot')
                 }
             }
         }
@@ -559,7 +559,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/*-cluster-snapshot/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-snapshot/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             sh """
