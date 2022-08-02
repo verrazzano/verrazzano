@@ -116,7 +116,8 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	expectVmcGetAndUpdate(t, mock, testManagedCluster, true, false)
+	caSecretExistsInVMC := true
+	expectVmcGetAndUpdate(t, mock, testManagedCluster, caSecretExistsInVMC, false)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	// Agent secret sync checks depend on whether Rancher is enabled
@@ -2068,10 +2069,12 @@ func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.Moc
 func expectSyncCACertRancherK8sCalls(t *testing.T, k8sMock *mocks.MockClient, mockRequestSender *mocks.MockRequestSender, shouldSyncCACert bool) {
 	asserts := assert.New(t)
 
-	// Expect K8S calls and admin token call to create new Rancher config
-	expectRancherConfigK8sCalls(t, k8sMock)
-	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	if shouldSyncCACert {
+		// Expect K8S calls and admin token call to create new Rancher config
+		expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+
+		expectRancherConfigK8sCalls(t, k8sMock)
+
 		// Expect a call to get the CA cert secret for the managed cluster - return not found
 		k8sMock.EXPECT().
 			Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: "ca-secret-test"}), gomock.Not(gomock.Nil())).
