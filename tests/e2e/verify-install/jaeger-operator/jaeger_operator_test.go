@@ -21,11 +21,6 @@ const (
 	pollingInterval                = 10 * time.Second
 	jaegerOperatorName             = "jaeger-operator"
 	minVZVersion                   = "1.3.0"
-	minVZVersionForDefaultInstance = "1.4.0"
-	//JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
-	JaegerCollectorDeploymentName = "jaeger-operator-jaeger-collector"
-	//JaegerQueryDeploymentName is the name of the Jaeger instance query deployment.
-	JaegerQueryDeploymentName = "jaeger-operator-jaeger-query"
 	jaegerESIndexCleanerJob   = "jaeger-operator-jaeger-es-index-cleaner"
 )
 
@@ -93,8 +88,11 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		})
 
 		// GIVEN the Jaeger Operator is installed
-		// WHEN we check to make sure the pods are running
+		// WHEN we check to make sure the Jaeger pods are running
 		// THEN we successfully find the running pods
+		// For 1.3.0, only the jaeger-operator pod gets created and its status is validated
+		// For 1.4.0 and later, jaeger-operator, jaeger-operator-jaeger-query, jaeger-operator-jaeger-collector
+		//     pods gets created and their status is validated.
 		WhenJaegerOperatorInstalledIt(minVZVersion, "should have running pods", func() {
 			jaegerOperatorPodsRunning := func() bool {
 				if !isJaegerOperatorEnabled() {
@@ -196,39 +194,6 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		// GIVEN the Jaeger Operator is installed
-		// WHEN we check to make sure the collector pod are running
-		// THEN we successfully find the running pods
-		WhenJaegerOperatorInstalledIt(minVZVersionForDefaultInstance, "should have a default instance Collector pod running", func() {
-			verifyDefaultInstanceCollectorPod := func() bool {
-				if !isJaegerOperatorEnabled() {
-					return true
-				}
-				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, []string{JaegerCollectorDeploymentName})
-				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", JaegerCollectorDeploymentName, constants.VerrazzanoMonitoringNamespace, err))
-				}
-				return result
-			}
-			Eventually(verifyDefaultInstanceCollectorPod, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-
-		// GIVEN the Jaeger Operator is installed
-		// WHEN we check to make sure the query pod are running
-		// THEN we successfully find the running pods
-		WhenJaegerOperatorInstalledIt(minVZVersionForDefaultInstance, "should have a default instance Query pod running", func() {
-			verifyDefaultInstanceQueryPods := func() bool {
-				if !isJaegerOperatorEnabled() {
-					return true
-				}
-				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, []string{JaegerQueryDeploymentName})
-				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", JaegerQueryDeploymentName, constants.VerrazzanoMonitoringNamespace, err))
-				}
-				return result
-			}
-			Eventually(verifyDefaultInstanceQueryPods, waitTimeout, pollingInterval).Should(BeTrue())
-		})
 	})
 
 })
