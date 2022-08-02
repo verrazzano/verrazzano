@@ -23,6 +23,7 @@ pipeline {
 
     environment {
         upload_filename = "consolidated-upload.json"
+        copy_artifact_filter = "scan-results/latest-periodic/${upload_filename}"
         upload_url = "${env.SCANMANAGER_URL}"
     }
 
@@ -31,14 +32,14 @@ pipeline {
             steps {
                 script {
                     sh """
-                        echo "Copying ${upload_filename} from upstream pipeline"
+                        echo "Copying ${copy_artifact_filter} from upstream pipeline"
                         echo "UPSTREAM_JOB = ${params.UPSTREAM_JOB}"
                         echo "UPSTREAM_BUILD = ${params.UPSTREAM_BUILD}"
                     """
                     copyArtifacts(
                         projectName: "/${params.UPSTREAM_JOB}",
                         selector: specific("${params.UPSTREAM_BUILD}"),
-                        filter: "${upload_filename}",
+                        filter: "${copy_artifact_filter}",
                         flatten: true,
                         optional: false,
                         fingerprintArtifacts: false
@@ -46,7 +47,7 @@ pipeline {
                     sh """
                         echo "Got file ${upload_filename}:"
                         ls -l
-                        head ${upload_filename}
+                        head -8 ${upload_filename}
                     """
                 }
             }
@@ -57,7 +58,7 @@ pipeline {
                 script {
                     sh """
                     echo "Uploading ${upload_filename} to ${upload_url}"
-                    echo curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} ${upload_url}
+                    curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} ${upload_url}
                     echo "File uploaded"
                     """
                 }
