@@ -215,7 +215,8 @@ func GetPodVolumeBackups(namespace string, log *zap.SugaredLogger) error {
 			log.Errorf("Json unmarshall error %v", zap.Error(err))
 			return err
 		}
-		fmt.Fprintln(writer, fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v", podVolumeBackup.Metadata.Name, podVolumeBackup.Status.Phase, podVolumeBackup.Metadata.Namespace, podVolumeBackup.Spec.Pod.Name,
+		fmt.Fprintln(writer, fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v", podVolumeBackup.Metadata.Name, podVolumeBackup.Status.Phase,
+			podVolumeBackup.Metadata.Namespace, podVolumeBackup.Spec.Pod.Name,
 			podVolumeBackup.Spec.Volume, podVolumeBackup.Spec.RepoIdentifier, podVolumeBackup.Spec.BackupStorageLocation))
 	}
 	writer.Flush()
@@ -250,7 +251,8 @@ func GetPodVolumeRestores(namespace string, log *zap.SugaredLogger) error {
 			return err
 		}
 		fmt.Fprintln(writer, fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v", podVolumeRestore.Metadata.Name,
-			podVolumeRestore.Metadata.Namespace, podVolumeRestore.Spec.Pod.Name, podVolumeRestore.Spec.Volume, podVolumeRestore.Status.Phase, podVolumeRestore.Status.Progress.TotalBytes, podVolumeRestore.Status.Progress.BytesDone))
+			podVolumeRestore.Metadata.Namespace, podVolumeRestore.Spec.Pod.Name, podVolumeRestore.Spec.Volume,
+			podVolumeRestore.Status.Phase, podVolumeRestore.Status.Progress.TotalBytes, podVolumeRestore.Status.Progress.BytesDone))
 	}
 	writer.Flush()
 	return nil
