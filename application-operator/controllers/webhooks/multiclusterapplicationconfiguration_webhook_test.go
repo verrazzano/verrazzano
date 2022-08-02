@@ -285,9 +285,12 @@ func TestValidateSecrets(t *testing.T) {
 	asrt.NoError(v.validateSecrets(mcac))
 
 }
+
+// TestMultiClusterAppConfigHandleFailed tests to make sure the failure metric is being exposed
 func TestMultiClusterAppConfigHandleFailed(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
+	// Create a request and decode(Handle)
 	decoder := decoder()
 	defaulter := &IstioWebhook{}
 	_ = defaulter.InjectDecoder(decoder)
@@ -295,6 +298,7 @@ func TestMultiClusterAppConfigHandleFailed(t *testing.T) {
 	defaulter.Handle(context.TODO(), req)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.MultiClusterAppconfigPodHandleError)
 	assert.NoError(err)
+	// Expect a call to fetch the error
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconcileerrorCounterObject.Get().Inc()
 	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())

@@ -35,6 +35,9 @@ const (
 	vmoCounterMetric               = "vmo_deployment_update_total"
 	vmoGaugeMetric                 = "vmo_work_queue_size"
 	vmoTimestampMetric             = "vmo_configmap_last_succesful_timestamp"
+	vaoSuccessCountMetric          = "vao_appconfig_successful_reconcile_total"
+	vaoFailCountMetric             = "vao_appconfig_error_reconcile_total"
+	vaoDurationCountMetric         = "vao_appconfig_reconcile_duration_count"
 
 	// Namespaces used for validating envoy stats
 	verrazzanoSystemNamespace = "verrazzano-system"
@@ -168,14 +171,14 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 		t.ItMinimumVersion("Verify VMO timestamp metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels(vmoTimestampMetric, map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VAO successful counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
-			eventuallyMetricsContainLabels("vao_appconfig_successful_reconcile_total", map[string]string{})
+		t.ItMinimumVersion("Verify VAO successful counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels(vaoSuccessCountMetric, map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VAO failed counter metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
-			eventuallyMetricsContainLabels("vao_appconfig_error_reconcile_total", map[string]string{})
+		t.ItMinimumVersion("Verify VAO failed counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels(vaoFailCountMetric, map[string]string{})
 		})
-		t.ItMinimumVersion("Verify VAO Duration summary metrics can be queried from Prometheus", "1.4.0", kubeConfig, func() {
-			eventuallyMetricsContainLabels("vao_appconfig_reconcile_duration_count", map[string]string{})
+		t.ItMinimumVersion("Verify VAO Duration summary metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
+			eventuallyMetricsContainLabels(vaoDurationCountMetric, map[string]string{})
 		})
 
 		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {

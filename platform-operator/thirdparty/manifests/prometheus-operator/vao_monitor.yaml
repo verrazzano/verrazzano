@@ -28,3 +28,4 @@ spec:
       - action: replace
         targetLabel: verrazzano_cluster
         replacement: local  
+        

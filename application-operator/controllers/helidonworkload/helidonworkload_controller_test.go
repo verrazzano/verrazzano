@@ -948,16 +948,20 @@ func TestReconcileKubeSystem(t *testing.T) {
 	assert.Nil(err)
 	assert.True(result.IsZero())
 }
+
+// TestReconcileFailed tests to make sure the failure metric is being exposed
 func TestReconcileFailed(t *testing.T) {
 	testAppConfigName := "unit-test-app-config"
 	testNamespace := "test-ns"
 	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	clientBuilder := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	// Create a request and reconcile it
 	reconciler := newReconciler(clientBuilder)
 	request := newRequest(testNamespace, testAppConfigName)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.HelidonReconcileError)
 	assert.NoError(err)
+	// Expect a call to fetch the error
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconcileerrorCounterObject.Get().Inc()
 	reconciler.Reconcile(context.TODO(), request)

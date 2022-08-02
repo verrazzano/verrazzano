@@ -4235,14 +4235,18 @@ func createReconcilerWithFake(initObjs ...client.Object) Reconciler {
 	reconciler := newIngressTraitReconciler(cli)
 	return reconciler
 }
+
+// TestReconcileFailed tests to make sure the failure metric is being exposed
 func TestReconcileFailed(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	// Create a request and reconcile it
 	reconciler := newIngressTraitReconciler(cli)
 	request := newRequest(testNamespace, "Test-Name")
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.IngresstraitReconcileError)
 	assert.NoError(err)
+	// Expect a call to fetch the error
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconcileerrorCounterObject.Get().Inc()
 	reconciler.Reconcile(context.TODO(), request)

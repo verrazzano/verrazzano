@@ -736,7 +736,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(vzconst.KubeSystem, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -744,14 +744,17 @@ func TestReconcileKubeSystem(t *testing.T) {
 	assert.True(result.IsZero())
 }
 
+// TestReconcileFailed tests to make sure the failure metric is being exposed
 func TestReconcileFailed(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
 	clientBuilder := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	// Create a request and reconcile it
 	reconciler := newReconciler(clientBuilder)
 	request := newRequest(testNamespace, testAppConfigName)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileError)
 	assert.NoError(err)
+	// Expect a call to fetch the error
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconcileerrorCounterObject.Get().Inc()
 	reconciler.Reconcile(context.TODO(), request)

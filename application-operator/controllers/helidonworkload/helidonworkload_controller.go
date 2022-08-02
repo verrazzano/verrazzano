@@ -90,7 +90,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	// fetch the workload
+	// Fetch the workload
 	var workload vzapi.VerrazzanoHelidonWorkload
 	if err := r.Get(ctx, req.NamespacedName, &workload); err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())
@@ -121,14 +121,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 // doReconcile performs the reconciliation operations for the VerrazzanoHelidonWorkload
 func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoHelidonWorkload, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
-	// if required info is not available in workload, log error and return
+	// If required info is not available in workload, log error and return
 	if len(workload.Spec.DeploymentTemplate.Metadata.GetName()) == 0 {
 		err := errors.New("VerrazzanoHelidonWorkload is missing required spec.deploymentTemplate.metadata.name")
 		log.Errorf("Failed to get workload name: %v", err)
 		return reconcile.Result{Requeue: false}, err
 	}
 
-	// unwrap the apps/DeploymentSpec and meta/ObjectMeta
+	// Unwrap the apps/DeploymentSpec and meta/ObjectMeta
 	deploy, err := r.convertWorkloadToDeployment(&workload, log)
 	if err != nil {
 		log.Errorf("Failed to convert workload to deployment: %v", err)

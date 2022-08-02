@@ -562,9 +562,15 @@ func TestValidationSuccessForProjectCreationTargetingLocalCluster(t *testing.T) 
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected project validation to succeed with placement targeting local cluster.")
 }
+
+// TestVzProjHandleFailed tests to make sure the failure metric is being exposed
+// GIVEN a call to validate a VerrazzanoProject resource
+// WHEN the VerrazzanoProject resource is failing
+// THEN the validation should fail.
 func TestVzProjHandleFailed(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
+	// Create a request and Handle
 	v := newVerrazzanoProjectValidator()
 	// Test data
 	testVP := testProject
@@ -572,6 +578,7 @@ func TestVzProjHandleFailed(t *testing.T) {
 	v.Handle(context.TODO(), req)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.VzProjHandleError)
 	assert.NoError(err)
+	// Expect a call to fetch the error
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconcileerrorCounterObject.Get().Inc()
 	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())

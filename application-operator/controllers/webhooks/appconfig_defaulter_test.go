@@ -150,6 +150,25 @@ func TestAppConfigDefaulterHandleDefaultError(t *testing.T) {
 	assert.Equal(t, int32(http.StatusInternalServerError), res.Result.Code)
 }
 
+// TestHandleFailed tests to make sure the failure metric is being exposed
+func TestHandleFailed(t *testing.T) {
+	metricsexporter.RequiredInitialization()
+	assert := assert.New(t)
+	// Create a request and decode(Handle) it
+	decoder := decoder()
+	defaulter := &AppConfigWebhook{}
+	_ = defaulter.InjectDecoder(decoder)
+	req := admission.Request{}
+	defaulter.Handle(context.TODO(), req)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigHandleError)
+	assert.NoError(err)
+	// Expect a call to fetch the error
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	reconcileerrorCounterObject.Get().Inc()
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
+}
+
 func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryRun bool) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
@@ -192,19 +211,4 @@ func readYaml2Json(t *testing.T, path string) []byte {
 		zap.S().Errorf("Failed json marshal: %v", err)
 	}
 	return jsonBytes
-}
-func TestHandleFailed(t *testing.T) {
-	metricsexporter.RequiredInitialization()
-	assert := assert.New(t)
-	decoder := decoder()
-	defaulter := &AppConfigWebhook{}
-	_ = defaulter.InjectDecoder(decoder)
-	req := admission.Request{}
-	defaulter.Handle(context.TODO(), req)
-	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigHandleError)
-	assert.NoError(err)
-	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
-	reconcileerrorCounterObject.Get().Inc()
-	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
-	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 }

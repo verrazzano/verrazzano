@@ -206,6 +206,11 @@ func TestValidationSuccessForMultiClusterSecretCreationWithoutTargetClustersOnMa
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster secret validation to succeed with missing placement information on managed cluster.")
 }
+
+// TestMultiClusterSecretHandleFailed tests to make sure the failure metric is being exposed
+// GIVEN a call to validate a MultiClusterConfigMap resource
+// WHEN the MultiClusterConfigMap resource is failing
+// THEN the validation should fail.
 func TestMultiClusterSecretHandleFailed(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
@@ -220,11 +225,13 @@ func TestMultiClusterSecretHandleFailed(t *testing.T) {
 			},
 		},
 	}
+	// Create a request and Handle
 	v := newMultiClusterComponentValidator()
 	req := newAdmissionRequest(admissionv1.Create, mcc)
 	v.Handle(context.TODO(), req)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.MultiClusterSecretHandleError)
 	assert.NoError(err)
+	// Expect a call to fetch the error
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconcileerrorCounterObject.Get().Inc()
 	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())

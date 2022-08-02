@@ -1577,17 +1577,21 @@ func TestReconcileKubeSystem(t *testing.T) {
 	assert.Nil(err)
 	assert.True(result.IsZero())
 }
+
+// TestReconcileFailed tests to make sure the failure metric is being exposed
 func TestReconcileFailed(t *testing.T) {
 	testAppConfigName := "unit-test-app-config"
 	testNamespace := "test-ns"
-	scheme := k8scheme.Scheme
 	metricsexporter.RequiredInitialization()
+	scheme := k8scheme.Scheme
 	assert := asserts.New(t)
 	clientBuilder := fake.NewClientBuilder().WithScheme(scheme).Build()
+	// Create a request and reconcile it
 	reconciler := newReconciler(clientBuilder)
 	request := newRequest(testNamespace, testAppConfigName)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.CohworkloadReconcileError)
 	assert.NoError(err)
+	// Expect a call to fetch the error
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconciler.Reconcile(context.TODO(), request)
 	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())

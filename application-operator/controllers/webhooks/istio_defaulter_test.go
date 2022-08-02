@@ -1023,6 +1023,24 @@ func TestHandleProject3(t *testing.T) {
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig2")
 }
 
+// TestHandleFailed tests to make sure the failure metric is being exposed
+func TestIstioHandleFailed(t *testing.T) {
+	metricsexporter.RequiredInitialization()
+	assert := assert.New(t)
+	// Create a request and decode(Handle) it
+	decoder := decoder()
+	defaulter := &IstioWebhook{}
+	_ = defaulter.InjectDecoder(decoder)
+	req := admission.Request{}
+	defaulter.Handle(context.TODO(), req)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.IstioHandleError)
+	assert.NoError(err)
+	// Expect a call to fetch the error
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	reconcileerrorCounterObject.Get().Inc()
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
+}
 func newUnstructured(apiVersion string, kind string, name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -1034,19 +1052,4 @@ func newUnstructured(apiVersion string, kind string, name string) *unstructured.
 			},
 		},
 	}
-}
-func TestIstioHandleFailed(t *testing.T) {
-	metricsexporter.RequiredInitialization()
-	assert := assert.New(t)
-	decoder := decoder()
-	defaulter := &IstioWebhook{}
-	_ = defaulter.InjectDecoder(decoder)
-	req := admission.Request{}
-	defaulter.Handle(context.TODO(), req)
-	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.IstioHandleError)
-	assert.NoError(err)
-	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
-	reconcileerrorCounterObject.Get().Inc()
-	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
-	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 }

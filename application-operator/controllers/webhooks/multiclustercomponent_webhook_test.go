@@ -206,6 +206,11 @@ func TestValidationSuccessForMultiClusterComponentCreationWithoutTargetClustersO
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster component validation to succeed with missing placement information on managed cluster.")
 }
+
+// TestMultiClusterComponentHandleFailed tests to make sure the failure metric is being exposed
+// GIVEN a call to validate a MultiClusterComponent resource
+// WHEN the MultiClusterComponent resource references a VerrazzanoManagedCluster that does not exist
+// THEN the validation should fail.
 func TestMultiClusterComponentHandleFailed(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
@@ -220,11 +225,13 @@ func TestMultiClusterComponentHandleFailed(t *testing.T) {
 			},
 		},
 	}
+	// Create a request and Handle
 	v := newMultiClusterComponentValidator()
 	req := newAdmissionRequest(admissionv1.Create, mcc)
 	v.Handle(context.TODO(), req)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.MultiClusterCompHandleError)
 	assert.NoError(err)
+	// Expect a call to fetch the error
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconcileerrorCounterObject.Get().Inc()
 	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
