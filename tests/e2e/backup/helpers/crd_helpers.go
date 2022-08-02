@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
@@ -17,7 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"os"
 	"strings"
+	"text/tabwriter"
 	"text/template"
 )
 
@@ -35,7 +36,6 @@ func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, 
 		return nil, err
 	}
 
-	log.Infof("Fetching %s %s %s", component, resource, resourceName)
 	gvr := schema.GroupVersionResource{
 		Group:    group,
 		Version:  version,
@@ -43,8 +43,10 @@ func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, 
 	}
 
 	if nameSpaceName != "" {
+		log.Infof("Fetching '%s' '%s' '%s' in namespace '%s'", component, resource, resourceName, nameSpaceName)
 		dataFetched, err = dclient.Resource(gvr).Namespace(nameSpaceName).Get(context.TODO(), resourceName, metav1.GetOptions{})
 	} else {
+		log.Infof("Fetching '%s' '%s' '%s'", component, resource, resourceName)
 		dataFetched, err = dclient.Resource(gvr).Get(context.TODO(), resourceName, metav1.GetOptions{})
 	}
 	if err != nil {
@@ -54,7 +56,7 @@ func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, 
 	return dataFetched, nil
 }
 
-func getUnstructuredDataList(group, version, resource, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
+func GetUnstructuredDataList(group, version, resource, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
@@ -186,59 +188,70 @@ func GetVeleroRestore(namespace, restoreName string, log *zap.SugaredLogger) (*V
 }
 
 // GetPodVolumeBackups Retrieves Velero pod volume backups object from the cluster
-func GetPodVolumeBackups(namespace string, log *zap.SugaredLogger) (*VeleroPodVolumeBackupList, error) {
+func GetPodVolumeBackups(namespace string, log *zap.SugaredLogger) error {
 
-	podVolumeBackupsFetched, err := getUnstructuredDataList("velero.io", "v1", "podvolumebackups", namespace, "velero", log)
+	podVolumeBackupsFetched, err := GetUnstructuredDataList("velero.io", "v1", "podvolumebackups", namespace, "velero", log)
 	if err != nil {
 		log.Errorf("Unable to fetch velero podvolumebackups due to '%v'", zap.Error(err))
-		return nil, err
+		return err
 	}
 
 	if podVolumeBackupsFetched == nil {
 		log.Infof("No Velero podvolumebackups in namespace '%s' was detected ", namespace)
 	}
-
-	var podVolumeBackups VeleroPodVolumeBackupList
-	bdata, err := json.Marshal(podVolumeBackups)
-	if err != nil {
-		log.Errorf("Json marshalling error %v", zap.Error(err))
-		return nil, err
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tStatus\tNamespace\tPod\tVolume\tRepo\tStorage")
+	for _, item := range podVolumeBackupsFetched.Items {
+		var podVolumeBackup VeleroPodVolumeBackups
+		bdata, err := json.Marshal(item.Object)
+		if err != nil {
+			log.Errorf("Json marshalling error %v", zap.Error(err))
+			return err
+		}
+		err = json.Unmarshal(bdata, &podVolumeBackup)
+		if err != nil {
+			log.Errorf("Json unmarshall error %v", zap.Error(err))
+			return err
+		}
+		fmt.Fprintln(writer, fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v", podVolumeBackup.Metadata.Name, podVolumeBackup.Status.Phase, podVolumeBackup.Metadata.Namespace, podVolumeBackup.Spec.Pod.Name,
+			podVolumeBackup.Spec.Volume, podVolumeBackup.Spec.RepoIdentifier, podVolumeBackup.Spec.BackupStorageLocation))
 	}
-	err = json.Unmarshal(bdata, &podVolumeBackups)
-	if err != nil {
-		log.Errorf("Json unmarshall error %v", zap.Error(err))
-		return nil, err
-	}
-	spew.Dump(podVolumeBackups)
-	return &podVolumeBackups, nil
+	writer.Flush()
+	return nil
 }
 
 // GetPodVolumeRestores Retrieves Velero pod volume restores object from the cluster
-func GetPodVolumeRestores(namespace string, log *zap.SugaredLogger) (*VeleroPodVolumeRestoreList, error) {
+func GetPodVolumeRestores(namespace string, log *zap.SugaredLogger) error {
 
-	restoreFetched, err := getUnstructuredDataList("velero.io", "v1", "podvolumerestores", namespace, "velero", log)
+	restoreFetched, err := GetUnstructuredDataList("velero.io", "v1", "podvolumerestores", namespace, "velero", log)
 	if err != nil {
 		log.Errorf("Unable to fetch velero podvolumebackups due to '%v'", zap.Error(err))
-		return nil, err
+		return err
 	}
 
 	if restoreFetched == nil {
 		log.Infof("No Velero podvolumebackups in namespace '%s' was detected ", namespace)
 	}
 
-	var podVolumeRestores VeleroPodVolumeRestoreList
-	bdata, err := json.Marshal(restoreFetched)
-	if err != nil {
-		log.Errorf("Json marshalling error %v", zap.Error(err))
-		return nil, err
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tnamespace\tPod\tVolume\tStatus\tTotalBytes\tBytesDone")
+	for _, item := range restoreFetched.Items {
+		var podVolumeRestore VeleroPodVolumeRestores
+		bdata, err := json.Marshal(item.Object)
+		if err != nil {
+			log.Errorf("Json marshalling error %v", zap.Error(err))
+			return err
+		}
+		err = json.Unmarshal(bdata, &podVolumeRestore)
+		if err != nil {
+			log.Errorf("Json unmarshall error %v", zap.Error(err))
+			return err
+		}
+		fmt.Fprintln(writer, fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v", podVolumeRestore.Metadata.Name,
+			podVolumeRestore.Metadata.Namespace, podVolumeRestore.Spec.Pod.Name, podVolumeRestore.Spec.Volume, podVolumeRestore.Status.Phase, podVolumeRestore.Status.Progress.TotalBytes, podVolumeRestore.Status.Progress.BytesDone))
 	}
-	err = json.Unmarshal(bdata, &podVolumeRestores)
-	if err != nil {
-		log.Errorf("Json unmarshall error %v", zap.Error(err))
-		return nil, err
-	}
-
-	return &podVolumeRestores, nil
+	writer.Flush()
+	return nil
 }
 
 func GetRancherBackup(backupName string, log *zap.SugaredLogger) (*RancherBackupModel, error) {

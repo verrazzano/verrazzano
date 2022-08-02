@@ -429,30 +429,6 @@ type VeleroPodVolumeRestores struct {
 	} `json:"status"`
 }
 
-type VeleroPodVolumeBackupList struct {
-	APIVersion string `json:"apiVersion"`
-	Items      []struct {
-		PodVolume VeleroPodVolumeBackups
-	} `json:"items"`
-	Kind     string `json:"kind"`
-	Metadata struct {
-		ResourceVersion string `json:"resourceVersion"`
-		SelfLink        string `json:"selfLink"`
-	} `json:"metadata"`
-}
-
-type VeleroPodVolumeRestoreList struct {
-	APIVersion string `json:"apiVersion"`
-	Items      []struct {
-		PodRestore VeleroPodVolumeRestores
-	} `json:"items"`
-	Kind     string `json:"kind"`
-	Metadata struct {
-		ResourceVersion string `json:"resourceVersion"`
-		SelfLink        string `json:"selfLink"`
-	} `json:"metadata"`
-}
-
 // Variables used across backup components
 var (
 	VeleroNameSpace             string

@@ -28,7 +28,7 @@ const VeleroBackupLocation = `
       provider: aws
       objectStorage:
         bucket: {{ .VeleroObjectStoreBucketName }}
-        prefix: opensearch
+        prefix: {{ .VeleroBackupStorageName }}
       credential:
         name: {{ .VeleroSecretName }}
         key: cloud

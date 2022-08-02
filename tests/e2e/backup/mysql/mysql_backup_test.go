@@ -158,26 +158,18 @@ func KeycloakVerifyUsers() bool {
 
 // DisplayResticInfo displays the Pvc pod volume backups/restores
 func DisplayResticInfo(operation string) error {
+
 	switch operation {
 	case "backup":
-		podVolumeBackups, err := common.GetPodVolumeBackups(constants.VeleroNameSpace, t.Logs)
+		err := common.GetPodVolumeBackups(constants.VeleroNameSpace, t.Logs)
 		if err != nil {
 			return err
-		}
-		for _, item := range podVolumeBackups.Items {
-			t.Logs.Infof("Name=%s\t,Status=%s\t,Namespace=%s\t,Pod=%s\tVolume=%s\t,repo=%s\t,Storage=%s\t", item.PodVolume.Metadata.Name, item.PodVolume.Status.Phase,
-				item.PodVolume.Metadata.Namespace, item.PodVolume.Spec.Pod.Name, item.PodVolume.Spec.Volume, item.PodVolume.Spec.RepoIdentifier, item.PodVolume.Spec.BackupStorageLocation)
 		}
 		return nil
-
 	case "restore":
-		podVolumeRestores, err := common.GetPodVolumeRestores(constants.VeleroNameSpace, t.Logs)
+		err := common.GetPodVolumeRestores(constants.VeleroNameSpace, t.Logs)
 		if err != nil {
 			return err
-		}
-		for _, item := range podVolumeRestores.Items {
-			t.Logs.Infof("Name=%s\t,Namespace=%s\t,Pod=%s\tVolume=%s\t,Status=%s\t,TotalBytes=%s\t,BytesDone=%s\t", item.PodRestore.Metadata.Name,
-				item.PodRestore.Metadata.Namespace, item.PodRestore.Spec.Pod.Name, item.PodRestore.Spec.Volume, item.PodRestore.Status.Phase, item.PodRestore.Status.Progress.TotalBytes, item.PodRestore.Status.Progress.BytesDone)
 		}
 		return nil
 	default:
