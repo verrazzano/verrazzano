@@ -89,7 +89,6 @@ func TestReconcileApplicationConfigurationNotFound(t *testing.T) {
 	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 }
-
 func TestReconcileNoRestartVersion(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
@@ -271,7 +270,7 @@ func TestReconcileRestartHelidon(t *testing.T) {
 			return nil
 		})
 
-	// expect a call to fetch the workload
+	// Expect a call to fetch the workload
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
@@ -737,7 +736,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(vzconst.KubeSystem, testAppConfigName)
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -745,15 +744,17 @@ func TestReconcileKubeSystem(t *testing.T) {
 	assert.True(result.IsZero())
 }
 
+// TestReconcileFailed tests to make sure the failure metric is being exposed
 func TestReconcileFailed(t *testing.T) {
 	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
-	_ = oamcore.AddToScheme(k8scheme.Scheme)
 	clientBuilder := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	// Create a request and reconcile it
 	reconciler := newReconciler(clientBuilder)
 	request := newRequest(testNamespace, testAppConfigName)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigReconcileError)
 	assert.NoError(err)
+	// Expect a call to fetch the error
 	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	reconcileerrorCounterObject.Get().Inc()
 	reconciler.Reconcile(context.TODO(), request)
