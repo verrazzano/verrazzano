@@ -81,11 +81,13 @@ const OAMProjects = "verrazzanoprojects"
 
 const OAMManagedClusters = "verrazzanomanagedclusters"
 
+const VerrazzanoManagedLabel = "verrazzano-managed=true"
+
 // Analysis tool flags
 const (
 	DirectoryFlagName  = "capture-dir"
 	DirectoryFlagValue = ""
-	DirectoryFlagUsage = "Directory holding the captured data [Required]"
+	DirectoryFlagUsage = "Directory holding the captured data"
 
 	ReportFileFlagName  = "report-file"
 	ReportFileFlagValue = ""
