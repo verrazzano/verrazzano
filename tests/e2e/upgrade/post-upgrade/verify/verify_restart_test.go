@@ -170,7 +170,17 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					if err != nil {
 						return false
 					}
-					return deployment.Status.ReadyReplicas > 0
+					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+						return false
+					}
+					if deploymentName == "mysql" && isVersionAbove1_4_0 {
+						// skip mysql for version greater than 1.4.0
+						return true
+					} else {
+						return deployment.Status.ReadyReplicas > 0
+					}
 				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
 			},
 			t.Entry("Checking Deployment coherence-operator", constants.VerrazzanoSystemNamespace, coherence.ComponentName, "coherence-operator"),
@@ -195,6 +205,8 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment istio-egressgateway", compistio.IstioNamespace, compistio.ComponentName, "istio-egressgateway"),
 
 			t.Entry("Checking Deployment vmi-system-kiali", constants.VerrazzanoSystemNamespace, kiali.ComponentName, "vmi-system-kiali"),
+
+			t.Entry("Checking Deployment mysql", mysql.ComponentNamespace, mysql.ComponentName, "mysql"),
 
 			t.Entry("Checking Deployment ingress-controller-ingress-nginx-controller", nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-controller"),
 			t.Entry("Checking Deployment ingress-controller-ingress-nginx-defaultbackend", nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-defaultbackend"),
@@ -257,7 +269,17 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					if err != nil {
 						return false
 					}
-					return sts.Status.ReadyReplicas > 0
+					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+						return false
+					}
+					if stsName == "mysql" && !isVersionAbove1_4_0 {
+						// skip mysql for version less than 1.4.0
+						return true
+					} else {
+						return sts.Status.ReadyReplicas > 0
+					}
 				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
 			},
 			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
