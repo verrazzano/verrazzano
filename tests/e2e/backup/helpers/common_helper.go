@@ -206,10 +206,9 @@ func CheckPodsTerminated(labelSelector, namespace string, log *zap.SugaredLogger
 	if len(pods.Items) > 0 {
 		log.Infof("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
 		return fmt.Errorf("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
-	} else {
-		log.Infof("All pods with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
-		return nil
 	}
+	log.Infof("All pods with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
+	return nil
 }
 
 // CheckPvcsTerminated utility to wait for all pvcs to be terminated
@@ -228,10 +227,9 @@ func CheckPvcsTerminated(labelSelector, namespace string, log *zap.SugaredLogger
 	if len(pvcs.Items) > 0 {
 		log.Infof("Pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
 		return fmt.Errorf("Pvcs with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
-	} else {
-		log.Infof("All pvcs with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
-		return nil
 	}
+	log.Infof("All pvcs with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
+	return nil
 
 }
 
