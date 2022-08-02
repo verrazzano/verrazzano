@@ -22,7 +22,7 @@ pipeline {
     }
 
     environment {
-        upload_filename = "consolidated-upload.json"
+        upload_filename = "scan-results/latest-periodic/consolidated-upload.json"
         upload_url = "${env.SCANMANAGER_URL}"
     }
 
