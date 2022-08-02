@@ -166,10 +166,6 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
-					deployment, err := pkg.GetDeployment(namespace, deploymentName)
-					if err != nil {
-						return false
-					}
 					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
@@ -178,6 +174,10 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					if deploymentName == "mysql" && isVersionAbove1_4_0 {
 						// skip mysql for version greater than 1.4.0
 						return true
+					}
+					deployment, err := pkg.GetDeployment(namespace, deploymentName)
+					if err != nil {
+						return false
 					}
 					return deployment.Status.ReadyReplicas > 0
 				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
@@ -264,10 +264,6 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
-					sts, err := pkg.GetStatefulSet(namespace, stsName)
-					if err != nil {
-						return false
-					}
 					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
@@ -276,6 +272,10 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					if stsName == "mysql" && !isVersionAbove1_4_0 {
 						// skip mysql for version less than 1.4.0
 						return true
+					}
+					sts, err := pkg.GetStatefulSet(namespace, stsName)
+					if err != nil {
+						return false
 					}
 					return sts.Status.ReadyReplicas > 0
 				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
