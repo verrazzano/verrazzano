@@ -21,36 +21,22 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
 // TestUninstallCmd
-// GIVEN a CLI uninstall command with all defaults and --wait==false
+// GIVEN a CLI uninstall command with all defaults
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command is successful
 func TestUninstallCmd(t *testing.T) {
-	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()
 	namespace := createNamespace()
-	validatingWebhookConfig := &adminv1.ValidatingWebhookConfiguration{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoPlatformOperator,
-		},
-	}
-	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoPlatformOperator,
-		},
-	}
-	clusterRole := &rbacv1.ClusterRole{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoManagedCluster,
-		},
-	}
+	validatingWebhookConfig := createWebhook()
+	clusterRoleBinding := createClusterRoleBinding()
+	clusterRole := createClusterRole()
 	vz := createVz()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
 
@@ -69,38 +55,16 @@ func TestUninstallCmd(t *testing.T) {
 	assert.Contains(t, buf.String(), "Uninstalling Verrazzano\n")
 	assert.Contains(t, buf.String(), "Successfully uninstalled Verrazzano\n")
 
-	// Expect the Verrazzano resource to be deleted
-	v := vzapi.Verrazzano{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &v)
-	assert.True(t, errors.IsNotFound(err))
-
-	// Expect the install namespace to be deleted
-	ns := corev1.Namespace{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoInstallNamespace}, &ns)
-	assert.True(t, errors.IsNotFound(err))
-
-	// Expect the Validating Webhook Configuration to be deleted
-	vwc := adminv1.ValidatingWebhookConfiguration{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &vwc)
-	assert.True(t, errors.IsNotFound(err))
-
-	// Expect the Cluster Role Binding to be deleted
-	crb := rbacv1.ClusterRoleBinding{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &crb)
-	assert.True(t, errors.IsNotFound(err))
-
-	// Expect the Cluster Role to be deleted
-	cr := rbacv1.ClusterRole{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoManagedCluster}, &cr)
-	assert.True(t, errors.IsNotFound(err))
+	// Ensure resources have been deleted
+	ensureResourcesDeleted(t, c)
 }
 
 // TestUninstallCmdUninstallJob
-// GIVEN a CLI uninstall command with all defaults and --wait==false and a 1.3.1 version install
+// GIVEN a CLI uninstall command with all defaults and a 1.3.1 version install
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command is successful
 func TestUninstallCmdUninstallJob(t *testing.T) {
-	deployment := createDeployment(nil)
+	deployment := createVpoDeployment(nil)
 	job := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
@@ -118,24 +82,9 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 		},
 	}
 	namespace := createNamespace()
-	validatingWebhookConfig := &adminv1.ValidatingWebhookConfiguration{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoPlatformOperator,
-		},
-	}
-	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoPlatformOperator,
-		},
-	}
-	clusterRole := &rbacv1.ClusterRole{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoManagedCluster,
-		},
-	}
+	validatingWebhookConfig := createWebhook()
+	clusterRoleBinding := createClusterRoleBinding()
+	clusterRole := createClusterRole()
 	vz := createVz()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, job, vz, namespace, validatingWebhookConfig, clusterRoleBinding, clusterRole).Build()
 
@@ -154,30 +103,8 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 	assert.Contains(t, buf.String(), "Uninstalling Verrazzano\n")
 	assert.Contains(t, buf.String(), "Successfully uninstalled Verrazzano\n")
 
-	// Expect the Verrazzano resource to be deleted
-	v := vzapi.Verrazzano{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &v)
-	assert.True(t, errors.IsNotFound(err))
-
-	// Expect the install namespace to be deleted
-	ns := corev1.Namespace{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoInstallNamespace}, &ns)
-	assert.True(t, errors.IsNotFound(err))
-
-	// Expect the Validating Webhook Configuration to be deleted
-	vwc := adminv1.ValidatingWebhookConfiguration{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &vwc)
-	assert.True(t, errors.IsNotFound(err))
-
-	// Expect the Cluster Role Binding to be deleted
-	crb := rbacv1.ClusterRoleBinding{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &crb)
-	assert.True(t, errors.IsNotFound(err))
-
-	// Expect the Cluster Role to be deleted
-	cr := rbacv1.ClusterRole{}
-	err = c.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoManagedCluster}, &cr)
-	assert.True(t, errors.IsNotFound(err))
+	// Ensure resources have been deleted
+	ensureResourcesDeleted(t, c)
 }
 
 // TestUninstallCmdDefaultTimeout
@@ -185,11 +112,14 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command times out
 func TestUninstallCmdDefaultTimeout(t *testing.T) {
-	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()
 	namespace := createNamespace()
 	vz := createVz()
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace).Build()
+	webhook := createWebhook()
+	cr := createClusterRole()
+	crb := createClusterRoleBinding()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, cr, crb).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -207,6 +137,8 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	// since the Verrazzano resource gets deleted almost instantaneously
 	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Uninstalling Verrazzano")
+
+	ensureResourcesNotDeleted(t, c)
 }
 
 // TestUninstallCmdDefaultNoWait
@@ -214,10 +146,14 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command is successful
 func TestUninstallCmdDefaultNoWait(t *testing.T) {
-	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
-	vz := createVz()
+	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz, vpo).Build()
+	namespace := createNamespace()
+	vz := createVz()
+	webhook := createWebhook()
+	cr := createClusterRole()
+	crb := createClusterRoleBinding()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, cr, crb).Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -232,6 +168,8 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
+
+	ensureResourcesNotDeleted(t, c)
 }
 
 // TestUninstallCmdJsonLogFormat
@@ -239,7 +177,7 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command is successful
 func TestUninstallCmdJsonLogFormat(t *testing.T) {
-	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vz := createVz()
 	vpo := createVpoPod()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz, vpo).Build()
@@ -265,7 +203,7 @@ func TestUninstallCmdJsonLogFormat(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command fails
 func TestUninstallCmdDefaultNoVPO(t *testing.T) {
-	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
+	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vz := createVz()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz).Build()
 
@@ -289,7 +227,7 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 //  WHEN I call cmd.Execute for uninstall
 //  THEN the CLI uninstall command fails
 func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
-	deployment := createDeployment(map[string]string{"app.kubernetes.io/version": "1.3.0"})
+	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.3.0"})
 	vz := createVz()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz).Build()
 
@@ -353,7 +291,7 @@ func createVz() *vzapi.Verrazzano {
 	}
 }
 
-func createDeployment(labels map[string]string) *appsv1.Deployment {
+func createVpoDeployment(labels map[string]string) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoInstallNamespace,
@@ -373,4 +311,80 @@ func createVpoPod() *corev1.Pod {
 			},
 		},
 	}
+}
+
+func createWebhook() *adminv1.ValidatingWebhookConfiguration {
+	return &adminv1.ValidatingWebhookConfiguration{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.VerrazzanoPlatformOperator,
+		},
+	}
+}
+
+func createClusterRoleBinding() *rbacv1.ClusterRoleBinding {
+	return &rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.VerrazzanoPlatformOperator,
+		},
+	}
+}
+
+func createClusterRole() *rbacv1.ClusterRole {
+	return &rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.VerrazzanoManagedCluster,
+		},
+	}
+}
+
+func ensureResourcesDeleted(t *testing.T, client ctrlclient.Client) {
+	// Expect the Verrazzano resource to be deleted
+	v := vzapi.Verrazzano{}
+	err := client.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &v)
+	assert.True(t, errors.IsNotFound(err))
+
+	// Expect the install namespace to be deleted
+	ns := corev1.Namespace{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoInstallNamespace}, &ns)
+	assert.True(t, errors.IsNotFound(err))
+
+	// Expect the Validating Webhook Configuration to be deleted
+	vwc := adminv1.ValidatingWebhookConfiguration{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &vwc)
+	assert.True(t, errors.IsNotFound(err))
+
+	// Expect the Cluster Role Binding to be deleted
+	crb := rbacv1.ClusterRoleBinding{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &crb)
+	assert.True(t, errors.IsNotFound(err))
+
+	// Expect the Cluster Role to be deleted
+	cr := rbacv1.ClusterRole{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoManagedCluster}, &cr)
+	assert.True(t, errors.IsNotFound(err))
+}
+
+func ensureResourcesNotDeleted(t *testing.T, client ctrlclient.Client) {
+	// Expect the install namespace not to be deleted
+	ns := corev1.Namespace{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: vzconstants.VerrazzanoInstallNamespace}, &ns)
+	assert.NoError(t, err)
+
+	// Expect the Validating Webhook Configuration not to be deleted
+	vwc := adminv1.ValidatingWebhookConfiguration{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &vwc)
+	assert.NoError(t, err)
+
+	// Expect the Cluster Role Binding not to be deleted
+	crb := rbacv1.ClusterRoleBinding{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &crb)
+	assert.NoError(t, err)
+
+	// Expect the Cluster Role not to be deleted
+	cr := rbacv1.ClusterRole{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoManagedCluster}, &cr)
+	assert.NoError(t, err)
 }
