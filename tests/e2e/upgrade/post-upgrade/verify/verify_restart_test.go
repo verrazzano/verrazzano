@@ -178,9 +178,8 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					if deploymentName == "mysql" && isVersionAbove1_4_0 {
 						// skip mysql for version greater than 1.4.0
 						return true
-					} else {
-						return deployment.Status.ReadyReplicas > 0
 					}
+					return deployment.Status.ReadyReplicas > 0
 				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
 			},
 			t.Entry("Checking Deployment coherence-operator", constants.VerrazzanoSystemNamespace, coherence.ComponentName, "coherence-operator"),
@@ -277,9 +276,8 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					if stsName == "mysql" && !isVersionAbove1_4_0 {
 						// skip mysql for version less than 1.4.0
 						return true
-					} else {
-						return sts.Status.ReadyReplicas > 0
 					}
+					return sts.Status.ReadyReplicas > 0
 				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
 			},
 			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
