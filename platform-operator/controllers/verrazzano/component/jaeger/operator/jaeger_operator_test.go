@@ -183,6 +183,14 @@ func TestAppendOverrides(t *testing.T) {
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
+		{
+			name:         "OverrideMetricsStorageType",
+			description:  "Test overriding metrics storage type",
+			expectedYAML: "testdata/jaegerOperatorOverrideValues.yaml",
+			actualCR:     "testdata/jaegerOperatorOverrideMetricsStorageVz.yaml",
+			numKeyValues: 2,
+			expectedErr:  nil,
+		},
 	}
 	defer resetWriteFileFunc()
 	for _, test := range tests {
@@ -241,6 +249,11 @@ func TestAppendOverrides(t *testing.T) {
 			_, err = os.Stat(tempFilePath)
 			asserts.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
 			cleanTempFiles(fakeContext)
+
+			if test.name == "OverrideMetricsStorageType" {
+				asserts.Equal(kvs[1].Key, prometheusServerField)
+				asserts.Equal(kvs[1].Value, prometheusURL)
+			}
 		})
 	}
 	// Verify temp files are deleted

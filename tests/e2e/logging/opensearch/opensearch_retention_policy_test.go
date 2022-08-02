@@ -52,6 +52,10 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 				pkg.Log(pkg.Error, err.Error())
 				return false
 			}
+			if systemRetentionPolicy.MinIndexAge == nil {
+				pkg.Log(pkg.Error, "MinIndexAge for system ISM policy in VZ CR is nil")
+				return false
+			}
 			return policyExists && minIndexAge == *systemRetentionPolicy.MinIndexAge
 		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "ISM policy for system indices should be created")
 	})
@@ -71,6 +75,10 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 			minIndexAge, err := pkg.GetRetentionPeriod(applicationRetentionPolicy.PolicyName)
 			if err != nil {
 				pkg.Log(pkg.Error, err.Error())
+				return false
+			}
+			if applicationRetentionPolicy.MinIndexAge == nil {
+				pkg.Log(pkg.Error, "MinIndexAge for application ISM policy in VZ CR is nil")
 				return false
 			}
 			return policyExists && minIndexAge == *applicationRetentionPolicy.MinIndexAge

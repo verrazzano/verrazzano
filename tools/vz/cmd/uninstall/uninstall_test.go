@@ -202,11 +202,11 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 
 	// Run upgrade command
 	err := cmd.Execute()
-	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	assert.Error(t, err)
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
-	assert.Contains(t, buf.String(), "Timeout 2ms exceeded waiting for uninstall to complete")
+	assert.Equal(t, "Error: Failed to uninstall Verrazzano: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
+	assert.Contains(t, buf.String(), "Uninstalling Verrazzano")
 }
 
 // TestUninstallCmdDefaultNoWait

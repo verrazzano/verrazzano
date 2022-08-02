@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	"io/ioutil"
 	"time"
 
@@ -26,30 +24,6 @@ const (
 )
 
 var t = framework.NewTestFramework("opensearch")
-
-var _ = t.BeforeSuite(func() {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		Fail(err.Error())
-	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		Fail(err.Error())
-	}
-	if supported {
-		pkg.Log(pkg.Info, "Waiting for upgrade to Complete")
-		pkg.WaitForVZCondition(vzapi.CondUpgradeComplete, pollingInterval, longTimeout)
-		pkg.Log(pkg.Info, "VZ version is greater than 1.3.0")
-		m := pkg.ElasticSearchISMPolicyAddModifier{}
-		update.UpdateCRWithRetries(m, pollingInterval, longTimeout)
-		pkg.Log(pkg.Info, "Update the VZ CR to add the required ISM Policies")
-		// Wait for sufficient time to allow the VMO reconciliation to complete
-		pkg.WaitForISMPolicyUpdate(pollingInterval, longTimeout)
-	}
-	pkg.Log(pkg.Info, "Before suite setup completed")
-})
 
 var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"), func() {
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
@@ -168,6 +142,9 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 		if err != nil {
 			Fail("Error getting retention period for system logs from VZ CR - " + err.Error())
 		}
+		if systemRetentionPolicy.MinIndexAge == nil {
+			Skip("ISM policy configured for system logs does not have a retention period. Skipping the test")
+		}
 		oldLogsFound, err := pkg.ContainsDocsOlderThanRetentionPeriod(pkg.VerrazzanoNamespace, *systemRetentionPolicy.MinIndexAge)
 		if err != nil {
 			Fail("Error checking if docs older than retention period for system logs are present - " + err.Error())
@@ -183,6 +160,9 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 		applicationRetentionPolicy, err := pkg.GetVerrazzanoRetentionPolicy(pkg.ApplicationLogIsmPolicyName)
 		if err != nil {
 			Fail("Error getting retention period for system logs from VZ CR - " + err.Error())
+		}
+		if applicationRetentionPolicy.MinIndexAge == nil {
+			Skip("ISM policy configured for application logs does not have a retention period. Skipping the test")
 		}
 		applicationDataStreams, err := pkg.GetApplicationDataStreamNames()
 		if err != nil {

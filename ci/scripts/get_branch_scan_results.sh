@@ -19,7 +19,7 @@ if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] ||
 fi
 
 BASE_OBJ_PATH="daily-scan/${CLEAN_BRANCH_NAME}"
-SCAN_DATETIME="$(date '+%Y%m%d%H%M%S')"
+SCAN_DATETIME="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 JOB_OBJ_PATH="${BASE_OBJ_PATH}/${SCAN_DATETIME}-${BUILD_NUMBER}"
 
 # Hack to get the generated BOM from a release by pulling down the operator.yaml from the release artifacts
@@ -53,12 +53,14 @@ function publish_results() {
     OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/verrazzano-bom.json --file ${bomFile}
     OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/consolidated-report.out --file ${resultsDir}/consolidated-report.out
     OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/consolidated.csv --file ${resultsDir}/consolidated.csv
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/consolidated-upload.json --file ${resultsDir}/consolidated-upload.json
     OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/details.zip --file ${WORKSPACE}/${resultName}-details.zip
 
     # Push to job specific location
     OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/verrazzano-bom.json --file ${bomFile}
     OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/consolidated-report.out --file ${resultsDir}/consolidated-report.out
     OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/consolidated.csv --file ${resultsDir}/consolidated.csv
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/consolidated-upload.json --file ${resultsDir}/consolidated-upload.json
     OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/details.zip --file ${WORKSPACE}/${resultName}-details.zip
 }
 
@@ -114,6 +116,7 @@ if [ $? -eq 0 ]; then
   ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_PERIODIC_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
   ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_PERIODIC_BOM_FILE}
   ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} "periodic" ${SCAN_DATETIME} ${BUILD_NUMBER}
+  ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "periodic" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
   publish_results "last-clean-periodic-test" ${SCAN_LAST_PERIODIC_BOM_FILE} ${SCAN_RESULTS_DIR}
 else
   echo "INFO: Did not find a periodic BOM for ${CLEAN_BRANCH_NAME}"
@@ -130,6 +133,7 @@ if [ $? -eq 0 ]; then
   ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_SNAPSHOT_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
   ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_SNAPSHOT_BOM_FILE}
   ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} "snapshot" ${SCAN_DATETIME} ${BUILD_NUMBER}
+  ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "snapshot" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
   publish_results "last-snapshot" ${SCAN_LAST_SNAPSHOT_BOM_FILE} ${SCAN_RESULTS_DIR}
 else
   echo "INFO: Did not find a snapshot BOM for ${CLEAN_BRANCH_NAME}"
@@ -147,6 +151,7 @@ if [[ "${CLEAN_BRANCH_NAME}" != "master" ]] && [[ "${CLEAN_BRANCH_NAME}" != rele
     ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_FEATURE_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
     ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_FEATURE_BOM_FILE}
     ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} "feature" ${SCAN_DATETIME} ${BUILD_NUMBER}
+    ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "feature" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
     publish_results "feature" ${SCAN_FEATURE_BOM_FILE} ${SCAN_RESULTS_DIR}
   else
     echo "INFO: Did not find a feature BOM for ${CLEAN_BRANCH_NAME}"
@@ -176,6 +181,7 @@ if [[ "${CLEAN_BRANCH_NAME}" == release-* ]]; then
     ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
     ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_BOM_FILE}
     ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} ${VERSION} ${SCAN_DATETIME} ${BUILD_NUMBER}
+    ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "${VERSION}" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
     publish_results ${VERSION} ${SCAN_BOM_FILE} ${SCAN_RESULTS_DIR}
   done
 fi
