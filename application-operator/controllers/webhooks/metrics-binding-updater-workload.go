@@ -14,6 +14,7 @@ import (
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/workloadselector"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
@@ -43,6 +44,17 @@ type WorkloadWebhook struct {
 func (a *WorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "metrics-binding-generator-workload")
 	log.Debugf("group: %s, version: %s, kind: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind)
+	durationMetricHandle, err := metricsexporter.GetDurationMetric(metricsexporter.BindingUpdaterHandleDuration)
+	if err != nil {
+		return admission.Response{}
+	}
+	counterMetricHandle, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.BindingUpdaterHandleCounter)
+	if err != nil {
+		return admission.Response{}
+	}
+	durationMetricHandle.TimerStart()
+	defer durationMetricHandle.TimerStop()
+	counterMetricHandle.Inc(zap.S(), err)
 	return a.handleWorkloadResource(ctx, req, log)
 }
 
