@@ -519,6 +519,7 @@ pipeline {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"
                 OCI_OS_LOCATION="${OCI_OS_LOCATION}"
+                VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
             }
             options {
                 timeout(time: 30, unit: "MINUTES")
@@ -528,10 +529,9 @@ pipeline {
                     try {
                         sh """
                             echo "Uninstalling Verrazzano"
-                            VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
                             echo "Downloading VZ CLI from object storage"
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/$VZ_CLI_TARGZ --file $VZ_CLI_TARGZ
-                            tar xzf $VZ_CLI_TARGZ
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                            tar xzf ${VZ_CLI_TARGZ}
                             ./vz uninstall
                         """
                     } catch (err) {
