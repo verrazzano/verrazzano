@@ -370,19 +370,19 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	// mock the pod executor when resetting the Rancher admin password
 	scheme.Scheme.AddKnownTypes(schema.GroupVersion{Group: "", Version: "v1"}, &corev1.PodExecOptions{})
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
-	k8sutilfake.PodExecResult = func(url *url.URL) string {
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
 		var commands []string
 		if commands = url.Query()["command"]; len(commands) == 3 {
 			if strings.Contains(commands[2], "id,clientId") {
-				return "[{\"id\":\"something\", \"clientId\":\"rancher\",\"clientSecret\":\"abcdef\"}]"
+				return "[{\"id\":\"something\", \"clientId\":\"rancher\",\"clientSecret\":\"abcdef\"}]", "", nil
 			}
 
 			if strings.Contains(commands[2], "client-secret") {
-				return "{\"type\":\"secret\",\"secret\":\"abcdef\"}"
+				return "{\"type\":\"secret\",\"secret\":\"abcdef\"}", "", nil
 			}
 
 		}
-		return "blahblah"
+		return "", "", nil
 	}
 	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
 		config, k := k8sutilfake.NewClientsetConfig()

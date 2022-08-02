@@ -5,11 +5,9 @@ package keycloak
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
-	"os"
-	"os/exec"
+	"strings"
 	"testing"
 
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -17,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -41,8 +38,6 @@ const (
 	profilesRelativePath    = "../../../../manifests/profiles"
 )
 
-var keycloakClientIds = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4350-ab70-17c37dd995b9\",\n  \"clientId\" : \"broker\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"8327-13cdbfe3b000\",\n  \"clientId\" : \"verrazzano-pkce\"\n\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
-var keycloakErrorClientIds = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
 var testVZ = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: "dev",
@@ -61,16 +56,6 @@ var crEnabled = vzapi.Verrazzano{
 			},
 		},
 	},
-}
-
-// fakeBash mocks a successful script run
-func fakeBash(_ ...string) (string, string, error) {
-	return "success", "", nil
-}
-
-// fakeBashFail mocks a failed script run
-func fakeBashFail(_ ...string) (string, string, error) {
-	return "fail", "Script Failed", errors.New("script Failed")
 }
 
 func fakeRESTConfig() (*rest.Config, kubernetes.Interface, error) {
@@ -108,248 +93,215 @@ func createTestNginxService() *v1.Service {
 	}
 }
 
-func fakeExecCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestHelperProcess", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
-	return cmd
-}
-
-func TestHelperProcess(t *testing.T) {
-	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
-		return
+func fakeConfigureRealmCommands(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "create groups") {
+			return "Created new group with id 'quick-brown-fox'", "", nil
+		}
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, keycloakClientIds)
-	os.Exit(0)
-}
-
-func fakeFailExecCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestFailHelperProcess", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	cmd.Env = []string{"GO_WANT_FAIL_HELPER_PROCESS=1"}
-	return cmd
-}
-
-// fakeConfigureRealmCommands Implements the default responses for TestConfigureKeycloakRealms
-// - these tests launch actual go test commands to spit out canned output and return codes
-// - this is to control how the test respond to multiple different commands in the flow
-// - because it's function-based, we can't have different responses based on the call ordering, unless we want to
-//   get funky with how we manage state, and implement the canned calls as a stack or something
-func fakeConfigureRealmCommands(command string, args ...string) *exec.Cmd {
-	kccommand := fmt.Sprintf("%s-%s", args[8], args[9])
-	switch kccommand {
-	case "get-clients":
-		return fakeExecCommand(command, args...)
-	default:
-		return fakeCreateUserGroupCommand(command, args...)
-	}
-}
-
-func TestFailHelperProcess(t *testing.T) {
-	if os.Getenv("GO_WANT_FAIL_HELPER_PROCESS") != "1" {
-		return
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"jump-window\"}]", "", nil
+		}
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, keycloakClientIds)
-	os.Exit(1)
+	return "", "", nil
 }
 
-func fakeFailExecCommandNoClients(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestFailNoClientsHelperProcess", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	cmd.Env = []string{"GO_WANT_FAIL_NO_CLIENTS_HELPER_PROCESS=1"}
-	return cmd
-}
-
-func TestFailNoClientsHelperProcess(t *testing.T) {
-	if os.Getenv("GO_WANT_FAIL_NO_CLIENTS_HELPER_PROCESS") != "1" {
-		return
+func fakeConfigureRealmCommandsUpdateKeycloakURIFailed(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "create groups") {
+			return "Created new group with id 'quick-brown-fox'", "", nil
+		}
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, "")
-	os.Exit(0)
-}
-
-func fakeFailExecCommandNoUser(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestFailNoUserHelperProcess", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	cmd.Env = []string{"GO_WANT_FAIL_NO_USER_HELPER_PROCESS=1"}
-	return cmd
-}
-
-func TestFailNoUserHelperProcess(t *testing.T) {
-	if os.Getenv("GO_WANT_FAIL_NO_USER_HELPER_PROCESS") != "1" {
-		return
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"rancher\"}]", "", nil
+		}
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, keycloakErrorClientIds)
-	os.Exit(0)
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "update clients") {
+			return "", "", fmt.Errorf("failed")
+		}
+	}
+	return "", "", nil
 }
 
-func fakeCreateUserGroupCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestFakeCreateUserGroup", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	cmd.Env = []string{"GO_WANT_TEST_CREATE_USER_GROUP=1"}
-	return cmd
+func fakeCreateUserGroupCommand(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "create groups") {
+			return "Created new group with id 'quick-brown-fox'", "", nil
+		}
+	}
+	return "", "", nil
 }
 
-func TestFakeCreateUserGroup(t *testing.T) {
-	if os.Getenv("GO_WANT_TEST_CREATE_USER_GROUP") != "1" {
-		return
+func fakeCreateUserGroupCommandFail(url *url.URL) (string, string, error) {
+	return "", "", nil
+}
+
+func fakeCreateUserGroupParseCommandFail(url *url.URL) (string, string, error) {
+	return "invalidoutput", "", nil
+}
+
+func fakeGetRancherClientSecretFromKeycloak(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "client-secret") {
+			return "{\"type\":\"secret\",\"secret\":\"abcdef\"}", "", nil
+		}
+
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"rancher\"}]", "", nil
+		}
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, "Created new group with id '6653a73b-f292-4dfe-91cb-956ead33ea67'")
-	os.Exit(0)
+	return "", "", nil
 }
 
-func fakeCreateUserGroupCommandFail(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestFakeCreateUserGroupFail", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	cmd.Env = []string{"GO_WANT_TEST_CREATE_USER_GROUP_FAIL=1"}
-	return cmd
-}
+func fakeGetRancherClientSecretFromKeycloakGetClientsFails(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get clients") {
+			return "", "", fmt.Errorf("failed")
+		}
 
-func TestFakeCreateUserGroupFail(t *testing.T) {
-	if os.Getenv("GO_WANT_TEST_CREATE_USER_GROUP_FAIL") != "1" {
-		return
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, "")
-	os.Exit(0)
+	return "", "", nil
 }
 
-func fakeCreateUserGroupParseCommandFail(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestFakeCreateUserGroupParseFail", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	cmd.Env = []string{"GO_WANT_TEST_CREATE_USER_GROUP_PARSE_FAIL=1"}
-	return cmd
-}
-
-func TestFakeCreateUserParseGroupFail(t *testing.T) {
-	if os.Getenv("GO_WANT_TEST_CREATE_USER_GROUP_PARSE_FAIL") != "1" {
-		return
+func fakeGetRancherClientSecretFromKeycloakNoRancherClient(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"norancher\"}]", "", nil
+		}
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, "Created new group with id 6653a73b-f292-4dfe-91cb-956ead33ea67")
-	os.Exit(0)
+	return "", "", nil
+}
+
+func fakeGetRancherClientSecretFromKeycloakClientSecretFailed(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "client-secret") {
+			return "", "", fmt.Errorf("failed")
+		}
+
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"rancher\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetRancherClientSecretFromKeycloakClientSecretResultEmpty(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "client-secret") {
+			return "", "", nil
+		}
+
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"rancher\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetRancherClientSecretFromKeycloakClientSecretResultInvalid(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "client-secret") {
+			return "invalid", "", nil
+		}
+
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"rancher\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetRancherClientSecretFromKeycloakClientSecretEmpty(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "client-secret") {
+			return "{\"type\":\"secret\",\"secret\":\"\"}", "", nil
+		}
+
+		if strings.Contains(commands[2], "get clients") {
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"rancher\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
 }
 
 func TestUpdateKeycloakURIs(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 	cfg, cli, _ := fakeRESTConfig()
+	clientId := "client"
+	uriTemplate := "\"redirectUris\": [\"https://client.{{.DNSSubDomain}}/verify-auth\"]"
 	tests := []struct {
-		name    string
-		args    spi.ComponentContext
-		wantErr bool
+		name        string
+		ctx         spi.ComponentContext
+		clientId    string
+		uriTemplate string
+		wantErr     bool
 	}{
 		{
 			name: "testUpdateKeycloakURIs",
-			args: spi.NewFakeContext(
+			ctx: spi.NewFakeContext(
 				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
 				testVZ,
 				false),
-			wantErr: false,
+			clientId:    clientId,
+			uriTemplate: uriTemplate,
+			wantErr:     false,
 		},
 		{
-			name: "testFailForNoKeycloakSecret",
-			args: spi.NewFakeContext(
-				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestNginxService()).Build(),
-				testVZ,
-				false),
-			wantErr: true,
-		},
-		{
-			name: "testFailForKeycloakSecretPasswordEmpty",
-			args: spi.NewFakeContext(
-				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestNginxService(), &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("")},
-				}).Build(),
-				testVZ,
-				false),
-			wantErr: true,
-		},
-		{
-			name: "testFailForAuthenticationToKeycloak",
-			args: spi.NewFakeContext(
+			name: "testFailForInvalidUriTemplate",
+			ctx: spi.NewFakeContext(
 				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
 				testVZ,
 				false),
-			wantErr: true,
-		},
-		{
-			name: "testFailForNoKeycloakClientsReturned",
-			args: spi.NewFakeContext(
-				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
-				testVZ,
-				false),
-			wantErr: true,
-		},
-		{
-			name: "testFailForKeycloakUserNotFound",
-			args: spi.NewFakeContext(
-				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
-				testVZ,
-				false),
-			wantErr: true,
+			clientId:    clientId,
+			uriTemplate: "test.{{{.DNSSubDomain}}",
+			wantErr:     true,
 		},
 		{
 			name: "testFailForNoIngress",
-			args: spi.NewFakeContext(
+			ctx: spi.NewFakeContext(
 				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret()).Build(),
 				testVZ,
 				false),
-			wantErr: true,
-		},
-		{
-			name: "testScriptFailure",
-			args: spi.NewFakeContext(
-				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
-				testVZ,
-				false),
-			wantErr: true,
+			wantErr:     true,
+			clientId:    clientId,
+			uriTemplate: uriTemplate,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			podExecResult := k8sutilfake.PodExecResult
-			if tt.wantErr && tt.name == "testFailForAuthenticationToKeycloak" {
-				k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
-					return "", "", fmt.Errorf("failed authenticating")
-				}
-			}
 			if tt.wantErr && tt.name == "testFailForNoKeycloakClientsReturned" {
 				k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
 					return "", "[]", nil
 				}
 			}
-			if tt.wantErr && tt.name == "testFailForKeycloakUserNotFound" {
-				k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
-					return "", "", fmt.Errorf("invalid user")
-				}
-			}
 			defer func() { k8sutilfake.PodExecResult = podExecResult }()
-			if err := updateKeycloakUris(tt.args, cfg, cli, keycloakPod(), "", ""); (err != nil) != tt.wantErr {
+			if err := updateKeycloakUris(tt.ctx, cfg, cli, keycloakPod(), tt.clientId, tt.uriTemplate); (err != nil) != tt.wantErr {
 				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -365,10 +317,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 	nginxService := createTestNginxService()
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
-
-	defaultBashFunc := func(inArgs ...string) (string, string, error) {
-		return "", "", nil
-	}
+	podExecFunc := k8sutilfake.PodExecResult
 
 	keycloakPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -391,7 +340,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		stdout      string
 		isErr       bool
 		errContains string
-		execFunc    func(command string, args ...string) *exec.Cmd
+		execFunc    func(url *url.URL) (string, string, error)
 	}{
 		{
 			"should fail when login fails",
@@ -406,7 +355,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
 			"",
 			true,
-			"Component Keycloak failed; user group ID from Keycloak is zero length",
+			"Component Keycloak failed; verrazzano-users group ID from Keycloak is zero length",
 			fakeCreateUserGroupCommandFail,
 		},
 		{
@@ -414,7 +363,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
 			"",
 			true,
-			"failed parsing output returned from Users Group",
+			"failed parsing output returned from verrazzano-users Group",
 			fakeCreateUserGroupParseCommandFail,
 		},
 		{
@@ -478,7 +427,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			fakeConfigureRealmCommands,
 		},
 		{
-			"bashFunc fails during updateKeycloakURIs",
+			"fails during updateKeycloakURIs",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod,
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
@@ -509,11 +458,8 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 				}).Build(),
 			"blahblah'id",
 			true,
-			"updateKeycloakURIs failed",
-			fakeConfigureRealmCommands,
-			func(inArgs ...string) (string, string, error) {
-				return "", "Command failed", fmt.Errorf("updateKeycloakURIs failed")
-			},
+			"keycloak/keycloak-0: failed",
+			fakeConfigureRealmCommandsUpdateKeycloakURIFailed,
 		},
 		{
 			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
@@ -555,10 +501,8 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, false)
-			execCommand = tt.execFunc
-			bashFunc = tt.bashFunc
-			defer func() { bashFunc = vzos.RunBash }()
-			k8sutilfake.PodExecResult = func(url *url.URL) string { return tt.stdout }
+			k8sutilfake.PodExecResult = tt.execFunc
+			defer func() { k8sutilfake.PodExecResult = podExecFunc }()
 			err := configureKeycloakRealms(ctx)
 			if tt.isErr {
 				assert.Error(t, err)
@@ -696,7 +640,6 @@ func TestLoginKeycloak(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k8sutilfake.PodExecResult = func(url *url.URL) string { return "blah" }
 			err := loginKeycloak(spi.NewFakeContext(tt.c, testVZ, false), cfg, restclient)
 			if tt.isErr {
 				assert.Error(t, err)
@@ -1386,6 +1329,113 @@ func TestUpgradeStatefulSet(t *testing.T) {
 			err = tt.c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &stsUpdated)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedReplicaCount, *stsUpdated.Spec.Replicas)
+		})
+	}
+}
+
+// TestGetRancherClientSecretFromKeycloak tests getting rancher client secrets
+// GIVEN a client, and a k8s environment
+// WHEN I call GetRancherClientSecretFromKeycloak
+// THEN returns an rancher client secret, otherwise returning an error if the environment is invalid
+func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
+	loginSecret := createTestLoginSecret()
+	k8sutil.ClientConfig = fakeRESTConfig
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	podExecFunc := k8sutilfake.PodExecResult
+
+	keycloakPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      keycloakPodName,
+			Namespace: ComponentNamespace,
+		},
+		Status: v1.PodStatus{
+			Conditions: []v1.PodCondition{
+				{
+					Type:   v1.PodReady,
+					Status: v1.ConditionTrue,
+				},
+			},
+		},
+	}
+
+	var tests = []struct {
+		name        string
+		c           client.Client
+		stdout      string
+		isErr       bool
+		errContains string
+		execFunc    func(url *url.URL) (string, string, error)
+	}{
+		{
+			"should fail when login fails",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(keycloakPod).Build(),
+			"blahblah",
+			true,
+			"secrets \"keycloak-http\" not found",
+			fakeGetRancherClientSecretFromKeycloak,
+		},
+		{
+			"should fail when fails to get clients",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			"",
+			true,
+			"keycloak/keycloak-0: failed",
+			fakeGetRancherClientSecretFromKeycloakGetClientsFails,
+		},
+		{
+			"should not fail when rancher client id does not exist",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			"",
+			false,
+			"",
+			fakeGetRancherClientSecretFromKeycloakNoRancherClient,
+		},
+		{
+			"should fail when fetching client secret fails",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			"blahblah'id",
+			true,
+			"",
+			fakeGetRancherClientSecretFromKeycloakClientSecretFailed,
+		},
+		{
+			"should fail when client secret result is empty",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			"blahblah'id",
+			true,
+			"",
+			fakeGetRancherClientSecretFromKeycloakClientSecretResultEmpty,
+		},
+		{
+			"should fail when client secret result is invalid",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			"blahblah'id",
+			true,
+			"",
+			fakeGetRancherClientSecretFromKeycloakClientSecretResultInvalid,
+		},
+		{
+			"should fail when client secret is empty",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			"blahblah'id",
+			true,
+			"client secret is empty",
+			fakeGetRancherClientSecretFromKeycloakClientSecretEmpty,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.c, testVZ, false)
+			k8sutilfake.PodExecResult = tt.execFunc
+			defer func() { k8sutilfake.PodExecResult = podExecFunc }()
+			_, err := GetRancherClientSecretFromKeycloak(ctx)
+			if tt.isErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

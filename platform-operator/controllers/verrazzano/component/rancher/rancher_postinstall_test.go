@@ -100,7 +100,7 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			k8sutilfake.PodExecResult = func(url *url.URL) string { return tt.stdout }
+			k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return tt.stdout, "", nil }
 			err := createAdminSecretIfNotExists(log, tt.c)
 			if tt.isErr {
 				assert.NotNil(t, err)
