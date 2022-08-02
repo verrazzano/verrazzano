@@ -53,7 +53,6 @@ func TestUninstallCmd(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 	assert.Contains(t, buf.String(), "Uninstalling Verrazzano\n")
-	assert.Contains(t, buf.String(), "Successfully uninstalled Verrazzano\n")
 
 	// Ensure resources have been deleted
 	ensureResourcesDeleted(t, c)
@@ -101,7 +100,6 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
 	assert.Contains(t, buf.String(), "Uninstalling Verrazzano\n")
-	assert.Contains(t, buf.String(), "Successfully uninstalled Verrazzano\n")
 
 	// Ensure resources have been deleted
 	ensureResourcesDeleted(t, c)
