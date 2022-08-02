@@ -11,11 +11,14 @@ import (
 	spdyfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"istio.io/api/networking/v1alpha3"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	networkingv1 "k8s.io/api/networking/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/util/homedir"
 )
 
@@ -305,4 +308,33 @@ func TestExecPod(t *testing.T) {
 	stdout, _, err := k8sutil.ExecPod(client, cfg, pod, "container", []string{"run", "some", "command"})
 	assert.Nil(t, err)
 	assert.Equal(t, spdyfake.PodExecResult, stdout)
+}
+
+// TestGetURLForIngress tests getting the host URL from an ingress
+// GIVEN an ingress name and its namespace
+//  WHEN TestGetURLForIngress is called
+//  THEN TestGetURLForIngress return the hostname if ingress exists, error otherwise
+func TestGetURLForIngress(t *testing.T) {
+	asserts := assert.New(t)
+	ingress := networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "test",
+		},
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
+				{
+					Host: "test",
+				},
+			},
+		},
+	}
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&ingress).Build()
+	ing, err := k8sutil.GetURLForIngress(client, "test", "default")
+	asserts.NoError(err)
+	asserts.Equal("https://test", ing)
+
+	client = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	_, err = k8sutil.GetURLForIngress(client, "test", "default")
+	asserts.Error(err)
 }

@@ -252,12 +252,12 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 	cfg, cli, _ := fakeRESTConfig()
-	clientId := "client"
+	clientID := "client"
 	uriTemplate := "\"redirectUris\": [\"https://client.{{.DNSSubDomain}}/verify-auth\"]"
 	tests := []struct {
 		name        string
 		ctx         spi.ComponentContext
-		clientId    string
+		clientID    string
 		uriTemplate string
 		wantErr     bool
 	}{
@@ -267,7 +267,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
 				testVZ,
 				false),
-			clientId:    clientId,
+			clientID:    clientID,
 			uriTemplate: uriTemplate,
 			wantErr:     false,
 		},
@@ -277,7 +277,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
 				testVZ,
 				false),
-			clientId:    clientId,
+			clientID:    clientID,
 			uriTemplate: "test.{{{.DNSSubDomain}}",
 			wantErr:     true,
 		},
@@ -288,7 +288,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 				testVZ,
 				false),
 			wantErr:     true,
-			clientId:    clientId,
+			clientID:    clientID,
 			uriTemplate: uriTemplate,
 		},
 	}
@@ -301,7 +301,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 				}
 			}
 			defer func() { k8sutilfake.PodExecResult = podExecResult }()
-			if err := updateKeycloakUris(tt.ctx, cfg, cli, keycloakPod(), tt.clientId, tt.uriTemplate); (err != nil) != tt.wantErr {
+			if err := updateKeycloakUris(tt.ctx, cfg, cli, keycloakPod(), tt.clientID, tt.uriTemplate); (err != nil) != tt.wantErr {
 				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
