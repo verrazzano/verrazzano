@@ -58,8 +58,7 @@ pipeline {
                 script {
                     sh """
                     echo "Uploading ${upload_filename} to ${upload_url}"
-                    curl -v ${upload_url}
-                    // curl -v -X POST -H "Content-Type: application/json" -d@${upload_filename} ${upload_url}
+                    curl -k -v -X POST -H "Content-Type: application/json" -d@${upload_filename} ${upload_url}
                     echo "File uploaded"
                     """
                 }
