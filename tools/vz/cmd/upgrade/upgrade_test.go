@@ -139,9 +139,9 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 
 	// Run upgrade command
 	err := cmd.Execute()
-	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Timeout 2s exceeded waiting for upgrade to complete")
+	assert.Error(t, err)
+	assert.Equal(t, "Error: Timeout 2s exceeded waiting for upgrade to complete\n", errBuf.String())
+	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.3.1")
 }
 
 // TestUpgradeCmdDefaultNoVPO
