@@ -10,7 +10,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelpers "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -37,14 +36,8 @@ type ErrorsChannel struct {
 	ErrorMessage string `json:"errorMessage"`
 }
 
-// GenerateBugReport creates a bug report by including the resources selectively from the cluster, useful to analyze the issue.
-func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportFile *os.File, moreNS []string, vzHelper pkghelpers.VZHelper) error {
-	// Create a temporary directory to place the cluster data
-	bugReportDir, err := ioutil.TempDir("", constants.BugReportDir)
-	if err != nil {
-		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
-	}
-	defer os.RemoveAll(bugReportDir)
+// CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
+func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, bugReportDir string, moreNS []string, vzHelper pkghelpers.VZHelper) error {
 
 	// Create a file to capture the standard out to a file
 	stdOutFile, err := os.OpenFile(filepath.Join(bugReportDir, constants.BugReportOut), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
@@ -68,8 +61,7 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 	vz := vzapi.VerrazzanoList{}
 	err = client.List(context.TODO(), &vz)
 	if (err != nil && len(vz.Items) == 0) || len(vz.Items) == 0 {
-		fmt.Fprintf(pkghelpers.GetMultiWriterErr(), "Verrazzano is not installed, so not generating the bug report.\n")
-		return nil
+		return fmt.Errorf("skip analyzing the cluster as Verrazzano is not installed")
 	}
 
 	// Get the list of namespaces based on the failed components and value specified by flag --include-namespaces
@@ -89,19 +81,6 @@ func GenerateBugReport(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 		if err := pkghelpers.CaptureMultiClusterResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 			pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
 		}
-	}
-
-	// Return an error when the command fails to collect anything from the cluster
-	// There will be bug-report.out and bug-report.err in bugReportDir, ignore them
-	if isDirEmpty(bugReportDir, 2) {
-		return fmt.Errorf("The bug-report command did not collect any file from the cluster. " +
-			"Please go through errors (if any), in the standard output.\n")
-	}
-
-	// Create the report file
-	err = pkghelpers.CreateReportArchive(bugReportDir, bugReportFile)
-	if err != nil {
-		return fmt.Errorf("there is an error in creating the bug report, %s", err.Error())
 	}
 	return nil
 }
@@ -178,7 +157,7 @@ func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kuber
 		return
 	}
 	// This won't work when there are more than one pods for the same app label
-	fmt.Fprintf(pkghelpers.GetMultiWriterOut(), fmt.Sprintf("Capturing log from pod %s in %s namespace ...\n", pods[0].Name, namespace))
+	pkghelpers.LogMessage(fmt.Sprintf("log from pod %s in %s namespace ...\n", pods[0].Name, namespace))
 	err := pkghelpers.CapturePodLog(kubeClient, pods[0], namespace, bugReportDir, vzHelper)
 	if err != nil {
 		ec <- ErrorsChannelLogs{PodName: pods[0].Name, ErrorMessage: err.Error()}
@@ -191,15 +170,6 @@ func captureK8SResources(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient k
 	if err := pkghelpers.CaptureK8SResources(kubeClient, namespace, bugReportDir, vzHelper); err != nil {
 		ec <- ErrorsChannel{ErrorMessage: err.Error()}
 	}
-}
-
-// isDirEmpty returns whether the directory is empty or not
-func isDirEmpty(directory string, filesToIgnore int) bool {
-	entries, err := os.ReadDir(directory)
-	if err != nil {
-		return false
-	}
-	return len(entries) == filesToIgnore
 }
 
 // collectNamespaces gathers list of unique namespaces, to be considered to collect the information
