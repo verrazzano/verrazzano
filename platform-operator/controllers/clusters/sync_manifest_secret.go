@@ -146,7 +146,9 @@ func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.Ve
 // Update the Rancher registration status
 func (r *VerrazzanoManagedClusterReconciler) updateRancherStatus(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster, status clusterapi.RancherRegistrationStatus, rancherClusterID string, message string) {
 	// Skip the update if the status has not changed
-	if vmc.Status.RancherRegistration.Status == status && vmc.Status.RancherRegistration.Message == message {
+	if vmc.Status.RancherRegistration.Status == status &&
+		vmc.Status.RancherRegistration.Message == message &&
+		vmc.Status.RancherRegistration.ClusterID == rancherClusterID {
 		return
 	}
 	vmc.Status.RancherRegistration.Status = status
