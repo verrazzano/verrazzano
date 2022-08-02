@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
+	installcmd "github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	testhelper "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -278,6 +278,7 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	assert.NoFileExists(t, bugRepFile)
 }
 
+// getClientWithWatch returns a client for installing Verrazzano
 func getClientWithWatch() client.WithWatch {
 	vpo := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -313,6 +314,7 @@ func getClientWithWatch() client.WithWatch {
 	return c
 }
 
+// getInvalidClient returns an invalid client
 func getInvalidClient() client.WithWatch {
 	testObj := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -348,12 +350,13 @@ func getInvalidClient() client.WithWatch {
 	return c
 }
 
+// installVZ installs Verrazzano using the given client
 func installVZ(t *testing.T, c client.WithWatch) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
-	cmd := install.NewCmdInstall(rc)
+	cmd := installcmd.NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 

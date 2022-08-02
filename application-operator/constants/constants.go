@@ -20,9 +20,6 @@ const MCRegistrationSecret = "verrazzano-cluster-registration" //nolint:gosec //
 // Thos is created at Verrazzano install.
 const MCLocalRegistrationSecret = "verrazzano-local-registration" //nolint:gosec //#gosec G101
 
-// AdminKubeconfigData - the field name in MCRegistrationSecret that contains the admin cluster's kubeconfig
-const AdminKubeconfigData = "admin-kubeconfig"
-
 // ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
 const ClusterNameData = "managed-cluster-name"
 
