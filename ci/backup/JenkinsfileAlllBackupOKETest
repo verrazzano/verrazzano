@@ -67,6 +67,10 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
+        booleanParam (description: 'Run opensearch and rancher tests in parallel', name: 'PARALLEL_TESTS', defaultValue: false)
+        booleanParam (description: 'Run opensearch backup and restore test', name: 'OPENSEARCH_TEST', defaultValue: true)
+        booleanParam (description: 'Run rancher backup and restore test', name: 'RANCHER_TEST', defaultValue: false)
+        booleanParam (description: 'Run mysql backup and restore test', name: 'MYSQL_TEST', defaultValue: false)
     }
 
     environment {
@@ -359,38 +363,90 @@ pipeline {
         }
 
         stage ('Initiate Opensearch and Rancher Backup and Restore Tests') {
-          parallel {
-             stage('Initiate opensearch backup hook tests') {
-                environment {
-                    DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
-                }
-                steps {
-                    runGinkgoRandomize('backup/opensearch')
-                }
-                post {
-                    always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+          script {
+             if (params.PARALLEL_TESTS) {
+                parallel {
+                     stage('Initiate opensearch backup hook tests') {
+                        environment {
+                            DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
+                        }
+                        steps {
+                            runGinkgoRandomize('backup/opensearch')
+                        }
+                        post {
+                            always {
+                                archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                                junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                            }
+                        }
+                    }
+                    stage('Initiate rancher backup operator tests') {
+                        environment {
+                            DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
+                        }
+                        steps {
+                            runGinkgoRandomize('backup/rancher')
+                        }
+                        post {
+                            always {
+                                archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                                junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                            }
+                        }
                     }
                 }
-            }
-            stage('Initiate rancher backup operator tests') {
-                environment {
-                    DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
-                }
-                steps {
-                    runGinkgoRandomize('backup/rancher')
-                }
-                post {
-                    always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    }
-                }
-            }
-
+             }
           }
         }
+
+        stage('Initiate Opensearch backup and restore tests") {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
+            }
+            steps {
+                script {
+                  if (params.OPENSEARCH_TEST == true and params.PARALLEL_TESTS == false) {
+                      runGinkgoRandomize('backup/opensearch')
+                  }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verrazzano-cluster-dump-post-opensearch-backup-restore')
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Initiate Rancher backup and restore tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
+            }
+            steps {
+                script {
+                      if (params.RANCHER_TEST == true and params.PARALLEL_TESTS == false) {
+                        runGinkgoRandomize('backup/rancher')
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verrazzano-cluster-dump-post-rancher-backup-restore')
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Initiate Mysql backup and restore tests') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
