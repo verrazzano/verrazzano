@@ -30,16 +30,19 @@ import (
 )
 
 const (
-	secretName          = "mysql"
-	mySQLUsernameKey    = "auth.username"
-	mySQLUsername       = "keycloak"
-	helmPwd             = "auth.password"     //nolint:gosec //#gosec G101
-	helmRootPwd         = "auth.rootPassword" //nolint:gosec //#gosec G101
-	helmCreateDb        = "auth.createDatabase"
-	helmDatabase        = "auth.database"
-	mySQLKey            = "mysql-password"
-	mySQLRootKey        = "mysql-root-password"
-	mySQLInitFilePrefix = "init-mysql-"
+	secretName            = "mysql"
+	mySQLUsernameKey      = "auth.username"
+	mySQLUsername         = "keycloak"
+	helmPwd               = "auth.password"     //nolint:gosec //#gosec G101
+	helmRootPwd           = "auth.rootPassword" //nolint:gosec //#gosec G101
+	helmCreateDb          = "auth.createDatabase"
+	helmDatabase          = "auth.database"
+	mySQLKey              = "mysql-password"
+	mySQLRootKey          = "mysql-root-password"
+	mySQLInitFilePrefix   = "init-mysql-"
+	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
+	persistenceEnabledKey = "primary.persistence.enabled"
+	statefulsetClaimName  = "data-mysql-0"
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
@@ -77,7 +80,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
-		kvs = append(kvs, bom.KeyValue{Key: "initdbScripts.create-db\\.sql", Value: mySQLInitFile, SetFile: true})
+		kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
 		kvs, err = appendMySQLSecret(compContext, kvs)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -189,7 +192,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 		compContext.Log().Infof("Using existing PVC for MySQL persistence")
 		kvs = append(kvs, bom.KeyValue{
 			Key:       "primary.persistence.existingClaim",
-			Value:     "data-mysql-0",
+			Value:     statefulsetClaimName,
 			SetString: true,
 		})
 	}
@@ -215,7 +218,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 	if mySQLVolumeSource.EmptyDir != nil {
 		// EmptyDir, disable persistence
 		kvs = append(kvs, bom.KeyValue{
-			Key:   "primary.persistence.enabled",
+			Key:   persistenceEnabledKey,
 			Value: "false",
 		})
 	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
@@ -252,7 +255,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 		}
 		// Enable MySQL persistence
 		kvs = append(kvs, bom.KeyValue{
-			Key:   "primary.persistence.enabled",
+			Key:   persistenceEnabledKey,
 			Value: "true",
 		})
 	}

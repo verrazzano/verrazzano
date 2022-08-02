@@ -80,7 +80,7 @@ func TestAppendMySQLOverrides(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, kvs, minExpectedHelmOverridesCount)
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
 }
 
 // TestAppendMySQLOverridesUpdate tests the appendMySQLOverrides function
@@ -105,7 +105,7 @@ func TestAppendMySQLOverridesUpdate(t *testing.T) {
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
 
 }
 
@@ -138,8 +138,8 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
@@ -166,9 +166,9 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
-	assert.Equal(t, "false", bom.FindKV(kvs, "primary.persistence.enabled"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.Equal(t, "false", bom.FindKV(kvs, persistenceEnabledKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
@@ -213,8 +213,8 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
 	assert.Equal(t, "true", bom.FindKV(kvs, "primary.persistence.enabled"))
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "primary.persistence.size"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
@@ -238,8 +238,8 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, minExpectedHelmOverridesCount)
-	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
@@ -280,8 +280,8 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
 	assert.Equal(t, "true", bom.FindKV(kvs, "primary.persistence.enabled"))
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "primary.persistence.size"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
@@ -360,14 +360,14 @@ func TestPreUpgrade(t *testing.T) {
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: "data-mysql-0"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: statefulsetClaimName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
 			return nil
 		})
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.UpdateOption) error {
-			assert.Equal(t, "data-mysql-0", pvc.Name)
+			assert.Equal(t, statefulsetClaimName, pvc.Name)
 			assert.Equal(t, "volumeName", pvc.Spec.VolumeName)
 			return nil
 		})
@@ -443,7 +443,7 @@ func TestPostUpgrade(t *testing.T) {
 				Spec: v1.PersistentVolumeSpec{
 					ClaimRef: &v1.ObjectReference{
 						Namespace: ComponentNamespace,
-						Name:      "data-mysql-0",
+						Name:      statefulsetClaimName,
 					},
 					PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRetain,
 				},
@@ -501,7 +501,7 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
-	assert.NotEmpty(t, bom.FindKV(kvs, "auth.username"))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
