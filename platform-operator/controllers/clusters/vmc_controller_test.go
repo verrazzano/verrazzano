@@ -355,8 +355,9 @@ func TestCreateVMCNoCACert(t *testing.T) {
 		return nil
 	})
 
-	// expect status updated with condition Ready=true and ManagedCARetrieved=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", true)
+	// expect status updated with condition Ready=true and ManagedCARetrieved condition is not set because we don't provide
+	// a non-zero length managed ca cert
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)

@@ -95,38 +95,38 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 
 // syncCACertSecret gets the CA cert from the managed cluster (if the cluster is active) and creates or updates the CA cert secret.
 // If there is a CA cert on the managed cluster, then this function returns the secret name containing the CA cert.
-func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
+func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
 	clusterID := vmc.Status.RancherRegistration.ClusterID
 	if len(clusterID) == 0 {
-		return nil
+		return false, nil
 	}
 	rc, err := newRancherConfig(r.Client, r.log)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if rc == nil || len(vmc.Spec.CASecret) > 0 {
-		return nil
+		return false, nil
 	}
 
 	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if !isActive {
 		r.log.Infof("Waiting for managed cluster with id %s to become active before fetching CA cert", clusterID)
-		return nil
+		return false, nil
 	}
 
 	caCert, err := getCACertFromManagedCluster(rc, clusterID, r.log)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if len(caCert) > 0 {
 		caSecretName := getCASecretName(vmc.Name)
 		r.log.Infof("Retrieved CA cert from managed cluster with id %s, creating/updating secret %s", clusterID, caSecretName)
 		if _, err := r.createOrUpdateCASecret(vmc, caCert); err != nil {
-			return err
+			return false, err
 		}
 		if len(caSecretName) > 0 {
 			vmc.Spec.CASecret = caSecretName
@@ -134,13 +134,13 @@ func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.Ve
 			r.log.Infof("Updating VMC %s with managed cluster CA secret %s", vmc.Name, caSecretName)
 			err = r.Update(context.TODO(), vmc)
 			if err != nil {
-				return err
+				return false, err
 			}
+			return true, nil
 		}
-		return nil
 	}
 
-	return nil
+	return false, nil
 }
 
 // Update the Rancher registration status
