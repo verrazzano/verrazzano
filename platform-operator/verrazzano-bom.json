@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.10.2-20220722144739-7bae1b96",
+              "tag": "v0.10.2-20220802001856-7bae1b96",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -288,7 +288,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20220602215259-046d772",
+              "tag": "v0.3.0-20220801214414-046d772",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -652,7 +652,7 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.8.1",
+              "tag": "v1.8.1-20220801214313-e1b7af7e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
@@ -663,7 +663,7 @@
             },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.8.1",
+              "tag": "v1.8.1-20220801214313-e1b7af7e",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]
