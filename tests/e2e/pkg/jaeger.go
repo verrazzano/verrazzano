@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	jaegerSpanIndexPrefix    = "verrazzano-jaeger-span"
-	jaegerClusterNameLabel   = "verrazzano_cluster"
-	jaegerClusterName        = "local"
+	jaegerSpanIndexPrefix  = "verrazzano-jaeger-span"
+	jaegerClusterNameLabel = "verrazzano_cluster"
+	jaegerClusterName      = "local"
 )
 
 type JaegerTraceData struct {
@@ -72,7 +72,6 @@ type JaegerTraceDataWrapper struct {
 	Errors interface{}       `json:"errors"`
 }
 
-
 //IsJaegerInstanceCreated checks whether the default Jaeger CR is created
 func IsJaegerInstanceCreated() (bool, error) {
 	deployments, err := ListDeployments(constants.VerrazzanoMonitoringNamespace)
@@ -112,7 +111,7 @@ func GetJaegerSpanIndexName(kubeconfigPath string) (string, error) {
 	for _, indexName := range listSystemElasticSearchIndices(kubeconfigPath) {
 		if strings.HasPrefix(indexName, jaegerSpanIndexPrefix) {
 			jaegerIndices = append(jaegerIndices, indexName)
-			break;
+			break
 		}
 	}
 	if len(jaegerIndices) > 0 {
@@ -234,7 +233,6 @@ func getJaegerUsernamePassword(kubeconfigPath string) (username, password string
 	}
 	return "verrazzano", password, err
 }
-
 
 // findJaegerSpanHits returns the number of span hits that are older than the given time
 func findJaegerSpanHits(searchResult map[string]interface{}, after *time.Time) bool {

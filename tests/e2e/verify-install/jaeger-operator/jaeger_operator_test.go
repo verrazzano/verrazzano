@@ -17,11 +17,11 @@ import (
 )
 
 const (
-	waitTimeout                    = 3 * time.Minute
-	pollingInterval                = 10 * time.Second
-	jaegerOperatorName             = "jaeger-operator"
-	minVZVersion                   = "1.3.0"
-	jaegerESIndexCleanerJob   = "jaeger-operator-jaeger-es-index-cleaner"
+	waitTimeout             = 3 * time.Minute
+	pollingInterval         = 10 * time.Second
+	jaegerOperatorName      = "jaeger-operator"
+	minVZVersion            = "1.3.0"
+	jaegerESIndexCleanerJob = "jaeger-operator-jaeger-es-index-cleaner"
 )
 
 var (
