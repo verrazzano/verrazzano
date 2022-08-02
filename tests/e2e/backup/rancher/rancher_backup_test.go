@@ -317,19 +317,19 @@ func backupPrerequisites() {
 func cleanUpRancher() {
 	t.Logs.Info("Cleanup backup and restore objects")
 
-	t.Logs.Info("Deleting multiple user with the retrieved login token")
-	Eventually(func() error {
-		return DeleteRancherUsers(common.RancherURL)
-	}, waitTimeout, pollingInterval).Should(BeNil())
+	//t.Logs.Info("Deleting multiple user with the retrieved login token")
+	//Eventually(func() error {
+	//	return DeleteRancherUsers(common.RancherURL)
+	//}, waitTimeout, pollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup restore object")
 	Eventually(func() error {
-		return common.CrdPruner("resources.cattle.io", "v1", "restores", common.RestoreRancherName, "", t.Logs)
+		return common.CrdPruner("resources.cattle.io", "v1", common.RestoreResource, common.RestoreRancherName, "", t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup backup object")
 	Eventually(func() error {
-		return common.CrdPruner("resources.cattle.io", "v1", "backupd", common.BackupRancherName, "", t.Logs)
+		return common.CrdPruner("resources.cattle.io", "v1", common.BackupResource, common.BackupRancherName, "", t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Cleanup rancher secrets")
@@ -352,7 +352,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Check backup progress after rancher backup object was created", func() {
 		WhenRancherBackupInstalledIt("Check backup progress after rancher backup object was created", func() {
 			Eventually(func() error {
-				return common.TrackOperationProgress("rancher", "backups", common.BackupRancherName, common.VeleroNameSpace, t.Logs)
+				return common.TrackOperationProgress("rancher", common.BackupResource, common.BackupRancherName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher backup operation completed successfully")
 		})
 	})
@@ -368,7 +368,7 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 	t.Context("Check rancher restore progress", func() {
 		WhenRancherBackupInstalledIt("Check rancher restore progress", func() {
 			Eventually(func() error {
-				return common.TrackOperationProgress("rancher", "restores", common.RestoreRancherName, common.VeleroNameSpace, t.Logs)
+				return common.TrackOperationProgress("rancher", common.RestoreResource, common.RestoreRancherName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher restore operation completed successfully")
 		})
 	})

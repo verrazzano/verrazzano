@@ -192,7 +192,7 @@ func GetVeleroRestore(namespace, restoreName string, log *zap.SugaredLogger) (*V
 // GetPodVolumeBackups Retrieves Velero pod volume backups object from the cluster
 func GetPodVolumeBackups(namespace string, log *zap.SugaredLogger) error {
 
-	podVolumeBackupsFetched, err := getUnstructuredDataList("velero.io", "v1", "podvolumebackups", namespace, "velero", log)
+	podVolumeBackupsFetched, err := getUnstructuredDataList("velero.io", "v1", BackupPodVolumeResource, namespace, "velero", log)
 	if err != nil {
 		log.Errorf("Unable to fetch velero podvolumebackups due to '%v'", zap.Error(err))
 		return err
@@ -215,7 +215,7 @@ func GetPodVolumeBackups(namespace string, log *zap.SugaredLogger) error {
 			log.Errorf("Json unmarshall error %v", zap.Error(err))
 			return err
 		}
-		fmt.Fprintln(writer, fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v", podVolumeBackup.Metadata.Name, podVolumeBackup.Status.Phase,
+		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v", podVolumeBackup.Metadata.Name, podVolumeBackup.Status.Phase,
 			podVolumeBackup.Metadata.Namespace, podVolumeBackup.Spec.Pod.Name,
 			podVolumeBackup.Spec.Volume, podVolumeBackup.Spec.RepoIdentifier, podVolumeBackup.Spec.BackupStorageLocation))
 	}
@@ -226,7 +226,7 @@ func GetPodVolumeBackups(namespace string, log *zap.SugaredLogger) error {
 // GetPodVolumeRestores Retrieves Velero pod volume restores object from the cluster
 func GetPodVolumeRestores(namespace string, log *zap.SugaredLogger) error {
 
-	restoreFetched, err := getUnstructuredDataList("velero.io", "v1", "podvolumerestores", namespace, "velero", log)
+	restoreFetched, err := getUnstructuredDataList("velero.io", "v1", RestorePodVolumeResource, namespace, "velero", log)
 	if err != nil {
 		log.Errorf("Unable to fetch velero podvolumebackups due to '%v'", zap.Error(err))
 		return err
@@ -250,7 +250,7 @@ func GetPodVolumeRestores(namespace string, log *zap.SugaredLogger) error {
 			log.Errorf("Json unmarshall error %v", zap.Error(err))
 			return err
 		}
-		fmt.Fprintln(writer, fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v", podVolumeRestore.Metadata.Name,
+		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v", podVolumeRestore.Metadata.Name,
 			podVolumeRestore.Metadata.Namespace, podVolumeRestore.Spec.Pod.Name, podVolumeRestore.Spec.Volume,
 			podVolumeRestore.Status.Phase, podVolumeRestore.Status.Progress.TotalBytes, podVolumeRestore.Status.Progress.BytesDone))
 	}

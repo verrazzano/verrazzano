@@ -31,6 +31,7 @@ import (
 	"os"
 	"strings"
 	"text/template"
+	"time"
 )
 
 var decUnstructured = k8sYaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
@@ -218,6 +219,9 @@ func CheckPvcsTerminated(labelSelector, namespace string, log *zap.SugaredLogger
 		log.Errorf("Failed to get clientset with error: %v", err)
 		return err
 	}
+
+	log.Infof("Wait for 60 seconds to allow pod termination as it has already been triggered")
+	time.Sleep(60 * time.Second)
 
 	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
 	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), listOptions)

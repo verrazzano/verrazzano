@@ -8,6 +8,11 @@ const (
 	ObjectStoreCredsSecretAccessKeyName = "aws_secret_access_key" //nolint:gosec //#gosec G101 //#gosec G204
 	RancherUserCount                    = 3
 	KeycloakUserCount                   = 3
+	BackupResource                      = "backups"
+	RestoreResource                     = "restores"
+	BackupStorageLocationResource       = "backupstoragelocations"
+	BackupPodVolumeResource             = "podvolumebackups"
+	RestorePodVolumeResource            = "podvolumerestores"
 )
 
 // SecretsData template for creating backup credentials

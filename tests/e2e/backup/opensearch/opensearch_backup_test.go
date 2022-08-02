@@ -38,16 +38,18 @@ const (
 	idSearchAllURL       = "verrazzano-system/_search?"
 )
 
+var esPods = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data"}
+
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
 	common.GatherInfo()
-	backupPrerequisites()
+	//backupPrerequisites()
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var _ = t.AfterSuite(func() {
 	start := time.Now()
-	cleanUpVelero()
+	//cleanUpVelero()
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -164,12 +166,14 @@ func NukeOpensearch() error {
 
 	_, err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).UpdateScale(context.TODO(), vmoDeploymentName, &newScale, metav1.UpdateOptions{})
 	if err != nil {
+		t.Logs.Infof("Error = %v", zap.Error(err))
 		return err
 	}
 
 	t.Logs.Infof("Deleting opensearch master sts")
 	err = clientset.AppsV1().StatefulSets(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osStsName, metav1.DeleteOptions{})
 	if err != nil {
+		t.Logs.Infof("Error = %v", zap.Error(err))
 		return err
 	}
 
@@ -177,6 +181,7 @@ func NukeOpensearch() error {
 	for i := 0; i < 3; i++ {
 		err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osDataDepPrefix, i), metav1.DeleteOptions{})
 		if err != nil {
+			t.Logs.Infof("Error = %v", zap.Error(err))
 			return err
 		}
 	}
@@ -184,6 +189,7 @@ func NukeOpensearch() error {
 	t.Logs.Infof("Deleting opensearch ingest deployment")
 	err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osIngestDeployment, metav1.DeleteOptions{})
 	if err != nil {
+		t.Logs.Infof("Error = %v", zap.Error(err))
 		return err
 	}
 
@@ -191,6 +197,7 @@ func NukeOpensearch() error {
 	for i := 0; i < 3; i++ {
 		err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osStsPvcPrefix, i), metav1.DeleteOptions{})
 		if err != nil {
+			t.Logs.Infof("Error = %v", zap.Error(err))
 			return err
 		}
 	}
@@ -203,16 +210,11 @@ func NukeOpensearch() error {
 			err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osDepPvcPrefix, i), metav1.DeleteOptions{})
 		}
 		if err != nil {
+			t.Logs.Infof("Error = %v", zap.Error(err))
 			return err
 		}
 	}
-
-	err = common.CheckPodsTerminated("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace, t.Logs)
-	if err != nil {
-		return err
-	}
-
-	return common.CheckPvcsTerminated("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace, t.Logs)
+	return nil
 }
 
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
@@ -295,7 +297,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check backup progress after velero backup object was created", func() {
 		WhenVeleroInstalledIt("Check backup progress after velero backup object was created", func() {
 			Eventually(func() error {
-				return common.TrackOperationProgress("velero", "backups", common.BackupOpensearchName, common.VeleroNameSpace, t.Logs)
+				return common.TrackOperationProgress("velero", common.BackupResource, common.BackupOpensearchName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
@@ -317,6 +319,22 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 
 	})
 
+	t.Context("Ensure the pods are not before starting a restore", func() {
+		WhenVeleroInstalledIt("Ensure the pods are not before starting a restore", func() {
+			Eventually(func() bool {
+				return checkPodsRunning(constants.VerrazzanoSystemNamespace, esPods)
+			}, waitTimeout, pollingInterval).Should(BeFalse(), "Check if pods are down")
+		})
+	})
+
+	t.Context("After pods are down check if pvcs are deleted before starting a restore", func() {
+		WhenVeleroInstalledIt("After pods are down check if pvcs are deleted before starting a restore", func() {
+			Eventually(func() error {
+				return common.CheckPvcsTerminated("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if pvcs are removed")
+		})
+	})
+
 	t.Context("Start restore after velero backup is completed", func() {
 		WhenVeleroInstalledIt("Start restore after velero backup is completed", func() {
 			Eventually(func() error {
@@ -328,7 +346,7 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	t.Context("Check velero restore progress", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
-				return common.TrackOperationProgress("velero", "restores", common.RestoreOpensearchName, common.VeleroNameSpace, t.Logs)
+				return common.TrackOperationProgress("velero", common.RestoreResource, common.RestoreOpensearchName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 	})
@@ -351,3 +369,12 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	})
 
 })
+
+// checkPodsRunning checks whether the pods are ready in a given namespace
+func checkPodsRunning(namespace string, expectedPods []string) bool {
+	result, err := pkg.PodsRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
+}
