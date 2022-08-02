@@ -22,6 +22,7 @@ import (
 	"text/template"
 )
 
+// getUnstructuredData common utility to fetch unstructured data
 func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
 	var dataFetched *unstructured.Unstructured
 	var err error
@@ -56,7 +57,8 @@ func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, 
 	return dataFetched, nil
 }
 
-func GetUnstructuredDataList(group, version, resource, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
+// getUnstructuredData common utility to fetch list of unstructured data
+func getUnstructuredDataList(group, version, resource, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		log.Errorf("Unable to fetch kubeconfig %v", zap.Error(err))
@@ -159,7 +161,7 @@ func GetVeleroBackup(namespace, backupName string, log *zap.SugaredLogger) (*Vel
 	return &backup, nil
 }
 
-// GetVeleroRestore Retrieves Velero backup object from the cluster
+// GetVeleroRestore Retrieves Velero restore object from the cluster
 func GetVeleroRestore(namespace, restoreName string, log *zap.SugaredLogger) (*VeleroRestoreModel, error) {
 
 	restoreFetched, err := getUnstructuredData("velero.io", "v1", "restores", restoreName, namespace, "velero", log)
@@ -190,7 +192,7 @@ func GetVeleroRestore(namespace, restoreName string, log *zap.SugaredLogger) (*V
 // GetPodVolumeBackups Retrieves Velero pod volume backups object from the cluster
 func GetPodVolumeBackups(namespace string, log *zap.SugaredLogger) error {
 
-	podVolumeBackupsFetched, err := GetUnstructuredDataList("velero.io", "v1", "podvolumebackups", namespace, "velero", log)
+	podVolumeBackupsFetched, err := getUnstructuredDataList("velero.io", "v1", "podvolumebackups", namespace, "velero", log)
 	if err != nil {
 		log.Errorf("Unable to fetch velero podvolumebackups due to '%v'", zap.Error(err))
 		return err
@@ -223,7 +225,7 @@ func GetPodVolumeBackups(namespace string, log *zap.SugaredLogger) error {
 // GetPodVolumeRestores Retrieves Velero pod volume restores object from the cluster
 func GetPodVolumeRestores(namespace string, log *zap.SugaredLogger) error {
 
-	restoreFetched, err := GetUnstructuredDataList("velero.io", "v1", "podvolumerestores", namespace, "velero", log)
+	restoreFetched, err := getUnstructuredDataList("velero.io", "v1", "podvolumerestores", namespace, "velero", log)
 	if err != nil {
 		log.Errorf("Unable to fetch velero podvolumebackups due to '%v'", zap.Error(err))
 		return err
@@ -254,6 +256,7 @@ func GetPodVolumeRestores(namespace string, log *zap.SugaredLogger) error {
 	return nil
 }
 
+// GetRancherBackup Retrieves rancher backup object from the cluster
 func GetRancherBackup(backupName string, log *zap.SugaredLogger) (*RancherBackupModel, error) {
 
 	backupFetched, err := getUnstructuredData("resources.cattle.io", "v1", "backups", backupName, "", "rancher", log)
@@ -281,6 +284,7 @@ func GetRancherBackup(backupName string, log *zap.SugaredLogger) (*RancherBackup
 	return &backup, nil
 }
 
+// GetRancherRestore Retrieves rancher restore object from the cluster
 func GetRancherRestore(restoreName string, log *zap.SugaredLogger) (*RancherRestoreModel, error) {
 
 	restoreFetched, err := getUnstructuredData("resources.cattle.io", "v1", "restores", restoreName, "", "rancher", log)
@@ -308,6 +312,7 @@ func GetRancherRestore(restoreName string, log *zap.SugaredLogger) (*RancherRest
 	return &restore, nil
 }
 
+// TrackOperationProgress used to track operation status for a given gvr
 func TrackOperationProgress(operator, operation, objectName, namespace string, log *zap.SugaredLogger) error {
 	var response string
 	switch operator {
@@ -387,6 +392,7 @@ func TrackOperationProgress(operator, operation, objectName, namespace string, l
 	}
 }
 
+// CrdPruner is a gvr based pruner
 func CrdPruner(group, version, resource, resourceName, nameSpaceName string, log *zap.SugaredLogger) error {
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
