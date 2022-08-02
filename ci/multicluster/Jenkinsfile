@@ -200,6 +200,9 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+
+        // used by verify register test, set in registerManagedClusters
+        ADMIN_VZ_VERSION_AT_REGISTRATION = ""
     }
 
     stages {
@@ -1021,6 +1024,8 @@ def registerManagedClusters() {
                     ./tests/e2e/config/scripts/register_managed_cluster.sh
                 """
             }
+            env.ADMIN_VZ_VERSION_AT_REGISTRATION=sh(returnStdout: true,
+                    script:"KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath={'.items[0].status.version'}")
         }
     }
 }

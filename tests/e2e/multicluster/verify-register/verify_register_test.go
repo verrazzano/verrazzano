@@ -70,8 +70,10 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		// This test is part of the minimal verification.
 		t.It("has the expected VerrazzanoManagedCluster", func() {
 			var client *vmcClient.Clientset
-			// In VZ versions 1.4 and above on admin cluster, check the ManagedCARetrieved condition as well
-			minVersion14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeconfig)
+			// If registration happend in VZ versions 1.4 and above on admin cluster, check the ManagedCARetrieved condition as well
+			adminVersionAtRegistration := os.Getenv("ADMIN_VZ_VERSION_AT_REGISTRATION")
+			regVersion14, err := pkg.IsMinVersion(adminVersionAtRegistration, "1.4.0")
+			curAdminVersion14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -83,8 +85,8 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			Eventually(func() bool {
 				vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
 				return err == nil &&
-					vmcStatusCheckOkay(vmc, minVersion14) &&
-					vmcRancherStatusCheckOkay(vmc, minVersion14) &&
+					vmcStatusCheckOkay(vmc, regVersion14) &&
+					vmcRancherStatusCheckOkay(vmc, curAdminVersion14) &&
 					vmc.Status.LastAgentConnectTime != nil &&
 					vmc.Status.LastAgentConnectTime.After(time.Now().Add(-30*time.Minute))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoManagedCluster")
@@ -342,11 +344,15 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 	})
 })
 
-func vmcRancherStatusCheckOkay(vmc *vmcv1alpha1.VerrazzanoManagedCluster, checkForClusterID bool) bool {
+func vmcRancherStatusCheckOkay(vmc *vmcv1alpha1.VerrazzanoManagedCluster, versionSupportsClusterID bool) bool {
 	pkg.Log(pkg.Info, fmt.Sprintf("VMC %s has Rancher status %s and cluster id %s\n",
 		vmc.Name, vmc.Status.RancherRegistration.Status, vmc.Status.RancherRegistration.ClusterID))
-	return vmc.Status.RancherRegistration.Status == vmcv1alpha1.RegistrationCompleted &&
-		vmc.Status.RancherRegistration.ClusterID != ""
+	clusterIDConditionMet := true
+	if versionSupportsClusterID {
+		// if this VZ version supports cluster id in rancher reg status, then it should be present
+		clusterIDConditionMet = vmc.Status.RancherRegistration.ClusterID != ""
+	}
+	return vmc.Status.RancherRegistration.Status == vmcv1alpha1.RegistrationCompleted && clusterIDConditionMet
 }
 
 func vmcStatusCheckOkay(vmc *vmcv1alpha1.VerrazzanoManagedCluster, managedCAConditionSupported bool) bool {
@@ -358,7 +364,7 @@ func vmcStatusCheckOkay(vmc *vmcv1alpha1.VerrazzanoManagedCluster, managedCACond
 		if cond.Type == vmcv1alpha1.ConditionReady && cond.Status == v1.ConditionTrue {
 			readyConditionMet = true
 		}
-		// If admin cluster VZ version supports it, check the ManagedCARetrieved condition as well
+		// If admin cluster VZ version at registration time supports it, check the ManagedCARetrieved condition as well
 		if managedCAConditionSupported {
 			if cond.Type == vmcv1alpha1.ConditionManagedCARetrieved && cond.Status == v1.ConditionTrue {
 				managedCAConditionMet = true
