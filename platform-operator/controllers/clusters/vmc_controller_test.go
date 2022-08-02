@@ -326,6 +326,8 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster, false)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, "")
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
