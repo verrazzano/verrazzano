@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -103,11 +104,31 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("an error occurred while reading values for the flag --include-namespaces: %s", err.Error())
 	}
 
-	// Generate the bug report
-	err = vzbugreport.GenerateBugReport(kubeClient, dynamicClient, client, bugRepFile, moreNS, vzHelper)
+	// Create a temporary directory to place the cluster data
+	bugReportDir, err := ioutil.TempDir("", constants.BugReportDir)
+	if err != nil {
+		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
+	}
+	defer os.RemoveAll(bugReportDir)
+
+	// Capture cluster snapshot
+	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, bugReportDir, moreNS, vzHelper)
 	if err != nil {
 		os.Remove(bugReportFile)
 		return fmt.Errorf(err.Error())
+	}
+
+	// Return an error when the command fails to collect anything from the cluster
+	// There will be bug-report.out and bug-report.err in bugReportDir, ignore them
+	if isDirEmpty(bugReportDir, 2) {
+		return fmt.Errorf("The bug-report command did not collect any file from the cluster. " +
+			"Please go through errors (if any), in the standard output.\n")
+	}
+
+	// Generate the bug report
+	err = helpers.CreateReportArchive(bugReportDir, bugRepFile)
+	if err != nil {
+		return fmt.Errorf("there is an error in creating the bug report, %s", err.Error())
 	}
 
 	brf, _ := os.Stat(bugReportFile)
@@ -185,4 +206,13 @@ func displayWarning(successMessage string, helper helpers.VZHelper) {
 	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
 	fmt.Fprintf(helper.GetOutputStream(), strings.Repeat(" ", wsCount/2)+constants.BugReportWarning+"\n")
 	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
+}
+
+// isDirEmpty returns whether the directory is empty or not, ignoring ignoreFilesCount number of files
+func isDirEmpty(directory string, ignoreFilesCount int) bool {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return false
+	}
+	return len(entries) == ignoreFilesCount
 }
