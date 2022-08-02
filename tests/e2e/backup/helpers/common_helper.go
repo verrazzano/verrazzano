@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -244,8 +245,10 @@ func DeleteSecret(namespace string, name string, log *zap.SugaredLogger) error {
 
 	err = clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
-		log.Errorf("Error deleting secret ", zap.Error(err))
-		return err
+		if !k8serror.IsNotFound(err) {
+			log.Errorf("Failed to delete namespace '%s' due to: %v", name, zap.Error(err))
+			return err
+		}
 	}
 	return nil
 }
@@ -298,8 +301,10 @@ func DeleteNamespace(namespace string, log *zap.SugaredLogger) error {
 
 	err = clientset.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
 	if err != nil {
-		log.Errorf("Failed to delete namespace '%s' due to: %v", namespace, err)
-		return err
+		if !k8serror.IsNotFound(err) {
+			log.Errorf("Failed to delete namespace '%s' due to: %v", namespace, zap.Error(err))
+			return err
+		}
 	}
 
 	return CheckPodsTerminated("", namespace, log)
