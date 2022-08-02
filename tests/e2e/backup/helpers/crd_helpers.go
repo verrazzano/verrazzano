@@ -364,10 +364,8 @@ func TrackOperationProgress(operator, operation, objectName, namespace string, l
 
 	switch response {
 	case "InProgress", "":
-		//log.Infof("%s '%s' is in progress. Check back after 60 seconds. (Retry count left = %v).", strings.ToTitle(operation), objectName, retryLimit-retryCount)
 		log.Infof("%s '%s' is in progress.", strings.ToTitle(operation), objectName)
-		//time.Sleep(60 * time.Second)
-		return fmt.Errorf("%s '%s' is in progress.", strings.ToTitle(operation), objectName)
+		return fmt.Errorf("%s '%s' is in progress", strings.ToTitle(operation), objectName)
 	case "Completed":
 		log.Infof("%s '%s' completed successfully", strings.ToTitle(operation), objectName)
 		return nil
