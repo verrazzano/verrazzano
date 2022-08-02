@@ -12,11 +12,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"strings"
+	"time"
 )
 
 const (
-	jaegerServiceIndexPrefix = "verrazzano-jaeger-jaeger-service"
-	jaegerSpanIndexPrefix    = "verrazzano-jaeger-jaeger-span"
+	jaegerSpanIndexPrefix    = "verrazzano-jaeger-span"
 	jaegerClusterNameLabel   = "verrazzano_cluster"
 	jaegerClusterName        = "local"
 )
@@ -72,10 +72,8 @@ type JaegerTraceDataWrapper struct {
 	Errors interface{}       `json:"errors"`
 }
 
-func VerifyJaegerSpans(service string) bool {
-	return false
-}
 
+//IsJaegerInstanceCreated checks whether the default Jaeger CR is created
 func IsJaegerInstanceCreated() (bool, error) {
 	deployments, err := ListDeployments(constants.VerrazzanoMonitoringNamespace)
 	if err != nil {
@@ -87,24 +85,40 @@ func IsJaegerInstanceCreated() (bool, error) {
 	return false, nil
 }
 
-func GetJaegerSpanIndexInElasticSearch(kubeconfigPath string) []string {
+//JaegerSpanRecordFoundInOpenSearch checks if jaeger span records are found in OpenSearch storage
+func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, serviceName string) (bool, error) {
+	indexName, err := GetJaegerSpanIndexName(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	fields := map[string]string{
+		"process.serviceName": serviceName,
+	}
+	searchResult := querySystemElasticSearch(indexName, fields, kubeconfigPath)
+	if len(searchResult) == 0 {
+		Log(Info, fmt.Sprintf("Expected to find log record matching fields %v", fields))
+		return false, nil
+	}
+	found := findJaegerSpanHits(searchResult, &after)
+	if !found {
+		Log(Error, fmt.Sprintf("Failed to find recent jaeger span record for service %s", serviceName))
+	}
+	return found, nil
+}
+
+//GetJaegerSpanIndexName returns the index name used in OpenSearch used for storage
+func GetJaegerSpanIndexName(kubeconfigPath string) (string, error) {
 	var jaegerIndices []string
 	for _, indexName := range listSystemElasticSearchIndices(kubeconfigPath) {
 		if strings.HasPrefix(indexName, jaegerSpanIndexPrefix) {
 			jaegerIndices = append(jaegerIndices, indexName)
+			break;
 		}
 	}
-	return jaegerIndices
-}
-
-func GetJaegerServiceIndexInElasticSearch(kubeconfigPath string) []string {
-	var jaegerIndices []string
-	for _, indexName := range listSystemElasticSearchIndices(kubeconfigPath) {
-		if strings.HasPrefix(indexName, jaegerServiceIndexPrefix) {
-			jaegerIndices = append(jaegerIndices, indexName)
-		}
+	if len(jaegerIndices) > 0 {
+		return jaegerIndices[0], nil
 	}
-	return jaegerIndices
+	return "", fmt.Errorf("Jaeger Span index not found")
 }
 
 // IsJaegerMetricFound validates if the given jaeger metrics contain the labels with values specified as key-value pairs of the map
@@ -219,4 +233,32 @@ func getJaegerUsernamePassword(kubeconfigPath string) (username, password string
 		return "", "", err
 	}
 	return "verrazzano", password, err
+}
+
+
+// findJaegerSpanHits returns the number of span hits that are older than the given time
+func findJaegerSpanHits(searchResult map[string]interface{}, after *time.Time) bool {
+	hits := Jq(searchResult, "hits", "hits")
+	if hits == nil {
+		Log(Info, "Expected to find hits in span record query results")
+		return false
+	}
+	Log(Info, fmt.Sprintf("Found %d records", len(hits.([]interface{}))))
+	if len(hits.([]interface{})) == 0 {
+		Log(Info, "Expected span record query results to contain at least one hit")
+		return false
+	}
+	if after == nil {
+		return true
+	}
+	for _, hit := range hits.([]interface{}) {
+		timestamp := Jq(hit, "_source", "startTimeMillis")
+		t := time.UnixMilli(int64(timestamp.(float64)))
+		if t.After(*after) {
+			Log(Info, fmt.Sprintf("Found recent record: %f", timestamp))
+			return true
+		}
+		Log(Info, fmt.Sprintf("Found old record: %f", timestamp))
+	}
+	return true
 }

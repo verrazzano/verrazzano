@@ -31,7 +31,7 @@ spec:
                 - name: "TRACING_PORT"
                   value: "9411"
                 - name: "TRACING_HOST"
-                  value: "localhost"
+                  value: "jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local"
               ports:
                 - containerPort: 8080
                   name: http

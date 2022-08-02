@@ -25,7 +25,6 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
-	sampleRequestCount       = 10
 )
 
 const (
@@ -45,14 +44,15 @@ var (
 	pollingInterval          = 30 * time.Second
 	failed                   = false
 	beforeSuitePassed        = false
+	start                    = time.Now()
 )
 
 var _ = t.BeforeSuite(func() {
-	if isJaegerOperatorEnabled() {
+	if !isJaegerOperatorEnabled() {
 		pkg.Log(pkg.Info, "Skipping BeforeSuite as Jaeger Operator is disabled.")
 		return
 	}
-	start := time.Now()
+	start = time.Now()
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
@@ -79,7 +79,7 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
-	if isJaegerOperatorEnabled() {
+	if !isJaegerOperatorEnabled() {
 		pkg.Log(pkg.Info, "Skipping BeforeSuite as Jaeger Operator is disabled.")
 		return
 	}
@@ -129,8 +129,8 @@ func isJaegerOperatorEnabled() bool {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	pkg.IsJaegerOperatorEnabled(kubeconfigPath)
-	return false
+	return pkg.IsJaegerOperatorEnabled(kubeconfigPath)
+	//return false
 }
 
 // 'It' Wrapper to only run spec if the Jaeger operator is supported on the current Verrazzano version
@@ -171,29 +171,32 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				}
 				tracesFound := false
 				// generate sample requests, so that traces can be sent to Jaeger for those requests
-				host, err := k8sutil.GetHostnameFromGateway(namespace, "")
-				if err != nil {
-					return false, err
-				}
-				url := fmt.Sprintf("https://%s/greet", host)
-				for i := 0; i < sampleRequestCount; i++ {
-					result := accessAppEndpoint(url, host)
-					if !result {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error accessing the test app with traces: %v", err))
-						//return false, err
-					}
-				}
-				for _, serviceName := range pkg.ListServicesInJaeger(kubeconfigPath) {
+				//host, err := k8sutil.GetHostnameFromGateway(generatedNamespace, "")
+				//if err != nil {
+				//	return false, err
+				//}
+				//url := fmt.Sprintf("https://%s/greet", host)
+				//for i := 0; i < sampleRequestCount; i++ {
+				//	result := accessAppEndpoint(url, host)
+				//	if !result {
+				//		pkg.Log(pkg.Error, fmt.Sprintf("Error accessing the test app with traces: %v", err))
+				//		//return false, err
+				//	}
+				//}
+				servicesWithJaegerTraces := pkg.ListServicesInJaeger(kubeconfigPath)
+				for _, serviceName := range servicesWithJaegerTraces {
 					if strings.HasPrefix(serviceName, "hello-helidon") {
 						traceIds := pkg.ListJaegerTraces(kubeconfigPath, serviceName)
 						tracesFound = len(traceIds) > 0
 						if !tracesFound {
 							pkg.Log(pkg.Error, fmt.Sprintf("traces not found for service: %s", serviceName))
 							return false, fmt.Errorf("traces not found for service: %s", serviceName)
+							continue
 						}
+						break
 					}
 				}
-				return false, nil
+				return tracesFound, nil
 			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
@@ -205,7 +208,11 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				if !isJaegerOperatorEnabled() {
 					return true, nil
 				}
-				return true, nil
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				if err != nil {
+					return false, err
+				}
+				return pkg.JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, "hello-helidon")
 			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
