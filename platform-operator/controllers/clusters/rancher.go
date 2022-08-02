@@ -52,12 +52,6 @@ const (
 	rancherClusterStateActive = "active"
 )
 
-var (
-	loginURLParts    = strings.Split(loginPath, "?")
-	loginURIPath     = loginURLParts[0]
-	loginQueryString = loginURLParts[1]
-)
-
 type rancherConfig struct {
 	host                     string
 	baseURL                  string

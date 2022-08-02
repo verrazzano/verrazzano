@@ -93,18 +93,23 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	return nil
 }
 
-// syncCACertSecret gets the CA cert from the managed cluster (if the cluster is active) and creates or updates the CA cert secret.
-// If there is a CA cert on the managed cluster, then this function returns the secret name containing the CA cert.
+// syncCACertSecret gets the CA cert from the managed cluster (if the cluster is active) and creates
+// or updates the CA cert secret. If the secret is created, it also updates the VMC with the secret
+// name. This function returns true if the sync was completed, false if it was not needed or not
+// completed, and any error that occurred
 func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
 	clusterID := vmc.Status.RancherRegistration.ClusterID
 	if len(clusterID) == 0 {
+		return false, nil
+	}
+	if len(vmc.Spec.CASecret) > 0 {
 		return false, nil
 	}
 	rc, err := newRancherConfig(r.Client, r.log)
 	if err != nil {
 		return false, err
 	}
-	if rc == nil || len(vmc.Spec.CASecret) > 0 {
+	if rc == nil {
 		return false, nil
 	}
 

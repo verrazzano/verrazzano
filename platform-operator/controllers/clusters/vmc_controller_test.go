@@ -52,6 +52,12 @@ const (
 	unitTestRancherClusterID = "unit-test-rancher-cluster-id"
 )
 
+var (
+	loginURLParts    = strings.Split(loginPath, "?")
+	loginURIPath     = loginURLParts[0]
+	loginQueryString = loginURLParts[1]
+)
+
 const rancherManifestYAML = `
 apiVersion: apps/v1
 kind: Deployment
