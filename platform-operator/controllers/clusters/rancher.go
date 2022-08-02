@@ -6,6 +6,7 @@ package clusters
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -199,6 +200,56 @@ func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log vzlog.Ve
 	}
 
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "data.0.id", "unable to find clusterId in Rancher response")
+}
+
+// getAllClustersInRancher returns a slice of the cluster names registered with Rancher
+func getAllClustersInRancher(rc *rancherConfig, log vzlog.VerrazzanoLogger) ([]string, []byte, error) {
+	reqURL := rc.baseURL + clustersPath
+	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
+
+	hash := md5.New()
+	clusterNames := []string{}
+	for {
+		response, responseBody, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
+		if response != nil && response.StatusCode != http.StatusOK {
+			return nil, nil, fmt.Errorf("Unable to get clusters from Rancher, response code: %d", response.StatusCode)
+		}
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// parse the response and iterate over the items
+		jsonString, err := gabs.ParseJSON([]byte(responseBody))
+		if err != nil {
+			return nil, nil, err
+		}
+
+		var items []interface{}
+		var ok bool
+		if items, ok = jsonString.Path("data").Data().([]interface{}); !ok {
+			return nil, nil, fmt.Errorf("Unable to find expected data in Rancher clusters response: %v", jsonString)
+		}
+
+		for _, item := range items {
+			i := item.(map[string]interface{})
+			if name, ok := i["name"]; ok {
+				clusterNames = append(clusterNames, name.(string))
+			}
+		}
+
+		// add this response body to the hash
+		io.WriteString(hash, responseBody)
+
+		// if there is a "next page" link then use that to make another request
+		if reqURL, err = httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "pagination.next", ""); err != nil {
+			break
+		}
+	}
+
+	// unfortunately Rancher does not support ETags, so we return a hash of the response bodies which allows the caller to know if
+	// there were any changes to the clusters
+	return clusterNames, hash.Sum(nil), nil
 }
 
 // isManagedClusterActiveInRancher returns true if the managed cluster is active
