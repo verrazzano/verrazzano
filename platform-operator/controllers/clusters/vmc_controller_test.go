@@ -21,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/pkg/metricsutils"
+	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -1030,7 +1031,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 
 	// Expect an HTTP request to fetch the admin token from Rancher but the call fails
 	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
@@ -1060,7 +1061,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 
 	// Expect an HTTP request to fetch the admin token from Rancher
 	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
@@ -1073,7 +1074,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 
 	// Expect an HTTP request to import the cluster to Rancher but the call fails
 	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
@@ -1106,7 +1107,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 
 	// Expect an HTTP request to fetch the admin token from Rancher
 	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
@@ -1119,7 +1120,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 
 	// Expect an HTTP request to import the cluster to Rancher
 	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"id":"some-cluster"}`)))
 			resp := &http.Response{
@@ -1131,7 +1132,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 
 	// Expect an HTTP request to create the registration token in Rancher but the call fails
 	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
@@ -1164,7 +1165,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 
 	// Expect an HTTP request to fetch the admin token from Rancher
 	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
@@ -1177,7 +1178,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 
 	// Expect an HTTP request to import the cluster to Rancher
 	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"id":"some-cluster"}`)))
 			resp := &http.Response{
@@ -1189,7 +1190,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 
 	// Expect an HTTP request to create the registration token in Rancher
 	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"manifest-token"}`)))
 			resp := &http.Response{
@@ -1258,7 +1259,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 	// Expect an HTTP request to fetch the admin token from Rancher - return an error response and
 	// the request should be retried for a total of "retrySteps" # of times
 	mockRequestSender.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
@@ -1927,7 +1928,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 		// Cluster is not already registered - we now only expect import to happen if the cluster is NOT already registered
 		// Expect an HTTP request to import the cluster to Rancher
 		requestSenderMock.EXPECT().
-			Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+			Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterPath)).
 			DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 				asserts.Equal(clusterPath, req.URL.Path)
 
@@ -1945,7 +1946,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 
 	// Expect an HTTP request to create the registration token in Rancher
 	requestSenderMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			asserts.Equal(clusterRegTokenPath, req.URL.Path)
 
@@ -1986,13 +1987,12 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 
 func expectRancherGetAdminTokenHTTPCall(t *testing.T, requestSenderMock *mocks.MockRequestSender) {
 	asserts := assert.New(t)
+
 	// Expect an HTTP request to fetch the admin token from Rancher
 	requestSenderMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			urlParts := strings.Split(loginPath, "?")
-			asserts.Equal(urlParts[0], req.URL.Path)
-			asserts.Equal(urlParts[1], req.URL.RawQuery)
+			asserts.Equal(loginQueryString, req.URL.RawQuery)
 
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
@@ -2008,14 +2008,11 @@ func expectRancherGetAdminTokenHTTPCall(t *testing.T, requestSenderMock *mocks.M
 // expectSyncCACertRancherHTTPCalls asserts all of the expected calls on the HTTP client mock when sync'ing the managed cluster
 // CA cert secret
 func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.MockRequestSender, caCertSecretData string) {
-	asserts := assert.New(t)
-
 	// Expect an HTTP request to fetch the managed cluster info from Rancher
+	fetchClusterPath := fmt.Sprintf("/v3/clusters/%s", unitTestRancherClusterID)
 	requestSenderMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(fetchClusterPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			expectedPath := fmt.Sprintf("/v3/clusters/%s", unitTestRancherClusterID)
-			asserts.Equal(expectedPath, req.URL.Path)
 
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"state":"active","agentImage":"test-image:1.0.0"}`)))
 			resp := &http.Response{
@@ -2027,12 +2024,10 @@ func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.Moc
 		})
 
 	// Expect an HTTP request to fetch the Rancher TLS additional CA secret from the managed cluster and return an HTTP 404
+	managedClusterAdditionalTLSCAPath := fmt.Sprintf("/k8s/clusters/%s/api/v1/namespaces/cattle-system/secrets/tls-ca-additional", unitTestRancherClusterID)
 	requestSenderMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(managedClusterAdditionalTLSCAPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			expectedURLPath := fmt.Sprintf("/k8s/clusters/%s/api/v1/namespaces/cattle-system/secrets/tls-ca-additional", unitTestRancherClusterID)
-			asserts.Equal(expectedURLPath, req.URL.Path)
-
 			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
 				StatusCode: http.StatusNotFound,
@@ -2043,12 +2038,10 @@ func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.Moc
 		})
 
 	// Expect an HTTP request to fetch the Verrazzano system TLS CA secret from the managed cluster and return the secret
+	managedClusterSystemCAPath := fmt.Sprintf("/k8s/clusters/%s/api/v1/namespaces/verrazzano-system/secrets/verrazzano-tls", unitTestRancherClusterID)
 	requestSenderMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(managedClusterSystemCAPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			expectedPath := fmt.Sprintf("/k8s/clusters/%s/api/v1/namespaces/verrazzano-system/secrets/verrazzano-tls", unitTestRancherClusterID)
-			asserts.Equal(expectedPath, req.URL.Path)
-
 			statusCode := http.StatusOK
 			if len(caCertSecretData) == 0 {
 				statusCode = http.StatusNotFound
