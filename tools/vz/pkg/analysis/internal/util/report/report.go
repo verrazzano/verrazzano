@@ -252,10 +252,10 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 		if len(sourcesWithoutIssues) == 1 {
 			// This is a workaround to avoid printing the source when analyzing the live cluster, although it impacts the
 			// regular use case with a directory containing a single cluster snapshot
-			_, err = fmt.Fprintf(writeOut, "INFO: No issues detected or to report for the cluster\n")
+			_, err = fmt.Fprintf(writeOut, "Verrazzano analysis CLI did not detect any issue in the cluster\n")
 		} else {
 			for _, source := range sourcesWithoutIssues {
-				_, err = fmt.Fprintf(writeOut, "INFO: No issues detected or to report for %s\n", source)
+				_, err = fmt.Fprintf(writeOut, "Verrazzano analysis CLI did not detect any issue in %s\n", source)
 			}
 		}
 	}
