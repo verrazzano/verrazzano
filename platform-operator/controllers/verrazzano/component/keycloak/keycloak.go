@@ -951,7 +951,7 @@ func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 	return nil
 }
 
-func createVerrazzanoGroup(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, group string, parentId string) (string, error) {
+func createVerrazzanoGroup(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, group string, parentID string) (string, error) {
 	kcPod := keycloakPod()
 	keycloakGroups, err := getKeycloakGroups(ctx, cfg, cli, kcPod)
 	if err == nil && groupExists(keycloakGroups, group) {
@@ -960,8 +960,8 @@ func createVerrazzanoGroup(ctx spi.ComponentContext, cfg *restclient.Config, cli
 	}
 	groupsResource := "groups"
 	groupName := "name=" + group
-	if parentId != "" {
-		groupsResource = fmt.Sprintf("groups/%s/children", parentId)
+	if parentID != "" {
+		groupsResource = fmt.Sprintf("groups/%s/children", parentID)
 	}
 
 	cmd := fmt.Sprintf("/opt/jboss/keycloak/bin/kcadm.sh create %s -r %s -s %s", groupsResource, vzSysRealm, groupName)
