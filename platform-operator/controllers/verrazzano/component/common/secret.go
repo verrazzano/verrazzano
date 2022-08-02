@@ -15,7 +15,7 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-// copySecret copies a secret from the verrazzano-install namespace to the specified namespace. If
+// CopySecret copies a secret from the verrazzano-install namespace to the specified namespace. If
 // the target secret already exists, then it will be updated if necessary.
 func CopySecret(ctx spi.ComponentContext, secretName string, destNamespace string, logMsg string) error {
 	vzLog := ctx.Log()
