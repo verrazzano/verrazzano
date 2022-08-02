@@ -1065,8 +1065,8 @@ def registerManagedClusters() {
                 verrazzanoRegisterManagedClusterStages["${count} - Register Managed Cluster"] = registerManagedCluster(count)
             }
             env.ADMIN_VZ_VERSION_AT_REGISTRATION=sh(returnStdout: true,
-                    script:"KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath={.items[0].status.version}").trim()
-            print "Admin VZ version at registration is ${ADMIN_VZ_VERSION_AT_REGISTRATION}"
+                    script:"KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
+            print "Admin VZ version at registration is ${env.ADMIN_VZ_VERSION_AT_REGISTRATION}"
             parallel verrazzanoRegisterManagedClusterStages
         }
     }
