@@ -358,38 +358,42 @@ pipeline {
             }
         }
 
-        stage ('Initiate Opensearch and Rancher Backup and Restore Tests') {
-          parallel {
-             stage('Initiate opensearch backup hook tests') {
-                environment {
-                    DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
-                }
-                steps {
-                    runGinkgoRandomize('backup/opensearch')
-                }
-                post {
-                    always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    }
-                }
-            }
-            stage('Initiate rancher backup operator tests') {
-                environment {
-                    DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
-                }
-                steps {
-                    runGinkgoRandomize('backup/rancher')
-                }
-                post {
-                    always {
-                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    }
-                }
-            }
 
-          }
+        stage('Initiate opensearch backup hook tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
+            }
+            steps {
+                runGinkgoRandomize('backup/opensearch')
+                println("Wait for pods in verrazzano-system to be ready")
+                sh """
+                    kubectl wait -n verrazzano-system --for=condition=ready pod --all --timeout 10m
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+        stage('Initiate rancher backup operator tests') {
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
+            }
+            steps {
+                runGinkgoRandomize('backup/rancher')
+                println("Wait for pods in cattle-system to be ready")
+                sh """
+                   kubectl wait -n cattle--system --for=condition=ready pod --all --timeout 10m
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
         }
         stage('Initiate Mysql backup and restore tests') {
             environment {
@@ -398,9 +402,9 @@ pipeline {
             steps {
                 runGinkgoRandomize('backup/mysql')
                 script {
-                  println("Wait for pods in keycloak and verrazzano-system to be ready")
+                  println("Wait for pods in keycloak, cattle-system and verrazzano-system to be ready")
                   sh """
-                     kubectl wait -n keycloak -n verrazzano-system --for=condition=ready pod --all --timeout 10m
+                     kubectl wait -n keycloak -n cattle-system -n verrazzano-system --for=condition=ready pod --all --timeout 10m
                   """
                 }
             }
