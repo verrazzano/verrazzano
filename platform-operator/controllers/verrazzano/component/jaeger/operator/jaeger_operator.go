@@ -62,6 +62,7 @@ const (
 	tmpFileCleanPattern   = tmpFilePrefix + ".*\\." + tmpSuffix
 	jaegerSecName         = "verrazzano-jaeger-secret"
 	jaegerCreateField     = "jaeger.create"
+	jaegerSecNameField    = "jaeger.spec.storage.secretName"
 	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"
 	prometheusServerField = "jaeger.spec.query.options.prometheus.server-url"
 	jaegerHostName        = "jaeger"
@@ -152,7 +153,7 @@ func preInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 	if createInstance {
-		// Create Jaeger secret with the credentials present in the verrazzano-es-internal secret
+		// Create Jaeger secret with the OpenSearch credentials
 		return createJaegerSecret(ctx)
 	}
 	return nil
@@ -379,6 +380,20 @@ func generateOverridesFile(ctx spi.ComponentContext, contents []byte) (string, e
 
 // createJaegerSecret creates a Jaeger secret for storing credentials needed to access OpenSearch.
 func createJaegerSecret(ctx spi.ComponentContext) error {
+	// Check if the user has specified a jaeger secret override. As the user is expected to create the secret in
+	// verrazzano-install namespace, copy it to verrazzano-monitoring namespace.
+	jaegerSecretOverride, err := getOverrideVal(ctx, jaegerSecNameField)
+	if err != nil {
+		return err
+	}
+	if jaegerSecretOverride != nil {
+		ctx.Log().Debugf("Jaeger secret override %s is set to %v", jaegerSecNameField, jaegerSecretOverride)
+		if err := common.CopySecret(ctx, jaegerSecretOverride.(string), constants.VerrazzanoMonitoringNamespace, "Jaeger"); err != nil {
+			return err
+		}
+		return nil
+	}
+	// Copy the internal Elasticsearch secret
 	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", jaegerSecName)
 	esInternalSecret, err := getESInternalSecret(ctx)
 	if err != nil {
