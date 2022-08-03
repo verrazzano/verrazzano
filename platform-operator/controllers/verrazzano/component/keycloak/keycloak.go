@@ -430,8 +430,8 @@ type KeycloakRoles []struct {
 	ContainerID string `json:"containerId"`
 }
 
-// KeycloakUsers is an array of users configured in Keycloak
-type KeycloakUsers []struct {
+// KeycloakUser is an user configured in Keycloak
+type KeycloakUser struct {
 	ID                         string        `json:"id"`
 	CreatedTimestamp           int64         `json:"createdTimestamp"`
 	Username                   string        `json:"username"`
@@ -979,7 +979,7 @@ func createVerrazzanoGroup(ctx spi.ComponentContext, cfg *restclient.Config, cli
 		return "", fmt.Errorf("Component Keycloak failed parsing output returned from %s Group create stdout returned = %s", group, out)
 	}
 	ctx.Log().Debugf("createVerrazzanoGroup: %s Group ID = %s", group, arr[1])
-	ctx.Log().Once("Component Keycloak successfully created the Verrazzano %s group", group)
+	ctx.Log().Oncef("Component Keycloak successfully created the Verrazzano %s group", group)
 	return arr[1], nil
 }
 
@@ -1239,8 +1239,8 @@ func roleExists(keycloakRoles KeycloakRoles, roleName string) bool {
 }
 
 // getKeycloakUsers returns a structure of Users in Realm verrazzano-system
-func getKeycloakUsers(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) (KeycloakUsers, error) {
-	var keycloakUsers KeycloakUsers
+func getKeycloakUsers(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) ([]KeycloakUser, error) {
+	var keycloakUsers []KeycloakUser
 	// Get the Client ID JSON array
 	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get users -r "+vzSysRealm))
 	if err != nil {
@@ -1260,7 +1260,7 @@ func getKeycloakUsers(ctx spi.ComponentContext, cfg *restclient.Config, cli kube
 	return keycloakUsers, nil
 }
 
-func userExists(keycloakUsers KeycloakUsers, userName string) bool {
+func userExists(keycloakUsers []KeycloakUser, userName string) bool {
 	for _, keycloakUser := range keycloakUsers {
 		if keycloakUser.Username == userName {
 			return true
@@ -1498,7 +1498,7 @@ func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 
 	// Create client secret
 	clientCreateSecretCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients/" + clientID + "/client-secret" + " -r " + vzSysRealm
-
+	ctx.Log().Infof("clientCreateSecretCmd: %v", clientCreateSecretCmd)
 	ctx.Log().Debugf("generateClientSecret: Create %s client secret Cmd = %s", clientName, clientCreateSecretCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateSecretCmd))
 	if err != nil {
@@ -1506,5 +1506,39 @@ func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		return err
 	}
 
+	ctx.Log().Oncef("Component Keycloak generated client secret for client: %v", clientName)
 	return nil
+}
+
+// GetVerrazzanoUserFromKeycloak returns the user verrazzano in keycloak
+func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, error) {
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// Login to Keycloak
+	err = loginKeycloak(ctx, cfg, cli)
+	if err != nil {
+		return nil, err
+	}
+
+	kcUsers, err := getKeycloakUsers(ctx, cfg, cli, keycloakPod())
+	if err != nil {
+		return nil, err
+	}
+
+	var vzUser *KeycloakUser
+	for _, user := range kcUsers {
+		if user.Username == "verrazzano" {
+			vzUser = &user
+			break
+		}
+	}
+
+	if vzUser == nil {
+		return nil, ctx.Log().ErrorfThrottledNewErr("GetVerrazzanoUserIDFromKeycloak: verrazzano user does not exist")
+	}
+
+	return vzUser, nil
 }

@@ -87,7 +87,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 						return ociDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
-					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher oci driver not activated")
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher OCI driver not activated")
 					metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 
 					start = time.Now()
@@ -99,7 +99,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 						return okeDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
-					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher oke driver not activated")
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher OKE driver not activated")
 					metrics.Emit(t.Metrics.With("get_oke_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 
 					start = time.Now()
@@ -113,6 +113,47 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 						return authConfigData.UnstructuredContent()["enabled"].(bool), nil
 					}, waitTimeout, pollingInterval).Should(Equal(true), "keycloak oidc authconfig not enabled")
 					metrics.Emit(t.Metrics.With("get_kc_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
+
+					start = time.Now()
+					t.Logs.Info("Verify Verrazzano rancher user")
+					Eventually(func() (bool, error) {
+						userData, err := k8sClient.Resource(gvkToGvr(rancher.GVKUser)).Get(context.Background(), rancher.UserVerrazzano, v1.GetOptions{})
+						if err != nil {
+							t.Logs.Error(fmt.Sprintf("error getting rancher verrazzano user: %v", err))
+							return false, err
+						}
+						userPrincipals := userData.UnstructuredContent()["principalIds"].([]interface{})
+						for _, userPrincipal := range userPrincipals {
+							if strings.Contains(userPrincipal.(string), "keycloakoidc_user") {
+								return true, nil
+							}
+						}
+						return false, fmt.Errorf("Verrazzano rancher user is not mapped in keycloak")
+					}, waitTimeout, pollingInterval).Should(Equal(true), "verrazzano rancher user does not exist")
+					metrics.Emit(t.Metrics.With("get_vz_rancher_user_elapsed_time", time.Since(start).Milliseconds()))
+
+					start = time.Now()
+					t.Logs.Info("Verify Verrazzano rancher user admin GlobalRoleBinding")
+					Eventually(func() (bool, error) {
+						gbrData, err := k8sClient.Resource(gvkToGvr(rancher.GVKGlobalRoleBinding)).Get(context.Background(), rancher.GlobalRoleBindingVerrazzano, v1.GetOptions{})
+						if err != nil {
+							t.Logs.Error(fmt.Sprintf("error getting rancher verrazzano user global role binding: %v", err))
+							return false, err
+						}
+
+						gbrAttributes := gbrData.UnstructuredContent()
+						if gbrAttributes["userName"].(string) != rancher.UserVerrazzano {
+							return false, fmt.Errorf("Verrazzano rancher user global role binding user in invalid")
+						}
+
+						if gbrAttributes["globalRoleName"].(string) != "admin" {
+							return false, fmt.Errorf("Verrazzano rancher user global role binding role in invalid")
+						}
+
+						return true, nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "verrazzano rancher user global role bindingdoes not exist")
+					metrics.Emit(t.Metrics.With("get_vz_rancher_user_gbr_elapsed_time", time.Since(start).Milliseconds()))
+
 				}
 			}
 		})

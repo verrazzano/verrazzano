@@ -238,7 +238,7 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 - Retrieve the Rancher admin password
 - Retrieve the Rancher hostname
 - Set the Rancher server URL using the admin password and the hostname
-- Activate the oci and oke drivers
+- Activate the OCI and OKE drivers
 */
 func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
@@ -267,7 +267,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
 
-	if err := configureKeycloakOIDC(ctx); err != nil {
+	if err := configureKeycloakOIDCProvider(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
 	}
 
@@ -306,7 +306,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := configureKeycloakOIDC(ctx); err != nil {
+	if err := configureKeycloakOIDCProvider(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
 	}
 
@@ -317,7 +317,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// activateDrivers activates the oci nodeDriver and oraclecontainerengine kontainerDriver
+// activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
 func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 	err := activateOCIDriver(log, c)
 	if err != nil {
@@ -327,6 +327,24 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 	err = activatOKEDriver(log, c)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// configureKeycloakOIDCProvider configures keycloak as OIDC provider for rancher and default user verrazzano
+func configureKeycloakOIDCProvider(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	if err := configureKeycloakOIDC(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
+	}
+
+	if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user: %s", err.Error())
+	}
+
+	if err := createOrUpdateRancherVerrazzanoUserGRB(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user global role binding: %s", err.Error())
 	}
 
 	return nil

@@ -256,6 +256,62 @@ func fakeGetRancherClientSecretFromKeycloakClientSecretEmpty(url *url.URL) (stri
 	return "", "", nil
 }
 
+func fakeGetVerrazzanoUserFromKeycloak(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get users") {
+			return "[{\"id\" : \"quick-fox\",\"username\" : \"verrazzano\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetVerrazzanoUserFromKeycloakFails(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get users") {
+			return "", "", fmt.Errorf("failed")
+		}
+
+	}
+
+	return "", "", nil
+}
+
+func fakeGetVerrazzanoUserFromKeycloakResultEmpty(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get users") {
+			return "", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetVerrazzanoUserFromKeycloakResultInvalid(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get users") {
+			return "invalid", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func fakeGetVerrazzanoUserFromKeycloakNoVerrazzanoUser(url *url.URL) (string, string, error) {
+	var commands []string
+	if commands = url.Query()["command"]; len(commands) == 3 {
+		if strings.Contains(commands[2], "get users") {
+			return "[{\"id\" : \"quick-fox\",\"username\" : \"notverrazzano\"}]", "", nil
+		}
+	}
+
+	return "", "", nil
+}
+
 func TestUpdateKeycloakURIs(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
@@ -814,15 +870,15 @@ func TestGetClientId(t *testing.T) {
 func TestUserExists(t *testing.T) {
 	var tests = []struct {
 		name string
-		in   KeycloakUsers
+		in   []KeycloakUser
 		out  bool
 	}{
 		{"testEmptyUsers",
-			KeycloakUsers{},
+			[]KeycloakUser{},
 			false,
 		},
 		{"testUserNotFound",
-			KeycloakUsers{
+			[]KeycloakUser{
 				{
 					ID:       "955995",
 					Username: "thisUser",
@@ -835,7 +891,7 @@ func TestUserExists(t *testing.T) {
 			false,
 		},
 		{"testUserFound",
-			KeycloakUsers{
+			[]KeycloakUser{
 				{
 					ID:       "955995",
 					Username: "thisUser",
@@ -1369,7 +1425,6 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 	var tests = []struct {
 		name        string
 		c           client.Client
-		stdout      string
 		isErr       bool
 		errContains string
 		execFunc    func(url *url.URL) (string, string, error)
@@ -1377,7 +1432,6 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 		{
 			"should fail when login fails",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(keycloakPod).Build(),
-			"blahblah",
 			true,
 			"secrets \"keycloak-http\" not found",
 			fakeGetRancherClientSecretFromKeycloak,
@@ -1385,7 +1439,6 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 		{
 			"should fail when fails to get clients",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
-			"",
 			true,
 			"keycloak/keycloak-0: failed",
 			fakeGetRancherClientSecretFromKeycloakGetClientsFails,
@@ -1393,7 +1446,6 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 		{
 			"should not fail when rancher client id does not exist",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
-			"",
 			false,
 			"",
 			fakeGetRancherClientSecretFromKeycloakNoRancherClient,
@@ -1401,7 +1453,6 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 		{
 			"should fail when fetching client secret fails",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
-			"blahblah'id",
 			true,
 			"",
 			fakeGetRancherClientSecretFromKeycloakClientSecretFailed,
@@ -1409,7 +1460,6 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 		{
 			"should fail when client secret result is empty",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
-			"blahblah'id",
 			true,
 			"",
 			fakeGetRancherClientSecretFromKeycloakClientSecretResultEmpty,
@@ -1417,7 +1467,6 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 		{
 			"should fail when client secret result is invalid",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
-			"blahblah'id",
 			true,
 			"",
 			fakeGetRancherClientSecretFromKeycloakClientSecretResultInvalid,
@@ -1425,7 +1474,6 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 		{
 			"should fail when client secret is empty",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
-			"blahblah'id",
 			true,
 			"client secret is empty",
 			fakeGetRancherClientSecretFromKeycloakClientSecretEmpty,
@@ -1438,6 +1486,91 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 			k8sutilfake.PodExecResult = tt.execFunc
 			defer func() { k8sutilfake.PodExecResult = podExecFunc }()
 			_, err := GetRancherClientSecretFromKeycloak(ctx)
+			if tt.isErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestGetVerrazzanoUserFromKeycloak tests getting verrazzano user
+// GIVEN a client, and a k8s environment
+// WHEN I call GetVerrazzanoUserFromKeycloak
+// THEN returns a verrazzano user struct, otherwise returning an error if the environment is invalid
+func TestGetVerrazzanoUserFromKeycloak(t *testing.T) {
+	loginSecret := createTestLoginSecret()
+	k8sutil.ClientConfig = fakeRESTConfig
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	podExecFunc := k8sutilfake.PodExecResult
+
+	keycloakPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      keycloakPodName,
+			Namespace: ComponentNamespace,
+		},
+		Status: v1.PodStatus{
+			Conditions: []v1.PodCondition{
+				{
+					Type:   v1.PodReady,
+					Status: v1.ConditionTrue,
+				},
+			},
+		},
+	}
+
+	var tests = []struct {
+		name        string
+		c           client.Client
+		isErr       bool
+		errContains string
+		execFunc    func(url *url.URL) (string, string, error)
+	}{
+		{
+			"should fail when login fails",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(keycloakPod).Build(),
+			true,
+			"secrets \"keycloak-http\" not found",
+			fakeGetVerrazzanoUserFromKeycloak,
+		},
+		{
+			"should fail when fails to get users",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			true,
+			"keycloak/keycloak-0: failed",
+			fakeGetVerrazzanoUserFromKeycloakFails,
+		},
+		{
+			"should fail when get users result is empty",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			true,
+			"",
+			fakeGetVerrazzanoUserFromKeycloakResultEmpty,
+		},
+		{
+			"should fail when get users result is invalid",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			true,
+			"",
+			fakeGetVerrazzanoUserFromKeycloakResultInvalid,
+		},
+		{
+			"should fail when verrazzano user is not found",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod).Build(),
+			true,
+			"verrazzano user does not exist",
+			fakeGetVerrazzanoUserFromKeycloakNoVerrazzanoUser,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.c, testVZ, false)
+			k8sutilfake.PodExecResult = tt.execFunc
+			defer func() { k8sutilfake.PodExecResult = podExecFunc }()
+			_, err := GetVerrazzanoUserFromKeycloak(ctx)
 			if tt.isErr {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errContains)

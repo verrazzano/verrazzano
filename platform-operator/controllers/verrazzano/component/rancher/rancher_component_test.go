@@ -374,11 +374,15 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 		var commands []string
 		if commands = url.Query()["command"]; len(commands) == 3 {
 			if strings.Contains(commands[2], "id,clientId") {
-				return "[{\"id\":\"something\", \"clientId\":\"rancher\",\"clientSecret\":\"abcdef\"}]", "", nil
+				return "[{\"id\":\"something\", \"clientId\":\"rancher\"}]", "", nil
 			}
 
 			if strings.Contains(commands[2], "client-secret") {
 				return "{\"type\":\"secret\",\"secret\":\"abcdef\"}", "", nil
+			}
+
+			if strings.Contains(commands[2], "get users") {
+				return "[{\"id\":\"something\", \"username\":\"verrazzano\"}]", "", nil
 			}
 
 		}

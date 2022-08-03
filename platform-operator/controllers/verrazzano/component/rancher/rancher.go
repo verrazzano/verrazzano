@@ -100,6 +100,8 @@ const (
 	NodeDriverOCI                    = "oci"
 	ClusterLocal                     = "local"
 	AuthConfigKeycloak               = "keycloakoidc"
+	UserVerrazzano                   = "u-verrazzano"
+	GlobalRoleBindingVerrazzano      = "gbr-" + UserVerrazzano
 )
 
 var GVKSetting = schema.GroupVersionKind{
@@ -130,6 +132,18 @@ var GVKAuthConfig = schema.GroupVersionKind{
 	Group:   APIGroupRancherManagement,
 	Version: APIGroupVersionRancherManagement,
 	Kind:    "AuthConfig",
+}
+
+var GVKUser = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "User",
+}
+
+var GVKGlobalRoleBinding = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "GlobalRoleBinding",
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
@@ -379,7 +393,7 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 	log.Once("Successfully deleted Rancher local cluster")
 }
 
-// activateOCIDriver activates the oci nodeDriver
+// activateOCIDriver activates the OCI nodeDriver
 func activateOCIDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
 	ociDriver := unstructured.Unstructured{}
 	ociDriver.SetGroupVersionKind(GVKNodeDriver)
@@ -419,7 +433,7 @@ func activatOKEDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
 	return nil
 }
 
-// putServerURL updates the server-url Setting kontainerDriver
+// putServerURL updates the server-url Setting
 func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string) error {
 	serverURLSetting := unstructured.Unstructured{}
 	serverURLSetting.SetGroupVersionKind(GVKSetting)
@@ -479,6 +493,83 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher: %s", err.Error())
+	}
+
+	return nil
+}
+
+func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	vzRancherUser := unstructured.Unstructured{}
+	vzRancherUser.SetGroupVersionKind(GVKUser)
+	vzRancherUserName := types.NamespacedName{Name: UserVerrazzano}
+	err := c.Get(context.Background(), vzRancherUserName, &vzRancherUser)
+	createUser := false
+	if err != nil {
+		if errors.IsNotFound(err) {
+			createUser = true
+			log.Debug("Rancher user verrazzano does not exist")
+		} else {
+			return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user: %s", err.Error())
+		}
+	}
+
+	vzUser, err := keycloak.GetVerrazzanoUserFromKeycloak(ctx)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user id from keycloak: %s", err.Error())
+	}
+
+	userData := vzRancherUser.UnstructuredContent()
+	userData["metadata"] = map[string]interface{}{"name": UserVerrazzano}
+	userData["displayName"] = strings.Title(vzUser.Username)
+	userData["principalIds"] = []interface{}{"keycloakoidc_user://" + vzUser.ID, "local://" + UserVerrazzano}
+	vzRancherUser.SetUnstructuredContent(userData)
+
+	if createUser {
+		err = c.Create(context.Background(), &vzRancherUser, &client.CreateOptions{})
+	} else {
+		err = c.Update(context.Background(), &vzRancherUser, &client.UpdateOptions{})
+	}
+
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user: %s", err.Error())
+	}
+
+	return nil
+}
+
+func createOrUpdateRancherVerrazzanoUserGRB(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	vzRancherGRB := unstructured.Unstructured{}
+	vzRancherGRB.SetGroupVersionKind(GVKGlobalRoleBinding)
+	vzRancherGRBName := types.NamespacedName{Name: GlobalRoleBindingVerrazzano}
+	err := c.Get(context.Background(), vzRancherGRBName, &vzRancherGRB)
+	createGRB := false
+	if err != nil {
+		if errors.IsNotFound(err) {
+			createGRB = true
+			log.Debug("Rancher GlobalRoleBinding for verrazzano user does not exist")
+		} else {
+			return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user GlobalRoleBinding, unable to fetch GlobalRoleBinding: %s", err.Error())
+		}
+	}
+
+	grbData := vzRancherGRB.UnstructuredContent()
+	grbData["metadata"] = map[string]interface{}{"name": GlobalRoleBindingVerrazzano}
+	grbData["globalRoleName"] = "admin"
+	grbData["userName"] = UserVerrazzano
+	vzRancherGRB.SetUnstructuredContent(grbData)
+
+	if createGRB {
+		err = c.Create(context.Background(), &vzRancherGRB, &client.CreateOptions{})
+	} else {
+		err = c.Update(context.Background(), &vzRancherGRB, &client.UpdateOptions{})
+	}
+
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user GlobalRoleBinding: %s", err.Error())
 	}
 
 	return nil
