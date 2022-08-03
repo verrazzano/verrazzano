@@ -65,3 +65,7 @@ spec:
             prometheus:
               prometheusSpec:
                 replicas: 2
+    elasticsearch:
+      installArgs:
+        - name: nodes.ingest.replicas
+          value: "3"
