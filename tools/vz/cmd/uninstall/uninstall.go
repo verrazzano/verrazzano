@@ -150,13 +150,12 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
 	}
 
-	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Successfully uninstalled Verrazzano\n")
 	return nil
 }
 
 // cleanupResources deletes remaining resources that remain after the Verrazzano resource in uninstalled
 // Resources that fail to delete will log an error but will not return
-func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) error {
+func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) {
 	// Delete verrazzano-install namespace
 	err := deleteNamespace(client, constants.VerrazzanoInstall)
 	if err != nil {
@@ -178,7 +177,6 @@ func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) error {
 	if err != nil {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
 	}
-	return nil
 }
 
 // getUninstallJobPodName returns the name of the pod for the verrazzano-uninstall job
@@ -320,20 +318,21 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 		}
 	}()
 
+	var timeoutErr error
 	select {
 	case result := <-resChan:
-		// Delete remaining Verrazzano resources, excluding CRDs
-		_ = cleanupResources(client, vzHelper)
+		if result == nil {
+			// Delete remaining Verrazzano resources, excluding CRDs
+			cleanupResources(client, vzHelper)
+		}
 		return result
 	case <-time.After(timeout):
 		if timeout.Nanoseconds() != 0 {
 			feedbackChan <- true
-			_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Timeout %v exceeded waiting for uninstall to complete\n", timeout.String()))
+			timeoutErr = fmt.Errorf("Timeout %v exceeded waiting for uninstall to complete", timeout.String())
 		}
 	}
-	// Delete remaining Verrazzano resources, excluding CRDs
-	_ = cleanupResources(client, vzHelper)
-	return nil
+	return timeoutErr
 }
 
 // getUninstallJobLogStream returns the stream to the uninstall job log file

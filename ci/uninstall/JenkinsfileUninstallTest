@@ -37,6 +37,10 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "prod", "dev", "managed-cluster" ])
 
+        booleanParam (name: 'RUN_APPLICATION_TESTS',
+                description: 'Whether to run the application tests for the final install loop',
+                defaultValue: true)
+
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
@@ -229,19 +233,23 @@ pipeline {
 		    }
 		    steps {
 		        script {
-                    for (int count = 1; count <= getMaxIterations(); count++) {
+		            int maxIterations = getMaxIterations()
+                    for (int count = 1; count <= maxIterations; count++) {
                         if (count == 1) {
                             // Create cluster and install
                             runInitialInstall(count)
                         } else {
                             // Run just the install again
-                            runInstallOnly(count)
+                            runInstallOnly("Install Verrazzano", count)
                         }
                         runVerifyTests("Run Test", count)
+                        if (params.RUN_APPLICATION_TESTS && count == maxIterations && params.INSTALL_PROFILE != 'managed-cluster') {
+                            runApplicationTests()
+                        }
                         runUninstall(count)
                         if (params.CHAOS_TEST_TYPE == "uninstall.interrupt.uninstall") {
                             // Run re-install once and re-verify
-                            runInstallOnly(count)
+                            runInstallOnly("Reinstall Verrazzano", count)
                             runVerifyTests("Rerun Test", count)
                         }
                     }
@@ -326,20 +334,22 @@ def runUninstall(iteration) {
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources-${iteration}/post-uninstall-resources false
                 ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources-${iteration}
             """
+            runGinkgo('uninstall/verifycrds')
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                dumpK8sCluster('verify-uninstall-cluster-dump')
+                dumpK8sCluster('verify-uninstall-${iteration}-cluster-dump')
             }
         } catch (err) {
-            dumpK8sCluster('verify-uninstall-cluster-dump')
+            dumpK8sCluster('verify-uninstall-${iteration}-cluster-dump')
             throw err
         }
     }
 }
 
-def runInstallOnly(iteration) {
-    stage("Install Verrazzano #${iteration}") {
+def runInstallOnly(stagePrefix, iteration) {
+    def dirPrefix=stagePrefix.replaceAll("\\s","-").toLowerCase()
+    stage("${stagePrefix} #${iteration}") {
         def vpoLogsDir = "${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/${iteration}"
-        echo "Platform operator reinstall logs dir: ${vpoLogsDir}"
+        echo "Platform operator logs dir: ${vpoLogsDir}"
         try {
             sh """
                 # sleep for a period to ensure async deletion of Verrazzano components from uninstall above has completed
@@ -350,17 +360,17 @@ def runInstallOnly(iteration) {
                 GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
             """
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-               dumpK8sCluster('verrazzano-reinstall-cluster-dump')
+               dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-cluster-dump')
             }
         } catch (err) {
-            dumpK8sCluster('verrazzano-reinstall-failure-cluster-dump')
+            dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-failure-cluster-dump')
             sh """
                mkdir -p ${vpoLogsDir}
                ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${vpoLogsDir}/resources.log
             """
             throw err
         } finally {
-            dumpPodsAndLogs("reinstall-${iteration}")
+            dumpPodsAndLogs("${dirPrefix}-${iteration}")
             listNamespacesAndPods('after reinstalling Verrazzano')
             listHelmReleases('after reinstalling Verrazzano')
         }
@@ -372,10 +382,10 @@ def runVerifyTests(stageName, iteration) {
         try {
             parallel generateVerifyInfraStages()
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                dumpK8sCluster('verrazzano-testrun-after-install-cluster-dump')
+                dumpK8sCluster('verrazzano-testrun-${iteration}-cluster-dump')
             }
         } catch (err) {
-            dumpK8sCluster('verrazzano-test-failure-cluster-dump')
+            dumpK8sCluster('verrazzano-test-failure-${iteration}-cluster-dump')
             throw err
         }
     }
@@ -460,22 +470,76 @@ def uninstallVerrazzano(vpoLogsDir) {
 
 def kill_vpo_loop(vpoLogsDir) {
     script {
-        // Future enhancement, possibly use a random number within a range of 10-30 secs of something
-        echo "Wait 15 seconds before kill loop"
-        sleep 15
-        for (int count = 1; count <= 2; count++) {
-            sh """
+        echo "Stopping the VPO on loop in 15 to 60 second intervals"
+
+        sh """
+            # Initially sleep for 30 to 60 seconds
+            SLEEP_SEC=\$[ \$RANDOM % 30 + 30 ]
+            echo "Sleeping for \$SLEEP_SEC seconds"
+            sleep \$SLEEP_SEC
+
+            VZ_STATUS=\$(kubectl get vz my-verrazzano --ignore-not-found -o jsonpath={.status.conditions[-1].type})
+            RESTARTS=1
+            while [ ! -z \$VZ_STATUS ] && [ \$VZ_STATUS == "UninstallStarted" ] ; do
                 POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                 mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-                kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-${count}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator >> ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-\${RESTARTS}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 kubectl -n verrazzano-install delete po \$POD
                 POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                 kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
                 echo "VPO \$POD successfully restarted"
-            """
+                
+                # Sleep a random interval between 15 and 60 seconds
+                SLEEP_SEC=\$[ \$RANDOM % 45 + 15 ]
+                echo "Sleeping for \$SLEEP_SEC seconds"
+                sleep \$SLEEP_SEC
+
+                # Update the Verrazzano status and update restart counter
+                VZ_STATUS=\$(kubectl get vz my-verrazzano --ignore-not-found -o jsonpath={.status.conditions[-1].type})
+                ((RESTARTS++))
+            done
+        """
+    }
+}
+
+def runApplicationTests() {
+    stage("Application Tests") {
+        try {
+            parallel getApplicationStages()
+            if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                dumpK8sCluster('verrazzano-application-test-failure-cluster-dump')
+            }
+        } catch (err) {
+            dumpK8sCluster('verrazzano-application-test-failure-cluster-dump')
+            throw err
         }
     }
 }
+
+def getApplicationStages() {
+    return [
+       "examples helidon": {
+           testApplication('examples/helidon', 'examples-helidon')
+       },
+       "examples socks": {
+           testApplication('examples/socks', 'examples-socks')
+       },
+       "examples springboot": {
+           testApplication('examples/springboot', 'examples-springboot')
+       },
+       "examples todo": {
+           testApplication('examples/todo', 'examples-todo')
+       },
+   ]
+}
+
+def testApplication(testSuitePath, dumpDir) {
+    environment {
+        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/${dumpDir}"
+    }
+    runGinkgo(testSuitePath)
+}
+
 
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {

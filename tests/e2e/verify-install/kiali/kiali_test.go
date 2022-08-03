@@ -36,8 +36,7 @@ var t = framework.NewTestFramework("kiali")
 var _ = t.BeforeSuite(func() {
 	client, kialiErr = k8sutil.GetKubernetesClientset()
 	Expect(kialiErr).ToNot(HaveOccurred())
-	httpClient, kialiErr = pkg.GetVerrazzanoRetryableHTTPClient()
-	Expect(kialiErr).ToNot(HaveOccurred())
+	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 })
 
 // 'It' Wrapper to only run spec if Kiali is supported on the current Verrazzano installation
@@ -109,23 +108,16 @@ var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 			var (
 				kialiHost string
 				creds     *pkg.UsernamePassword
-				ingError  error
 			)
 
 			BeforeEach(func() {
 				kialiHost = pkg.EventuallyGetKialiHost(client)
-				Eventually(func() (*pkg.UsernamePassword, error) {
-					creds, ingError = pkg.GetSystemVMICredentials()
-					return creds, ingError
-				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+				creds = pkg.EventuallyGetSystemVMICredentials()
 			})
 
 			WhenKialiInstalledIt("not allow unauthenticated logins", func() {
 				Eventually(func() bool {
-					unauthHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
-					if err != nil {
-						return false
-					}
+					unauthHTTPClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 					return pkg.AssertOauthURLAccessibleAndUnauthorized(unauthHTTPClient, kialiHost)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})

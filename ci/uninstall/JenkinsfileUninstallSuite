@@ -135,6 +135,7 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    string(name: 'INSTALL_PROFILE', value: "prod"),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -183,7 +184,7 @@ pipeline {
                         }
                     }
                 }
-                /*stage('Install Loop - Managed Cluster') {
+                stage('Install Loop - Managed Cluster') {
                     steps {
                         script {
                             build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
@@ -201,7 +202,7 @@ pipeline {
                                 ], wait: true
                         }
                     }
-                }*/
+                }
             }
         }
     }

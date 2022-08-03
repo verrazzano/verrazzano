@@ -117,6 +117,14 @@ func main() {
 		internalconfig.SetDefaultBomFilePath(bomOverride)
 	}
 
+	// Log the Verrazzano version
+	version, err := installv1alpha1.GetCurrentBomVersion()
+	if err == nil {
+		log.Infof("Verrazzano version: %s", version.ToString())
+	} else {
+		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
+	}
+
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
 	if config.InitWebhooks {

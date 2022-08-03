@@ -20,8 +20,12 @@ spec:
       - sourceLabels:
           - __meta_kubernetes_service_name
           - __meta_kubernetes_endpoint_port_name
-        regex: verrazzano-application-operator;http-metric-vao
+        regex: verrazzano-application-operator;http-metric
         action: keep
       - sourceLabels:
           - __meta_kubernetes_service_label_app
         targetLabel: app
+      - action: replace
+        targetLabel: verrazzano_cluster
+        replacement: local  
+        

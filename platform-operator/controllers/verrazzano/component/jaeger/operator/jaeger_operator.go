@@ -62,9 +62,13 @@ const (
 	tmpFileCleanPattern   = tmpFilePrefix + ".*\\." + tmpSuffix
 	jaegerSecName         = "verrazzano-jaeger-secret"
 	jaegerCreateField     = "jaeger.create"
+	jaegerSecNameField    = "jaeger.spec.storage.secretName"
+	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"
+	prometheusServerField = "jaeger.spec.query.options.prometheus.server-url"
 	jaegerHostName        = "jaeger"
 	jaegerCertificateName = "jaeger-tls"
 	openSearchURL         = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
+	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090"
 )
 
 // Define the Jaeger images using extraEnv key.
@@ -144,12 +148,12 @@ func preInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	createInstance, err := isCreateJaegerInstance(ctx)
+	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err
 	}
 	if createInstance {
-		// Create Jaeger secret with the credentials present in the verrazzano-es-internal secret
+		// Create Jaeger secret with the OpenSearch credentials
 		return createJaegerSecret(ctx)
 	}
 	return nil
@@ -244,7 +248,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 
-	createInstance, err := isCreateJaegerInstance(compContext)
+	createInstance, err := isCreateDefaultJaegerInstance(compContext)
 	if err != nil {
 		return nil, err
 	}
@@ -269,6 +273,18 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 
 	// Append any installArgs overrides
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
+
+	// If metricsStorage type is set to prometheus, set the prometheus server URL override
+	if vzconfig.IsPrometheusEnabled(compContext.EffectiveCR()) {
+		metricsStorageVal, err := getOverrideVal(compContext, metricsStorageField)
+		if err != nil {
+			return kvs, err
+		}
+		if metricsStorageVal != nil && metricsStorageVal.(string) == "prometheus" {
+			kvs = append(kvs, bom.KeyValue{Key: prometheusServerField, Value: prometheusURL})
+		}
+	}
+
 	return kvs, nil
 }
 
@@ -364,6 +380,20 @@ func generateOverridesFile(ctx spi.ComponentContext, contents []byte) (string, e
 
 // createJaegerSecret creates a Jaeger secret for storing credentials needed to access OpenSearch.
 func createJaegerSecret(ctx spi.ComponentContext) error {
+	// Check if the user has specified a Jaeger secret override. As the user is expected to create the secret in
+	// verrazzano-install namespace, copy it to verrazzano-monitoring namespace.
+	jaegerSecretOverride, err := getOverrideVal(ctx, jaegerSecNameField)
+	if err != nil {
+		return err
+	}
+	if jaegerSecretOverride != nil {
+		ctx.Log().Debugf("Jaeger secret override %s is set to %v", jaegerSecNameField, jaegerSecretOverride)
+		if err := common.CopySecret(ctx, jaegerSecretOverride.(string), constants.VerrazzanoMonitoringNamespace, "Jaeger"); err != nil {
+			return err
+		}
+		return nil
+	}
+	// Copy the internal Elasticsearch secret
 	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", jaegerSecName)
 	esInternalSecret, err := getESInternalSecret(ctx)
 	if err != nil {
@@ -420,26 +450,62 @@ func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 	return secret, nil
 }
 
-// isCreateJaegerInstance determines if the default Jaeger instance has to be created or not.
-func isCreateJaegerInstance(ctx spi.ComponentContext) (bool, error) {
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		// Check if jaeger instance creation is disabled in the user defined Helm overrides
-		overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()))
+// isCreateDefaultJaegerInstance determines if the default Jaeger instance has to be created or not.
+func isCreateDefaultJaegerInstance(ctx spi.ComponentContext) (bool, error) {
+	// Default Jaeger instance will be created if Verrazzano's OpenSearch can be used as storage
+	if canUseVZOpenSearchStorage(ctx) {
+		jaegerCreateOverride, err := getOverrideVal(ctx, jaegerCreateField)
 		if err != nil {
 			return false, err
 		}
-		for _, override := range overrides {
-			jaegerCreate, err := common.ExtractValueFromOverrideString(override, jaegerCreateField)
-			if err != nil {
-				return false, err
-			}
-			if jaegerCreate != nil && !jaegerCreate.(bool) {
-				return false, nil
-			}
+		// If the jaeger instance creation is disabled in the VZ CR, do not create a Jaeger instance
+		if jaegerCreateOverride != nil && !jaegerCreateOverride.(bool) {
+			return false, nil
 		}
 		return true, nil
 	}
 	return false, nil
+}
+
+// isJaegerCREnabled determines if Jaeger instance is configured as part of Verrazzano
+func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
+	jaegerCreateOverride, err := getOverrideVal(ctx, jaegerCreateField)
+	if err != nil {
+		return false, err
+	}
+	// If the create jaeger instance override value is configured in VZ CR, return the same
+	if jaegerCreateOverride != nil {
+		return jaegerCreateOverride.(bool), nil
+	}
+	// Jaeger instance would be created if Verrazzano's OpenSearch can be used as storage
+	return canUseVZOpenSearchStorage(ctx), nil
+}
+
+// canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
+// As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
+func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+		return true
+	}
+	return false
+}
+
+// getOverrideVal gets the Helm value specified in the VZ CR for the specified override field
+func getOverrideVal(ctx spi.ComponentContext, field string) (interface{}, error) {
+	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()))
+	if err != nil {
+		return nil, err
+	}
+	for _, override := range overrides {
+		fieldVal, err := common.ExtractValueFromOverrideString(override, field)
+		if err != nil {
+			return nil, err
+		}
+		if fieldVal != nil {
+			return fieldVal, nil
+		}
+	}
+	return nil, nil
 }
 
 // ReassociateResources updates the resources to ensure they are managed by this release/component.  The resource policy

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
@@ -161,7 +162,14 @@ func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile 
 	messages := make(StringSlice, 1)
 	messages[0] = initialMessage
 	messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, image, podEvents))
-	files := []string{podFile}
+
+	var files []string
+	if helpers.GetIsLiveCluster() {
+		files = []string{report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)}
+	} else {
+		files = []string{podFile}
+	}
+
 	reported := 0
 	for _, message := range messages {
 		if dockerPullRateLimitRe.MatchString(message) {
@@ -214,7 +222,12 @@ func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFil
 			}
 		}
 		if len(messages) > 0 {
-			files := []string{podFile}
+			var files []string
+			if helpers.GetIsLiveCluster() {
+				files = []string{report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)}
+			} else {
+				files = []string{podFile}
+			}
 			issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages, files)
 		}
 	}
@@ -382,13 +395,20 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
 			}
 			// TODO: Time correlation for search
-			matched, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), WideErrorSearchRe, nil)
+
+			fileName := files.FindPodLogFileName(clusterRoot, pod)
+			matched, err := files.SearchFile(log, fileName, WideErrorSearchRe, nil)
 			if err != nil {
 				log.Debugf("Failed to search the logfile %s for the ns/pod %s/%s",
 					files.FindPodLogFileName(clusterRoot, pod), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
 			}
 			if len(matched) > 0 {
-				matches = append(matches, matched...)
+				for _, m := range matched {
+					if helpers.GetIsLiveCluster() {
+						m.FileName = report.GetRelatedLogFromPodMessage(fileName)
+					}
+					matches = append(matches, m)
+				}
 			}
 		}
 	}
