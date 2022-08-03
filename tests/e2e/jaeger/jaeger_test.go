@@ -126,8 +126,7 @@ func isJaegerOperatorEnabled() bool {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	pkg.IsJaegerOperatorEnabled(kubeconfigPath)
-	return false
+	return pkg.IsJaegerOperatorEnabled(kubeconfigPath)
 }
 
 // 'It' Wrapper to only run spec if the Jaeger operator is supported on the current Verrazzano version

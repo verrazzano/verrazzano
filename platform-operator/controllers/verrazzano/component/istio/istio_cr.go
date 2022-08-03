@@ -101,10 +101,12 @@ func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent
 	expandedYamls := []string{}
 
 	// get any install args for Jaeger
-	jaegerArgs, err := configureJaeger(ctx)
-	if err != nil {
-		return "", err
-	}
+	jaegerArgs := []vzapi.InstallArgs{}
+	var err error = nil
+	//jaegerArgs, err := configureJaeger(ctx)
+	//if err != nil {
+	//	return "", err
+	//}
 
 	for _, arg := range append(jaegerArgs, comp.IstioInstallArgs...) {
 		values := arg.ValueList
