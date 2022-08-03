@@ -44,8 +44,3 @@ spec:
           minIndexAge: "1d"
     jaegerOperator:
       enabled: true
-    istio:
-      enabled: true
-      istioInstallArgs:
-        - name: "meshConfig.enableTracing"
-          value: "false"

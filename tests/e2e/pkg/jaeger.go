@@ -8,8 +8,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"net/http"
 	"strings"
 	"time"
@@ -188,6 +193,76 @@ func ListServicesInJaeger(kubeconfigPath string) []string {
 	json.Unmarshal(resp.Body, &serviceMap)
 	services = append(services, serviceMap["data"]...)
 	return services
+}
+
+// DoesCronJobExist returns whether a cronjob with the given name and namespace exists for the cluster
+func DoesCronJobExist(namespace string, name string) (bool, error) {
+	cronjobs, err := ListCronJobsMatchingLabels(namespace, nil)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed listing deployments in cluster for namespace %s: %v", namespace, err))
+		return false, err
+	}
+	for i := range cronjobs.Items {
+		if strings.HasPrefix(cronjobs.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// ListDeploymentsMatchingLabels returns the list of deployments in a given namespace matching the given labels for the cluster
+func ListDeploymentsMatchingLabels(namespace string, matchLabels map[string]string) (*appsv1.DeploymentList, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	listOptions := metav1.ListOptions{}
+	if matchLabels != nil {
+		var selector labels.Selector
+		for k, v := range matchLabels {
+			selectorLabel, _ := labels.NewRequirement(k, selection.Equals, []string{v})
+			selector = labels.NewSelector()
+			selector = selector.Add(*selectorLabel)
+		}
+		listOptions.LabelSelector = selector.String()
+	}
+	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list deployments in namespace %s: %v", namespace, err))
+		return nil, err
+	}
+	return deployments, nil
+}
+
+// ListCronJobs returns the list of cronjobs in a given namespace
+func ListCronJobs(namespace string) (*batchv1.CronJobList, error) {
+	return ListCronJobsMatchingLabels(namespace, nil)
+}
+
+// ListCronJobsMatchingLabels returns the list of cronjobs in a given namespace matching the given labels for the cluster
+func ListCronJobsMatchingLabels(namespace string, matchLabels map[string]string) (*batchv1.CronJobList, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	listOptions := metav1.ListOptions{}
+	if matchLabels != nil {
+		var selector labels.Selector
+		for k, v := range matchLabels {
+			selectorLabel, _ := labels.NewRequirement(k, selection.Equals, []string{v})
+			selector = labels.NewSelector()
+			selector = selector.Add(*selectorLabel)
+		}
+		listOptions.LabelSelector = selector.String()
+	}
+	cronjobs, err := clientset.BatchV1().CronJobs(namespace).List(context.TODO(), listOptions)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to list cronjobs in namespace %s: %v", namespace, err))
+		return nil, err
+	}
+	return cronjobs, nil
 }
 
 // getJaegerWithBasicAuth access Jaeger with GET using basic auth, using a given kubeconfig
