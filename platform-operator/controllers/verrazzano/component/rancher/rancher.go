@@ -487,7 +487,7 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig["authEndpoint"] = keycloakURL + "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
 	authConfig["clientSecret"] = clientSecret
 	authConfig["issuer"] = keycloakURL + "/auth/realms/verrazzano-system"
-	authConfig["rancherURL"] = rancherURL + "/verify-auth"
+	authConfig["rancherUrl"] = rancherURL + "/verify-auth"
 
 	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})
 	if err != nil {
