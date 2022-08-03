@@ -62,7 +62,7 @@ KIND_CONFIG ?= kind-config.yaml
 CRD_PATH=../platform-operator/helm_config/charts/verrazzano-application-operator/crds
 OAM_PATH=../platform-operator/thirdparty/charts/oam-kubernetes-runtime/crds
 
-CLUSTER_DUMP_LOCATION ?= application-operator-integ-cluster-dump
+CLUSTER_DUMP_LOCATION ?= application-operator-integ-cluster-snapshot
 
 .PHONY: build
 build: go-fmt go-vet

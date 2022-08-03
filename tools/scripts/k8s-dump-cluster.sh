@@ -73,7 +73,7 @@ fi
 
 # We create a temporary directory to dump info. The basic structure is along these lines.
 #
-# $CAPTURE_DIR/cluster-dump
+# $CAPTURE_DIR/cluster-snapshot
 #	directory per namespace
 #		daemonsets.json
 #		deployments.json
@@ -161,7 +161,7 @@ function dump_configmaps() {
         NAMESPACE=$(echo "$CSV_LINE" | cut -d, -f"1")
         CONFIGNAME=$(echo "$CSV_LINE" | cut -d, -f"2")
         if [ ! -z $NAMESPACE ] && [ ! -z $CONFIGNAME ] ; then
-          # The cluster-dump should create the directories for us, but just in case there is a situation where there is a namespace
+          # The cluster-snapshot should create the directories for us, but just in case there is a situation where there is a namespace
           # that is present which doesn't have one created, make sure we have the directory
           if [ ! -d $CAPTURE_DIR/cluster-snapshot/$NAMESPACE ] ; then
             mkdir $CAPTURE_DIR/cluster-snapshot/$NAMESPACE || true
@@ -191,7 +191,7 @@ function dump_extra_details_per_namespace() {
           echo "Namespace ${NAMESPACE} not found, skipping"
           continue
         fi
-        # The cluster-dump should create the directories for us, but just in case there is a situation where there is a namespace
+        # The cluster-snapshot should create the directories for us, but just in case there is a situation where there is a namespace
         # that is present which doesn't have one created, make sure we have the directory
         if [ ! -d $CAPTURE_DIR/cluster-snapshot/$NAMESPACE ] ; then
           mkdir $CAPTURE_DIR/cluster-snapshot/$NAMESPACE || true
@@ -301,7 +301,7 @@ function analyze_dump() {
 function save_dump_file() {
   # This will save the dump to a tar gz file if that was specified
   if [ ! -z $TAR_GZ_FILE ]; then
-    # We only save files into cluster-dump and below we do not save the temp directory portion
+    # We only save files into cluster-snapshot and below we do not save the temp directory portion
     if [ -d $CAPTURE_DIR/cluster-snapshot ]; then
       tar -czf $TAR_GZ_FILE -C $CAPTURE_DIR cluster-snapshot
       echo "Dump saved to $TAR_GZ_FILE"
