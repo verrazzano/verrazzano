@@ -7,7 +7,6 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
-	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -153,12 +152,15 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		errorSyncingLoadBalancerCheck := false
 		invalidLBShapeCheck := false
 
-		reportPod := podFile
-		eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, eventsJSON)
-		reportEvent := eventFile
+		var reportPodIssue string
+		var reportEvent string
 		if helpers.GetIsLiveCluster() {
-			reportPod = report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
+			reportPodIssue = report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
 			reportEvent = report.GetRelatedEventMessage(pod.ObjectMeta.Namespace)
+		} else {
+			reportPodIssue = podFile
+			eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, eventsJSON)
+			reportEvent = eventFile
 		}
 
 		// Check if the event matches failure
@@ -172,7 +174,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			log.Debugf("analyzeNGINXIngressController event Reason: %s", event.Message)
 
 			files := make(StringSlice, 2)
-			files[0] = reportPod
+			files[0] = reportPodIssue
 			files[1] = reportEvent
 
 			if ephemeralIPLimitReachedRe.MatchString(event.Message) && !ephemeralIPLimitReachedCheck {
@@ -217,7 +219,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			messages := make(StringSlice, 1)
 			messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 			files := make(StringSlice, 1)
-			files[0] = reportPod
+			files[0] = reportPodIssue
 			issueReporter.AddKnownIssueMessagesFiles(report.IngressNoLoadBalancerIP, clusterRoot, messages, files)
 			return nil
 		}
@@ -227,13 +229,19 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		messages := make(StringSlice, 1)
 		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 		// TODO: Time correlation on error search here
-		nginxPodErrors, err := files.FindFilesAndSearch(log, files.FindFileInClusterRoot(clusterRoot, ingressNginx), LogFilesMatchRe, WideErrorSearchRe, nil)
+
+		fileName := files.FindFileInClusterRoot(clusterRoot, ingressNginx)
+		nginxPodErrors, err := files.FindFilesAndSearch(log, fileName, LogFilesMatchRe, WideErrorSearchRe, nil)
 		if err != nil {
 			log.Debugf("Failed searching NGINX Ingress namespace log files for supporting error log data", err)
 		}
 
+		if helpers.GetIsLiveCluster() && len(nginxPodErrors) > 0 {
+			nginxPodErrors[0].FileName = report.GetRelatedLogFromPodMessage(fileName)
+		}
+
 		files := make(StringSlice, 1)
-		files[0] = reportPod
+		files[0] = reportPodIssue
 		supportingData := make([]report.SupportData, 1)
 		supportingData[0] = report.SupportData{
 			Messages:     messages,
@@ -315,8 +323,8 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 	// Go through all the components which did not reach Ready state
 	allMessages, _ := files.ConvertToLogMessage(vpoLog)
 
-	// Slice to hold the components without specific error in platform operator log
-	var compsNoMessage []string
+	// Slice to hold the components without specific errors in platform operator log
+	var compsNoMessages []string
 	for _, comp := range compsNotReady {
 		var allErrors []files.LogMessage
 		allErrors, err := files.FilterLogsByLevelComponent(logLevelError, comp, allMessages)
@@ -331,22 +339,22 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 			messages = append(messages, "\t "+comp+": "+errorMessage)
 			vpoErrorMessages = append(vpoErrorMessages, errorMessage)
 		} else {
-			compsNoMessage = append(compsNoMessage, comp)
+			compsNoMessages = append(compsNoMessages, comp)
 		}
 	}
 
 	// Create a a single message to display the list of components without specific error in the platform operator
-	if len(compsNoMessage) > 0 {
-		errorMessage := "\t " + installErrorNotFound + strings.Join(compsNoMessage[:], ", ")
+	if len(compsNoMessages) > 0 {
+		errorMessage := "\t " + installErrorNotFound + strings.Join(compsNoMessages[:], ", ")
 		messages = append(messages, errorMessage)
 	}
 
 	reportVzResource := ""
 	reportVpoLog := ""
+	// Construct resource in the analysis report, differently for live analysis
 	if helpers.GetIsLiveCluster() {
 		reportVzResource = report.GetRelatedVZResourceMessage()
-		splitStr := strings.Split(vpoLog, "/")
-		reportVpoLog = report.GetRelatedLogFromPodMessage(splitStr[len(splitStr)-2], vzconstants.VerrazzanoInstallNamespace)
+		reportVpoLog = report.GetRelatedLogFromPodMessage(vpoLog)
 	} else {
 		reportVzResource = clusterRoot + "/" + verrazzanoResource
 		reportVpoLog = vpoLog

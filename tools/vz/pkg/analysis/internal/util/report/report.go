@@ -216,7 +216,11 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 							return err
 						}
 						for _, match := range data.TextMatches {
-							_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s:%d: %s\n", match.FileName, match.FileLine, match.MatchedText)
+							if helpers.GetIsLiveCluster() {
+								_, err = fmt.Fprintf(writeOut, "\t\t\t%s: %s\n", match.FileName, match.MatchedText)
+							} else {
+								_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s:%d: %s\n", match.FileName, match.FileLine, match.MatchedText)
+							}
 							if err != nil {
 								return err
 							}

@@ -222,8 +222,12 @@ func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFil
 			}
 		}
 		if len(messages) > 0 {
-			reportPod := "Pod " + pod.ObjectMeta.Name + " in namespace " + pod.ObjectMeta.Namespace
-			files := []string{reportPod}
+			var files []string
+			if helpers.GetIsLiveCluster() {
+				files = []string{report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)}
+			} else {
+				files = []string{podFile}
+			}
 			issueReporter.AddKnownIssueMessagesFiles(report.InsufficientMemory, clusterRoot, messages, files)
 		}
 	}
@@ -391,13 +395,20 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
 			}
 			// TODO: Time correlation for search
-			matched, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), WideErrorSearchRe, nil)
+
+			fileName := files.FindPodLogFileName(clusterRoot, pod)
+			matched, err := files.SearchFile(log, fileName, WideErrorSearchRe, nil)
 			if err != nil {
 				log.Debugf("Failed to search the logfile %s for the ns/pod %s/%s",
 					files.FindPodLogFileName(clusterRoot, pod), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
 			}
 			if len(matched) > 0 {
-				matches = append(matches, matched...)
+				for _, m := range matched {
+					if helpers.GetIsLiveCluster() {
+						m.FileName = report.GetRelatedLogFromPodMessage(fileName)
+					}
+					matches = append(matches, m)
+				}
 			}
 		}
 	}

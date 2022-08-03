@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"go.uber.org/zap"
+	"strings"
 )
 
 // NOTE: This is part of the contract with the analyzers however it is currently an initial stake in the ground and
@@ -308,7 +309,10 @@ func GetRelatedPodMessage(pod, ns string) string {
 }
 
 // GetRelatedLogFromPodMessage returns the message to indicate the issue in the pod log, in a given namespace
-func GetRelatedLogFromPodMessage(pod, ns string) string {
+func GetRelatedLogFromPodMessage(podLog string) string {
+	splitStr := strings.Split(podLog, "/")
+	pod := splitStr[len(splitStr)-2]
+	ns := splitStr[len(splitStr)-3]
 	return "Log from pod \"" + pod + "\" in namespace \"" + ns + "\""
 }
 
