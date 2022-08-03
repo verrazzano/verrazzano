@@ -385,7 +385,8 @@ pipeline {
                 runGinkgoRandomize('backup/rancher')
                 println("Wait for pods in cattle-system to be ready")
                 sh """
-                   kubectl wait -n cattle-system --for=condition=ready pod --all --timeout 10m
+                   # kubectl wait -n cattle-system --for=condition=ready pod --all --timeout 10m
+                   kubectl get pod -n cattle-system
                 """
             }
             post {
@@ -403,9 +404,9 @@ pipeline {
                 runGinkgoRandomize('backup/mysql')
                 script {
                   println("Wait for pods in keycloak, cattle-system and verrazzano-system to be ready")
-                  sh """
-                     kubectl wait -n keycloak -n cattle-system -n verrazzano-system --for=condition=ready pod --all --timeout 10m
-                  """
+                  //sh """
+                  //   kubectl wait -n keycloak -n cattle-system -n verrazzano-system --for=condition=ready pod --all --timeout 10m
+                  //"""
                 }
             }
             post {
