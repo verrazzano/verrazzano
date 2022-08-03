@@ -85,13 +85,16 @@ var rancherHTTPClient requestSender = &httpRequestSender{}
 
 // registerManagedClusterWithRancher registers a managed cluster with Rancher and returns a chunk of YAML that
 // must be applied on the managed cluster to complete the registration.
-func registerManagedClusterWithRancher(rc *rancherConfig, clusterName string, log vzlog.VerrazzanoLogger) (string, string, error) {
-	log.Oncef("Registering managed cluster in Rancher with name: %s", clusterName)
-
-	clusterID, err := importClusterToRancher(rc, clusterName, log)
-	if err != nil {
-		log.Errorf("Failed to import cluster to Rancher: %v", err)
-		return "", "", err
+func registerManagedClusterWithRancher(rc *rancherConfig, clusterName string, rancherClusterID string, log vzlog.VerrazzanoLogger) (string, string, error) {
+	clusterID := rancherClusterID
+	var err error
+	if clusterID == "" {
+		log.Oncef("Registering managed cluster in Rancher with name: %s", clusterName)
+		clusterID, err = importClusterToRancher(rc, clusterName, log)
+		if err != nil {
+			log.Errorf("Failed to import cluster to Rancher: %v", err)
+			return "", "", err
+		}
 	}
 
 	log.Once("Getting registration YAML from Rancher")
