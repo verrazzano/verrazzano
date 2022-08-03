@@ -122,6 +122,13 @@ pipeline {
 
     stages {
         stage('Clean Workspace and Checkout') {
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_LOCATION="${OCI_OS_LOCATION}"
+                VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+            }
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -196,6 +203,14 @@ pipeline {
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_FOR_UPGRADE
                     echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
                     OPERATOR_YAML_FILE = "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml"
+                }
+
+                script {
+                    sh """
+                        echo "Downloading VZ CLI from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                    """
                 }
             }
         }
@@ -504,10 +519,7 @@ pipeline {
                         # Make sure the upgrade is still in progress
                         vz_status=\$(kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}')
                         if [[ \${vz_status} == "UpgradeStarted" ]]; then
-                            echo "Downloading VZ CLI from object storage"
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
-                            tar xzf ${VZ_CLI_TARGZ}
-                            ./vz uninstall
+                            ${GO_REPO_PATH}/vz uninstall
 
                             ## dump out uninstall logs
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
