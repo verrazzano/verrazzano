@@ -206,7 +206,6 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoH
 
 // convertWorkloadToDeployment converts a VerrazzanoHelidonWorkload into a Deployment.
 func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelidonWorkload, log vzlog.VerrazzanoLogger) (*appsv1.Deployment, error) {
-
 	if workload.Spec.DeploymentTemplate.Selector.MatchLabels == nil {
 		workload.Spec.DeploymentTemplate.Selector.MatchLabels = make(map[string]string)
 	}
@@ -225,6 +224,7 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 			//setting label selector for pod that this deployment will manage
 			Selector: &metav1.LabelSelector{
 				MatchLabels: workload.Spec.DeploymentTemplate.Selector.MatchLabels,
+				MatchExpressions: workload.Spec.DeploymentTemplate.Selector.MatchExpressions,
 			},
 		},
 	}
