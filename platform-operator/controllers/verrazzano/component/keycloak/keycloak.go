@@ -1468,6 +1468,7 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 		ctx.Log().Error(err)
 		return "", err
 	}
+	ctx.Log().Infof("client id: %s, secret : %s", id, out)
 	err = json.Unmarshal([]byte(out), &clientSecret)
 	if err != nil {
 		ctx.Log().Errorf("failed ummarshalling client secret json: %v", err)
@@ -1495,12 +1496,14 @@ func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 
 	clientID := arr[1]
 	ctx.Log().Debugf("generateClientSecret: %s Client ID = %s", clientName, clientID)
+	ctx.Log().Infof("rancher client id: %s", clientID)
 
 	// Create client secret
 	clientCreateSecretCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients/" + clientID + "/client-secret" + " -r " + vzSysRealm
 	ctx.Log().Infof("clientCreateSecretCmd: %v", clientCreateSecretCmd)
 	ctx.Log().Debugf("generateClientSecret: Create %s client secret Cmd = %s", clientName, clientCreateSecretCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateSecretCmd))
+	ctx.Log().Infof("rancher client secret generate: %s %s", stdout, stderr)
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed creating %s client secret: stdout = %s, stderr = %s", clientName, stdout, stderr)
 		return err
