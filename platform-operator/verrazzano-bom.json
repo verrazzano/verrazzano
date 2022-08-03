@@ -668,7 +668,7 @@
           "images": [
             {
               "image": "backup-restore-operator",
-              "tag": "v2.1.0-20220728055921-09d528e",
+              "tag": "v2.1.0-20220803210954-09d528e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
