@@ -68,11 +68,11 @@ func UpdateCR(m CRModifier) error {
 	var err error
 	config, err := k8sutil.GetKubeConfigGivenPath(defaultKubeConfigPath())
 	if err != nil {
-		ginkgov2.Fail(err.Error())
+		return err
 	}
 	client, err := vpoClient.NewForConfig(config)
 	if err != nil {
-		ginkgov2.Fail(err.Error())
+		return err
 	}
 	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
