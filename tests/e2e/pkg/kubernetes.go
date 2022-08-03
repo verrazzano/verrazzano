@@ -142,8 +142,8 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	if err != nil {
 		return nil, err
 	}
-	listOptions := metav1.ListOptions{}
-	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), listOptions)
+
+	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to list deployments in namespace %s: %v", namespace, err))
 		return nil, err
@@ -151,7 +151,7 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	return deployments, nil
 }
 
-// ListDeployments returns the list of deployments in a given namespace matching the given labels for the cluster
+// ListDeploymentsMatchingLabels returns the list of deployments in a given namespace matching the given labels for the cluster
 func ListDeploymentsMatchingLabels(namespace string, matchLabels map[string]string) (*appsv1.DeploymentList, error) {
 	// Get the Kubernetes clientset
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -213,6 +213,7 @@ func ListStatefulSets(namespace string) (*appsv1.StatefulSetList, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	statefulsets, err := clientset.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to list StatefulSets in namespace %s: %v", namespace, err))

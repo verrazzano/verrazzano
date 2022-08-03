@@ -48,8 +48,7 @@ func isJaegerOperatorEnabled() bool {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	pkg.IsJaegerOperatorEnabled(kubeconfigPath)
-	return false
+	return pkg.IsJaegerOperatorEnabled(kubeconfigPath)
 }
 
 // 'It' Wrapper to only run spec if the Jaeger operator is supported on the current Verrazzano version
@@ -100,8 +99,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				}
 				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, []string{jaegerOperatorName})
 				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", jaegerOperatorName, constants.VerrazzanoMonitoringNamespace, err))
-					return false
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", jaegerOperatorName, constants.VerrazzanoMonitoringNamespace, err))
 				}
 				return result
 			}
@@ -157,19 +155,17 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// WHEN we check the CRDs created by Jaeger Operator
 		// THEN we successfully find the Jaeger CRDs
 		WhenJaegerOperatorInstalledIt(minVZVersion, "should have the correct Jaeger Operator CRDs", func() {
-			verifyCRDList := func() bool {
+			verifyCRDList := func() (bool, error) {
 				if isJaegerOperatorEnabled() {
-					exists := false
-					var err error
 					for _, crd := range jaegerOperatorCrds {
-						exists, err = pkg.DoesCRDExist(crd)
-						if err != nil {
-							return false
+						exists, err := pkg.DoesCRDExist(crd)
+						if err != nil || !exists {
+							return exists, err
 						}
 					}
-					return exists
+					return true, nil
 				}
-				return true
+				return true, nil
 			}
 			Eventually(verifyCRDList, waitTimeout, pollingInterval).Should(BeTrue())
 		})
