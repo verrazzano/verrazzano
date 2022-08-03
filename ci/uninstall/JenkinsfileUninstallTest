@@ -293,11 +293,11 @@ def getMaxIterations() {
 
 def runInitialInstall(iteration) {
     stage("Install Verrazzano #${iteration}") {
-        env.CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources-${iteration}/pre-install-resources"
+        env.CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources-${iteration}/pre-install-resources"
         try {
             script {
                 sh """
-                    echo "CLUSTER_DUMP_DIR: ${CLUSTER_DUMP_DIR}"
+                    echo "CLUSTER_SNAPSHOT_DIR: ${CLUSTER_SNAPSHOT_DIR}"
                     echo "Branch: ${BRANCH_NAME}"
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}

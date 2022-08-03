@@ -62,7 +62,7 @@ KIND_CONFIG ?= kind-config.yaml
 CRD_PATH=../platform-operator/helm_config/charts/verrazzano-application-operator/crds
 OAM_PATH=../platform-operator/thirdparty/charts/oam-kubernetes-runtime/crds
 
-CLUSTER_DUMP_LOCATION ?= application-operator-integ-cluster-snapshot
+CLUSTER_SNAPSHOT_LOCATION ?= application-operator-integ-cluster-snapshot
 
 .PHONY: build
 build: go-fmt go-vet
@@ -185,12 +185,12 @@ setup-cluster: create-cluster
 	kubectl create ns istio-system
 
 	echo 'Install OAM runtime and Verrazzano application operator...'
-	time installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
+	time installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_SNAPSHOT_LOCATION} -r ${CLUSTER_SNAPSHOT_LOCATION}/analysis.report; exit 1)
 
 .PHONY: integ-test
 integ-test: setup-cluster
 	echo 'Run tests...'
-	ginkgo -v --keep-going -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
+	ginkgo -v --keep-going -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_SNAPSHOT_LOCATION} -r ${CLUSTER_SNAPSHOT_LOCATION}/analysis.report; exit 1)
 
 .PHONY: cleanup-cluster
 cleanup-cluster:

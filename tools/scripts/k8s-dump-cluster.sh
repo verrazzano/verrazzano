@@ -238,7 +238,7 @@ function dump_extra_details_per_namespace() {
   rm $CAPTURE_DIR/cluster-snapshot/namespace_list.out
 }
 
-function full_k8s_cluster_dump() {
+function full_k8s_cluster_snapshot() {
   echo "Full capture of kubernetes cluster"
   # Get general cluster-info dump, this contains quite a bit but not everything, it also sets up the directory structure
   kubectl --insecure-skip-tls-verify cluster-info dump --all-namespaces --output-directory=$CAPTURE_DIR/cluster-snapshot >/dev/null 2>&1
@@ -316,7 +316,7 @@ function cleanup_dump() {
   fi
 }
 
-full_k8s_cluster_dump
+full_k8s_cluster_snapshot
 if [ $? -eq 0 ]; then
   save_dump_file
 fi

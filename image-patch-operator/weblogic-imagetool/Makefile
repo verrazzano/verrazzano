@@ -49,7 +49,7 @@ EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-weblogic-image-tool
 
-CLUSTER_DUMP_LOCATION ?= weblogic-image-tool-integ-cluster-snapshot
+CLUSTER_SNAPSHOT_LOCATION ?= weblogic-image-tool-integ-cluster-snapshot
 
 # for retrieving installers from oci bucket
 OCI_CLI_REGION ?= us-phoenix-1
