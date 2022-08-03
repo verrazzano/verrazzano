@@ -378,7 +378,7 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 			}
 
 			if strings.Contains(commands[2], "client-secret") {
-				return "{\"type\":\"secret\",\"secret\":\"abcdef\"}", "", nil
+				return "{\"type\":\"secret\",\"value\":\"abcdef\"}", "", nil
 			}
 
 			if strings.Contains(commands[2], "get users") {
