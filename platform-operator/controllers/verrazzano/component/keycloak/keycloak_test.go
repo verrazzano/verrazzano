@@ -162,7 +162,7 @@ func fakeGetRancherClientSecretFromKeycloak(url *url.URL) (string, string, error
 	var commands []string
 	if commands = url.Query()["command"]; len(commands) == 3 {
 		if strings.Contains(commands[2], "client-secret") {
-			return "{\"type\":\"secret\",\"secret\":\"abcdef\"}", "", nil
+			return "{\"type\":\"secret\",\"value\":\"abcdef\"}", "", nil
 		}
 
 		if strings.Contains(commands[2], "get clients") {
@@ -245,7 +245,7 @@ func fakeGetRancherClientSecretFromKeycloakClientSecretEmpty(url *url.URL) (stri
 	var commands []string
 	if commands = url.Query()["command"]; len(commands) == 3 {
 		if strings.Contains(commands[2], "client-secret") {
-			return "{\"type\":\"secret\",\"secret\":\"\"}", "", nil
+			return "{\"type\":\"secret\",\"value\":\"\"}", "", nil
 		}
 
 		if strings.Contains(commands[2], "get clients") {
