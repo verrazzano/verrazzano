@@ -40,6 +40,7 @@ const (
 )
 
 var esPods = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data"}
+var esPodsUp = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data", "verrazzano-monitoring-operator", "vmi-system-kibana"}
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
@@ -367,6 +368,14 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 			Eventually(func() error {
 				return common.DisplayHookLogs(t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+	})
+
+	t.Context("Wait for all pods to come up in verrazzano-system", func() {
+		WhenVeleroInstalledIt("Wait for all pods to come up in verrazzano-system", func() {
+			Eventually(func() bool {
+				return checkPodsRunning(constants.VerrazzanoSystemNamespace, esPodsUp)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are up")
 		})
 	})
 
