@@ -209,9 +209,6 @@ pipeline {
 
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
         RUNNING_OPERATOR_VERSION = ""
-
-        // used by verify register test, set in registerManagedClusters
-        ADMIN_VZ_VERSION_AT_REGISTRATION = ""
     }
 
     stages {
@@ -1064,6 +1061,7 @@ def registerManagedClusters() {
             for(int count=2; count<=clusterCount; count++) {
                 verrazzanoRegisterManagedClusterStages["${count} - Register Managed Cluster"] = registerManagedCluster(count)
             }
+            // ADMIN_VZ_VERSION_AT_REGISTRATION is used by verify register test
             env.ADMIN_VZ_VERSION_AT_REGISTRATION = sh(returnStdout: true,
                     script:"KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
             print "Admin VZ version at registration is ${env.ADMIN_VZ_VERSION_AT_REGISTRATION}"
