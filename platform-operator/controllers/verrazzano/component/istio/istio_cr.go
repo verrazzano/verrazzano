@@ -102,7 +102,7 @@ func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent
 
 	// get any install args for Jaeger
 	jaegerArgs := []vzapi.InstallArgs{}
-	var err error = nil
+	var err error
 	//jaegerArgs, err := configureJaeger(ctx)
 	//if err != nil {
 	//	return "", err
