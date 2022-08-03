@@ -307,7 +307,7 @@ func TestExecPod(t *testing.T) {
 	}
 	stdout, _, err := k8sutil.ExecPod(client, cfg, pod, "container", []string{"run", "some", "command"})
 	assert.Nil(t, err)
-	assert.Equal(t, spdyfake.PodExecResult, stdout)
+	assert.Equal(t, "{\"result\":\"result\"}", stdout)
 }
 
 // TestGetURLForIngress tests getting the host URL from an ingress
