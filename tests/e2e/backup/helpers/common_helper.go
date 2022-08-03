@@ -345,6 +345,9 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenT
 	}
 	defer response.Body.Close()
 
+	log.Infof("DEBUG: Status code = %v", response.StatusCode)
+	log.Infof("DEBUG: Status = %v", response.Status)
+
 	err = httputil.ValidateResponseCode(response, expectedResponseCode)
 	if err != nil {
 		log.Errorf("expected response code = %v, actual response code = %v, Error = %v", expectedResponseCode, response.StatusCode, zap.Error(err))
