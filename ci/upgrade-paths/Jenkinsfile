@@ -932,7 +932,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
-                if [ "false" == "${params.EXTERNAL_ELASTICSEARCH}" ] && [ "${count}" == 1 ]; then
+                if ! [ "true" == "${params.EXTERNAL_ELASTICSEARCH}" ] && [ "${count}" == 1 ]; then
                     echo "Create the verrazzano-install namespace"
                     kubectl create namespace verrazzano-install
                 fi
