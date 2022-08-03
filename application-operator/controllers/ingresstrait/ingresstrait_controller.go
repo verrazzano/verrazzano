@@ -23,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
@@ -116,13 +117,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
+	counterMetricObject, errorCounterMetricObject, reconcileDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics(controllerName, metricsexporter.IngresstraitReconcileCounter, metricsexporter.IngresstraitReconcileError, metricsexporter.IngresstraitReconcileDuration)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	reconcileDurationMetricObject.TimerStart()
+	defer reconcileDurationMetricObject.TimerStop()
+
 	if req.Namespace == vzconst.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
 		log.Infof("Ingress trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
-
-	var err error
 	var trait *vzapi.IngressTrait
 	if ctx == nil {
 		ctx = context.Background()
@@ -136,6 +142,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	log, err := clusters.GetResourceLogger("ingresstrait", req.NamespacedName, trait)
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		zap.S().Errorf("Failed to create controller logger for ingress trait resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
@@ -148,11 +155,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 
 	log.Oncef("Finished reconciling ingress trait %v", req.NamespacedName)
-
+	counterMetricObject.Inc(zapLogForMetrics, err)
 	return ctrl.Result{}, nil
 }
 
@@ -397,7 +405,7 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 	} else {
 		// Else return an error that the workload type is not supported by this trait.
 		log.Debug("Workload not supported by trait")
-		return nil, fmt.Errorf("Workload not supported by trait")
+		return nil, fmt.Errorf("workload not supported by trait")
 	}
 }
 
@@ -1347,7 +1355,7 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
 		}
 	} else {
-		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
+		return "", fmt.Errorf("unsupported service type %s for istio_ingress", string(istio.Spec.Type))
 	}
 	domain := IP + "." + suffix
 	return domain, nil

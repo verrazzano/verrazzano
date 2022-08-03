@@ -5,7 +5,10 @@ package mysql
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -57,9 +60,7 @@ var mySQLSecret = v1.Secret{
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 2
-	busyboxImageNameKey           = "busybox.image"
-	busyboxImageTagKey            = "busybox.tag"
+	minExpectedHelmOverridesCount = 4
 	testBomFilePath               = "../../testdata/test_bom.json"
 )
 
@@ -77,11 +78,9 @@ func TestAppendMySQLOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, minExpectedHelmOverridesCount)
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
 }
 
 // TestAppendMySQLOverridesUpdate tests the appendMySQLOverrides function
@@ -102,13 +101,12 @@ func TestAppendMySQLOverridesUpdate(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+
 }
 
 // TestAppendMySQLOverridesWithInstallArgs tests the appendMySQLOverrides function
@@ -138,11 +136,11 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesDev tests the appendMySQLOverrides function
@@ -167,11 +165,11 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
-	assert.Equal(t, "false", bom.FindKV(kvs, "persistence.enabled"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
+	assert.Equal(t, "false", bom.FindKV(kvs, persistenceEnabledKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesDevWithPersistence tests the appendMySQLOverrides function
@@ -212,12 +210,12 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
-	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
-	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
+	assert.Equal(t, "true", bom.FindKV(kvs, "primary.persistence.enabled"))
+	assert.Equal(t, "100Gi", bom.FindKV(kvs, "primary.persistence.size"))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesProd tests the appendMySQLOverrides function
@@ -239,10 +237,10 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.Len(t, kvs, minExpectedHelmOverridesCount)
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesProdWithOverrides tests the appendMySQLOverrides function
@@ -279,12 +277,195 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
-	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
-	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
+	assert.Equal(t, "true", bom.FindKV(kvs, "primary.persistence.enabled"))
+	assert.Equal(t, "100Gi", bom.FindKV(kvs, "primary.persistence.size"))
+	assert.NotEmpty(t, bom.FindKV(kvs, initdbScriptsFile))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
+}
+
+// TestPreUpgrade tests the preUpgrade function
+// GIVEN a call to preUpgrade during upgrade
+// WHEN the PV, PVC and existing deployment exist
+// THEN the PV is released and the deployment removed
+func TestPreUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	vz := &vzapi.Verrazzano{}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			pvc.Spec.VolumeName = "volumeName"
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: "volumeName"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pv *v1.PersistentVolume) error {
+			pv.Name = "volumeName"
+			pv.Spec.PersistentVolumeReclaimPolicy = v1.PersistentVolumeReclaimDelete
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pv *v1.PersistentVolume, opts ...client.UpdateOption) error {
+			assert.Equal(t, 2, len(pv.Labels))
+			assert.Equal(t, v1.PersistentVolumeReclaimRetain, pv.Spec.PersistentVolumeReclaimPolicy)
+			return nil
+		})
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.DeleteOption) error {
+			assert.Equal(t, ComponentName, deployment.Name)
+			return nil
+		})
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.DeleteOption) error {
+			assert.Equal(t, ComponentName, pvc.Name)
+			assert.Equal(t, ComponentNamespace, pvc.Namespace)
+			return nil
+		})
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
+			pv := v1.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "volumeName",
+				},
+				Spec: v1.PersistentVolumeSpec{
+					ClaimRef: &v1.ObjectReference{
+						Namespace: ComponentNamespace,
+						Name:      DeploymentPersistentVolumeClaim,
+					},
+					PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRetain,
+				},
+				Status: v1.PersistentVolumeStatus{
+					Phase: v1.VolumeReleased,
+				},
+			}
+			list.Items = []v1.PersistentVolume{pv}
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pv *v1.PersistentVolume, opts ...client.UpdateOption) error {
+			assert.Nil(t, pv.Spec.ClaimRef)
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: statefulsetClaimName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.UpdateOption) error {
+			assert.Equal(t, statefulsetClaimName, pvc.Name)
+			assert.Equal(t, "volumeName", pvc.Spec.VolumeName)
+			return nil
+		})
+
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	err := preUpgrade(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPreUpgradeForStatefulSetMySQL tests the preUpgrade function
+// GIVEN a call to preUpgrade during upgrade
+// WHEN the resource is a statefulset rather than the old deployment
+// THEN the PV reassignment steps are skipped
+func TestPreUpgradeForStatefulSetMySQL(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	vz := &vzapi.Verrazzano{}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeClaim"}, name.Name)
+		})
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.DeleteOption) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "apps", Resource: "Deployment"}, deployment.Name)
+		})
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.DeleteOption) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeClaim"}, pvc.Name)
+		})
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
+			list.Items = []v1.PersistentVolume{}
+			return nil
+		})
+
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	err := preUpgrade(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPostUpgrade tests the postUpgrade function
+// GIVEN a call to postUpgrade during upgrade
+// WHEN the PV for the stateful set exists
+// THEN the PV is updated with the original reclaim policy
+func TestPostUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	vz := &vzapi.Verrazzano{}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
+			pv := v1.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "volumeName",
+					Labels: map[string]string{vzconst.OldReclaimPolicyLabel: string(v1.PersistentVolumeReclaimDelete)},
+				},
+				Spec: v1.PersistentVolumeSpec{
+					ClaimRef: &v1.ObjectReference{
+						Namespace: ComponentNamespace,
+						Name:      statefulsetClaimName,
+					},
+					PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRetain,
+				},
+				Status: v1.PersistentVolumeStatus{
+					Phase: v1.VolumeBound,
+				},
+			}
+			list.Items = []v1.PersistentVolume{pv}
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pv *v1.PersistentVolume, opts ...client.UpdateOption) error {
+			assert.Equal(t, v1.PersistentVolumeReclaimDelete, pv.Spec.PersistentVolumeReclaimPolicy)
+			_, ok := pv.Labels[vzconst.OldReclaimPolicyLabel]
+			assert.False(t, ok)
+			return nil
+		})
+
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	err := postUpgrade(ctx)
+	assert.NoError(t, err)
 }
 
 // TestAppendMySQLOverridesUpgrade tests the appendMySQLOverrides function
@@ -309,14 +490,19 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 			secret.Data[mySQLKey] = []byte("test-key")
 			return nil
 		})
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
+			return nil
+		}).AnyTimes()
 	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestIsMySQLReady tests the isMySQLReady function
@@ -325,39 +511,39 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 //  THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&appsv1.Deployment{
+		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      ComponentName,
 				Labels:    map[string]string{"app": ComponentName},
 			},
-			Spec: appsv1.DeploymentSpec{
+			Spec: appsv1.StatefulSetSpec{
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{"app": ComponentName},
 				},
 			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
+			Status: appsv1.StatefulSetStatus{
+				ReadyReplicas:   1,
+				Replicas:        1,
+				UpdatedReplicas: 1,
 			},
 		},
 		&v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      ComponentName + "-95d8c5d96-m6mbr",
+				Name:      ComponentName + "-0",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               ComponentName,
+					"controller-revision-hash": ComponentName + "-f97fd59d8",
+					"app":                      ComponentName,
 				},
 			},
 		},
-		&appsv1.ReplicaSet{
+		&appsv1.ControllerRevision{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
-				Name:        ComponentName + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Name:      ComponentName + "-f97fd59d8",
+				Namespace: ComponentNamespace,
 			},
+			Revision: 1,
 		},
 	).Build()
 	assert.True(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))

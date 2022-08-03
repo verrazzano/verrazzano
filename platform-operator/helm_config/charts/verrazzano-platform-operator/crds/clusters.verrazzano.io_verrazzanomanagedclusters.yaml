@@ -105,6 +105,9 @@ spec:
               rancherRegistration:
                 description: State of Rancher registration for a managed cluster
                 properties:
+                  clusterID:
+                    description: ClusterID is the Rancher cluster ID for this cluster
+                    type: string
                   message:
                     description: Supporting message related to the Rancher registration
                       status

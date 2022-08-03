@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
@@ -48,6 +49,13 @@ var appconfigMarshalFunc = json.Marshal
 
 // Handle handles appconfig mutate Request
 func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("AppConfigDefaulter", metricsexporter.AppconfigHandleCounter, metricsexporter.AppconfigHandleError, metricsexporter.AppconfigHandleDuration)
+	if err != nil {
+		return admission.Response{}
+	}
+	handleDurationMetricObject.TimerStart()
+	defer handleDurationMetricObject.TimerStop()
+
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "appconfig-defaulter")
 
 	dryRun := req.DryRun != nil && *req.DryRun
@@ -66,19 +74,21 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 		for _, defaulter := range a.Defaulters {
 			err = defaulter.Cleanup(appConfig, dryRun, log)
 			if err != nil {
+				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Errored(http.StatusInternalServerError, err)
 			}
 		}
 		if !dryRun {
 			err = a.cleanupAppConfig(appConfig, log)
 			if err != nil {
+				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				log.Errorf("Failed cleaning up app config %s: %v", req.Name, err)
 			}
 		}
 		return admission.Allowed("cleaned up appconfig default")
 	}
 
-	err := a.decoder.Decode(req, appConfig)
+	err = a.decoder.Decode(req, appConfig)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
@@ -86,13 +96,16 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 	for _, defaulter := range a.Defaulters {
 		err = defaulter.Default(appConfig, dryRun, log)
 		if err != nil {
+			errorCounterMetricObject.Inc(zapLogForMetrics, err)
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 	}
 	marshaledAppConfig, err := appconfigMarshalFunc(appConfig)
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
+	counterMetricObject.Inc(zapLogForMetrics, err)
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledAppConfig)
 }
 
