@@ -6,8 +6,10 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"net/http"
+
+	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	k8sadmission "k8s.io/api/admission/v1"
@@ -35,9 +37,17 @@ func (v *VerrazzanoProjectValidator) InjectDecoder(d *admission.Decoder) error {
 
 // Handle performs validation of created or updated VerrazzanoProject resources.
 func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	prj := &v1alpha1.VerrazzanoProject{}
-	err := v.decoder.Decode(req, prj)
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("MultiClusterComponentValidator", metricsexporter.VzProjHandleCounter, metricsexporter.VzProjHandleError, metricsexporter.VzProjHandleDuration)
 	if err != nil {
+		return admission.Response{}
+	}
+	handleDurationMetricObject.TimerStart()
+	defer handleDurationMetricObject.TimerStop()
+
+	prj := &v1alpha1.VerrazzanoProject{}
+	err = v.decoder.Decode(req, prj)
+	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
@@ -47,6 +57,8 @@ func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.R
 			return translateErrorToResponse(validateVerrazzanoProject(v.client, prj))
 		}
 	}
+	counterMetricObject.Inc(zapLogForMetrics, err)
+
 	return admission.Allowed("")
 }
 
