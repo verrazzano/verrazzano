@@ -99,7 +99,7 @@ func CreateVeleroRestoreObject() error {
 // GetBackupID fetches an opensearch id before starting the backup
 // This will be used to compare the restore process
 func GetBackupID() error {
-	esURL, err := common.GetURL(constants.VerrazzanoSystemNamespace, "vmi-system-es-ingest", t.Logs)
+	esURL, err := common.GetEsURL(t.Logs)
 	if err != nil {
 		t.Logs.Infof("Error getting es url ", zap.Error(err))
 		return err
@@ -126,7 +126,7 @@ func GetBackupID() error {
 
 // IsRestoreSuccessful fetches the same backup id and returns the result
 func IsRestoreSuccessful() string {
-	esURL, err := common.GetURL(constants.VerrazzanoSystemNamespace, "vmi-system-es-ingest", t.Logs)
+	esURL, err := common.GetEsURL(t.Logs)
 	if err != nil {
 		t.Logs.Infof("Error getting es url ", zap.Error(err))
 		return ""
