@@ -6,7 +6,6 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
@@ -15,8 +14,11 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,6 +42,7 @@ func decoder() *admission.Decoder {
 //  WHEN Handle is called with an invalid admission.Request containing no content
 //  THEN Handle should return an error with http.StatusBadRequest
 func TestAppConfigDefaulterHandleError(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	decoder := decoder()
 	defaulter := &AppConfigWebhook{}
 	_ = defaulter.InjectDecoder(decoder)
@@ -54,6 +57,7 @@ func TestAppConfigDefaulterHandleError(t *testing.T) {
 //  WHEN Handle is called with an admission.Request containing appconfig
 //  THEN Handle should return a patch response
 func TestAppConfigDefaulterHandle(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	decoder := decoder()
 	defaulter := &AppConfigWebhook{}
 	_ = defaulter.InjectDecoder(decoder)
@@ -69,6 +73,7 @@ func TestAppConfigDefaulterHandle(t *testing.T) {
 //  WHEN Handle is called with an admission.Request containing appconfig
 //  THEN Handle should return an Allowed response with no patch
 func TestAppConfigWebhookHandleDelete(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	testAppConfigWebhookHandleDelete(t, true, true, false)
 }
 
@@ -77,6 +82,7 @@ func TestAppConfigWebhookHandleDelete(t *testing.T) {
 //  WHEN Handle is called with an admission.Request containing appconfig and set for a dry run
 //  THEN Handle should return an Allowed response with no patch
 func TestAppConfigWebhookHandleDeleteDryRun(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	testAppConfigWebhookHandleDelete(t, true, true, true)
 }
 
@@ -85,6 +91,7 @@ func TestAppConfigWebhookHandleDeleteDryRun(t *testing.T) {
 //  WHEN Handle is called with an admission.Request containing appconfig and the cert is not found
 //  THEN Handle should return an Allowed response with no patch
 func TestAppConfigWebhookHandleDeleteCertNotFound(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	testAppConfigWebhookHandleDelete(t, false, true, false)
 }
 
@@ -93,6 +100,7 @@ func TestAppConfigWebhookHandleDeleteCertNotFound(t *testing.T) {
 //  WHEN Handle is called with an admission.Request containing appconfig and the secret is not found
 //  THEN Handle should return an Allowed response with no patch
 func TestAppConfigWebhookHandleDeleteSecretNotFound(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	testAppConfigWebhookHandleDelete(t, true, false, false)
 }
 
@@ -101,6 +109,7 @@ func TestAppConfigWebhookHandleDeleteSecretNotFound(t *testing.T) {
 //  WHEN Handle is called with an admission.Request containing appconfig
 //  THEN Handle should return error with http.StatusInternalServerError
 func TestAppConfigDefaulterHandleMarshalError(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	decoder := decoder()
 	defaulter := &AppConfigWebhook{}
 	_ = defaulter.InjectDecoder(decoder)
@@ -130,6 +139,7 @@ func (*mockErrorDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dr
 //  WHEN Handle is called with an admission.Request containing appconfig
 //  THEN Handle should return error with http.StatusInternalServerError
 func TestAppConfigDefaulterHandleDefaultError(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	decoder := decoder()
 	defaulter := &AppConfigWebhook{Defaulters: []AppConfigDefaulter{&mockErrorDefaulter{}}}
 	_ = defaulter.InjectDecoder(decoder)
@@ -140,8 +150,26 @@ func TestAppConfigDefaulterHandleDefaultError(t *testing.T) {
 	assert.Equal(t, int32(http.StatusInternalServerError), res.Result.Code)
 }
 
-func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryRun bool) {
+// TestHandleFailed tests to make sure the failure metric is being exposed
+func TestHandleFailed(t *testing.T) {
+	metricsexporter.RequiredInitialization()
+	assert := assert.New(t)
+	// Create a request and decode(Handle) it
+	decoder := decoder()
+	defaulter := &AppConfigWebhook{}
+	_ = defaulter.InjectDecoder(decoder)
+	req := admission.Request{}
+	defaulter.Handle(context.TODO(), req)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigHandleError)
+	assert.NoError(err)
+	// Expect a call to fetch the error
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	reconcileerrorCounterObject.Get().Inc()
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
+}
 
+func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryRun bool) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 

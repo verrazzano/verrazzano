@@ -163,7 +163,7 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	}
 	installed, err := helmcli.IsReleaseInstalled(ComponentName, ComponentNamespace)
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed searching for Jaeger release: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed searching for Jaeger release: %v", err)
 	}
 	if !installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
 		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! Either disable the Verrazzano's default Jaeger instance creation by overriding jaeger.create Helm value for Jaeger Operator component to false or delete and recreate the existing Jaeger deployment in a different namespace: %v", ComponentNamespace, JaegerInstanceName, err)
@@ -177,8 +177,8 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if createInstance {
-		// Create Jaeger secret with the credentials present in the verrazzano-es-internal secret
-		createJaegerSecret(ctx)
+		// Create Jaeger secret with the OpenSearch credentials
+		return createJaegerSecret(ctx)
 	}
 	return nil
 }

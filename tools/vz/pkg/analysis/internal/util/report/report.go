@@ -130,7 +130,13 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 
 		// Print the Source as it has issues
 		delete(sourcesWithoutIssues, source)
-		_, err = fmt.Fprintf(writeOut, "\n\nDetected %d issues for %s:\n\n", len(actuallyReported), source)
+
+		if helpers.GetIsLiveCluster() {
+			_, err = fmt.Fprintf(writeOut, "\n\nDetected %d issues in the cluster:\n\n", len(actuallyReported))
+		} else {
+			_, err = fmt.Fprintf(writeOut, "\n\nDetected %d issues for %s:\n\n", len(actuallyReported), source)
+		}
+
 		if err != nil {
 			return err
 		}
@@ -210,7 +216,11 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 							return err
 						}
 						for _, match := range data.TextMatches {
-							_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s:%d: %s\n", match.FileName, match.FileLine, match.MatchedText)
+							if helpers.GetIsLiveCluster() {
+								_, err = fmt.Fprintf(writeOut, "\t\t\t%s: %s\n", match.FileName, match.MatchedText)
+							} else {
+								_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s:%d: %s\n", match.FileName, match.FileLine, match.MatchedText)
+							}
 							if err != nil {
 								return err
 							}
@@ -229,7 +239,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 						}
 					}
 					if len(data.RelatedFiles) > 0 {
-						_, err = fmt.Fprintf(writeOut, "\t\t\trelated files:\n")
+						_, err = fmt.Fprintf(writeOut, "\t\t\trelated resource(s):\n")
 						if err != nil {
 							return err
 						}
