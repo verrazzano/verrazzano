@@ -556,7 +556,7 @@ func GetVerrazzanoVersion(kubeconfigPath string) (string, error) {
 	return vzVer, nil
 }
 
-// IsVerrazzanoMinVersion returns true if the Verrazzano version >= minVersion
+// IsVerrazzanoMinVersion returns true if the installed Verrazzano version >= minVersion
 func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, error) {
 	vzVersion, err := GetVerrazzanoVersion(kubeconfigPath)
 	if err != nil {
@@ -565,6 +565,11 @@ func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, err
 	if len(vzVersion) == 0 {
 		return false, nil
 	}
+	return IsMinVersion(vzVersion, minVersion)
+}
+
+// IsMinVersion returns true if the given version >= minVersion
+func IsMinVersion(vzVersion, minVersion string) (bool, error) {
 	vzSemver, err := semver.NewSemVersion(vzVersion)
 	if err != nil {
 		return false, err
@@ -604,6 +609,7 @@ func IsManagedClusterProfile() bool {
 
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting vz install resource: %v", err))
 		return false
 	}
 	if vz.Spec.Profile == v1alpha1.ManagedCluster {

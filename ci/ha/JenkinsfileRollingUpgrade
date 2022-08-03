@@ -79,7 +79,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./examples/ha/ha.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -341,8 +341,8 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
-                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('ha-rolling-upgrade-cluster-dump')
+                            dumpK8sClusterFromBugReport('ha-rolling-upgrade-cluster-dump')
                         }
                     }
                 }
@@ -350,8 +350,8 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
-                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('ha-rolling-upgrade-cluster-dump')
+                            dumpK8sClusterFromBugReport('ha-rolling-upgrade-cluster-dump')
                         }
                     }
                 }

@@ -641,7 +641,7 @@ func validateCorrectNumberOfIngressNGINXPodsRunning() {
 	var controllerDeployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
 		var err error
-		controllerDeployment, err = pkg.GetDeployment(constants.IngressNamespace, constants.IngressController)
+		controllerDeployment, err = pkg.GetDeployment(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
 		return controllerDeployment, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 

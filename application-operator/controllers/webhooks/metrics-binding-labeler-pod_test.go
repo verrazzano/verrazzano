@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,6 +44,7 @@ func newLabelerPodWebhook() LabelerPodWebhook {
 // WHEN the pod resource has no owner references
 // THEN the Handle function should succeed and the pod is mutated
 func TestNoOwnerReferences(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	a := newLabelerPodWebhook()
 
 	// Test data
@@ -69,6 +71,7 @@ func TestNoOwnerReferences(t *testing.T) {
 // WHEN the pod resource has one owner reference
 // THEN the Handle function should succeed and the pod is mutated
 func TestOwnerReference(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	a := newLabelerPodWebhook()
 
 	// Create a replica set with no owner reference
@@ -114,6 +117,7 @@ func TestOwnerReference(t *testing.T) {
 //   is the workload resource
 // THEN the Handle function should succeed and the pod is mutated
 func TestMultipleOwnerReference(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	a := newLabelerPodWebhook()
 
 	// Create a deployment with no owner reference
@@ -177,6 +181,7 @@ func TestMultipleOwnerReference(t *testing.T) {
 //   a workload resource
 // THEN the Handle function should fail and return an error
 func TestMultipleOwnerReferenceAndWorkloadResources(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	a := newLabelerPodWebhook()
 
 	// Create a deployment with no owner reference
@@ -256,6 +261,7 @@ func TestMultipleOwnerReferenceAndWorkloadResources(t *testing.T) {
 // WHEN the pod has Prometheus annotations
 // THEN the Handle function should not overwrite those annotations
 func TestPodPrometheusAnnotations(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	a := newLabelerPodWebhook()
 
 	// Test data
