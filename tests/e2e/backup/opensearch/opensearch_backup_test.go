@@ -173,33 +173,41 @@ func NukeOpensearch() error {
 
 	t.Logs.Infof("Deleting opensearch master sts")
 	err = clientset.AppsV1().StatefulSets(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osStsName, metav1.DeleteOptions{})
-	if !k8serror.IsNotFound(err) {
-		t.Logs.Errorf("Unable to delete opensearch master sts due to '%v'", zap.Error(err))
-		return err
+	if err != nil {
+		if !k8serror.IsNotFound(err) {
+			t.Logs.Errorf("Unable to delete opensearch master sts due to '%v'", zap.Error(err))
+			return err
+		}
 	}
 
 	t.Logs.Infof("Deleting opensearch data deployments")
 	for i := 0; i < 3; i++ {
 		err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osDataDepPrefix, i), metav1.DeleteOptions{})
-		if !k8serror.IsNotFound(err) {
-			t.Logs.Errorf("Unable to opensearch data deployment due to '%v'", zap.Error(err))
-			return err
+		if err != nil {
+			if !k8serror.IsNotFound(err) {
+				t.Logs.Errorf("Unable to opensearch data deployment due to '%v'", zap.Error(err))
+				return err
+			}
 		}
 	}
 
 	t.Logs.Infof("Deleting opensearch ingest deployment")
 	err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osIngestDeployment, metav1.DeleteOptions{})
-	if !k8serror.IsNotFound(err) {
-		t.Logs.Errorf("Unable to delete opensearch ingest deployment due to '%v'", zap.Error(err))
-		return err
+	if err != nil {
+		if !k8serror.IsNotFound(err) {
+			t.Logs.Errorf("Unable to delete opensearch ingest deployment due to '%v'", zap.Error(err))
+			return err
+		}
 	}
 
 	t.Logs.Infof("Deleting opensearch master pvc if still present")
 	for i := 0; i < 3; i++ {
 		err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osStsPvcPrefix, i), metav1.DeleteOptions{})
-		if !k8serror.IsNotFound(err) {
-			t.Logs.Errorf("Unable to delete opensearch master pvc due to '%v'", zap.Error(err))
-			return err
+		if err != nil {
+			if !k8serror.IsNotFound(err) {
+				t.Logs.Errorf("Unable to delete opensearch master pvc due to '%v'", zap.Error(err))
+				return err
+			}
 		}
 	}
 
@@ -210,9 +218,11 @@ func NukeOpensearch() error {
 		} else {
 			err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osDepPvcPrefix, i), metav1.DeleteOptions{})
 		}
-		if !k8serror.IsNotFound(err) {
-			t.Logs.Errorf("Unable to delete opensearch data pvc due to '%v'", zap.Error(err))
-			return err
+		if err != nil {
+			if !k8serror.IsNotFound(err) {
+				t.Logs.Errorf("Unable to delete opensearch data pvc due to '%v'", zap.Error(err))
+				return err
+			}
 		}
 	}
 	return nil
