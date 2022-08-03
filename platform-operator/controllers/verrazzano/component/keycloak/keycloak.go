@@ -1528,17 +1528,19 @@ func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, err
 		return nil, err
 	}
 
-	var vzUser *KeycloakUser
+	var vzUser KeycloakUser
+	found := false
 	for _, user := range kcUsers {
 		if user.Username == "verrazzano" {
-			vzUser = &user
+			vzUser = user
+			found = true
 			break
 		}
 	}
 
-	if vzUser == nil {
+	if !found {
 		return nil, ctx.Log().ErrorfThrottledNewErr("GetVerrazzanoUserIDFromKeycloak: verrazzano user does not exist")
 	}
 
-	return vzUser, nil
+	return &vzUser, nil
 }
