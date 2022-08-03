@@ -29,9 +29,11 @@ type CRModifier interface {
 
 // GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
 func GetCR() *vzapi.Verrazzano {
+	var cr *vzapi.Verrazzano
+	var err error
 	// Wait for the CR to be Ready
 	gomega.Eventually(func() error {
-		cr, err := pkg.GetVerrazzano()
+		cr, err = pkg.GetVerrazzano()
 		if err != nil {
 			return err
 		}
@@ -40,16 +42,6 @@ func GetCR() *vzapi.Verrazzano {
 		}
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
-
-	// Get the CR
-	cr, err := pkg.GetVerrazzano()
-	if err != nil {
-		ginkgov2.Fail(err.Error())
-	}
-	if cr == nil {
-		ginkgov2.Fail("CR is nil")
-	}
-
 	return cr
 }
 
