@@ -350,15 +350,10 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
             }
             steps {
-                println("Wait for all pods on system to be ready")
-                sh """
-                    kubectl wait --all-namespaces --for=condition=ready pod --all --timeout 10m
-                """
+                waitForPodsToBeUp("verrazzano-system")
                 runGinkgoRandomize('backup/opensearch')
                 println("Wait for pods in verrazzano-system to be ready")
-                sh """
-                    kubectl wait -n verrazzano-system --for=condition=ready pod --all --timeout 10m
-                """
+                waitForPodsToBeUp("verrazzano-system")
             }
             post {
                 always {
@@ -387,6 +382,7 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
+                waitForPodsToBeUp("keycloak")
                 runGinkgoRandomize('backup/mysql')
             }
             post {
@@ -462,6 +458,12 @@ def createBucket(bucketName) {
 def deleteBucket(bucketName) {
     sh """
         OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os bucket delete -bn ${bucketName} --empty --force
+    """
+}
+
+def waitForPodsToBeUp(namespace) {
+    sh """
+         kubectl wait -n ${namespace} --for=condition=ready pod --all --timeout 10m
     """
 }
 
