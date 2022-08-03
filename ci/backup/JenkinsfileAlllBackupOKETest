@@ -343,6 +343,7 @@ pipeline {
             }
         }
 
+        /*
         stage('Verify Install') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
@@ -357,6 +358,7 @@ pipeline {
                 }
             }
         }
+        */
 
 
         stage('Initiate opensearch backup hook tests') {
@@ -364,6 +366,10 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
             }
             steps {
+                println("Wait for all pods on system to be ready")
+                sh """
+                    kubectl wait --all-namespaces --for=condition=ready pod --all --timeout 10m
+                """
                 runGinkgoRandomize('backup/opensearch')
                 println("Wait for pods in verrazzano-system to be ready")
                 sh """
@@ -377,17 +383,13 @@ pipeline {
                 }
             }
         }
+
         stage('Initiate rancher backup operator tests') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
             }
             steps {
                 runGinkgoRandomize('backup/rancher')
-                println("Wait for pods in cattle-system to be ready")
-                sh """
-                   # kubectl wait -n cattle-system --for=condition=ready pod --all --timeout 10m
-                   kubectl get pod -n cattle-system
-                """
             }
             post {
                 always {
@@ -402,12 +404,6 @@ pipeline {
             }
             steps {
                 runGinkgoRandomize('backup/mysql')
-                script {
-                  println("Wait for pods in keycloak, cattle-system and verrazzano-system to be ready")
-                  //sh """
-                  //   kubectl wait -n keycloak -n cattle-system -n verrazzano-system --for=condition=ready pod --all --timeout 10m
-                  //"""
-                }
             }
             post {
                 always {
