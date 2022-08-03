@@ -20,8 +20,8 @@ import (
 const (
 	authProxyLabelValue = "verrazzano-authproxy"
 	authProxyLabelKey   = "app"
-	pollingInterval = 5 * time.Second
-	pollingDuration = time.Minute
+	pollingInterval     = 5 * time.Second
+	pollingDuration     = time.Minute
 )
 
 type AuthProxyReplicasModifier struct {
