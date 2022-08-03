@@ -360,6 +360,13 @@ pipeline {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
+                failure {
+                    script {
+                            if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                dumpK8sCluster('opensearch-backup-restore-cluster-dump')
+                        }
+                    }
+                }
             }
         }
 
@@ -375,8 +382,17 @@ pipeline {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
+                failure {
+                        script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster('rancher-backup-restore-cluster-dump')
+                            }
+                        }
+                }
             }
         }
+
+
         stage('Initiate Mysql backup and restore tests') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
@@ -389,14 +405,17 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
                     script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verrazzano-cluster-dump-post-mysql-backup-restore')
+                            if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                dumpK8sCluster('mysql-backup-restore-cluster-dump')
                         }
                     }
                 }
             }
         }
+
     }
     post {
         always {
