@@ -191,7 +191,7 @@
             },
             {
               "image": "console",
-              "tag": "1.4.0-20220722132540-d8a58fc",
+              "tag": "v1.4.0-20220803133223-d09ac54",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -416,7 +416,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "1.4.0-20220721182006-bd71eb4"
+              "tag": "v1.4.0-20220803133014-7b829cf"
             }
           ]
         }
