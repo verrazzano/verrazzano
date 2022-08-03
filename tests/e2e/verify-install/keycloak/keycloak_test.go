@@ -250,7 +250,6 @@ func verifyKeycloakRealmPasswordPolicyIsCorrect(realm string) bool {
 
 func verifyKeycloakClientURIs() bool {
 	var keycloakClients KeycloakClients
-	var keycloakClient Client
 
 	// Get the Keycloak admin password
 	secret, err := pkg.GetSecret("keycloak", "keycloak-http")
@@ -281,48 +280,15 @@ func verifyKeycloakClientURIs() bool {
 		t.Logs.Error(fmt.Printf("Error retrieving ID for client ID, zero length: %s\n", err))
 		return false
 	}
+
 	if len(string(out)) == 0 {
 		t.Logs.Error(fmt.Print("Error retrieving Clients JSON from Keycloak, zero length, zero length\n"))
 		return false
 	}
-	json.Unmarshal([]byte(out), &keycloakClients)
 
-	// Extract the id associated with ClientID verrazzano-pkce
-	var id = ""
-	for _, client := range keycloakClients {
-		if client.ClientID == "verrazzano-pkce" {
-			id = client.ID
-			t.Logs.Info(fmt.Printf("Keycloak Clients ID found = %s\n", id))
-		}
-	}
-	if id == "" {
-		t.Logs.Error(fmt.Print("Error retrieving ID for Keycloak user, zero length\n"))
-		return false
-	}
-
-	// Get the client Info
-	client := "clients/" + id
-	cmd = exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", client, "-r", "verrazzano-system")
-	out, err = cmd.Output()
+	err = json.Unmarshal([]byte(out), &keycloakClients)
 	if err != nil {
-		t.Logs.Error(fmt.Printf("Error retrieving clientID JSON: %s\n", err))
-		return false
-	}
-	if len(string(out)) == 0 {
-		t.Logs.Error(fmt.Print("Error retrieving Client JSON from Keycloak, zero length, zero length\n"))
-		return false
-	}
-	json.Unmarshal([]byte(out), &keycloakClient)
-
-	// Verify Correct number of RedirectURIs
-	if len(keycloakClient.RedirectUris) != 13 {
-		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
-		return false
-	}
-
-	// Verify Correct number of WebOrigins
-	if len(keycloakClient.WebOrigins) != 7 {
-		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
+		t.Logs.Error(fmt.Print("Error unmarshalling keycloak client json %v\n", err.Error()))
 		return false
 	}
 
@@ -337,6 +303,24 @@ func verifyKeycloakClientURIs() bool {
 		t.Logs.Error(fmt.Printf("Error retrieving Verrazzano Env: %s\n", err))
 		return false
 	}
+
+	keycloakClient, err := getKeycloakClientByClientID(keycloakClients, "verrazzano-pkce")
+	if err != nil {
+		return false
+	}
+
+	// Verify Correct number of RedirectURIs
+	if len(keycloakClient.RedirectUris) != 13 {
+		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+
+	// Verify Correct number of WebOrigins
+	if len(keycloakClient.WebOrigins) != 7 {
+		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
+		return false
+	}
+
 	// Kiali
 	if !verifyURIs(keycloakClient.RedirectUris, "kiali.vmi.system."+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Kiali redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
@@ -403,6 +387,34 @@ func verifyKeycloakClientURIs() bool {
 		return false
 	}
 
+	keycloakClient, err = getKeycloakClientByClientID(keycloakClients, "rancher")
+	if err != nil {
+		return false
+	}
+
+	// Verify Correct number of RedirectURIs
+	if len(keycloakClient.RedirectUris) != 1 {
+		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+
+	// Verify Correct number of WebOrigins
+	if len(keycloakClient.WebOrigins) != 1 {
+		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
+		return false
+	}
+
+	// rancher
+	if !verifyURIs(keycloakClient.RedirectUris, "rancher."+env, 1) {
+		t.Logs.Error(fmt.Printf("Expected 1 Rancher redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+
+	if !verifyURIs(keycloakClient.WebOrigins, "rancher."+env, 1) {
+		t.Logs.Error(fmt.Printf("Expected 1 Rancher weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
+		return false
+	}
+
 	return true
 }
 
@@ -420,4 +432,46 @@ func verifyURIs(uriArray []string, name string, numToFind int) bool {
 		}
 	}
 	return ctr == numToFind
+}
+
+func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID string) (*Client, error) {
+	// Extract the id associated with ClientID
+	var keycloakClient Client
+	var id = ""
+	for _, client := range keycloakClients {
+		if client.ClientID == clientID {
+			id = client.ID
+			t.Logs.Info(fmt.Printf("Keycloak Clients ID found = %s\n", id))
+		}
+	}
+	if id == "" {
+		err := fmt.Errorf("error retrieving ID for Keycloak user, zero length\n")
+		t.Logs.Error(err.Error())
+		return nil, err
+	}
+
+	// Get the client Info
+	client := "clients/" + id
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", client, "-r", "verrazzano-system")
+	out, err := cmd.Output()
+	if err != nil {
+		err := fmt.Errorf("Error retrieving clientID JSON: %s\n", err)
+		t.Logs.Error(err.Error())
+		return nil, err
+	}
+
+	if len(string(out)) == 0 {
+		err := fmt.Errorf("Error retrieving Client JSON from Keycloak, zero length, zero length\n")
+		t.Logs.Error(err.Error())
+		return nil, err
+	}
+
+	err = json.Unmarshal([]byte(out), &keycloakClient)
+	if err != nil {
+		err := fmt.Errorf("Error unmarshalling keycloak client %v\n", err.Error())
+		t.Logs.Error(err.Error())
+		return nil, err
+	}
+
+	return &keycloakClient, nil
 }

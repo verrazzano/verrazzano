@@ -96,15 +96,23 @@ func createTestNginxService() *v1.Service {
 func fakeConfigureRealmCommands(url *url.URL) (string, string, error) {
 	var commands []string
 	if commands = url.Query()["command"]; len(commands) == 3 {
-		if strings.Contains(commands[2], "create groups") {
+		command := commands[2]
+		if strings.Contains(command, "create groups") {
 			return "Created new group with id 'quick-brown-fox'", "", nil
 		}
-	}
 
-	if commands = url.Query()["command"]; len(commands) == 3 {
-		if strings.Contains(commands[2], "get clients") {
+		if strings.Contains(command, "get clients") {
 			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"jump-window\"}]", "", nil
 		}
+
+		if strings.Contains(command, "create clients/") {
+			return "Created client secret blah", "", nil
+		}
+
+		if strings.Contains(command, "create clients") {
+			return "Created client 'blahblah'", "", nil
+		}
+
 	}
 
 	return "", "", nil

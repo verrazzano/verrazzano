@@ -621,14 +621,11 @@ func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	if err != nil {
 		return err
 	}
-	ctx.Log().Infof("data : %v", data)
 
 	// Update client
 	updateClientCmd := "/opt/jboss/keycloak/bin/kcadm.sh update clients/" + clientID + " -r " + vzSysRealm + " -b '" +
 		strings.TrimSpace(data) +
 		"'"
-	ctx.Log().Infof("updateClientCmd : %v", updateClientCmd)
-
 	ctx.Log().Debugf("updateKeycloakUris: Update client with Id = %s, Cmd = %s", clientID, updateClientCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(updateClientCmd))
 	if err != nil {
@@ -757,19 +754,19 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create verrazzano-pkce client
-	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate)
+	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false)
 	if err != nil {
 		return err
 	}
 
 	// Creating verrazzano-pg client
-	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "")
+	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", false)
 	if err != nil {
 		return err
 	}
 
 	// Creating rancher client
-	err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate)
+	err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
 	if err != nil {
 		return err
 	}
@@ -1053,7 +1050,7 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 
 	return nil
 }
-func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string) error {
+func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool) error {
 	keycloakClients, err := getKeycloakClients(ctx)
 	if err != nil {
 		return err
@@ -1087,6 +1084,15 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		ctx.Log().Errorf("Component Keycloak failed creating %s client: stdout = %s, stderr = %s", clientName, stdout, stderr)
 		return err
 	}
+
+	if generateSecret {
+		err = generateClientSecret(ctx, cfg, cli, clientName, stdout, kcPod)
+		if err != nil {
+			ctx.Log().Errorf("Component Keycloak failed creating %s client secret: err = %s", clientName, err.Error())
+			return err
+		}
+	}
+
 	ctx.Log().Debugf("createOrUpdateClient: Created %s client", clientName)
 	ctx.Log().Oncef("Component Keycloak successfully created client %s", clientName)
 	return nil
@@ -1473,4 +1479,32 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	}
 
 	return clientSecret.Secret, nil
+}
+
+func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, createClientOutput string, kcPod *v1.Pod) error {
+	if len(createClientOutput) == 0 {
+		err := fmt.Errorf("Component Keycloak failed; %s client ID from Keycloak is zero length", clientName)
+		ctx.Log().Error(err)
+		return err
+	}
+
+	arr := strings.Split(string(createClientOutput), "'")
+	if len(arr) != 3 {
+		return fmt.Errorf("Component Keycloak failed parsing output returned from %s Client create stdout returned = %s", clientName, createClientOutput)
+	}
+
+	clientID := arr[1]
+	ctx.Log().Debugf("generateClientSecret: %s Client ID = %s", clientName, clientID)
+
+	// Create client secret
+	clientCreateSecretCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients/" + clientID + "/client-secret" + " -r " + vzSysRealm
+
+	ctx.Log().Debugf("generateClientSecret: Create %s client secret Cmd = %s", clientName, clientCreateSecretCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateSecretCmd))
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed creating %s client secret: stdout = %s, stderr = %s", clientName, stdout, stderr)
+		return err
+	}
+
+	return nil
 }

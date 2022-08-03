@@ -101,6 +101,18 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 						return okeDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
 					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher oke driver not activated")
 					metrics.Emit(t.Metrics.With("get_oke_driver_state_elapsed_time", time.Since(start).Milliseconds()))
+
+					start = time.Now()
+					t.Logs.Info("Verify Keycloak AuthConfig")
+					Eventually(func() (bool, error) {
+						authConfigData, err := k8sClient.Resource(gvkToGvr(rancher.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigKeycloak, v1.GetOptions{})
+						if err != nil {
+							t.Logs.Error(fmt.Sprintf("error getting keycloak oidc authConfig: %v", err))
+							return false, err
+						}
+						return authConfigData.UnstructuredContent()["enabled"].(bool), nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "keycloak oidc authconfig not enabled")
+					metrics.Emit(t.Metrics.With("get_kc_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
 				}
 			}
 		})
