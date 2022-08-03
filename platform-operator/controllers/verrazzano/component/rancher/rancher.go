@@ -488,7 +488,6 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig["clientSecret"] = clientSecret
 	authConfig["issuer"] = keycloakURL + "/auth/realms/verrazzano-system"
 	authConfig["rancherURL"] = rancherURL + "/verify-auth"
-	keycloakAuthConfig.SetUnstructuredContent(authConfig)
 
 	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})
 	if err != nil {
@@ -521,15 +520,11 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	}
 
 	userData := vzRancherUser.UnstructuredContent()
-	if createUser {
-		userData["metadata"] = map[string]interface{}{"name": UserVerrazzano}
-	}
-
 	userData["displayName"] = strings.Title(vzUser.Username)
 	userData["principalIds"] = []interface{}{"keycloakoidc_user://" + vzUser.ID, "local://" + UserVerrazzano}
-	vzRancherUser.SetUnstructuredContent(userData)
 
 	if createUser {
+		vzRancherUser.SetName(UserVerrazzano)
 		err = c.Create(context.Background(), &vzRancherUser, &client.CreateOptions{})
 	} else {
 		err = c.Update(context.Background(), &vzRancherUser, &client.UpdateOptions{})
@@ -560,15 +555,11 @@ func createOrUpdateRancherVerrazzanoUserGRB(ctx spi.ComponentContext) error {
 	}
 
 	grbData := vzRancherGRB.UnstructuredContent()
-	if createGRB {
-		grbData["metadata"] = map[string]interface{}{"name": GlobalRoleBindingVerrazzano}
-	}
-
 	grbData["globalRoleName"] = "admin"
 	grbData["userName"] = UserVerrazzano
-	vzRancherGRB.SetUnstructuredContent(grbData)
 
 	if createGRB {
+		vzRancherGRB.SetName(GlobalRoleBindingVerrazzano)
 		err = c.Create(context.Background(), &vzRancherGRB, &client.CreateOptions{})
 	} else {
 		err = c.Update(context.Background(), &vzRancherGRB, &client.UpdateOptions{})
