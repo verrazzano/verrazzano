@@ -641,7 +641,7 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.8.1-20220801214313-e1b7af7e",
+              "tag": "v1.8.1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
@@ -652,7 +652,7 @@
             },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.8.1-20220801214313-e1b7af7e",
+              "tag": "v1.8.1",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]
