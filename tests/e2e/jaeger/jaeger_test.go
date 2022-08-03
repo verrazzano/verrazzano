@@ -42,13 +42,28 @@ var (
 	failed                   = false
 	beforeSuitePassed        = false
 	start                    = time.Now()
+	kubeconfig               string
 )
 
+func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) bool {
+	if pkg.IsJaegerOperatorEnabled(kubeconfig) {
+		return t.ItMinimumVersion(text, "1.3.0", kubeconfig, args...)
+	}
+	t.Logs.Info("Skipping spec, Jaeger Operator is disabled")
+	return false
+}
+
 var _ = t.BeforeSuite(func() {
-	if !isJaegerOperatorEnabled() {
+	Eventually(func() error {
+		var err error
+		kubeconfig, err = k8sutil.GetKubeConfigLocation()
+		return err
+	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+	if !pkg.IsJaegerOperatorEnabled(kubeconfig) {
 		pkg.Log(pkg.Info, "Skipping BeforeSuite as Jaeger Operator is disabled.")
 		return
 	}
+
 	start = time.Now()
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
@@ -76,7 +91,7 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
-	if !isJaegerOperatorEnabled() {
+	if !pkg.IsJaegerOperatorEnabled(kubeconfig) {
 		pkg.Log(pkg.Info, "Skipping BeforeSuite as Jaeger Operator is disabled.")
 		return
 	}
@@ -121,46 +136,13 @@ var _ = t.AfterSuite(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-func isJaegerOperatorEnabled() bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	pkg.IsJaegerOperatorEnabled(kubeconfigPath)
-	return false
-}
-
-// 'It' Wrapper to only run spec if the Jaeger operator is supported on the current Verrazzano version
-func WhenJaegerOperatorInstalledIt(description string, f func()) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		t.It(description, func() {
-			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-		})
-	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
-	if err != nil {
-		t.It(description, func() {
-			Fail(fmt.Sprintf("Failed to check Verrazzano version 1.3.0: %s", err.Error()))
-		})
-	}
-	if supported {
-		t.It(description, f)
-	} else {
-		t.Logs.Infof("Skipping check '%v', the Jaeger Operator is not supported", description)
-	}
-}
-
 var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {
 		// GIVEN the Jaeger Operator is enabled and a sample application is installed,
 		// WHEN we check for traces for that service,
 		// THEN we are able to get the traces
-		WhenJaegerOperatorInstalledIt("should have a verrazzano-monitoring namespace", func() {
+		WhenJaegerOperatorEnabledIt("should have a verrazzano-monitoring namespace", func() {
 			Eventually(func() (bool, error) {
-				if !isJaegerOperatorEnabled() {
-					return true, nil
-				}
 				// Check if the service name is registered in Jaeger and traces are present for that service
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -186,11 +168,8 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Jaeger Operator component is enabled,
 		// WHEN a sample application is installed,
 		// THEN the traces are found in OpenSearch Backend
-		WhenJaegerOperatorInstalledIt("should have running pods", func() {
+		WhenJaegerOperatorEnabledIt("should have running pods", func() {
 			Eventually(func() (bool, error) {
-				if !isJaegerOperatorEnabled() {
-					return true, nil
-				}
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
 					return false, err
@@ -202,11 +181,8 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Jaeger Operator component is enabled,
 		// WHEN we check for metrics related to Jaeger operator
 		// THEN we see that the metrics are present in prometheus
-		WhenJaegerOperatorInstalledIt("should have the correct default Jaeger images", func() {
+		WhenJaegerOperatorEnabledIt("should have the correct default Jaeger images", func() {
 			Eventually(func() bool {
-				if !isJaegerOperatorEnabled() {
-					return true
-				}
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
 					return false
@@ -219,11 +195,8 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Jaeger Operator component is installed with default Jaeger CR enabled
 		// WHEN we check for metrics related to Jaeger Components (jaeger-query, jaeger-collector, jaeger-agent)
 		// THEN we see that the metrics are present in prometheus
-		WhenJaegerOperatorInstalledIt("should have the correct Jaeger Operator CRDs", func() {
+		WhenJaegerOperatorEnabledIt("should have the correct Jaeger Operator CRDs", func() {
 			Eventually(func() bool {
-				if !isJaegerOperatorEnabled() {
-					return true
-				}
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
 					return false
