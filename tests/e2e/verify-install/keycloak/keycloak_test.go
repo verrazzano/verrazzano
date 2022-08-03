@@ -288,7 +288,7 @@ func verifyKeycloakClientURIs() bool {
 
 	err = json.Unmarshal([]byte(out), &keycloakClients)
 	if err != nil {
-		t.Logs.Error(fmt.Print("Error unmarshalling keycloak client json %v\n", err.Error()))
+		t.Logs.Error(fmt.Sprintf("error unmarshalling keycloak client json %v", err.Error()))
 		return false
 	}
 
@@ -455,20 +455,20 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", client, "-r", "verrazzano-system")
 	out, err := cmd.Output()
 	if err != nil {
-		err := fmt.Errorf("Error retrieving clientID JSON: %s\n", err)
+		err := fmt.Errorf("error retrieving clientID json: %s", err)
 		t.Logs.Error(err.Error())
 		return nil, err
 	}
 
 	if len(string(out)) == 0 {
-		err := fmt.Errorf("Error retrieving Client JSON from Keycloak, zero length, zero length\n")
+		err := fmt.Errorf("error retrieving client json from keycloak, zero length")
 		t.Logs.Error(err.Error())
 		return nil, err
 	}
 
 	err = json.Unmarshal([]byte(out), &keycloakClient)
 	if err != nil {
-		err := fmt.Errorf("Error unmarshalling keycloak client %v\n", err.Error())
+		err := fmt.Errorf("error unmarshalling keycloak client %s", err.Error())
 		t.Logs.Error(err.Error())
 		return nil, err
 	}
