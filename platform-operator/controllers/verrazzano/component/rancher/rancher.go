@@ -521,7 +521,10 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	}
 
 	userData := vzRancherUser.UnstructuredContent()
-	userData["metadata"] = map[string]interface{}{"name": UserVerrazzano}
+	if createUser {
+		userData["metadata"] = map[string]interface{}{"name": UserVerrazzano}
+	}
+
 	userData["displayName"] = strings.Title(vzUser.Username)
 	userData["principalIds"] = []interface{}{"keycloakoidc_user://" + vzUser.ID, "local://" + UserVerrazzano}
 	vzRancherUser.SetUnstructuredContent(userData)
@@ -557,7 +560,10 @@ func createOrUpdateRancherVerrazzanoUserGRB(ctx spi.ComponentContext) error {
 	}
 
 	grbData := vzRancherGRB.UnstructuredContent()
-	grbData["metadata"] = map[string]interface{}{"name": GlobalRoleBindingVerrazzano}
+	if createGRB {
+		grbData["metadata"] = map[string]interface{}{"name": GlobalRoleBindingVerrazzano}
+	}
+
 	grbData["globalRoleName"] = "admin"
 	grbData["userName"] = UserVerrazzano
 	vzRancherGRB.SetUnstructuredContent(grbData)
