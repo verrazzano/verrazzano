@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	"os"
@@ -131,7 +130,13 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 
 		// Print the Source as it has issues
 		delete(sourcesWithoutIssues, source)
-		_, err = fmt.Fprintf(writeOut, "\n\nDetected %d issues for %s:\n\n", len(actuallyReported), source)
+
+		if helpers.GetIsLiveCluster() {
+			_, err = fmt.Fprintf(writeOut, "\n\nDetected %d issues in the cluster:\n\n", len(actuallyReported))
+		} else {
+			_, err = fmt.Fprintf(writeOut, "\n\nDetected %d issues for %s:\n\n", len(actuallyReported), source)
+		}
+
 		if err != nil {
 			return err
 		}

@@ -302,18 +302,22 @@ func SingleMessage(message string) (messages []string) {
 	return messages
 }
 
+// GetRelatedPodMessage returns the message for an issue in pod, used for setting supporting data
 func GetRelatedPodMessage(pod, ns string) string {
 	return "Pod \"" + pod + "\" in namespace \"" + ns + "\""
 }
 
+// GetRelatedLogFromPodMessage returns the message to indicate the issue in the pod log, in a given namespace
+func GetRelatedLogFromPodMessage(pod, ns string) string {
+	return "Log from pod \"" + pod + "\" in namespace \"" + ns + "\""
+}
+
+// GetRelatedEventMessage returns the message for an event, used for setting supporting data
 func GetRelatedEventMessage(ns string) string {
 	return "Event(s) in namespace \"" + ns + "\""
 }
 
+// GetRelatedVZResourceMessage returns the message for Verrazzano resource, used for setting supporting data
 func GetRelatedVZResourceMessage() string {
 	return "Verrazzano custom resource"
-}
-
-func GetRelatedLogFromPodMessage(pod, ns string) string {
-	return "Log from pod \"" + pod + "\" in namespace \"" + ns + "\""
 }

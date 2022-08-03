@@ -690,6 +690,10 @@ func SetIsLiveCluster() {
 	isLiveCluster = true
 }
 
+func GetIsLiveCluster() bool {
+	return isLiveCluster
+}
+
 // LogMessage logs a message to the standard output
 func LogMessage(msg string) {
 	msgPrefix := bugReportMsgPrefix

@@ -7,9 +7,9 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
@@ -164,7 +164,7 @@ func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile 
 	messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, image, podEvents))
 
 	var files []string
-	if analysis.IsLiveCluster() {
+	if helpers.GetIsLiveCluster() {
 		files = []string{report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)}
 	} else {
 		files = []string{podFile}
@@ -401,7 +401,6 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			}
 		}
 	}
-	fmt.Println("HA HA matches ", matches)
 	supportingData := make([]report.SupportData, 1)
 	supportingData[0] = report.SupportData{
 		Messages:    messages,

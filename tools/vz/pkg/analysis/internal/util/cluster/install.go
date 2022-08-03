@@ -9,9 +9,9 @@ import (
 	"fmt"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
@@ -42,8 +42,8 @@ const servicesJSON = "services.json"
 const podsJSON = "pods.json"
 const ingressNginx = "ingress-nginx"
 
-const installErrorNotFound = "Component specific error(s) not found in the Verrazzano install log"
-const installErrorMessage = "One or more components listed below are not in Ready state:"
+const installErrorNotFound = "Component specific error(s) not found in the Verrazzano install log for - "
+const installErrorMessage = "One or more components listed below did not reach Ready state:"
 
 const (
 	// Service name
@@ -156,7 +156,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		reportPod := podFile
 		eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, eventsJSON)
 		reportEvent := eventFile
-		if analysis.IsLiveCluster() {
+		if helpers.GetIsLiveCluster() {
 			reportPod = report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
 			reportEvent = report.GetRelatedEventMessage(pod.ObjectMeta.Namespace)
 		}
@@ -232,7 +232,6 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			log.Debugf("Failed searching NGINX Ingress namespace log files for supporting error log data", err)
 		}
 
-		fmt.Println("nginxPodErrors ", nginxPodErrors)
 		files := make(StringSlice, 1)
 		files[0] = reportPod
 		supportingData := make([]report.SupportData, 1)
@@ -315,36 +314,46 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 
 	// Go through all the components which did not reach Ready state
 	allMessages, _ := files.ConvertToLogMessage(vpoLog)
+
+	// Slice to hold the components without specific error in platform operator log
+	var compsNoMessage []string
 	for _, comp := range compsNotReady {
 		var allErrors []files.LogMessage
 		allErrors, err := files.FilterLogsByLevelComponent(logLevelError, comp, allMessages)
 		if err != nil {
 			log.Infof("There is an error: %s reading install log: %s", err, vpoLog)
 		}
-		errorMessage := installErrorNotFound
 		// Display only the last error for the component from the install log.
 		// Need a better way to handle distinct errors for a component, however some of the errors during the initial
 		// stages of the install might not indicate any real issue always, as reconcile takes care of healing those errors.
 		if len(allErrors) > 0 {
-			errorMessage = allErrors[len(allErrors)-1].Message
+			errorMessage := allErrors[len(allErrors)-1].Message
+			messages = append(messages, "\t "+comp+": "+errorMessage)
+			vpoErrorMessages = append(vpoErrorMessages, errorMessage)
+		} else {
+			compsNoMessage = append(compsNoMessage, comp)
 		}
-		messages = append(messages, "\t "+comp+": "+errorMessage)
-		vpoErrorMessages = append(vpoErrorMessages, errorMessage)
 	}
 
-	files := make(StringSlice, 2)
-	if analysis.IsLiveCluster() {
-		files = append(files, report.GetRelatedVZResourceMessage())
+	// Create a a single message to display the list of components without specific error in the platform operator
+	if len(compsNoMessage) > 0 {
+		errorMessage := "\t " + installErrorNotFound + strings.Join(compsNoMessage[:], ", ")
+		messages = append(messages, errorMessage)
+	}
+
+	reportVzResource := ""
+	reportVpoLog := ""
+	if helpers.GetIsLiveCluster() {
+		reportVzResource = report.GetRelatedVZResourceMessage()
 		splitStr := strings.Split(vpoLog, "/")
-		files[1] = report.GetRelatedLogFromPodMessage(splitStr[ len(splitStr) - 2 ], vzconstants.VerrazzanoInstallNamespace)
+		reportVpoLog = report.GetRelatedLogFromPodMessage(splitStr[len(splitStr)-2], vzconstants.VerrazzanoInstallNamespace)
 	} else {
-		files = append(files, clusterRoot+"/"+verrazzanoResource)
-		files = append(files, vpoLog)
+		reportVzResource = clusterRoot + "/" + verrazzanoResource
+		reportVpoLog = vpoLog
 	}
-
-	files[0] = report.GetRelatedVZResourceMessage()
-	splitStr := strings.Split(vpoLog, "/")
-	files[1] = report.GetRelatedLogFromPodMessage(splitStr[ len(splitStr) - 2 ], vzconstants.VerrazzanoInstallNamespace)
+	files := make(StringSlice, 2)
+	files[0] = reportVzResource
+	files[1] = reportVpoLog
 	issueReporter.AddKnownIssueMessagesFiles(report.ComponentsNotReady, clusterRoot, messages, files)
 	return nil
 }
