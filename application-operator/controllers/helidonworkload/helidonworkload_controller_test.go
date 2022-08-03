@@ -230,13 +230,11 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			MatchLabels: map[string]string{
 				"app": "hello-helidon-deployment",
 			},
-			MatchExpressions: []metav1.LabelSelectorRequirement{
-				{
-					"app",
-					"In",
-					[]string{"hello-helidon-deployment"},
-				},
-			},
+			MatchExpressions: []metav1.LabelSelectorRequirement{{
+				Key:      "app",
+				Operator: "In",
+				Values:   []string{"hello-helidon-deployment"},
+			}},
 		},
 	}
 	// expect call to fetch existing deployment

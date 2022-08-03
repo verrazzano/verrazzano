@@ -223,7 +223,7 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 		Spec: appsv1.DeploymentSpec{
 			//setting label selector for pod that this deployment will manage
 			Selector: &metav1.LabelSelector{
-				MatchLabels: workload.Spec.DeploymentTemplate.Selector.MatchLabels,
+				MatchLabels:      workload.Spec.DeploymentTemplate.Selector.MatchLabels,
 				MatchExpressions: workload.Spec.DeploymentTemplate.Selector.MatchExpressions,
 			},
 		},
