@@ -849,7 +849,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                     *)
                         ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${params.KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${params.CREATE_CLUSTER_USE_CALICO} "NONE"
                         ;;
-
+                esac
                 if [ ${params.CREATE_CLUSTER_USE_CALICO} == true ]; then
                     echo "Install Calico"
                     cd ${GO_REPO_PATH}/verrazzano
