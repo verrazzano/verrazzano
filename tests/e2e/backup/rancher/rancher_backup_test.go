@@ -267,7 +267,7 @@ func backupPrerequisites() {
 
 	t.Logs.Info("Get rancher URL")
 	Eventually(func() (string, error) {
-		common.RancherURL, err = common.GetRancherURL(t.Logs)
+		common.RancherURL, err = common.GetURL(constants.RancherSystemNamespace, "rancher", t.Logs)
 		return common.RancherURL, err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 

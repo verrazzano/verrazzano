@@ -63,25 +63,6 @@ func GatherInfo() {
 
 }
 
-// GetRancherURL fetches the elastic search URL from the cluster
-func GetRancherURL(log *zap.SugaredLogger) (string, error) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		log.Errorf("Failed to get kubeconfigPath with error: %v", err)
-		return "", err
-	}
-	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
-	if err != nil {
-		log.Errorf("Unable to fetch api endpoint due to %v", zap.Error(err))
-		return "", err
-	}
-	ingress, err := api.GetIngress("cattle-system", "rancher")
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
-}
-
 // GetRancherLoginToken fetches the login token for rancher console
 func GetRancherLoginToken(log *zap.SugaredLogger) string {
 
@@ -97,7 +78,7 @@ func GetRancherLoginToken(log *zap.SugaredLogger) string {
 		return ""
 	}
 
-	rancherURL, err := GetRancherURL(log)
+	rancherURL, err := GetURL(constants.RancherBackupNamesSpace, "rancher", log)
 	if err != nil {
 		return ""
 	}
@@ -105,15 +86,19 @@ func GetRancherLoginToken(log *zap.SugaredLogger) string {
 	return pkg.GetRancherAdminToken(log, httpClient, rancherURL)
 }
 
-// GetEsURL fetches the elastic search URL from the cluster
-func GetEsURL(log *zap.SugaredLogger) (string, error) {
+// GetURL fetches the elastic search URL from the cluster
+func GetURL(namespace, name string, log *zap.SugaredLogger) (string, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		log.Errorf("Failed to get kubeconfigPath with error: %v", err)
 		return "", err
 	}
-	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-	ingress, err := api.GetIngress(constants.VerrazzanoSystemNamespace, "vmi-system-es-ingest")
+	api, err := pkg.GetAPIEndpoint(kubeconfigPath)
+	if err != nil {
+		log.Errorf("Unable to fetch api endpoint due to %v", zap.Error(err))
+		return "", err
+	}
+	ingress, err := api.GetIngress(namespace, name)
 	if err != nil {
 		return "", err
 	}
