@@ -344,8 +344,8 @@ pipeline {
         }
 
 
-        /*stage('Verify Install') {
-            environment {
+        stage('Verify Install') {
+            /*environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
             }
             steps {
@@ -356,8 +356,8 @@ pipeline {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
-            }
-        }*/
+            }*/
+        }
 
 
         stage('Initiate opensearch backup hook tests') {
