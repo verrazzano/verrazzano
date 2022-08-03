@@ -43,6 +43,9 @@ Verrazzano Status
 {{- if .grafana_url}}
     Grafana URL: {{.grafana_url}}
 {{- end}}
+{{- if .jaeger_url}}
+    Jaeger URL: {{.jaeger_url}}
+{{- end}}
 {{- if .keycloak_url}}
     Keycloak URL: {{.keycloak_url}}
 {{- end}}
@@ -206,6 +209,9 @@ func addAccessEndpoints(instance *vzapi.InstanceInfo, values map[string]string) 
 		}
 		if instance.KialiURL != nil {
 			values["kiali_url"] = *instance.KialiURL
+		}
+		if instance.JaegerURL != nil {
+			values["jaeger_url"] = *instance.JaegerURL
 		}
 	}
 }

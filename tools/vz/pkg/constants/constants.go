@@ -81,11 +81,13 @@ const OAMProjects = "verrazzanoprojects"
 
 const OAMManagedClusters = "verrazzanomanagedclusters"
 
+const VerrazzanoManagedLabel = "verrazzano-managed=true"
+
 // Analysis tool flags
 const (
 	DirectoryFlagName  = "capture-dir"
 	DirectoryFlagValue = ""
-	DirectoryFlagUsage = "Directory holding the captured data [Required]"
+	DirectoryFlagUsage = "Directory holding the captured data"
 
 	ReportFileFlagName  = "report-file"
 	ReportFileFlagValue = ""
@@ -98,10 +100,11 @@ const (
 
 // Constants for bug report
 const (
-	BugReportFileFlagName  = "report-file"
-	BugReportFileFlagValue = ""
-	BugReportFileFlagShort = "r"
-	BugReportFileFlagUsage = "The report file to be created by bug-report command, as a .tar.gz file [Required]"
+	BugReportFileFlagName     = "report-file"
+	BugReportFileFlagValue    = ""
+	BugReportFileFlagShort    = "r"
+	BugReportFileFlagUsage    = "The report file to be created by bug-report command, as a .tar.gz file. Defaults to bug-report.tar.gz in the current directory."
+	BugReportFileDefaultValue = "bug-report.tar.gz"
 
 	BugReportIncludeNSFlagName  = "include-namespaces"
 	BugReportIncludeNSFlagShort = "i"
@@ -112,8 +115,15 @@ const (
 	// File name for the log captured from the pod
 	LogFile = "logs.txt"
 
+	// File containing list of resources captured by the tool
+	BugReportOut = "bug-report.out"
+	BugReportErr = "bug-report.err"
+
+	BugReportError   = "ERROR: The bug report noticed one or more issues while capturing the resources. Please go through error(s) in the standard error."
+	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"
+
 	// File names for the various resources
-	VzResource       = "verrazzano_resources.json"
+	VzResource       = "verrazzano-resources.json"
 	DeploymentsJSON  = "deployments.json"
 	EventsJSON       = "events.json"
 	PodsJSON         = "pods.json"

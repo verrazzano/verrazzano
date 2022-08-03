@@ -142,6 +142,11 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 			size = override.Spec.Resources.Requests.Storage().String()
 		}
 
+		claimName := "mysql"
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath); ok {
+			claimName = "data-mysql-0"
+		}
+
 		if pkg.IsDevProfile() {
 			expectedKeyCloakPVCs := 0
 			if override != nil {
@@ -151,7 +156,7 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 				// There is no Persistent Volume for MySQL in a dev install
 				Expect(len(volumeClaims)).To(Equal(expectedKeyCloakPVCs))
 				if expectedKeyCloakPVCs > 0 {
-					assertPersistentVolume("mysql", size)
+					assertPersistentVolume(claimName, size)
 				}
 			})
 		} else if pkg.IsManagedClusterProfile() {
@@ -166,7 +171,7 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 			t.It("Prod install profile", func() {
 				// 50 GB Persistent Volume create for MySQL in a prod install
 				Expect(len(volumeClaims)).To(Equal(1))
-				assertPersistentVolume("mysql", size)
+				assertPersistentVolume(claimName, size)
 			})
 		}
 	})
@@ -315,13 +320,13 @@ func verifyKeycloakClientURIs() bool {
 	json.Unmarshal([]byte(out), &keycloakClient)
 
 	// Verify Correct number of RedirectURIs
-	if len(keycloakClient.RedirectUris) != 12 {
+	if len(keycloakClient.RedirectUris) != 13 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Verify Correct number of WebOrigins
-	if len(keycloakClient.WebOrigins) != 6 {
+	if len(keycloakClient.WebOrigins) != 7 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 		return false
 	}

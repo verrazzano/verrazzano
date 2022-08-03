@@ -8,14 +8,17 @@ import (
 	"regexp"
 	"strings"
 
+	osexec "os/exec"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/os"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	admv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	osexec "os/exec"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -25,10 +28,33 @@ const (
 	webhookName      = "rancher.cattle.io"
 	controllerCMName = "cattle-controllers"
 	lockCMName       = "rancher-controller-lock"
+	rancherSysNS     = "management.cattle.io/system-namespace"
 )
 
-// PostUninstall removes the objects after the Helm uninstall process finishes
-func PostUninstall(ctx spi.ComponentContext) error {
+var rancherSystemNS = []string{
+	"cattle-system",
+	"cattle-alerting",
+	"cattle-logging",
+	"cattle-pipeline",
+	"cattle-prometheus",
+	"cattle-global-data",
+	"cattle-istio",
+	"cattle-global-nt",
+	"security-scan",
+	"cattle-fleet-clusters-system",
+	"cattle-fleet-system",
+	"cattle-fleet-local-system",
+	"tigera-operator",
+	"cattle-impersonation-system",
+	"rancher-operator-system",
+	"cattle-csp-adapter-system",
+	"fleet-default",
+	"fleet-local",
+	"local",
+}
+
+// postUninstall removes the objects after the Helm uninstall process finishes
+func postUninstall(ctx spi.ComponentContext) error {
 	ctx.Log().Oncef("Running the Rancher uninstall system tool")
 
 	// List all the namespaces that need to be cleaned from Rancher components
@@ -39,20 +65,8 @@ func PostUninstall(ctx spi.ComponentContext) error {
 	}
 
 	// For Rancher namespaces, run the system tools uninstaller
-	namespaceNames := []string{
-		"^cattle-",
-		"^local$",
-		"^p-",
-		"^user-",
-		"^fleet",
-		"^rancher",
-	}
-	for _, ns := range nsList.Items {
-		matches, err := regexp.MatchString(strings.Join(namespaceNames, "|"), ns.Name)
-		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed to verify that namespace %s is a Rancher namespace: %v", ns.Name, err)
-		}
-		if matches {
+	for i, ns := range nsList.Items {
+		if isRancherNamespace(&nsList.Items[i]) {
 			args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
 			cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
 			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
@@ -96,6 +110,9 @@ func PostUninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
+	removeCRDFinalizers(ctx)
+
 	return nil
 }
 
@@ -128,6 +145,34 @@ func deleteWebhooks(ctx spi.ComponentContext) error {
 		}
 	}
 	return nil
+}
+
+func removeCRDFinalizers(ctx spi.ComponentContext) {
+	crds := v1.CustomResourceDefinitionList{}
+	err := ctx.Client().List(context.TODO(), &crds)
+	if err != nil {
+		ctx.Log().Errorf("Failed to list CRDs during uninstall: %v", err)
+	}
+	var rancherDeletedCRDs []v1.CustomResourceDefinition
+	for _, crd := range crds.Items {
+		if strings.HasSuffix(crd.Name, ".cattle.io") && crd.DeletionTimestamp != nil && !crd.DeletionTimestamp.IsZero() {
+			rancherDeletedCRDs = append(rancherDeletedCRDs, crd)
+		}
+	}
+
+	for _, crd := range rancherDeletedCRDs {
+		ctx.Log().Infof("Removing finalizers from deleted Rancher CRD %s", crd.Name)
+		err = resource.Resource{
+			Name:   crd.Name,
+			Client: ctx.Client(),
+			Object: &v1.CustomResourceDefinition{},
+			Log:    ctx.Log(),
+		}.RemoveFinalizers()
+		if err != nil {
+			// not treated as a failure
+			ctx.Log().Errorf("Failed to remove finalizer from Rancher CRD %s: %v", crd.Name, err)
+		}
+	}
 }
 
 // deleteMatchingResources delete the Rancher objects that need to match a string: ClusterRole, ClusterRoleBinding, RoleBinding, PersistentVolumes
@@ -180,7 +225,7 @@ func deleteMatchingResources(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to list the RoleBindings: %v", err)
 	}
 	for i := range rblist.Items {
-		err = deleteMatchingObject(ctx, []string{"rb"}, &rblist.Items[i])
+		err = deleteMatchingObject(ctx, []string{"^rb-"}, &rblist.Items[i])
 		if err != nil {
 			return err
 		}
@@ -220,6 +265,20 @@ func deleteMatchingObject(ctx spi.ComponentContext, matches []string, obj client
 		}
 	}
 	return nil
+}
+
+// isRancherNamespace determines whether the namespace given is a Rancher ns
+func isRancherNamespace(ns *corev1.Namespace) bool {
+	if vzstring.SliceContainsString(rancherSystemNS, ns.Name) {
+		return true
+	}
+	if ns.Annotations == nil {
+		return false
+	}
+	if val, ok := ns.Annotations[rancherSysNS]; ok && val == "true" {
+		return true
+	}
+	return false
 }
 
 // setRancherSystemTool sets the Rancher system tool to an arbitrary command

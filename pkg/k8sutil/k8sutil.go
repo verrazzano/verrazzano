@@ -17,6 +17,7 @@ import (
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -130,6 +131,15 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 		return clientset, err
 	}
 	return GetKubernetesClientsetWithConfig(config)
+}
+
+//GetKubernetesClientsetOrDie returns the kubernetes clientset, panic if it cannot be created.
+func GetKubernetesClientsetOrDie() *kubernetes.Clientset {
+	clientset, err := GetKubernetesClientset()
+	if err != nil {
+		panic(err)
+	}
+	return clientset
 }
 
 // GetKubernetesClientsetWithConfig returns the Kubernetes clientset for the given configuration
@@ -306,5 +316,15 @@ func GetGoClient(log ...vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
 		}
 		return nil, err
 	}
+
 	return kubeClient, err
+}
+
+// GetDynamicClientInCluster returns a dynamic client needed to access Unstructured data
+func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error) {
+	config, err := GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return dynamic.NewForConfig(config)
 }

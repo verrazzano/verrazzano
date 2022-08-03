@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
+	installcmd "github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	testhelper "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -43,20 +43,6 @@ func TestBugReportHelp(t *testing.T) {
 		assert.Error(t, err)
 	}
 	assert.Contains(t, buf.String(), "Verrazzano command line utility to collect data from the cluster, to report an issue")
-}
-
-// TestBugReportWithoutAnyFlag
-// GIVEN a CLI bug-report command without mandatory flag --report-file
-//  WHEN I call cmd.Execute for bug-report
-//  THEN expect an error
-func TestBugReportWithoutAnyFlag(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	cmd := NewCmdBugReport(rc)
-	assert.NotNil(t, cmd)
-	err := cmd.Execute()
-	assert.Contains(t, err.Error(), "required flag(s) \"report-file\" not set")
 }
 
 // TestBugReportExistingReportFile
@@ -200,6 +186,44 @@ func TestBugReportSuccess(t *testing.T) {
 	assert.FileExists(t, bugRepFile)
 }
 
+// TestBugReportDefaultReportFile
+// GIVEN a CLI bug-report command
+//  WHEN I call cmd.Execute, without specifying --report-file
+//  THEN expect the command to create the report bug-report.tar.gz under the current directory
+func TestBugReportDefaultReportFile(t *testing.T) {
+	c := getClientWithWatch()
+	installVZ(t, c)
+
+	// Verify the vz resource is as expected
+	vz := vzapi.Verrazzano{}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
+
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdBugReport(rc)
+	assert.NotNil(t, cmd)
+	err = cmd.Execute()
+	if err != nil {
+		assert.Error(t, err)
+	}
+
+	assert.NoError(t, err)
+	assert.Contains(t, buf.String(), "Capturing Verrazzano resource",
+		"Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace",
+		"Created the bug report",
+		"WARNING: Please examine the contents of the bug report for sensitive data", "Namespace dummy not found in the cluster")
+	currentDir, err := os.Getwd()
+	if err != nil {
+		assert.Error(t, err)
+	}
+	defaultBugReport := currentDir + string(os.PathSeparator) + constants.BugReportFileDefaultValue
+	assert.FileExists(t, defaultBugReport)
+	os.Remove(defaultBugReport)
+}
+
 // TestBugReportNoVerrazzano
 // GIVEN a CLI bug-report command
 //  WHEN I call cmd.Execute without Verrazzano installed
@@ -223,9 +247,7 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-
-	assert.NoError(t, err)
-	assert.Contains(t, buf.String(), "Verrazzano is not installed")
+	assert.Contains(t, errBuf.String(), "Verrazzano is not installed")
 }
 
 // TestBugReportFailureUsingInvalidClient
@@ -251,11 +273,12 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-	assert.Contains(t, buf.String(), "Verrazzano is not installed")
-	assert.Contains(t, errBuf.String(), "The bug-report command did not collect any file from the cluster")
+
+	assert.Contains(t, errBuf.String(), "Verrazzano is not installed")
 	assert.NoFileExists(t, bugRepFile)
 }
 
+// getClientWithWatch returns a client for installing Verrazzano
 func getClientWithWatch() client.WithWatch {
 	vpo := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -291,6 +314,7 @@ func getClientWithWatch() client.WithWatch {
 	return c
 }
 
+// getInvalidClient returns an invalid client
 func getInvalidClient() client.WithWatch {
 	testObj := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -326,12 +350,13 @@ func getInvalidClient() client.WithWatch {
 	return c
 }
 
+// installVZ installs Verrazzano using the given client
 func installVZ(t *testing.T, c client.WithWatch) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
-	cmd := install.NewCmdInstall(rc)
+	cmd := installcmd.NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 

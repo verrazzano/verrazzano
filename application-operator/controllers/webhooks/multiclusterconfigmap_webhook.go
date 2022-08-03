@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	k8sadmission "k8s.io/api/admission/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -33,9 +34,17 @@ func (v *MultiClusterConfigmapValidator) InjectDecoder(d *admission.Decoder) err
 
 // Handle performs validation of created or updated MultiClusterConfigmap resources.
 func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	mccm := &v1alpha1.MultiClusterConfigMap{}
-	err := v.decoder.Decode(req, mccm)
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("MultiClusterConfigmapValidator", metricsexporter.MultiClusterConfigmapHandleCounter, metricsexporter.MultiClusterConfigmapHandleError, metricsexporter.MultiClusterConfigmapHandleDuration)
 	if err != nil {
+		return admission.Response{}
+	}
+	handleDurationMetricObject.TimerStart()
+	defer handleDurationMetricObject.TimerStop()
+
+	mccm := &v1alpha1.MultiClusterConfigMap{}
+	err = v.decoder.Decode(req, mccm)
+	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
@@ -44,13 +53,16 @@ func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admissi
 		case k8sadmission.Create, k8sadmission.Update:
 			err = validateMultiClusterResource(v.client, mccm)
 			if err != nil {
+				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Denied(err.Error())
 			}
 			err = validateNamespaceInProject(v.client, mccm.Namespace)
 			if err != nil {
+				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Denied(err.Error())
 			}
 		}
 	}
+	counterMetricObject.Inc(zapLogForMetrics, err)
 	return admission.Allowed("")
 }

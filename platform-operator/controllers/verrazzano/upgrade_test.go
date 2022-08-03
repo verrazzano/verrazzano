@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
 	"os/exec"
 	"path/filepath"
@@ -38,6 +37,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -61,8 +61,10 @@ const kialiURL = "kiali." + dnsDomain
 const kibanaURL = "kibana." + dnsDomain
 const rancherURL = "rancher." + dnsDomain
 const consoleURL = "verrazzano." + dnsDomain
+const jaegerURL = "jaeger." + dnsDomain
 
 var istioEnabled = false
+var jaegerEnabled = true
 
 // goodRunner is used to test helm success without actually running an OS exec command
 type goodRunner struct {
@@ -1060,6 +1062,11 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set mock component expectations
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).AnyTimes()
 	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(fmt.Errorf("Upgrade in progress")).AnyTimes()
@@ -1157,6 +1164,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set enabled mock component expectations
+	mockEnabledComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 	mockEnabledComp.EXPECT().Name().Return("EnabledComponent").AnyTimes()
 	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).Times(2)
 	mockEnabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
@@ -1567,6 +1575,9 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 				Istio: &vzapi.IstioComponent{
 					Enabled: &istioEnabled,
 				},
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &jaegerEnabled,
+				},
 			},
 		},
 		Status: vzapi.VerrazzanoStatus{
@@ -1648,6 +1659,14 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 				},
 			},
 		},
+		&networkingv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.JaegerIngress},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{Host: jaegerURL},
+				},
+			},
+		},
 		rbac.NewServiceAccount(getInstallNamespace(), buildServiceAccountName(name), []string{}, labels),
 		rbac.NewClusterRoleBinding(
 			&verrazzanoToUse,
@@ -1715,6 +1734,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	assert.Equal(t, "https://"+kialiURL, *instanceInfo.KialiURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
+	assert.Equal(t, "https://"+jaegerURL, *instanceInfo.JaegerURL)
 }
 
 // TestInstanceRestoreWithPopulatedStatus tests the reconcileUpdate method for the following use case

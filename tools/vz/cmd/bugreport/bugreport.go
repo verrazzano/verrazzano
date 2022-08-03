@@ -12,8 +12,10 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -22,15 +24,25 @@ const (
 	helpShort   = "Collect information from the cluster to report an issue"
 	helpLong    = `Verrazzano command line utility to collect data from the cluster, to report an issue`
 	helpExample = `
-$vz bug-report --report-file <The name of the file to include cluster data, a .tar.gz or .tgz file> --include-namespaces <comma separated list of additional namespaces to collect information>
+# Create a bug report bugreport.tar.gz by collecting data from the cluster
+vz bug-report --report-file bugreport.tar.gz
 
-The flag --include-namespaces can be specified multiple times. For example, the following commands create a bug report by including additional namespaces ns1, ns2 and ns3
-   i.  vz bug-report --report-file bug.tgz --include-namespaces ns1,ns2,3
-   ii. vz bug-report --report-file bug.tgz --include-namespaces ns1,ns2 --include-namespaces ns3
+When the --report-file is not provided, the command attempts to create bug-report.tar.gz in the current directory.
+
+# Create a bug report bugreport.tgz, including additional namespace ns1 from the cluster
+vz bug-report --report-file bugreport.tgz --include-namespaces ns1
+
+The flag --include-namespaces accepts comma separated values. The flag can also be specified multiple times.
+For example, the following commands create a bug report by including additional namespaces ns1, ns2 and ns3
+   a. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2,ns3
+   b. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-namespaces ns3
 
 The values specified for the flag --include-namespaces are case-sensitive.
 `
 )
+
+const lineSeparator = "-"
+const minLineLength = 100
 
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -41,14 +53,13 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
 	cmd.PersistentFlags().StringSliceP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, []string{}, constants.BugReportIncludeNSFlagUsage)
-	cmd.MarkPersistentFlagRequired(constants.BugReportFileFlagName)
 
 	return cmd
 }
 
 func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	start := time.Now()
-	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
+	bugReportFile, err := getBugReportFile(cmd, vzHelper)
 	if err != nil {
 		return fmt.Errorf("error fetching flag: %s", err.Error())
 	}
@@ -93,19 +104,63 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("an error occurred while reading values for the flag --include-namespaces: %s", err.Error())
 	}
 
-	// Generate the bug report
-	err = vzbugreport.GenerateBugReport(kubeClient, dynamicClient, client, bugRepFile, moreNS, vzHelper)
+	// Create a temporary directory to place the cluster data
+	bugReportDir, err := ioutil.TempDir("", constants.BugReportDir)
+	if err != nil {
+		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
+	}
+	defer os.RemoveAll(bugReportDir)
+
+	// Capture cluster snapshot
+	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, bugReportDir, moreNS, vzHelper)
 	if err != nil {
 		os.Remove(bugReportFile)
 		return fmt.Errorf(err.Error())
 	}
 
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Successfully created the bug report: %s in %s\n", bugReportFile, time.Since(start)))
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Please go through errors (if any), in the standard output.\n")
+	// Return an error when the command fails to collect anything from the cluster
+	// There will be bug-report.out and bug-report.err in bugReportDir, ignore them
+	if isDirEmpty(bugReportDir, 2) {
+		return fmt.Errorf("The bug-report command did not collect any file from the cluster. " +
+			"Please go through errors (if any), in the standard output.\n")
+	}
 
-	// Display a warning message to review the contents of the report
-	fmt.Fprint(vzHelper.GetOutputStream(), "WARNING: Please examine the contents of the bug report for sensitive data.\n")
+	// Generate the bug report
+	err = helpers.CreateReportArchive(bugReportDir, bugRepFile)
+	if err != nil {
+		return fmt.Errorf("there is an error in creating the bug report, %s", err.Error())
+	}
+
+	brf, _ := os.Stat(bugReportFile)
+	if brf.Size() > 0 {
+		msg := fmt.Sprintf("Created bug report: %s in %s\n", bugReportFile, time.Since(start))
+		fmt.Fprintf(vzHelper.GetOutputStream(), msg)
+		// Display a message to check the standard error, if the command reported any error and continued
+		if helpers.IsErrorReported() {
+			fmt.Fprintf(vzHelper.GetOutputStream(), constants.BugReportError+"\n")
+		}
+		displayWarning(msg, vzHelper)
+	} else {
+		// Verrazzano is not installed, remove the empty bug report file
+		os.Remove(bugReportFile)
+	}
 	return nil
+}
+
+// getBugReportFile determines the bug report file
+func getBugReportFile(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
+	bugReport, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
+	if err != nil {
+		return "", fmt.Errorf("error fetching flag: %s", err.Error())
+	}
+	if bugReport == "" {
+		currentDir, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("error determining the current directory: %s", err.Error())
+		}
+		return filepath.Join(currentDir, constants.BugReportFileDefaultValue), nil
+	}
+	return bugReport, nil
 }
 
 // checkExistingFile determines whether a file / directory with the name bugReportFile already exists
@@ -132,4 +187,32 @@ func checkExistingFile(bugReportFile string) error {
 		}
 	}
 	return nil
+}
+
+// displayWarning logs a warning message to check the contents of the bug report
+func displayWarning(successMessage string, helper helpers.VZHelper) {
+	// This might be the efficient way, but does the job of displaying a formatted message
+
+	// Draw a line to differentiate the warning from the info message
+	count := len(successMessage)
+	if len(successMessage) < minLineLength {
+		count = minLineLength
+	}
+	sep := strings.Repeat(lineSeparator, count)
+
+	// Any change in BugReportWarning, requires a change here to adjust the whitespace characters before the message
+	wsCount := count - len(constants.BugReportWarning)
+
+	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
+	fmt.Fprintf(helper.GetOutputStream(), strings.Repeat(" ", wsCount/2)+constants.BugReportWarning+"\n")
+	fmt.Fprintf(helper.GetOutputStream(), sep+"\n")
+}
+
+// isDirEmpty returns whether the directory is empty or not, ignoring ignoreFilesCount number of files
+func isDirEmpty(directory string, ignoreFilesCount int) bool {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return false
+	}
+	return len(entries) == ignoreFilesCount
 }

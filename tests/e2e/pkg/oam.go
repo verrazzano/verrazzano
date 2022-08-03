@@ -5,6 +5,7 @@ package pkg
 
 import (
 	"context"
+	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -27,8 +28,8 @@ func GetAppConfig(namespace string, name string) (*unstructured.Unstructured, er
 // getOamAppConfigScheme returns the appconfig scheme needed to get unstructured data
 func getOamAppConfigScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
-		Group:    "core.oam.dev",
-		Version:  "v1alpha2",
-		Resource: "ApplicationConfiguration",
+		Group:    oamcore.Group,
+		Version:  oamcore.Version,
+		Resource: "applicationconfigurations",
 	}
 }

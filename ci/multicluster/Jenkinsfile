@@ -200,6 +200,9 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+
+        // used by verify register test, set in registerManagedClusters
+        ADMIN_VZ_VERSION_AT_REGISTRATION = ""
     }
 
     stages {
@@ -655,7 +658,6 @@ pipeline {
                     dumpOamKubernetesRuntimeLogs()
                     dumpVerrazzanoApiLogs()
                 }
-                dumpUninstallLogs()
             }
             sh """
                 # Copy the generated test reports to WORKSPACE to archive them
@@ -921,7 +923,7 @@ def upgradeVerrazzano() {
                 cat ${v8oUpgradeFile}
                 kubectl apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
-                kubectl wait --timeout=30m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                kubectl wait --timeout=45m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
@@ -1022,6 +1024,13 @@ def registerManagedClusters() {
                     ./tests/e2e/config/scripts/register_managed_cluster.sh
                 """
             }
+            // debugging
+            sh "KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano"
+            sh "KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath='{.items[0].status}'"
+            // end debugging
+            env.ADMIN_VZ_VERSION_AT_REGISTRATION = sh(returnStdout: true,
+                    script:"KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
+            print "Admin VZ version at registration is ${env.ADMIN_VZ_VERSION_AT_REGISTRATION}"
         }
     }
 }
@@ -1380,23 +1389,6 @@ def dumpInstallLogs() {
                 mkdir -p ${LOG_DIR}
                 kubectl -n ${namespace} logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
                 kubectl -n ${namespace} describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
-                echo "------------------------------------------"
-            """
-        }
-    }
-}
-
-def dumpUninstallLogs() {
-    script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count=1; count<=clusterCount; count++) {
-            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/uninstall/build/logs/cluster-$count"
-            sh """
-                ## dump Verrazzano uninstall logs
-                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                mkdir -p ${LOG_DIR}
-                kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall.log --tail -1
-                kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall-job-pod.out
                 echo "------------------------------------------"
             """
         }

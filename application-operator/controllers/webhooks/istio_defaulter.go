@@ -7,13 +7,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"net/http"
 	"strings"
 
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
 	securityv1beta1 "istio.io/api/security/v1beta1"
@@ -48,11 +49,19 @@ type IstioWebhook struct {
 // Handle is the entry point for the mutating webhook.
 // This function is called for any pods that are created in a namespace with the label istio-injection=enabled.
 func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("IstioDefaulter", metricsexporter.IstioHandleCounter, metricsexporter.IstioHandleError, metricsexporter.IstioHandleDuration)
+	if err != nil {
+		return admission.Response{}
+	}
+	handleDurationMetricObject.TimerStart()
+	defer handleDurationMetricObject.TimerStop()
+
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "istio-defaulter")
 
 	pod := &corev1.Pod{}
-	err := a.Decoder.Decode(req, pod)
+	err = a.Decoder.Decode(req, pod)
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
@@ -67,6 +76,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	// Get all owner references for this pod
 	ownerRefList, err := a.flattenOwnerReferences(nil, req.Namespace, pod.OwnerReferences, log)
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
@@ -91,6 +101,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	if serviceAccountName == "default" || serviceAccountName == "" {
 		serviceAccountName, err = a.createServiceAccount(req.Namespace, appConfigOwnerRef, log)
 		if err != nil {
+			errorCounterMetricObject.Inc(zapLogForMetrics, err)
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 	}
@@ -98,6 +109,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	// Create/update Istio Authorization policy for the given pod.
 	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef, pod.ObjectMeta.Labels, log)
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
@@ -108,6 +120,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	}
 	err = ap.fixupAuthorizationPoliciesForProjects(req.Namespace, log)
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
@@ -124,9 +137,10 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	// Marshal the mutated pod to send back in the admission review response.
 	marshaledPod, err := json.Marshal(pod)
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
-
+	counterMetricObject.Inc(zapLogForMetrics, err)
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPod)
 }
 

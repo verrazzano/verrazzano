@@ -105,8 +105,7 @@ var (
 
 var _ = t.BeforeSuite(func() {
 	var err error
-	httpClient, err = pkg.GetVerrazzanoRetryableHTTPClient()
-	Expect(err).ToNot(HaveOccurred())
+	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
@@ -133,11 +132,7 @@ var _ = t.BeforeSuite(func() {
 		return vmiCRD, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() (*pkg.UsernamePassword, error) {
-		creds, err = pkg.GetSystemVMICredentials()
-		return creds, err
-	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
+	creds = pkg.EventuallyGetSystemVMICredentials()
 	elastic = vmi.GetElastic("system")
 })
 
@@ -419,8 +414,7 @@ func assertOidcIngressByName(key string) {
 }
 
 func assertOidcIngress(url string) {
-	unauthHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
-	Expect(err).ToNot(HaveOccurred())
+	unauthHTTPClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	pkg.Concurrently(
 		func() {
 			Eventually(func() bool {
@@ -480,11 +474,7 @@ func assertDashboard(url string) {
 	fmt.Println("Grafana URL in browseGrafanaDashboard ", searchURL)
 
 	searchDashboard := func() bool {
-		vmiHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
-		if err != nil {
-			t.Logs.Errorf("Error getting HTTP client: %v", err)
-			return false
-		}
+		vmiHTTPClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 		vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		}
@@ -527,11 +517,7 @@ func assertDashboard(url string) {
 
 func assertAdminRole() bool {
 	searchURL := fmt.Sprintf("%sapi/users", ingressURLs["vmi-system-grafana"])
-	vmiHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
-	if err != nil {
-		t.Logs.Errorf("Error getting HTTP client: %v", err)
-		return false
-	}
+	vmiHTTPClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
@@ -610,7 +596,7 @@ func getExpectedPrometheusReplicaCount(kubeconfig string) (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	expectedReplicas := int32(1)
+	var expectedReplicas int32 = 1
 	if vz.Spec.Components.PrometheusOperator == nil {
 		return expectedReplicas, nil
 	}

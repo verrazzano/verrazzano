@@ -22,57 +22,17 @@ spec:
         value: "50Gi"
       - name: nodes.master.requests.storage
         value: "50Gi"
-    authproxy:
-      kubernetes:
-        replicas: 2
     certManager:
       enabled: true
       certificate:
         ca:
           secretName: "verrazzano-ca-certificate-secret"
           clusterResourceNamespace: "cert-manager"
-      overrides:
-        - values:
-            replicaCount: 2
-            cainjector:
-              replicaCount: 2
-            webhook:
-              replicaCount: 2
-    console:
-      overrides:
-        - values:
-            replicas: 2
-    grafana:
-      enabled: true
-      replicas: 2
-      database:
-        host: mysql.keycloak.svc.cluster.local:3306
-        name: grafanadb
-        rootSecret:
-          namespace: keycloak
-          name: mysql
-          key: mysql-root-password
-    istio:
-      ingress:
-        kubernetes:
-          replicas: 2
-      egress:
-        kubernetes:
-          replicas: 2
-    kibana:
-      replicas: 2
-    kiali:
-      overrides:
-        - values:
-            deployment:
-              replicas: 2
     prometheusOperator:
-      prometheusSpec:
-        storageSpec:
-          volumeClaimTemplate:
-            spec:
-              storageClassName:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
                 resources:
                   requests:
-                    storage: "50Gi"
                     memory: "128Mi"

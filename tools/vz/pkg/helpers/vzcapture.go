@@ -36,6 +36,15 @@ var createFileError = "an error occurred while creating the file %s: %s"
 var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
 
+var isError bool
+var multiWriterOut io.Writer
+var multiWriterErr io.Writer
+
+var isLiveCluster bool
+
+const bugReportMsgPrefix = "Capturing "
+const analysisMsgPrefix = "Analyzing "
+
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
 func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 
@@ -123,22 +132,22 @@ func GetPodList(client clipkg.Client, appLabel, appName, namespace string) ([]co
 
 // CaptureVZResource captures Verrazzano resources as a JSON file
 func CaptureVZResource(captureDir string, vz vzapi.VerrazzanoList, vzHelper VZHelper) error {
-	var vzRes = captureDir + string(os.PathSeparator) + constants.VzResource
+	var vzRes = filepath.Join(captureDir, constants.VzResource)
 	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return fmt.Errorf(createFileError, vzRes, err.Error())
 	}
 	defer f.Close()
 
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Verrazzano resource ...\n")
+	LogMessage("Verrazzano resource ...\n")
 	vzJSON, err := json.MarshalIndent(vz, constants.JSONPrefix, constants.JSONIndent)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while creating JSON encoding of %s: %s\n", vzRes, err.Error())
+		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", vzRes, err.Error()))
 		return nil
 	}
 	_, err = f.WriteString(SanitizeString(string(vzJSON)))
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while writing the file %s: %s\n", vzRes, err.Error())
+		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", vzRes, err.Error()))
 	}
 	return nil
 }
@@ -147,10 +156,10 @@ func CaptureVZResource(captureDir string, vz vzapi.VerrazzanoList, vzHelper VZHe
 func captureEvents(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	events, err := kubeClient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the Events in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the Events in namespace %s: %s\n", namespace, err.Error()))
 	}
 	if len(events.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Events in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("Events in namespace: %s ...\n", namespace))
 		if err = createFile(events, namespace, constants.EventsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -162,10 +171,10 @@ func captureEvents(kubeClient kubernetes.Interface, namespace, captureDir string
 func capturePods(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	pods, err := kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the Pods in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the Pods in namespace %s: %s\n", namespace, err.Error()))
 	}
 	if len(pods.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Pods in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("Pods in namespace: %s ...\n", namespace))
 		if err = createFile(pods, namespace, constants.PodsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -177,10 +186,10 @@ func capturePods(kubeClient kubernetes.Interface, namespace, captureDir string, 
 func captureIngress(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	ingressList, err := kubeClient.NetworkingV1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the Ingress in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the Ingress in namespace %s: %s\n", namespace, err.Error()))
 	}
 	if len(ingressList.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Ingresses in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("Ingresses in namespace: %s ...\n", namespace))
 		if err = createFile(ingressList, namespace, constants.IngressJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -192,10 +201,10 @@ func captureIngress(kubeClient kubernetes.Interface, namespace, captureDir strin
 func captureServices(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	serviceList, err := kubeClient.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the Services in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the Services in namespace %s: %s\n", namespace, err.Error()))
 	}
 	if len(serviceList.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Services in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("Services in namespace: %s ...\n", namespace))
 		if err = createFile(serviceList, namespace, constants.ServicesJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -207,10 +216,10 @@ func captureServices(kubeClient kubernetes.Interface, namespace, captureDir stri
 func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	deployments, err := kubeClient.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the Deployments in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the Deployments in namespace %s: %s\n", namespace, err.Error()))
 	}
 	if len(deployments.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Deployments in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("Deployments in namespace: %s ...\n", namespace))
 		if err = createFile(deployments, namespace, constants.DeploymentsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -218,10 +227,10 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 
 	replicaSets, err := kubeClient.AppsV1().ReplicaSets(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the ReplicaSets in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the ReplicaSets in namespace %s: %s\n", namespace, err.Error()))
 	}
 	if len(replicaSets.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Replicasets in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("Replicasets in namespace: %s ...\n", namespace))
 		if err = createFile(replicaSets, namespace, constants.ReplicaSetsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -229,10 +238,10 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 
 	daemonSets, err := kubeClient.AppsV1().DaemonSets(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the DaemonSets in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the DaemonSets in namespace %s: %s\n", namespace, err.Error()))
 	}
 	if len(daemonSets.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing DaemonSets in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("DaemonSets in namespace: %s ...\n", namespace))
 		if err = createFile(daemonSets, namespace, constants.DaemonSetsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -240,10 +249,10 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 
 	statefulSets, err := kubeClient.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the StatefulSets in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the StatefulSets in namespace %s: %s\n", namespace, err.Error()))
 	}
 	if len(statefulSets.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing StatefulSets in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("StatefulSets in namespace: %s ...\n", namespace))
 		if err = createFile(statefulSets, namespace, constants.StatefulSetsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -259,14 +268,14 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 	}
 
 	// Create directory for the namespace and the pod, under the root level directory containing the bug report
-	var folderPath = captureDir + string(os.PathSeparator) + namespace + string(os.PathSeparator) + podName
+	var folderPath = filepath.Join(captureDir, namespace, podName)
 	err := os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("an error occurred while creating the directory %s: %s", folderPath, err.Error())
 	}
 
 	// Create logs.txt under the directory for the namespace
-	var logPath = folderPath + string(os.PathSeparator) + constants.LogFile
+	var logPath = filepath.Join(folderPath, constants.LogFile)
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return fmt.Errorf(createFileError, logPath, err.Error())
@@ -286,7 +295,7 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 				InsecureSkipTLSVerifyBackend: true,
 			}).Stream(context.TODO())
 			if err != nil {
-				fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while reading the logs from pod %s: %s\n", podName, err.Error())
+				LogError(fmt.Sprintf("An error occurred while reading the logs from pod %s: %s\n", podName, err.Error()))
 				return nil
 			}
 			defer podLog.Close()
@@ -306,7 +315,7 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 
 // createFile creates file from a workload, as a JSON file
 func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHelper VZHelper) error {
-	var folderPath = captureDir + string(os.PathSeparator) + namespace
+	var folderPath = filepath.Join(captureDir, namespace)
 
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
 		err := os.MkdirAll(folderPath, os.ModePerm)
@@ -315,7 +324,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 		}
 	}
 
-	var res = folderPath + string(os.PathSeparator) + resourceFile
+	var res = filepath.Join(folderPath, resourceFile)
 	f, err := os.OpenFile(res, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return fmt.Errorf(createFileError, res, err.Error())
@@ -325,7 +334,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
 	_, err = f.WriteString(SanitizeString(string(resJSON)))
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while writing the file %s: %s", res, err.Error())
+		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", res, err.Error()))
 	}
 	return nil
 }
@@ -377,20 +386,35 @@ func CaptureMultiClusterResources(dynamicClient dynamic.Interface, nsList []stri
 // DoesNamespaceExist checks whether the namespace exists in the cluster
 func DoesNamespaceExist(kubeClient kubernetes.Interface, namespace string, vzHelper VZHelper) (bool, error) {
 	if namespace == "" {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Ignoring empty namespace\n")
+		fmt.Fprintf(vzHelper.GetErrorStream(), "Ignoring empty namespace\n")
 		return false, nil
 	}
 	ns, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
 
 	if err != nil && errors.IsNotFound(err) {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Namespace %s not found in the cluster, so will be ignored.\n", namespace)
+		fmt.Fprintf(GetMultiWriterOut(), "Namespace %s not found in the cluster, so will be ignored.\n", namespace)
 		return false, err
 	}
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the namespace %s: %s\n", namespace, err.Error()))
 		return false, err
 	}
 	return ns != nil && len(ns.Name) > 0, nil
+}
+
+// GetVZManagedNamespaces returns the namespaces with label verrazzano-managed=true
+func GetVZManagedNamespaces(kubeClient kubernetes.Interface) []string {
+	var appNS []string
+	nsList, err := kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{LabelSelector: constants.VerrazzanoManagedLabel})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while listing the namespaces with label verrazzano-managed=true: %s\n", err.Error()))
+		return appNS
+	}
+
+	for _, ns := range nsList.Items {
+		appNS = append(appNS, ns.Name)
+	}
+	return appNS
 }
 
 // RemoveDuplicate removes duplicates from origSlice
@@ -413,11 +437,11 @@ func captureAppConfigurations(dynamicClient dynamic.Interface, namespace, captur
 		return nil
 	}
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the ApplicationConfigurations in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the ApplicationConfigurations in namespace %s: %s\n", namespace, err.Error()))
 		return nil
 	}
 	if len(appConfigs.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing ApplicationConfigurations in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("ApplicationConfigurations in namespace: %s ...\n", namespace))
 		if err = createFile(appConfigs, namespace, constants.AppConfigJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -432,11 +456,11 @@ func captureComponents(dynamicClient dynamic.Interface, namespace, captureDir st
 		return nil
 	}
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the Components in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the Components in namespace %s: %s\n", namespace, err.Error()))
 		return nil
 	}
 	if len(comps.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing Components in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("Components in namespace: %s ...\n", namespace))
 		if err = createFile(comps, namespace, constants.ComponentJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -451,11 +475,11 @@ func captureIngressTraits(dynamicClient dynamic.Interface, namespace, captureDir
 		return nil
 	}
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the IngressTraits in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the IngressTraits in namespace %s: %s\n", namespace, err.Error()))
 		return nil
 	}
 	if len(ingTraits.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing IngressTraits in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("IngressTraits in namespace: %s ...\n", namespace))
 		if err = createFile(ingTraits, namespace, constants.IngressTraitJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -470,11 +494,11 @@ func captureMetricsTraits(dynamicClient dynamic.Interface, namespace, captureDir
 		return nil
 	}
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the MetricsTraits in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the MetricsTraits in namespace %s: %s\n", namespace, err.Error()))
 		return nil
 	}
 	if len(metricsTraits.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing MetricsTraits in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("MetricsTraits in namespace: %s ...\n", namespace))
 		if err = createFile(metricsTraits, namespace, constants.MetricsTraitJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -489,11 +513,11 @@ func captureMCComponents(dynamicClient dynamic.Interface, namespace, captureDir 
 		return nil
 	}
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the MulticlusterComponent in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the MulticlusterComponent in namespace %s: %s\n", namespace, err.Error()))
 		return nil
 	}
 	if len(mcComps.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing MulticlusterComponent in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("MulticlusterComponent in namespace: %s ...\n", namespace))
 		if err = createFile(mcComps, namespace, constants.McComponentJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -508,11 +532,11 @@ func captureMCAppConfigurations(dynamicClient dynamic.Interface, namespace, capt
 		return nil
 	}
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the MultiClusterApplicationConfiguration in namespace %s: %s\n", namespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the MultiClusterApplicationConfiguration in namespace %s: %s\n", namespace, err.Error()))
 		return nil
 	}
 	if len(mcAppConfigs.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing MultiClusterApplicationConfiguration in namespace: %s ...\n", namespace)
+		LogMessage(fmt.Sprintf("MultiClusterApplicationConfiguration in namespace: %s ...\n", namespace))
 		if err = createFile(mcAppConfigs, namespace, constants.McAppConfigJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -527,11 +551,11 @@ func captureVerrazzanoProjects(dynamicClient dynamic.Interface, captureDir strin
 		return nil
 	}
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the VerrazzanoProjects in namespace %s: %s\n", vzconstants.VerrazzanoMultiClusterNamespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the VerrazzanoProjects in namespace %s: %s\n", vzconstants.VerrazzanoMultiClusterNamespace, err.Error()))
 		return nil
 	}
 	if len(vzProjectConfigs.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing VerrazzanoProjects in namespace: %s ...\n", vzconstants.VerrazzanoMultiClusterNamespace)
+		LogMessage(fmt.Sprintf("VerrazzanoProjects in namespace: %s ...\n", vzconstants.VerrazzanoMultiClusterNamespace))
 		if err = createFile(vzProjectConfigs, vzconstants.VerrazzanoMultiClusterNamespace, constants.VzProjectsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -546,11 +570,11 @@ func captureVerrazzanoManagedCluster(dynamicClient dynamic.Interface, captureDir
 		return nil
 	}
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "An error occurred while getting the VerrazzanoManagedClusters in namespace %s: %s\n", vzconstants.VerrazzanoMultiClusterNamespace, err.Error())
+		LogError(fmt.Sprintf("An error occurred while getting the VerrazzanoManagedClusters in namespace %s: %s\n", vzconstants.VerrazzanoMultiClusterNamespace, err.Error()))
 		return nil
 	}
 	if len(vmcConfigs.Items) > 0 {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Capturing VerrazzanoManagedClusters in namespace: %s ...\n", vzconstants.VerrazzanoMultiClusterNamespace)
+		LogMessage(fmt.Sprintf("VerrazzanoManagedClusters in namespace: %s ...\n", vzconstants.VerrazzanoMultiClusterNamespace))
 		if err = createFile(vmcConfigs, vzconstants.VerrazzanoMultiClusterNamespace, constants.VmcJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
@@ -628,4 +652,54 @@ func GetManagedClusterConfigScheme() schema.GroupVersionResource {
 		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
 		Resource: constants.OAMManagedClusters,
 	}
+}
+
+// LogError logs a message to the standard error
+func LogError(msg string) {
+	isError = true
+	fmt.Fprintf(GetMultiWriterErr(), msg)
+}
+
+// IsErrorReported returns true when the command logs at least one error to the standard error
+func IsErrorReported() bool {
+	return isError
+}
+
+// SetMultiWriterOut sets MultiWriter for standard output
+func SetMultiWriterOut(outStream io.Writer, outFile *os.File) {
+	multiWriterOut = io.MultiWriter(outStream, outFile)
+}
+
+// GetMultiWriterOut returns the MultiWriter for standard output
+func GetMultiWriterOut() io.Writer {
+	return multiWriterOut
+}
+
+// SetMultiWriterErr sets MultiWriter for standard error
+func SetMultiWriterErr(errStream io.Writer, errFile *os.File) {
+	multiWriterErr = io.MultiWriter(errStream, errFile)
+}
+
+// GetMultiWriterErr returns the MultiWriter for standard error
+func GetMultiWriterErr() io.Writer {
+	return multiWriterErr
+}
+
+// SetIsLiveCluster sets true to isLiveCluster, indicating the live cluster analysis usage
+func SetIsLiveCluster() {
+	isLiveCluster = true
+}
+
+// GetIsLiveCluster returns a boolean indicating whether it is live cluster analysis
+func GetIsLiveCluster() bool {
+	return isLiveCluster
+}
+
+// LogMessage logs a message to the standard output
+func LogMessage(msg string) {
+	msgPrefix := bugReportMsgPrefix
+	if isLiveCluster {
+		msgPrefix = analysisMsgPrefix
+	}
+	fmt.Fprintf(GetMultiWriterOut(), msgPrefix+msg)
 }
