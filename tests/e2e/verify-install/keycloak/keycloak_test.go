@@ -445,7 +445,7 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 		}
 	}
 	if id == "" {
-		err := fmt.Errorf("error retrieving ID for Keycloak user, zero length\n")
+		err := fmt.Errorf("error retrieving ID for Keycloak user, zero length")
 		t.Logs.Error(err.Error())
 		return nil, err
 	}
