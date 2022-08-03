@@ -690,6 +690,11 @@ func SetIsLiveCluster() {
 	isLiveCluster = true
 }
 
+// GetIsLiveCluster returns a boolean indicating whether it is live cluster analysis
+func GetIsLiveCluster() bool {
+	return isLiveCluster
+}
+
 // LogMessage logs a message to the standard output
 func LogMessage(msg string) {
 	msgPrefix := bugReportMsgPrefix
