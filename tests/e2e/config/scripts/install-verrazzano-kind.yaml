@@ -20,7 +20,7 @@ spec:
         - values:
             prometheus:
               prometheusSpec:
-                replicas: 2
+                replicas: 1
     prometheusAdapter:
       enabled: true
     kubeStateMetrics:
