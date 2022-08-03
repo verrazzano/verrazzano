@@ -6,16 +6,15 @@ package cohworkload
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 	"testing"
 
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"go.uber.org/zap"
+	"github.com/go-logr/logr"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -24,7 +23,10 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	v1 "k8s.io/api/apps/v1"
@@ -35,8 +37,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const namespace = "unit-test-namespace"
@@ -58,6 +62,7 @@ var specJvmArgsFields = []string{specField, jvmField, argsField}
 // WHEN the controller is created
 // THEN verify no error is returned
 func TestReconcilerSetupWithManager(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker *gomock.Controller
@@ -90,6 +95,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Coherence CR to be written
 func TestReconcileCreateCoherence(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -190,7 +196,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -204,6 +210,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Coherence CR to be written
 func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -316,7 +323,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -330,6 +337,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Coherence CR to be written
 func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -517,7 +525,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -531,6 +539,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Coherence CR to be written
 func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -684,7 +693,7 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -698,6 +707,7 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 // WHEN the controller Reconcile function is called
 // THEN the Fluentd image should be replaced in the Fluentd sidecar
 func TestReconcileUpdateFluentdImage(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -815,7 +825,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -828,6 +838,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 // WHEN the controller Reconcile function is called and the Coherence CR already exists
 // THEN the Coherence CR is updated
 func TestReconcileUpdateCR(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -933,7 +944,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -948,6 +959,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Coherence CR to be written with the combined JVM args
 func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1061,7 +1073,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1074,6 +1086,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 // WHEN the controller Reconcile function is called and there is an error creating the Coherence CR
 // THEN expect an error to be returned
 func TestReconcileErrorOnCreate(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1150,7 +1163,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -1163,6 +1176,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 // WHEN the controller Reconcile function is called and we attempt to fetch the workload
 // THEN return success from the controller as there is nothing more to do
 func TestReconcileWorkloadNotFound(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1178,7 +1192,7 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1191,6 +1205,7 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 // WHEN the controller Reconcile function is called and we attempt to fetch the workload and get an error
 // THEN return the error
 func TestReconcileFetchWorkloadError(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1206,7 +1221,7 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -1218,6 +1233,7 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect no error to be returned and destination rule is created
 func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1275,6 +1291,7 @@ func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect no error to be returned and destination rule is updated
 func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1337,6 +1354,7 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect an error to be returned
 func TestCreateUpdateDestinationRuleNoOamLabel(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	reconciler := Reconciler{}
@@ -1352,6 +1370,7 @@ func TestCreateUpdateDestinationRuleNoOamLabel(t *testing.T) {
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect an error to be returned
 func TestCreateUpdateDestinationRuleNoLabel(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	reconciler := Reconciler{}
@@ -1412,6 +1431,7 @@ func getUnstructuredConfigMapList() *unstructured.UnstructuredList {
 // WHEN the controller Reconcile function is called and the restart-version is specified in annotations
 // THEN the restart-version annotation written  to the Coherence CR
 func TestReconcileRestart(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1532,7 +1552,7 @@ func TestReconcileRestart(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -1542,6 +1562,7 @@ func TestReconcileRestart(t *testing.T) {
 // TestReconcileKubeSystem tests to make sure we do not reconcile
 // Any resource that belong to the kube-system namespace
 func TestReconcileKubeSystem(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1550,9 +1571,29 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.Nil(err)
 	assert.True(result.IsZero())
+}
+
+// TestReconcileFailed tests to make sure the failure metric is being exposed
+func TestReconcileFailed(t *testing.T) {
+	testAppConfigName := "unit-test-app-config"
+	testNamespace := "test-ns"
+	metricsexporter.RequiredInitialization()
+	scheme := k8scheme.Scheme
+	assert := asserts.New(t)
+	clientBuilder := fake.NewClientBuilder().WithScheme(scheme).Build()
+	// Create a request and reconcile it
+	reconciler := newReconciler(clientBuilder)
+	request := newRequest(testNamespace, testAppConfigName)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.CohworkloadReconcileError)
+	assert.NoError(err)
+	// Expect a call to fetch the error
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	reconciler.Reconcile(context.TODO(), request)
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 }
