@@ -67,6 +67,28 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
+		// create the ini file if the former MySQL deployment exists (rather than a stateful set) and there is ephemeral storage
+		deployment := &appsv1.Deployment{}
+
+		if err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment); err != nil {
+			if errors.IsNotFound(err) {
+				compContext.Log().Debugf("Deployment does not exist.  No need to intialize db")
+			}
+		}
+		if deployment != nil {
+			mySQLVolumeSource := getMySQLVolumeSource(compContext.EffectiveCR())
+			// check for ephemeral storage
+			if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
+				// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
+				// provide the sql initialization file
+				mySQLInitFile, err := createMySQLInitFile(compContext)
+				if err != nil {
+					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+				}
+				kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
+			}
+		}
+
 		kvs, err = appendMySQLSecret(compContext, kvs)
 		if err != nil {
 			return []bom.KeyValue{}, err
@@ -202,14 +224,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 
 // doGenerateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
 func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	var mySQLVolumeSource *v1.VolumeSource
-	if effectiveCR.Spec.Components.Keycloak != nil {
-		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
-	}
-	if mySQLVolumeSource == nil {
-		mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
-	}
-
+	mySQLVolumeSource := getMySQLVolumeSource(effectiveCR)
 	// No volumes to process, return what we have
 	if mySQLVolumeSource == nil {
 		return kvs, nil
@@ -260,6 +275,17 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 		})
 	}
 	return kvs, nil
+}
+
+func getMySQLVolumeSource(effectiveCR *vzapi.Verrazzano) *v1.VolumeSource {
+	var mySQLVolumeSource *v1.VolumeSource
+	if effectiveCR.Spec.Components.Keycloak != nil {
+		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
+	}
+	if mySQLVolumeSource == nil {
+		mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
+	}
+	return mySQLVolumeSource
 }
 
 //appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
@@ -337,42 +363,45 @@ func preUpgrade(ctx spi.ComponentContext) error {
 		return nil
 	}
 
-	deploymentPvc := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
-	err := common.RetainPersistentVolume(ctx, deploymentPvc, ComponentName)
-	if err != nil {
-		return err
-	}
-
-	// get the current MySQL deployment
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
-	// delete the deployment to free up the pv/pvc
-	ctx.Log().Debugf("Deleting deployment %s", ComponentName)
-	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
-		if !errors.IsNotFound(err) {
-			ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
+	// following steps are only needed for persistent storage
+	mySQLVolumeSource := getMySQLVolumeSource(ctx.EffectiveCR())
+	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
+		deploymentPvc := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
+		err := common.RetainPersistentVolume(ctx, deploymentPvc, ComponentName)
+		if err != nil {
 			return err
 		}
-	} else {
-		ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
-	}
 
-	ctx.Log().Debugf("Deleting PVC %v", deploymentPvc)
-	if err := common.DeleteExistingVolumeClaim(ctx, deploymentPvc); err != nil {
-		ctx.Log().Debugf("Unable to delete existing PVC %v", deploymentPvc)
-		return err
-	}
+		// get the current MySQL deployment
+		deployment := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+			},
+		}
+		// delete the deployment to free up the pv/pvc
+		ctx.Log().Debugf("Deleting deployment %s", ComponentName)
+		if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
+			if !errors.IsNotFound(err) {
+				ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
+				return err
+			}
+		} else {
+			ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
+		}
 
-	ctx.Log().Debugf("Updating PV/PVC %v", deploymentPvc)
-	if err := common.UpdateExistingVolumeClaims(ctx, deploymentPvc, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
-		ctx.Log().Debugf("Unable to update PV/PVC")
-		return err
-	}
+		ctx.Log().Debugf("Deleting PVC %v", deploymentPvc)
+		if err := common.DeleteExistingVolumeClaim(ctx, deploymentPvc); err != nil {
+			ctx.Log().Debugf("Unable to delete existing PVC %v", deploymentPvc)
+			return err
+		}
 
+		ctx.Log().Debugf("Updating PV/PVC %v", deploymentPvc)
+		if err := common.UpdateExistingVolumeClaims(ctx, deploymentPvc, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
+			ctx.Log().Debugf("Unable to update PV/PVC")
+			return err
+		}
+	}
 	return nil
 }
 
@@ -382,8 +411,11 @@ func postUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL post upgrade dry run")
 		return nil
 	}
-
-	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
+	mySQLVolumeSource := getMySQLVolumeSource(ctx.EffectiveCR())
+	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
+		return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
+	}
+	return nil
 }
 
 // convertOldInstallArgs changes persistence.* install args to primary.persistence.* to keep compatibility with the new chart
