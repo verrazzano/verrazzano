@@ -380,7 +380,7 @@ func generateOverridesFile(ctx spi.ComponentContext, contents []byte) (string, e
 
 // createJaegerSecret creates a Jaeger secret for storing credentials needed to access OpenSearch.
 func createJaegerSecret(ctx spi.ComponentContext) error {
-	// Check if the user has specified a jaeger secret override. As the user is expected to create the secret in
+	// Check if the user has specified a Jaeger secret override. As the user is expected to create the secret in
 	// verrazzano-install namespace, copy it to verrazzano-monitoring namespace.
 	jaegerSecretOverride, err := getOverrideVal(ctx, jaegerSecNameField)
 	if err != nil {
