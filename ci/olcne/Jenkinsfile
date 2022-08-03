@@ -456,7 +456,7 @@ pipeline {
             dumpVerrazzanoApplicationOperatorLogs()
             dumpVerrazzanoApiLogs()
 
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
