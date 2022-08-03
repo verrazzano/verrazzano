@@ -19,9 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -64,54 +62,18 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 		if fluentdConfig != nil {
 			// Copy the internal Elasticsearch secret
 			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
-				if err := copySecret(ctx, fluentdConfig.ElasticsearchSecret, "custom Elasticsearch"); err != nil {
+				if err := common.CopySecret(ctx, fluentdConfig.ElasticsearchSecret, constants.VerrazzanoSystemNamespace, "custom Elasticsearch"); err != nil {
 					return err
 				}
 			}
 			// Copy the OCI API secret
 			if fluentdConfig.OCI != nil && len(fluentdConfig.OCI.APISecret) > 0 {
-				if err := copySecret(ctx, fluentdConfig.OCI.APISecret, "OCI API"); err != nil {
+				if err := common.CopySecret(ctx, fluentdConfig.OCI.APISecret, constants.VerrazzanoSystemNamespace, "OCI API"); err != nil {
 					return err
 				}
 			}
 		}
 	}
-	return nil
-}
-
-// copySecret copies a secret from the verrazzano-install namespace to the verrazzano-system namespace. If
-// the target secret already exists, then it will be updated if necessary.
-func copySecret(ctx spi.ComponentContext, secretName string, logMsg string) error {
-	vzLog := ctx.Log()
-	vzLog.Debugf("Copying %s secret %s to %s namespace", logMsg, secretName, globalconst.VerrazzanoSystemNamespace)
-
-	targetSecret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-	}
-	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &targetSecret, func() error {
-		sourceSecret := corev1.Secret{}
-		nsn := types.NamespacedName{Name: secretName, Namespace: constants.VerrazzanoInstallNamespace}
-		if err := ctx.Client().Get(context.TODO(), nsn, &sourceSecret); err != nil {
-			return err
-		}
-		targetSecret.Type = sourceSecret.Type
-		targetSecret.Immutable = sourceSecret.Immutable
-		targetSecret.StringData = sourceSecret.StringData
-		targetSecret.Data = sourceSecret.Data
-		return nil
-	})
-
-	vzLog.Debugf("Copy %s secret result: %s", logMsg, opResult)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return ctx.Log().ErrorfNewErr("Failed in create/update for copysecret: %v", err)
-		}
-		return vzLog.ErrorfNewErr("Failed, the %s secret %s not found in namespace %s", logMsg, secretName, constants.VerrazzanoInstallNamespace)
-	}
-
 	return nil
 }
 

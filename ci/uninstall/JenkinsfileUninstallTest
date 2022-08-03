@@ -244,7 +244,7 @@ pipeline {
                             runInstallOnly("Install Verrazzano", count)
                         }
                         runVerifyTests("Run Test", count)
-                        if (params.RUN_APPLICATION_TESTS && count == maxIterations) {
+                        if (params.RUN_APPLICATION_TESTS && count == maxIterations && params.INSTALL_PROFILE != 'managed-cluster') {
                             runApplicationTests()
                         }
                         runUninstall(count)
