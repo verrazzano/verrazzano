@@ -343,8 +343,8 @@ pipeline {
             }
         }
 
-        /*
-        stage('Verify Install') {
+
+        /*stage('Verify Install') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
             }
@@ -357,8 +357,7 @@ pipeline {
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
-        }
-        */
+        }*/
 
 
         stage('Initiate opensearch backup hook tests') {
