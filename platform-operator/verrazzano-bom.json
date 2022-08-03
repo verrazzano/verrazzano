@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.6-20220722140326-0029c0a73",
+              "tag": "v2.6.6-20220801034315-6b16223e4",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.6-20220722140326-0029c0a73"
+              "tag": "v2.6.6-20220801034315-6b16223e4"
             }
           ]
         },
@@ -191,7 +191,7 @@
             },
             {
               "image": "console",
-              "tag": "1.4.0-20220722132540-d8a58fc",
+              "tag": "1.4.0-20220728085214-87d3cd5",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -220,7 +220,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.4.0-20220721155737-5b016df",
+              "tag": "1.4.0-20220730142706-695d46f",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -342,7 +342,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.5",
+              "tag": "3.2.6",
               "helmFullImageKey": "image"
             }
           ]
@@ -370,26 +370,15 @@
       "name": "mysql",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "repository": "verrazzano/mysql",
           "name": "mysql",
           "images": [
             {
               "image": "mysql",
               "tag": "8.0.29",
-              "helmFullImageKey": "image",
-              "helmTagKey": "imageTag"
-            }
-          ]
-        },
-        {
-          "repository": "oracle",
-          "name": "oraclelinux",
-          "images": [
-            {
-              "image": "oraclelinux",
-              "tag": "7-slim",
-              "helmFullImageKey": "busybox.image",
-              "helmTagKey": "busybox.tag"
+              "helmRegKey": "image.registry",
+              "helmRepoKey": "image.repository",
+              "helmTagKey": "image.tag"
             }
           ]
         }
@@ -679,7 +668,7 @@
           "images": [
             {
               "image": "backup-restore-operator",
-              "tag": "v2.1.0-20220716000233-1a1d2a1",
+              "tag": "v2.1.0-20220728055921-09d528e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

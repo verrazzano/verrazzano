@@ -21,6 +21,8 @@ import (
 
 const (
 	yamlSep = "---\n"
+
+	caCertSecretKey = "cacrt"
 )
 
 // Create or update a secret that contains Kubernetes resource YAML which will be applied
@@ -53,14 +55,24 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	// register the cluster with Rancher - the cluster will show as "pending" until the
 	// Rancher YAML is applied on the managed cluster
 	// NOTE: If this errors we log it and do not fail the reconcile
-	if rancherYAML, err := registerManagedClusterWithRancher(r.Client, vmc.Name, r.log); err != nil {
-		msg := fmt.Sprintf("Failed to register managed cluster: %v", err)
-		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, msg)
-		r.log.Info("Failed to register managed cluster with Rancher, manifest secret will not contain Rancher YAML")
+	var clusterID string
+	rc, err := newRancherConfig(r.Client, r.log)
+	if err != nil {
+		msg := fmt.Sprintf("Failed to create Rancher API client: %v", err)
+		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, "", msg)
+		r.log.Infof("Unable to connect to Rancher API on admin cluster, manifest secret will not contain Rancher YAML: %v", err)
 	} else {
-		msg := "Registration of managed cluster completed successfully"
-		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, msg)
-		sb.WriteString(rancherYAML)
+		var rancherYAML string
+		rancherYAML, clusterID, err = registerManagedClusterWithRancher(rc, vmc.Name, vmc.Status.RancherRegistration.ClusterID, r.log)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to register managed cluster with Rancher: %v", err)
+			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, clusterID, msg)
+			r.log.Info("Failed to register managed cluster, manifest secret will not contain Rancher YAML")
+		} else {
+			msg := "Registration of managed cluster completed successfully"
+			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, clusterID, msg)
+			sb.WriteString(rancherYAML)
+		}
 	}
 
 	// create/update the manifest secret with the YAML
@@ -71,6 +83,8 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 
 	// Save the ClusterRegistrationSecret name in the VMC
 	vmc.Spec.ManagedClusterManifestSecret = GetManifestSecretName(vmc.Name)
+
+	// finally, update the VMC
 	err = r.Update(context.TODO(), vmc)
 	if err != nil {
 		return err
@@ -79,13 +93,71 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	return nil
 }
 
+// syncCACertSecret gets the CA cert from the managed cluster (if the cluster is active) and creates
+// or updates the CA cert secret. If the secret is created, it also updates the VMC with the secret
+// name. This function returns true if the sync was completed, false if it was not needed or not
+// completed, and any error that occurred
+func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
+	clusterID := vmc.Status.RancherRegistration.ClusterID
+	if len(clusterID) == 0 {
+		return false, nil
+	}
+	if len(vmc.Spec.CASecret) > 0 {
+		return false, nil
+	}
+	rc, err := newRancherConfig(r.Client, r.log)
+	if err != nil {
+		return false, err
+	}
+	if rc == nil {
+		return false, nil
+	}
+
+	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
+	if err != nil {
+		return false, err
+	}
+	if !isActive {
+		r.log.Infof("Waiting for managed cluster with id %s to become active before fetching CA cert", clusterID)
+		return false, nil
+	}
+
+	caCert, err := getCACertFromManagedCluster(rc, clusterID, r.log)
+	if err != nil {
+		return false, err
+	}
+
+	if len(caCert) > 0 {
+		caSecretName := getCASecretName(vmc.Name)
+		r.log.Infof("Retrieved CA cert from managed cluster with id %s, creating/updating secret %s", clusterID, caSecretName)
+		if _, err := r.createOrUpdateCASecret(vmc, caCert); err != nil {
+			return false, err
+		}
+		if len(caSecretName) > 0 {
+			vmc.Spec.CASecret = caSecretName
+			// update the VMC with ca secret name
+			r.log.Infof("Updating VMC %s with managed cluster CA secret %s", vmc.Name, caSecretName)
+			err = r.Update(context.TODO(), vmc)
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // Update the Rancher registration status
-func (r *VerrazzanoManagedClusterReconciler) updateRancherStatus(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster, status clusterapi.RancherRegistrationStatus, message string) {
+func (r *VerrazzanoManagedClusterReconciler) updateRancherStatus(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster, status clusterapi.RancherRegistrationStatus, rancherClusterID string, message string) {
 	// Skip the update if the status has not changed
-	if vmc.Status.RancherRegistration.Status == status && vmc.Status.RancherRegistration.Message == message {
+	if vmc.Status.RancherRegistration.Status == status &&
+		vmc.Status.RancherRegistration.Message == message &&
+		vmc.Status.RancherRegistration.ClusterID == rancherClusterID {
 		return
 	}
 	vmc.Status.RancherRegistration.Status = status
+	vmc.Status.RancherRegistration.ClusterID = rancherClusterID
 	vmc.Status.RancherRegistration.Message = message
 	err := r.Status().Update(ctx, vmc)
 	if err != nil {
@@ -116,6 +188,29 @@ func (r *VerrazzanoManagedClusterReconciler) mutateManifestSecret(secret *corev1
 	return nil
 }
 
+// createOrUpdateCASecret creates or updates the secret containing the managed cluster CA cert
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateCASecret(vmc *clusterapi.VerrazzanoManagedCluster, caCert string) (controllerutil.OperationResult, error) {
+	var secret corev1.Secret
+	secret.Namespace = vmc.Namespace
+	secret.Name = getCASecretName(vmc.Name)
+
+	return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
+		r.mutateCASecret(&secret, caCert)
+		// This SetControllerReference call will trigger garbage collection i.e. the secret
+		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
+		return controllerutil.SetControllerReference(vmc, &secret, r.Scheme)
+	})
+}
+
+// mutateCASecret mutates the CA secret, setting the CA cert data
+func (r *VerrazzanoManagedClusterReconciler) mutateCASecret(secret *corev1.Secret, caCert string) error {
+	secret.Type = corev1.SecretTypeOpaque
+	secret.Data = map[string][]byte{
+		caCertSecretKey: []byte(caCert),
+	}
+	return nil
+}
+
 // Get the specified secret then convert to YAML.
 func (r *VerrazzanoManagedClusterReconciler) getSecretAsYaml(name string, namespace string, targetName string, targetNamespace string) (yamlData []byte, err error) {
 	var secret corev1.Secret
@@ -139,4 +234,9 @@ func (r *VerrazzanoManagedClusterReconciler) getSecretAsYaml(name string, namesp
 func GetManifestSecretName(vmcName string) string {
 	const manifestSecretSuffix = "-manifest"
 	return generateManagedResourceName(vmcName) + manifestSecretSuffix
+}
+
+// getCASecretName returns the CA secret name
+func getCASecretName(vmcName string) string {
+	return "ca-secret-" + vmcName
 }

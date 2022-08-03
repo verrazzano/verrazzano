@@ -156,9 +156,9 @@ rules:
   - update
   - watch
 - apiGroups:
-  - coherence.oracle.com
+  - batch
   resources:
-  - coherence
+  - jobs
   verbs:
   - create
   - delete
@@ -170,11 +170,17 @@ rules:
 - apiGroups:
   - coherence.oracle.com
   resources:
+  - coherence
+  - coherence/finalizers
   - coherence/status
   verbs:
+  - create
+  - delete
   - get
+  - list
   - patch
   - update
+  - watch
 - apiGroups:
   - monitoring.coreos.com
   resources:

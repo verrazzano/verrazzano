@@ -23,10 +23,19 @@ spec:
         - sourceLabels:
             - __meta_kubernetes_service_label_app
           targetLabel: app
+        - action: replace
+          targetLabel: verrazzano_cluster
+          replacement: local
+{{ if .isIstioEnabled }}
       scheme: https
+{{ else }}
+      scheme: http
+{{ end }}
       path: /metrics
+{{ if .isIstioEnabled }}
       tlsConfig:
         caFile: /etc/istio-certs/root-cert.pem
         certFile: /etc/istio-certs/cert-chain.pem
         keyFile: /etc/istio-certs/key.pem
         insecureSkipVerify: true
+{{ end }}
