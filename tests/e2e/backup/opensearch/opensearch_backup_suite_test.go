@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestVelero(t *testing.T) {
+func TestOpensearchBackup(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Opensearch Backup Suite")
 }

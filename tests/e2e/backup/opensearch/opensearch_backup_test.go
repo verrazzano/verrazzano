@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
@@ -146,7 +147,11 @@ func IsRestoreSuccessful() string {
 		t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 		return ""
 	}
-	return fmt.Sprintf("%s", parsedJSON.Search("hits", "hits", "0", "_id").Data())
+	spew.Dump(parsedJSON)
+	backupId := fmt.Sprintf("%s", parsedJSON.Search("hits", "hits", "0", "_id").Data())
+	t.Logs.Infof("Opensearch id before backup = %v", common.BackupID)
+	t.Logs.Infof("Opensearch idfetched after restore = %v", backupId)
+	return backupId
 }
 
 // NukeOpensearch is used to destroy the opensearch cluster including data
