@@ -43,16 +43,17 @@ var (
 
 var t = framework.NewTestFramework("jaegeroperator")
 
-func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) bool {
+func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
 	kubeconfig, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Fail(err.Error())
+		t.It(text, func() {
+			Fail(err.Error())
+		})
 	}
 	if pkg.IsJaegerOperatorEnabled(kubeconfig) {
-		return t.ItMinimumVersion(text, minVZVersion, kubeconfig, args...)
+		t.ItMinimumVersion(text, minVZVersion, kubeconfig, args...)
 	}
-	Skip("Skipping spec, Jaeger Operator is disabled")
-	return false
+	t.Logs.Infof("Skipping spec, Jaeger Operator is disabled")
 }
 
 var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
