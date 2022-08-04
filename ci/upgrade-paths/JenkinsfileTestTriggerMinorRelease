@@ -20,9 +20,6 @@ pipeline {
             label "${agentLabel}"
         }
     }
-    triggers {
-        cron(branchSpecificSchedule)
-    }
     // Use cases:
     //        1) (automatic) master, release* will trigger this job by default on successful runs and supply GIT_COMMIT_TO_USE with the exact GIT commit to use for all testing (same as the upstream build)
     //        2) (automatic) branch builds with TRIGGER_FULL_TESTS enabled will trigger this job by default on successful runs and supply GIT_COMMIT_TO_USE with the exact GIT commit to use for all testing (same as the upstream build)
