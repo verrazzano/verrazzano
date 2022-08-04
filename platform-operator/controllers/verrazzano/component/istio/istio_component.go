@@ -338,7 +338,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	// so we have to check this manually to get a useful error message
 	_, err := verifyIstioIngressGatewayIP(context.Client(), context.EffectiveCR())
 	if err != nil {
-		context.Log().Errorf("Failed to verify the service external IP address for component %s: %v", context.GetComponent(), err)
+		context.Log().Errorf("Failed to verify the service external IP address for component %s: %s", ComponentName, err.Error())
 	}
 
 	verified, err := isInstalledFunc(context.Log())

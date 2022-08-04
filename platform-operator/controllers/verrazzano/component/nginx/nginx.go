@@ -43,7 +43,7 @@ func isNginxReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	_, err := vzconfig.GetIngressIP(context.Client(), context.EffectiveCR())
 	if err != nil {
-		context.Log().Errorf("Failed to verify the service external IP address for component %s: %v", context.GetComponent(), err)
+		context.Log().Errorf("Failed to verify the service external IP address for component %s: %s", ComponentName, err.Error())
 	}
 	return err == nil && status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
