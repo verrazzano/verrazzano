@@ -97,8 +97,8 @@ kubectl create namespace verrazzano-install
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
 # optionally create a cluster dump snapshot for verifying uninstalls
-if [ -n "${CLUSTER_DUMP_DIR}" ]; then
-  ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_DUMP_DIR}
+if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
+  ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
 fi
 
 # Configure the custom resource to install Verrazzano on Kind
@@ -129,7 +129,7 @@ else
   GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
 fi
 result=$?
-${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
+${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-snapshot -r ${WORKSPACE}/post-vz-install-cluster-snapshot/analysis.report
 if [[ $result -ne 0 ]]; then
   exit 1
 fi

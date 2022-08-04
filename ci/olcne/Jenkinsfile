@@ -188,7 +188,7 @@ pipeline {
         OCI_DNS_ZONE_NAME="${OCI_DNS_ZONE_SUBDOMAIN_NAME}.v8o.io"
 
         // used for cluster dump
-        TEST_DUMP_ROOT="$WORKSPACE/test-cluster-dumps"
+        TEST_DUMP_ROOT="$WORKSPACE/test-cluster-snapshots"
         POST_DUMP_FAILED='false'
         POST_DUMP_FAILED_FILE="$WORKSPACE/post_dump_failed_file.tmp"
 
@@ -406,7 +406,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
@@ -420,7 +420,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
@@ -434,7 +434,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
@@ -444,7 +444,7 @@ pipeline {
         always {
             script {
                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
-                    dumpK8sCluster('olcne-acceptance-tests-cluster-dump')
+                    dumpK8sCluster('olcne-acceptance-tests-cluster-snapshot')
                 }
             }
 
@@ -456,7 +456,7 @@ pipeline {
             dumpVerrazzanoApplicationOperatorLogs()
             dumpVerrazzanoApiLogs()
 
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*-cluster-dump/**,**/test-cluster-dumps/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -686,7 +686,7 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        $GO_REPO_PATH/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        $GO_REPO_PATH/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
     """
 }
 
