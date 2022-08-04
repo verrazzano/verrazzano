@@ -92,7 +92,7 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -309,11 +309,11 @@ def getMaxIterations() {
 
 def runInitialInstall(iteration) {
     stage("Install Verrazzano #${iteration}") {
-        env.CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources-${iteration}/pre-install-resources"
+        env.CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources-${iteration}/pre-install-resources"
         try {
             script {
                 sh """
-                    echo "CLUSTER_DUMP_DIR: ${CLUSTER_DUMP_DIR}"
+                    echo "CLUSTER_SNAPSHOT_DIR: ${CLUSTER_SNAPSHOT_DIR}"
                     echo "Branch: ${BRANCH_NAME}"
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
@@ -333,10 +333,10 @@ def runUninstall(iteration) {
         try {
             vzUninstall(iteration)
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                dumpK8sCluster("verrazzano-uninstall-cluster-dump-${iteration}")
+                dumpK8sCluster("verrazzano-uninstall-cluster-snapshot-${iteration}")
             }
         } catch (err) {
-            dumpK8sCluster("verrazzano-uninstall-failure-cluster-dump-${iteration}")
+            dumpK8sCluster("verrazzano-uninstall-failure-cluster-snapshot-${iteration}")
             throw err
         } finally {
             dumpPodsAndLogs("post-uninstall-${iteration}")
@@ -352,10 +352,10 @@ def runUninstall(iteration) {
             """
             runGinkgo('uninstall/verifycrds')
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                dumpK8sCluster('verify-uninstall-${iteration}-cluster-dump')
+                dumpK8sCluster('verify-uninstall-${iteration}-cluster-snapshot')
             }
         } catch (err) {
-            dumpK8sCluster('verify-uninstall-${iteration}-cluster-dump')
+            dumpK8sCluster('verify-uninstall-${iteration}-cluster-snapshot')
             throw err
         }
     }
@@ -373,10 +373,10 @@ def runInstallOnly(stagePrefix, iteration) {
                 ${GO_REPO_PATH}/vz install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
             """
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-               dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-cluster-dump')
+               dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-cluster-snapshot')
             }
         } catch (err) {
-            dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-failure-cluster-dump')
+            dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-failure-cluster-snapshot')
             sh """
                mkdir -p ${vpoLogsDir}
                ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${vpoLogsDir}/resources.log
@@ -395,10 +395,10 @@ def runVerifyTests(stageName, iteration) {
         try {
             parallel generateVerifyInfraStages()
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                dumpK8sCluster('verrazzano-testrun-${iteration}-cluster-dump')
+                dumpK8sCluster('verrazzano-testrun-${iteration}-cluster-snapshot')
             }
         } catch (err) {
-            dumpK8sCluster('verrazzano-test-failure-${iteration}-cluster-dump')
+            dumpK8sCluster('verrazzano-test-failure-${iteration}-cluster-snapshot')
             throw err
         }
     }
@@ -520,10 +520,10 @@ def runApplicationTests() {
         try {
             parallel getApplicationStages()
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                dumpK8sCluster('verrazzano-application-test-failure-cluster-dump')
+                dumpK8sCluster('verrazzano-application-test-failure-cluster-snapshot')
             }
         } catch (err) {
-            dumpK8sCluster('verrazzano-application-test-failure-cluster-dump')
+            dumpK8sCluster('verrazzano-application-test-failure-cluster-snapshot')
             throw err
         }
     }
@@ -585,7 +585,7 @@ def runnerCleanup() {
         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
     """
-    archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+    archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*cluster-snapshot*/**,**/${TEST_REPORT}", allowEmptyArchive: true
     junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
     script {
@@ -610,7 +610,7 @@ def runnerCleanup() {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
     """
 }
 
