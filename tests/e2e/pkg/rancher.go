@@ -22,7 +22,6 @@ func EventuallyGetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namesp
 		if err != nil {
 			return err
 		}
-		gomega.Expect(len(ingress.Spec.Rules)).To(gomega.Equal(1))
 		ingressURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		log.Info(fmt.Sprintf("Found ingress URL: %s", ingressURL))
 		return nil
