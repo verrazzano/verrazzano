@@ -191,14 +191,17 @@ func populateClusterImages(installedNamespace string) {
 	}
 
 	for _, podList := range podsList.Items {
+		var podSpecificImages []string
 		for _, initContainer := range podList.Spec.InitContainers {
 			clusterImageArray = append(clusterImageArray, initContainer.Image)
+			podSpecificImages = append(podSpecificImages, initContainer.Image)
 		}
-		podContainerMap[podList.Name] = clusterImageArray
+		podContainerMap[podList.Name] = podSpecificImages
 		for _, container := range podList.Spec.Containers {
 			clusterImageArray = append(clusterImageArray, container.Image)
+			podSpecificImages = append(podSpecificImages, container.Image)
 		}
-		podContainerMap[podList.Name] = clusterImageArray
+		podContainerMap[podList.Name] = podSpecificImages
 	}
 }
 
