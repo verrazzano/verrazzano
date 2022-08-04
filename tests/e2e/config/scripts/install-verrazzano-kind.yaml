@@ -20,7 +20,7 @@ spec:
         - values:
             prometheus:
               prometheusSpec:
-                replicas: 1
+                replicas: 2
     prometheusAdapter:
       enabled: true
     kubeStateMetrics:
@@ -44,8 +44,3 @@ spec:
           minIndexAge: "1d"
     jaegerOperator:
       enabled: true
-    istio:
-      enabled: true
-      istioInstallArgs:
-        - name: "meshConfig.enableTracing"
-          value: "false"

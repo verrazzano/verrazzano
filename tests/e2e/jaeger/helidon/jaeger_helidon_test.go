@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package jaeger
+package helidon
 
 import (
 	"fmt"
@@ -136,7 +136,7 @@ var _ = t.AfterSuite(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
+var _ = t.Describe("Jaeger Operator", Label("f:jaeger.helidon-workload"), func() {
 	t.Context("after successful installation", func() {
 		// GIVEN the Jaeger Operator is enabled and a sample application is installed,
 		// WHEN we check for traces for that service,
