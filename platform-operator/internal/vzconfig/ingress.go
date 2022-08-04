@@ -3,14 +3,12 @@
 package vzconfig
 
 import (
-	"context"
 	"fmt"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -84,29 +82,11 @@ func GetServiceType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {
 // GetIngressIP Returns the ingress IP of the LoadBalancer
 // - port of install scripts function get_verrazzano_ingress_ip in config.sh
 func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
-	// Default for NodePort services
-	// - On MAC and Windows, container IP is not accessible.  Port forwarding from 127.0.0.1 to container IP is needed.
-	ingressIP := "127.0.0.1"
 	serviceType, err := GetServiceType(vz)
 	if err != nil {
 		return "", err
 	}
-	if serviceType == vzapi.LoadBalancer || serviceType == vzapi.NodePort {
-		svc := v1.Service{}
-		if err := client.Get(context.TODO(), types.NamespacedName{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace}, &svc); err != nil {
-			return "", err
-		}
-		// If externalIPs exists, use it; else use IP from status
-		if len(svc.Spec.ExternalIPs) > 0 {
-			// In case of OLCNE, the Status.LoadBalancer.Ingress field will be empty, so use the external IP if present
-			ingressIP = svc.Spec.ExternalIPs[0]
-		} else if len(svc.Status.LoadBalancer.Ingress) > 0 {
-			ingressIP = svc.Status.LoadBalancer.Ingress[0].IP
-		} else {
-			return "", fmt.Errorf("No IP found for service %v with type %v", svc.Name, serviceType)
-		}
-	}
-	return ingressIP, nil
+	return GetExternalIP(client, serviceType, vpoconst.NGINXControllerServiceName, globalconst.IngressNamespace)
 }
 
 // BuildDNSDomain Constructs the full DNS subdomain for the deployment

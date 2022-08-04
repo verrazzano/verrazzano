@@ -334,6 +334,13 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 
+	// istioctl verify-install does not check that the Load Balancer service has an external IP address,
+	// so we have to check this manually to get a useful error message
+	_, err := verifyIstioIngressGatewayIP(context.Client(), context.EffectiveCR())
+	if err != nil {
+		context.Log().Errorf("Failed to verify the service external IP address for component %s: %v", context.GetComponent(), err)
+	}
+
 	verified, err := isInstalledFunc(context.Log())
 	if err != nil && !isIstioManifestNotInstalledError(err) {
 		context.Log().ErrorfThrottled("Unexpected error checking Istio status: %s", err)
