@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package common
+package helpers
 
 import (
 	"bytes"
@@ -325,14 +325,22 @@ func TrackOperationProgress(operator, operation, objectName, namespace string, l
 			if err != nil {
 				log.Errorf("Unable to fetch backup '%s' due to '%v'", objectName, zap.Error(err))
 			}
-			response = backupInfo.Status.Phase
+			if backupInfo == nil {
+				response = "Nil"
+			} else {
+				response = backupInfo.Status.Phase
+			}
 
 		case "restores":
 			restoreInfo, err := GetVeleroRestore(namespace, objectName, log)
 			if err != nil {
 				log.Errorf("Unable to fetch restore '%s' due to '%v'", objectName, zap.Error(err))
 			}
-			response = restoreInfo.Status.Phase
+			if restoreInfo == nil {
+				response = "Nil"
+			} else {
+				response = restoreInfo.Status.Phase
+			}
 		default:
 			log.Errorf("Invalid operation specified for Velero = %s'", operation)
 			response = "NAN"
@@ -345,13 +353,16 @@ func TrackOperationProgress(operator, operation, objectName, namespace string, l
 			if err != nil {
 				log.Errorf("Unable to fetch backup '%s' due to '%v'", objectName, zap.Error(err))
 			}
-
-			if backupInfo.Status.Conditions != nil {
-				for _, cond := range backupInfo.Status.Conditions {
-					if cond.Type == "Ready" {
-						response = cond.Message
-					} else {
-						log.Infof("Rancher backup status : Type = %v, Status = %v", cond.Type, cond.Status)
+			if backupInfo == nil {
+				response = "Nil"
+			} else {
+				if backupInfo.Status.Conditions != nil {
+					for _, cond := range backupInfo.Status.Conditions {
+						if cond.Type == "Ready" {
+							response = cond.Message
+						} else {
+							log.Infof("Rancher backup status : Type = %v, Status = %v", cond.Type, cond.Status)
+						}
 					}
 				}
 			}
@@ -361,12 +372,16 @@ func TrackOperationProgress(operator, operation, objectName, namespace string, l
 			if err != nil {
 				log.Errorf("Unable to fetch restore '%s' due to '%v'", objectName, zap.Error(err))
 			}
-			if restoreInfo.Status.Conditions != nil {
-				for _, cond := range restoreInfo.Status.Conditions {
-					if cond.Type == "Ready" {
-						response = cond.Message
-					} else {
-						log.Infof("Rancher restore status : Type = %v, Status = %v", cond.Type, cond.Status)
+			if restoreInfo == nil {
+				response = "Nil"
+			} else {
+				if restoreInfo.Status.Conditions != nil {
+					for _, cond := range restoreInfo.Status.Conditions {
+						if cond.Type == "Ready" {
+							response = cond.Message
+						} else {
+							log.Infof("Rancher restore status : Type = %v, Status = %v", cond.Type, cond.Status)
+						}
 					}
 				}
 			}

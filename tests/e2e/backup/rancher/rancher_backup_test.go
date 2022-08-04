@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package backup
+package rancher
 
 import (
 	"bytes"
@@ -155,6 +155,10 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 	apiPath := "v3/users"
 	rancherUserCreateURL := fmt.Sprintf("%s/%s", rancherURL, apiPath)
 	token := common.GetRancherLoginToken(t.Logs)
+	if token == "" {
+		t.Logs.Infof("Rancher login token is empty!!")
+		return fmt.Errorf("Rancher login token is empty!!")
+	}
 
 	for i := 0; i < n; i++ {
 		id := uuid.New().String()
@@ -190,6 +194,10 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 // VerifyRancherUsers gets an existing rancher user
 func VerifyRancherUsers(rancherURL string) bool {
 	token := common.GetRancherLoginToken(t.Logs)
+	if token == "" {
+		t.Logs.Infof("Rancher login token is empty!!")
+		return false
+	}
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	for i := 0; i < len(common.RancherUserNameList); i++ {
 		rancherGetURL := fmt.Sprintf("%s/v3/users?username=%s", rancherURL, common.RancherUserNameList[i])
@@ -210,6 +218,10 @@ func VerifyRancherUsers(rancherURL string) bool {
 // BuildRancherUserIDList gets an existing rancher user
 func BuildRancherUserIDList(rancherURL string) bool {
 	token := common.GetRancherLoginToken(t.Logs)
+	if token == "" {
+		t.Logs.Infof("Rancher login token is empty!!")
+		return false
+	}
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	for i := 0; i < len(common.RancherUserNameList); i++ {
 		rancherGetURL := fmt.Sprintf("%s/v3/users?username=%s", rancherURL, common.RancherUserNameList[i])
@@ -247,7 +259,7 @@ func WhenRancherBackupInstalledIt(description string, f func()) {
 
 // checkPodsRunning checks whether the pods are ready in a given namespace
 func checkPodsRunning(namespace string, expectedPods []string) bool {
-	result, err := pkg.PodsRunning(namespace, expectedPods)
+	result, err := pkg.SpecificPodsRunning(namespace, "app=rancher")
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
@@ -271,7 +283,7 @@ func backupPrerequisites() {
 		return common.RancherURL, err
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	t.Logs.Info("Creating multiple user with the retrieved login token")
+	t.Logs.Info("Creating multiple Rancher users")
 	Eventually(func() error {
 		return PopulateRancherUsers(common.RancherURL, common.RancherUserCount)
 	}, waitTimeout, pollingInterval).Should(BeNil())

@@ -1,13 +1,12 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package backup
+package opensearch
 
 import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
@@ -139,19 +138,26 @@ func IsRestoreSuccessful() string {
 		return ""
 	}
 
+	var b bytes.Buffer
+	template, _ := template.New("id-query").Parse(common.EsQueryBody)
+	data := common.EsQueryObject{
+		BackupIDBeforeBackup: common.BackupID,
+	}
+	template.Execute(&b, data)
+
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	fetchURL := fmt.Sprintf("%s/%s", esURL, idSearchAllURL)
 	creds := fmt.Sprintf("verrazzano:%s", vzPasswd)
-	parsedJSON, err := common.HTTPHelper(httpClient, "GET", fetchURL, creds, "Basic", http.StatusOK, nil, t.Logs)
+	parsedJSON, err := common.HTTPHelper(httpClient, "GET", fetchURL, creds, "Basic", http.StatusOK, b.Bytes(), t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 		return ""
 	}
-	spew.Dump(parsedJSON)
-	backupId := fmt.Sprintf("%s", parsedJSON.Search("hits", "hits", "0", "_id").Data())
-	t.Logs.Infof("Opensearch id before backup = %v", common.BackupID)
-	t.Logs.Infof("Opensearch idfetched after restore = %v", backupId)
-	return backupId
+
+	backupID := fmt.Sprintf("%s", parsedJSON.Search("hits", "hits", "0", "_id").Data())
+	t.Logs.Infof("Opensearch id before backup = '%v'", common.BackupID)
+	t.Logs.Infof("Opensearch id fetched after restore = '%v'", backupID)
+	return backupID
 }
 
 // NukeOpensearch is used to destroy the opensearch cluster including data
@@ -255,6 +261,24 @@ func WhenVeleroInstalledIt(description string, f func()) {
 	}
 }
 
+// checkPodsRunning checks whether the pods are ready in a given namespace
+func checkPodsRunning(namespace string, expectedPods []string) bool {
+	result, err := pkg.PodsRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
+}
+
+// checkPodsNotRunning checks whether the pods are not ready in a given namespace
+func checkPodsNotRunning(namespace string, expectedPods []string) bool {
+	result, err := pkg.PodsNotRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
+}
+
 // Run as part of BeforeSuite
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
@@ -336,11 +360,11 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 
 	})
 
-	t.Context("Ensure the pods are not before starting a restore", func() {
-		WhenVeleroInstalledIt("Ensure the pods are not before starting a restore", func() {
+	t.Context("Ensure the pods are not running before starting a restore", func() {
+		WhenVeleroInstalledIt("Ensure the pods are not running before starting a restore", func() {
 			Eventually(func() bool {
-				return checkPodsRunning(constants.VerrazzanoSystemNamespace, esPods)
-			}, waitTimeout, pollingInterval).Should(BeFalse(), "Check if pods are down")
+				return checkPodsNotRunning(constants.VerrazzanoSystemNamespace, esPods)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are down")
 		})
 	})
 
@@ -394,12 +418,3 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 	})
 
 })
-
-// checkPodsRunning checks whether the pods are ready in a given namespace
-func checkPodsRunning(namespace string, expectedPods []string) bool {
-	result, err := pkg.PodsRunning(namespace, expectedPods)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
-	}
-	return result
-}

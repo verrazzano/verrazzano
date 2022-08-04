@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package backup
+package mysql
 
 import (
 	"bytes"
@@ -209,6 +209,15 @@ func checkPodsRunning(namespace string, expectedPods []string) bool {
 	return result
 }
 
+// checkPodsNotRunning checks whether the pods are not ready in a given namespace
+func checkPodsNotRunning(namespace string, expectedPods []string) bool {
+	result, err := pkg.PodsNotRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
+}
+
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
 	t.Logs.Info("Create backup secret for velero backup objects")
@@ -290,6 +299,14 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 
+	})
+
+	t.Context("Ensure the pods are not running before starting a restore", func() {
+		WhenVeleroInstalledIt("Ensure the pods are not running before starting a restore", func() {
+			Eventually(func() bool {
+				return checkPodsNotRunning(constants.KeycloakNamespace, keycloakPods)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are down")
+		})
 	})
 
 	t.Context("Start restore after velero backup is completed", func() {

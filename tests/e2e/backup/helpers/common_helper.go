@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package common
+package helpers
 
 import (
 	"bytes"
@@ -191,27 +191,6 @@ func DynamicSSA(ctx context.Context, deploymentYAML string, log *zap.SugaredLogg
 	return err
 }
 
-// CheckPodsTerminated utility to wait for all pods to be terminated
-func CheckPodsTerminated(labelSelector, namespace string, log *zap.SugaredLogger) error {
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		log.Errorf("Failed to get clientset with error: %v", err)
-		return err
-	}
-
-	listOptions := metav1.ListOptions{LabelSelector: labelSelector}
-	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
-	if err != nil {
-		return err
-	}
-	if len(pods.Items) > 0 {
-		log.Infof("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
-		return fmt.Errorf("Pods with label selector '%s' in namespace '%s' are still present", labelSelector, namespace)
-	}
-	log.Infof("All pods with label selector '%s' in namespace '%s' have been removed", labelSelector, namespace)
-	return nil
-}
-
 // CheckPvcsTerminated utility to wait for all pvcs to be terminated
 func CheckPvcsTerminated(labelSelector, namespace string, log *zap.SugaredLogger) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -308,8 +287,8 @@ func DeleteNamespace(namespace string, log *zap.SugaredLogger) error {
 			return err
 		}
 	}
-
-	return CheckPodsTerminated("", namespace, log)
+	return nil
+	//return CheckPodsTerminated("", namespace, log)
 }
 
 // HTTPHelper utility for http method use cases
@@ -321,6 +300,7 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenT
 	switch method {
 	case "GET":
 		retryabeRequest, err = retryablehttp.NewRequest(http.MethodGet, httpURL, payload)
+		retryabeRequest.Header.Set("Content-Type", "application/json")
 	case "POST":
 		retryabeRequest, err = retryablehttp.NewRequest(http.MethodPost, httpURL, payload)
 	case "DELETE":
@@ -345,8 +325,8 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenT
 	}
 	defer response.Body.Close()
 
-	log.Infof("DEBUG: Status code = %v", response.StatusCode)
-	log.Infof("DEBUG: Status = %v", response.Status)
+	//log.Infof("DEBUG: Status code = %v", response.StatusCode)
+	//log.Infof("DEBUG: Status = %v", response.Status)
 
 	err = httputil.ValidateResponseCode(response, expectedResponseCode)
 	if err != nil {
