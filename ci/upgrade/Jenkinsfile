@@ -93,6 +93,11 @@ pipeline {
         NEW_PODS_FILE2="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods-2.out"
         APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot sockshop'"
 
+        OCI_OS_NAMESPACE=credentials('oci-os-namespace')
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_LOCATION="${OCI_OS_LOCATION}"
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
         // used to emit metrics
          PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
          PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -182,15 +187,19 @@ pipeline {
                     echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
                     OPERATOR_YAML_FILE = "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml"
                 }
+
+                script {
+                    sh """
+                        echo "Downloading VZ CLI from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                    """
+                }
             }
         }
         stage('Install Release Version') {
             environment {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-                OCI_OS_LOCATION="${OCI_OS_LOCATION}"
                 OPERATOR_YAML="${OPERATOR_YAML_FILE}"
                 CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
             }
@@ -523,8 +532,7 @@ pipeline {
                     try {
                         sh """
                             echo "Uninstalling Verrazzano"
-                            cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                            GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go uninstall
+                            ${GO_REPO_PATH}/vz uninstall
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"
