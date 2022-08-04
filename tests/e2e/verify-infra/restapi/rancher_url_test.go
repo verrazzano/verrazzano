@@ -137,13 +137,15 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 
-						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeRancherURL, authConfigAttributes[rancher.AuthConfigKeycloakAttributeRancherURL].(string), keycloakURL+rancher.AuthConfigKeycloakURLPathVerifyAuth); err != nil {
+						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeRancherURL, authConfigAttributes[rancher.AuthConfigKeycloakAttributeRancherURL].(string), rancherURL+rancher.AuthConfigKeycloakURLPathVerifyAuth); err != nil {
 							return false, err
 						}
 
 						authConfigClientSecret := authConfigAttributes[rancher.AuthConfigKeycloakAttributeClientSecret].(string)
 						if authConfigClientSecret == "" {
-							return false, verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeClientSecret, authConfigClientSecret, "non-empty")
+							err = fmt.Errorf("keycloak auth config attribute %s not correctly configured, value is empty", rancher.AuthConfigKeycloakAttributeClientSecret)
+							t.Logs.Error(err.Error())
+							return false, err
 						}
 
 						return true, nil
@@ -172,7 +174,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							}
 						}
 						return false, fmt.Errorf("Verrazzano rancher user is not mapped in keycloak")
-					}, waitTimeout, pollingInterval).Should(Equal(true), "verrazzano rancher user does not exist")
+					}, waitTimeout, pollingInterval).Should(Equal(true), "verrazzano rancher user not correctly configured")
 					metrics.Emit(t.Metrics.With("get_vz_rancher_user_elapsed_time", time.Since(start).Milliseconds()))
 
 					start = time.Now()
@@ -194,7 +196,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 						}
 
 						return true, nil
-					}, waitTimeout, pollingInterval).Should(Equal(true), "verrazzano rancher user global role bindingdoes not exist")
+					}, waitTimeout, pollingInterval).Should(Equal(true), "verrazzano rancher user global role binding does not exist")
 					metrics.Emit(t.Metrics.With("get_vz_rancher_user_gbr_elapsed_time", time.Since(start).Milliseconds()))
 
 				}
