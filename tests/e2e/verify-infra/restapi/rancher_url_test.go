@@ -104,6 +104,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 
 					start = time.Now()
 					t.Logs.Info("Verify Keycloak AuthConfig")
+					keycloakURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "keycloak", "keycloak")
 					Eventually(func() (bool, error) {
 						authConfigData, err := k8sClient.Resource(gvkToGvr(rancher.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigKeycloak, v1.GetOptions{})
 						if err != nil {
@@ -111,7 +112,6 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 
-						keycloakURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "keycloak", "keycloak")
 						authConfigAttributes := authConfigData.UnstructuredContent()
 						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeAccessMode, authConfigAttributes[rancher.AuthConfigKeycloakAttributeAccessMode].(string), rancher.AuthConfigKeycloakAccessMode); err != nil {
 							return false, err
