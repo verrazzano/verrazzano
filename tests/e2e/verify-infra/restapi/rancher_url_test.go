@@ -121,7 +121,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 
-						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeEnabled, authConfigAttributes[rancher.AuthConfigKeycloakAttributeEnabled].(bool), true); err != nil {
+						if err = verifyAuthConfigAttribute(rancher.AuthConfigAttributeEnabled, authConfigAttributes[rancher.AuthConfigAttributeEnabled].(bool), true); err != nil {
 							return false, err
 						}
 

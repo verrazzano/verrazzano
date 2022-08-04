@@ -100,6 +100,7 @@ const (
 	NodeDriverOCI                                 = "oci"
 	ClusterLocal                                  = "local"
 	AuthConfigKeycloak                            = "keycloakoidc"
+	AuthConfigLocal                               = "local"
 	UserVerrazzano                                = "u-verrazzano"
 	GlobalRoleBindingVerrazzano                   = "gbr-" + UserVerrazzano
 	AuthConfigKeycloakURLPathVerifyAuth           = "/verify-auth"
@@ -109,7 +110,7 @@ const (
 	AuthConfigKeycloakAccessMode                  = "unrestricted"
 	AuthConfigKeycloakAttributeAccessMode         = "accessMode"
 	AuthConfigKeycloakAttributeClientID           = "clientId"
-	AuthConfigKeycloakAttributeEnabled            = "enabled"
+	AuthConfigAttributeEnabled                    = "enabled"
 	AuthConfigKeycloakAttributeGroupSearchEnabled = "groupSearchEnabled"
 	AuthConfigKeycloakAttributeAuthEndpoint       = "authEndpoint"
 	AuthConfigKeycloakAttributeClientSecret       = "clientSecret"
@@ -503,7 +504,7 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig := keycloakAuthConfig.UnstructuredContent()
 	authConfig[AuthConfigKeycloakAttributeAccessMode] = AuthConfigKeycloakAccessMode
 	authConfig[AuthConfigKeycloakAttributeClientID] = AuthConfigKeycloakClientIDRancher
-	authConfig[AuthConfigKeycloakAttributeEnabled] = true
+	authConfig[AuthConfigAttributeEnabled] = true
 	authConfig[AuthConfigKeycloakAttributeGroupSearchEnabled] = true
 	authConfig[AuthConfigKeycloakAttributeAuthEndpoint] = keycloakURL + AuthConfigKeycloakURLPathAuthEndPoint
 	authConfig[AuthConfigKeycloakAttributeClientSecret] = clientSecret
@@ -589,6 +590,27 @@ func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentConte
 
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user GlobalRoleBinding: %s", err.Error())
+	}
+
+	return nil
+}
+
+func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string, enable bool) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	authConfig := unstructured.Unstructured{}
+	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfigName := types.NamespacedName{Name: name}
+	err := c.Get(context.Background(), authConfigName, &authConfig)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, unable to fetch, error: %s", enable, name, err.Error())
+	}
+
+	authConfigData := authConfig.UnstructuredContent()
+	authConfigData[AuthConfigAttributeEnabled] = enable
+	err = c.Update(context.Background(), &authConfig, &client.UpdateOptions{})
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, error: %s", enable, name, err.Error())
 	}
 
 	return nil

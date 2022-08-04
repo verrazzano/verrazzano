@@ -228,6 +228,15 @@ func createKeycloakAuthConfig() unstructured.Unstructured {
 	return authConfig
 }
 
+func createLocalAuthConfig() unstructured.Unstructured {
+	authConfig := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfig.SetName(AuthConfigLocal)
+	return authConfig
+}
+
 func createKeycloakSecret() v1.Secret {
 	return v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

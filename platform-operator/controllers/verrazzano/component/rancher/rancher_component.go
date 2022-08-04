@@ -347,5 +347,9 @@ func configureKeycloakOIDCProvider(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user global role binding: %s", err.Error())
 	}
 
+	if err := disableOrEnableAuthProvider(ctx, AuthConfigLocal, false); err != nil {
+		return log.ErrorfThrottledNewErr("failed disabling the local auth provider: %s", err.Error())
+	}
+
 	return nil
 }
