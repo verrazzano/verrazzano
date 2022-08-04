@@ -228,8 +228,8 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-                OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+                OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
 		    }
 		    steps {
 		        script {
@@ -488,7 +488,7 @@ def kill_vpo_loop(vpoLogsDir) {
                 POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                 kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
                 echo "VPO \$POD successfully restarted"
-                
+
                 # Sleep a random interval between 15 and 60 seconds
                 SLEEP_SEC=\$[ \$RANDOM % 45 + 15 ]
                 echo "Sleeping for \$SLEEP_SEC seconds"

@@ -19,5 +19,5 @@ export TEST_SCRIPTS_DIR ?= ${TEST_ROOT}/config/scripts
 export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-dumps
 
 export OCI_OS_ARTIFACT_BUCKET=build-failure-artifacts
-export OCI_OS_BUCKET=verrazzano-builds
+export OCI_OS_COMMIT_BUCKET=verrazzano-builds-by-commit
 export OCI_CLI_PROFILE ?= DEFAULT

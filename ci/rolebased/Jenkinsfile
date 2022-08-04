@@ -133,8 +133,8 @@ pipeline {
                         KIND_KUBERNETES_CLUSTER_VERSION="1.22"
                         OCI_CLI_AUTH="instance_principal"
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                        OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
+                        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+                        OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                     }
                     steps {
                         sh """
