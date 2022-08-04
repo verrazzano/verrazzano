@@ -91,6 +91,7 @@ var bomImages = make(map[string][]string)               // Map of images mention
 var clusterImageTagErrors = make(map[string]imageError) // Map of cluster image tags doesn't match with BOM, hence a Failure Condition
 var clusterImagesNotFound = make(map[string]string)     // Map of cluster image doesn't match with BOM, hence a Failure Condition
 var clusterImageWarnings = make(map[string]string)      // Map of image names not found in cluster. Warning/ Known Issues/ Informational.  This may be valid based on profile
+var podContainerMap = make(map[string][]string)
 
 var t = framework.NewTestFramework("BOM validator")
 
@@ -188,12 +189,15 @@ func populateClusterImages(installedNamespace string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	for _, podList := range podsList.Items {
 		for _, initContainer := range podList.Spec.InitContainers {
 			clusterImageArray = append(clusterImageArray, initContainer.Image)
+			podContainerMap[podList.Name] = clusterImageArray
 		}
 		for _, container := range podList.Spec.Containers {
 			clusterImageArray = append(clusterImageArray, container.Image)
+			podContainerMap[podList.Name] = clusterImageArray
 		}
 	}
 }
@@ -242,6 +246,10 @@ func BomValidationReport() bool {
 		return false
 	}
 	fmt.Println()
+	fmt.Println("Pod container images mapping")
+	for pod, images := range podContainerMap {
+		fmt.Println("Pod Name -> ", pod, ", List of Container images -> ", images)
+	}
 	fmt.Println("!! BOM Validation Successful !!")
 	return true
 }
