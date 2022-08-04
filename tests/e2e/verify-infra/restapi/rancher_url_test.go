@@ -38,7 +38,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				}
 
 				api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-				rancherURL := pkg.EventuallyGetRancherURL(t.Logs, api)
+				rancherURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher")
 				httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 				var httpResponse *pkg.HTTPResponse
 
@@ -110,7 +110,43 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							t.Logs.Error(fmt.Sprintf("error getting keycloak oidc authConfig: %v", err))
 							return false, err
 						}
-						return authConfigData.UnstructuredContent()["enabled"].(bool), nil
+
+						keycloakURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "keycloak", "keycloak")
+						authConfigAttributes := authConfigData.UnstructuredContent()
+						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeAccessMode, authConfigAttributes[rancher.AuthConfigKeycloakAttributeAccessMode].(string), rancher.AuthConfigKeycloakAccessMode); err != nil {
+							return false, err
+						}
+
+						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeClientID, authConfigAttributes[rancher.AuthConfigKeycloakAttributeClientID].(string), rancher.AuthConfigKeycloakClientIDRancher); err != nil {
+							return false, err
+						}
+
+						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeEnabled, authConfigAttributes[rancher.AuthConfigKeycloakAttributeEnabled].(bool), true); err != nil {
+							return false, err
+						}
+
+						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeGroupSearchEnabled, authConfigAttributes[rancher.AuthConfigKeycloakAttributeGroupSearchEnabled].(bool), true); err != nil {
+							return false, err
+						}
+
+						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeAuthEndpoint, authConfigAttributes[rancher.AuthConfigKeycloakAttributeAuthEndpoint].(string), keycloakURL+rancher.AuthConfigKeycloakURLPathAuthEndPoint); err != nil {
+							return false, err
+						}
+
+						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeAuthEndpoint, authConfigAttributes[rancher.AuthConfigKeycloakAttributeAuthEndpoint].(string), keycloakURL+rancher.AuthConfigKeycloakURLPathAuthEndPoint); err != nil {
+							return false, err
+						}
+
+						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeRancherURL, authConfigAttributes[rancher.AuthConfigKeycloakAttributeRancherURL].(string), keycloakURL+rancher.AuthConfigKeycloakURLPathVerifyAuth); err != nil {
+							return false, err
+						}
+
+						authConfigClientSecret := authConfigAttributes[rancher.AuthConfigKeycloakAttributeClientSecret].(string)
+						if authConfigClientSecret == "" {
+							return false, verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeClientSecret, authConfigClientSecret, "non-empty")
+						}
+
+						return true, nil
 					}, waitTimeout, pollingInterval).Should(Equal(true), "keycloak oidc authconfig not enabled")
 					metrics.Emit(t.Metrics.With("get_kc_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
 
@@ -122,9 +158,16 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							t.Logs.Error(fmt.Sprintf("error getting rancher verrazzano user: %v", err))
 							return false, err
 						}
-						userPrincipals := userData.UnstructuredContent()["principalIds"].([]interface{})
+
+						userPrincipals, ok := userData.UnstructuredContent()[rancher.UserAttributePrincipalIDs].([]interface{})
+						if !ok {
+							err = fmt.Errorf("rancher verrazzano user configured incorrectly,principalIds empty")
+							t.Logs.Error(err.Error())
+							return false, err
+						}
+
 						for _, userPrincipal := range userPrincipals {
-							if strings.Contains(userPrincipal.(string), "keycloakoidc_user") {
+							if strings.Contains(userPrincipal.(string), rancher.UserPrincipalKeycloakPrefix) {
 								return true, nil
 							}
 						}
@@ -142,12 +185,12 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 						}
 
 						gbrAttributes := gbrData.UnstructuredContent()
-						if gbrAttributes["userName"].(string) != rancher.UserVerrazzano {
-							return false, fmt.Errorf("Verrazzano rancher user global role binding user in invalid")
+						if gbrAttributes[rancher.GlobalRoleBindingAttributeUserName].(string) != rancher.UserVerrazzano {
+							return false, fmt.Errorf("verrazzano rancher user global role binding user in invalid")
 						}
 
-						if gbrAttributes["globalRoleName"].(string) != "admin" {
-							return false, fmt.Errorf("Verrazzano rancher user global role binding role in invalid")
+						if gbrAttributes[rancher.GlobalRoleBindingAttributeRoleName].(string) != rancher.GlobalRoleBindingRoleName {
+							return false, fmt.Errorf("verrazzano rancher user global role binding role in invalid")
 						}
 
 						return true, nil
@@ -172,6 +215,15 @@ func gvkToGvr(gvk schema.GroupVersionKind) schema.GroupVersionResource {
 		Version:  gvk.Version,
 		Resource: resource,
 	}
+}
+
+func verifyAuthConfigAttribute(name string, actual interface{}, expected interface{}) error {
+	if expected != actual {
+		err := fmt.Errorf("keycloak auth config attribute %s not correctly configured, expected %v, actual %v", name, expected, actual)
+		t.Logs.Error(err.Error())
+		return err
+	}
+	return nil
 }
 
 var _ = t.AfterEach(func() {})

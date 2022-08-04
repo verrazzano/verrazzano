@@ -343,7 +343,7 @@ func configureKeycloakOIDCProvider(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user: %s", err.Error())
 	}
 
-	if err := createOrUpdateRancherVerrazzanoUserGRB(ctx); err != nil {
+	if err := createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user global role binding: %s", err.Error())
 	}
 

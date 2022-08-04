@@ -93,15 +93,35 @@ const (
 )
 
 const (
-	APIGroupRancherManagement        = "management.cattle.io"
-	APIGroupVersionRancherManagement = "v3"
-	SettingServerURL                 = "server-url"
-	KontainerDriverOKE               = "oraclecontainerengine"
-	NodeDriverOCI                    = "oci"
-	ClusterLocal                     = "local"
-	AuthConfigKeycloak               = "keycloakoidc"
-	UserVerrazzano                   = "u-verrazzano"
-	GlobalRoleBindingVerrazzano      = "gbr-" + UserVerrazzano
+	APIGroupRancherManagement                     = "management.cattle.io"
+	APIGroupVersionRancherManagement              = "v3"
+	SettingServerURL                              = "server-url"
+	KontainerDriverOKE                            = "oraclecontainerengine"
+	NodeDriverOCI                                 = "oci"
+	ClusterLocal                                  = "local"
+	AuthConfigKeycloak                            = "keycloakoidc"
+	UserVerrazzano                                = "u-verrazzano"
+	GlobalRoleBindingVerrazzano                   = "gbr-" + UserVerrazzano
+	AuthConfigKeycloakURLPathVerifyAuth           = "/verify-auth"
+	AuthConfigKeycloakURLPathIssuer               = "/auth/realms/verrazzano-system"
+	AuthConfigKeycloakURLPathAuthEndPoint         = "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
+	AuthConfigKeycloakClientIDRancher             = "rancher"
+	AuthConfigKeycloakAccessMode                  = "unrestricted"
+	AuthConfigKeycloakAttributeAccessMode         = "accessMode"
+	AuthConfigKeycloakAttributeClientID           = "clientId"
+	AuthConfigKeycloakAttributeEnabled            = "enabled"
+	AuthConfigKeycloakAttributeGroupSearchEnabled = "groupSearchEnabled"
+	AuthConfigKeycloakAttributeAuthEndpoint       = "authEndpoint"
+	AuthConfigKeycloakAttributeClientSecret       = "clientSecret"
+	AuthConfigKeycloakAttributeIssuer             = "issuer"
+	AuthConfigKeycloakAttributeRancherURL         = "rancherUrl"
+	UserPrincipalKeycloakPrefix                   = "keycloakoidc_user://"
+	UserPrincipalLocalPrefix                      = "local://"
+	UserAttributeDisplayName                      = "displayName"
+	UserAttributePrincipalIDs                     = "principalIds"
+	GlobalRoleBindingAttributeRoleName            = "globalRoleName"
+	GlobalRoleBindingRoleName                     = "admin"
+	GlobalRoleBindingAttributeUserName            = "userName"
 )
 
 var GVKSetting = schema.GroupVersionKind{
@@ -480,14 +500,14 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	}
 
 	authConfig := keycloakAuthConfig.UnstructuredContent()
-	authConfig["accessMode"] = "unrestricted"
-	authConfig["clientId"] = "rancher"
-	authConfig["enabled"] = true
-	authConfig["groupSearchEnabled"] = true
-	authConfig["authEndpoint"] = keycloakURL + "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
-	authConfig["clientSecret"] = clientSecret
-	authConfig["issuer"] = keycloakURL + "/auth/realms/verrazzano-system"
-	authConfig["rancherUrl"] = rancherURL + "/verify-auth"
+	authConfig[AuthConfigKeycloakAttributeAccessMode] = AuthConfigKeycloakAccessMode
+	authConfig[AuthConfigKeycloakAttributeClientID] = AuthConfigKeycloakClientIDRancher
+	authConfig[AuthConfigKeycloakAttributeEnabled] = true
+	authConfig[AuthConfigKeycloakAttributeGroupSearchEnabled] = true
+	authConfig[AuthConfigKeycloakAttributeAuthEndpoint] = keycloakURL + AuthConfigKeycloakURLPathAuthEndPoint
+	authConfig[AuthConfigKeycloakAttributeClientSecret] = clientSecret
+	authConfig[AuthConfigKeycloakAttributeIssuer] = keycloakURL + AuthConfigKeycloakURLPathIssuer
+	authConfig[AuthConfigKeycloakAttributeRancherURL] = rancherURL + AuthConfigKeycloakURLPathVerifyAuth
 
 	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})
 	if err != nil {
@@ -520,8 +540,8 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	}
 
 	userData := vzRancherUser.UnstructuredContent()
-	userData["displayName"] = strings.Title(vzUser.Username)
-	userData["principalIds"] = []interface{}{"keycloakoidc_user://" + vzUser.ID, "local://" + UserVerrazzano}
+	userData[UserAttributeDisplayName] = strings.Title(vzUser.Username)
+	userData[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + UserVerrazzano}
 
 	if createUser {
 		vzRancherUser.SetName(UserVerrazzano)
@@ -537,32 +557,32 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func createOrUpdateRancherVerrazzanoUserGRB(ctx spi.ComponentContext) error {
+func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	c := ctx.Client()
-	vzRancherGRB := unstructured.Unstructured{}
-	vzRancherGRB.SetGroupVersionKind(GVKGlobalRoleBinding)
+	vzRancherGlobalRoleBinding := unstructured.Unstructured{}
+	vzRancherGlobalRoleBinding.SetGroupVersionKind(GVKGlobalRoleBinding)
 	vzRancherGRBName := types.NamespacedName{Name: GlobalRoleBindingVerrazzano}
-	err := c.Get(context.Background(), vzRancherGRBName, &vzRancherGRB)
-	createGRB := false
+	err := c.Get(context.Background(), vzRancherGRBName, &vzRancherGlobalRoleBinding)
+	createNew := false
 	if err != nil {
 		if errors.IsNotFound(err) {
-			createGRB = true
+			createNew = true
 			log.Debug("Rancher GlobalRoleBinding for verrazzano user does not exist")
 		} else {
 			return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user GlobalRoleBinding, unable to fetch GlobalRoleBinding: %s", err.Error())
 		}
 	}
 
-	grbData := vzRancherGRB.UnstructuredContent()
-	grbData["globalRoleName"] = "admin"
-	grbData["userName"] = UserVerrazzano
+	globalRoleBindingData := vzRancherGlobalRoleBinding.UnstructuredContent()
+	globalRoleBindingData[GlobalRoleBindingAttributeRoleName] = GlobalRoleBindingRoleName
+	globalRoleBindingData[GlobalRoleBindingAttributeUserName] = UserVerrazzano
 
-	if createGRB {
-		vzRancherGRB.SetName(GlobalRoleBindingVerrazzano)
-		err = c.Create(context.Background(), &vzRancherGRB, &client.CreateOptions{})
+	if createNew {
+		vzRancherGlobalRoleBinding.SetName(GlobalRoleBindingVerrazzano)
+		err = c.Create(context.Background(), &vzRancherGlobalRoleBinding, &client.CreateOptions{})
 	} else {
-		err = c.Update(context.Background(), &vzRancherGRB, &client.UpdateOptions{})
+		err = c.Update(context.Background(), &vzRancherGlobalRoleBinding, &client.UpdateOptions{})
 	}
 
 	if err != nil {

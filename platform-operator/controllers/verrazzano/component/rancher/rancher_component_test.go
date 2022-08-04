@@ -374,7 +374,7 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 		var commands []string
 		if commands = url.Query()["command"]; len(commands) == 3 {
 			if strings.Contains(commands[2], "id,clientId") {
-				return "[{\"id\":\"something\", \"clientId\":\"rancher\"}]", "", nil
+				return "[{\"id\":\"something\", \"clientId\":\"" + AuthConfigKeycloakClientIDRancher + "\"}]", "", nil
 			}
 
 			if strings.Contains(commands[2], "client-secret") {
@@ -392,10 +392,7 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 		config, k := k8sutilfake.NewClientsetConfig()
 		return config, k, nil
 	}
-	//keycloak.GetRancherClientSecretFromKeycloak = func(ctx spi.ComponentContext) (string, error) { return "abcdef", nil }
-
 	return ctxWithoutIngress, ctxWithIngress
-
 }
 
 func newReadyDeployment(namespace string, name string) *appsv1.Deployment {
