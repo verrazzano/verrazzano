@@ -391,7 +391,11 @@ func removeTempFiles(log vzlog.VerrazzanoLogger) {
 }
 
 func getServiceType(vz *vzapi.Verrazzano) (vzapi.IngressType, error) {
-	ingressConfig := vz.Spec.Components.Istio.Ingress
+	istioComp := vz.Spec.Components.Istio
+	if istioComp == nil {
+		return vzapi.LoadBalancer, nil
+	}
+	ingressConfig := istioComp.Ingress
 	if ingressConfig == nil || len(ingressConfig.Type) == 0 {
 		return vzapi.LoadBalancer, nil
 	}
