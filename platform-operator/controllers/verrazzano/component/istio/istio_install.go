@@ -259,6 +259,13 @@ func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
 	if err := createEnvoyFilter(compContext.Log(), compContext.Client()); err != nil {
 		return err
 	}
+
+	// istioctl verify-install does not check that the Load Balancer service has an external IP address,
+	// so we have to check this manually to get a useful error message
+	_, err := verifyIstioIngressGatewayIP(compContext.Client(), compContext.EffectiveCR())
+	if err != nil {
+		compContext.Log().Errorf("Ingress external IP pending for component %s: %s", ComponentName, err.Error())
+	}
 	return nil
 }
 

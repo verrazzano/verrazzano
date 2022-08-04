@@ -334,13 +334,6 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 
-	// istioctl verify-install does not check that the Load Balancer service has an external IP address,
-	// so we have to check this manually to get a useful error message
-	_, err := verifyIstioIngressGatewayIP(context.Client(), context.EffectiveCR())
-	if err != nil {
-		context.Log().Errorf("Ingress external IP pending for component %s: %s", ComponentName, err.Error())
-	}
-
 	verified, err := isInstalledFunc(context.Log())
 	if err != nil && !isIstioManifestNotInstalledError(err) {
 		context.Log().ErrorfThrottled("Unexpected error checking Istio status: %s", err)
@@ -381,6 +374,12 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 	err = removeIstioHelmSecrets(context)
 	if err != nil {
 		return err
+	}
+	// istioctl verify-install does not check that the Load Balancer service has an external IP address,
+	// so we have to check this manually to get a useful error message
+	_, err = verifyIstioIngressGatewayIP(context.Client(), context.EffectiveCR())
+	if err != nil {
+		context.Log().Errorf("Ingress external IP pending for component %s: %s", ComponentName, err.Error())
 	}
 
 	return nil

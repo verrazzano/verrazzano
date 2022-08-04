@@ -139,3 +139,20 @@ func (c nginxComponent) PostUninstall(context spi.ComponentContext) error {
 	// and delete the namespace
 	return res.RemoveFinalizersAndDelete()
 }
+
+// PostUpgrade verifies that the ingress-nginx service has an external IP address before completing
+func (c nginxComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	if ctx.IsDryRun() {
+		ctx.Log().Infof("Completing PostUpgrade dry run for component %s", ComponentName)
+		return nil
+	}
+
+	// Verify that the ingress-nginx service has an external IP before completing post-upgrade
+	_, err := vzconfig.GetIngressIP(ctx.Client(), ctx.EffectiveCR())
+	if err != nil {
+		ctx.Log().Infof("Ingress external IP pending for component %s: %v", ComponentName, err)
+		return err
+	}
+
+	return c.HelmComponent.PostUpgrade(ctx)
+}

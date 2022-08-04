@@ -319,6 +319,17 @@ func getMock(t *testing.T) *mocks.MockClient {
 			return nil
 		}).AnyTimes()
 
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: IstioIngressgatewayDeployment, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, svc *v1.Service) error {
+			svc.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{
+				{
+					IP: "0.0.0.0",
+				},
+			}
+			return nil
+		}).AnyTimes()
+
 	return mock
 }
 
