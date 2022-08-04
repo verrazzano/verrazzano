@@ -68,4 +68,4 @@ spec:
     elasticsearch:
       installArgs:
         - name: nodes.ingest.replicas
-          value: "3"
+          value: "2"
