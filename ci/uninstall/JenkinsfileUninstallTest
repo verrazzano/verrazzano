@@ -142,6 +142,13 @@ pipeline {
 
     stages {
         stage('Clean workspace and checkout') {
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+            }
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -219,6 +226,14 @@ pipeline {
 
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     //env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
+                }
+
+                script {
+                    sh """
+                        echo "Downloading VZ CLI from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                    """
                 }
             }
         }
@@ -354,10 +369,7 @@ def runInstallOnly(stagePrefix, iteration) {
             sh """
                 # sleep for a period to ensure async deletion of Verrazzano components from uninstall above has completed
                 #sleep 90
-                cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                echo "Reinstalling using config file ${VZ_INSTALL_FILE}:"
-                cat ${VZ_INSTALL_FILE}
-                GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
+                ${GO_REPO_PATH}/vz install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
             """
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-cluster-dump')

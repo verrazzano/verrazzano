@@ -285,17 +285,40 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
-// TestPreUpgrade tests the preUpgrade function
-// GIVEN a call to preUpgrade during upgrade
+// TestPreUpgradeProdProfile tests the preUpgrade function
+// GIVEN a call to preUpgrade during upgrade of a prod profile cluster
 // WHEN the PV, PVC and existing deployment exist
 // THEN the PV is released and the deployment removed
-func TestPreUpgrade(t *testing.T) {
+func TestPreUpgradeProdProfile(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
 
-	vz := &vzapi.Verrazzano{}
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("dev"),
+			VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{{
+				ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+				Spec: v1.PersistentVolumeClaimSpec{
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{
+							"storage": pvc100Gi,
+						},
+					},
+				},
+			}},
+			Components: vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					MySQL: vzapi.MySQLComponent{
+						VolumeSource: &v1.VolumeSource{
+							PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+						},
+					},
+				},
+			},
+		},
+	}
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
@@ -377,6 +400,32 @@ func TestPreUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestPreUpgradeDevProfile tests the preUpgrade function
+// GIVEN a call to preUpgrade during upgrade of a dev profile cluster
+// WHEN the pre upgrade executes
+// THEN the pv/pvc steps are skipped
+func TestPreUpgradeDevProfile(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("dev"),
+			DefaultVolumeSource: &v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{},
+			},
+		},
+	}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	err := preUpgrade(ctx)
+	assert.NoError(t, err)
+}
+
 // TestPreUpgradeForStatefulSetMySQL tests the preUpgrade function
 // GIVEN a call to preUpgrade during upgrade
 // WHEN the resource is a statefulset rather than the old deployment
@@ -387,7 +436,30 @@ func TestPreUpgradeForStatefulSetMySQL(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 
-	vz := &vzapi.Verrazzano{}
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("dev"),
+			VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{{
+				ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+				Spec: v1.PersistentVolumeClaimSpec{
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{
+							"storage": pvc100Gi,
+						},
+					},
+				},
+			}},
+			Components: vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					MySQL: vzapi.MySQLComponent{
+						VolumeSource: &v1.VolumeSource{
+							PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+						},
+					},
+				},
+			},
+		},
+	}
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
@@ -419,16 +491,39 @@ func TestPreUpgradeForStatefulSetMySQL(t *testing.T) {
 }
 
 // TestPostUpgrade tests the postUpgrade function
-// GIVEN a call to postUpgrade during upgrade
+// GIVEN a call to postUpgrade during upgrade of a prod profile
 // WHEN the PV for the stateful set exists
 // THEN the PV is updated with the original reclaim policy
-func TestPostUpgrade(t *testing.T) {
+func TestPostUpgradeProdProfile(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
 
-	vz := &vzapi.Verrazzano{}
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("dev"),
+			VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{{
+				ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+				Spec: v1.PersistentVolumeClaimSpec{
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{
+							"storage": pvc100Gi,
+						},
+					},
+				},
+			}},
+			Components: vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					MySQL: vzapi.MySQLComponent{
+						VolumeSource: &v1.VolumeSource{
+							PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+						},
+					},
+				},
+			},
+		},
+	}
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
@@ -468,19 +563,59 @@ func TestPostUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestAppendMySQLOverridesUpgrade tests the appendMySQLOverrides function
-// GIVEN a call to appendMySQLOverrides during upgrade
-// WHEN I pass in an empty VZ CR
-// THEN the correct overrides are returned
-func TestAppendMySQLOverridesUpgrade(t *testing.T) {
+// TestPostUpgrade tests the postUpgrade function
+// GIVEN a call to postUpgrade during upgrade of a dev profile
+// WHEN the code executes
+// THEN the PV update is skipped
+func TestPostUpgradeDevProfile(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
 
-	vz := &vzapi.Verrazzano{}
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("dev"),
+			DefaultVolumeSource: &v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{},
+			},
+		},
+	}
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
+
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	err := postUpgrade(ctx)
+	assert.NoError(t, err)
+}
+
+// TestAppendMySQLOverridesUpgradeProdProfile tests the appendMySQLOverrides function
+// GIVEN a call to appendMySQLOverrides during upgrade for a dev profile cluster
+// WHEN I pass in a VZ CR
+// THEN the correct overrides are returned
+func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("dev"),
+			DefaultVolumeSource: &v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{},
+			},
+		},
+	}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+			deploy.Name = ComponentName
+			deploy.Namespace = ComponentNamespace
+			return nil
+		})
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
@@ -498,7 +633,74 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
+	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
+	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
+}
+
+// TestAppendMySQLOverridesUpgradeProdProfile tests the appendMySQLOverrides function
+// GIVEN a call to appendMySQLOverrides during upgrade for a prod profile cluster
+// WHEN I pass in a VZ CR
+// THEN the correct overrides are returned
+func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("dev"),
+			VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{{
+				ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+				Spec: v1.PersistentVolumeClaimSpec{
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{
+							"storage": pvc100Gi,
+						},
+					},
+				},
+			}},
+			Components: vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					MySQL: vzapi.MySQLComponent{
+						VolumeSource: &v1.VolumeSource{
+							PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+						},
+					},
+				},
+			},
+		},
+	}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+			deploy.Name = ComponentName
+			deploy.Namespace = ComponentNamespace
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			secret.Name = secretName
+			secret.Data = map[string][]byte{}
+			secret.Data[mySQLRootKey] = []byte("test-root-key")
+			secret.Data[mySQLKey] = []byte("test-key")
+			return nil
+		})
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
+			return nil
+		}).AnyTimes()
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.NoError(t, err)
+	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))

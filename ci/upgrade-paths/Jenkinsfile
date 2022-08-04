@@ -184,6 +184,8 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_LOCATION="${OCI_OS_LOCATION}"
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
@@ -209,9 +211,6 @@ pipeline {
 
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
         RUNNING_OPERATOR_VERSION = ""
-
-        // used by verify register test, set in registerManagedClusters
-        ADMIN_VZ_VERSION_AT_REGISTRATION = ""
     }
 
     stages {
@@ -228,6 +227,8 @@ pipeline {
                 performVerrazzanoDirectoryOperations()
 
                 setInitValues()
+
+                downloadCLI()
             }
         }
 
@@ -948,8 +949,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
                 # Install Verrazzano
-                cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
+                ${GO_REPO_PATH}/vz install --kubeconfig ${KUBECONFIG_DIR}/${count}/kube_config --filename ${verrazzanoConfig} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml
             """
             RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version INSTALl : ${RUNNING_OPERATOR_VERSION}"
@@ -1035,8 +1035,7 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-pre-upgrade-job.out
 
                 echo "Upgrading the Verrazzano installation to version" ${verrazzanoDevVersion}
-                cd ${GO_REPO_PATH}/verrazzano/tools/vz
-                GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --operator-file ${upgradeOperatorFile}
+                ${GO_REPO_PATH}/vz upgrade --kubeconfig ${kubeClusterConfig} --version ${verrazzanoDevVersion} --operator-file ${upgradeOperatorFile}
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out
@@ -1064,6 +1063,7 @@ def registerManagedClusters() {
             for(int count=2; count<=clusterCount; count++) {
                 verrazzanoRegisterManagedClusterStages["${count} - Register Managed Cluster"] = registerManagedCluster(count)
             }
+            // ADMIN_VZ_VERSION_AT_REGISTRATION is used by verify register test
             env.ADMIN_VZ_VERSION_AT_REGISTRATION = sh(returnStdout: true,
                     script:"KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
             print "Admin VZ version at registration is ${env.ADMIN_VZ_VERSION_AT_REGISTRATION}"
@@ -1926,6 +1926,16 @@ def isVZOperatorMinimumCompatibleVersion(minimumOperatorVersion){
     return false
 }
 
+
+def downloadCLI() {
+    script {
+        sh """
+            echo "Downloading VZ CLI from object storage"
+            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+            tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+        """
+    }
+}
 
 def setInitValues() {
     script {

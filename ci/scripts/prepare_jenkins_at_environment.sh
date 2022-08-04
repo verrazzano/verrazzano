@@ -82,6 +82,14 @@ else
   TARGET_OPERATOR_FILE=${OPERATOR_YAML}
 fi
 
+VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+echo "Downloading VZ CLI from object storage"
+if [[ -z "$OCI_OS_LOCATION" ]]; then
+  OCI_OS_LOCATION="$BRANCH_NAME/$(git rev-parse --short=8 HEAD)"
+fi
+oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/$VZ_CLI_TARGZ --file ${WORKSPACE}/$VZ_CLI_TARGZ
+tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
+
 # Create the verrazzano-install namespace
 kubectl create namespace verrazzano-install
 
@@ -113,8 +121,13 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Installing Verrazzano on Kind"
-cd ${GO_REPO_PATH}/verrazzano/tools/vz
-GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
+if [ -f "$WORKSPACE/vz" ]; then
+  cd $WORKSPACE
+  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE}
+else
+  cd ${GO_REPO_PATH}/verrazzano/tools/vz
+  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
+fi
 result=$?
 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
 if [[ $result -ne 0 ]]; then
