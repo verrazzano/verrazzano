@@ -126,7 +126,6 @@ pipeline {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"
-                OCI_OS_LOCATION="${OCI_OS_LOCATION}"
                 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
             }
             steps {
