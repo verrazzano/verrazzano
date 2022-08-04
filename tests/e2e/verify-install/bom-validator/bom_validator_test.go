@@ -218,7 +218,10 @@ func populateClusterContainerImages() {
 func BomValidationReport() bool {
 	// Dump Images Not Found to Console, Informational
 	const textDivider = "----------------------------------------"
-
+	fmt.Println("Pod container images mapping")
+	for pod, images := range podContainerMap {
+		fmt.Println("Pod Name -> ", pod, ", List of Container images -> ", images)
+	}
 	if len(clusterImageWarnings) > 0 {
 		fmt.Println()
 		fmt.Println("Image Warnings - Tags not at expected BOM level due to known issues")
@@ -246,10 +249,6 @@ func BomValidationReport() bool {
 		return false
 	}
 	fmt.Println()
-	fmt.Println("Pod container images mapping")
-	for pod, images := range podContainerMap {
-		fmt.Println("Pod Name -> ", pod, ", List of Container images -> ", images)
-	}
 	fmt.Println("!! BOM Validation Successful !!")
 	return true
 }
