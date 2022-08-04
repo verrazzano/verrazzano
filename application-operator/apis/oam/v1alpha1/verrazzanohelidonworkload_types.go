@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -27,6 +27,8 @@ type DeploymentTemplate struct {
 	Strategy appsv1.DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys"  protobuf:"bytes,4,opt,name=strategy"`
 	// +kubebuilder:validation:Required
 	PodSpec v1.PodSpec `json:"podSpec"`
+	// A label selector is a label query over a set of resources
+	Selector metav1.LabelSelector `json:"selector,omitempty" patchStrategy:"retainKeys"`
 }
 
 // VerrazzanoHelidonWorkloadStatus defines the observed state of VerrazzanoHelidonWorkload
