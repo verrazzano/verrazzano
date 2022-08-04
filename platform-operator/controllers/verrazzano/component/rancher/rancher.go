@@ -118,6 +118,7 @@ const (
 	UserPrincipalKeycloakPrefix                   = "keycloakoidc_user://"
 	UserPrincipalLocalPrefix                      = "local://"
 	UserAttributeDisplayName                      = "displayName"
+	UserAttributeUserName                         = "username"
 	UserAttributePrincipalIDs                     = "principalIds"
 	GlobalRoleBindingAttributeRoleName            = "globalRoleName"
 	GlobalRoleBindingRoleName                     = "admin"
@@ -540,6 +541,7 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	}
 
 	userData := vzRancherUser.UnstructuredContent()
+	userData[UserAttributeUserName] = vzUser.Username
 	userData[UserAttributeDisplayName] = strings.Title(vzUser.Username)
 	userData[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + UserVerrazzano}
 
