@@ -192,7 +192,7 @@ pipeline {
 
         stage('Parallel Build, Test, and Compliance') {
             parallel {
-                stage('Verrazzano CLI') {
+                stage('Build Verrazzano CLI and Save Binary') {
                     steps {
                         buildVerrazzanoCLI("${DOCKER_IMAGE_TAG}")
                     }
@@ -202,8 +202,13 @@ pipeline {
                                 SKIP_TRIGGERED_TESTS = true
                             }
                         }
-                        always {
-                            archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
+                        success {
+                            script {
+                                archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
+                                echo "Saving CLI Binary"
+                                saveCLIExecutable()
+                            }
+
                         }
                     }
                 }
@@ -579,6 +584,7 @@ def buildVerrazzanoCLI(dockerImageTag) {
         cd ${GO_REPO_PATH}/verrazzano/tools/vz
         make go-build DOCKER_IMAGE_TAG=${dockerImageTag}
         ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
+        cp out/linux_amd64/vz ${GO_REPO_PATH}/vz
     """
 }
 
@@ -654,6 +660,16 @@ def saveGeneratedFiles() {
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
+    """
+}
+
+def saveCLIExecutable() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/vz-linux-amd64.tar.gz --file $WORKSPACE/vz-linux-amd64.tar.gz
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/vz-linux-amd64.tar.gz --file $WORKSPACE/vz-linux-amd64.tar.gz
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/vz-linux-amd64.tar.gz.sha256 --file $WORKSPACE/vz-linux-amd64.tar.gz.sha256
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/vz-linux-amd64.tar.gz.sha256 --file $WORKSPACE/vz-linux-amd64.tar.gz.sha256
     """
 }
 

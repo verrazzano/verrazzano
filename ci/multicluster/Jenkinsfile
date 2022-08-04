@@ -177,6 +177,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
@@ -200,9 +201,6 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
-
-        // used by verify register test, set in registerManagedClusters
-        ADMIN_VZ_VERSION_AT_REGISTRATION = ""
     }
 
     stages {
@@ -280,6 +278,14 @@ pipeline {
                     }
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()}"
+                }
+                script {
+                    sh """
+                        echo "Downloading VZ CLI from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                        ${VZ_CLI_TARGZ}/vz version
+                    """
                 }
             }
         }
@@ -1024,10 +1030,7 @@ def registerManagedClusters() {
                     ./tests/e2e/config/scripts/register_managed_cluster.sh
                 """
             }
-            // debugging
-            sh "KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano"
-            sh "KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath='{.items[0].status}'"
-            // end debugging
+            // ADMIN_VZ_VERSION_AT_REGISTRATION is used by verify register test
             env.ADMIN_VZ_VERSION_AT_REGISTRATION = sh(returnStdout: true,
                     script:"KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
             print "Admin VZ version at registration is ${env.ADMIN_VZ_VERSION_AT_REGISTRATION}"
