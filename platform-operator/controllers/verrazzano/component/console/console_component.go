@@ -42,6 +42,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			Dependencies:              []string{authproxy.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			GetInstallOverridesFunc:   GetOverrides,
 		},
