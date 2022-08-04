@@ -5,9 +5,7 @@ package mysql
 
 import (
 	"context"
-	b64 "encoding/base64"
 	"fmt"
-	"go.uber.org/zap"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -43,6 +41,7 @@ const (
 	mySQLRootKey          = "mysql-root-password"
 	mySQLInitFilePrefix   = "init-mysql-"
 	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
+	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
 	persistenceEnabledKey = "primary.persistence.enabled"
 	statefulsetClaimName  = "data-mysql-0"
 	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
@@ -60,20 +59,6 @@ func isMySQLReady(context spi.ComponentContext) bool {
 	return status.StatefulSetsAreReady(context.Log(), context.Client(), statefulset, 1, prefix)
 }
 
-func encodeFileContent(compContext spi.ComponentContext, fileName string) (string, error) {
-	_, err := os.Stat(fileName)
-	if err != nil {
-		compContext.Log().Errorf("file '%s' does not exist. Error = %v", zap.Error(err))
-		return "", err
-	}
-	fileData, err := os.ReadFile(fileName)
-	if err != nil {
-		compContext.Log().Errorf("file '%s' could not be read due to %v", zap.Error(err))
-		return "", err
-	}
-	return b64.StdEncoding.EncodeToString(fileData), nil
-}
-
 // appendMySQLOverrides appends the MySQL helm overrides
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
@@ -81,11 +66,6 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	kvs, err := appendCustomImageOverrides(kvs)
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-	}
-
-	encodeHookData, err := encodeFileContent(compContext, mySQLHookFile)
-	if err != nil {
-		return nil, err
 	}
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
@@ -109,10 +89,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 				}
 				kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
-				kvs = append(kvs, bom.KeyValue{Key: "primary.extraEnvVars[0].name", Value: "MYSQL_BACKUP_HOOK", SetFile: false})
-				kvs = append(kvs, bom.KeyValue{Key: "primary.extraEnvVars[0].value", Value: encodeHookData, SetFile: false})
-				kvs = append(kvs, bom.KeyValue{Key: "secondary.extraEnvVars[0].name", Value: "MYSQL_BACKUP_HOOK", SetFile: false})
-				kvs = append(kvs, bom.KeyValue{Key: "secondary.extraEnvVars[0].value", Value: encodeHookData, SetFile: false})
+				kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
 			}
 		}
 
@@ -130,10 +107,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 		kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
-		kvs = append(kvs, bom.KeyValue{Key: "primary.extraEnvVars[0].name", Value: "MYSQL_BACKUP_HOOK", SetFile: false})
-		kvs = append(kvs, bom.KeyValue{Key: "primary.extraEnvVars[0].value", Value: encodeHookData, SetFile: false})
-		kvs = append(kvs, bom.KeyValue{Key: "secondary.extraEnvVars[0].name", Value: "MYSQL_BACKUP_HOOK", SetFile: false})
-		kvs = append(kvs, bom.KeyValue{Key: "secondary.extraEnvVars[0].value", Value: encodeHookData, SetFile: false})
+		kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
 		kvs, err = appendMySQLSecret(compContext, kvs)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}

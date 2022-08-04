@@ -149,6 +149,10 @@ initdbScripts: {}
 ##
 initdbScriptsConfigMap: ""
 
+configurationFilesPath: /etc/mysql/conf.d/
+
+configurationFiles: {}
+
 ## @section MySQL Primary parameters
 
 primary:
