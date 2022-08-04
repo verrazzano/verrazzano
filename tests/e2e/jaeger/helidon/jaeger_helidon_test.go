@@ -42,23 +42,25 @@ var (
 	failed                   = false
 	beforeSuitePassed        = false
 	start                    = time.Now()
-	kubeconfig               string
 )
 
 func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) bool {
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(err.Error())
+	}
 	if pkg.IsJaegerOperatorEnabled(kubeconfig) {
 		return t.ItMinimumVersion(text, "1.3.0", kubeconfig, args...)
 	}
-	t.Logs.Info("Skipping spec, Jaeger Operator is disabled")
+	Skip("Skipping spec, Jaeger Operator is disabled")
 	return false
 }
 
 var _ = t.BeforeSuite(func() {
-	Eventually(func() error {
-		var err error
-		kubeconfig, err = k8sutil.GetKubeConfigLocation()
-		return err
-	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(err.Error())
+	}
 	if !pkg.IsJaegerOperatorEnabled(kubeconfig) {
 		pkg.Log(pkg.Info, "Skipping BeforeSuite as Jaeger Operator is disabled.")
 		return
@@ -91,6 +93,10 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(err.Error())
+	}
 	if !pkg.IsJaegerOperatorEnabled(kubeconfig) {
 		pkg.Log(pkg.Info, "Skipping BeforeSuite as Jaeger Operator is disabled.")
 		return

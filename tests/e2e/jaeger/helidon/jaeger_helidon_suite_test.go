@@ -19,7 +19,7 @@ func init() {
 	flag.StringVar(&istioInjection, "istioInjection", "enabled", "istioInjection enables the injection of istio side cars")
 }
 
-func TestJaegerTracing(t *testing.T) {
+func TestJaegerHelidonTracing(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Jaeger Tracing Suite")
 }
