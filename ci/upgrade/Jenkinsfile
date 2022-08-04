@@ -190,6 +190,7 @@ pipeline {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_LOCATION="${OCI_OS_LOCATION}"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OPERATOR_YAML="${OPERATOR_YAML_FILE}"
                 CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
             }
