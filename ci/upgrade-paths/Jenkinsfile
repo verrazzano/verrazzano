@@ -459,7 +459,7 @@ pipeline {
                 }
             }
         }
-        stage ('Verify Install') {
+        //stage ('Verify Install') {
           //  parallel {
                 stage('verify-install') {
                     steps {
@@ -474,7 +474,7 @@ pipeline {
                     }
                 }
             //}
-        }
+       // }
 
         // Run Verify Registry
         stage('Verify Registry') {
