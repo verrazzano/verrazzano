@@ -5,6 +5,7 @@ package ha
 
 import (
 	"context"
+
 	"github.com/onsi/gomega"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -24,6 +25,7 @@ func EventuallyPodsReady(log *zap.SugaredLogger, cs *kubernetes.Clientset) {
 
 		for _, pod := range pods.Items {
 			if !IsPodReadyOrCompleted(pod) {
+				log.Infof("Pod [%s] in namespace [%s] not ready or completed [%s]", pod.Name, pod.Namespace, string(pod.Status.Phase))
 				return false
 			}
 		}
