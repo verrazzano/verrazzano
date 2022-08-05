@@ -1,4 +1,4 @@
-# Copyright (C) 2021, Oracle and/or its affiliates.
+# Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 include ../../make/quality.mk
@@ -49,7 +49,7 @@ EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-weblogic-image-tool
 
-CLUSTER_DUMP_LOCATION ?= weblogic-image-tool-integ-cluster-dump
+CLUSTER_SNAPSHOT_LOCATION ?= weblogic-image-tool-integ-cluster-snapshot
 
 # for retrieving installers from oci bucket
 OCI_CLI_REGION ?= us-phoenix-1

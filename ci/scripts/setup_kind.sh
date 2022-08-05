@@ -117,8 +117,8 @@ if ! kubectl get secret test-overrides 2>&1 > /dev/null; then
 fi
 
 # optionally create a cluster dump snapshot for verifying uninstalls
-if [ -n "${CLUSTER_DUMP_DIR}" ]; then
-  ${TEST_SCRIPTS_DIR}/looping-test/dump_cluster.sh ${CLUSTER_DUMP_DIR}
+if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
+  ${TEST_SCRIPTS_DIR}/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
 fi
 
 echo "Install Platform Operator"
