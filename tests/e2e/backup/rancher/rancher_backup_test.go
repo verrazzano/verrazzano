@@ -156,8 +156,8 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 	rancherUserCreateURL := fmt.Sprintf("%s/%s", rancherURL, apiPath)
 	token := common.GetRancherLoginToken(t.Logs)
 	if token == "" {
-		t.Logs.Infof("Rancher login token is empty!!")
-		return fmt.Errorf("Rancher login token is empty!!")
+		t.Logs.Errorf("rancher login token is empty")
+		return fmt.Errorf("rancher login token is empty")
 	}
 
 	for i := 0; i < n; i++ {
@@ -195,7 +195,7 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 func VerifyRancherUsers(rancherURL string) bool {
 	token := common.GetRancherLoginToken(t.Logs)
 	if token == "" {
-		t.Logs.Infof("Rancher login token is empty!!")
+		t.Logs.Errorf("rancher login token is empty")
 		return false
 	}
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
@@ -219,7 +219,7 @@ func VerifyRancherUsers(rancherURL string) bool {
 func BuildRancherUserIDList(rancherURL string) bool {
 	token := common.GetRancherLoginToken(t.Logs)
 	if token == "" {
-		t.Logs.Infof("Rancher login token is empty!!")
+		t.Logs.Errorf("rancher login token is empty")
 		return false
 	}
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
