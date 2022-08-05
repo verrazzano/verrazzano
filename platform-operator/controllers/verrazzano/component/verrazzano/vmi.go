@@ -20,7 +20,7 @@ func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues,
 	return nil
 }
 
-func newPrometheus(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) vmov1.Prometheus {
+func newPrometheus(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, existingVMI *vmov1.VerrazzanoMonitoringInstance) vmov1.Prometheus {
 	if cr.Spec.Components.Prometheus == nil {
 		return vmov1.Prometheus{}
 	}
@@ -33,8 +33,11 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, 
 		Storage: vmov1.Storage{},
 	}
 	common.SetStorageSize(storage, &prometheus.Storage)
-	if vmi != nil {
-		prometheus.Storage = vmi.Spec.Prometheus.Storage
+	if existingVMI != nil {
+		// preserve PVC names since these are set by the VMO
+		if len(existingVMI.Spec.Prometheus.Storage.PvcNames) > 0 {
+			prometheus.Storage.PvcNames = existingVMI.Spec.Prometheus.Storage.PvcNames
+		}
 	}
 
 	return prometheus
