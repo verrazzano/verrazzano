@@ -219,8 +219,8 @@
           "name": "verrazzano-monitoring-operator",
           "images": [
             {
-              "image": "verrazzano-monitoring-operator-jenkins",
-              "tag": "v1.4.0-20220805134950-82e1575",
+              "image": "verrazzano-monitoring-operator",
+              "tag": "v1.4.0-20220805165147-c395bfe",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
