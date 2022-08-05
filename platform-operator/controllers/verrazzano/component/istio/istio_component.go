@@ -354,7 +354,6 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 		}
 		return false
 	}
-
 	return true
 }
 
@@ -387,6 +386,7 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
