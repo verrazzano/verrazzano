@@ -66,7 +66,7 @@ func GetDNSSuffix(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 }
 
 // Identify the service type, LB vs NodePort
-func GetServiceType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {
+func GetIngressServiceType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {
 	ingressConfig := cr.Spec.Components.Ingress
 	if ingressConfig == nil || len(ingressConfig.Type) == 0 {
 		return vzapi.LoadBalancer, nil
@@ -82,7 +82,7 @@ func GetServiceType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {
 // GetIngressIP Returns the ingress IP of the LoadBalancer
 // - port of install scripts function get_verrazzano_ingress_ip in config.sh
 func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
-	serviceType, err := GetServiceType(vz)
+	serviceType, err := GetIngressServiceType(vz)
 	if err != nil {
 		return "", err
 	}

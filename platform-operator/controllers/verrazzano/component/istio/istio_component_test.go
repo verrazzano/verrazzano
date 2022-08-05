@@ -447,6 +447,21 @@ func TestIsReady(t *testing.T) {
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
+		&v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioIngressgatewayDeployment,
+			},
+			Status: v1.ServiceStatus{
+				LoadBalancer: v1.LoadBalancerStatus{
+					Ingress: []v1.LoadBalancerIngress{
+						{
+							IP: "0.0.0.0",
+						},
+					},
+				},
+			},
+		},
 	).Build()
 
 	isInstalledFunc = func(log vzlog.VerrazzanoLogger) (bool, error) {
