@@ -44,17 +44,16 @@ var (
 	start                    = time.Now()
 )
 
-func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
+func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) bool {
 	kubeconfig, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		t.It(text, func() {
-			Fail(err.Error())
-		})
+		Fail(err.Error())
 	}
 	if pkg.IsJaegerOperatorEnabled(kubeconfig) {
-		t.ItMinimumVersion(text, "1.3.0", kubeconfig, args...)
+		return t.ItMinimumVersion(text, "1.3.0", kubeconfig, args...)
 	}
-	t.Logs.Infof("Skipping spec, Jaeger Operator is disabled")
+	Skip("Skipping spec, Jaeger Operator is disabled")
+	return false
 }
 
 var _ = t.BeforeSuite(func() {
