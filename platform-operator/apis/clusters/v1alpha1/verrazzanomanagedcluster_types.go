@@ -35,6 +35,10 @@ type ConditionType string
 const (
 	// Ready = true means the VMC is ready to be used and all resources needed have been generated
 	ConditionReady ConditionType = "Ready"
+
+	// ManagedCARetrieved = true means that the managed cluster CA cert has been retrieved and
+	// populated. This is done by the VMC controller via the Rancher API proxy for the managed cluster.
+	ConditionManagedCARetrieved ConditionType = "ManagedCARetrieved"
 )
 
 // StateType identifies the state of the VMC which is shown in Verrazzano Dashboard.
@@ -74,6 +78,8 @@ type RancherRegistration struct {
 	// Supporting message related to the Rancher registration status
 	// +optional
 	Message string `json:"message,omitempty"`
+	// ClusterID is the Rancher cluster ID for this cluster
+	ClusterID string `json:"clusterID,omitempty"`
 }
 
 // VerrazzanoManagedClusterStatus defines the observed state of VerrazzanoManagedCluster

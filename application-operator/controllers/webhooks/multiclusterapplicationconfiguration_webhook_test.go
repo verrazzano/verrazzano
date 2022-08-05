@@ -5,12 +5,15 @@ package webhooks
 
 import (
 	"context"
-	admissionv1 "k8s.io/api/admission/v1"
 	"testing"
 
+	admissionv1 "k8s.io/api/admission/v1"
+
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +36,7 @@ func newMultiClusterApplicationConfigurationValidator() MultiClusterApplicationC
 // WHEN the MultiClusterApplicationConfiguration resource is missing Placement information
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterApplicationConfigurationCreationWithoutTargetClusters(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
 	p := v1alpha12.MultiClusterApplicationConfiguration{
@@ -60,6 +64,7 @@ func TestValidationFailureForMultiClusterApplicationConfigurationCreationWithout
 // WHEN the MultiClusterApplicationConfiguration resource references a VerrazzanoManagedCluster that does not exist
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterApplicationConfigurationCreationTargetingMissingManagedCluster(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
 	p := v1alpha12.MultiClusterApplicationConfiguration{
@@ -91,6 +96,7 @@ func TestValidationFailureForMultiClusterApplicationConfigurationCreationTargeti
 // WHEN the MultiClusterApplicationConfiguration resource references a VerrazzanoManagedCluster that does exist
 // THEN the validation should pass.
 func TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargetingExistingManagedCluster(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
 	mc := v1alpha1.VerrazzanoManagedCluster{
@@ -152,6 +158,7 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargeti
 // AND the validation is being done on a managed cluster
 // THEN the validation should succeed.
 func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithoutTargetClustersOnManagedCluster(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
 	s := corev1.Secret{
@@ -207,6 +214,7 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 // THEN the validation should succeed or fail based on what secrets are specified in the
 //   MultiClusterApplicationConfiguration resource
 func TestValidateSecrets(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
 
@@ -276,4 +284,23 @@ func TestValidateSecrets(t *testing.T) {
 	// Secret should be found, so success is expected
 	asrt.NoError(v.validateSecrets(mcac))
 
+}
+
+// TestMultiClusterAppConfigHandleFailed tests to make sure the failure metric is being exposed
+func TestMultiClusterAppConfigHandleFailed(t *testing.T) {
+	metricsexporter.RequiredInitialization()
+	assert := assert.New(t)
+	// Create a request and decode(Handle)
+	decoder := decoder()
+	defaulter := &IstioWebhook{}
+	_ = defaulter.InjectDecoder(decoder)
+	req := admission.Request{}
+	defaulter.Handle(context.TODO(), req)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.MultiClusterAppconfigPodHandleError)
+	assert.NoError(err)
+	// Expect a call to fetch the error
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	reconcileerrorCounterObject.Get().Inc()
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 }

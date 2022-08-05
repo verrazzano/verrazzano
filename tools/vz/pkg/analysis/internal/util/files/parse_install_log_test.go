@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-var vpoLog = "../../../test/cluster/ingress-ip-not-found/cluster-dump/verrazzano-install/verrazzano-platform-operator-64694f7cc4-br684/logs.txt"
+var vpoLog = "../../../test/cluster/ingress-ip-not-found/cluster-snapshot/verrazzano-install/verrazzano-platform-operator-64694f7cc4-br684/logs.txt"
 var ingressError = "Failed getting DNS suffix: No IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer"
 
 func TestFilterInstallLog(t *testing.T) {
@@ -21,7 +21,7 @@ func TestFilterInstallLog(t *testing.T) {
 }
 
 func TestWrongInstallLog(t *testing.T) {
-	vpoLog = "../../../test/cluster/ingress-ip-not-found/cluster-dump/verrazzano-install-wrong/verrazzano-platform-operator-64694f7cc4-br684/logs.txt"
+	vpoLog = "../../../test/cluster/ingress-ip-not-found/cluster-snapshot/verrazzano-install-wrong/verrazzano-platform-operator-64694f7cc4-br684/logs.txt"
 	_, err := ConvertToLogMessage(vpoLog)
 	errorMessage := vpoLog + ": no such file or directory"
 	assert.True(t, strings.Contains(err.Error(), errorMessage))

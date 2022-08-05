@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -73,6 +74,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
+	counterMetricObject, errorCounterMetricObject, reconcileDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics(controllerName, metricsexporter.HelidonReconcileCounter, metricsexporter.HelidonReconcileError, metricsexporter.HelidonReconcileDuration)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	reconcileDurationMetricObject.TimerStart()
+	defer reconcileDurationMetricObject.TimerStop()
+
 	if req.Namespace == vzconst.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
 		log.Infof("Helidon workload resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
@@ -82,13 +90,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	// fetch the workload
+	// Fetch the workload
 	var workload vzapi.VerrazzanoHelidonWorkload
 	if err := r.Get(ctx, req.NamespacedName, &workload); err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())
 	}
 	log, err := clusters.GetResourceLogger("verrazzanohelidonworkload", req.NamespacedName, &workload)
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		zap.S().Errorf("Failed to create controller logger for Helidon workload resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
@@ -101,30 +110,30 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 
 	log.Oncef("Finished reconciling Helidon workload %v", req.NamespacedName)
-
+	counterMetricObject.Inc(zapLogForMetrics, err)
 	return ctrl.Result{}, nil
 }
 
 // doReconcile performs the reconciliation operations for the VerrazzanoHelidonWorkload
 func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoHelidonWorkload, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
-	// if required info is not available in workload, log error and return
+	// If required info is not available in workload, log error and return
 	if len(workload.Spec.DeploymentTemplate.Metadata.GetName()) == 0 {
 		err := errors.New("VerrazzanoHelidonWorkload is missing required spec.deploymentTemplate.metadata.name")
 		log.Errorf("Failed to get workload name: %v", err)
 		return reconcile.Result{Requeue: false}, err
 	}
 
-	// unwrap the apps/DeploymentSpec and meta/ObjectMeta
+	// Unwrap the apps/DeploymentSpec and meta/ObjectMeta
 	deploy, err := r.convertWorkloadToDeployment(&workload, log)
 	if err != nil {
 		log.Errorf("Failed to convert workload to deployment: %v", err)
 		return reconcile.Result{}, err
 	}
-
 	// Attempt to get the existing deployment. This is used in the case where we don't want to update any resources
 	// which are defined by Verrazzano such as the Fluentd image used by logging. In this case we obtain the previous
 	// Fluentd image and set that on the new deployment. We also need to know if the deployment exists
@@ -208,7 +217,10 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoH
 
 // convertWorkloadToDeployment converts a VerrazzanoHelidonWorkload into a Deployment.
 func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelidonWorkload, log vzlog.VerrazzanoLogger) (*appsv1.Deployment, error) {
-
+	if workload.Spec.DeploymentTemplate.Selector.MatchLabels == nil {
+		workload.Spec.DeploymentTemplate.Selector.MatchLabels = make(map[string]string)
+	}
+	workload.Spec.DeploymentTemplate.Selector.MatchLabels[labelKey] = string(workload.GetUID())
 	d := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       deploymentKind,
@@ -222,9 +234,8 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 		Spec: appsv1.DeploymentSpec{
 			//setting label selector for pod that this deployment will manage
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					labelKey: string(workload.GetUID()),
-				},
+				MatchLabels:      workload.Spec.DeploymentTemplate.Selector.MatchLabels,
+				MatchExpressions: workload.Spec.DeploymentTemplate.Selector.MatchExpressions,
 			},
 		},
 	}
@@ -236,9 +247,7 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 	// Set PodSpec on deployment's PodTemplate from workload spec
 	workload.Spec.DeploymentTemplate.PodSpec.DeepCopyInto(&d.Spec.Template.Spec)
 	// making sure pods have same label as selector on deployment
-	d.Spec.Template.ObjectMeta.SetLabels(map[string]string{
-		labelKey: string(workload.GetUID()),
-	})
+	d.Spec.Template.ObjectMeta.SetLabels(workload.Spec.DeploymentTemplate.Selector.MatchLabels)
 
 	// pass through label and annotation from the workload to the deployment
 	passLabelAndAnnotation(workload, d)

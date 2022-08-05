@@ -7,9 +7,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,6 +35,7 @@ func newMultiClusterComponentValidator() MultiClusterComponentValidator {
 // WHEN the MultiClusterComponent resource is missing Placement information
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterComponentCreationWithoutTargetClusters(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterComponentValidator()
 	p := v1alpha12.MultiClusterComponent{
@@ -60,6 +63,7 @@ func TestValidationFailureForMultiClusterComponentCreationWithoutTargetClusters(
 // WHEN the MultiClusterComponent resource references a VerrazzanoManagedCluster that does not exist
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterComponentCreationTargetingMissingManagedCluster(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterComponentValidator()
 	p := v1alpha12.MultiClusterComponent{
@@ -91,6 +95,7 @@ func TestValidationFailureForMultiClusterComponentCreationTargetingMissingManage
 // WHEN the MultiClusterComponent resource references a VerrazzanoManagedCluster that does exist
 // THEN the validation should pass.
 func TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManagedCluster(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterComponentValidator()
 	mc := v1alpha1.VerrazzanoManagedCluster{
@@ -152,6 +157,7 @@ func TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManag
 // AND the validation is being done on a managed cluster
 // THEN the validation should succeed.
 func TestValidationSuccessForMultiClusterComponentCreationWithoutTargetClustersOnManagedCluster(t *testing.T) {
+	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterComponentValidator()
 	s := corev1.Secret{
@@ -199,4 +205,35 @@ func TestValidationSuccessForMultiClusterComponentCreationWithoutTargetClustersO
 	req = newAdmissionRequest(admissionv1.Update, mcc)
 	res = v.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected multi-cluster component validation to succeed with missing placement information on managed cluster.")
+}
+
+// TestMultiClusterComponentHandleFailed tests to make sure the failure metric is being exposed
+// GIVEN a call to validate a MultiClusterComponent resource
+// WHEN the MultiClusterComponent resource references a VerrazzanoManagedCluster that does not exist
+// THEN the validation should fail.
+func TestMultiClusterComponentHandleFailed(t *testing.T) {
+	metricsexporter.RequiredInitialization()
+	assert := assert.New(t)
+	mcc := v1alpha12.MultiClusterComponent{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-mccomponent-name",
+			Namespace: "application-ns",
+		},
+		Spec: v1alpha12.MultiClusterComponentSpec{
+			Placement: v1alpha12.Placement{
+				Clusters: []v1alpha12.Cluster{{Name: "valid-cluster-name"}},
+			},
+		},
+	}
+	// Create a request and Handle
+	v := newMultiClusterComponentValidator()
+	req := newAdmissionRequest(admissionv1.Create, mcc)
+	v.Handle(context.TODO(), req)
+	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.MultiClusterCompHandleError)
+	assert.NoError(err)
+	// Expect a call to fetch the error
+	reconcileFailedCounterBefore := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	reconcileerrorCounterObject.Get().Inc()
+	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
+	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 }

@@ -59,7 +59,7 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 		if fileInfo.Mode().IsDir() {
 			return nil
 		}
-		// make cluster-dump as the root directory in the archive, to support existing analysis tool
+		// make cluster-snapshot as the root directory in the archive, to support existing analysis tool
 		filePath := constants.BugReportRoot + path[len(captureDir):]
 		fileReader, err := os.Open(path)
 		if err != nil {
@@ -688,6 +688,11 @@ func GetMultiWriterErr() io.Writer {
 // SetIsLiveCluster sets true to isLiveCluster, indicating the live cluster analysis usage
 func SetIsLiveCluster() {
 	isLiveCluster = true
+}
+
+// GetIsLiveCluster returns a boolean indicating whether it is live cluster analysis
+func GetIsLiveCluster() bool {
+	return isLiveCluster
 }
 
 // LogMessage logs a message to the standard output
