@@ -13,6 +13,10 @@ import (
 	"testing"
 )
 
+// TestGetExternalIP tests retrieving the external IP from a given service
+// GIVEN a call to TestGetExternalIP
+// WHEN the service has an external IP
+// THEN no error and the external IP address is returned
 func TestGetExternalIP(t *testing.T) {
 	assert := asserts.New(t)
 

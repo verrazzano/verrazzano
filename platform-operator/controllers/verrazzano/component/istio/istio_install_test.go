@@ -511,8 +511,8 @@ func TestLabelNamespace(t *testing.T) {
 
 // TestVerifyIstioIngressGatewayIP tests verifying the external IP is created for the Istio service
 // GIVEN a call to verifyIstioIngressGatewayIP
-//  WHEN the service has an external IP
-//  THEN no error is returned
+// WHEN the service has an external IP
+// THEN no error is returned
 func TestVerifyIstioIngressGatewayIP(t *testing.T) {
 	a := assert.New(t)
 

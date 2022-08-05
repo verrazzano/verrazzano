@@ -123,7 +123,6 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 	if err := c.Patch(context.TODO(), &svcPatch, mergeFromSvc); err != nil {
 		return err
 	}
-
 	return nil
 }
 
