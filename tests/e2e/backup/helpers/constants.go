@@ -6,8 +6,8 @@ package helpers
 const (
 	ObjectStoreCredsAccessKeyName       = "aws_access_key_id"     //nolint:gosec //#gosec G101 //#gosec G204
 	ObjectStoreCredsSecretAccessKeyName = "aws_secret_access_key" //nolint:gosec //#gosec G101 //#gosec G204
-	RancherUserCount                    = 100
-	KeycloakUserCount                   = 100
+	RancherUserCount                    = 3
+	KeycloakUserCount                   = 3
 	BackupResource                      = "backups"
 	RestoreResource                     = "restores"
 	BackupStorageLocationResource       = "backupstoragelocations"
