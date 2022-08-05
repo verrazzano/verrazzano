@@ -288,7 +288,6 @@ func DeleteNamespace(namespace string, log *zap.SugaredLogger) error {
 		}
 	}
 	return nil
-	//return CheckPodsTerminated("", namespace, log)
 }
 
 // HTTPHelper utility for http method use cases
@@ -324,9 +323,6 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenT
 		return nil, err
 	}
 	defer response.Body.Close()
-
-	//log.Infof("DEBUG: Status code = %v", response.StatusCode)
-	//log.Infof("DEBUG: Status = %v", response.Status)
 
 	err = httputil.ValidateResponseCode(response, expectedResponseCode)
 	if err != nil {
