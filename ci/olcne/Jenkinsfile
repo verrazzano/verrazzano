@@ -4,9 +4,9 @@
 // This pipeline is configured to test Verrazzano using OLCNE environment
 // -> Setup Kubernetes in OLCNE environment
 // -> Install oci-ccm module in OLCNE environment
-// -> Install Verrazzano 
-// -> Deploy Verrazzano test applications 
-// -> Run validations 
+// -> Install Verrazzano
+// -> Deploy Verrazzano test applications
+// -> Run validations
 // -> Undeploy the apps
 // -> Uninstall Verrazzano
 // -> Cleanup resources
@@ -42,16 +42,16 @@ pipeline {
         // Cluster type
         choice (
             name: 'TEST_ENV',
-            description: 'Verrazzano Test Environment', 
+            description: 'Verrazzano Test Environment',
             choices: testEnvironments)
         choice (
             name: 'K8S_VERSION',
-            description: 'Kubernetes Version for the cluster', 
+            description: 'Kubernetes Version for the cluster',
             choices: kubernetesVersions)
         // OLCNE configuration
         choice (
             name: 'OLCNE_VERSION',
-            description: 'OLCNE Version', 
+            description: 'OLCNE Version',
             choices: olcneVersions)
         choice (
             name: 'OLCNE_CLUSTER_REGION',
@@ -90,12 +90,12 @@ pipeline {
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         booleanParam (
-            name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', 
-            description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', 
+            name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
+            description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)',
             defaultValue: false)
         booleanParam (
-            name: 'EMIT_METRICS', 
-            description: 'Whether to emit metrics from the pipeline', 
+            name: 'EMIT_METRICS',
+            description: 'Whether to emit metrics from the pipeline',
             defaultValue: true)
         string (name: 'TAGGED_TESTS',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -110,8 +110,8 @@ pipeline {
                 defaultValue: '_excluded_test',
                 trim: true)
         booleanParam (
-            name: 'KEEP_RESOURCES_AFTER_RUN', 
-            description: 'Whether to keep the k8s cluster and the other OCI resources alive after the run', 
+            name: 'KEEP_RESOURCES_AFTER_RUN',
+            description: 'Whether to keep the k8s cluster and the other OCI resources alive after the run',
             defaultValue: false)
     }
 
@@ -143,7 +143,7 @@ pipeline {
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
         // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
         OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
-        // TODO: Update the default branch to be used for terraform-oci-olcne 
+        // TODO: Update the default branch to be used for terraform-oci-olcne
         // OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
         OLCNE_BRANCH_TO_USE="origin/feature/VZ-6040"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
@@ -200,9 +200,10 @@ pipeline {
         JENKINS_READ=credentials('jenkins-auditor')
         OCI_OS_NAMESPACE=credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         // OCI_COMPARTMENT_ID=credentials('oci-tiburon-dev-compartment-ocid')
         // OCI_TELEMETRY_URL=credentials('oci-telemetry-url')
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_GW_URL=credentials('prometheus-dev-url')
@@ -246,7 +247,7 @@ pipeline {
                         }
                     }
                     echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                    
+
                     sh """
                         rm -rf $GO_REPO_PATH/verrazzano
                         mkdir -p $GO_REPO_PATH/verrazzano
@@ -270,7 +271,7 @@ pipeline {
                         exit 1
                     }
                     echo "[INFO] SCM checkout of ${env.TF_GIT_BRANCH} at ${env.TF_GIT_COMMIT}"
-                                        
+
                     sh """
                         rm -rf $TF_REPO_PATH
                         mkdir -p $TF_REPO_PATH
@@ -280,7 +281,7 @@ pipeline {
 
                     // Install terraform and generate ssh keys
                     sh """
-                        sudo yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/x86_64 
+                        sudo yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/x86_64
                         sudo yum install -y terraform
                         mkdir -p $OLCNE_DUMP_DIR
                         ssh-keygen -t rsa -b 4096 -q -N "" -f $TF_VAR_ssh_private_key_path
@@ -304,6 +305,14 @@ pipeline {
                         OLCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                         // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                         env.K8S_VERSION_LABEL=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
+                    }
+                    script {
+                        sh """
+                            echo "Downloading VZ CLI from object storage"
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                            tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                            ${GO_REPO_PATH}/vz version
+                        """
                     }
                 }
             }
@@ -467,7 +476,7 @@ pipeline {
                     }
                 }
             }
-            
+
             script {
                 if (params.KEEP_RESOURCES_AFTER_RUN == false) {
                     if (env.installedVZ && env.installedVZ == "true") {
@@ -527,7 +536,7 @@ def generateAllAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='
 def generateVerifyInstallStages(dumpRoot) {
     return [
         // TODO: Update the list to include tests for subsequent VZ releases
-        // Currently supported Verrazzano version = 1.3 
+        // Currently supported Verrazzano version = 1.3
         "verify-install keycloak": {
             runGinkgoRandomize('verify-install/keycloak', "${dumpRoot}/verify-install-keycloak")
         },
@@ -665,7 +674,7 @@ def runGinkgoFailFast(testSuitePath, dumpDir='') {
         sh """
             if [! -z "${dumpDir}" ]; then
                 export DUMP_DIRECTORY=${dumpDir}
-            fi 
+            fi
             cd $GO_REPO_PATH/verrazzano/tests/e2e
             ginkgo -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
@@ -949,7 +958,7 @@ def updateOLCNEConfig() {
         # TODO: This will no longer be required after terraform-oci-olcne repository supports OCI CCM module
         scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" "$TF_VAR_api_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/oci_api_key.pem
         $GO_REPO_PATH/verrazzano/ci/scripts/update_olcne_config.sh
-    
+
         # TODO: This MIGHT not be required for OLCNE > 1.5 releases
         # Add annotation to the storageclass created by OLCNE oci-ccm module
         kubectl get storageclass oci-bv -o yaml > "$WORKSPACE/oci-bv.yaml"
@@ -961,7 +970,7 @@ def updateOLCNEConfig() {
             metadata:
                 name: blockvolume.csi.oraclecloud.com
             spec:
-                fsGroupPolicy: File 
+                fsGroupPolicy: File
 EOF
     """
 }
@@ -977,20 +986,20 @@ def createImagePullSecrets() {
 def installVerrazzanoPlatformOperator() {
     sh """
         # oci --region us-phoenix-1 os object get \
-        # --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" \
-        # --name "${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
+        # --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
+        # --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
         # --file $WORKSPACE/downloaded-operator.yaml
-        
+
         # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands instead of "wget"
         wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
-        
+
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
         # Install the verrazzano-platform-operator
         kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
         # make sure ns exists
-        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh        
+        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
         kubectl get ns
 
@@ -1010,7 +1019,7 @@ def installVerrazzano() {
         kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
         # wait for Verrazzano install to complete
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-        
+
         # Print out the username and passwords
         echo "Verrazzano username: verrazzano"
         kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
@@ -1041,7 +1050,7 @@ def deleteOLCNECluster() {
         cd $TF_REPO_PATH
         terraform destroy -auto-approve
         for x in {1..3}; do
-            if [[ $? -ne 0 ]]; then 
+            if [[ $? -ne 0 ]]; then
                 echo "[INFO] Failed to destroy terraform resources. Retrying ..."
                 terraform destroy -auto-approve
             else

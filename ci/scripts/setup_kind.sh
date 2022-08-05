@@ -51,7 +51,7 @@ VERRAZZANO_OPERATOR_IMAGE=${VERRAZZANO_OPERATOR_IMAGE:-"NONE"}
 
 BRANCH_NAME=${BRANCH_NAME:-$(git branch --show-current)}
 SHORT_COMMIT_HASH=${SHORT_COMMIT_HASH:-$(git rev-parse --short=8 HEAD)}
-OCI_OS_LOCATION=${OCI_OS_LOCATION:-${BRANCH_NAME}/${SHORT_COMMIT_HASH}}
+OCI_OS_LOCATION=${OCI_OS_LOCATION:-ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH}}
 
 TEST_OVERRIDE_CONFIGMAP_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-configmap.yaml"
 TEST_OVERRIDE_SECRET_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-secret.yaml"
@@ -126,7 +126,7 @@ if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
   # Derive the name of the operator.yaml file, copy or generate the file, then install
   if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage location ${OCI_OS_LOCATION}"
-      curl -s -L https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${OCI_OS_LOCATION}/operator.yaml > ${WORKSPACE}/downloaded-operator.yaml
+      curl -s -L https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_COMMIT_BUCKET}/o/${OCI_OS_LOCATION}/operator.yaml > ${WORKSPACE}/downloaded-operator.yaml
       cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
   else
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
