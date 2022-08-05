@@ -523,9 +523,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Post-upgrade Acceptance Tests') {
-            stages {
                 stage('Post-upgrade Acceptance Tests parallel') {
                     stage ('Console') {
                         when { expression { isMultiCluster() } }
@@ -538,6 +535,8 @@ pipeline {
                                 }
                             }
                     }
+        stage('Post-upgrade Acceptance Tests') {
+            stages {
                     parallel {
                         stage('post-upgrade verify keycloak') {
                             steps {
