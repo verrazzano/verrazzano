@@ -539,7 +539,8 @@ pipeline {
                             }
                         }
                 stage('Post-upgrade Acceptance Tests parallel') {
-                    parallel {
+                // replaced parallel with stages below
+                    stages {
                         stage('post-upgrade verify keycloak') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
