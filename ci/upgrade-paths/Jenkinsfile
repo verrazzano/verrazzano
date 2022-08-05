@@ -432,7 +432,7 @@ pipeline {
 
         stage('Verify Upgrade') {
             // Rerun some stages to verify the upgrade
-            parallel {
+            stages {
                 stage ('Verify Register') {
                     when { expression { isMultiCluster() } }
                     steps {
