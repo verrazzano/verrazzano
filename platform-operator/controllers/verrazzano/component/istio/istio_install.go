@@ -265,6 +265,7 @@ func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
 	_, err := verifyIstioIngressGatewayIP(compContext.Client(), compContext.EffectiveCR())
 	if err != nil {
 		compContext.Log().Errorf("Ingress external IP pending for component %s: %s", ComponentName, err.Error())
+		return err
 	}
 	return nil
 }

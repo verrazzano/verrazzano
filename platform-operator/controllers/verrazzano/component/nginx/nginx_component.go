@@ -147,12 +147,5 @@ func (c nginxComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return nil
 	}
 
-	// Verify that the ingress-nginx service has an external IP before completing post-upgrade
-	_, err := vzconfig.GetIngressIP(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().Infof("Ingress external IP pending for component %s: %v", ComponentName, err)
-		return err
-	}
-
 	return c.HelmComponent.PostUpgrade(ctx)
 }

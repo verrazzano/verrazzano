@@ -41,7 +41,13 @@ func isNginxReady(context spi.ComponentContext) bool {
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
+	// Verify that the ingress-nginx service has an external IP before completing post-install
 	_, err := vzconfig.GetIngressIP(context.Client(), context.EffectiveCR())
+	// Only log the message for if the request comes from this component's context
+	// Otherwise, the message is logged for each component that checks the status of the ingress controller
+	if err != nil && context.GetComponent() == ComponentName {
+		context.Log().Errorf("Ingress external IP pending for component %s: %v", ComponentName, err)
+	}
 	return err == nil && status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
@@ -115,13 +121,6 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 	mergeFromSvc := client.MergeFrom(svcPatch.DeepCopy())
 	svcPatch.Spec.Ports = ingressConfig.Ports
 	if err := c.Patch(context.TODO(), &svcPatch, mergeFromSvc); err != nil {
-		return err
-	}
-
-	// Verify that the ingress-nginx service has an external IP before completing post-install
-	_, err := vzconfig.GetIngressIP(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().Infof("Ingress external IP pending for component %s: %v", ComponentName, err)
 		return err
 	}
 
