@@ -286,7 +286,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		}
 	}
 
-	if (vz.Status.Version == "" || (vzStatusVer.IsGreatherThan(ver140) || vzStatusVer.IsEqualTo(ver140))) && !(vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local) {
+	if vz.Status.Version == "" || (vzStatusVer.IsGreatherThan(ver140) || vzStatusVer.IsEqualTo(ver140)) {
 		enableKeycloak := vz.Spec.Components.Rancher == nil || vz.Spec.Components.Rancher.AuthtType == v1alpha1.Keycloak
 		if err := disableOrEnableAuthProvider(ctx, AuthConfigKeycloak, enableKeycloak); err != nil {
 			return log.ErrorfThrottledNewErr("failed enabling keycloak oidc provider: %s", err.Error())
@@ -351,7 +351,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		}
 	}
 
-	if (vzSpecVer != nil && (vzSpecVer.IsGreatherThan(ver140) || vzSpecVer.IsEqualTo(ver140))) && !(vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local) {
+	if vzSpecVer != nil && (vzSpecVer.IsGreatherThan(ver140) || vzSpecVer.IsEqualTo(ver140)) {
 		enableKeycloak := vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Keycloak
 		if err := disableOrEnableAuthProvider(ctx, AuthConfigKeycloak, enableKeycloak); err != nil {
 			return log.ErrorfThrottledNewErr("failed changing state of keycloak oidc provider: %s", err.Error())
