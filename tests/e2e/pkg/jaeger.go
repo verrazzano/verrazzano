@@ -8,7 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -263,6 +265,19 @@ func ListCronJobsMatchingLabels(namespace string, matchLabels map[string]string)
 		return nil, err
 	}
 	return cronjobs, nil
+}
+
+func WhenJaegerOperatorEnabledIt(t *framework.TestFramework, text string, args ...interface{}) {
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.It(text, func() {
+			ginkgo.Fail(err.Error())
+		})
+	}
+	if IsJaegerOperatorEnabled(kubeconfig) {
+		t.ItMinimumVersion(text, "1.3.0", kubeconfig, args...)
+	}
+	t.Logs.Infof("Skipping spec, Jaeger Operator is disabled")
 }
 
 // getJaegerWithBasicAuth access Jaeger with GET using basic auth, using a given kubeconfig

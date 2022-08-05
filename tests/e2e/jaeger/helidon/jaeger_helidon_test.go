@@ -44,19 +44,6 @@ var (
 	start                    = time.Now()
 )
 
-func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
-	kubeconfig, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		t.It(text, func() {
-			Fail(err.Error())
-		})
-	}
-	if pkg.IsJaegerOperatorEnabled(kubeconfig) {
-		t.ItMinimumVersion(text, "1.3.0", kubeconfig, args...)
-	}
-	t.Logs.Infof("Skipping spec, Jaeger Operator is disabled")
-}
-
 var _ = t.BeforeSuite(func() {
 	kubeconfig, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -148,7 +135,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:jaeger.helidon-workload"), func()
 		// GIVEN the Jaeger Operator is enabled and a sample application is installed,
 		// WHEN we check for traces for that service,
 		// THEN we are able to get the traces
-		WhenJaegerOperatorEnabledIt("should have a verrazzano-monitoring namespace", func() {
+		pkg.WhenJaegerOperatorEnabledIt(t, "should have a verrazzano-monitoring namespace", func() {
 			Eventually(func() (bool, error) {
 				// Check if the service name is registered in Jaeger and traces are present for that service
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -175,7 +162,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:jaeger.helidon-workload"), func()
 		// GIVEN the Jaeger Operator component is enabled,
 		// WHEN a sample application is installed,
 		// THEN the traces are found in OpenSearch Backend
-		WhenJaegerOperatorEnabledIt("should have running pods", func() {
+		pkg.WhenJaegerOperatorEnabledIt(t, "should have running pods", func() {
 			Eventually(func() (bool, error) {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -188,7 +175,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:jaeger.helidon-workload"), func()
 		// GIVEN the Jaeger Operator component is enabled,
 		// WHEN we check for metrics related to Jaeger operator
 		// THEN we see that the metrics are present in prometheus
-		WhenJaegerOperatorEnabledIt("should have the correct default Jaeger images", func() {
+		pkg.WhenJaegerOperatorEnabledIt(t, "should have the correct default Jaeger images", func() {
 			Eventually(func() bool {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -202,7 +189,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:jaeger.helidon-workload"), func()
 		// GIVEN the Jaeger Operator component is installed with default Jaeger CR enabled
 		// WHEN we check for metrics related to Jaeger Components (jaeger-query, jaeger-collector, jaeger-agent)
 		// THEN we see that the metrics are present in prometheus
-		WhenJaegerOperatorEnabledIt("should have the correct Jaeger Operator CRDs", func() {
+		pkg.WhenJaegerOperatorEnabledIt(t, "should have the correct Jaeger Operator CRDs", func() {
 			Eventually(func() bool {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
