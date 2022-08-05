@@ -406,7 +406,7 @@ func TestPostInstallWithPorts(t *testing.T) {
 		},
 		Status: corev1.ServiceStatus{
 			LoadBalancer: corev1.LoadBalancerStatus{
-				[]corev1.LoadBalancerIngress{
+				Ingress: []corev1.LoadBalancerIngress{
 					{
 						IP: "0.0.0.0",
 					},
