@@ -23,13 +23,15 @@ func EventuallyPodsReady(log *zap.SugaredLogger, cs *kubernetes.Clientset) {
 			return false
 		}
 
+		// Assume all pods are ready.  If debug enabled, log status of each pod that is not ready yet
+		returnValue := true
 		for _, pod := range pods.Items {
 			if !IsPodReadyOrCompleted(pod) {
 				log.Infof("Pod [%s] in namespace [%s] not ready or completed [%s]", pod.Name, pod.Namespace, string(pod.Status.Phase))
-				return false
+				returnValue = false
 			}
 		}
-		return true
+		return returnValue
 
 	}, WaitTimeout, PollingInterval).Should(gomega.BeTrue())
 }
