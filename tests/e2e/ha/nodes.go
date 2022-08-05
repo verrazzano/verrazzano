@@ -11,6 +11,7 @@ import (
 	"github.com/onsi/gomega"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -64,7 +65,9 @@ func EventuallyEvictNode(cs *kubernetes.Clientset, name string, log *zap.Sugared
 		for i := range pods.Items {
 			pod := &pods.Items[i]
 			if err := cs.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
-				log.Errorf("Failed to delete pod[%s] for node[%s]: %v", pod.Name, name, err)
+				if !errors.IsNotFound(err) {
+					log.Errorf("Failed to delete pod[%s] for node[%s]: %v", pod.Name, name, err)
+				}
 				return false
 			}
 
