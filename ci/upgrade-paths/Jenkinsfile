@@ -494,7 +494,8 @@ pipeline {
         }
 
         stage ('Verify Infra') {
-            parallel {
+            //parallel {
+            stages {
                 stage('verify-scripts') {
                     steps {
                         runGinkgoRandomizeParallel('scripts')
@@ -515,6 +516,7 @@ pipeline {
                         runGinkgoRandomizeParallel('verify-infra/vmi')
                     }
                 }
+           // }
             }
             post {
                 always {
