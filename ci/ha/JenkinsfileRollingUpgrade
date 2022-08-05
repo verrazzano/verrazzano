@@ -211,6 +211,7 @@ pipeline {
                         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                         OCI_OS_LOCATION = "ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                         KIND_NODE_COUNT = "${params.KIND_WORKER_NODES}"
+                        INSTALL_TIMEOUT = "40m"
                     }
                     steps {
                         sh """
