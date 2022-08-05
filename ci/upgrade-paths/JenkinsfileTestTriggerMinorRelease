@@ -52,6 +52,7 @@ pipeline {
                         description: 'This is the wildcard DNS domain',
                         trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
+        booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
