@@ -14,7 +14,7 @@ REPO_NAME:=verrazzano-platform-operator
 CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
 CREATE_LATEST_TAG=0
 
-CRD_OPTIONS ?= "crd:crdVersions=v1"
+CRD_OPTIONS ?= "crd:crdVersions=v1,maxDescLen=0"
 KUBECONFIG ?= ${HOME}/.kube/config
 
 ifndef DOCKER_IMAGE_FULLNAME
