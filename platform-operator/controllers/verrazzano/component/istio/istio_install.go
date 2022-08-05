@@ -390,8 +390,8 @@ func removeTempFiles(log vzlog.VerrazzanoLogger) {
 	}
 }
 
-// getIngressServiceType returns the service type of the Istio ingress service for use in checking its status
-func getIngressServiceType(vz *vzapi.Verrazzano) (vzapi.IngressType, error) {
+// getIstioIngressGatewayServiceType returns the service type of the Istio ingress service for use in checking its status
+func getIstioIngressGatewayServiceType(vz *vzapi.Verrazzano) (vzapi.IngressType, error) {
 	istioComp := vz.Spec.Components.Istio
 	if istioComp == nil {
 		return vzapi.LoadBalancer, nil
@@ -411,7 +411,7 @@ func getIngressServiceType(vz *vzapi.Verrazzano) (vzapi.IngressType, error) {
 // verifyIstioIngressGatewayIP checks the status of the Istio Ingress service and
 // returns an error if not found or missing external IP
 func verifyIstioIngressGatewayIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
-	serviceType, err := getIngressServiceType(vz)
+	serviceType, err := getIstioIngressGatewayServiceType(vz)
 	if err != nil {
 		return "", err
 	}
