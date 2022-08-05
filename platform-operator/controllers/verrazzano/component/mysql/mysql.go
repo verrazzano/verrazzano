@@ -41,8 +41,10 @@ const (
 	mySQLRootKey          = "mysql-root-password"
 	mySQLInitFilePrefix   = "init-mysql-"
 	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
+	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
 	persistenceEnabledKey = "primary.persistence.enabled"
 	statefulsetClaimName  = "data-mysql-0"
+	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
@@ -75,6 +77,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 				compContext.Log().Debugf("Deployment does not exist.  No need to intialize db")
 			}
 		}
+
 		if deployment != nil {
 			mySQLVolumeSource := getMySQLVolumeSource(compContext.EffectiveCR())
 			// check for ephemeral storage
@@ -86,6 +89,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 				}
 				kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
+				kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
 			}
 		}
 
@@ -103,6 +107,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 		kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
+		kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
 		kvs, err = appendMySQLSecret(compContext, kvs)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
