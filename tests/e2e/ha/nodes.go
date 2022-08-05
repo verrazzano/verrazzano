@@ -67,8 +67,8 @@ func EventuallyEvictNode(cs *kubernetes.Clientset, name string, log *zap.Sugared
 			if err := cs.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
 				if !errors.IsNotFound(err) {
 					log.Errorf("Failed to delete pod[%s] for node[%s]: %v", pod.Name, name, err)
+					return false
 				}
-				return false
 			}
 
 			// Delete any PVC's the pod may have, otherwise the pod may not reschedule due
@@ -78,8 +78,8 @@ func EventuallyEvictNode(cs *kubernetes.Clientset, name string, log *zap.Sugared
 				if pvc != nil {
 					if err := cs.CoreV1().PersistentVolumeClaims(pod.Namespace).Delete(context.TODO(), pvc.ClaimName, metav1.DeleteOptions{}); err != nil {
 						log.Errorf("Failed to delete pvc[%s] for pod[%s] for node[%s]: %v", pvc.ClaimName, pod.Name, name, err)
+						return false
 					}
-					return false
 				}
 			}
 		}
