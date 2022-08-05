@@ -527,9 +527,8 @@ pipeline {
         stage('Post-upgrade Acceptance Tests') {
             stages {
                 stage('Post-upgrade Acceptance Tests parallel') {
-                    parallel {
-                        stage ('Console') {
-                            when { expression { isMultiCluster() } }
+                    stage ('Console') {
+                        when { expression { isMultiCluster() } }
                             steps {
                                 runConsoleTests()
                             }
@@ -538,7 +537,8 @@ pipeline {
                                     saveConsoleTestArtifacts()
                                 }
                             }
-                        }
+                    }
+                    parallel {
                         stage('post-upgrade verify keycloak') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
