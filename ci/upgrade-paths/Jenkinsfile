@@ -460,7 +460,7 @@ pipeline {
             }
         }
         stage ('Verify Install') {
-            parallel {
+          //  parallel {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomizeSerial('verify-install')
@@ -473,7 +473,7 @@ pipeline {
                         runGinkgoRandomizeParallel('multicluster/verify-install')
                     }
                 }
-            }
+            //}
         }
 
         // Run Verify Registry
