@@ -6,6 +6,7 @@ package helidon
 import (
 	"fmt"
 	"io/ioutil"
+	appsv1 "k8s.io/api/apps/v1"
 	"net/http"
 	"strings"
 	"time"
@@ -180,11 +181,20 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 
 })
 
+func helloHelidonDeployment(namespace, deploymentName string) (*appsv1.Deployment, error) {
+	deployment, err := pkg.GetDeployment(namespace, deploymentName)
+	fmt.Println(deployment.Spec.Selector.MatchLabels)
+	fmt.Println(deployment.Spec.Selector.MatchExpressions)
+	fmt.Println(err)
+	return deployment, err
+}
+
 func helloHelidonPodsRunning() bool {
 	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
+	helloHelidonDeployment(namespace, "hello-helidon-deployment")
 	return result
 }
 
