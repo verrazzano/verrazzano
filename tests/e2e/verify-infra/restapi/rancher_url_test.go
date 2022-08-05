@@ -38,7 +38,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				}
 
 				api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-				rancherURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher")
+				rancherURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
 				httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 				var httpResponse *pkg.HTTPResponse
 
@@ -104,7 +104,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 
 					start = time.Now()
 					t.Logs.Info("Verify Keycloak AuthConfig")
-					keycloakURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "keycloak", "keycloak")
+					keycloakURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "keycloak", "keycloak", "https")
 					Eventually(func() (bool, error) {
 						authConfigData, err := k8sClient.Resource(gvkToGvr(rancher.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigKeycloak, v1.GetOptions{})
 						if err != nil {

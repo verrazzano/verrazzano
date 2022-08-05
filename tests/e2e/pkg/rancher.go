@@ -15,14 +15,14 @@ import (
 	"go.uber.org/zap"
 )
 
-func EventuallyGetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string) string {
+func EventuallyGetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string, scheme string) string {
 	var ingressURL string
 	gomega.Eventually(func() error {
 		ingress, err := api.GetIngress(namespace, name)
 		if err != nil {
 			return err
 		}
-		ingressURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+		ingressURL = fmt.Sprintf("%s://%s", scheme, ingress.Spec.Rules[0].Host)
 		log.Info(fmt.Sprintf("Found ingress URL: %s", ingressURL))
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil())

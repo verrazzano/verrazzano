@@ -278,6 +278,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	vz = ctx.ActualCR()
 	var vzStatusVer *semver.SemVersion
 	if vz.Status.Version != "" {
 		vzStatusVer, err = semver.NewSemVersion(vz.Status.Version)

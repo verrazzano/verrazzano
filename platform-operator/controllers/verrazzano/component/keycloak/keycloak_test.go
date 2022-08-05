@@ -128,7 +128,7 @@ func fakeConfigureRealmCommandsUpdateKeycloakURIFailed(url *url.URL) (string, st
 
 	if commands = url.Query()["command"]; len(commands) == 3 {
 		if strings.Contains(commands[2], "get clients") {
-			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"rancher\"}]", "", nil
+			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"rancher\"},{\"id\" : \"quick-fox-1\",\"clientId\" : \"verrazzano-pg\"}]", "", nil
 		}
 	}
 

@@ -330,11 +330,11 @@ func TestGetURLForIngress(t *testing.T) {
 		},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&ingress).Build()
-	ing, err := k8sutil.GetURLForIngress(client, "test", "default")
+	ing, err := k8sutil.GetURLForIngress(client, "test", "default", "https")
 	asserts.NoError(err)
 	asserts.Equal("https://test", ing)
 
 	client = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	_, err = k8sutil.GetURLForIngress(client, "test", "default")
+	_, err = k8sutil.GetURLForIngress(client, "test", "default", "https")
 	asserts.Error(err)
 }

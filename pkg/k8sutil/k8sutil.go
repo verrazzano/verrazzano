@@ -333,11 +333,11 @@ func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error)
 }
 
 // GetHostFromIngress returns the url for an Ingress
-func GetURLForIngress(client client.Client, name string, namespace string) (string, error) {
+func GetURLForIngress(client client.Client, name string, namespace string, scheme string) (string, error) {
 	var ingress = &networkingv1.Ingress{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, ingress)
 	if err != nil {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", name, namespace, err)
 	}
-	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
+	return fmt.Sprintf("%s://%s", scheme, ingress.Spec.Rules[0].Host), nil
 }

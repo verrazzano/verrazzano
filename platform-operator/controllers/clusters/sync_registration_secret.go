@@ -116,7 +116,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Get the keycloak URL
-	keycloakURL, err := k8sutil.GetURLForIngress(r.Client, "keycloak", "keycloak")
+	keycloakURL, err := k8sutil.GetURLForIngress(r.Client, "keycloak", "keycloak", "https")
 	if err != nil {
 		return err
 	}

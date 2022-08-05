@@ -486,12 +486,12 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak authConfig: %s", err.Error())
 	}
 
-	keycloakURL, err := k8sutil.GetURLForIngress(c, "keycloak", "keycloak")
+	keycloakURL, err := k8sutil.GetURLForIngress(c, "keycloak", "keycloak", "https")
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak url: %s", err.Error())
 	}
 
-	rancherURL, err := k8sutil.GetURLForIngress(c, "rancher", "cattle-system")
+	rancherURL, err := k8sutil.GetURLForIngress(c, "rancher", "cattle-system", "https")
 	if err != nil {
 		log.Oncef("skipping configuring keycloak as OIDC provider for rancher, unable to fetch rancher url: %s", err.Error())
 		return nil

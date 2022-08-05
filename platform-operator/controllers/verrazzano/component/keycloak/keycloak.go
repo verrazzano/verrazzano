@@ -172,7 +172,6 @@ const pgClient = `
       "surrogateAuthRequired" : false,
       "directAccessGrantsEnabled" : "true",
       "clientAuthenticatorType" : "client-secret",
-      "secret" : "de05ccdc-67df-47f3-81f6-37e61d195aba",
       "redirectUris" : [ ],
       "webOrigins" : [ "+" ],
       "notBefore" : 0,
@@ -307,7 +306,6 @@ const rancherClientTmpl = `
       "nodeReRegistrationTimeout": -1,
       "protocolMappers": [
         {
-          "id": "8994f0ee-b490-49ae-8793-ee72df7e4b6d",
           "name": "Client Audience",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-audience-mapper",
@@ -319,7 +317,6 @@ const rancherClientTmpl = `
           }
         },
         {
-          "id": "aec784d9-0fb0-43b3-bf23-24f09b7806da",
           "name": "Groups Mapper",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-group-membership-mapper",
@@ -333,7 +330,6 @@ const rancherClientTmpl = `
           }
         },
         {
-          "id": "4edf1f22-7140-44f0-a183-40f99692da2d",
           "name": "Group Path",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-group-membership-mapper",
@@ -760,7 +756,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Creating verrazzano-pg client
-	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", false)
+	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true)
 	if err != nil {
 		return err
 	}
