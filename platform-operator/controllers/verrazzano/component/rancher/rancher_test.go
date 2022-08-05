@@ -193,6 +193,15 @@ func createServerURLSetting() unstructured.Unstructured {
 	return serverURLSetting
 }
 
+func createFirstLoginSetting() unstructured.Unstructured {
+	firstLoginSetting := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	firstLoginSetting.SetGroupVersionKind(GVKSetting)
+	firstLoginSetting.SetName(SettingFirstLogin)
+	return firstLoginSetting
+}
+
 func createOciDriver() unstructured.Unstructured {
 	ociDriver := unstructured.Unstructured{
 		Object: map[string]interface{}{

@@ -14,6 +14,8 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -271,6 +273,31 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
 	}
 
+	ver140, err := semver.NewSemVersion("v" + constants.VerrazzanoVersion1_4_0)
+	if err != nil {
+		return err
+	}
+
+	var vzStatusVer *semver.SemVersion
+	if vz.Status.Version != "" {
+		vzStatusVer, err = semver.NewSemVersion(vz.Status.Version)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed Rancher post-install: Invalid Verrazzano version: %v", err)
+		}
+	}
+
+	if (vz.Status.Version == "" || (vzStatusVer.IsGreatherThan(ver140) || vzStatusVer.IsEqualTo(ver140))) && !(vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local) {
+		enableKeycloak := vz.Spec.Components.Rancher == nil || vz.Spec.Components.Rancher.AuthtType == v1alpha1.Keycloak
+		if err := disableOrEnableAuthProvider(ctx, AuthConfigKeycloak, enableKeycloak); err != nil {
+			return log.ErrorfThrottledNewErr("failed enabling keycloak oidc provider: %s", err.Error())
+		}
+
+		enableLocal := vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local
+		if err := disableOrEnableAuthProvider(ctx, AuthConfigLocal, enableLocal); err != nil {
+			return log.ErrorfThrottledNewErr("failed disabling local oidc provider: %s", err.Error())
+		}
+	}
+
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
@@ -310,6 +337,32 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
 	}
 
+	ver140, err := semver.NewSemVersion("v" + constants.VerrazzanoVersion1_4_0)
+	if err != nil {
+		return err
+	}
+	vz := ctx.ActualCR()
+
+	var vzSpecVer *semver.SemVersion
+	if vz.Spec.Version != "" {
+		vzSpecVer, err = semver.NewSemVersion(vz.Spec.Version)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed Rancher post-upgrade: Invalid Verrazzano version: %v", err)
+		}
+	}
+
+	if (vzSpecVer != nil && (vzSpecVer.IsGreatherThan(ver140) || vzSpecVer.IsEqualTo(ver140))) && !(vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local) {
+		enableKeycloak := vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Keycloak
+		if err := disableOrEnableAuthProvider(ctx, AuthConfigKeycloak, enableKeycloak); err != nil {
+			return log.ErrorfThrottledNewErr("failed changing state of keycloak oidc provider: %s", err.Error())
+		}
+
+		enableLocal := vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local
+		if err := disableOrEnableAuthProvider(ctx, AuthConfigLocal, enableLocal); err != nil {
+			return log.ErrorfThrottledNewErr("failed changing state of  local oidc provider: %s", err.Error())
+		}
+	}
+
 	if err := r.HelmComponent.PostUpgrade(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
 	}
@@ -347,8 +400,8 @@ func configureKeycloakOIDCProvider(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user global role binding: %s", err.Error())
 	}
 
-	if err := disableOrEnableAuthProvider(ctx, AuthConfigLocal, false); err != nil {
-		return log.ErrorfThrottledNewErr("failed disabling the local auth provider: %s", err.Error())
+	if err := disableFirstLogin(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
 	}
 
 	return nil

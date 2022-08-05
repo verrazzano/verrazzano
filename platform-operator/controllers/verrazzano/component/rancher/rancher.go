@@ -96,6 +96,7 @@ const (
 	APIGroupRancherManagement                     = "management.cattle.io"
 	APIGroupVersionRancherManagement              = "v3"
 	SettingServerURL                              = "server-url"
+	SettingFirstLogin                             = "first-login"
 	KontainerDriverOKE                            = "oraclecontainerengine"
 	NodeDriverOCI                                 = "oci"
 	ClusterLocal                                  = "local"
@@ -504,7 +505,7 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig := keycloakAuthConfig.UnstructuredContent()
 	authConfig[AuthConfigKeycloakAttributeAccessMode] = AuthConfigKeycloakAccessMode
 	authConfig[AuthConfigKeycloakAttributeClientID] = AuthConfigKeycloakClientIDRancher
-	authConfig[AuthConfigAttributeEnabled] = true
+	authConfig[AuthConfigAttributeEnabled] = false
 	authConfig[AuthConfigKeycloakAttributeGroupSearchEnabled] = true
 	authConfig[AuthConfigKeycloakAttributeAuthEndpoint] = keycloakURL + AuthConfigKeycloakURLPathAuthEndPoint
 	authConfig[AuthConfigKeycloakAttributeClientSecret] = clientSecret
@@ -611,6 +612,26 @@ func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string, enable b
 	err = c.Update(context.Background(), &authConfig, &client.UpdateOptions{})
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, error: %s", enable, name, err.Error())
+	}
+
+	return nil
+}
+
+func disableFirstLogin(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	firstLoginSetting := unstructured.Unstructured{}
+	firstLoginSetting.SetGroupVersionKind(GVKSetting)
+	firstLoginSettingName := types.NamespacedName{Name: SettingFirstLogin}
+	err := c.Get(context.Background(), firstLoginSettingName, &firstLoginSetting)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting first-login Setting: %s", err.Error())
+	}
+
+	firstLoginSetting.UnstructuredContent()["value"] = "false"
+	err = c.Update(context.Background(), &firstLoginSetting)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed updating first-login Setting: %s", err.Error())
 	}
 
 	return nil

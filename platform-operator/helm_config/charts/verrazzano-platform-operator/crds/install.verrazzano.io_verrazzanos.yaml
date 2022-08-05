@@ -6268,6 +6268,10 @@ spec:
                   rancher:
                     description: Rancher configuration
                     properties:
+                      authType:
+                        description: AuthtType is the Auth provider to used for Rancher.  Default
+                          is "keycloak".
+                        type: string
                       enabled:
                         type: boolean
                       monitorChanges:
