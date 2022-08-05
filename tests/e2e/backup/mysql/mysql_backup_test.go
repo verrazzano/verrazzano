@@ -142,7 +142,7 @@ func KeycloakVerifyUsers() bool {
 	}
 
 	for i := 0; i < len(common.KeyCloakUserIDList); i++ {
-		t.Logs.Infof("Verifying user with username '%s' exists affter mysql restore", common.KeyCloakUserIDList[i])
+		t.Logs.Infof("Verifying user with username '%s' exists after mysql restore", common.KeyCloakUserIDList[i])
 		ok, err := keycloakClient.VerifyUserExists(constants.VerrazzanoSystemNamespace, common.KeyCloakUserIDList[i])
 		if err != nil {
 			t.Logs.Errorf("Unable to verify keycloak user due to ", zap.Error(err))
@@ -152,6 +152,7 @@ func KeycloakVerifyUsers() bool {
 			t.Logs.Errorf("User '%s' does not exist or could not be verified.", common.KeyCloakUserIDList[i])
 			return false
 		}
+		t.Logs.Infof("User '%s' found after mysql restore!", common.KeyCloakUserIDList[i])
 	}
 	return true
 }
@@ -266,25 +267,21 @@ func cleanUpVelero() {
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 }
 
-var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial, func() {
+var _ = t.Describe("MySQL Backup and Restore,", Label("f:platform-verrazzano.mysql-backup"), Serial, func() {
 
-	t.Context("Start backup after velero backup storage location created", func() {
-		WhenVeleroInstalledIt("Start backup after velero backup storage location created", func() {
+	t.Context("MySQL backup", func() {
+		WhenVeleroInstalledIt("MySQL backup triggered", func() {
 			Eventually(func() error {
 				return CreateMysqlVeleroBackupObject()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
-	})
 
-	t.Context("Check backup progress after velero backup object was created", func() {
 		WhenVeleroInstalledIt("Check backup progress after velero backup object was created", func() {
 			Eventually(func() error {
 				return common.TrackOperationProgress("velero", common.BackupResource, common.BackupMySQLName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
-	})
 
-	t.Context("Check pvc backup details", func() {
 		WhenVeleroInstalledIt("Check pvc backup details", func() {
 			Eventually(func() error {
 				return DisplayResticInfo("backup")
@@ -292,16 +289,19 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 		})
 	})
 
-	t.Context("Cleanup mysql once backup is done", func() {
-		WhenVeleroInstalledIt("Cleanup mysql once backup is done", func() {
+	t.Context("Disaster simulation", func() {
+		WhenVeleroInstalledIt("Delete users created as part of pre-suite", func() {
+			Eventually(func() error {
+				return KeycloakDeleteUsers()
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+
+		WhenVeleroInstalledIt("Delete mysql infrastructure", func() {
 			Eventually(func() error {
 				return common.DeleteNamespace(constants.KeycloakNamespace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 
-	})
-
-	t.Context("Ensure the pods are not running before starting a restore", func() {
 		WhenVeleroInstalledIt("Ensure the pods are not running before starting a restore", func() {
 			Eventually(func() bool {
 				return checkPodsNotRunning(constants.KeycloakNamespace, keycloakPods)
@@ -309,39 +309,31 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 		})
 	})
 
-	t.Context("Start restore after velero backup is completed", func() {
-		WhenVeleroInstalledIt("Start restore after velero backup is completed", func() {
+	t.Context("MySQL restore", func() {
+		WhenVeleroInstalledIt(fmt.Sprintf("Start restore of mysql from backup '%s'", common.BackupMySQLName), func() {
 			Eventually(func() error {
 				return CreateMysqlVeleroRestoreObject()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
-	})
-
-	t.Context("Check velero restore progress", func() {
-		WhenVeleroInstalledIt("Check velero restore progress", func() {
+		WhenVeleroInstalledIt("Check MySQL restore progress", func() {
 			Eventually(func() error {
 				return common.TrackOperationProgress("velero", common.RestoreResource, common.RestoreMySQLName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
+
 	})
 
-	t.Context("After restore is complete wait for keycloak and mysql pods to come up", func() {
+	t.Context("MySQL Data and Infra verification", func() {
 		WhenVeleroInstalledIt("After restore is complete wait for keycloak and mysql pods to come up", func() {
 			Eventually(func() bool {
 				return checkPodsRunning(constants.KeycloakNamespace, keycloakPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if keycloak and mysql infra is up")
 		})
-	})
-
-	t.Context("Check pvc restore details", func() {
 		WhenVeleroInstalledIt("Check pvc restore details", func() {
 			Eventually(func() error {
 				return DisplayResticInfo("restore")
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
-	})
-
-	t.Context("Is Restore good? Verify restore", func() {
 		WhenVeleroInstalledIt("Is Restore good? Verify restore", func() {
 			Eventually(func() bool {
 				return KeycloakVerifyUsers()
@@ -349,5 +341,4 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 		})
 
 	})
-
 })

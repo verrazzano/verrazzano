@@ -325,74 +325,61 @@ func cleanUpVelero() {
 
 }
 
-var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial, func() {
+var _ = t.Describe("OpenSearch Backup and Restore,", Label("f:platform-verrazzano.opensearch-backup"), Serial, func() {
 
-	t.Context("Start backup after velero backup storage location created", func() {
-		WhenVeleroInstalledIt("Start backup after velero backup storage location created", func() {
+	t.Context(fmt.Sprintf("OpenSearch backup", common.BackupOpensearchName), func() {
+		WhenVeleroInstalledIt("Start opensearch backup after velero backup storage location created", func() {
 			Eventually(func() error {
 				return CreateVeleroBackupObject()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
-	})
 
-	t.Context("Check backup progress after velero backup object was created", func() {
 		WhenVeleroInstalledIt("Check backup progress after velero backup object was created", func() {
 			Eventually(func() error {
 				return common.TrackOperationProgress("velero", common.BackupResource, common.BackupOpensearchName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
-	})
 
-	t.Context("Fetch logs after backup is complete", func() {
 		WhenVeleroInstalledIt("Fetch logs after backup is complete", func() {
 			Eventually(func() error {
 				return common.DisplayHookLogs(t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
+
 	})
 
-	t.Context("Cleanup opensearch once backup is done", func() {
+	t.Context("Disaster simulation", func() {
 		WhenVeleroInstalledIt("Cleanup opensearch once backup is done", func() {
 			Eventually(func() error {
 				return NukeOpensearch()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 
-	})
-
-	t.Context("Ensure the pods are not running before starting a restore", func() {
 		WhenVeleroInstalledIt("Ensure the pods are not running before starting a restore", func() {
 			Eventually(func() bool {
 				return checkPodsNotRunning(constants.VerrazzanoSystemNamespace, esPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are down")
 		})
-	})
 
-	t.Context("After pods are down check if pvcs are deleted before starting a restore", func() {
 		WhenVeleroInstalledIt("After pods are down check if pvcs are deleted before starting a restore", func() {
 			Eventually(func() error {
 				return common.CheckPvcsTerminated("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if pvcs are removed")
 		})
+
 	})
 
-	t.Context("Start restore after velero backup is completed", func() {
+	t.Context("OpenSearch restore", func() {
 		WhenVeleroInstalledIt("Start restore after velero backup is completed", func() {
 			Eventually(func() error {
 				return CreateVeleroRestoreObject()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
-	})
-
-	t.Context("Check velero restore progress", func() {
 		WhenVeleroInstalledIt("Check velero restore progress", func() {
 			Eventually(func() error {
 				return common.TrackOperationProgress("velero", common.RestoreResource, common.RestoreOpensearchName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
-	})
-
-	t.Context("Fetch logs after restore is complete", func() {
 		WhenVeleroInstalledIt("Fetch logs after restore is complete", func() {
 			Eventually(func() error {
 				return common.DisplayHookLogs(t.Logs)
@@ -400,15 +387,12 @@ var _ = t.Describe("Backup Flow,", Label("f:platform-verrazzano.backup"), Serial
 		})
 	})
 
-	t.Context("Wait for all pods to come up in verrazzano-system", func() {
+	t.Context("OpenSearch Data and Infra verification", func() {
 		WhenVeleroInstalledIt("Wait for all pods to come up in verrazzano-system", func() {
 			Eventually(func() bool {
 				return checkPodsRunning(constants.VerrazzanoSystemNamespace, esPodsUp)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are up")
 		})
-	})
-
-	t.Context("Is Restore good? Verify restore", func() {
 		WhenVeleroInstalledIt("Is Restore good? Verify restore", func() {
 			Eventually(func() string {
 				return IsRestoreSuccessful()

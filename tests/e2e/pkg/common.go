@@ -267,7 +267,7 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 	return len(missing) == 0, nil
 }
 
-// SpecificPodsRunningInCluster checks if all the pods identified by namePrefixes and are ready and running in the given cluster
+// SpecificPodsRunningInCluster checks if all the pods identified by labels and are ready and running in the given cluster
 func SpecificPodsRunningInCluster(namespace, labels string, kubeconfigPath string) (bool, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {

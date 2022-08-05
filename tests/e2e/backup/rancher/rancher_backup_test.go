@@ -191,6 +191,26 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 	return nil
 }
 
+// DeleteRancherUsers deletes rancher users
+func DeleteRancherUsers(rancherURL string) bool {
+	token := common.GetRancherLoginToken(t.Logs)
+	if token == "" {
+		t.Logs.Errorf("rancher login token is empty")
+		return false
+	}
+	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	for i := 0; i < len(common.RancherUserNameList); i++ {
+		rancherUserDeleteURL := fmt.Sprintf("%s/v3/users/%s", rancherURL, common.RancherUserIDList[i])
+		_, err := common.HTTPHelper(httpClient, "DELETE", rancherUserDeleteURL, token, "Bearer", http.StatusOK, nil, t.Logs)
+		if err != nil {
+			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
+			return false
+		}
+		t.Logs.Infof("Sucessfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
+	}
+	return true
+}
+
 // VerifyRancherUsers gets an existing rancher user
 func VerifyRancherUsers(rancherURL string) bool {
 	token := common.GetRancherLoginToken(t.Logs)
@@ -315,35 +335,44 @@ func cleanUpRancher() {
 		return common.DeleteSecret(common.VeleroNameSpace, common.RancherSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
+	t.Logs.Info("Cleanup rancher users")
+	Eventually(func() bool {
+		return DeleteRancherUsers(common.RancherURL)
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+
 }
 
-var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazzano.rancher-backup"), Serial, func() {
+var _ = t.Describe("Rancher Backup and Restore,", Label("f:platform-verrazzano.rancher-backup"), Serial, func() {
 
-	t.Context("Start rancher backup", func() {
+	t.Context("Rancher backup", func() {
 		WhenRancherBackupInstalledIt("Start rancher backup", func() {
 			Eventually(func() error {
 				return CreateRancherBackupObject()
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Create rancher backup CRD")
 		})
-	})
 
-	t.Context("Check backup progress after rancher backup object was created", func() {
 		WhenRancherBackupInstalledIt("Check backup progress after rancher backup object was created", func() {
 			Eventually(func() error {
 				return common.TrackOperationProgress("rancher", common.BackupResource, common.BackupRancherName, common.VeleroNameSpace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if rancher backup operation completed successfully")
 		})
+
 	})
 
-	t.Context("Start restore after rancher backup is completed", func() {
+	t.Context("Disaster simulation", func() {
+		WhenRancherBackupInstalledIt("Delete all users that were created as part of pre-suite", func() {
+			Eventually(func() bool {
+				return DeleteRancherUsers(common.RancherURL)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Delete rancher user")
+		})
+	})
+
+	t.Context("Rancher restore", func() {
 		WhenRancherBackupInstalledIt("Start restore after rancher backup is completed", func() {
 			Eventually(func() error {
 				return CreateRancherRestoreObject()
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Create rancher restore CRD")
 		})
-	})
-
-	t.Context("Check rancher restore progress", func() {
 		WhenRancherBackupInstalledIt("Check rancher restore progress", func() {
 			Eventually(func() error {
 				return common.TrackOperationProgress("rancher", common.RestoreResource, common.RestoreRancherName, common.VeleroNameSpace, t.Logs)
@@ -351,16 +380,13 @@ var _ = t.Describe("Rancher Backup and Restore Flow,", Label("f:platform-verrazz
 		})
 	})
 
-	t.Context("After restore is complete wait for rancher pods to come up", func() {
+	t.Context("Rancher Data and Infra verification", func() {
 		WhenRancherBackupInstalledIt("After restore is complete wait for rancher pods to come up", func() {
 			Eventually(func() bool {
 				return checkPodsRunning(constants.RancherSystemNamespace, rancherPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if rancher infra is up")
 		})
-	})
-
-	t.Context("Get user after rancher restore is complete", func() {
-		WhenRancherBackupInstalledIt("Get user after rancher restore is complete", func() {
+		WhenRancherBackupInstalledIt("Verify users are present rancher restore is complete", func() {
 			Eventually(func() bool {
 				return VerifyRancherUsers(common.RancherURL)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if rancher user has been restored successfully")
