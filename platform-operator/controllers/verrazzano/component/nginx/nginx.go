@@ -53,7 +53,7 @@ func isNginxReady(context spi.ComponentContext) bool {
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := context.EffectiveCR()
-	ingressType, err := vzconfig.GetServiceType(cr)
+	ingressType, err := vzconfig.GetIngressServiceType(cr)
 	if err != nil {
 		return []bom.KeyValue{}, err
 	}

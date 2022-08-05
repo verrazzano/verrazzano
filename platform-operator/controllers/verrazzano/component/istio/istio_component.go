@@ -354,6 +354,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 		}
 		return false
 	}
+
 	return true
 }
 
