@@ -327,7 +327,7 @@ func cleanUpVelero() {
 
 var _ = t.Describe("OpenSearch Backup and Restore,", Label("f:platform-verrazzano.opensearch-backup"), Serial, func() {
 
-	t.Context(fmt.Sprintf("OpenSearch backup", common.BackupOpensearchName), func() {
+	t.Context("OpenSearch backup", func() {
 		WhenVeleroInstalledIt("Start opensearch backup after velero backup storage location created", func() {
 			Eventually(func() error {
 				return CreateVeleroBackupObject()
