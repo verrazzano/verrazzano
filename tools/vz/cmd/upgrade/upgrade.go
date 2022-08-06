@@ -125,7 +125,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			if retry == 5 {
 				return fmt.Errorf("Failed to set the upgrade version in the verrazzano install resource: %s", err.Error())
 			}
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second)
 			retry++
 			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to set the upgrade version in the verrazzano install resource: %s\n", err.Error()))
 			continue
