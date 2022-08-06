@@ -42,7 +42,7 @@ func (u *FluentdModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func ValidateUpdate(m update.CRModifier, expectedError string) {
-	gomega.Expect(func() bool {
+	gomega.Eventually(func() bool {
 		err := update.UpdateCR(m)
 		if err != nil {
 			pkg.Log(pkg.Info, fmt.Sprintf("Update error: %v", err))
@@ -54,7 +54,7 @@ func ValidateUpdate(m update.CRModifier, expectedError string) {
 			return false
 		}
 		return strings.Contains(err.Error(), expectedError)
-	}()).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
+	}, oneMinute, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
 }
 
 func ValidateDaemonset(osURL, osSec, apiSec string, extra ...vzapi.VolumeMount) {

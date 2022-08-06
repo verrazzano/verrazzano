@@ -164,7 +164,7 @@ pipeline {
         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
 
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
@@ -176,7 +176,8 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
@@ -200,9 +201,6 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
-
-        // used by verify register test, set in registerManagedClusters
-        ADMIN_VZ_VERSION_AT_REGISTRATION = ""
     }
 
     stages {
@@ -280,6 +278,14 @@ pipeline {
                     }
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'KIND' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()}"
+                }
+                script {
+                    sh """
+                        echo "Downloading VZ CLI from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                        ${GO_REPO_PATH}/vz version
+                    """
                 }
             }
         }
@@ -390,7 +396,7 @@ pipeline {
                         }
                         failure {
                             script {
-                                dumpK8sCluster("${WORKSPACE}/install-failure-cluster-dump")
+                                dumpK8sCluster("${WORKSPACE}/install-failure-cluster-snapshot")
                                 INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
                             }
                         }
@@ -437,7 +443,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-snapshot")
                     }
                 }
             }
@@ -454,7 +460,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-snapshot")
                     }
                 }
             }
@@ -548,7 +554,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump-pre-uninstall")
+                                dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-snapshot-pre-uninstall")
                             }
                         }
                     }
@@ -558,20 +564,20 @@ pipeline {
                 failure {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-snapshot")
                     }
                 }
                 aborted {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-snapshot")
                     }
                 }
                 success {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+                            dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-snapshot")
                         }
                     }
                 }
@@ -589,7 +595,7 @@ pipeline {
                 failure {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-dump")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-snapshot")
                     }
                 }
             }
@@ -629,7 +635,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: "**/multicluster-uninstall-dump/**,**/*cluster-dump*/**,**/test-cluster-dumps/**", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "**/multicluster-uninstall-dump/**,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**", allowEmptyArchive: true
                 }
             }
         }
@@ -665,7 +671,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-dump*/**,**/test-cluster-dumps/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -781,7 +787,7 @@ def getVerrazzanoOperatorYaml() {
         if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
             if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
                 echo "Using the latest branch operator.yaml from object storage because upgrade is disabled for this job"
-                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                 cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
             else
                 echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
@@ -876,7 +882,7 @@ def upgradePlatformOperator() {
 
                 echo "Upgrading the Verrazzano platform operator"
                 # Download the operator.yaml for the target version that we are upgrading to
-                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${upgradeOperatorFile}
+                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${upgradeOperatorFile}
                 kubectl apply -f ${upgradeOperatorFile}
 
                 # need to sleep since the old operator needs to transition to terminating state
@@ -894,7 +900,7 @@ def upgradeVerrazzano() {
     script {
         // Download the bom for the target version that we are upgrading to, then extract the version
         // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
-        VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
+        VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds-by-commit/o/ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
 
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
@@ -1024,10 +1030,7 @@ def registerManagedClusters() {
                     ./tests/e2e/config/scripts/register_managed_cluster.sh
                 """
             }
-            // debugging
-            sh "KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano"
-            sh "KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath='{.items[0].status}'"
-            // end debugging
+            // ADMIN_VZ_VERSION_AT_REGISTRATION is used by verify register test
             env.ADMIN_VZ_VERSION_AT_REGISTRATION = sh(returnStdout: true,
                     script:"KUBECONFIG=${ADMIN_KUBECONFIG} kubectl get verrazzano -o jsonpath='{.items[0].status.version}'").trim()
             print "Admin VZ version at registration is ${env.ADMIN_VZ_VERSION_AT_REGISTRATION}"
@@ -1240,7 +1243,7 @@ def dumpK8sCluster(dumpDirectory) {
             for (int count = 1; count <= clusterCount; count++) {
                 sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count} -r ${dumpDirectory}-${count}/cluster-dump/analysis.report
+                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count} -r ${dumpDirectory}-${count}/cluster-snapshot/analysis.report
             """
             }
         }

@@ -72,6 +72,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			var client *vmcClient.Clientset
 			// If registration happend in VZ versions 1.4 and above on admin cluster, check the ManagedCARetrieved condition as well
 			adminVersionAtRegistration := os.Getenv("ADMIN_VZ_VERSION_AT_REGISTRATION")
+			pkg.Log(pkg.Info, fmt.Sprintf("Admin cluster VZ version at registration is '%s'", adminVersionAtRegistration))
 			regVersion14 := false
 			var err error
 			if adminVersionAtRegistration != "" {
@@ -373,6 +374,7 @@ func vmcStatusCheckOkay(vmc *vmcv1alpha1.VerrazzanoManagedCluster, managedCACond
 		}
 		// If admin cluster VZ version at registration time supports it, check the ManagedCARetrieved condition as well
 		if managedCAConditionSupported {
+			pkg.Log(pkg.Info, "Checking for ManagedCARetrieved condition")
 			if cond.Type == vmcv1alpha1.ConditionManagedCARetrieved && cond.Status == v1.ConditionTrue {
 				managedCAConditionMet = true
 			}
