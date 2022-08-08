@@ -36,7 +36,7 @@ func Test_getServiceTypeLoadBalancer(t *testing.T) {
 		},
 	}
 
-	svcType, err := GetServiceType(vz)
+	svcType, err := GetIngressServiceType(vz)
 	assert.NoError(t, err)
 	assert.Equal(t, vzapi.LoadBalancer, svcType)
 }
@@ -57,7 +57,7 @@ func Test_getServiceTypeNodePort(t *testing.T) {
 		},
 	}
 
-	svcType, err := GetServiceType(vz)
+	svcType, err := GetIngressServiceType(vz)
 	assert.NoError(t, err)
 	assert.Equal(t, vzapi.NodePort, svcType)
 }
@@ -78,7 +78,7 @@ func Test_getServiceTypeInvalidType(t *testing.T) {
 		},
 	}
 
-	svcType, err := GetServiceType(vz)
+	svcType, err := GetIngressServiceType(vz)
 	assert.Error(t, err)
 	assert.Equal(t, vzapi.IngressType(""), svcType)
 }

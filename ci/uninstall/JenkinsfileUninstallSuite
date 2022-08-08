@@ -205,7 +205,7 @@ pipeline {
         }
     }
     post {
-        /*failure {
+        failure {
             script {
                 if (env.JOB_NAME == "verrazzano-uninstall-resiliency-tests/master" || env.JOB_NAME ==~ "verrazzano-uninstall-resiliency-tests/release-1.*") {
                     if (isPagerDutyEnabled()) {
@@ -214,7 +214,7 @@ pipeline {
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
-        }*/
+        }
         cleanup {
             metricBuildDuration()
         }
