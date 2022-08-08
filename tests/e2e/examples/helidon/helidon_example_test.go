@@ -197,7 +197,6 @@ func isDeploymentLabelSelectorSupported() bool {
 	if err != nil {
 		return false
 	}
-	fmt.Println("labelSelector returned as : ", labelSelector)
 	return labelSelector != nil
 }
 
