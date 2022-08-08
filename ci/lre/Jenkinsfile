@@ -44,13 +44,17 @@ pipeline {
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         LRE_CLUSTER_ENV = "${params.LRE_CLUSTER}"
 
+//        dev_lre_compartment_id = credentials('dev-lre-compartment-id')
+//      dev_lre_cluster_id = credentials('dev-lre-cluster-id')
+//        dev_private_ip = credentials('dev-lre-cluster-ip')
+
         dev_lre_compartment_id = credentials('dev-lre-compartment-id')
         dev_lre_cluster_id = credentials('dev-lre-cluster-id')
         dev_private_ip = credentials('dev-lre-cluster-ip')
 
-        dev2_lre_compartment_id = credentials('dev2-lre-compartment-id')
-        dev2_lre_cluster_id = credentials('dev2-lre-cluster-id')
-        dev2_private_ip = credentials('dev2-lre-cluster-ip')
+        dev2_lre_compartment_id = 'ocid1.compartment.oc1..aaaaaaaaw6so5vfzc5bc3u7clfesiyconnywefynlogyc2p6tmlzrhxlq6va'
+        dev2_lre_cluster_id = 'ocid1.cluster.oc1.iad.aaaaaaaaztbjcwluzcxssbmqksr6pfb2mqh2onop3drwu3fojcqr7fxv5rqq'
+        dev2_private_ip = '10.196.0.82'
 
         prod_lre_compartment_id = credentials('prod-lre-compartment-id')
         prod_lre_cluster_id = credentials('prod-lre-cluster-id')
