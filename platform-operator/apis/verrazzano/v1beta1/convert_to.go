@@ -43,6 +43,9 @@ func convertConditionsTo(conditions []Condition) []v1alpha1.Condition {
 }
 
 func convertComponentStatusMapTo(components ComponentStatusMap) v1alpha1.ComponentStatusMap {
+	if components == nil {
+		return nil
+	}
 	componentStatusMap := v1alpha1.ComponentStatusMap{}
 	for component, detail := range components {
 		if detail != nil {
@@ -319,17 +322,6 @@ func convertIstioTo(in *IstioComponent) *v1alpha1.IstioComponent {
 		InstallOverrides: convertInstallOverridesTo(in.InstallOverrides),
 		Enabled:          in.Enabled,
 		InjectionEnabled: in.InjectionEnabled,
-		Ingress:          convertIstioIngressTo(in.Ingress),
-	}
-}
-
-func convertIstioIngressTo(ingress *IstioIngressSection) *v1alpha1.IstioIngressSection {
-	if ingress == nil {
-		return nil
-	}
-	return &v1alpha1.IstioIngressSection{
-		Type:  v1alpha1.IngressType(ingress.Type),
-		Ports: ingress.Ports,
 	}
 }
 

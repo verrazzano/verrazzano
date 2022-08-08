@@ -3,4 +3,5 @@
 
 package v1alpha1
 
+// Hub Because v1alpha1 is the storage version, is is used as the Hub interface for conversion
 func (v *Verrazzano) Hub() {}

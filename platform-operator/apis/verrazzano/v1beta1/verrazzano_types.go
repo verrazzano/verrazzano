@@ -565,8 +565,6 @@ type IstioComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
 	InjectionEnabled *bool `json:"injectionEnabled,omitempty"`
-	// +optional
-	Ingress *IstioIngressSection `json:"ingress,omitempty"`
 }
 
 // IsInjectionEnabled is istio sidecar injection enabled check

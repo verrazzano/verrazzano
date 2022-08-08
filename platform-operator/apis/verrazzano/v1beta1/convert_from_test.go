@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
 
@@ -214,6 +215,136 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 			nodes, err := convertInstallArgsToOSNodes(tt.args)
 			assert.NoError(t, err)
 			assert.EqualValues(t, tt.nodes, nodes)
+		})
+	}
+}
+
+func TestConvertCommonKubernetesToYamls(t *testing.T) {
+	affinity := corev1.Affinity{
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+				{
+					Weight: 100,
+					PodAffinityTerm: corev1.PodAffinityTerm{
+						TopologyKey: "kubernetes.io/hostname",
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"app": "foobar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	const (
+		outputReplicas = `replicas: 1`
+		outputAffinity = `affinity: |
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            app: foobar
+        topologyKey: kubernetes.io/hostname
+      weight: 100
+replicas: 1`
+	)
+	expandReplicas := expandInfo{
+		0,
+		"replicas",
+	}
+	expandAffinity := expandInfo{
+		0,
+		"affinity",
+	}
+
+	var tests = []struct {
+		name         string
+		spec         v1alpha1.CommonKubernetesSpec
+		replicasInfo expandInfo
+		affinityInfo expandInfo
+		output       string
+	}{
+		{
+			"converts replicas and affinity",
+			v1alpha1.CommonKubernetesSpec{
+				Replicas: 1,
+				Affinity: &affinity,
+			},
+			expandReplicas,
+			expandAffinity,
+			outputAffinity,
+		},
+		{
+			"converts only replicas when no affinity",
+			v1alpha1.CommonKubernetesSpec{
+				Replicas: 1,
+			},
+			expandReplicas,
+			expandAffinity,
+			outputReplicas,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			yamls, err := convertCommonKubernetesToYaml(tt.spec, tt.replicasInfo, tt.affinityInfo)
+			assert.NoError(t, err)
+			assert.EqualValues(t, tt.output, yamls)
+		})
+	}
+}
+
+func TestConvertFrom(t *testing.T) {
+	var tests = []converisonTestCase{
+		{
+			"converts from v1alpha1 in the basic case",
+			testCaseBasic,
+			false,
+		},
+		{
+			"converts from v1alpha1 status",
+			testCaseStatus,
+			false,
+		},
+		{
+			"converts components that use install args and install overrides",
+			testCaseInstallArgs,
+			false,
+		},
+		{
+			"convert istio args from v1alpha1",
+			testCaseIstioInstallArgs,
+			false,
+		},
+		{
+			"convert istio affinity args from v1alpha1",
+			testCaseIstioAffinityArgs,
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// load the expected v1alpha1 CR for conversion
+			v1alpha1CR, err := loadV1Alpha1CR(tt.testCase)
+			assert.NoError(t, err)
+			// load the expected v1beta1 CR
+			v1beta1CRExpected, err := loadV1Beta1(tt.testCase)
+			assert.NoError(t, err)
+			// compute the actual v1beta1 CR from the v1alpha1 CR
+			v1beta1CRActual := &Verrazzano{}
+			err = v1beta1CRActual.ConvertFrom(v1alpha1CR)
+			if (err == nil) == tt.hasError {
+				t.Errorf("err: %v", err)
+			}
+
+			// expected and actual v1beta1 CRs must be equal
+			assert.EqualValues(t, v1beta1CRExpected.ObjectMeta, v1beta1CRActual.ObjectMeta)
+			assert.EqualValues(t, v1beta1CRExpected.Spec, v1beta1CRActual.Spec)
+			assert.EqualValues(t, v1beta1CRExpected.Status, v1beta1CRActual.Status)
 		})
 	}
 }

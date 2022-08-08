@@ -12,6 +12,8 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+	"sigs.k8s.io/yaml"
+	"strconv"
 )
 
 const (
@@ -27,7 +29,15 @@ const (
 	masterNodeName = "es-master"
 	dataNodeName   = "es-data"
 	ingestNodeName = "es-ingest"
+
+	authProxyReplicasKey = "replicas"
+	authProxyAffinityKey = "affinity"
 )
+
+type expandInfo struct {
+	leftMargin int
+	key        string
+}
 
 func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha1.Verrazzano)
@@ -62,6 +72,10 @@ func convertSecuritySpecFrom(security v1alpha1.SecuritySpec) SecuritySpec {
 }
 
 func convertComponentsFrom(src v1alpha1.ComponentSpec) (ComponentSpec, error) {
+	authProxyComponent, err := convertAuthProxyFrom(src.AuthProxy)
+	if err != nil {
+		return ComponentSpec{}, err
+	}
 	opensearchComponent, err := convertOpenSearchFrom(src.Elasticsearch)
 	if err != nil {
 		return ComponentSpec{}, err
@@ -86,7 +100,7 @@ func convertComponentsFrom(src v1alpha1.ComponentSpec) (ComponentSpec, error) {
 		CertManager:            convertCertManagerFrom(src.CertManager),
 		CoherenceOperator:      convertCoherenceOperatorFrom(src.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorFrom(src.ApplicationOperator),
-		AuthProxy:              convertAuthProxyFrom(src.AuthProxy),
+		AuthProxy:              authProxyComponent,
 		OAM:                    convertOAMFrom(src.OAM),
 		Console:                convertConsoleFrom(src.Console),
 		DNS:                    convertDNSFrom(src.DNS),
@@ -158,14 +172,35 @@ func convertApplicationOperatorFrom(src *v1alpha1.ApplicationOperatorComponent) 
 	}
 }
 
-func convertAuthProxyFrom(src *v1alpha1.AuthProxyComponent) *AuthProxyComponent {
+func convertAuthProxyFrom(src *v1alpha1.AuthProxyComponent) (*AuthProxyComponent, error) {
 	if src == nil {
-		return nil
+		return nil, nil
 	}
+	overrides := convertInstallOverridesFrom(src.InstallOverrides)
+	if src.Kubernetes != nil {
+		replicasInfo := expandInfo{
+			key:        authProxyReplicasKey,
+			leftMargin: 0,
+		}
+		affinityInfo := expandInfo{
+			key:        authProxyAffinityKey,
+			leftMargin: 0,
+		}
+		k8sSpecYaml, err := convertCommonKubernetesToYaml(src.Kubernetes.CommonKubernetesSpec, replicasInfo, affinityInfo)
+		if err != nil {
+			return nil, err
+		}
+		override, err := createValueOverride([]byte(k8sSpecYaml))
+		if err != nil {
+			return nil, err
+		}
+		overrides.ValueOverrides = append(overrides.ValueOverrides, override)
+	}
+
 	return &AuthProxyComponent{
 		Enabled:          src.Enabled,
-		InstallOverrides: InstallOverrides{},
-	}
+		InstallOverrides: overrides,
+	}, nil
 }
 
 func convertOAMFrom(src *v1alpha1.OAMComponent) *OAMComponent {
@@ -422,7 +457,21 @@ func convertIstioFrom(src *v1alpha1.IstioComponent) (*IstioComponent, error) {
 	if src == nil {
 		return nil, nil
 	}
-	return &IstioComponent{}, nil
+	istioYaml, err := convertIstioComponentToYaml(src)
+	if err != nil {
+		return nil, err
+	}
+	overrides := convertInstallOverridesFrom(src.InstallOverrides)
+	override, err := createValueOverride([]byte(istioYaml))
+	if err != nil {
+		return nil, err
+	}
+	overrides.ValueOverrides = append(overrides.ValueOverrides, override)
+	return &IstioComponent{
+		InstallOverrides: overrides,
+		Enabled:          src.Enabled,
+		InjectionEnabled: src.InjectionEnabled,
+	}, nil
 }
 
 func convertJaegerOperatorFrom(src *v1alpha1.JaegerOperatorComponent) *JaegerOperatorComponent {
@@ -604,6 +653,9 @@ func convertConditionsFrom(conditions []v1alpha1.Condition) []Condition {
 }
 
 func convertComponentStatusMapFrom(components v1alpha1.ComponentStatusMap) ComponentStatusMap {
+	if components == nil {
+		return nil
+	}
 	componentStatusMap := ComponentStatusMap{}
 	for component, detail := range components {
 		if detail != nil {
@@ -644,13 +696,11 @@ func convertInstallOverridesWithArgsFrom(args []v1alpha1.InstallArgs, overrides 
 	}
 
 	convertedOverrides := convertInstallOverridesFrom(overrides)
-	convertedOverrides.ValueOverrides = append([]Overrides{
-		{
-			Values: &apiextensionsv1.JSON{
-				Raw: []byte(merged),
-			},
-		},
-	}, convertedOverrides.ValueOverrides...)
+	override, err := createValueOverride([]byte(merged))
+	if err != nil {
+		return InstallOverrides{}, err
+	}
+	convertedOverrides.ValueOverrides = append(convertedOverrides.ValueOverrides, override)
 	return convertedOverrides, nil
 }
 
@@ -670,11 +720,28 @@ func convertInstallArgsToYaml(args []v1alpha1.InstallArgs) (string, error) {
 		yamls = append(yamls, yamlString)
 	}
 
-	mergedYaml, err := vzyaml.ReplacementMerge(yamls...)
+	return vzyaml.ReplacementMerge(yamls...)
+}
+
+func convertCommonKubernetesToYaml(src v1alpha1.CommonKubernetesSpec, replicasInfo, affinityInfo expandInfo) (string, error) {
+	var yamls []string
+	replicaYaml, err := vzyaml.Expand(replicasInfo.leftMargin, false, replicasInfo.key, strconv.FormatUint(uint64(src.Replicas), 10))
 	if err != nil {
 		return "", err
 	}
-	return mergedYaml, nil
+	yamls = append(yamls, replicaYaml)
+	if src.Affinity != nil {
+		affinityBytes, err := yaml.Marshal(src.Affinity)
+		if err != nil {
+			return "", err
+		}
+		affinityYaml, err := vzyaml.Expand(affinityInfo.leftMargin, false, affinityInfo.key, string(affinityBytes))
+		if err != nil {
+			return "", err
+		}
+		yamls = append(yamls, affinityYaml)
+	}
+	return vzyaml.ReplacementMerge(yamls...)
 }
 
 func convertInstallOverridesFrom(src v1alpha1.InstallOverrides) InstallOverrides {
@@ -694,4 +761,16 @@ func convertValueOverridesFrom(overrides []v1alpha1.Overrides) []Overrides {
 		})
 	}
 	return out
+}
+
+func createValueOverride(rawYAML []byte) (Overrides, error) {
+	rawJSON, err := yaml.YAMLToJSON(rawYAML)
+	if err != nil {
+		return Overrides{}, err
+	}
+	return Overrides{
+		Values: &apiextensionsv1.JSON{
+			Raw: rawJSON,
+		},
+	}, nil
 }
