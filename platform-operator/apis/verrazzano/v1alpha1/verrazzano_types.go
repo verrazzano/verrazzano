@@ -29,7 +29,7 @@ const (
 	NodePort IngressType = "NodePort"
 )
 
-// RancherAuthType is the Authentication provider  to be used for RANCH
+// RancherAuthType is the Authentication provider to be used for Rancher
 type RancherAuthType string
 
 const (
@@ -685,7 +685,7 @@ type RancherComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
-	// AuthtType is the Auth provider to used for Rancher.  Default is "keycloak".
+	// AuthtType is the Auth provider to be used for Rancher.  Default is "keycloak".
 	// +optional
 	AuthtType RancherAuthType `json:"authType,omitempty"`
 }
