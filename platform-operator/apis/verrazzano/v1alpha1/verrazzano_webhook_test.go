@@ -458,3 +458,35 @@ func TestUpdateMissingOciLoggingApiSecret(t *testing.T) {
 	}()
 	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
 }
+
+// TestUpdateMissingCertManagerApiSecret Tests the update callback with valid spec config with oci-logging
+// GIVEN a ValidateUpdate() request
+// WHEN a new CR contains oci-logging with apiSecret
+// THEN validation error is returned
+func TestUpdateMissingCertManagerApiSecret(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	oldSpec := &Verrazzano{Spec: VerrazzanoSpec{Profile: "dev"}}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "dev",
+			Components: ComponentSpec{
+				CertManager: &CertManagerComponent{
+					Certificate: Certificate{
+						CA: CA{
+							SecretName:               "myca",
+							ClusterResourceNamespace: "namespace",
+						},
+					},
+				},
+			},
+		},
+	}
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() {
+		config.SetDefaultBomFilePath("")
+		getControllerRuntimeClient = getClient
+	}()
+	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
+}

@@ -528,7 +528,7 @@ func getCASecret(ca vzapi.CA) (*v1.Secret, error) {
 func getSecret(namespace string, name string) (*v1.Secret, error) {
 	v1Client, err := getClientFunc()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("FOUND WHERE CA CERT ERROR IS BEING THROWN.")
 	}
 	return v1Client.Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
