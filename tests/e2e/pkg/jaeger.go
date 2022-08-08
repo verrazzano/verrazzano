@@ -11,11 +11,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -197,13 +197,13 @@ func ListServicesInJaeger(kubeconfigPath string) []string {
 
 // DoesCronJobExist returns whether a cronjob with the given name and namespace exists for the cluster
 func DoesCronJobExist(namespace string, name string) (bool, error) {
-	cronjobs, err := ListCronJobsMatchingLabels(namespace, nil)
+	cronjobs, err := ListCronJobNamesMatchingLabels(namespace, nil)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed listing deployments in cluster for namespace %s: %v", namespace, err))
 		return false, err
 	}
-	for i := range cronjobs.Items {
-		if strings.HasPrefix(cronjobs.Items[i].Name, name) {
+	for _, cronJobName := range cronjobs {
+		if strings.HasPrefix(cronJobName, name) {
 			return true, nil
 		}
 	}
@@ -235,13 +235,9 @@ func ListDeploymentsMatchingLabels(namespace string, matchLabels map[string]stri
 	return deployments, nil
 }
 
-// ListCronJobs returns the list of cronjobs in a given namespace
-func ListCronJobs(namespace string) (*batchv1.CronJobList, error) {
-	return ListCronJobsMatchingLabels(namespace, nil)
-}
-
-// ListCronJobsMatchingLabels returns the list of cronjobs in a given namespace matching the given labels for the cluster
-func ListCronJobsMatchingLabels(namespace string, matchLabels map[string]string) (*batchv1.CronJobList, error) {
+// ListCronJobNamesMatchingLabels returns the list of cronjobs in a given namespace matching the given labels for the cluster
+func ListCronJobNamesMatchingLabels(namespace string, matchLabels map[string]string) ([]string, error) {
+	var cronjobNames []string
 	// Get the Kubernetes clientset
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
@@ -257,12 +253,36 @@ func ListCronJobsMatchingLabels(namespace string, matchLabels map[string]string)
 		}
 		listOptions.LabelSelector = selector.String()
 	}
-	cronjobs, err := clientset.BatchV1().CronJobs(namespace).List(context.TODO(), listOptions)
+	info, err := clientset.ServerVersion()
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to list cronjobs in namespace %s: %v", namespace, err))
 		return nil, err
 	}
-	return cronjobs, nil
+	minorVersion, err := strconv.Atoi(info.Minor)
+	if err != nil {
+		return nil, err
+	}
+	// For k8s version 1.20 and lesser, cronjobs are created under version batch/v1beta1
+	// For k8s version greater than 1.20, cronjobs are created under version batch/v1
+	if minorVersion <= 20 {
+		cronjobs, err := clientset.BatchV1beta1().CronJobs(namespace).List(context.TODO(), listOptions)
+		if err != nil {
+			Log(Error, fmt.Sprintf("Failed to list cronjobs in namespace %s: %v", namespace, err))
+			return nil, err
+		}
+		for _, cronjob := range cronjobs.Items {
+			cronjobNames = append(cronjobNames, cronjob.Name)
+		}
+	} else {
+		cronjobs, err := clientset.BatchV1().CronJobs(namespace).List(context.TODO(), listOptions)
+		if err != nil {
+			Log(Error, fmt.Sprintf("Failed to list cronjobs in namespace %s: %v", namespace, err))
+			return nil, err
+		}
+		for _, cronjob := range cronjobs.Items {
+			cronjobNames = append(cronjobNames, cronjob.Name)
+		}
+	}
+	return cronjobNames, nil
 }
 
 // getJaegerWithBasicAuth access Jaeger with GET using basic auth, using a given kubeconfig
