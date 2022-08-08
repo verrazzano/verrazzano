@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -148,8 +149,17 @@ func TestIsNGINXReady(t *testing.T) {
 				UpdatedReplicas:   1,
 			},
 		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      vpoconst.NGINXControllerServiceName,
+				Namespace: vpoconst.IngressNginxNamespace,
+			},
+			Spec: corev1.ServiceSpec{
+				ExternalIPs: []string{"127.0.0.1"},
+			},
+		},
 	).Build()
-	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
+	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
 // TestIsNGINXNotReady tests the IsReady function
@@ -180,7 +190,7 @@ func TestIsNGINXNotReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
+	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
 // TestPostInstallWithPorts tests the PostInstall function
