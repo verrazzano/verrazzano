@@ -115,9 +115,9 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// set the flag to control the display the resources captured
 	isVerbose, err := cmd.PersistentFlags().GetBool(constants.BugReportVerboseFlagName)
 	if err != nil {
-		return fmt.Errorf("an error occurred while reading values for the flag %s: %s", constants.BugReportVerboseFlagName, err.Error())
+		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.BugReportVerboseFlagName, err.Error())
 	}
-	helpers.SetVerboseBugReport(isVerbose)
+	helpers.SetVerboseOutput(isVerbose)
 
 	var msgPrefix string
 	if helpers.GetIsLiveCluster() {
