@@ -103,6 +103,7 @@ const (
 	AuthConfigKeycloak                            = "keycloakoidc"
 	AuthConfigLocal                               = "local"
 	UserVerrazzano                                = "u-verrazzano"
+	UserVerrazzanoDescription                     = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzano                   = "gbr-" + UserVerrazzano
 	AuthConfigKeycloakURLPathVerifyAuth           = "/verify-auth"
 	AuthConfigKeycloakURLPathIssuer               = "/auth/realms/verrazzano-system"
@@ -122,6 +123,7 @@ const (
 	UserAttributeDisplayName                      = "displayName"
 	UserAttributeUserName                         = "username"
 	UserAttributePrincipalIDs                     = "principalIds"
+	UserAttributeDescription                      = "description"
 	GlobalRoleBindingAttributeRoleName            = "globalRoleName"
 	GlobalRoleBindingRoleName                     = "admin"
 	GlobalRoleBindingAttributeUserName            = "userName"
@@ -545,6 +547,7 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	userData := vzRancherUser.UnstructuredContent()
 	userData[UserAttributeUserName] = vzUser.Username
 	userData[UserAttributeDisplayName] = strings.Title(vzUser.Username)
+	userData[UserAttributeDescription] = strings.Title(UserVerrazzanoDescription)
 	userData[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + UserVerrazzano}
 
 	if createUser {
