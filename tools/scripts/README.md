@@ -72,9 +72,9 @@ $ kubectl create secret docker-registry verrazzano-container-registry \
 Next, install the Verrazzano Platform Operator using the image defined by `$MYREG/$MYREPO/$VPO_IMAGE`.  
 
 ```
-helm upgrade --install myv8o ./charts/verrazzano-platform-operator \
+helm template --include-crds ./charts/verrazzano-platform-operator \
     --set image=${MYREG}/${MYREPO}/${VPO_IMAGE} --set global.registry=${MYREG} \
-    --set global.repository=${MYREPO} --wait
+    --set global.repository=${MYREPO} --set global.imagePullSecrets={verrazzano-container-registry} | kubectl apply -f -
 ```
 
 After the Verrazzano Platform Operator is running, proceed with installing Verrazzano as documented at https://verrazzano.io/latest/docs/setup/install/installation/.
