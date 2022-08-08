@@ -3,7 +3,7 @@
 
 dumpK8sCluster() {
   dumpDirectory=$1
-  ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+  ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
 }
 
 dumpVerrazzanoSystemPods() {

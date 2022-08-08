@@ -62,8 +62,6 @@ pipeline {
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         KUBERNETES_VERSION = '1.21,1.22,1.23'
         OCI_CLI_AUTH="instance_principal"
-        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
     }
@@ -207,7 +205,7 @@ pipeline {
         }
     }
     post {
-        /*failure {
+        failure {
             script {
                 if (env.JOB_NAME == "verrazzano-uninstall-resiliency-tests/master" || env.JOB_NAME ==~ "verrazzano-uninstall-resiliency-tests/release-1.*") {
                     if (isPagerDutyEnabled()) {
@@ -216,7 +214,7 @@ pipeline {
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
-        }*/
+        }
         cleanup {
             metricBuildDuration()
         }

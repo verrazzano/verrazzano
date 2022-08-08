@@ -4,7 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-BACKUP_DIR="/var/lib/mysql/data-backup"
+BACKUP_DIR="/oracle/mysql/data-backup"
 
 # takes backup of MySQL
 function backup() {

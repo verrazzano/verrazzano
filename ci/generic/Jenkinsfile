@@ -102,7 +102,7 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        DUMP_ROOT_DIRECTORY="${WORKSPACE}/test-cluster-dumps"
+        DUMP_ROOT_DIRECTORY="${WORKSPACE}/test-cluster-snapshots"
         POST_INSTALL_DUMP="true"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
@@ -113,7 +113,6 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_BUCKET="verrazzano-builds"
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
@@ -151,8 +150,8 @@ pipeline {
                 KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-                OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+                OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                 PIPELINE_CONFIG=getPipelineDescriptorPath()
             }
             steps {
@@ -161,14 +160,14 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/*${TEST_REPORT}", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/Screenshot*.png,**/ConsoleLog*.log,**/*${TEST_REPORT}", allowEmptyArchive: true
                     junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
                 }
                 failure {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-snapshot')
                         }
                     }
                 }
@@ -176,7 +175,7 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-snapshot')
                         }
                     }
                 }
@@ -185,7 +184,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/*${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/Screenshot*.png,**/ConsoleLog*.log,**/*${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -255,7 +254,7 @@ def runDynamicStages(pipelineDescriptor) {
                     parallel targetsMap
                 } finally {
                     echo "Archiving artifacts for stage ${stageName}"
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*${TEST_REPORT},*/Screenshot*.png,**/ConsoleLog*.log,**/*cluster-dump*/**', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*${TEST_REPORT},*/Screenshot*.png,**/ConsoleLog*.log,**/*cluster-snapshot*/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
@@ -524,5 +523,3 @@ def emitJobMetrics() {
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runTestTarget('jobmetrics')
 }
-
-

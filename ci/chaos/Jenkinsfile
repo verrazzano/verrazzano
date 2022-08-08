@@ -76,7 +76,7 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -125,7 +125,7 @@ pipeline {
             environment {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
             }
             steps {
@@ -207,8 +207,9 @@ pipeline {
                 script {
                     sh """
                         echo "Downloading VZ CLI from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                        ${GO_REPO_PATH}/vz version
                     """
                 }
             }
@@ -218,10 +219,10 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OCI_OS_LOCATION="${OCI_OS_LOCATION}"
                 OPERATOR_YAML="${OPERATOR_YAML_FILE}"
-                CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
+                CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
             }
             steps {
                 sh """
@@ -264,14 +265,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('pre-upgrade-tests-cluster-dump')
+                            dumpK8sCluster('pre-upgrade-tests-cluster-snapshot')
                         }
                     }
                 }
                 success {
                     script {
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('install-success-cluster-dump')
+                            dumpK8sCluster('install-success-cluster-snapshot')
                         }
                     }
                 }
@@ -282,7 +283,7 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
             }
             steps {
                 sh """
@@ -299,13 +300,13 @@ pipeline {
                     } else {
                         INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${SHORT_COMMIT_HASH}^1").trim()
                     }
-                    while (sh(returnStatus: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BRANCH_TO_USE}/${INTERIM_UPGRADE_COMMIT}/operator.yaml --file ${WORKSPACE}/interim-operator.yaml") != 0) {
+                    while (sh(returnStatus: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_TO_USE}/${INTERIM_UPGRADE_COMMIT}/operator.yaml --file ${WORKSPACE}/interim-operator.yaml") != 0) {
                         INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${INTERIM_UPGRADE_COMMIT}^1").trim()
                     }
                 }
                 sh """
                     # Download the operator.yaml for the target version that we are upgrading to
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
 
                     echo "Upgrading the Verrazzano platform operator"
@@ -318,7 +319,7 @@ pipeline {
                     then
                         echo "Upgrading VPO to earlier version from branch"
                         echo "commit: ${INTERIM_UPGRADE_COMMIT}"
-                        curl -o ${WORKSPACE}/interim-upgrade-bom.json https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${BRANCH_TO_USE}/${INTERIM_UPGRADE_COMMIT}/generated-verrazzano-bom.json
+                        curl -o ${WORKSPACE}/interim-upgrade-bom.json https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_COMMIT_BUCKET}/o/ephemeral/${BRANCH_TO_USE}/${INTERIM_UPGRADE_COMMIT}/generated-verrazzano-bom.json
                         kubectl apply -f ${WORKSPACE}/interim-operator.yaml
 
                     else
@@ -342,7 +343,7 @@ pipeline {
                 failure {
                     script {
                         if (fileExists(env.TESTS_EXECUTED_FILE)) {
-                            dumpK8sCluster('post-upgrade-vpo-failure-cluster-dump')
+                            dumpK8sCluster('post-upgrade-vpo-failure-cluster-snapshot')
                         }
                     }
                 }
@@ -352,7 +353,7 @@ pipeline {
         stage("Upgrade Verrazzano and execute selected test") {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OCI_CLI_AUTH="instance_principal"
            }
             steps {
@@ -365,7 +366,7 @@ pipeline {
                     } else if ("upgrade.failing.upgrade".equals(params.CHAOS_TEST_TYPE)) {
                         VERRAZZANO_INTERIM_VERSION = sh(returnStdout: true, script: "cat ${WORKSPACE}/interim-upgrade-bom.json | jq -r '.version'").trim()
                     }
-                    VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
+                    VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/${OCI_OS_COMMIT_BUCKET}/o/ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                 }
                 sh """
@@ -566,7 +567,7 @@ pipeline {
                 failure {
                     script {
                         if (fileExists(env.TESTS_EXECUTED_FILE)) {
-                            dumpK8sCluster('upgrade-failure-cluster-dump')
+                            dumpK8sCluster('upgrade-failure-cluster-snapshot')
                         }
                     }
                 }
@@ -606,14 +607,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
+                            dumpK8sCluster('post-upgrade-failure-cluster-snapshot')
                         }
                     }
                 }
                 success {
                     script {
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('post-upgrade-success-cluster-dump')
+                            dumpK8sCluster('post-upgrade-success-cluster-snapshot')
                         }
                     }
                 }
@@ -640,7 +641,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*cluster-snapshot*/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -713,7 +714,7 @@ def runGinkgoNamespace(testSuitePath, skipDeploy, skipUndeploy, namespace) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
     """
 }
 

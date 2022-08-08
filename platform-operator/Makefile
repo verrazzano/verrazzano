@@ -14,7 +14,7 @@ REPO_NAME:=verrazzano-platform-operator
 CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
 CREATE_LATEST_TAG=0
 
-CRD_OPTIONS ?= "crd:crdVersions=v1"
+CRD_OPTIONS ?= "crd:crdVersions=v1,maxDescLen=0"
 KUBECONFIG ?= ${HOME}/.kube/config
 
 ifndef DOCKER_IMAGE_FULLNAME
@@ -64,7 +64,7 @@ GO_BINDATA_VERSION ?= $(shell go list -m -f '{{.Version}}' 'github.com/go-bindat
 
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
-CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
+CLUSTER_SNAPSHOT_LOCATION ?= platform-operator-integ-cluster-snapshot
 SHELL = bash
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
@@ -184,7 +184,7 @@ OPERATOR_YAML ?= ${BUILD_DEPLOY}/operator.yaml
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
 
-CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
+CLUSTER_SNAPSHOT_LOCATION ?= platform-operator-integ-cluster-snapshot
 KIND_CONFIG ?= kind-config.yaml
 
 .PHONY: integ-test
@@ -192,9 +192,9 @@ integ-test: create-cluster generate-operator-yaml
 	echo 'Load docker image for the verrazzano-platform-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 	echo 'Deploy Verrazzano platform operator ...'
-	kubectl apply -f ${OPERATOR_YAML} || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
+	kubectl apply -f ${OPERATOR_YAML} || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_SNAPSHOT_LOCATION} -r ${CLUSTER_SNAPSHOT_LOCATION}/analysis.report; exit 1)
 	echo 'Run tests...'
-	ginkgo -v --keep-going -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
+	ginkgo -v --keep-going -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_SNAPSHOT_LOCATION} -r ${CLUSTER_SNAPSHOT_LOCATION}/analysis.report; exit 1)
 
 .PHONY: generate-operator-yaml
 generate-operator-yaml:
