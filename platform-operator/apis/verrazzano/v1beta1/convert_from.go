@@ -690,17 +690,18 @@ func convertVerrazzanoInstanceFrom(instance *v1alpha1.InstanceInfo) *InstanceInf
 }
 
 func convertInstallOverridesWithArgsFrom(args []v1alpha1.InstallArgs, overrides v1alpha1.InstallOverrides) (InstallOverrides, error) {
-	merged, err := convertInstallArgsToYaml(args)
-	if err != nil {
-		return InstallOverrides{}, err
-	}
-
 	convertedOverrides := convertInstallOverridesFrom(overrides)
-	override, err := createValueOverride([]byte(merged))
-	if err != nil {
-		return InstallOverrides{}, err
+	if len(args) > 0 {
+		merged, err := convertInstallArgsToYaml(args)
+		if err != nil {
+			return InstallOverrides{}, err
+		}
+		override, err := createValueOverride([]byte(merged))
+		if err != nil {
+			return InstallOverrides{}, err
+		}
+		convertedOverrides.ValueOverrides = append(convertedOverrides.ValueOverrides, override)
 	}
-	convertedOverrides.ValueOverrides = append(convertedOverrides.ValueOverrides, override)
 	return convertedOverrides, nil
 }
 

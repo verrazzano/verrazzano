@@ -12,11 +12,12 @@ import (
 )
 
 const (
-	testCaseBasic            = "basic"
-	testCaseStatus           = "status"
-	testCaseInstallArgs      = "frominstallargs"
-	testCaseIstioInstallArgs = "fromistioinstallargs"
+	testCaseBasic             = "basic"
+	testCaseStatus            = "status"
+	testCaseInstallArgs       = "frominstallargs"
+	testCaseIstioInstallArgs  = "fromistioinstallargs"
 	testCaseIstioAffinityArgs = "fromistioaffinityargs"
+	testCaseAllComps          = "fromallcomps"
 )
 
 type converisonTestCase struct {

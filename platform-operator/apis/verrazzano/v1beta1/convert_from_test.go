@@ -324,6 +324,11 @@ func TestConvertFrom(t *testing.T) {
 			testCaseIstioAffinityArgs,
 			false,
 		},
+		{
+			"convert all components from 1alpha1",
+			testCaseAllComps,
+			false,
+		},
 	}
 
 	for _, tt := range tests {
