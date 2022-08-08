@@ -293,7 +293,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 			return log.ErrorfThrottledNewErr("failed enabling keycloak oidc provider: %s", err.Error())
 		}
 
-		enableLocal := vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local
+		enableLocal := (vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local) || !enableKeycloak
 		if err := disableOrEnableAuthProvider(ctx, AuthConfigLocal, enableLocal); err != nil {
 			return log.ErrorfThrottledNewErr("failed disabling local oidc provider: %s", err.Error())
 		}
@@ -358,7 +358,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 			return log.ErrorfThrottledNewErr("failed changing state of keycloak oidc provider: %s", err.Error())
 		}
 
-		enableLocal := vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local
+		enableLocal := (vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local) || !enableKeycloak
 		if err := disableOrEnableAuthProvider(ctx, AuthConfigLocal, enableLocal); err != nil {
 			return log.ErrorfThrottledNewErr("failed changing state of  local oidc provider: %s", err.Error())
 		}
