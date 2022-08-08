@@ -6,7 +6,6 @@ package helidon
 import (
 	"fmt"
 	"io/ioutil"
-	appsv1 "k8s.io/api/apps/v1"
 	"net/http"
 	"strings"
 	"time"
@@ -23,15 +22,16 @@ import (
 )
 
 const (
-	longWaitTimeout          = 20 * time.Minute
-	longPollingInterval      = 20 * time.Second
-	shortPollingInterval     = 10 * time.Second
-	shortWaitTimeout         = 5 * time.Minute
-	imagePullWaitTimeout     = 40 * time.Minute
-	imagePullPollingInterval = 30 * time.Second
-	skipVerifications        = "Skip Verifications"
-	helloHelidon             = "hello-helidon"
-	nodeExporterJobName      = "node-exporter"
+	longWaitTimeout            = 20 * time.Minute
+	longPollingInterval        = 20 * time.Second
+	shortPollingInterval       = 10 * time.Second
+	shortWaitTimeout           = 5 * time.Minute
+	imagePullWaitTimeout       = 40 * time.Minute
+	imagePullPollingInterval   = 30 * time.Second
+	skipVerifications          = "Skip Verifications"
+	helloHelidon               = "hello-helidon"
+	nodeExporterJobName        = "node-exporter"
+	helloHelidonDeploymentName = "hello-helidon-deployment"
 )
 
 var (
@@ -111,6 +111,17 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 
+	t.Describe("supports Selector", Label("f:selector.labels"), func() {
+		t.It("Matchlabels and Matchexpressions", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
+			Eventually(func() bool {
+				return isDeploymentLabelSelectorSupported()
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		})
+	})
+
 	// Verify Prometheus scraped metrics
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
@@ -181,12 +192,13 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 
 })
 
-func helloHelidonDeployment(namespace, deploymentName string) (*appsv1.Deployment, error) {
-	deployment, err := pkg.GetDeployment(namespace, deploymentName)
-	fmt.Println(deployment.Spec.Selector.MatchLabels)
-	fmt.Println(deployment.Spec.Selector.MatchExpressions)
-	fmt.Println(err)
-	return deployment, err
+func isDeploymentLabelSelectorSupported() bool {
+	labelSelector, err := pkg.GetDeploymentLabelSelector(namespace, helloHelidonDeploymentName)
+	if err != nil {
+		return false
+	}
+	fmt.Println("labelSelector returned as : ", labelSelector)
+	return labelSelector != nil
 }
 
 func helloHelidonPodsRunning() bool {
@@ -194,7 +206,6 @@ func helloHelidonPodsRunning() bool {
 	if err != nil {
 		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
-	helloHelidonDeployment(namespace, "hello-helidon-deployment")
 	return result
 }
 
