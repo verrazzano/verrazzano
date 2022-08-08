@@ -13,14 +13,12 @@ import (
 	"strings"
 	"text/template"
 
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -30,13 +28,11 @@ import (
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
 
@@ -58,7 +54,7 @@ const (
 	keycloakPodName         = "keycloak-0"
 )
 
-// Define the keycloak Key:Value pair for init container.
+// Define the Keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
 const kcIngressClassKey = "ingress.ingressClassName"
 const kcInitContainerKey = "extraInitContainers"
@@ -526,7 +522,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		Value: host,
 	})
 
-	// this secret contains the keycloak TLS certificate created by cert-manager during the original keycloak installation
+	// this secret contains the Keycloak TLS certificate created by cert-manager during the original Keycloak installation
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsSecret,
 		Value: keycloakCertificateName,
@@ -574,43 +570,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 	return err
 }
 
-func updatePrometheusAnnotations(ctx spi.ComponentContext) error {
-	// Get a list of Prometheus in the verrazzano-monitoring namespace
-	promList := promoperapi.PrometheusList{}
-	err := ctx.Client().List(context.TODO(), &promList, &client.ListOptions{
-		Namespace:     promoperator.ComponentNamespace,
-		LabelSelector: labels.SelectorFromSet(labels.Set{constants.VerrazzanoComponentLabelKey: promoperator.ComponentName}),
-	})
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to list Prometheus in the %s namespace: %v", promoperator.ComponentNamespace, err)
-	}
-
-	// Get the Keycloak service to retrieve the cluster IP for the Prometheus annotation
-	svc := corev1.Service{}
-	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-http", Namespace: constants.KeycloakNamespace}, &svc)
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
-	}
-
-	// If the ClusterIP is not empty, update the Prometheus annotation
-	// The includeOutboundIPRanges implies all others are excluded.
-	// This is done by adding the traffic.sidecar.istio.io/includeOutboundIPRanges=<Keycloak IP>/32 annotation.
-	if svc.Spec.ClusterIP != "" {
-		for _, prom := range promList.Items {
-			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), prom, func() error {
-				delete(prom.Spec.PodMetadata.Annotations, "traffic.sidecar.istio.io/excludeOutboundIPRanges")
-				prom.Spec.PodMetadata.Annotations["traffic.sidecar.istio.io/includeOutboundIPRanges"] = fmt.Sprintf("%s/32", svc.Spec.ClusterIP)
-				return nil
-			})
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// updateKeycloakUris invokes kcadm.sh in keycloak pod to update the client with Keycloak rewrite and weborigin uris
+// updateKeycloakUris invokes kcadm.sh in Keycloak pod to update the client with Keycloak rewrite and weborigin uris
 func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod, clientID string, uriTemplate string) error {
 	data, err := populateSubdomainInTemplate(ctx, "{"+uriTemplate+"}")
 	if err != nil {
@@ -1334,7 +1294,7 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 // to be scaled down before the upgrade.  The affinity rules installed by default
 // prior to the 1.4 release conflict with the new affinity rules being overridden
 // by Verrazzano (the upgrade will never complete).  The work around is to scale
-// down the replica count prior to upgrade, which terminates the keycloak pods, and
+// down the replica count prior to upgrade, which terminates the Keycloak pods, and
 // then do the upgrade.
 func upgradeStatefulSet(ctx spi.ComponentContext) error {
 	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
@@ -1421,7 +1381,7 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 	return b.String(), nil
 }
 
-// GetRancherClientSecretFromKeycloak returns the secret from rancher client in keycloak
+// GetRancherClientSecretFromKeycloak returns the secret from rancher client in Keycloak
 func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error) {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
@@ -1505,7 +1465,7 @@ func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	return nil
 }
 
-// GetVerrazzanoUserFromKeycloak returns the user verrazzano in keycloak
+// GetVerrazzanoUserFromKeycloak returns the user verrazzano in Keycloak
 func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, error) {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
