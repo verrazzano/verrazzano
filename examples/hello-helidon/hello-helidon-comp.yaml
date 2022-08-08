@@ -17,6 +17,10 @@ spec:
       deploymentTemplate:
         metadata:
           name: hello-helidon-deployment
+        selector:
+          matchLabels:
+            app: hello-helidon-deployment
+            app.kubernetes.io/name: hello-helidon-deployment
         podSpec:
           containers:
             - name: hello-helidon-container
