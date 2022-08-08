@@ -6,7 +6,6 @@ package authproxy
 import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -20,8 +19,6 @@ import (
 const (
 	authProxyLabelValue = "verrazzano-authproxy"
 	authProxyLabelKey   = "app"
-	pollingInterval     = 5 * time.Second
-	pollingDuration     = time.Minute
 )
 
 type AuthProxyReplicasModifier struct {
@@ -94,7 +91,11 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterSuite(func() {
 	m := AuthProxyDefaultModifier{}
-	update.UpdateCRWithRetries(m, pollingInterval, pollingDuration)
+	err := update.UpdateCR(m)
+	if err != nil {
+		Fail(err.Error())
+	}
+
 	cr := update.GetCR()
 	expectedRunning := uint32(1)
 	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
@@ -119,7 +120,11 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
 			m := AuthProxyReplicasModifier{replicas: nodeCount}
-			update.UpdateCRWithRetries(m, pollingInterval, pollingDuration)
+			err := update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+
 			expectedRunning := nodeCount
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
@@ -128,7 +133,11 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
 			m := AuthProxyPodPerNodeAffintyModifier{}
-			update.UpdateCRWithRetries(m, pollingInterval, pollingDuration)
+			err := update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+
 			expectedRunning := nodeCount - 1
 			expectedPending := true
 			if nodeCount == 1 {

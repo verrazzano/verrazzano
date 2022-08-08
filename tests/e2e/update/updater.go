@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	ginkgov2 "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -28,11 +29,9 @@ type CRModifier interface {
 
 // GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
 func GetCR() *vzapi.Verrazzano {
-	var cr *vzapi.Verrazzano
-	var err error
 	// Wait for the CR to be Ready
 	gomega.Eventually(func() error {
-		cr, err = pkg.GetVerrazzano()
+		cr, err := pkg.GetVerrazzano()
 		if err != nil {
 			return err
 		}
@@ -41,6 +40,16 @@ func GetCR() *vzapi.Verrazzano {
 		}
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+
+	// Get the CR
+	cr, err := pkg.GetVerrazzano()
+	if err != nil {
+		ginkgov2.Fail(err.Error())
+	}
+	if cr == nil {
+		ginkgov2.Fail("CR is nil")
+	}
+
 	return cr
 }
 
@@ -57,23 +66,23 @@ func UpdateCR(m CRModifier) error {
 
 	// Update the CR
 	var err error
-	config, err := k8sutil.GetKubeConfigGivenPath(defaultKubeConfigPathOrDie())
+	config, err := k8sutil.GetKubeConfigGivenPath(defaultKubeConfigPath())
 	if err != nil {
-		return err
+		ginkgov2.Fail(err.Error())
 	}
 	client, err := vpoClient.NewForConfig(config)
 	if err != nil {
-		return err
+		ginkgov2.Fail(err.Error())
 	}
 	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 	return err
 }
 
-func defaultKubeConfigPathOrDie() string {
+func defaultKubeConfigPath() string {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		panic(err)
+		ginkgov2.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	return kubeconfigPath
 }
@@ -82,7 +91,7 @@ func defaultKubeConfigPathOrDie() string {
 // If the update fails, it retries by getting the latest version of CR and applying the same
 // update till it succeeds or timesout.
 func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
-	RetryUpdate(m, defaultKubeConfigPathOrDie(), true, pollingInterval, timeout)
+	RetryUpdate(m, defaultKubeConfigPath(), true, pollingInterval, timeout)
 }
 
 // RetryUpdate tries update with kubeconfigPath
