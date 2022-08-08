@@ -7,18 +7,17 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os/exec"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/istio"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -28,9 +27,12 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // fakeIstioInstalledRunner is used to test if Istio is installed
@@ -451,6 +453,90 @@ func TestLabelNamespace(t *testing.T) {
 	setBashFunc(fakeBash)
 	err := labelNamespace(spi.NewFakeContext(labelNamespaceMock(t), installCR, false))
 	a.NoError(err, "labelNamespace returned an error")
+}
+
+// TestVerifyIstioIngressGatewayIP tests verifying the external IP is created for the Istio service
+// GIVEN a call to verifyIstioIngressGatewayIP
+// WHEN the service has an external IP
+// THEN no error is returned
+func TestVerifyIstioIngressGatewayIP(t *testing.T) {
+	a := assert.New(t)
+
+	ipaddr := "0.0.0.0"
+	svcName := IstioIngressgatewayDeployment
+	svcNamespace := globalconst.IstioSystemNamespace
+	svcNoIP := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: svcNamespace,
+		},
+	}
+
+	svcIP := svcNoIP.DeepCopy()
+	svcIP.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
+		{
+			IP: ipaddr,
+		},
+	}
+
+	lbVZ := &installv1alpha1.Verrazzano{}
+	lbVZ.Spec.Components.Istio = &installv1alpha1.IstioComponent{
+		Ingress: &installv1alpha1.IstioIngressSection{
+			Type: installv1alpha1.LoadBalancer,
+		},
+	}
+
+	npVZ := &installv1alpha1.Verrazzano{}
+	npVZ.Spec.Components.Istio = &installv1alpha1.IstioComponent{
+		Ingress: &installv1alpha1.IstioIngressSection{
+			Type: installv1alpha1.NodePort,
+		},
+	}
+
+	tests := []struct {
+		name        string
+		service     *corev1.Service
+		vz          *installv1alpha1.Verrazzano
+		expectError bool
+	}{
+		{
+			name:        "test no service",
+			service:     &corev1.Service{},
+			vz:          lbVZ,
+			expectError: true,
+		},
+		{
+			name:        "test no IP",
+			service:     svcNoIP,
+			vz:          lbVZ,
+			expectError: true,
+		},
+		{
+			name:        "test external IP",
+			service:     svcIP,
+			vz:          lbVZ,
+			expectError: false,
+		},
+		{
+			name:        "test NodePort",
+			service:     svcIP,
+			vz:          npVZ,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(_ *testing.T) {
+			cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(tt.service).Build()
+			ip, err := verifyIstioIngressGatewayIP(cli, tt.vz)
+			if tt.expectError {
+				a.Error(err)
+				return
+			}
+			a.NoError(err)
+			a.Equal(ip, ipaddr)
+		})
+	}
 }
 
 func labelNamespaceMock(t *testing.T) *mocks.MockClient {

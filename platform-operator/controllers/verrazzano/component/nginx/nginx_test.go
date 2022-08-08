@@ -233,6 +233,15 @@ func TestPostInstallWithPorts(t *testing.T) {
 				},
 			},
 		},
+		Status: corev1.ServiceStatus{
+			LoadBalancer: corev1.LoadBalancerStatus{
+				Ingress: []corev1.LoadBalancerIngress{
+					{
+						IP: "0.0.0.0",
+					},
+				},
+			},
+		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
 	err := PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace)
