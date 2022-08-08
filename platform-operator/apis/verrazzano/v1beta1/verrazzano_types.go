@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package v1beta1
 
 import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -29,20 +29,9 @@ const (
 	NodePort IngressType = "NodePort"
 )
 
-// RancherAuthType is the Authentication provider  to be used for RANCH
-type RancherAuthType string
-
-const (
-	// Keycloak identifies the Keycloak Auth Type for Rancher
-	Keycloak RancherAuthType = "keycloak"
-	// Local identifies the local Auth Type for Rancher
-	Local RancherAuthType = "local"
-)
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=verrazzanos
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=vz;vzs
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano installation"
@@ -97,16 +86,6 @@ type VerrazzanoSpec struct {
 	// +optional
 	// +patchStrategy=merge,retainKeys
 	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
-}
-
-// CommonKubernetesSpec - Kubernetes resources that are common to a subgroup of components
-type CommonKubernetesSpec struct {
-	// Replicas specifies the number of pod instances to run
-	// +optional
-	Replicas uint32 `json:"replicas,omitempty"`
-	// Affinity specifies the group of affinity scheduling rules
-	// +optional
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 }
 
 // SecuritySpec defines the security configuration for Verrazzano
@@ -406,15 +385,9 @@ type ComponentSpec struct {
 // ElasticsearchComponent specifies the Elasticsearch configuration.
 type ElasticsearchComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
-
-	// Arguments for installing Elasticsearch
-	// +optional
-	// +patchMergeKey=name
-	// +patchStrategy=merge,retainKeys
-	ESInstallArgs []InstallArgs                 `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
-	Policies      []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
-	Nodes         []OpenSearchNode              `json:"nodes,omitempty"`
+	Enabled  *bool                         `json:"enabled,omitempty"`
+	Policies []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
+	Nodes    []OpenSearchNode              `json:"nodes,omitempty"`
 }
 
 //OpenSearchNode specifies a node group in the OpenSearch cluster
@@ -509,17 +482,10 @@ type ApplicationOperatorComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
-// AuthProxyKubernetesSection specifies the Kubernetes resources that can be customized for AuthProxy.
-type AuthProxyKubernetesSection struct {
-	CommonKubernetesSpec `json:",inline"`
-}
-
 // AuthProxyComponent specifies the AuthProxy configuration
 type AuthProxyComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
-	// +optional
-	Kubernetes       *AuthProxyKubernetesSection `json:"kubernetes,omitempty"`
+	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
 }
 
@@ -533,13 +499,7 @@ type OAMComponent struct {
 // VerrazzanoComponent specifies the Verrazzano configuration
 type VerrazzanoComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
-
-	// Arguments for installing Verrazzano
-	// +optional
-	// +patchMergeKey=name
-	// +patchStrategy=merge,retainKeys
-	InstallArgs      []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
 }
 
@@ -579,11 +539,6 @@ type IngressNginxComponent struct {
 	// Type of ingress.  Default is LoadBalancer
 	// +optional
 	Type IngressType `json:"type,omitempty"`
-	// Arguments for installing NGINX
-	// +optional
-	// +patchMergeKey=name
-	// +patchStrategy=merge,retainKeys
-	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// Ports to be used for NGINX
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
@@ -600,28 +555,10 @@ type IstioIngressSection struct {
 	// Ports to be used for Istio Ingress Gateway
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
-	// +optional
-	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
-}
-
-// IstioEgressSection specifies the specific config options available for the Istio Egress Gateways.
-type IstioEgressSection struct {
-	// +optional
-	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
-}
-
-// IstioKubernetesSection specifies the Kubernetes resources that can be customized for Istio.
-type IstioKubernetesSection struct {
-	CommonKubernetesSpec `json:",inline"`
 }
 
 // IstioComponent specifies the Istio configuration
 type IstioComponent struct {
-	// Arguments for installing Istio
-	// +optional
-	// +patchMergeKey=name
-	// +patchStrategy=merge,retainKeys
-	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// +optional
 	InstallOverrides `json:",inline"`
 	// +optional
@@ -630,8 +567,6 @@ type IstioComponent struct {
 	InjectionEnabled *bool `json:"injectionEnabled,omitempty"`
 	// +optional
 	Ingress *IstioIngressSection `json:"ingress,omitempty"`
-	// +optional
-	Egress *IstioEgressSection `json:"egress,omitempty"`
 }
 
 // IsInjectionEnabled is istio sidecar injection enabled check
@@ -651,11 +586,6 @@ type JaegerOperatorComponent struct {
 
 // KeycloakComponent specifies the Keycloak configuration
 type KeycloakComponent struct {
-	// Arguments for installing Keycloak
-	// +optional
-	// +patchMergeKey=name
-	// +patchStrategy=merge,retainKeys
-	KeycloakInstallArgs []InstallArgs `json:"keycloakInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// MySQL contains the MySQL component configuration needed for Keycloak
 	// +optional
 	MySQL MySQLComponent `json:"mysql,omitempty"`
@@ -666,11 +596,6 @@ type KeycloakComponent struct {
 
 // MySQLComponent specifies the MySQL configuration
 type MySQLComponent struct {
-	// Arguments for installing MySQL
-	// +optional
-	// +patchMergeKey=name
-	// +patchStrategy=merge,retainKeys
-	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// VolumeSource Defines the type of volume to be used for persistence; at present only EmptyDirVolumeSource or
 	// PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
@@ -685,9 +610,6 @@ type RancherComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
-	// AuthtType is the Auth provider to used for Rancher.  Default is "keycloak".
-	// +optional
-	AuthtType RancherAuthType `json:"authType,omitempty"`
 }
 
 // RancherBackupComponent specifies the Rancher Backup configuration
@@ -728,23 +650,6 @@ type VeleroComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
-}
-
-// InstallArgs identifies a name/value or name/value list needed for install.
-// Value and ValueList cannot both be specified.
-type InstallArgs struct {
-	// Name of install argument
-	Name string `json:"name"`
-	// Value for named install argument
-	// +optional
-	Value string `json:"value,omitempty"`
-	// If the Value is a literal string
-	// +optional
-	SetString bool `json:"setString,omitempty"`
-	// List of values for named install argument
-	// +optional
-	// +patchStrategy=replace
-	ValueList []string `json:"valueList,omitempty" patchStrategy:"replace"`
 }
 
 // VolumeMount defines a hostPath type Volume mount

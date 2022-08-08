@@ -145,8 +145,8 @@ pipeline {
             environment {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-                OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+                OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
             }
             steps {
@@ -231,8 +231,9 @@ pipeline {
                 script {
                     sh """
                         echo "Downloading VZ CLI from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                        ${GO_REPO_PATH}/vz version
                     """
                 }
             }
@@ -243,8 +244,8 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-                OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+                OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
 		    }
 		    steps {
 		        script {
@@ -500,7 +501,7 @@ def kill_vpo_loop(vpoLogsDir) {
                 POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                 kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
                 echo "VPO \$POD successfully restarted"
-                
+
                 # Sleep a random interval between 15 and 60 seconds
                 SLEEP_SEC=\$[ \$RANDOM % 45 + 15 ]
                 echo "Sleeping for \$SLEEP_SEC seconds"
