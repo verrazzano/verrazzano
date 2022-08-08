@@ -70,6 +70,7 @@ spec:
               rancherRegistration:
                 properties:
                   clusterID:
+                    description: ClusterID is the Rancher cluster ID for this cluster
                     type: string
                   message:
                     type: string
