@@ -27,7 +27,7 @@ func EventuallyPodsReady(log *zap.SugaredLogger, cs *kubernetes.Clientset) {
 		returnValue := true
 		for _, pod := range pods.Items {
 			if !IsPodReadyOrCompleted(pod) {
-				log.Infof("Pod [%s] in namespace [%s] not ready or completed [%s]", pod.Name, pod.Namespace, string(pod.Status.Phase))
+				log.Debugf("Pod [%s] in namespace [%s] not ready or completed [%s]", pod.Name, pod.Namespace, string(pod.Status.Phase))
 				returnValue = false
 			}
 		}
