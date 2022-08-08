@@ -8,6 +8,7 @@ metadata:
   namespace: unit-mccomp-namespace
   labels:
     label1: test1
+    verrazzano-managed: "true"
 spec:
   template:
     spec:

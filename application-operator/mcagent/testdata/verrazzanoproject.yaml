@@ -6,6 +6,8 @@ kind: VerrazzanoProject
 metadata:
   name: VP_NAME
   namespace: VP_NS
+  labels:
+    verrazzano-managed: "true"
 spec:
   template:
     namespaces:
