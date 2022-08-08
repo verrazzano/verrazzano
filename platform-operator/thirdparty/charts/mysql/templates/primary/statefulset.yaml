@@ -242,6 +242,13 @@ spec:
               mountPath: /usr/etc/my.cnf
               subPath: my.cnf
             {{- end }}
+            {{- if .Values.configurationFiles }}
+            {{- range $key, $val := .Values.configurationFiles }}
+            - name: configurations
+              mountPath: {{ $.Values.configurationFilesPath }}{{ $key }}
+              subPath: {{ $key }}
+            {{- end -}}
+            {{- end }}
             {{- if and .Values.auth.usePasswordFiles (not .Values.auth.customPasswordFiles) }}
             - name: mysql-credentials
               mountPath: /opt/bitnami/mysql/secrets/
@@ -317,6 +324,11 @@ spec:
         - name: custom-init-scripts
           configMap:
             name: {{ include "mysql.initdbScriptsCM" . }}
+        {{- end }}
+        {{- if .Values.configurationFiles }}
+        - name: configurations
+          configMap:
+            name: {{ template "mysql.primary.fullname" . }}-configuration
         {{- end }}
         {{- if and .Values.auth.usePasswordFiles (not .Values.auth.customPasswordFiles) }}
         - name: mysql-credentials

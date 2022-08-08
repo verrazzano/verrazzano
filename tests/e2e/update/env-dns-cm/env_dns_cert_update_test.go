@@ -95,14 +95,20 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 
 	t.It("Update and verify environment name", func() {
 		m := EnvironmentNameModifier{testEnvironmentName}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+		err := update.UpdateCR(m)
+		if err != nil {
+			log.Fatalf("Error in updating environment name\n%s", err)
+		}
 		validateIngressList(testEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
 	})
 
 	t.It("Update and verify dns domain", func() {
 		m := WildcardDNSModifier{testDNSDomain}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+		err := update.UpdateCR(m)
+		if err != nil {
+			log.Fatalf("Error in updating DNS domain\n%s", err)
+		}
 		validateIngressList(testEnvironmentName, testDNSDomain)
 		validateVirtualServiceList(testDNSDomain)
 	})
@@ -110,7 +116,10 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 	t.It("Update and verify CA certificate", func() {
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
 		m := CustomCACertificateModifier{testCertSecretNamespace, testCertSecretName}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+		err := update.UpdateCR(m)
+		if err != nil {
+			log.Fatalf("Error in updating CA certificate\n%s", err)
+		}
 		validateCertManagerResourcesCleanup()
 		validateCACertificateIssuer()
 	})

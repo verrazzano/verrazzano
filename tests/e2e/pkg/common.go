@@ -165,6 +165,17 @@ func PodsRunning(namespace string, namePrefixes []string) (bool, error) {
 	return result, err
 }
 
+// SpecificPodsRunning is identical to SpecificPodsRunningCluster, except that it uses the cluster specified in the environment
+func SpecificPodsRunning(namespace, labels string) (bool, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
+		return false, fmt.Errorf(kubeConfigErrorFmt, err)
+	}
+	result, err := SpecificPodsRunningInCluster(namespace, labels, kubeconfigPath)
+	return result, err
+}
+
 // GetVerrazzanoRetentionPolicy returns the retention policy configured in the VZ CR
 // If not explicitly configured, it returns the default retention policy with retention
 // period of 7 days.
@@ -239,6 +250,37 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 		return false, fmt.Errorf(podListingErrorFmt, namespace, err)
 	}
 	missing, err := notRunning(pods.Items, namePrefixes...)
+	if err != nil {
+		return false, err
+	}
+
+	if len(missing) > 0 {
+		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
+		for _, pod := range pods.Items {
+			if isReadyAndRunning(pod) {
+				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
+			} else {
+				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
+			}
+		}
+	}
+	return len(missing) == 0, nil
+}
+
+// SpecificPodsRunningInCluster checks if all the pods identified by labels and are ready and running in the given cluster
+func SpecificPodsRunningInCluster(namespace, labels string, kubeconfigPath string) (bool, error) {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf(clientSetErrorFmt, err))
+		return false, fmt.Errorf(clientSetErrorFmt, err)
+	}
+	pods, err := ListPodsWithLabelsInCluster(namespace, labels, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf(podListingErrorFmt, namespace, err))
+		return false, fmt.Errorf(podListingErrorFmt, namespace, err)
+	}
+
+	missing, err := notRunning(pods.Items, "")
 	if err != nil {
 		return false, err
 	}

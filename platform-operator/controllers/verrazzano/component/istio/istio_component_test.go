@@ -319,6 +319,17 @@ func getMock(t *testing.T) *mocks.MockClient {
 			return nil
 		}).AnyTimes()
 
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: IstioIngressgatewayDeployment, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, _ client.ObjectKey, svc *v1.Service) error {
+			svc.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{
+				{
+					IP: "0.0.0.0",
+				},
+			}
+			return nil
+		}).AnyTimes()
+
 	return mock
 }
 
@@ -434,6 +445,21 @@ func TestIsReady(t *testing.T) {
 				Namespace:   IstioNamespace,
 				Name:        IstioEgressgatewayDeployment + "-95d8c5d96",
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+		&v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioIngressgatewayDeployment,
+			},
+			Status: v1.ServiceStatus{
+				LoadBalancer: v1.LoadBalancerStatus{
+					Ingress: []v1.LoadBalancerIngress{
+						{
+							IP: "0.0.0.0",
+						},
+					},
+				},
 			},
 		},
 	).Build()
