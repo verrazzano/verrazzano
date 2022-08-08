@@ -172,6 +172,7 @@ pipeline {
 
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
@@ -659,7 +660,7 @@ pipeline {
                 }
             }
             copyGeneratedTestReports()
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/*bug-report*/**,**/test-cluster-snapshots/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -1460,6 +1461,9 @@ def dumpK8sSpecificCluster(count, dumpDirectory) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count} -r ${dumpDirectory}-${count}/cluster-snapshot/analysis.report
+                ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+                mkdir bug-report
+                tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
             """
         }
     }
