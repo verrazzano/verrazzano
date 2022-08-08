@@ -19,7 +19,7 @@ spec:
           name: hello-helidon-deployment
         selector:
           matchLabels:
-            app: hello-helidon-deployment
+            app: hello-helidon
             app.kubernetes.io/name: hello-helidon-deployment
         podSpec:
           containers:
