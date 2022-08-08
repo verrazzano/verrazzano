@@ -223,6 +223,9 @@ pipeline {
                     post {
                         failure {
                             archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
+                            script {
+                                TESTS_FAILED = true
+                            }
                         }
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
@@ -254,6 +257,9 @@ pipeline {
                 }
 
                 stage('Reschedule 50% of Worker Nodes') {
+                    when {
+                        expression { TESTS_FAILED == false }
+                    }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/scheduling"
                     }
