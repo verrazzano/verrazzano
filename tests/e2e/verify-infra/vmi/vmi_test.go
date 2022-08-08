@@ -101,11 +101,16 @@ var (
 	elasticPollingInterval = 5 * time.Second
 
 	vzMonitoringVolumeClaims map[string]*corev1.PersistentVolumeClaim
+	vzPrometheusReplicas     int32
 )
 
 var _ = t.BeforeSuite(func() {
 	var err error
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
 
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
@@ -130,6 +135,11 @@ var _ = t.BeforeSuite(func() {
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vmiCRD, err = verrazzanoMonitoringInstanceCRD()
 		return vmiCRD, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	Eventually(func() (int32, error) {
+		vzPrometheusReplicas, err := getExpectedPrometheusReplicaCount(kubeconfig)
+		return vzPrometheusReplicas, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	creds = pkg.EventuallyGetSystemVMICredentials()
@@ -249,14 +259,11 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Prometheus helm override for replicas is in effect", Label("f:observability.monitoring.prom"), func() {
 			const stsName = "prometheus-prometheus-operator-kube-p-prometheus"
 
-			expectedReplicas, err := getExpectedPrometheusReplicaCount(kubeconfig)
-			Expect(err).ToNot(HaveOccurred())
-
 			// expect Prometheus statefulset to be configured for the expected number of replicas
 			sts, err := pkg.GetStatefulSet(constants.VerrazzanoMonitoringNamespace, stsName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(sts.Spec.Replicas).ToNot(BeNil())
-			Expect(*sts.Spec.Replicas).To(Equal(expectedReplicas))
+			Expect(*sts.Spec.Replicas).To(Equal(vzPrometheusReplicas))
 
 			// expect the replicas to be ready
 			Eventually(func() (int32, error) {
@@ -265,7 +272,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					return 0, err
 				}
 				return sts.Status.ReadyReplicas, nil
-			}, waitTimeout, pollingInterval).Should(Equal(expectedReplicas),
+			}, waitTimeout, pollingInterval).Should(Equal(vzPrometheusReplicas),
 				fmt.Sprintf("Statefulset %s in namespace %s does not have the expected number of ready replicas", stsName, constants.VerrazzanoMonitoringNamespace))
 		})
 
@@ -346,7 +353,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					assertPersistentVolume("vmi-system-grafana", size)
 					assertPersistentVolume(esMaster0, size)
 
-					Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
+					Expect(len(vzMonitoringVolumeClaims)).To(Equal(vzPrometheusReplicas))
 					assertPrometheusVolume(size)
 				} else {
 					Expect(len(volumeClaims)).To(Equal(3))
@@ -362,7 +369,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Check persistent volumes for managed cluster profile", func() {
 			if minVer14 {
 				Expect(len(volumeClaims)).To(Equal(0))
-				Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
+				Expect(len(vzMonitoringVolumeClaims)).To(Equal(vzPrometheusReplicas))
 				assertPrometheusVolume(size)
 			} else {
 				Expect(len(volumeClaims)).To(Equal(1))
@@ -373,7 +380,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Check persistent volumes for prod cluster profile", func() {
 			if minVer14 {
 				Expect(len(volumeClaims)).To(Equal(7))
-				Expect(len(vzMonitoringVolumeClaims)).To(Equal(1))
+				Expect(len(vzMonitoringVolumeClaims)).To(Equal(vzPrometheusReplicas))
 				assertPrometheusVolume(size)
 			} else {
 				Expect(len(volumeClaims)).To(Equal(8))
