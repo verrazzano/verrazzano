@@ -138,7 +138,7 @@ var _ = t.BeforeSuite(func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() (int32, error) {
-		vzPrometheusReplicas, err := getExpectedPrometheusReplicaCount(kubeconfig)
+		vzPrometheusReplicas, err = getExpectedPrometheusReplicaCount(kubeconfig)
 		return vzPrometheusReplicas, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
