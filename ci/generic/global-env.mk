@@ -16,8 +16,8 @@ export DOCKER_REPO ?= 'ghcr.io'
 export DOCKER_NAMESPACE ?= 'verrazzano'
 export TEST_ROOT ?= ${VZ_ROOT}/tests/e2e
 export TEST_SCRIPTS_DIR ?= ${TEST_ROOT}/config/scripts
-export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-dumps
+export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-snapshots
 
 export OCI_OS_ARTIFACT_BUCKET=build-failure-artifacts
-export OCI_OS_BUCKET=verrazzano-builds
+export OCI_OS_COMMIT_BUCKET=verrazzano-builds-by-commit
 export OCI_CLI_PROFILE ?= DEFAULT

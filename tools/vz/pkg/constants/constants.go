@@ -147,8 +147,8 @@ const (
 	// The prefix used for the json.MarshalIndent
 	JSONPrefix = ""
 
-	// Top level directory for the bug report, keeping cluster-dump for now to support the analyze the command
-	BugReportRoot = "cluster-dump"
+	// Top level directory for the bug report, keeping cluster-snapshot for now to support the analyze the command
+	BugReportRoot = "cluster-snapshot"
 
 	// Label for application
 	AppLabel    = "app"

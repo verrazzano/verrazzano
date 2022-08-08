@@ -74,9 +74,9 @@ func TestGetMatchingInvalidInputs(t *testing.T) {
 // THEN utility functions behave as expected
 func TestMiscUtils(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	filename := FindFileInClusterRoot("../../../test/cluster/problem-pods/cluster-dump/problem-pods", "default")
+	filename := FindFileInClusterRoot("../../../test/cluster/problem-pods/cluster-snapshot/problem-pods", "default")
 	assert.NotNil(t, filename)
-	namespaces, err := FindNamespaces(logger, "../../../test/cluster/problem-pods/cluster-dump")
+	namespaces, err := FindNamespaces(logger, "../../../test/cluster/problem-pods/cluster-snapshot")
 	assert.Nil(t, err)
 	assert.NotNil(t, namespaces)
 	assert.True(t, len(namespaces) > 0)

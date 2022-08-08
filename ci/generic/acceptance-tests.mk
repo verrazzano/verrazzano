@@ -3,7 +3,7 @@
 
 include global-env.mk
 
-export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-dumps
+export DUMP_ROOT_DIRECTORY ?= ${WORKSPACE}/cluster-snapshots
 export GINGKO_ARGS ?= -v --keep-going --no-color --junit-report=test-report.xml --keep-separate-reports=true
 
 run-test: export RANDOMIZE_TESTS ?= true

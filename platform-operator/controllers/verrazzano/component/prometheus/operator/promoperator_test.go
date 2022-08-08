@@ -11,6 +11,7 @@ import (
 
 	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -60,6 +61,7 @@ func init() {
 	_ = vzapi.AddToScheme(testScheme)
 	_ = certapiv1.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
+	_ = promoperapi.AddToScheme(testScheme)
 }
 
 // TestIsPrometheusOperatorReady tests the isPrometheusOperatorReady function for the Prometheus Operator
@@ -479,8 +481,8 @@ func TestApplySystemMonitors(t *testing.T) {
 	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
-	// expect that 7 ServiceMonitors are created
-	assert.Len(t, monitors.Items, 7)
+	// expect that 9 ServiceMonitors are created
+	assert.Len(t, monitors.Items, 9)
 }
 
 // TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR

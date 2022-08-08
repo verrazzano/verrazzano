@@ -220,7 +220,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.4.0-20220804163218-a554126",
+              "tag": "v1.4.0-20220805165147-c395bfe",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -450,7 +450,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0",
+              "tag": "v0.24.0-20220805222028-0a54aa20",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
@@ -479,7 +479,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.9.1-20220725190037-de39a05e",
+              "tag": "v0.9.1-20220803141232-f097a569",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -668,7 +668,7 @@
           "images": [
             {
               "image": "backup-restore-operator",
-              "tag": "v2.1.0-20220728055921-09d528e",
+              "tag": "v2.1.0-20220803210954-09d528e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
