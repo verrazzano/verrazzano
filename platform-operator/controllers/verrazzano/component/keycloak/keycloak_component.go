@@ -154,7 +154,7 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 
 	// Update the Prometheus annotations to include the Keycloak service as an outbound IP address
 	if promoperator.NewComponent().IsEnabled(ctx.EffectiveCR()) {
-		err = updatePrometheusAnnotations(ctx)
+		err = common.UpdatePrometheusAnnotations(ctx, promoperator.ComponentNamespace, promoperator.ComponentName)
 		if err != nil {
 			return err
 		}
@@ -177,7 +177,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 	// Update the Prometheus annotations to include the Keycloak service as an outbound IP address
 	if promoperator.NewComponent().IsEnabled(ctx.EffectiveCR()) {
-		err := updatePrometheusAnnotations(ctx)
+		err := common.UpdatePrometheusAnnotations(ctx, promoperator.ComponentNamespace, promoperator.ComponentName)
 		if err != nil {
 			return err
 		}

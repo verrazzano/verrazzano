@@ -6,12 +6,13 @@ package pkg
 import (
 	"errors"
 	"fmt"
-	"github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/test"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/pkg/test"
 )
 
 //ClusterDumpWrapper creates cluster dumps if the test fails (spec or aftersuite)
@@ -74,7 +75,7 @@ func ExecuteClusterDump(clusterDumpCommand string, kubeconfig string, clusterDum
 	if clusterDumpCommand == "" {
 		return nil
 	}
-	reportFile := fmt.Sprintf("%s/cluster-dump/analysis.report", clusterDumpDirectory)
+	reportFile := fmt.Sprintf("%s/cluster-snapshot/analysis.report", clusterDumpDirectory)
 	cmd = exec.Command(clusterDumpCommand, "-d", clusterDumpDirectory, "-r", reportFile)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
 	cmd.Stdout = os.Stdout

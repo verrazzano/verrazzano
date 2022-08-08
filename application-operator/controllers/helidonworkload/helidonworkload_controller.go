@@ -134,7 +134,6 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoH
 		log.Errorf("Failed to convert workload to deployment: %v", err)
 		return reconcile.Result{}, err
 	}
-
 	// Attempt to get the existing deployment. This is used in the case where we don't want to update any resources
 	// which are defined by Verrazzano such as the Fluentd image used by logging. In this case we obtain the previous
 	// Fluentd image and set that on the new deployment. We also need to know if the deployment exists
@@ -218,7 +217,10 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoH
 
 // convertWorkloadToDeployment converts a VerrazzanoHelidonWorkload into a Deployment.
 func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelidonWorkload, log vzlog.VerrazzanoLogger) (*appsv1.Deployment, error) {
-
+	if workload.Spec.DeploymentTemplate.Selector.MatchLabels == nil {
+		workload.Spec.DeploymentTemplate.Selector.MatchLabels = make(map[string]string)
+	}
+	workload.Spec.DeploymentTemplate.Selector.MatchLabels[labelKey] = string(workload.GetUID())
 	d := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       deploymentKind,
@@ -232,9 +234,8 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 		Spec: appsv1.DeploymentSpec{
 			//setting label selector for pod that this deployment will manage
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					labelKey: string(workload.GetUID()),
-				},
+				MatchLabels:      workload.Spec.DeploymentTemplate.Selector.MatchLabels,
+				MatchExpressions: workload.Spec.DeploymentTemplate.Selector.MatchExpressions,
 			},
 		},
 	}
@@ -246,9 +247,7 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 	// Set PodSpec on deployment's PodTemplate from workload spec
 	workload.Spec.DeploymentTemplate.PodSpec.DeepCopyInto(&d.Spec.Template.Spec)
 	// making sure pods have same label as selector on deployment
-	d.Spec.Template.ObjectMeta.SetLabels(map[string]string{
-		labelKey: string(workload.GetUID()),
-	})
+	d.Spec.Template.ObjectMeta.SetLabels(workload.Spec.DeploymentTemplate.Selector.MatchLabels)
 
 	// pass through label and annotation from the workload to the deployment
 	passLabelAndAnnotation(workload, d)
