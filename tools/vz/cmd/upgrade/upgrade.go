@@ -121,6 +121,10 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	fmt.Println("Printing VZ resource version before update", vz.ResourceVersion, " VZ-Version", vz.Spec.Version)
 	retry := 0
 	for {
+		if vz.Spec.Version == version {
+			fmt.Println("VZ resource version is already updated", vz.Spec.Version)
+			break
+		}
 		err = client.Update(context.TODO(), vz)
 		fmt.Println("Printing VZ resource version after update:", vz.ResourceVersion, " VZ-Version", vz.Spec.Version)
 		if err != nil {
