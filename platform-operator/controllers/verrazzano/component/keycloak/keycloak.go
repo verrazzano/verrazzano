@@ -13,13 +13,13 @@ import (
 	"strings"
 	"text/template"
 
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -578,11 +578,11 @@ func updatePrometheusAnnotations(ctx spi.ComponentContext) error {
 	// Get a list of Prometheus in the verrazzano-monitoring namespace
 	promList := promoperapi.PrometheusList{}
 	err := ctx.Client().List(context.TODO(), &promList, &client.ListOptions{
-		Namespace:     operator.ComponentNamespace,
+		Namespace:     promoperator.ComponentNamespace,
 		LabelSelector: labels.SelectorFromSet(labels.Set{constants.VerrazzanoComponentLabelKey: promoperator.ComponentName}),
 	})
 	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to list Prometheus in the %s namespace: %v", operator.ComponentNamespace, err)
+		return ctx.Log().ErrorfNewErr("Failed to list Prometheus in the %s namespace: %v", promoperator.ComponentNamespace, err)
 	}
 
 	// Get the Keycloak service to retrieve the cluster IP for the Prometheus annotation
