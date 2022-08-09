@@ -5,7 +5,7 @@
 
 INSTALL_CONFIG_TO_EDIT=$1
 echo "Editing install config file for Grafana DB ${INSTALL_CONFIG_TO_EDIT}"
-  yq -i eval ".spec.components.keycloak.mysql.database.host = \"mysql.verrazzano-install.svc.cluster.local\"" ${INSTALL_CONFIG_TO_EDIT}
-  yq -i eval ".spec.components.keycloak.mysql.database.name = \"grafana\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.grafana.database.host = \"mysql.verrazzano-install.svc.cluster.local\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.grafana.database.name = \"grafana\"" ${INSTALL_CONFIG_TO_EDIT}
 
 cat ${INSTALL_CONFIG_TO_EDIT}
