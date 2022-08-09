@@ -9,10 +9,13 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	constants2 "github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
@@ -28,6 +31,22 @@ const (
 )
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+var compGvr = schema.GroupVersionResource{
+	Group:    oamv1alpha1.SchemeGroupVersion.Group,
+	Version:  oamv1alpha1.SchemeGroupVersion.Version,
+	Resource: "components",
+}
+var appConfGvr = schema.GroupVersionResource{
+	Group:    oamv1alpha1.SchemeGroupVersion.Group,
+	Version:  oamv1alpha1.SchemeGroupVersion.Version,
+	Resource: "applicationconfigurations",
+}
+
+var projectGvr = schema.GroupVersionResource{
+	Group:    clustersv1alpha1.SchemeGroupVersion.Group,
+	Version:  clustersv1alpha1.SchemeGroupVersion.Version,
+	Resource: "verrazzanoprojects",
+}
 
 // DeployHelloHelidonProject deploys the hello-helidon example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeployHelloHelidonProject(kubeconfigPath string, sourceDir string) error {
@@ -117,10 +136,16 @@ func VerifyMCResourcesV100(kubeconfigPath string, isAdminCluster bool, placedInT
 	// since we should check both in all cases
 	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)
 	mcCompExists := mcComponentExists(kubeconfigPath, namespace)
+	vzManagedLabelExists := verrazzanoManagedLabelExists(kubeconfigPath, namespace)
 
 	if isAdminCluster || placedInThisCluster {
 		// always expect MC resources on admin cluster - otherwise expect them only if placed here
-		return mcAppConfExists && mcCompExists
+		ok := mcAppConfExists && mcCompExists
+		if placedInThisCluster {
+			ok = ok && vzManagedLabelExists
+		} else {
+			ok = ok && !vzManagedLabelExists
+		}
 	} else {
 		// don't expect either
 		return !mcAppConfExists && !mcCompExists
@@ -189,12 +214,7 @@ func HelidonNamespaceExists(kubeconfigPath string, namespace string) bool {
 }
 
 func projectExists(kubeconfigPath string, projectName string) bool {
-	gvr := schema.GroupVersionResource{
-		Group:    clustersv1alpha1.SchemeGroupVersion.Group,
-		Version:  clustersv1alpha1.SchemeGroupVersion.Version,
-		Resource: "verrazzanoprojects",
-	}
-	return resourceExists(gvr, multiclusterNamespace, projectName, kubeconfigPath)
+	return resourceExists(projectGvr, multiclusterNamespace, projectName, kubeconfigPath)
 }
 
 func mcAppConfExists(kubeconfigPath string, namespace string) bool {
@@ -215,13 +235,23 @@ func mcComponentExists(kubeconfigPath string, namespace string) bool {
 	return resourceExists(gvr, namespace, componentName, kubeconfigPath)
 }
 
-func componentExists(kubeconfigPath string, namespace string) bool {
-	gvr := schema.GroupVersionResource{
-		Group:    oamv1alpha1.SchemeGroupVersion.Group,
-		Version:  oamv1alpha1.SchemeGroupVersion.Version,
-		Resource: "components",
+func verrazzanoManagedLabelExists(kubeconfigPath string, namespace string) bool {
+	appconf, err := getResource(appConfGvr, namespace, appConfigName, kubeconfigPath)
+	if err != nil {
+		return false
 	}
-	return resourceExists(gvr, namespace, componentName, kubeconfigPath)
+	comp, err := getResource(compGvr, namespace, componentName, kubeconfigPath)
+	if err != nil {
+		return false
+	}
+	appLabels := appconf.GetLabels()
+	compLabels := comp.GetLabels()
+	return appLabels[constants.VerrazzanoManagedLabel] == constants2.LabelVerrazzanoManagedDefault &&
+		compLabels[constants.VerrazzanoManagedLabel] == constants2.LabelVerrazzanoManagedDefault
+}
+
+func componentExists(kubeconfigPath string, namespace string) bool {
+	return resourceExists(compGvr, namespace, componentName, kubeconfigPath)
 }
 
 func componentWorkloadExists(kubeconfigPath string, namespace string) bool {
@@ -234,19 +264,7 @@ func componentWorkloadExists(kubeconfigPath string, namespace string) bool {
 }
 
 func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
-	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not get kube config: %v\n", err))
-		return false
-	}
-	client, err := dynamic.NewForConfig(config)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not create dynamic client: %v\n", err))
-		return false
-	}
-
-	u, err := client.Resource(gvr).Namespace(ns).Get(context.TODO(), name, v1.GetOptions{})
-
+	u, err := getResource(gvr, ns, name, kubeconfigPath)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return false
@@ -257,6 +275,21 @@ func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kub
 	return u != nil
 }
 
+func getResource(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) (*unstructured.Unstructured, error) {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not get kube config: %v\n", err))
+		return nil, err
+	}
+	client, err := dynamic.NewForConfig(config)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not create dynamic client: %v\n", err))
+		return nil, err
+	}
+
+	return client.Resource(gvr).Namespace(ns).Get(context.TODO(), name, v1.GetOptions{})
+
+}
 func helloHelidonPodsRunning(kubeconfigPath string, namespace string) (bool, error) {
 	result, err := pkg.PodsRunningInCluster(namespace, expectedPodsHelloHelidon, kubeconfigPath)
 	if err != nil {
