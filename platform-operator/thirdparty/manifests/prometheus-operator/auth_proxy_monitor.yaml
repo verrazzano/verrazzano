@@ -1,17 +1,16 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-  {{- if .Values.config.prometheusOperatorEnabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: authproxy
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .monitoringNamespace }}
   labels:
     release: prometheus-operator
 spec:
   namespaceSelector:
     matchNames:
-      - {{ .Release.Namespace }}
+      - {{ .systemNamespace }}
   selector: {}
   endpoints:
     - path: /metrics
@@ -51,4 +50,3 @@ spec:
         sourceLabels:
         - name
         targetLabel: app
-  {{- end }}

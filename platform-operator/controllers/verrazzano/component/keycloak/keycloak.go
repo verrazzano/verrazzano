@@ -15,7 +15,6 @@ import (
 	"strings"
 	"text/template"
 
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -23,8 +22,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -34,13 +31,11 @@ import (
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
 
@@ -470,42 +465,6 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 	})
 	ctx.Log().Debugf("updateKeycloakIngress: Keycloak ingress operation result: %v", err)
 	return err
-}
-
-func updatePrometheusAnnotations(ctx spi.ComponentContext) error {
-	// Get a list of Prometheus in the verrazzano-monitoring namespace
-	promList := promoperapi.PrometheusList{}
-	err := ctx.Client().List(context.TODO(), &promList, &client.ListOptions{
-		Namespace:     operator.ComponentNamespace,
-		LabelSelector: labels.SelectorFromSet(labels.Set{constants.VerrazzanoComponentLabelKey: promoperator.ComponentName}),
-	})
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to list Prometheus in the %s namespace: %v", operator.ComponentNamespace, err)
-	}
-
-	// Get the Keycloak service to retrieve the cluster IP for the Prometheus annotation
-	svc := corev1.Service{}
-	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-http", Namespace: constants.KeycloakNamespace}, &svc)
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
-	}
-
-	// If the ClusterIP is not empty, update the Prometheus annotation
-	// The includeOutboundIPRanges implies all others are excluded.
-	// This is done by adding the traffic.sidecar.istio.io/includeOutboundIPRanges=<Keycloak IP>/32 annotation.
-	if svc.Spec.ClusterIP != "" {
-		for _, prom := range promList.Items {
-			_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), prom, func() error {
-				delete(prom.Spec.PodMetadata.Annotations, "traffic.sidecar.istio.io/excludeOutboundIPRanges")
-				prom.Spec.PodMetadata.Annotations["traffic.sidecar.istio.io/includeOutboundIPRanges"] = fmt.Sprintf("%s/32", svc.Spec.ClusterIP)
-				return nil
-			})
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // updateKeycloakUris calls a bash script to update the Keycloak rewrite and weborigin uris

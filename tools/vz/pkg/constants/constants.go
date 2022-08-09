@@ -110,6 +110,11 @@ const (
 	BugReportIncludeNSFlagShort = "i"
 	BugReportIncludeNSFlagUsage = "A comma separated list of additional namespaces to collect information from the cluster. This flag can be specified multiple times like --include-namespaces ns1 --include-namespaces ns..."
 
+	BugReportVerboseFlagName    = "verbose"
+	BugReportVerboseFlagShort   = "v"
+	BugReportVerboseFlagDefault = false
+	BugReportVerboseFlagUsage   = "Enable verbose output for the bug-report command"
+
 	BugReportDir = "bug-report"
 
 	// File name for the log captured from the pod
@@ -147,10 +152,14 @@ const (
 	// The prefix used for the json.MarshalIndent
 	JSONPrefix = ""
 
-	// Top level directory for the bug report, keeping cluster-dump for now to support the analyze the command
-	BugReportRoot = "cluster-dump"
+	// Top level directory for the bug report, keeping cluster-snapshot for now to support the analyze the command
+	BugReportRoot = "cluster-snapshot"
 
 	// Label for application
 	AppLabel    = "app"
 	K8SAppLabel = "k8s-app"
+
+	// Message prefix for bug-report and live cluster analysis
+	BugReportMsgPrefix = "Capturing "
+	AnalysisMsgPrefix  = "Analyzing "
 )
