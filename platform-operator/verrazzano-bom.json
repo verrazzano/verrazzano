@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20220802182047-c0868153c",
+              "tag": "v1.1.1-20220809190136-943f98fb0",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.1.1-20220802182047-c0868153c",
+              "tag": "v1.1.1-20220809190136-943f98fb0",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -197,7 +197,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20220802182047-c0868153c",
+              "tag": "v1.1.1-20220809190136-943f98fb0",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
@@ -251,7 +251,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20220802182047-c0868153c",
+              "tag": "v1.1.1-20220809190136-943f98fb0",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
