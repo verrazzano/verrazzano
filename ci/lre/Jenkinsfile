@@ -41,11 +41,8 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
         OCI_CLI_REGION = "us-ashburn-1"
 
-//        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         STABLE_COMMIT_OS_LOCATION = "master/last-stable-commit.txt"
-//        CLEAN_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test/verrazzano_periodic-commit.txt"
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
-//        CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
         OPERATOR_YAML_LOCATION = "${WORKSPACE}/operator.yaml"
 
         TEST_ENV = "LRE"
@@ -144,27 +141,24 @@ pipeline {
             }
         }
 
-        stage ("run kubectl commands") {
+        stage ("Run kubectl commands") {
             steps {
                 script {
                     sh '''
-                        echo "run kubectl get nodes"
                         kubectl get nodes
-                        echo "run kubectl get pods"
                         kubectl get pods -A
+                        kubectl get vz -A
                     '''
                 }
             }
         }
 
-        stage("create oci config file") {
+        stage("Create OCI config file") {
             steps {
                 script{
                     sh """
                         mkdir -p ~/.oci
                         cp ${OCI_CLI_KEY_FILE} ~/.oci
-                        ls -ls ~/.oci
-                        cat ~/.oci/alm.pem
                         rm -rf ~/.oci/config
                         {
                           echo '[DEFAULT]'
@@ -175,12 +169,11 @@ pipeline {
                           echo 'key_file=~/.oci/alm.pem'
                         } >> ~/.oci/config
                         oci setup repair-file-permissions --file /home/opc/.oci/config
-                        cat ~/.oci/config
                     """
                 }
             }
         }
-       stage('Check last clean periodic') {
+       stage('Upgrade to stable commit') {
             steps {
                 sh """
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
@@ -200,7 +193,8 @@ pipeline {
                  }
 
                 sh """
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/operator.yaml --file ${STABLE_COMMIT_LOCATION}
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/operator.yaml --file ${OPERATOR_YAML_LOCATION}
+                    cat ${OPERATOR_YAML_LOCATION}
                 """
             }
         }
@@ -213,29 +207,10 @@ pipeline {
     }
 }
 
-// Returns the last clean commit for the periodics, or null if the commit file does not exist yet.
-// - fails the pipeline if any error other than 404 is returned by the OCI CLI
-def getLastCleanPeriodicCommit() {
-    lastPeriodicCommitCommandOutput = sh (
-        label: "Get last clean periodic commit ID",
-        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_PERIODIC_OS_LOCATION} --file ${CLEAN_PERIODIC_LOCATION} 2>&1 || true",
-        returnStdout: true
-        ).trim()
-    echo "command out: ${lastPeriodicCommitCommandOutput}"
-    if (lastPeriodicCommitCommandOutput.length() > 0) {
-        assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
-    }
-    // Get the commit ID for the last known clean pass of the Periodic tests
-    def cleanPeriodicsCommitProps = readProperties file: "${CLEAN_PERIODIC_LOCATION}"
-    return cleanPeriodicsCommitProps['git-commit']
-}
-
 def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            echo in runGinkgoRandomize ${KUBECONFIG}
-            cat ${KUBECONFIG}
             ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
         """
     }
