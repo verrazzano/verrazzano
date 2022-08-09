@@ -131,7 +131,6 @@ pipeline {
                     switch(env.LRE_CLUSTER_ENV) {
                         case "dev":
                             env.LRE_KUBECONFIG = "config.dev.lre"
-                            echo "${env.LRE_KUBECONFIG}"
                             break
                         case "prod":
                             env.CLUSTER_ID = "${prod_lre_cluster_id}"
@@ -141,13 +140,12 @@ pipeline {
                             break
                         default:
                             env.LRE_KUBECONFIG = "config.dev.lre"
-                            echo "${env.LRE_KUBECONFIG}"
                             break
                     }
                     sh """
                         echo "${env.LRE_KUBECONFIG}"
                         mkdir -p ${WORKSPACE}/.kube
-                        cp ${GO_REPO_PATH}/verrazzano/ci/lre/config.dev.lre ${KUBECONFIG}
+                        cp ${GO_REPO_PATH}/verrazzano/ci/lre/${env.LRE_KUBECONFIG} ${KUBECONFIG}
                         cat ${KUBECONFIG}
                     """
                 }
