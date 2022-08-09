@@ -41,13 +41,19 @@ func isNginxReady(context spi.ComponentContext) bool {
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
+	// Verify that the ingress-nginx service has an external IP before completing post-install
 	_, err := vzconfig.GetIngressIP(context.Client(), context.EffectiveCR())
+	// Only log the message for if the request comes from this component's context
+	// Otherwise, the message is logged for each component that checks the status of the ingress controller
+	if err != nil && context.GetComponent() == ComponentName {
+		context.Log().Errorf("Ingress external IP pending for component %s: %v", ComponentName, err)
+	}
 	return err == nil && status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := context.EffectiveCR()
-	ingressType, err := vzconfig.GetServiceType(cr)
+	ingressType, err := vzconfig.GetIngressServiceType(cr)
 	if err != nil {
 		return []bom.KeyValue{}, err
 	}
