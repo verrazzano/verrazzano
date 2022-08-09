@@ -52,6 +52,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = vmov1.AddToScheme(scheme)
 	_ = installv1alpha1.AddToScheme(scheme)
+	_ = installv1beta1.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
 
 	_ = istioclinet.AddToScheme(scheme)
@@ -202,7 +203,11 @@ func main() {
 	if config.WebhooksEnabled {
 		log.Debug("Setting up Verrazzano webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
-			log.Errorf("Failed to setup webhook with manager: %v", err)
+			log.Errorf("Failed to setup install.v1alpha1.Verrazzano webhook with manager: %v", err)
+			os.Exit(1)
+		}
+		if err = (&installv1beta1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
+			log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().CertDir = config.CertDir
