@@ -98,7 +98,6 @@ func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 // The cert-manager namespace is created
 // The cert-manager manifest is patched if needed and applied to create necessary CRDs
 func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error {
-
 	vz := compContext.EffectiveCR()
 	cli := compContext.Client()
 	log := compContext.Log()
@@ -176,7 +175,9 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 	} else {
 		// Create resources needed for CA certificates
 		if opResult, err = createOrUpdateCAResources(compContext); err != nil {
-			return compContext.Log().ErrorfNewErr("Failed creating CA resources: %v", err)
+			msg := fmt.Sprintf("Failed creating CA resources: %v", err)
+			compContext.Log().Once(msg)
+			return fmt.Errorf(msg)
 		}
 	}
 	if opResult == controllerutil.OperationResultCreated {

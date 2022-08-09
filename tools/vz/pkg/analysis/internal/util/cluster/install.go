@@ -10,6 +10,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
@@ -34,13 +35,13 @@ var invalidLoadBalancerParameter = regexp.MustCompile(`.*Service error:InvalidPa
 var vpoErrorMessages []string
 
 const logLevelError = "error"
-const verrazzanoResource = "verrazzano_resources.json"
+const verrazzanoResource = "verrazzano-resources.json"
 const eventsJSON = "events.json"
 const servicesJSON = "services.json"
 const podsJSON = "pods.json"
 const ingressNginx = "ingress-nginx"
 
-const installErrorNotFound = "No component specific error found in the Verrazzano install log"
+const installErrorNotFound = "Component specific error(s) not found in the Verrazzano install log for - "
 const installErrorMessage = "One or more components listed below did not reach Ready state:"
 
 const (
@@ -151,41 +152,46 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		errorSyncingLoadBalancerCheck := false
 		invalidLBShapeCheck := false
 
+		var reportPodIssue string
+		var reportEvent string
+		if helpers.GetIsLiveCluster() {
+			reportPodIssue = report.GetRelatedPodMessage(pod.ObjectMeta.Name, pod.ObjectMeta.Namespace)
+			reportEvent = report.GetRelatedEventMessage(pod.ObjectMeta.Namespace)
+		} else {
+			reportPodIssue = podFile
+			eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, eventsJSON)
+			reportEvent = eventFile
+		}
+
 		// Check if the event matches failure
 		log.Debugf("Found %d events", len(events))
+
 		for _, event := range events {
 			log.Debugf("analyzeNGINXIngressController event Reason: %s", event.Reason)
 			if !EventReasonFailedRe.MatchString(event.Reason) {
 				continue
 			}
 			log.Debugf("analyzeNGINXIngressController event Reason: %s", event.Message)
+
+			files := make(StringSlice, 2)
+			files[0] = reportPodIssue
+			files[1] = reportEvent
+
 			if ephemeralIPLimitReachedRe.MatchString(event.Message) && !ephemeralIPLimitReachedCheck {
 				messages := make(StringSlice, 1)
 				messages[0] = event.Message
-				eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, eventsJSON)
-				files := make(StringSlice, 2)
-				files[0] = podFile
-				files[1] = eventFile
 				issueReporter.AddKnownIssueMessagesFiles(report.IngressOciIPLimitExceeded, clusterRoot, messages, files)
 				issueDetected = true
 				ephemeralIPLimitReachedCheck = true
 			} else if lbServiceLimitReachedRe.MatchString(event.Message) && !lbServiceLimitReachedCheck {
 				messages := make(StringSlice, 1)
 				messages[0] = event.Message
-				eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, eventsJSON)
-				files := make(StringSlice, 2)
-				files[0] = podFile
-				files[1] = eventFile
 				issueReporter.AddKnownIssueMessagesFiles(report.IngressLBLimitExceeded, clusterRoot, messages, files)
 				issueDetected = true
 				lbServiceLimitReachedCheck = true
 			} else if failedToEnsureLoadBalancer.MatchString(event.Message) && !errorSyncingLoadBalancerCheck {
 				messages := make(StringSlice, 1)
 				messages[0] = event.Message
-				eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, eventsJSON)
-				files := make(StringSlice, 2)
-				files[0] = podFile
-				files[1] = eventFile
 				issueReporter.AddKnownIssueMessagesFiles(report.IngressNoIPFound, clusterRoot, messages, files)
 				issueDetected = true
 				errorSyncingLoadBalancerCheck = true
@@ -193,10 +199,6 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			} else if invalidLoadBalancerParameter.MatchString(event.Message) && !invalidLBShapeCheck {
 				messages := make(StringSlice, 1)
 				messages[0] = event.Message
-				eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, eventsJSON)
-				files := make(StringSlice, 2)
-				files[0] = podFile
-				files[1] = eventFile
 				issueReporter.AddKnownIssueMessagesFiles(report.IngressShapeInvalid, clusterRoot, messages, files)
 				issueDetected = true
 				invalidLBShapeCheck = true
@@ -217,7 +219,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			messages := make(StringSlice, 1)
 			messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 			files := make(StringSlice, 1)
-			files[0] = podFile
+			files[0] = reportPodIssue
 			issueReporter.AddKnownIssueMessagesFiles(report.IngressNoLoadBalancerIP, clusterRoot, messages, files)
 			return nil
 		}
@@ -227,12 +229,19 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		messages := make(StringSlice, 1)
 		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 		// TODO: Time correlation on error search here
-		nginxPodErrors, err := files.FindFilesAndSearch(log, files.FindFileInClusterRoot(clusterRoot, ingressNginx), LogFilesMatchRe, WideErrorSearchRe, nil)
+
+		fileName := files.FindFileInClusterRoot(clusterRoot, ingressNginx)
+		nginxPodErrors, err := files.FindFilesAndSearch(log, fileName, LogFilesMatchRe, WideErrorSearchRe, nil)
 		if err != nil {
 			log.Debugf("Failed searching NGINX Ingress namespace log files for supporting error log data", err)
 		}
+
+		if helpers.GetIsLiveCluster() && len(nginxPodErrors) > 0 {
+			nginxPodErrors[0].FileName = report.GetRelatedLogFromPodMessage(fileName)
+		}
+
 		files := make(StringSlice, 1)
-		files[0] = podFile
+		files[0] = reportPodIssue
 		supportingData := make([]report.SupportData, 1)
 		supportingData[0] = report.SupportData{
 			Messages:     messages,
@@ -253,7 +262,7 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 	fileInfo, e := os.Stat(vzResourcesPath)
 	if e != nil || fileInfo.Size() == 0 {
 		log.Infof("Verrazzano resource file %s is either empty or there is an issue in getting the file info about it", vzResourcesPath)
-		// The cluster dump taken by the latest script is expected to contain the verrazzano_resources.json.
+		// The cluster dump taken by the latest script is expected to contain the verrazzano-resources.json.
 		// In order to support cluster dumps taken in earlier release, return nil rather than an error.
 		return nil, nil
 	}
@@ -313,25 +322,46 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 
 	// Go through all the components which did not reach Ready state
 	allMessages, _ := files.ConvertToLogMessage(vpoLog)
+
+	// Slice to hold the components without specific errors in platform operator log
+	var compsNoMessages []string
 	for _, comp := range compsNotReady {
 		var allErrors []files.LogMessage
 		allErrors, err := files.FilterLogsByLevelComponent(logLevelError, comp, allMessages)
 		if err != nil {
 			log.Infof("There is an error: %s reading install log: %s", err, vpoLog)
 		}
-		errorMessage := installErrorNotFound
 		// Display only the last error for the component from the install log.
 		// Need a better way to handle distinct errors for a component, however some of the errors during the initial
 		// stages of the install might not indicate any real issue always, as reconcile takes care of healing those errors.
 		if len(allErrors) > 0 {
-			errorMessage = allErrors[len(allErrors)-1].Message
+			errorMessage := allErrors[len(allErrors)-1].Message
+			messages = append(messages, "\t "+comp+": "+errorMessage)
+			vpoErrorMessages = append(vpoErrorMessages, errorMessage)
+		} else {
+			compsNoMessages = append(compsNoMessages, comp)
 		}
-		messages = append(messages, "\t "+comp+": "+errorMessage)
-		vpoErrorMessages = append(vpoErrorMessages, errorMessage)
 	}
-	var files []string
-	files = append(files, clusterRoot+"/"+verrazzanoResource)
-	files = append(files, vpoLog)
+
+	// Create a a single message to display the list of components without specific error in the platform operator
+	if len(compsNoMessages) > 0 {
+		errorMessage := "\t " + installErrorNotFound + strings.Join(compsNoMessages[:], ", ")
+		messages = append(messages, errorMessage)
+	}
+
+	reportVzResource := ""
+	reportVpoLog := ""
+	// Construct resource in the analysis report, differently for live analysis
+	if helpers.GetIsLiveCluster() {
+		reportVzResource = report.GetRelatedVZResourceMessage()
+		reportVpoLog = report.GetRelatedLogFromPodMessage(vpoLog)
+	} else {
+		reportVzResource = clusterRoot + "/" + verrazzanoResource
+		reportVpoLog = vpoLog
+	}
+	files := make(StringSlice, 2)
+	files[0] = reportVzResource
+	files[1] = reportVpoLog
 	issueReporter.AddKnownIssueMessagesFiles(report.ComponentsNotReady, clusterRoot, messages, files)
 	return nil
 }

@@ -4,20 +4,21 @@
 package restapi_test
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = t.Describe("rancher", Label("f:infra-lcm",
@@ -36,32 +37,9 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					t.Fail(err.Error())
 				}
 
-				var rancherURL string
-
-				Eventually(func() error {
-					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
-					if err != nil {
-						return err
-					}
-					ingress, err := api.GetIngress("cattle-system", "rancher")
-					if err != nil {
-						return err
-					}
-					rancherURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
-					t.Logs.Info(fmt.Sprintf("Found ingress URL: %s", rancherURL))
-					return nil
-				}, waitTimeout, pollingInterval).Should(BeNil())
-
-				Expect(rancherURL).NotTo(BeEmpty())
-				var httpClient *retryablehttp.Client
-				Eventually(func() error {
-					httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
-					if err != nil {
-						t.Logs.Error(fmt.Sprintf("Error getting HTTP client: %v", err))
-						return err
-					}
-					return nil
-				}, waitTimeout, pollingInterval).Should(BeNil())
+				api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
+				rancherURL := pkg.EventuallyGetRancherURL(t.Logs, api)
+				httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
 				var httpResponse *pkg.HTTPResponse
 
 				Eventually(func() (*pkg.HTTPResponse, error) {
@@ -71,89 +49,76 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 
 				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
 
-				var token string
+				k8sClient, err := pkg.GetDynamicClientInCluster(kubeconfigPath)
+				if err != nil {
+					t.Logs.Error(fmt.Sprintf("Error getting K8S client: %v", err))
+					t.Fail(err.Error())
+				}
+
 				start := time.Now()
-				Eventually(func() error {
-					var err error
-					secret, err := pkg.GetSecret("cattle-system", "rancher-admin-secret")
+				t.Logs.Info("Verify local cluster status")
+				Eventually(func() (bool, error) {
+					clusterData, err := k8sClient.Resource(gvkToGvr(rancher.GVKCluster)).Get(context.Background(), rancher.ClusterLocal, v1.GetOptions{})
 					if err != nil {
-						t.Logs.Error(fmt.Sprintf("Error getting rancher-admin-secret: %v", err))
-						return err
+						t.Logs.Error(fmt.Sprintf("Error getting local Cluster CR: %v", err))
+						return false, err
 					}
-
-					var rancherAdminPassword []byte
-					var ok bool
-					if rancherAdminPassword, ok = secret.Data["password"]; !ok {
-						t.Logs.Error(fmt.Sprintf("Error getting rancher admin credentials: %v", err))
-						return err
+					status := clusterData.UnstructuredContent()["status"].(map[string]interface{})
+					conditions := status["conditions"].([]interface{})
+					for _, condition := range conditions {
+						conditionStage := condition.(map[string]interface{})
+						if conditionStage["status"].(string) == "True" && conditionStage["type"].(string) == "Ready" {
+							return true, nil
+						}
 					}
-
-					rancherLoginURL := fmt.Sprintf("%s/%s", rancherURL, "v3-public/localProviders/local?action=login")
-					payload := `{"Username": "admin", "Password": "` + string(rancherAdminPassword) + `"}`
-					response, err := httpClient.Post(rancherLoginURL, "application/json", strings.NewReader(payload))
-					if err != nil {
-						t.Logs.Error(fmt.Sprintf("Error getting rancher admin token: %v", err))
-						return err
-					}
-
-					err = httputil.ValidateResponseCode(response, http.StatusCreated)
-					if err != nil {
-						return err
-					}
-
-					defer response.Body.Close()
-
-					// extract the response body
-					body, err := ioutil.ReadAll(response.Body)
-					if err != nil {
-						return err
-					}
-
-					token, err = httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "token", "unable to find token in Rancher response")
-					if err != nil {
-						return err
-					}
-
-					return nil
-				}, waitTimeout, pollingInterval).Should(BeNil())
-				metrics.Emit(t.Metrics.With("get_token_elapsed_time", time.Since(start).Milliseconds()))
-
-				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
-				start = time.Now()
-				Eventually(func() (string, error) {
-					req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, "v3/clusters/local"), nil)
-					if err != nil {
-						t.Logs.Error(fmt.Sprintf("Error creating rancher clusters api request: %v", err))
-						return "", err
-					}
-
-					req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
-					req.Header.Set("Accept", "application/json")
-					response, err := httpClient.Do(req)
-					if err != nil {
-						t.Logs.Error(fmt.Sprintf("Error invoking rancher clusters api request: %v", err))
-						return "", err
-					}
-
-					err = httputil.ValidateResponseCode(response, http.StatusOK)
-					if err != nil {
-						return "", err
-					}
-
-					defer response.Body.Close()
-
-					// extract the response body
-					body, err := ioutil.ReadAll(response.Body)
-					if err != nil {
-						return "", err
-					}
-
-					return httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "state", "unable to find state in Rancher clusters response")
-				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher local cluster not in active state")
+					return false, fmt.Errorf("Cluster still not in active state")
+				}, waitTimeout, pollingInterval).Should(Equal(true), "rancher local cluster not in active state")
 				metrics.Emit(t.Metrics.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
+
+				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+				if minVer14 {
+					start = time.Now()
+					t.Logs.Info("Verify OCI driver status")
+					Eventually(func() (bool, error) {
+						ociDriverData, err := k8sClient.Resource(gvkToGvr(rancher.GVKNodeDriver)).Get(context.Background(), rancher.NodeDriverOCI, v1.GetOptions{})
+						if err != nil {
+							t.Logs.Error(fmt.Sprintf("Error getting OCI Driver CR: %v", err))
+							return false, err
+						}
+						return ociDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher oci driver not activated")
+					metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
+
+					start = time.Now()
+					t.Logs.Info("Verify OKE driver status")
+					Eventually(func() (bool, error) {
+						okeDriverData, err := k8sClient.Resource(gvkToGvr(rancher.GVKKontainerDriver)).Get(context.Background(), rancher.KontainerDriverOKE, v1.GetOptions{})
+						if err != nil {
+							t.Logs.Error(fmt.Sprintf("Error getting OKE Driver CR: %v", err))
+							return false, err
+						}
+						return okeDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher oke driver not activated")
+					metrics.Emit(t.Metrics.With("get_oke_driver_state_elapsed_time", time.Since(start).Milliseconds()))
+				}
 			}
 		})
 	})
 })
+
+func gvkToGvr(gvk schema.GroupVersionKind) schema.GroupVersionResource {
+	resource := strings.ToLower(gvk.Kind)
+	if strings.HasSuffix(resource, "s") {
+		resource = resource + "es"
+	} else {
+		resource = resource + "s"
+	}
+
+	return schema.GroupVersionResource{Group: gvk.Group,
+		Version:  gvk.Version,
+		Resource: resource,
+	}
+}
 
 var _ = t.AfterEach(func() {})

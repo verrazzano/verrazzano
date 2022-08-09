@@ -11,6 +11,7 @@ import (
 
 	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -44,8 +45,8 @@ const (
 
 	disableMountSubPathKey = "prometheus.prometheusSpec.storageSpec.disableMountSubPath"
 	requestsStorageKey     = "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage"
-	storageForKey          = `prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.selector.matchLabels.verrazzano\.io/storage-for`
-	requestsMemoryKey      = "prometheus.prometheusSpec.resources.requests.memory"
+
+	requestsMemoryKey = "prometheus.prometheusSpec.resources.requests.memory"
 )
 
 var (
@@ -60,6 +61,7 @@ func init() {
 	_ = vzapi.AddToScheme(testScheme)
 	_ = certapiv1.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
+	_ = promoperapi.AddToScheme(testScheme)
 }
 
 // TestIsPrometheusOperatorReady tests the isPrometheusOperatorReady function for the Prometheus Operator
@@ -179,7 +181,7 @@ func TestAppendOverrides(t *testing.T) {
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 27)
+	assert.Len(t, kvs, 29)
 
 	assert.Equal(t, "ghcr.io/verrazzano/prometheus-config-reloader", bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.repository"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.tag"))
@@ -214,7 +216,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 27)
+	assert.Len(t, kvs, 29)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
@@ -475,12 +477,12 @@ func TestApplySystemMonitors(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, monitors.Items, 2)
 
-	// expected number of ServiceMonitors is created
 	monitors = &unstructured.UnstructuredList{}
 	monitors.SetGroupVersionKind(schema.GroupVersionKind{Group: "monitoring.coreos.com", Version: "v1", Kind: "ServiceMonitor"})
 	err = client.List(context.TODO(), monitors)
 	assert.NoError(t, err)
-	assert.Len(t, monitors.Items, 7)
+	// expect that 9 ServiceMonitors are created
+	assert.Len(t, monitors.Items, 9)
 }
 
 // TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR
@@ -776,11 +778,12 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
 	assert.NoError(err)
 
-	assert.Len(authPolicy.Spec.Rules, 2)
+	assert.Len(authPolicy.Spec.Rules, 3)
 	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
 	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
 	assert.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
+	assert.Contains(authPolicy.Spec.Rules[2].From[0].Source.Principals, "cluster.local/ns/verrazzano-monitoring/sa/jaeger-operator-jaeger")
 
 	// GIVEN Prometheus Operator is being installed or upgraded
 	// AND   Istio is disabled
@@ -820,8 +823,14 @@ func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
 	netPolicy := &netv1.NetworkPolicy{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: networkPolicyName, Namespace: ComponentNamespace}, netPolicy)
 	assert.NoError(t, err)
+	assert.Len(t, netPolicy.Spec.Ingress, 2)
 	assert.Equal(t, []netv1.PolicyType{netv1.PolicyTypeIngress}, netPolicy.Spec.PolicyTypes)
 	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)
+	assert.Equal(t, int32(9090), netPolicy.Spec.Ingress[1].Ports[0].Port.IntVal)
+	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "verrazzano-authproxy")
+	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "system-grafana")
+	assert.Contains(t, netPolicy.Spec.Ingress[0].From[0].PodSelector.MatchExpressions[0].Values, "kiali")
+	assert.Contains(t, netPolicy.Spec.Ingress[1].From[0].PodSelector.MatchExpressions[0].Values, "jaeger")
 }
 
 // erroringFakeClient wraps a k8s client and returns an error when Update is called
@@ -834,12 +843,12 @@ func (e *erroringFakeClient) Update(_ context.Context, _ client.Object, _ ...cli
 	return errors.NewConflict(schema.GroupResource{}, "", nil)
 }
 
-// TestRemoveOldClaimFromPrometheusVolume tests the removeOldClaimFromPrometheusVolume function
+// TestRemoveOldClaimFromPrometheusVolume tests the updateExistingVolumeClaims function
 func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 	const volumeName = "pvc-5ab58a05-71f9-4f09-8911-a5c029f6305f"
 
 	// GIVEN a persistent volume that has a released status and a claim that references vmi-system-prometheus
-	// WHEN the removeOldClaimFromPrometheusVolume function is called
+	// WHEN the updateExistingVolumeClaims function is called
 	// THEN the persistent volume is updated and the claim is removed
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.PersistentVolume{
@@ -861,7 +870,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 		}).Build()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 
-	err := removeOldClaimFromPrometheusVolume(ctx)
+	err := updateExistingVolumeClaims(ctx)
 	assert.NoError(t, err)
 
 	// validate that the ClaimRef is now nil
@@ -871,7 +880,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 	assert.Nil(t, pv.Spec.ClaimRef)
 
 	// GIVEN no persistent volumes
-	// WHEN the removeOldClaimFromPrometheusVolume function is called
+	// WHEN the updateExistingVolumeClaims function is called
 	// THEN no error is returned
 	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.PersistentVolume{
@@ -881,11 +890,11 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 		}).Build()
 	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 
-	err = removeOldClaimFromPrometheusVolume(ctx)
+	err = updateExistingVolumeClaims(ctx)
 	assert.NoError(t, err)
 
 	// GIVEN a persistent volume that is bound and has a claim that references vmi-system-prometheus
-	// WHEN the removeOldClaimFromPrometheusVolume function is called
+	// WHEN the updateExistingVolumeClaims function is called
 	// THEN the persistent volume is not updated
 	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.PersistentVolume{
@@ -907,7 +916,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 		}).Build()
 	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 
-	err = removeOldClaimFromPrometheusVolume(ctx)
+	err = updateExistingVolumeClaims(ctx)
 	assert.NoError(t, err)
 
 	// validate that the ClaimRef is not nil
@@ -917,7 +926,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 	assert.NotNil(t, pv.Spec.ClaimRef)
 
 	// GIVEN a persistent volume that has a released status and a claim that references vmi-system-prometheus
-	// WHEN the removeOldClaimFromPrometheusVolume function is called and the call to update the volume fails
+	// WHEN the updateExistingVolumeClaims function is called and the call to update the volume fails
 	// THEN an error is returned
 	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.PersistentVolume{
@@ -941,7 +950,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 	ctx = spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, false)
 
 	// validate that the expected error is returned
-	err = removeOldClaimFromPrometheusVolume(ctx)
+	err = updateExistingVolumeClaims(ctx)
 	assert.ErrorContains(t, err, "Failed removing claim")
 }
 
@@ -1109,10 +1118,6 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 					Value: storageSize,
 				},
 				{
-					Key:   storageForKey,
-					Value: "prometheus",
-				},
-				{
 					Key:   requestsMemoryKey,
 					Value: memorySize,
 				},
@@ -1167,10 +1172,6 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 				{
 					Key:   requestsStorageKey,
 					Value: storageSize,
-				},
-				{
-					Key:   storageForKey,
-					Value: "prometheus",
 				},
 			},
 			expectError: false,

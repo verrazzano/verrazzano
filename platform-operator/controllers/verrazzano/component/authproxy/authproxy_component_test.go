@@ -4,7 +4,12 @@
 package authproxy
 
 import (
+	"fmt"
 	"testing"
+
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/os"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -118,4 +123,36 @@ func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestUninstallHelmChartInstalled tests the Fluentd Uninstall call
+// GIVEN a Fluentd component
+//  WHEN I call Uninstall with the Fluentd helm chart installed
+//  THEN no error is returned
+func TestUninstallHelmChartInstalled(t *testing.T) {
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte{},
+		Err:    nil,
+	})
+	defer helmcli.SetDefaultRunner()
+
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	assert.NoError(t, err)
+}
+
+// TestUninstallHelmChartNotInstalled tests the Fluentd Uninstall call
+// GIVEN a Fluentd component
+//  WHEN I call Uninstall with the Fluentd helm chart not installed
+//  THEN no error is returned
+func TestUninstallHelmChartNotInstalled(t *testing.T) {
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte{},
+		Err:    fmt.Errorf("Not installed"),
+	})
+	defer helmcli.SetDefaultRunner()
+
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	assert.NoError(t, err)
 }

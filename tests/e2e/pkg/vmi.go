@@ -5,12 +5,56 @@ package pkg
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/gomega"
+	"go.uber.org/zap"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	v1 "k8s.io/api/core/v1"
 )
+
+func VerifySystemVMIComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword, ingressName, expectedURLPrefix string) bool {
+	ingress, err := api.GetIngress("verrazzano-system", ingressName)
+	if err != nil {
+		log.Errorf("Error getting ingress from API: %v", err)
+		return false
+	}
+	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+	if !strings.HasPrefix(vmiComponentURL, expectedURLPrefix) {
+		log.Errorf("URL '%s' does not have expected prefix: %s", vmiComponentURL, expectedURLPrefix)
+		return false
+	}
+	return AssertURLAccessibleAndAuthorized(sysVmiHTTPClient, vmiComponentURL, vmiCredentials)
+}
+
+func VerifyOpenSearchComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {
+	return VerifySystemVMIComponent(log, api, sysVmiHTTPClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")
+}
+
+func VerifyOpenSearchDashboardsComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {
+	return VerifySystemVMIComponent(log, api, sysVmiHTTPClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")
+}
+
+func VerifyPrometheusComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {
+	return VerifySystemVMIComponent(log, api, sysVmiHTTPClient, vmiCredentials, "vmi-system-prometheus", "https://prometheus.vmi.system")
+}
+
+func VerifyGrafanaComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {
+	return VerifySystemVMIComponent(log, api, sysVmiHTTPClient, vmiCredentials, "vmi-system-grafana", "https://grafana.vmi.system")
+}
+
+func EventuallyGetSystemVMICredentials() *UsernamePassword {
+	var vmiCredentials *UsernamePassword
+	gomega.Eventually(func() (*UsernamePassword, error) {
+		var err error
+		vmiCredentials, err = GetSystemVMICredentials()
+		return vmiCredentials, err
+	}, waitTimeout, pollingInterval).ShouldNot(gomega.BeNil())
+	return vmiCredentials
+}
 
 // GetSystemVMICredentials - Obtain VMI system credentials
 func GetSystemVMICredentials() (*UsernamePassword, error) {

@@ -6,6 +6,7 @@ package fluentd
 import (
 	"context"
 	"fmt"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -18,9 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -63,54 +62,18 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 		if fluentdConfig != nil {
 			// Copy the internal Elasticsearch secret
 			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
-				if err := copySecret(ctx, fluentdConfig.ElasticsearchSecret, "custom Elasticsearch"); err != nil {
+				if err := common.CopySecret(ctx, fluentdConfig.ElasticsearchSecret, constants.VerrazzanoSystemNamespace, "custom Elasticsearch"); err != nil {
 					return err
 				}
 			}
 			// Copy the OCI API secret
 			if fluentdConfig.OCI != nil && len(fluentdConfig.OCI.APISecret) > 0 {
-				if err := copySecret(ctx, fluentdConfig.OCI.APISecret, "OCI API"); err != nil {
+				if err := common.CopySecret(ctx, fluentdConfig.OCI.APISecret, constants.VerrazzanoSystemNamespace, "OCI API"); err != nil {
 					return err
 				}
 			}
 		}
 	}
-	return nil
-}
-
-// copySecret copies a secret from the verrazzano-install namespace to the verrazzano-system namespace. If
-// the target secret already exists, then it will be updated if necessary.
-func copySecret(ctx spi.ComponentContext, secretName string, logMsg string) error {
-	vzLog := ctx.Log()
-	vzLog.Debugf("Copying %s secret %s to %s namespace", logMsg, secretName, globalconst.VerrazzanoSystemNamespace)
-
-	targetSecret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-		},
-	}
-	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &targetSecret, func() error {
-		sourceSecret := corev1.Secret{}
-		nsn := types.NamespacedName{Name: secretName, Namespace: constants.VerrazzanoInstallNamespace}
-		if err := ctx.Client().Get(context.TODO(), nsn, &sourceSecret); err != nil {
-			return err
-		}
-		targetSecret.Type = sourceSecret.Type
-		targetSecret.Immutable = sourceSecret.Immutable
-		targetSecret.StringData = sourceSecret.StringData
-		targetSecret.Data = sourceSecret.Data
-		return nil
-	})
-
-	vzLog.Debugf("Copy %s secret result: %s", logMsg, opResult)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return ctx.Log().ErrorfNewErr("Failed in create/update for copysecret: %v", err)
-		}
-		return vzLog.ErrorfNewErr("Failed, the %s secret %s not found in namespace %s", logMsg, secretName, constants.VerrazzanoInstallNamespace)
-	}
-
 	return nil
 }
 
@@ -263,5 +226,20 @@ func GetHelmManagedResources() []common.HelmManagedResource {
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: fluentdInit, Namespace: ComponentNamespace}},
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: fluentdConfig, Namespace: ComponentNamespace}},
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: fluentdEsConfig, Namespace: ComponentNamespace}},
+	}
+}
+
+// getFluentdManagedResources returns a list of resource types and their namespaced names that are managed by the
+// Fluent helm chart
+func getFluentdManagedResources() []common.HelmManagedResource {
+	return []common.HelmManagedResource{
+		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: ComponentName}},
+		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: ComponentName}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-config", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-es-config", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-init", Namespace: ComponentNamespace}},
+		{Obj: &appsv1.DaemonSet{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
+		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 	}
 }

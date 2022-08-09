@@ -4,13 +4,18 @@
 package velero
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os/exec"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -160,4 +165,28 @@ func TestGetName(t *testing.T) {
 	v := NewComponent()
 	assert.Equal(t, ComponentName, v.Name())
 	assert.Equal(t, ComponentJSONName, v.GetJSONName())
+}
+
+// TestPostUninstall tests the PostUninstall function
+// GIVEN a call to PostUninstall
+//  WHEN the velero namespace exists with a finalizer
+//  THEN true is returned and velero namespace is deleted
+func TestPostUninstall(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       ComponentNamespace,
+				Finalizers: []string{"fake-finalizer"},
+			},
+		},
+	).Build()
+
+	var iComp veleroHelmComponent
+	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
+	assert.NoError(t, iComp.PostUninstall(compContext))
+
+	// Validate that the namespace does not exist
+	ns := corev1.Namespace{}
+	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
+	assert.True(t, errors.IsNotFound(err))
 }

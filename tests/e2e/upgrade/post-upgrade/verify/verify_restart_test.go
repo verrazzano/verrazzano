@@ -41,7 +41,7 @@ const (
 	fiveMinutes = 5 * time.Minute
 
 	pollingInterval = 10 * time.Second
-	envoyImage      = "proxyv2:1.13.2"
+	envoyImage      = "proxyv2:1.13.5"
 	minimumVersion  = "1.1.0"
 )
 
@@ -107,7 +107,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	t.DescribeTable("should contain Envoy sidecar 1.13.2",
+	t.DescribeTable("should contain Envoy sidecar 1.13.5",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
@@ -164,6 +164,15 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 				Eventually(func() bool {
 					if isDisabled(componentName) {
 						t.Logs.Infof("Skipping disabled component %s", componentName)
+						return true
+					}
+					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+						return false
+					}
+					if deploymentName == "mysql" && isVersionAbove1_4_0 {
+						// skip mysql for version greater than 1.4.0
 						return true
 					}
 					deployment, err := pkg.GetDeployment(namespace, deploymentName)
@@ -255,6 +264,15 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
+					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+						return false
+					}
+					if stsName == "mysql" && !isVersionAbove1_4_0 {
+						// skip mysql for version less than 1.4.0
+						return true
+					}
 					sts, err := pkg.GetStatefulSet(namespace, stsName)
 					if err != nil {
 						return false
@@ -264,6 +282,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			},
 			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
 			t.Entry("Checking StatefulSet keycloak", keycloak.ComponentNamespace, keycloak.ComponentName, "keycloak"),
+			t.Entry("Checking StatefulSet mysql", mysql.ComponentNamespace, mysql.ComponentName, "mysql"),
 		)
 	})
 

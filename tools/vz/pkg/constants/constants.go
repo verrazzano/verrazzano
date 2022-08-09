@@ -65,11 +65,29 @@ const VerrazzanoManagedCluster = "verrazzano-managed-cluster"
 
 const VerrazzanoPlatformOperatorWait = 1
 
+const OAMAppConfigurations = "applicationconfigurations"
+
+const OAMMCAppConfigurations = "multiclusterapplicationconfigurations"
+
+const OAMMCCompConfigurations = "multiclustercomponents"
+
+const OAMComponents = "components"
+
+const OAMMetricsTraits = "metricstraits"
+
+const OAMIngressTraits = "ingresstraits"
+
+const OAMProjects = "verrazzanoprojects"
+
+const OAMManagedClusters = "verrazzanomanagedclusters"
+
+const VerrazzanoManagedLabel = "verrazzano-managed=true"
+
 // Analysis tool flags
 const (
 	DirectoryFlagName  = "capture-dir"
 	DirectoryFlagValue = ""
-	DirectoryFlagUsage = "Directory holding the captured data [Required]"
+	DirectoryFlagUsage = "Directory holding the captured data"
 
 	ReportFileFlagName  = "report-file"
 	ReportFileFlagValue = ""
@@ -82,18 +100,35 @@ const (
 
 // Constants for bug report
 const (
-	BugReportFileFlagName  = "report-file"
-	BugReportFileFlagValue = ""
-	BugReportFileFlagUsage = "The report file to be created by bug-report command, as a .tar.gz file [Required]"
-	BugReportFileExtn      = ".tar.gz"
+	BugReportFileFlagName     = "report-file"
+	BugReportFileFlagValue    = ""
+	BugReportFileFlagShort    = "r"
+	BugReportFileFlagUsage    = "The report file to be created by bug-report command, as a .tar.gz file. Defaults to bug-report.tar.gz in the current directory."
+	BugReportFileDefaultValue = "bug-report.tar.gz"
+
+	BugReportIncludeNSFlagName  = "include-namespaces"
+	BugReportIncludeNSFlagShort = "i"
+	BugReportIncludeNSFlagUsage = "A comma separated list of additional namespaces to collect information from the cluster. This flag can be specified multiple times like --include-namespaces ns1 --include-namespaces ns..."
+
+	BugReportVerboseFlagName    = "verbose"
+	BugReportVerboseFlagShort   = "v"
+	BugReportVerboseFlagDefault = false
+	BugReportVerboseFlagUsage   = "Enable verbose output for the bug-report command"
 
 	BugReportDir = "bug-report"
 
 	// File name for the log captured from the pod
 	LogFile = "logs.txt"
 
+	// File containing list of resources captured by the tool
+	BugReportOut = "bug-report.out"
+	BugReportErr = "bug-report.err"
+
+	BugReportError   = "ERROR: The bug report noticed one or more issues while capturing the resources. Please go through error(s) in the standard error."
+	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"
+
 	// File names for the various resources
-	VzResource       = "verrazzano_resources.json"
+	VzResource       = "verrazzano-resources.json"
 	DeploymentsJSON  = "deployments.json"
 	EventsJSON       = "events.json"
 	PodsJSON         = "pods.json"
@@ -102,6 +137,14 @@ const (
 	DaemonSetsJSON   = "daemonsets.json"
 	IngressJSON      = "ingress.json"
 	StatefulSetsJSON = "statefulsets.json"
+	AppConfigJSON    = "application-configurations.json"
+	ComponentJSON    = "components.json"
+	IngressTraitJSON = "ingress-traits.json"
+	MetricsTraitJSON = "metrics-traits.json"
+	McAppConfigJSON  = "multicluster-application-configurations.json"
+	McComponentJSON  = "multicluster-components.json"
+	VzProjectsJSON   = "verrazzano-projects.json"
+	VmcJSON          = "verrazzano-managed-clusters.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "
@@ -109,10 +152,14 @@ const (
 	// The prefix used for the json.MarshalIndent
 	JSONPrefix = ""
 
-	// Top level directory for the bug report, keeping cluster-dump for now to support the analyze the command
-	BugReportRoot = "cluster-dump"
+	// Top level directory for the bug report, keeping cluster-snapshot for now to support the analyze the command
+	BugReportRoot = "cluster-snapshot"
 
 	// Label for application
 	AppLabel    = "app"
 	K8SAppLabel = "k8s-app"
+
+	// Message prefix for bug-report and live cluster analysis
+	BugReportMsgPrefix = "Capturing "
+	AnalysisMsgPrefix  = "Analyzing "
 )

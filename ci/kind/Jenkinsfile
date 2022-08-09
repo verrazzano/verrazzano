@@ -97,7 +97,8 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+        VZ_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/test-call-vz.sh"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
@@ -107,7 +108,8 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
@@ -202,6 +204,15 @@ pipeline {
                 sh """
                     ./ci/scripts/tag_instance.sh ${BRANCH_TAG} ${params.PIPELINE_TAG} ${JOB_SCENARIO_TAG}
                 """
+
+                script {
+                    sh """
+                        echo "Downloading VZ CLI from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                        ${GO_REPO_PATH}/vz version
+                    """
+                }
             }
         }
 
@@ -210,10 +221,7 @@ pipeline {
                 stage('Prepare AT environment') {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
-                        OCI_CLI_AUTH="instance_principal"
-                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_BUCKET="verrazzano-builds"
-                        OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                        OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                         REALM_USER_PASSWORD = credentials('todo-mysql-password')
                         REALM_NAME = "test-realm"
                     }
@@ -247,15 +255,6 @@ pipeline {
                         }
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                            sh """
-                                ## dump out install logs
-                                mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
-                                kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install.log --tail -1
-                                kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
-                                echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                                echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                                echo "------------------------------------------"
-                            """
                             script {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
@@ -292,7 +291,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -361,7 +360,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -530,7 +529,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
@@ -543,7 +542,8 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-snapshot')
+                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-snapshot')
                         }
                     }
                 }
@@ -551,7 +551,8 @@ pipeline {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('new-kind-acceptance-tests-cluster-dump')
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-snapshot')
+                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-snapshot')
                         }
                     }
                 }
@@ -579,7 +580,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -650,7 +651,15 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+    """
+}
+
+def dumpK8sClusterFromBugReport(dumpDirectory) {
+    sh """
+            go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+            mkdir bug-report
+            tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
     """
 }
 

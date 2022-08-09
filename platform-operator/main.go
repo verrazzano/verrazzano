@@ -5,29 +5,19 @@ package main
 
 import (
 	"flag"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"os"
 	"sync"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
-	"github.com/verrazzano/verrazzano/pkg/helm"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
-	configmapcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
-	secretscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
-	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
-	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -38,6 +28,21 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
+	configmapcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
+	secretscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
+	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
+	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -63,6 +68,9 @@ func init() {
 	// Add the Prometheus Operator resources to the scheme
 	_ = promoperapi.AddToScheme(scheme)
 
+	// Add K8S api-extensions so that we can list CustomResourceDefinitions during uninstall of VZ
+	_ = v1.AddToScheme(scheme)
+	utilruntime.Must(installv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -107,6 +115,14 @@ func main() {
 	if len(bomOverride) > 0 {
 		log.Infof("Using BOM override file %s", bomOverride)
 		internalconfig.SetDefaultBomFilePath(bomOverride)
+	}
+
+	// Log the Verrazzano version
+	version, err := installv1alpha1.GetCurrentBomVersion()
+	if err == nil {
+		log.Infof("Verrazzano version: %s", version.ToString())
+	} else {
+		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
 
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
@@ -167,7 +183,7 @@ func main() {
 
 	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
 
-	metricsexporter.InitalizeMetricsEndpoint()
+	metricsexporter.InitRegisterStart(log)
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{

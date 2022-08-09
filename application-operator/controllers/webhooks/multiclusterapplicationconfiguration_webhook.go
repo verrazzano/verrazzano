@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	k8sadmission "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,9 +37,17 @@ func (v *MultiClusterApplicationConfigurationValidator) InjectDecoder(d *admissi
 
 // Handle performs validation of created or updated MultiClusterApplicationConfiguration resources.
 func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	mcac := &v1alpha1.MultiClusterApplicationConfiguration{}
-	err := v.decoder.Decode(req, mcac)
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("MultiClusterApplicationConfigurationValidator", metricsexporter.MultiClusterAppconfigPodHandleCounter, metricsexporter.MultiClusterAppconfigPodHandleError, metricsexporter.MultiClusterAppconfigPodHandleDuration)
 	if err != nil {
+		return admission.Response{}
+	}
+	handleDurationMetricObject.TimerStart()
+	defer handleDurationMetricObject.TimerStop()
+
+	mcac := &v1alpha1.MultiClusterApplicationConfiguration{}
+	err = v.decoder.Decode(req, mcac)
+	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
@@ -47,18 +56,22 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 		case k8sadmission.Create, k8sadmission.Update:
 			err = validateMultiClusterResource(v.client, mcac)
 			if err != nil {
+				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Denied(err.Error())
 			}
 			err = v.validateSecrets(mcac)
 			if err != nil {
+				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Denied(err.Error())
 			}
 			err = validateNamespaceInProject(v.client, mcac.Namespace)
 			if err != nil {
+				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Denied(err.Error())
 			}
 		}
 	}
+	counterMetricObject.Inc(zapLogForMetrics, err)
 	return admission.Allowed("")
 }
 

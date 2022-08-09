@@ -35,8 +35,8 @@ func TestExecuteAnalysisBadArgs(t *testing.T) {
 }
 
 // TestImagePullCase1 Tests that analysis of a cluster dump with image pull issues is handled
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows image pull issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows image pull issues
 // THEN a report is generated with image pull issues identified
 func TestImagePull(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
@@ -57,8 +57,8 @@ func TestImagePull(t *testing.T) {
 }
 
 // TestInsufficientMemory Tests that analysis of a cluster dump with pods that failed due to insufficient memory
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with insufficient memory problems
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with insufficient memory problems
 // THEN a report is generated with issues identified
 func TestInsufficientMemory(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
@@ -80,8 +80,8 @@ func TestInsufficientMemory(t *testing.T) {
 
 // TestProblemPodsNotReportedUninstall Tests that analysis of a cluster dump with pods that have unknown issues during
 // uninstall, is handled
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with problems that are not known issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
 func TestProblemPodsNotReportedUninstall(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
@@ -103,8 +103,8 @@ func TestProblemPodsNotReportedUninstall(t *testing.T) {
 
 // TestProblemPodsNotReportedInstall Tests that analysis of a cluster dump with pods that have unknown issues during
 // install, is handled
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with problems that are not known issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
 func TestProblemPodsNotReportedInstall(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
@@ -130,8 +130,8 @@ func TestProblemPodsNotReportedInstall(t *testing.T) {
 }
 
 // TestLBIpNotSet Tests that analysis of a cluster dump where LB issue occurred with no IP set is handled
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with problems that are not known issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
 // Note: With the latest changes to platform operator and analysis tool, the issue is reported differently.
 // Commenting the test for now, and added a new test TestLBIpNotFound
@@ -154,8 +154,8 @@ func TestProblemPodsNotReportedInstall(t *testing.T) {
 //}
 
 // TestLBIpNotFound Tests that analysis of a cluster dump where no IP was found for load balancer
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with problems that are not known issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
 func TestLBIpNotFound(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
@@ -177,8 +177,8 @@ func TestLBIpNotFound(t *testing.T) {
 
 // TODO: Enable this test once there is a cluster dump for this use case
 // TestIngressInstall Tests that analysis of a cluster dump where Ingress install failed without more info handled
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with problems that are not known issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
 // func TestIngressInstall(t *testing.T) {
 //	logger := log.GetDebugEnabledLogger()
@@ -199,8 +199,8 @@ func TestLBIpNotFound(t *testing.T) {
 //}
 
 // TestLBLimitExceeded Test that analysis of a cluster dump where Ingress install failed due to LoadBalancer service limit handled
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with problems that are not known issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
 func TestLBLimitExceeded(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
@@ -221,8 +221,8 @@ func TestLBLimitExceeded(t *testing.T) {
 }
 
 // TestOciIPLimitExceeded Tests that analysis of a cluster dump where Ingress install failed due to OCI limit handled
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with problems that are not known issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
 func TestOciIPLimitExceeded(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
@@ -243,8 +243,8 @@ func TestOciIPLimitExceeded(t *testing.T) {
 }
 
 // TestOciLBInvalidShape Tests that analysis of a cluster dump where an invalid shape specified for OCI load balancer
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with problems that are not known issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
 func TestOciLBInvalidShape(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
@@ -265,8 +265,8 @@ func TestOciLBInvalidShape(t *testing.T) {
 }
 
 // TestPendingPods that analysis of a cluster dump where pending pods only is handled
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with problems that are not known issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
 func TestPendingPods(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
@@ -287,8 +287,8 @@ func TestPendingPods(t *testing.T) {
 }
 
 // TestUnknownInstall Tests that analysis of a cluster dump where install failed without more info handled
-// GIVEN a call to analyze a cluster-dump
-// WHEN the cluster-dump shows pods with problems that are not known issues
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
 // Commenting this test as there might not be an install issue like this now.
 //func TestUnknownInstall(t *testing.T) {

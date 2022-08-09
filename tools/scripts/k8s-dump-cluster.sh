@@ -73,7 +73,7 @@ fi
 
 # We create a temporary directory to dump info. The basic structure is along these lines.
 #
-# $CAPTURE_DIR/cluster-dump
+# $CAPTURE_DIR/cluster-snapshot
 #	directory per namespace
 #		daemonsets.json
 #		deployments.json
@@ -84,23 +84,23 @@ fi
 #		services.json
 #		directory per pod
 #			logs.txt
-#       api-resources.out
-#	application-configurations.json
-#       coherence.json
-#       configmaps.out
+#	  application-configurations.json
+#   coherence.json
+#	  gateways.json
+#	  ingress-traits.json
+#	  virtualservices.json
+# configmap_list.out
 #	crd.json
-#       es_indexex.out
-#	gateways.json
+# es_indexes.out
+# verrazzano-resources.json
 #	helm-ls.json
 #	helm-version.out
-#       images-on-nodes.csv
+# images-on-nodes.csv
 #	ingress.json
-#	ingress-traits.json
-#       kubectl-version.json
+# kubectl-version.json
 #	nodes.json
 #	pv.json
-#       verrazzano_resources.out
-#	virtualservices.json
+
 #
 # REVIEW: We certainly could capture some of the above per-namespace into the hierarchy
 #         created by the cluster-info.
@@ -130,8 +130,8 @@ if [ -z $CAPTURE_DIR ] || [ ! -d $CAPTURE_DIR ]; then
 fi
 
 function process_nodes_output() {
-  if [ -f $CAPTURE_DIR/cluster-dump/nodes.json ]; then
-    cat $CAPTURE_DIR/cluster-dump/nodes.json | jq '.items[].status.images[].names|@csv' | sed -e 's/"//g' -e 's/\\//g'| sort -u > $CAPTURE_DIR/cluster-dump/images-on-nodes.csv
+  if [ -f $CAPTURE_DIR/cluster-snapshot/nodes.json ]; then
+    cat $CAPTURE_DIR/cluster-snapshot/nodes.json | jq '.items[].status.images[].names|@csv' | sed -e 's/"//g' -e 's/\\//g'| sort -u > $CAPTURE_DIR/cluster-snapshot/images-on-nodes.csv
   fi
 }
 
@@ -149,7 +149,7 @@ function dump_es_indexes() {
 # should only be called after that has been called
 function dump_configmaps() {
   # Get list of all config maps in the cluster
-  kubectl --insecure-skip-tls-verify get -o custom-columns=NAMESPACEHEADER:.metadata.namespace,NAMEHEADER:.metadata.name configmap --all-namespaces > $CAPTURE_DIR/cluster-dump/configmap_list.out || true
+  kubectl --insecure-skip-tls-verify get -o custom-columns=NAMESPACEHEADER:.metadata.namespace,NAMEHEADER:.metadata.name configmap --all-namespaces > $CAPTURE_DIR/cluster-snapshot/configmap_list.out || true
 
   # Iterate the list, describe each configmap individually in a file in the namespace
   local CSV_LINE=""
@@ -161,15 +161,15 @@ function dump_configmaps() {
         NAMESPACE=$(echo "$CSV_LINE" | cut -d, -f"1")
         CONFIGNAME=$(echo "$CSV_LINE" | cut -d, -f"2")
         if [ ! -z $NAMESPACE ] && [ ! -z $CONFIGNAME ] ; then
-          # The cluster-dump should create the directories for us, but just in case there is a situation where there is a namespace
+          # The cluster-snapshot should create the directories for us, but just in case there is a situation where there is a namespace
           # that is present which doesn't have one created, make sure we have the directory
-          if [ ! -d $CAPTURE_DIR/cluster-dump/$NAMESPACE ] ; then
-            mkdir $CAPTURE_DIR/cluster-dump/$NAMESPACE || true
+          if [ ! -d $CAPTURE_DIR/cluster-snapshot/$NAMESPACE ] ; then
+            mkdir $CAPTURE_DIR/cluster-snapshot/$NAMESPACE || true
           fi
-          kubectl --insecure-skip-tls-verify describe configmap $CONFIGNAME -n $NAMESPACE > $CAPTURE_DIR/cluster-dump/$NAMESPACE/$CONFIGNAME.configmap || true
+          kubectl --insecure-skip-tls-verify describe configmap $CONFIGNAME -n $NAMESPACE > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/$CONFIGNAME.configmap || true
         fi
       fi
-    done <$CAPTURE_DIR/cluster-dump/configmap_list.out
+    done <$CAPTURE_DIR/cluster-snapshot/configmap_list.out
 }
 
 # This relies on the directory structure which is setup by kubectl cluster-info dump, so this is not a standalone function and currently
@@ -179,7 +179,7 @@ function dump_configmaps() {
 #
 function dump_extra_details_per_namespace() {
   # Get list of all namespaces in the cluster
-  kubectl --insecure-skip-tls-verify get -o custom-columns=NAMEHEADER:.metadata.name namespaces > $CAPTURE_DIR/cluster-dump/namespace_list.out || true
+  kubectl --insecure-skip-tls-verify get -o custom-columns=NAMEHEADER:.metadata.name namespaces > $CAPTURE_DIR/cluster-snapshot/namespace_list.out || true
 
   # Iterate the list, describe each configmap individually in a file in the namespace
   local NAMESPACE=""
@@ -187,77 +187,87 @@ function dump_extra_details_per_namespace() {
     if [[ ! $NAMESPACE == *"NAMEHEADER"* ]]; then
       if [ ! -z $NAMESPACE ] ; then
         echo "Capturing $NAMESPACE namespace"
-        # The cluster-dump should create the directories for us, but just in case there is a situation where there is a namespace
-        # that is present which doesn't have one created, make sure we have the directory
-        if [ ! -d $CAPTURE_DIR/cluster-dump/$NAMESPACE ] ; then
-          mkdir $CAPTURE_DIR/cluster-dump/$NAMESPACE || true
+        if ! kubectl get ns $NAMESPACE 2>&1 > /dev/null ; then
+          echo "Namespace ${NAMESPACE} not found, skipping"
+          continue
         fi
-        kubectl --insecure-skip-tls-verify get ApplicationConfiguration -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/application-configurations.json || true
-        kubectl --insecure-skip-tls-verify get Component -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/components.json || true
-        kubectl --insecure-skip-tls-verify get domains.weblogic.oracle -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/weblogic-domains.json || true
-        kubectl --insecure-skip-tls-verify get IngressTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/ingress-traits.json || true
-        kubectl --insecure-skip-tls-verify get Coherence -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/coherence.json || true
-        kubectl --insecure-skip-tls-verify get gateway -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/gateways.json || true
-        kubectl --insecure-skip-tls-verify get virtualservice -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/virtualservices.json || true
-        kubectl --insecure-skip-tls-verify get rolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/role-bindings.json || true
-        kubectl --insecure-skip-tls-verify get clusterrolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-role-bindings.json || true
-        kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
-        kubectl --insecure-skip-tls-verify get ns $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/namespace.json || true
-        kubectl --insecure-skip-tls-verify get pvc -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/persistent-volume-claims.json || true
-        kubectl --insecure-skip-tls-verify get pv -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/persistent-volumes.json || true
-        kubectl --insecure-skip-tls-verify get jobs.batch -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/jobs.json || true
-        kubectl --insecure-skip-tls-verify get metricsbindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/metrics-bindings.json || true
-        kubectl --insecure-skip-tls-verify get metricstemplates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/metrics-templates.json || true
-        kubectl --insecure-skip-tls-verify get multiclusterapplicationconfigurations -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-application-configurations.json || true
-        kubectl --insecure-skip-tls-verify get multiclustercomponents -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-components.json || true
-        kubectl --insecure-skip-tls-verify get multiclusterconfigmaps -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-config-maps.json || true
-        kubectl --insecure-skip-tls-verify get multiclusterloggingscopes -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-logging-scopes.json || true
-        kubectl --insecure-skip-tls-verify get multiclustersecrets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/multicluster-secrets.json || true
-        kubectl --insecure-skip-tls-verify get verrazzanoprojects -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano-projects.json || true
-        kubectl --insecure-skip-tls-verify get verrazzanomanagedclusters -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano-managed-clusters.json || true
-        kubectl --insecure-skip-tls-verify get verrazzanoweblogicworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano-weblogic-workload.json || true
-        kubectl --insecure-skip-tls-verify get verrazzanocoherenceworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano-coherence-workload.json || true
-        kubectl --insecure-skip-tls-verify get verrazzanohelidonworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano-helidon-workload.json || true
-        kubectl --insecure-skip-tls-verify get domain -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/domain.json || true
-        kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
-        kubectl --insecure-skip-tls-verify get certificaterequests.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/certificate-requests.json || true
-        kubectl --insecure-skip-tls-verify get orders.acme.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/acme-orders.json || true
-        kubectl --insecure-skip-tls-verify get statefulsets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/statefulsets.json || true
-        kubectl --insecure-skip-tls-verify get secrets -n $NAMESPACE -o json |jq 'del(.items[].data)' 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/secrets.json || true
-        kubectl --insecure-skip-tls-verify get certificates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/certificates.json || true
-        kubectl --insecure-skip-tls-verify get MetricsTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/metrics-traits.json || true
+        # The cluster-snapshot should create the directories for us, but just in case there is a situation where there is a namespace
+        # that is present which doesn't have one created, make sure we have the directory
+        if [ ! -d $CAPTURE_DIR/cluster-snapshot/$NAMESPACE ] ; then
+          mkdir $CAPTURE_DIR/cluster-snapshot/$NAMESPACE || true
+        fi
+        kubectl --insecure-skip-tls-verify get ApplicationConfiguration -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/application-configurations.json || true
+        kubectl --insecure-skip-tls-verify get Component -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/components.json || true
+        kubectl --insecure-skip-tls-verify get domains.weblogic.oracle -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/weblogic-domains.json || true
+        kubectl --insecure-skip-tls-verify get IngressTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/ingress-traits.json || true
+        kubectl --insecure-skip-tls-verify get Coherence -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/coherence.json || true
+        kubectl --insecure-skip-tls-verify get gateway -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/gateways.json || true
+        kubectl --insecure-skip-tls-verify get virtualservice -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/virtualservices.json || true
+        kubectl --insecure-skip-tls-verify get rolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/role-bindings.json || true
+        kubectl --insecure-skip-tls-verify get clusterrolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/cluster-role-bindings.json || true
+        kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/cluster-roles.json || true
+        kubectl --insecure-skip-tls-verify get ns $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/namespace.json || true
+        kubectl --insecure-skip-tls-verify get pvc -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/persistent-volume-claims.json || true
+        kubectl --insecure-skip-tls-verify get pv -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/persistent-volumes.json || true
+        kubectl --insecure-skip-tls-verify get jobs.batch -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/jobs.json || true
+        kubectl --insecure-skip-tls-verify get metricsbindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/metrics-bindings.json || true
+        kubectl --insecure-skip-tls-verify get metricstemplates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/metrics-templates.json || true
+        kubectl --insecure-skip-tls-verify get multiclusterapplicationconfigurations -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/multicluster-application-configurations.json || true
+        kubectl --insecure-skip-tls-verify get multiclustercomponents -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/multicluster-components.json || true
+        kubectl --insecure-skip-tls-verify get multiclusterconfigmaps -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/multicluster-config-maps.json || true
+        kubectl --insecure-skip-tls-verify get multiclusterloggingscopes -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/multicluster-logging-scopes.json || true
+        kubectl --insecure-skip-tls-verify get multiclustersecrets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/multicluster-secrets.json || true
+        kubectl --insecure-skip-tls-verify get verrazzanoprojects -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/verrazzano-projects.json || true
+        kubectl --insecure-skip-tls-verify get verrazzanomanagedclusters -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/verrazzano-managed-clusters.json || true
+        kubectl --insecure-skip-tls-verify get verrazzanoweblogicworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/verrazzano-weblogic-workload.json || true
+        kubectl --insecure-skip-tls-verify get verrazzanocoherenceworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/verrazzano-coherence-workload.json || true
+        kubectl --insecure-skip-tls-verify get verrazzanohelidonworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/verrazzano-helidon-workload.json || true
+        kubectl --insecure-skip-tls-verify get domain -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/domain.json || true
+        kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/cluster-roles.json || true
+        kubectl --insecure-skip-tls-verify get certificaterequests.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/certificate-requests.json || true
+        kubectl --insecure-skip-tls-verify get orders.acme.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/acme-orders.json || true
+        kubectl --insecure-skip-tls-verify get statefulsets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/statefulsets.json || true
+        kubectl --insecure-skip-tls-verify get secrets -n $NAMESPACE -o json |jq 'del(.items[].data)' 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/secrets.json || true
+        kubectl --insecure-skip-tls-verify get certificates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/certificates.json || true
+        kubectl --insecure-skip-tls-verify get MetricsTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/metrics-traits.json || true
+        kubectl --insecure-skip-tls-verify get servicemonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/service-monitors.json || true
+        kubectl --insecure-skip-tls-verify get podmonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/pod-monitors.json || true
       fi
     fi
-  done <$CAPTURE_DIR/cluster-dump/namespace_list.out
-  rm $CAPTURE_DIR/cluster-dump/namespace_list.out
+  done <$CAPTURE_DIR/cluster-snapshot/namespace_list.out
+  rm $CAPTURE_DIR/cluster-snapshot/namespace_list.out
 }
 
-function full_k8s_cluster_dump() {
+function full_k8s_cluster_snapshot() {
   echo "Full capture of kubernetes cluster"
   # Get general cluster-info dump, this contains quite a bit but not everything, it also sets up the directory structure
-  kubectl --insecure-skip-tls-verify cluster-info dump --all-namespaces --output-directory=$CAPTURE_DIR/cluster-dump >/dev/null 2>&1
+  kubectl --insecure-skip-tls-verify cluster-info dump --all-namespaces --output-directory=$CAPTURE_DIR/cluster-snapshot >/dev/null 2>&1
 
   # Get the Verrazzano resource at the root level. The Verrazzano custom resource can define the namespace, so use all the namespaces in the command
-  kubectl --insecure-skip-tls-verify get verrazzano --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/verrazzano_resources.json || true
+  kubectl --insecure-skip-tls-verify get verrazzano --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/verrazzano-resources.json || true
 
   if [ $? -eq 0 ]; then
-    kubectl --insecure-skip-tls-verify version -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/kubectl-version.json || true
-    kubectl --insecure-skip-tls-verify get crd -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/crd.json || true
-    kubectl --insecure-skip-tls-verify get pv -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/pv.json || true
-    kubectl --insecure-skip-tls-verify get ingress -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/ingress.json || true
-    kubectl --insecure-skip-tls-verify api-resources -o wide 2>/dev/null > $CAPTURE_DIR/cluster-dump/api_resources.out || true
-    kubectl --insecure-skip-tls-verify get netpol -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/network-policies.json || true
-    kubectl --insecure-skip-tls-verify describe netpol -A 2>/dev/null > $CAPTURE_DIR/cluster-dump/network-policies.txt || true
-    kubectl --insecure-skip-tls-verify describe ClusterIssuer -A 2>/dev/null > $CAPTURE_DIR/cluster-dump/cluster-issuers.txt || true
-    kubectl --insecure-skip-tls-verify get MutatingWebhookConfigurations -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/mutating-webhook-configs.txt || true
-    kubectl --insecure-skip-tls-verify get ValidatingWebhookConfigurations -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/validating-webhook-configs.txt || true
+    kubectl --insecure-skip-tls-verify version -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/kubectl-version.json || true
+    kubectl --insecure-skip-tls-verify get crd -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/crd.json || true
+    kubectl --insecure-skip-tls-verify get pv -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/pv.json || true
+    kubectl --insecure-skip-tls-verify get ingress -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/ingress.json || true
+    kubectl --insecure-skip-tls-verify api-resources -o wide 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/api_resources.out || true
+    kubectl --insecure-skip-tls-verify get netpol -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/network-policies.json || true
+    kubectl --insecure-skip-tls-verify describe netpol -A 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/network-policies.txt || true
+    kubectl --insecure-skip-tls-verify describe ClusterIssuer -A 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/cluster-issuers.txt || true
+    kubectl --insecure-skip-tls-verify get MutatingWebhookConfigurations -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/mutating-webhook-configs.txt || true
+    kubectl --insecure-skip-tls-verify get ValidatingWebhookConfigurations -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/validating-webhook-configs.txt || true
     # squelch the "too many clients" warnings from newer kubectl versions
     dump_extra_details_per_namespace
     dump_configmaps
-    helm version 2>/dev/null > $CAPTURE_DIR/cluster-dump/helm-version.out || true
-    helm ls -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/helm-ls.json || true
-    dump_es_indexes > $CAPTURE_DIR/cluster-dump/es_indexes.out || true
+    helm version 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/helm-version.out || true
+    helm ls -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/helm-ls.json || true
+    dump_es_indexes > $CAPTURE_DIR/cluster-snapshot/es_indexes.out || true
     process_nodes_output || true
+    # dump the Prometheus scrape configuration
+    if kubectl get ns verrazzano-monitoring 2>&1 > /dev/null ; then
+      kubectl get secret prometheus-prometheus-operator-kube-p-prometheus -n verrazzano-monitoring -o json | jq -r '.data["prometheus.yaml.gz"]' | base64 -d | gunzip > $CAPTURE_DIR/cluster-snapshot/prom-scrape-config.yaml || true
+    fi
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"
   fi
@@ -291,9 +301,9 @@ function analyze_dump() {
 function save_dump_file() {
   # This will save the dump to a tar gz file if that was specified
   if [ ! -z $TAR_GZ_FILE ]; then
-    # We only save files into cluster-dump and below we do not save the temp directory portion
-    if [ -d $CAPTURE_DIR/cluster-dump ]; then
-      tar -czf $TAR_GZ_FILE -C $CAPTURE_DIR cluster-dump
+    # We only save files into cluster-snapshot and below we do not save the temp directory portion
+    if [ -d $CAPTURE_DIR/cluster-snapshot ]; then
+      tar -czf $TAR_GZ_FILE -C $CAPTURE_DIR cluster-snapshot
       echo "Dump saved to $TAR_GZ_FILE"
     fi
   fi
@@ -306,7 +316,7 @@ function cleanup_dump() {
   fi
 }
 
-full_k8s_cluster_dump
+full_k8s_cluster_snapshot
 if [ $? -eq 0 ]; then
   save_dump_file
 fi

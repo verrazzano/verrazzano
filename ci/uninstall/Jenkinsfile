@@ -131,6 +131,12 @@ pipeline {
 
     stages {
         stage('Clean workspace and checkout') {
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+                VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+            }
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -209,6 +215,14 @@ pipeline {
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
                 }
+                script {
+                    sh """
+                        echo "Downloading VZ CLI from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                        ${GO_REPO_PATH}/vz version
+                    """
+                }
             }
         }
 
@@ -221,7 +235,7 @@ pipeline {
         stage('Install Verrazzano') {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
             }
             steps {
                 script {
@@ -240,7 +254,7 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
                         echo "Using operator.yaml from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                         cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                     else
                         echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
@@ -281,15 +295,6 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                    sh """
-                        ## dump out install logs
-                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
-                        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                        echo "------------------------------------------"
-                    """
                     dumpVerrazzanoSystemPods('install')
                     dumpCattleSystemPods('install')
                     dumpNginxIngressControllerLogs('install')
@@ -303,13 +308,13 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verrazzano-install-cluster-dump')
+                            dumpK8sCluster('verrazzano-install-cluster-snapshot')
                         }
                     }
                 }
                 failure {
                     script {
-                        dumpK8sCluster('verrazzano-install-failure-cluster-dump')
+                        dumpK8sCluster('verrazzano-install-failure-cluster-snapshot')
                         sh """
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
                             ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/resources.log
@@ -336,12 +341,12 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verrazzano-testrun-after-install-cluster-dump')
+                            dumpK8sCluster('verrazzano-testrun-after-install-cluster-snapshot')
                         }
                     }
                 }
                 failure {
-                    dumpK8sCluster('verrazzano-test-failure-cluster-dump')
+                    dumpK8sCluster('verrazzano-test-failure-cluster-snapshot')
 
                 }
             }
@@ -358,8 +363,6 @@ pipeline {
                     sh """
                         ## dump out uninstall logs
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                        kubectl logs -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
-                        kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
                         echo "Listing all pods in all namespaces after uninstall"
                         kubectl get pods --all-namespaces
                         echo "-----------------------------------------------------"
@@ -370,12 +373,12 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verrazzano-uninstall-cluster-dump')
+                            dumpK8sCluster('verrazzano-uninstall-cluster-snapshot')
                         }
                     }
                 }
                 failure {
-                    dumpK8sCluster('verrazzano-uninstall-failure-cluster-dump')
+                    dumpK8sCluster('verrazzano-uninstall-failure-cluster-snapshot')
                 }
             }
         }
@@ -393,12 +396,12 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verify-uninstall-cluster-dump')
+                            dumpK8sCluster('verify-uninstall-cluster-snapshot')
                         }
                     }
                 }
                 failure {
-                    dumpK8sCluster('verify-uninstall-cluster-dump')
+                    dumpK8sCluster('verify-uninstall-cluster-snapshot')
                 }
             }
         }
@@ -421,15 +424,6 @@ pipeline {
             }
             post {
                 always {
-                    sh """
-                        ## dump out install logs
-                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs
-                        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/verrazzano-reinstall.log --tail -1
-                        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/verrazzano-reinstall-job-pod.out
-                        echo "Verrazzano Installation logs dumped to verrazzano-reinstall.log"
-                        echo "Verrazzano Install pod description dumped to verrazzano-reinstall-job-pod.out"
-                        echo "------------------------------------------"
-                    """
                     dumpVerrazzanoSystemPods('reinstall')
                     dumpCattleSystemPods('reinstall')
                     dumpNginxIngressControllerLogs('reinstall')
@@ -443,12 +437,12 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verrazzano-reinstall-cluster-dump')
+                            dumpK8sCluster('verrazzano-reinstall-cluster-snapshot')
                         }
                     }
                 }
                 failure {
-                    dumpK8sCluster('verrazzano-reinstall-failure-cluster-dump')
+                    dumpK8sCluster('verrazzano-reinstall-failure-cluster-snapshot')
                     sh """
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs
                         ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/resources.log
@@ -474,12 +468,12 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verrazzano-testrun-after-reinstall-cluster-dump')
+                            dumpK8sCluster('verrazzano-testrun-after-reinstall-cluster-snapshot')
                         }
                     }
                 }
                 failure {
-                    dumpK8sCluster('verrazzano-test-failure-after-reinstall-cluster-dump')
+                    dumpK8sCluster('verrazzano-test-failure-after-reinstall-cluster-snapshot')
                 }
             }
         }
@@ -492,7 +486,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -507,7 +501,7 @@ pipeline {
         failure {
             script {
                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
+                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**', allowEmptyArchive: true
                 script {
                     if (env.JOB_NAME == "verrazzano-uninstall-test/master" || env.JOB_NAME ==~ "verrazzano-uninstall-test/release-*") {
                         slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
@@ -540,7 +534,7 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
     """
 }
 

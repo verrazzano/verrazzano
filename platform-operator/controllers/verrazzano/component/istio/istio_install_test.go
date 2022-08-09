@@ -5,20 +5,22 @@ package istio
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 	"os/exec"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/istio"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -27,10 +29,14 @@ import (
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // fakeIstioInstalledRunner is used to test if Istio is installed
@@ -116,6 +122,10 @@ var installCR = &installv1alpha1.Verrazzano{
 	},
 }
 
+func testCR() *installv1alpha1.Verrazzano {
+	return installCR.DeepCopy()
+}
+
 type fakeMonitor struct {
 	result          bool
 	istioctlSuccess bool
@@ -139,6 +149,52 @@ func (f *fakeMonitor) isRunning() bool { return f.running }
 func (f *fakeMonitor) isIstioctlSuccess() bool { return f.istioctlSuccess }
 
 var _ installMonitor = &fakeMonitor{}
+
+// TestAppendOverrideFilesInOrder tests if the override files are appended in reverse order
+// GIVEN a component
+//  WHEN I call appendOverrideFilesInOrder
+//  THEN the overrides are appended in reverse order
+func TestAppendOverrideFilesInOrder(t *testing.T) {
+	type Foo struct {
+		Foo string `json:"foo"`
+	}
+	cr := testCR()
+	dat1 := []byte(`{"foo": "a"}`)
+	dat2 := []byte(`{"foo": "b"}`)
+	cr.Spec.Components.Istio.ValueOverrides = []installv1alpha1.Overrides{
+		{
+			Values: &apiextensionsv1.JSON{
+				Raw: dat1,
+			},
+		},
+		{
+			Values: &apiextensionsv1.JSON{
+				Raw: dat2,
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, cr, false)
+	files, err := appendOverrideFilesInOrder(ctx, []string{})
+
+	equalFoos := func(jsonFoo, yamlFoo []byte) {
+		jsonFooObj := &Foo{}
+		yamlFooObj := &Foo{}
+		err := yaml.Unmarshal(yamlFoo, yamlFooObj)
+		assert.NoError(t, err)
+		err = json.Unmarshal(jsonFoo, jsonFooObj)
+		assert.NoError(t, err)
+		assert.Equal(t, jsonFooObj, yamlFooObj)
+	}
+	assert.NoError(t, err)
+	assert.Len(t, files, 2)
+	fileDat1, err := os.ReadFile(files[0])
+	assert.NoError(t, err)
+	equalFoos(dat2, fileDat1)
+	fileDat2, err := os.ReadFile(files[1])
+	assert.NoError(t, err)
+	equalFoos(dat1, fileDat2)
+}
 
 // TestIsOperatorInstallSupported tests if the install is supported
 // GIVEN a component
@@ -451,6 +507,90 @@ func TestLabelNamespace(t *testing.T) {
 	setBashFunc(fakeBash)
 	err := labelNamespace(spi.NewFakeContext(labelNamespaceMock(t), installCR, false))
 	a.NoError(err, "labelNamespace returned an error")
+}
+
+// TestVerifyIstioIngressGatewayIP tests verifying the external IP is created for the Istio service
+// GIVEN a call to verifyIstioIngressGatewayIP
+// WHEN the service has an external IP
+// THEN no error is returned
+func TestVerifyIstioIngressGatewayIP(t *testing.T) {
+	a := assert.New(t)
+
+	ipaddr := "0.0.0.0"
+	svcName := IstioIngressgatewayDeployment
+	svcNamespace := globalconst.IstioSystemNamespace
+	svcNoIP := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: svcNamespace,
+		},
+	}
+
+	svcIP := svcNoIP.DeepCopy()
+	svcIP.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
+		{
+			IP: ipaddr,
+		},
+	}
+
+	lbVZ := &installv1alpha1.Verrazzano{}
+	lbVZ.Spec.Components.Istio = &installv1alpha1.IstioComponent{
+		Ingress: &installv1alpha1.IstioIngressSection{
+			Type: installv1alpha1.LoadBalancer,
+		},
+	}
+
+	npVZ := &installv1alpha1.Verrazzano{}
+	npVZ.Spec.Components.Istio = &installv1alpha1.IstioComponent{
+		Ingress: &installv1alpha1.IstioIngressSection{
+			Type: installv1alpha1.NodePort,
+		},
+	}
+
+	tests := []struct {
+		name        string
+		service     *corev1.Service
+		vz          *installv1alpha1.Verrazzano
+		expectError bool
+	}{
+		{
+			name:        "test no service",
+			service:     &corev1.Service{},
+			vz:          lbVZ,
+			expectError: true,
+		},
+		{
+			name:        "test no IP",
+			service:     svcNoIP,
+			vz:          lbVZ,
+			expectError: true,
+		},
+		{
+			name:        "test external IP",
+			service:     svcIP,
+			vz:          lbVZ,
+			expectError: false,
+		},
+		{
+			name:        "test NodePort",
+			service:     svcIP,
+			vz:          npVZ,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(_ *testing.T) {
+			cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(tt.service).Build()
+			ip, err := verifyIstioIngressGatewayIP(cli, tt.vz)
+			if tt.expectError {
+				a.Error(err)
+				return
+			}
+			a.NoError(err)
+			a.Equal(ip, ipaddr)
+		})
+	}
 }
 
 func labelNamespaceMock(t *testing.T) *mocks.MockClient {

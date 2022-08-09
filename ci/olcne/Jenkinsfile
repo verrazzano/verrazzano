@@ -1,0 +1,1061 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+// This pipeline is configured to test Verrazzano using OLCNE environment
+// -> Setup Kubernetes in OLCNE environment
+// -> Install oci-ccm module in OLCNE environment
+// -> Install Verrazzano
+// -> Deploy Verrazzano test applications
+// -> Run validations
+// -> Undeploy the apps
+// -> Uninstall Verrazzano
+// -> Cleanup resources
+
+def testEnvironments=["OLCNE"]
+def agentLabel=env.JOB_NAME.contains('-olcne') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+// pulling "ap-*" from the test regions given discovery of image pull issues
+def availableRegions=["us-ashburn-1"]
+def availableDomains=["hXgQ:US-ASHBURN-AD-1"]
+def kubernetesVersions=[ "v1.22.5", "v1.21.5", "v1.20.8" ]
+def olcneVersions=[ "1.5", "1.4", "1.3"]
+def osVersions=['8', '7']
+def uniquePrefix=UUID.randomUUID().toString().substring(0,6).replace('-','')
+def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=false
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        copyArtifactPermission('*');
+        timestamps ()
+    }
+
+    agent {
+        docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS} --cap-add=NET_ADMIN"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            label "$agentLabel"
+        }
+    }
+
+    parameters {
+        // Cluster type
+        choice (
+            name: 'TEST_ENV',
+            description: 'Verrazzano Test Environment',
+            choices: testEnvironments)
+        choice (
+            name: 'K8S_VERSION',
+            description: 'Kubernetes Version for the cluster',
+            choices: kubernetesVersions)
+        // OLCNE configuration
+        choice (
+            name: 'OLCNE_VERSION',
+            description: 'OLCNE Version',
+            choices: olcneVersions)
+        choice (
+            name: 'OLCNE_CLUSTER_REGION',
+            description: 'OCI region to launch OLCNE clusters in.',
+            choices: availableRegions)
+        choice (
+            name: 'OLCNE_CLUSTER_AVAILABILITY_DOMAIN',
+            description: 'Availability domain for the cluster region.',
+            choices: availableDomains)
+        string (
+            name: "CONTROL_PLANE_NODE_COUNT",
+            defaultValue: '1',
+            description: 'Number of OLCNE control plane nodes',
+            trim: true)
+        string (
+            name: "WORKER_NODE_COUNT",
+            defaultValue: '3',
+            description: 'Number of OLCNE worker nodes',
+            trim: true)
+        choice (
+            name: "OLCNE_OS_VERSION",
+            description: 'OracleLinux OS version for OLCNE nodes',
+            choices: osVersions)
+        string (
+            name: "INSTALL_PROFILE",
+            defaultValue: 'prod',
+            description: 'Verrazzano install profile name',
+            trim: true)
+        string (
+            name: 'GIT_COMMIT_TO_USE',
+            description: 'This is the full git commit hash from the source build to be used for all jobs',
+            defaultValue: 'NONE',
+            trim: true)
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: '',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
+        booleanParam (
+            name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
+            description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)',
+            defaultValue: false)
+        booleanParam (
+            name: 'EMIT_METRICS',
+            description: 'Whether to emit metrics from the pipeline',
+            defaultValue: true)
+        string (name: 'TAGGED_TESTS',
+                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                defaultValue: '',
+                trim: true)
+        string (name: 'INCLUDED_TESTS',
+                description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
+                defaultValue: '.*',
+                trim: true)
+        string (name: 'EXCLUDED_TESTS',
+                description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                defaultValue: '_excluded_test',
+                trim: true)
+        booleanParam (
+            name: 'KEEP_RESOURCES_AFTER_RUN',
+            description: 'Whether to keep the k8s cluster and the other OCI resources alive after the run',
+            defaultValue: false)
+    }
+
+    environment {
+        // Repositories and credentials
+        GHCR_REPO='ghcr.io'
+        OCIR_PHX_REPO='phx.ocir.io'
+        OCR_REPO='container-registry.oracle.com'
+        OCR_CREDS=credentials('ocr-pull-and-push-account')
+        NETRC_FILE=credentials('netrc')
+        GITHUB_PKGS_CREDS=credentials('github-packages-credentials-rw')
+        WEBLOGIC_PSW=credentials('weblogic-example-domain-password') // needed by install_todo.sh OAM example test
+        DATABASE_PSW=credentials('todo-mysql-password') // needed by install_todo.sh OAM example test
+        IMAGE_PULL_SECRET='verrazzano-container-registry'
+
+        // Verrazzano variables
+        TEST_ENV="${params.TEST_ENV}"
+        VZ_ENVIRONMENT_NAME="${params.TEST_ENV.toLowerCase()}"
+        BRANCH_NAME_PREFIX="${env.BRANCH_NAME.equals('master') ? 'vz' : env.BRANCH_NAME.substring(0, 2)}"
+        CLUSTER_NAME="$BRANCH_NAME_PREFIX" + "$uniquePrefix"
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+        INSTALL_PROFILE="${params.INSTALL_PROFILE}"
+        GOPATH="$HOME/go"
+        GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
+        TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-olcne"
+        KUBECONFIG="$WORKSPACE/test_kubeconfig"
+        OLCNE_DUMP_DIR="$WORKSPACE/olcne"
+        VERRAZZANO_KUBECONFIG="$KUBECONFIG"
+        INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
+        // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
+        OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
+        // TODO: Update the default branch to be used for terraform-oci-olcne
+        // OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
+        OLCNE_BRANCH_TO_USE="origin/feature/VZ-6040"
+        SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
+
+        // Terraform variables
+        TF_VAR_tenancy_id=credentials('oci-tenancy')
+        TF_VAR_compartment_id=credentials('oci-tiburon-dev-compartment-ocid')
+        TF_VAR_user_id=credentials('oci-user-ocid')
+        TF_VAR_fingerprint=credentials('oci-api-key-fingerprint')
+        TF_VAR_api_private_key_path=credentials('oci-api-key')
+        TF_VAR_region="${params.OLCNE_CLUSTER_REGION}"
+        TF_VAR_availability_domain_id="${params.OLCNE_CLUSTER_AVAILABILITY_DOMAIN}"
+        TF_VAR_deploy_networking="true"
+        TF_VAR_bastion_enabled="true"
+        TF_VAR_bastion_private_key_path="$OLCNE_DUMP_DIR/id_rsa"
+        TF_VAR_prefix="$CLUSTER_NAME"
+        TF_VAR_use_vault="false"
+        TF_VAR_ssh_public_key_path="$OLCNE_DUMP_DIR/id_rsa.pub"
+        TF_VAR_ssh_private_key_path="$OLCNE_DUMP_DIR/id_rsa"
+        TF_VAR_worker_node_count="${params.WORKER_NODE_COUNT}"
+        TF_VAR_control_plane_node_count="${params.CONTROL_PLANE_NODE_COUNT}"
+        TF_VAR_os_version="${params.OLCNE_OS_VERSION}"
+        TF_VAR_environment_name="myenvironment"
+        TF_VAR_kubernetes_name="mycluster"
+        TF_VAR_helm_name="myhelm"
+        TF_VAR_oci_ccm_name="myoci"
+        TF_VAR_olcne_version="${params.OLCNE_VERSION}"
+        TF_VAR_s3_bucket_access_key=credentials('oci-s3-bucket-access-key')
+        TF_VAR_s3_bucket_secret_key=credentials('oci-s3-bucket-secret-key')
+
+        // OCI variables
+        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING='True'
+        OCI_CLI_REGION="${params.OLCNE_CLUSTER_REGION}"
+        OCI_CLI_TENANCY=credentials('oci-tenancy')
+        OCI_CLI_USER=credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT=credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE=credentials('oci-api-key')
+        // OCI_DNS_COMPARTMENT_OCID and OCI_PRIVATE_KEY_FILE are needed for setting up DNS zone in OCI
+        OCI_DNS_COMPARTMENT_OCID=credentials('oci-dns-compartment')
+        OCI_DNS_SCOPE="${params.OCI_DNS_SCOPE}"
+        OCI_DNS_ZONE_SUBDOMAIN_NAME="$CLUSTER_NAME"
+        OCI_DNS_ZONE_NAME="${OCI_DNS_ZONE_SUBDOMAIN_NAME}.v8o.io"
+
+        // used for cluster dump
+        TEST_DUMP_ROOT="$WORKSPACE/test-cluster-snapshots"
+        POST_DUMP_FAILED='false'
+        POST_DUMP_FAILED_FILE="$WORKSPACE/post_dump_failed_file.tmp"
+
+        DISABLE_SPINNER=1
+        TIMESTAMP=sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        SHORT_TIME_STAMP=sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
+
+        // used for console artifact capture on failure
+        JENKINS_READ=credentials('jenkins-auditor')
+        OCI_OS_NAMESPACE=credentials('oci-os-namespace')
+        OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        // OCI_COMPARTMENT_ID=credentials('oci-tiburon-dev-compartment-ocid')
+        // OCI_TELEMETRY_URL=credentials('oci-telemetry-url')
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+
+        // used to emit metrics
+        PROMETHEUS_GW_URL=credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS=credentials('prometheus-credentials')
+        TEST_ENV_LABEL="${params.TEST_ENV}"
+        SEARCH_HTTP_ENDPOINT=credentials('search-gw-url')
+        SEARCH_PASSWORD="$PROMETHEUS_CREDENTIALS_PSW"
+        SEARCH_USERNAME="$PROMETHEUS_CREDENTIALS_USR"
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT="test-report.xml"
+        GINKGO_REPORT_ARGS="--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+    }
+
+    stages {
+        stage('Initialize') {
+            steps {
+                script {
+                    // Proceed with checkout
+                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=getEffectiveDumpOnSuccess()
+                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                        echo "[INFO] Specific GIT commit was not specified, use current head"
+                        def scmInfo=checkout scm
+                        env.GIT_COMMIT=scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH=scmInfo.GIT_BRANCH
+                    } else {
+                        echo "[INFO] SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        def scmInfo=checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: params.GIT_COMMIT_TO_USE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT=scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH=scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                            echo "[ERROR] SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                    echo "[INFO] SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+
+                    sh """
+                        rm -rf $GO_REPO_PATH/verrazzano
+                        mkdir -p $GO_REPO_PATH/verrazzano
+                        tar cf - . | (cd $GO_REPO_PATH/verrazzano/ ; tar xf -)
+                        rm -rf $WORKSPACE/*
+                    """
+
+                    echo "[INFO] SCM checkout of $OLCNE_TERRAFORM_GIT_URL $OLCNE_BRANCH_TO_USE"
+                    def scmInfo=checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: env.OLCNE_BRANCH_TO_USE]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[url: env.OLCNE_TERRAFORM_GIT_URL, credentialsId: 'sk_gitlab_rw']]])
+                    env.TF_GIT_COMMIT=scmInfo.GIT_COMMIT
+                    env.TF_GIT_BRANCH=scmInfo.GIT_BRANCH
+                    // If the commit we were handed is not what the SCM says we are using, fail
+                    if (!env.TF_GIT_BRANCH.equals(env.OLCNE_BRANCH_TO_USE)) {
+                        echo "[ERROR] SCM didn't checkout the branch we expected. Expected: ${env.OLCNE_BRANCH_TO_USE}, Found: ${scmInfo.GIT_BRANCH}"
+                        exit 1
+                    }
+                    echo "[INFO] SCM checkout of ${env.TF_GIT_BRANCH} at ${env.TF_GIT_COMMIT}"
+
+                    sh """
+                        rm -rf $TF_REPO_PATH
+                        mkdir -p $TF_REPO_PATH
+                        tar cf - . | (cd $TF_REPO_PATH ; tar xf -)
+                        rm -rf $WORKSPACE/*
+                    """
+
+                    // Install terraform and generate ssh keys
+                    sh """
+                        sudo yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/x86_64
+                        sudo yum install -y terraform
+                        mkdir -p $OLCNE_DUMP_DIR
+                        ssh-keygen -t rsa -b 4096 -q -N "" -f $TF_VAR_ssh_private_key_path
+                        chmod 600 $TF_VAR_ssh_private_key_path
+                    """
+
+                    sh """
+                        cp -f "$NETRC_FILE" $WORKSPACE/.netrc
+                        chmod 600 $WORKSPACE/.netrc
+                    """
+
+                    script {
+                        echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
+                        echo "[INFO] agentlabel: $agentLabel"
+                        echo "[INFO] $NODE_LABELS"
+                        SHORT_COMMIT_HASH=sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                        // update the description with some meaningful info
+                        setDisplayName()
+                        currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
+                        // derive the prefix for the OLCNE cluster
+                        OLCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
+                        // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+                        env.K8S_VERSION_LABEL=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
+                    }
+                    script {
+                        sh """
+                            echo "Downloading VZ CLI from object storage"
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                            tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                            ${GO_REPO_PATH}/vz version
+                        """
+                    }
+                }
+            }
+        }
+
+        stage("Create OLCNE cluster") {
+            steps {
+                script {
+                    echo "[INFO] Creating OLCNE cluster"
+                    createOLCNECluster()
+                }
+            }
+        }
+
+        stage("Setup SSH access") {
+            steps {
+                script {
+                    echo "[INFO] Setting up ssh access"
+                    setupSSH()
+                }
+            }
+        }
+
+        stage("Setup Kubeconfig") {
+            steps {
+                script {
+                    echo "[INFO] Setting up Kubeconfig"
+                    setupKubeconfig()
+                }
+            }
+        }
+
+        stage("Create image pull secrets") {
+            steps {
+                script {
+                    echo "[INFO] Creating image pull secrets"
+                    createImagePullSecrets()
+                }
+            }
+        }
+
+        stage("Update OLCNE configuration") {
+            steps {
+                script {
+                    echo "[INFO] Enable External IP access"
+                    updateOLCNEConfig()
+                }
+            }
+        }
+
+        stage("Install Verrazzano Platform Operator") {
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+            }
+            steps {
+                script {
+                    echo "[INFO] Installing Verrazzano Platform Operator"
+                    installVerrazzanoPlatformOperator()
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage("Install Verrazzano") {
+            steps {
+                script {
+                    echo "[INFO] Installing Verrazzano on $TEST_ENV"
+                    installVerrazzano()
+                }
+            }
+            post {
+                always {
+                    script {
+                        dumpVerrazzanoInstallLogs()
+                        VZ_TEST_METRIC=metricJobName('')
+                        metricTimerStart("${VZ_TEST_METRIC}")
+                    }
+                }
+            }
+        }
+
+        stage("Update Load Balancer config") {
+            steps {
+                script {
+                    echo "[INFO] Update Load Balancer health check configuration"
+                    updateLoadBalancerHealthCheck()
+                }
+            }
+        }
+
+        stage('Post-install Verify Tests') {
+            steps {
+                script {
+                    parallel generateVerifyInstallStages("${TEST_DUMP_ROOT}/post-install-verify-tests")
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Post-install Infra Tests') {
+            steps {
+                script {
+                    parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Post-install Acceptance Tests') {
+            steps {
+                script {
+                    parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests", 'false', 'false')
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
+                    dumpK8sCluster('olcne-acceptance-tests-cluster-snapshot')
+                }
+            }
+
+            dumpVerrazzanoSystemPods()
+            dumpCattleSystemPods()
+            dumpCertManagerNamespaceLogs()
+            dumpNginxIngressControllerLogs()
+            dumpVerrazzanoPlatformOperatorLogs()
+            dumpVerrazzanoApplicationOperatorLogs()
+            dumpVerrazzanoApiLogs()
+
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+            script {
+                if (params.EMIT_METRICS) {
+                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+                        sh """
+                            $GO_REPO_PATH/verrazzano/ci/scripts/dashboard/emit_metrics.sh "$WORKSPACE/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "[ERROR] Emit metrics failed, continuing with other post actions"
+                        """
+                    }
+                }
+            }
+
+            script {
+                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
+                    if (env.installedVZ && env.installedVZ == "true") {
+                        echo "[INFO] Deleting Verrazzano"
+                        deleteVerrazzano()
+                    }
+                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
+                        echo "[INFO] Deleting OLCNE Cluster"
+                        deleteOLCNECluster()
+                    }
+                }
+            }
+
+            sh """
+                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                echo "[INFO] Failures seen during dumping of artifacts, treat post as failed"
+                exit 1
+                fi
+            """
+        }
+       failure {
+            sh """
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o $WORKSPACE/build-console-output.log ${BUILD_URL}consoleText
+            """
+            archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
+            sh """
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
+                OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
+                rm archive.zip
+            """
+            script {
+                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-.*" || env.BRANCH_NAME ==~ "mark/*") {
+                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                }
+            }
+       }
+       success {
+           script {
+               METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
+            }
+       }
+       cleanup {
+           metricBuildDuration()
+           emitJobMetrics()
+           deleteDir()
+        }
+    }
+}
+
+def generateAllAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='false') {
+    return generateSecurityTests(dumpRoot) +
+        generateNonWLSTests(dumpRoot, skipDeploy, skipUndeploy) +
+        generateWLSTests(dumpRoot, skipDeploy, skipUndeploy)
+}
+
+def generateVerifyInstallStages(dumpRoot) {
+    return [
+        // TODO: Update the list to include tests for subsequent VZ releases
+        // Currently supported Verrazzano version = 1.3
+        "verify-install keycloak": {
+            runGinkgoRandomize('verify-install/keycloak', "${dumpRoot}/verify-install-keycloak")
+        },
+        "verify-install kubernetes": {
+            runGinkgoRandomize('verify-install/kubernetes', "${dumpRoot}/verify-install-kubernetes")
+        },
+        "verify-install istio": {
+            runGinkgoRandomize('verify-install/istio', "${dumpRoot}/verify-install-istio")
+        },
+        "verify-install kiali": {
+            runGinkgoRandomize('verify-install/kiali', "${dumpRoot}/verify-install-kiali")
+        },
+        "verify-install verrazzano": {
+            runGinkgoRandomize('verify-install/verrazzano', "${dumpRoot}/verify-install-verrazzano")
+        },
+        "verify-install web": {
+            runGinkgoRandomize('verify-install/web', "${dumpRoot}/verify-install-web")
+        },
+    ]
+}
+
+def generateVerifyInfraStages(dumpRoot) {
+    return [
+        "verify-scripts": {
+            runGinkgo('scripts', '', "$KUBECONFIG")
+        },
+        "verify-infra oam": {
+            runGinkgoRandomize('verify-infra/oam', "${dumpRoot}/verify-infra-oam")
+        },
+        "system component metrics": {
+            runGinkgoRandomize('metrics/syscomponents', "${dumpRoot}/system-component-metrics")
+        },
+        "console": {
+            acceptanceTestsConsole("${dumpRoot}")
+        },
+    ]
+}
+
+def generateSecurityTests(dumpRoot) {
+    return [
+        "istio authorization policy": {
+            runGinkgo('istio/authz', "${dumpRoot}/istio-authz-policy")
+        },
+        "security role based access": {
+            runGinkgo('security/rbac', "${dumpRoot}/sec-role-based-access")
+        },
+        "security network policies": {
+            if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                runGinkgo('security/netpol', "${dumpRoot}/netpol")
+            } else {
+                echo "[INFO] Calico not enabled, skipping network policies tests"
+            }
+        },
+    ]
+}
+
+def generateNonWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
+    return [
+        "k8s deployment workload metrics": {
+            runGinkgo('metrics/deploymetrics', "${dumpRoot}/k8sdeploy-workload-metrics")
+        },
+        "examples logging helidon": {
+            runGinkgo('logging/helidon', "${dumpRoot}/examples-logging-helidon")
+        },
+        "examples spring": {
+            runGinkgoAppTest('examples/springboot', "springboot", "${dumpRoot}/examples-spring", skipDeploy, skipUndeploy)
+        },
+        "examples helidon": {
+            runGinkgoAppTest('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", skipDeploy, skipUndeploy)
+        },
+        "examples helidon-config": {
+            runGinkgoAppTest('examples/helidonconfig', "helidon-config", "${dumpRoot}/examples-helidon-config", skipDeploy, skipUndeploy)
+        },
+    ]
+}
+
+def generateWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
+    return [
+        "weblogic workload": {
+            runGinkgoAppTest('workloads/weblogic', "hello-wls", "${dumpRoot}/weblogic-workload", skipDeploy, skipUndeploy)
+        },
+        "coherence workload": {
+            runGinkgoAppTest('workloads/coherence', "hello-coherence", "${dumpRoot}/coherence-workload", skipDeploy, skipUndeploy)
+        },
+        "console ingress": {
+            // doesn't work with the deployment hooks
+            runGinkgo('ingress/console', "wls-console")
+        },
+    ]
+}
+
+// Called in parallel Stage console of Stage Run Acceptance Tests
+def acceptanceTestsConsole(dumpRoot) {
+    try {
+        sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} $GO_REPO_PATH/verrazzano/ci/scripts/run_console_tests.sh"
+    } catch (err) {
+        saveConsoleScreenShots()
+        error "${err}"
+    }
+}
+
+def saveConsoleScreenShots() {
+    sh "$GO_REPO_PATH/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+}
+
+def runGinkgoRandomize(testSuitePath, dumpDir='') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd $GO_REPO_PATH/verrazzano/tests/e2e
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgo(testSuitePath, dumpDir='', kubeconfig='') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            if [ ! -z "${kubeconfig}" ]; then
+                export KUBECONFIG="$kubeconfig"
+            fi
+            cd $GO_REPO_PATH/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoFailFast(testSuitePath, dumpDir='') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd $GO_REPO_PATH/verrazzano/tests/e2e
+            ginkgo -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', skipUndeploy='false') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd $GO_REPO_PATH/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
+        """
+    }
+}
+
+def dumpK8sCluster(dumpDirectory) {
+    sh """
+        $GO_REPO_PATH/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+    """
+}
+
+def dumpVerrazzanoSystemPods() {
+    sh """
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
+        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
+        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
+        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
+        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpCertManagerNamespaceLogs() {
+    sh """
+        kubectl logs --selector=app=cert-manager -n cert-manager > $WORKSPACE/platform-operator/scripts/install/build/logs/cert-manager.log || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl logs --selector=app.kubernetes.io/name=external-dns -n cert-manager > $WORKSPACE/platform-operator/scripts/install/build/logs/external-dns.log || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpCattleSystemPods() {
+    sh """
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
+        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/rancher.log"
+        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpNginxIngressControllerLogs() {
+    sh """
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
+        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpVerrazzanoPlatformOperatorLogs() {
+    sh """
+        ## dump out verrazzano-platform-operator logs
+        mkdir -p $WORKSPACE/verrazzano-platform-operator/logs
+        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > $WORKSPACE/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > $WORKSPACE/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        echo "[INFO] verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
+        echo "[INFO] verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+        echo "[INFO] ------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoApplicationOperatorLogs() {
+    sh """
+        ## dump out verrazzano-application-operator logs
+        mkdir -p $WORKSPACE/verrazzano-application-operator/logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > $WORKSPACE/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > $WORKSPACE/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        echo "[INFO] verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
+        echo "[INFO] verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
+        echo "[INFO] ------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoApiLogs() {
+    sh """
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-authproxy.log"
+        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-authproxy-*" -m "verrazzano api" -c verrazzano-authproxy -l || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpVerrazzanoInstallLogs() {
+    sh """
+        ## dump out install logs
+        mkdir -p $WORKSPACE/platform-operator/scripts/install/build/logs
+        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > $WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+        echo "[INFO] Verrazzano Installation logs dumped to verrazzano-install.log"
+        echo "[INFO] Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+    """
+}
+
+def getEffectiveDumpOnSuccess() {
+    def effectiveValue=params.DUMP_K8S_CLUSTER_ON_SUCCESS
+    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
+        effectiveValue=true
+        echo "[INFO] Forcing dump on success based on global override setting"
+    }
+    return effectiveValue
+}
+
+def metricJobName(stageName) {
+    job=env.JOB_NAME.split("/")[0]
+    job='_' + job.replaceAll('-','_')
+    if (stageName) {
+        job=job + '_' + stageName
+    }
+    return job
+}
+
+// Construct the set of labels/dimensions for the metrics
+def getMetricLabels() {
+    def buildNumber=String.format("%010d", env.BUILD_NUMBER.toInteger())
+    labels='build_number=\\"' + "${buildNumber}"+'\\",' +
+             'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
+             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+             'kubernetes_version=\\"' + "${params.K8S_VERSION}"+'\\",' +
+             'test_env=\\"' + "olcne"+'\\"'
+    return labels
+}
+
+def metricTimerStart(metricName) {
+    def timerStartName="${metricName}_START"
+    env."${timerStartName}"=sh(returnStdout: true, script: "date +%s").trim()
+}
+
+def metricTimerEnd(metricName, status) {
+    def timerStartName="${metricName}_START"
+    def timerEndName  ="${metricName}_END"
+    env."${timerEndName}"=sh(returnStdout: true, script: "date +%s").trim()
+    if (params.EMIT_METRICS) {
+        long x=env."${timerStartName}" as long;
+        long y=env."${timerEndName}" as long;
+        def dur=(y-x)
+
+        // OCI-Telemetry
+        // labels='\\"number\\"=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
+        //          '\\"commit_sha\\"=\\"' + "${env.GIT_COMMIT}"+'\\",' +
+        //          '\\"test_env\\"=\\"' + "$testEnv"+'\\"'
+        // OCI_MET=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/oci_metric_emit.sh ${OCI_TELEMETRY_URL} ${OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+
+        labels=getMetricLabels()
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+            echo "[INFO] emit prometheus metrics: $EMIT"
+            return EMIT
+        }
+    } else {
+        return ''
+    }
+}
+
+// Emit the metrics indicating the duration and result of the build
+def metricBuildDuration() {
+    def status="${currentBuild.currentResult}".trim()
+    long duration="${currentBuild.duration}" as long;
+    long durationInSec=(duration/1000)
+    testMetric=metricJobName('')
+    def metricValue="-1"
+    statusLabel=status.substring(0,1)
+    if (status.equals("SUCCESS")) {
+        metricValue="1"
+    } else if (status.equals("FAILURE")) {
+        metricValue="0"
+    } else {
+        // Consider every other status as a single label
+        statusLabel="A"
+    }
+    if (params.EMIT_METRICS) {
+        labels=getMetricLabels()
+        labels=labels + ',result=\\"' + "${statusLabel}"+'\\"'
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS=sh(returnStdout: true, returnStatus: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+            echo "[INFO] Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
+        }
+    }
+}
+
+def setDisplayName() {
+    echo "[INFO] Start setDisplayName"
+    def causes=currentBuild.getBuildCauses()
+    echo "[INFO] causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString=cause.toString()
+        echo "[INFO] current cause: " + causeString
+        if (causeString.contains("UpstreamCause") && causeString.contains("Started by upstream project")) {
+             echo "[INFO] This job was caused by " + causeString
+             if (causeString.contains("verrazzano-periodic-triggered-tests")) {
+                 currentBuild.displayName=env.BUILD_NUMBER + " : PERIODIC"
+             } else if (causeString.contains("verrazzano-flaky-tests")) {
+                 currentBuild.displayName=env.BUILD_NUMBER + " : FLAKY"
+             }
+         }
+    }
+    echo "[INFO] End setDisplayName"
+}
+
+def emitJobMetrics() {
+    env.JOB_STATUS="${currentBuild.currentResult}".trim()
+    long duration="${currentBuild.duration}" as long;
+    env.DURATION=duration
+    long timeInMillis="${currentBuild.timeInMillis}" as long;
+    long startTimeInMillis="${currentBuild.startTimeInMillis}" as long;
+    env.TIME_WAITING=startTimeInMillis-timeInMillis
+    runGinkgo('jobmetrics')
+}
+
+def createOLCNECluster() {
+    env.createdOLCNECluster="true"
+    sh """
+        cd $TF_REPO_PATH
+        terraform init -input=false
+        terraform plan -input=false -out=tfplan -no-color
+        terraform apply -input=false -no-color -auto-approve tfplan
+    """
+    env.API_SERVER_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw apiserver_ip """).trim()
+    sh 'echo "API_SERVER_IP: $API_SERVER_IP" > $OLCNE_DUMP_DIR/tf.out'
+    env.WORKER_NODES_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -json worker_nodes""").replaceAll(/["\[\]]/, "").replaceAll(",", " ").trim()
+    sh 'echo "WORKER_NODES_IP: $WORKER_NODES_IP" >> $OLCNE_DUMP_DIR/tf.out'
+    env.CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -json control_plane_nodes """).replaceAll(/["\[\]]/, "").replaceAll(",", " ").trim()
+    sh 'echo "CONTROL_PLANE_NODES_IP: $CONTROL_PLANE_NODES_IP" >> $OLCNE_DUMP_DIR/tf.out'
+    env.VCN_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw vcn_id """).trim()
+    sh 'echo "VCN_OCID: $VCN_OCID" >> $OLCNE_DUMP_DIR/tf.out'
+    env.VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """).trim()
+    sh 'echo "VCN_CIDR: $VCN_CIDR" >> $OLCNE_DUMP_DIR/tf.out'
+    env.NODE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw subnet_id """).trim()
+    sh 'echo "NODE_SUBNET_OCID: $NODE_SUBNET_OCID" >> $OLCNE_DUMP_DIR/tf.out'
+    env.BASTION_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """).trim()
+    sh 'echo "BASTION_SUBNET_OCID: $BASTION_SUBNET_OCID" >> $OLCNE_DUMP_DIR/tf.out'
+    env.BASTION_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_public_ip """).trim()
+    sh 'echo "BASTION_IP: $BASTION_IP" >> $OLCNE_DUMP_DIR/tf.out'
+    env.BASTION_USER=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_user """).trim()
+    sh 'echo "BASTION_USER: $BASTION_USER" >> $OLCNE_DUMP_DIR/tf.out'
+}
+
+def setupSSH() {
+    env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0].replaceAll(" ", "").trim()
+    echo CONTROL_PLANE_IP
+    sh '''
+        sudo yum -y install oracle-epel-release-el7
+        sudo yum -y install sshuttle
+        if [ $? -ne 0 ]; then
+            echo "[ERROR] Failed to install sshuttle"
+            exit 1
+        fi
+        sshuttle -r $BASTION_USER@$BASTION_IP $VCN_CIDR --ssh-cmd 'ssh -o StrictHostKeyChecking=no -i '$TF_VAR_bastion_private_key_path'' --daemon --pidfile=$SSHUTTLE_PID_FILE
+        if [ $? -ne 0 ]; then
+            echo "[ERROR] Failed to ssh tunnel to the bastion host $TF_VAR_prefix-bastion at $BASTION_USER@$BASTION_IP"
+            exit 1
+        fi
+        ssh -i "$TF_VAR_ssh_private_key_path" -fN4 -L 6443:$CONTROL_PLANE_IP:6443 "$BASTION_USER"@"$BASTION_IP"
+    '''
+}
+
+def setupKubeconfig() {
+    sh """
+        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@"$API_SERVER_IP":/home/opc/.kube/config "$KUBECONFIG"
+        yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
+        yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
+        yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
+        cp "$KUBECONFIG" $OLCNE_DUMP_DIR/kubeconfig
+        kubectl get nodes
+    """
+}
+
+def updateOLCNEConfig() {
+    env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
+    echo CONTROL_PLANE_IP
+    sh """
+        # TODO: This will no longer be required after terraform-oci-olcne repository supports OCI CCM module
+        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" "$TF_VAR_api_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/oci_api_key.pem
+        $GO_REPO_PATH/verrazzano/ci/scripts/update_olcne_config.sh
+
+        # TODO: This MIGHT not be required for OLCNE > 1.5 releases
+        # Add annotation to the storageclass created by OLCNE oci-ccm module
+        kubectl get storageclass oci-bv -o yaml > "$WORKSPACE/oci-bv.yaml"
+        yq -i eval '.metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true"' "$WORKSPACE/oci-bv.yaml"
+        kubectl replace -f "$WORKSPACE/oci-bv.yaml"
+        cat << EOF | kubectl apply -f -
+            apiVersion: storage.k8s.io/v1
+            kind: CSIDriver
+            metadata:
+                name: blockvolume.csi.oraclecloud.com
+            spec:
+                fsGroupPolicy: File
+EOF
+    """
+}
+
+def createImagePullSecrets() {
+    sh """
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
+    """
+}
+
+def installVerrazzanoPlatformOperator() {
+    sh """
+        # oci --region us-phoenix-1 os object get \
+        # --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
+        # --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
+        # --file $WORKSPACE/downloaded-operator.yaml
+
+        # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands instead of "wget"
+        wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
+
+        cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
+
+        # Install the verrazzano-platform-operator
+        kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
+        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+        # make sure ns exists
+        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+        kubectl get ns
+
+        # create secret in verrazzano-install ns
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
+    """
+}
+
+def installVerrazzano() {
+    env.installedVZ="true"
+    sh """
+        yq -i eval '.spec.environmentName = "$VZ_ENVIRONMENT_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
+        yq -i eval '.spec.profile = "$INSTALL_PROFILE"' "$INSTALL_CONFIG_FILE_OLCNE"
+        cat "$INSTALL_CONFIG_FILE_OLCNE"
+
+        # apply config to create cluster
+        kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
+        # wait for Verrazzano install to complete
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+
+        # Print out the username and passwords
+        echo "Verrazzano username: verrazzano"
+        kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
+        echo "Rancher username: admin"
+        kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo
+        echo "Keycloak username: keycloakadmin"
+        kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo
+    """
+}
+
+def updateLoadBalancerHealthCheck() {
+    // TODO: This function will not be required if OCI CCM supports configuring health check protocol and port
+    sh '''
+        LB_MGMT_IP=$(kubectl get service ingress-controller-ingress-nginx-controller -n ingress-nginx -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
+        LB_APP_IP=$(kubectl get service  istio-ingressgateway  -n  istio-system -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
+        $GO_REPO_PATH/verrazzano/ci/scripts/update_lb_health_check.sh "$LB_MGMT_IP $LB_APP_IP"
+    '''
+}
+
+def deleteVerrazzano() {
+    sh '''
+        kubectl delete verrazzano $(kubectl  get vz -o jsonpath="{.items[0].metadata.name}") --wait=true
+    '''
+}
+
+def deleteOLCNECluster() {
+    sh '''
+        cd $TF_REPO_PATH
+        terraform destroy -auto-approve
+        for x in {1..3}; do
+            if [[ $? -ne 0 ]]; then
+                echo "[INFO] Failed to destroy terraform resources. Retrying ..."
+                terraform destroy -auto-approve
+            else
+                break
+            fi
+        done
+    '''
+}

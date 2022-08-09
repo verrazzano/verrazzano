@@ -8,17 +8,15 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sigs.k8s.io/yaml"
 	"testing"
 	"time"
-
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/yaml"
 )
 
 // TestInstallCmdDefaultNoWait
@@ -135,9 +134,9 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 
 	// Run install command
 	err := cmd.Execute()
-	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Timeout 2s exceeded waiting for install to complete")
+	assert.Error(t, err)
+	assert.Equal(t, "Error: Timeout 2s exceeded waiting for install to complete\n", errBuf.String())
+	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
 }
 
 // TestInstallCmdDefaultNoVPO
@@ -344,6 +343,66 @@ func TestInstallCmdFilenames(t *testing.T) {
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
 	assert.NoError(t, err)
 	assert.Equal(t, vzapi.Dev, vz.Spec.Profile)
+}
+
+// TestInstallCmdFilenamesCsv
+// GIVEN a CLI install command with defaults and --wait=false and --filename specified as a comma separated list
+//  WHEN I call cmd.Execute for install
+//  THEN the CLI install command is successful
+func TestInstallCmdFilenamesCsv(t *testing.T) {
+	vpo := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+			Labels: map[string]string{
+				"app":               constants.VerrazzanoPlatformOperator,
+				"pod-template-hash": "56f78ffcfd",
+			},
+		},
+	}
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{
+				{
+					Type:               appsv1.DeploymentAvailable,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
+				},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdInstall(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml,../../test/testdata/override-components.yaml")
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+
+	// Run install command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+
+	// Verify the vz resource is as expected
+	vz := vzapi.Verrazzano{}
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "my-verrazzano"}, &vz)
+	assert.NoError(t, err)
+	assert.Equal(t, vzapi.Dev, vz.Spec.Profile)
+	assert.False(t, *vz.Spec.Components.Rancher.Enabled)
 }
 
 // TestInstallCmdSets

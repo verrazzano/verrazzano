@@ -249,9 +249,9 @@ data:
         # the other is just a messsage
         @type multi_format
         <pattern>
-          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}\:\d{2}\:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)$/
-          time_key logtime
-          time_format %Y/%m/%d %H:%M:%S
+          format json
+          time_key @timestamp
+          time_format %Y-%m-%dT%H:%M:%S+%N
         </pattern>
         <pattern>
           format none

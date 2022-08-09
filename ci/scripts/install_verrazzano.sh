@@ -71,25 +71,17 @@ until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
   fi
 done
 
-## dump out install logs
-mkdir -p ${VERRAZZANO_INSTALL_LOGS_DIR}
-kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install.log --tail -1
-kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-install-job-pod.out
-echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-echo "------------------------------------------"
-
 # wait for Verrazzano install to complete
 ${TEST_SCRIPTS_DIR}/wait-for-verrazzano-install.sh
 result=$?
 
 if [ "${POST_INSTALL_DUMP}" == "true" ]; then
-  echo "Generating post-install cluster-dump..."
-  if [ -e ${WORKSPACE}/post-vz-install-cluster-dump ]; then
+  echo "Generating post-install cluster-snapshot..."
+  if [ -e ${WORKSPACE}/post-vz-install-cluster-snapshot ]; then
     echo "Removing exising post-install cluster dump"
-    rm -rf ${WORKSPACE}/post-vz-install-cluster-dump
+    rm -rf ${WORKSPACE}/post-vz-install-cluster-snapshot
   fi
-  ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
+  ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-snapshot -r ${WORKSPACE}/post-vz-install-cluster-snapshot/analysis.report
   if [[ $result -ne 0 ]]; then
     echo "Post-install cluster dump failed"
     exit 1

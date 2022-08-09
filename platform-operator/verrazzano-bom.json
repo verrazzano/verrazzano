@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "v1.1.1-20220802182047-c0868153c",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "v1.1.1-20220802182047-c0868153c",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.7.1-1-20220629181251-a55857d4",
+              "tag": "v1.7.1-1-20220808163033-a55857d4",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.7.1-1-20220629181251-a55857d4",
+              "tag": "v1.7.1-1-20220808163033-a55857d4",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.7.1-1-20220629181251-a55857d4",
+              "tag": "v1.7.1-1-20220808163033-a55857d4",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.7.1-1-20220629181251-a55857d4",
+              "tag": "v1.7.1-1-20220808163033-a55857d4",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.10.2-20220225144626-7bae1b96",
+              "tag": "v0.10.2-20220802001856-7bae1b96",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -102,12 +102,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.13.2",
+              "tag": "1.13.5",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.13.2",
+              "tag": "1.13.5",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.4-20220504205847-7131173f2",
+              "tag": "v2.6.6-20220801034315-6b16223e4",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.4-20220504205847-7131173f2"
+              "tag": "v2.6.6-20220801034315-6b16223e4"
             }
           ]
         },
@@ -181,23 +181,23 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.13.2",
+              "tag": "1.13.5",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20220427170000-87ed055",
+              "tag": "v1.14.5-20220801165146-12c063f",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
               "image": "console",
-              "tag": "1.4.0-20220614120434-203cb7c",
+              "tag": "v1.4.0-20220803133223-d09ac54",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "v1.1.1-20220802182047-c0868153c",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
@@ -220,18 +220,18 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.4.0-20220707165907-46d90dc",
+              "tag": "v1.4.0-20220809122807-fe60640",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
               "image": "proxyv2",
-              "tag": "1.13.2",
+              "tag": "1.13.5",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
               "image": "grafana",
-              "tag": "v7.5.11",
+              "tag": "v7.5.15",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -241,22 +241,17 @@
             },
             {
               "image": "opensearch",
-              "tag": "1.2.3-20220707191348-c1dbc115d8a",
+              "tag": "1.2.3-20220715164419-c1dbc115d8a",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "1.2.0-20220301201035-be0efd47ab",
+              "tag": "1.2.0-20220721221818-c206c8b25f",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
-              "image": "configmap-reload",
-              "tag": "0.7.1-20220302211236-774d907",
-              "helmFullImageKey": "monitoringOperator.configReloaderImage"
-            },
-            {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "v1.1.1-20220802182047-c0868153c",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -293,7 +288,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20220602215259-046d772",
+              "tag": "v0.3.0-20220801214414-046d772",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -347,7 +342,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.5",
+              "tag": "3.2.6",
               "helmFullImageKey": "image"
             }
           ]
@@ -375,26 +370,15 @@
       "name": "mysql",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "repository": "verrazzano/mysql",
           "name": "mysql",
           "images": [
             {
               "image": "mysql",
-              "tag": "8.0.28",
-              "helmFullImageKey": "image",
-              "helmTagKey": "imageTag"
-            }
-          ]
-        },
-        {
-          "repository": "oracle",
-          "name": "oraclelinux",
-          "images": [
-            {
-              "image": "oraclelinux",
-              "tag": "7-slim",
-              "helmFullImageKey": "busybox.image",
-              "helmTagKey": "busybox.tag"
+              "tag": "8.0.29",
+              "helmRegKey": "image.registry",
+              "helmRepoKey": "image.repository",
+              "helmTagKey": "image.tag"
             }
           ]
         }
@@ -409,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20220613060015-16e593e4ac",
+              "tag": "v15.0.2-20220808193821-3c526fbe0f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -421,7 +405,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "1.3.0-20220510114742-dc513a7"
+              "tag": "v1.4.0-20220803133014-7b829cf"
             }
           ]
         }
@@ -466,7 +450,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0",
+              "tag": "v0.24.0-20220805222028-0a54aa20",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
@@ -495,7 +479,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.9.1-3",
+              "tag": "v0.9.1-20220803141232-f097a569",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -512,7 +496,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.4.2",
+              "tag": "v2.4.2-20220809152654-43d75718",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -563,7 +547,7 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.34.1-20220705001411-cfb06635",
+              "tag": "1.34.1-20220808210031-cfb06635",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -575,7 +559,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.34.1-20220705041607-b81f3dc8",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
               "helmFullImageKey": "jaegerAgentImage"
             }
           ]
@@ -586,7 +570,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.34.1-20220705041607-b81f3dc8",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
               "helmFullImageKey": "jaegerCollectorImage"
             }
           ]
@@ -597,7 +581,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.34.1-20220705041607-b81f3dc8",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
               "helmFullImageKey": "jaegerQueryImage"
             }
           ]
@@ -608,8 +592,41 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.34.1-20220705041607-b81f3dc8",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
               "helmFullImageKey": "jaegerIngesterImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-es-index-cleaner",
+          "images": [
+            {
+              "image": "jaeger-es-index-cleaner",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "helmFullImageKey": "jaegerESIndexCleanerImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-es-rollover",
+          "images": [
+            {
+              "image": "jaeger-es-rollover",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "helmFullImageKey": "jaegerESRolloverImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-all-in-one",
+          "images": [
+            {
+              "image": "jaeger-all-in-one",
+              "tag": "1.34.1-20220718052137-ae4bd702",
+              "helmFullImageKey": "jaegerAllInOneImage"
             }
           ]
         }
@@ -637,6 +654,36 @@
               "image": "velero-restic-restore-helper",
               "tag": "v1.8.1",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rancher-backup",
+      "subcomponents": [
+        {
+          "repository": "verrazzano/rancher",
+          "name": "rancher-backup",
+          "images": [
+            {
+              "image": "backup-restore-operator",
+              "tag": "v2.1.0-20220808171934-bbeff72",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        },
+        {
+          "registry": "docker.io",
+          "repository": "rancher",
+          "name": "rancher-backup-kubectl",
+          "images": [
+            {
+              "image": "kubectl",
+              "tag": "v1.20.2",
+              "helmFullImageKey": "global.kubectl.repository",
+              "helmTagKey": "global.kubectl.tag"
             }
           ]
         }

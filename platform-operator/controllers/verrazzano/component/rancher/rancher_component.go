@@ -5,10 +5,12 @@ package rancher
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -46,17 +48,18 @@ var certificates = []types.NamespacedName{
 func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
-			ReleaseName:             common.RancherName,
-			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
-			ChartNamespace:          ComponentNamespace,
-			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
-			AppendOverridesFunc:     AppendOverrides,
-			Certificates:            certificates,
-			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
+			ReleaseName:               common.RancherName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), common.RancherName),
+			ChartNamespace:            ComponentNamespace,
+			IgnoreNamespaceOverride:   true,
+			SupportsOperatorInstall:   true,
+			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
+			AppendOverridesFunc:       AppendOverrides,
+			Certificates:              certificates,
+			Dependencies:              []string{nginx.ComponentName, certmanager.ComponentName},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -235,41 +238,48 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 - Retrieve the Rancher admin password
 - Retrieve the Rancher hostname
 - Set the Rancher server URL using the admin password and the hostname
+- Activate the oci and oke drivers
 */
 func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
-	vz := ctx.EffectiveCR()
 	log := ctx.Log()
 
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed creating Rancher admin secret: %s", err.Error())
 	}
-	password, err := common.GetAdminSecret(c)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting Rancher admin secret: %s", err.Error())
-	}
+
+	vz := ctx.EffectiveCR()
 	rancherHostName, err := getRancherHostname(c, vz)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("Failed getting Rancher hostname: %s", err.Error())
 	}
 
-	rest, err := common.NewClient(c, rancherHostName, password)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting Rancher client: %s", err.Error())
-	}
-	if err := rest.SetAccessToken(); err != nil {
-		return log.ErrorfThrottledNewErr("Failed setting Rancher access token: %s", err.Error())
-	}
-	if err := rest.PutServerURL(); err != nil {
+	if err := putServerURL(log, c, fmt.Sprintf("https://%s", rancherHostName)); err != nil {
 		return log.ErrorfThrottledNewErr("Failed setting Rancher server URL: %s", err.Error())
 	}
+
+	err = activateDrivers(log, c)
+	if err != nil {
+		return err
+	}
+
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
+
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
 	return nil
+}
+
+// postUninstall handles the deletion of all Rancher resources after the Helm uninstall
+func (r rancherComponent) PostUninstall(ctx spi.ComponentContext) error {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("Rancher postUninstall dry run")
+		return nil
+	}
+	return postUninstall(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
@@ -281,4 +291,35 @@ func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return false
+}
+
+// PostUpgrade configures the Rancher rest client and activates OCI and OKE drivers in Rancher
+func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	c := ctx.Client()
+	log := ctx.Log()
+	err := activateDrivers(log, c)
+	if err != nil {
+		return err
+	}
+
+	if err := r.HelmComponent.PostUpgrade(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
+	}
+
+	return nil
+}
+
+// activateDrivers activates the oci nodeDriver and oraclecontainerengine kontainerDriver
+func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
+	err := activateOCIDriver(log, c)
+	if err != nil {
+		return err
+	}
+
+	err = activatOKEDriver(log, c)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -22,36 +22,17 @@ spec:
         value: "50Gi"
       - name: nodes.master.requests.storage
         value: "50Gi"
-    authproxy:
-      kubernetes:
-        replicas: 2
-    console:
+    certManager:
+      enabled: true
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+    prometheusOperator:
       overrides:
         - values:
-            replicas: 2
-            affinity:
-              podAntiAffinity:
-                preferredDuringSchedulingIgnoredDuringExecution:
-                  - podAffinityTerm:
-                      labelSelector:
-                        matchLabels:
-                          app: verrazzano-console
-                      topologyKey: kubernetes.io/hostname
-                    weight: 100
-    istio:
-      ingress:
-        kubernetes:
-          replicas: 2
-      egress:
-        kubernetes:
-          replicas: 2
-    prometheusOperator:
-      prometheusSpec:
-        storageSpec:
-          volumeClaimTemplate:
-            spec:
-              storageClassName:
+            prometheus:
+              prometheusSpec:
                 resources:
                   requests:
-                    storage: "50Gi"
                     memory: "128Mi"

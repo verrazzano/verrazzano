@@ -7,6 +7,7 @@ import (
 	"context"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -96,4 +97,34 @@ func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
 // Upgrade VMO processing
 func (c vmoComponent) Upgrade(context spi.ComponentContext) error {
 	return c.HelmComponent.Install(context)
+}
+
+// Uninstall VMO processing
+func (c vmoComponent) Uninstall(context spi.ComponentContext) error {
+	installed, err := c.HelmComponent.IsInstalled(context)
+	if err != nil {
+		return err
+	}
+
+	// If we find that the VMO helm chart is installed, then uninstall
+	if installed {
+		return c.HelmComponent.Uninstall(context)
+	}
+
+	// Attempt to delete the VMO resources if the VMO helm chart is not installed.
+	vmoResources := common.GetVMOHelmManagedResources()
+	for _, vmoResource := range vmoResources {
+		err := resource.Resource{
+			Name:      vmoResource.NamespacedName.Name,
+			Namespace: vmoResource.NamespacedName.Namespace,
+			Client:    context.Client(),
+			Object:    vmoResource.Obj,
+			Log:       context.Log(),
+		}.Delete()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -7,19 +7,16 @@ import (
 	"context"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	adminv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // TestDeleteClusterResource tests the deletion of a cluster resource
@@ -146,4 +143,110 @@ func TestDeleteNotExists(t *testing.T) {
 		Log:       vzlog.DefaultLogger(),
 	}.Delete()
 	asserts.NoError(err)
+}
+
+// TestRemoveFinalizers tests the removing a finalizers from a resource
+// GIVEN a Kubernetes resource
+// WHEN RemoveFinalizers is called
+// THEN the resource will have finalizers removed
+func TestRemoveFinalizers(t *testing.T) {
+	asserts := assert.New(t)
+
+	name := "test"
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+				Finalizers: []string{
+					"fake-finalizer",
+				},
+			},
+		}).Build()
+
+	// Verify the resource exists with the finalizer
+	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
+	err := c.Get(context.TODO(), types.NamespacedName{Name: name}, &ns)
+	asserts.NoError(err)
+	asserts.Equal(1, len(ns.Finalizers))
+
+	// Remove the finalizer from the resource
+	err = Resource{
+		Name:   name,
+		Client: c,
+		Object: &corev1.Namespace{},
+		Log:    vzlog.DefaultLogger(),
+	}.RemoveFinalizers()
+
+	// Validate that resource is updated with no finalizer
+	asserts.NoError(err)
+	err = c.Get(context.TODO(), types.NamespacedName{Name: name}, &ns)
+	asserts.NoError(err)
+	asserts.Equal(0, len(ns.Finalizers))
+}
+
+// TestRemoveFinalizersNotExists tests the removal of finalizer from a resource
+// GIVEN a resource that doesn't exist
+// WHEN RemoveFinalizers is called
+// THEN the RemoveFinalizers function should not return an error
+func TestRemoveFinalizersNotExists(t *testing.T) {
+	asserts := assert.New(t)
+
+	name := "test"
+
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+
+	// Validate resource does not exist
+	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
+	err := c.Get(context.TODO(), types.NamespacedName{Name: name}, &ns)
+	asserts.True(errors.IsNotFound(err))
+
+	// Remove the finalizer from the resource
+	err = Resource{
+		Name:   name,
+		Client: c,
+		Object: &corev1.Pod{},
+		Log:    vzlog.DefaultLogger(),
+	}.RemoveFinalizers()
+	asserts.NoError(err)
+}
+
+// TestRemoveFinalizersAndDelete tests the removing a finalizers from a resource and deleting the resource
+// GIVEN a Kubernetes resource
+// WHEN RemoveFinalizersAndDelete is called
+// THEN the resource will have finalizers removed and be deleted
+func TestRemoveFinalizersAndDelete(t *testing.T) {
+	asserts := assert.New(t)
+
+	name := "test"
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+				Finalizers: []string{
+					"fake-finalizer",
+				},
+			},
+		}).Build()
+
+	// Verify the resource exists with the finalizer
+	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
+	err := c.Get(context.TODO(), types.NamespacedName{Name: name}, &ns)
+	asserts.NoError(err)
+	asserts.Equal(1, len(ns.Finalizers))
+
+	// Remove the finalizer from the resource and delete the resource
+	err = Resource{
+		Name:   name,
+		Client: c,
+		Object: &corev1.Namespace{},
+		Log:    vzlog.DefaultLogger(),
+	}.RemoveFinalizersAndDelete()
+
+	// Validate that resource is deleted
+	asserts.NoError(err)
+	err = c.Get(context.TODO(), types.NamespacedName{Name: name}, &ns)
+	asserts.True(errors.IsNotFound(err))
 }
