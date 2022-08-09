@@ -194,7 +194,6 @@ pipeline {
 
                 sh """
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/operator.yaml --file ${OPERATOR_YAML_LOCATION}
-                    cat ${OPERATOR_YAML_LOCATION}
                 """
             }
         }
