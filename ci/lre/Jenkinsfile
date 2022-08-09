@@ -160,9 +160,9 @@ pipeline {
                 script {
                     sh '''
                         echo "run kubectl get nodes"
-                        kubectl get nodes
+                        kubectl get nodes --kubeconfig ${KUBECONFIG}
                         echo "run kubectl get pods"
-                        kubectl get pods
+                        kubectl get pods --kubeconfig ${KUBECONFIG}
                     '''
                 }
             }
