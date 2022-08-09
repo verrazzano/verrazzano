@@ -28,17 +28,19 @@ const (
 	appConfigName         = helloHelidon
 	componentName         = "hello-helidon-component"
 	workloadName          = "hello-helidon-workload"
+	oamGroup              = "core.oam.dev"
+	oamVersion            = "v1alpha2"
 )
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 var compGvr = schema.GroupVersionResource{
-	Group:    oamv1alpha1.SchemeGroupVersion.Group,
-	Version:  oamv1alpha1.SchemeGroupVersion.Version,
+	Group:    oamGroup,
+	Version:  oamVersion,
 	Resource: "components",
 }
 var appConfGvr = schema.GroupVersionResource{
-	Group:    oamv1alpha1.SchemeGroupVersion.Group,
-	Version:  oamv1alpha1.SchemeGroupVersion.Version,
+	Group:    oamGroup,
+	Version:  oamVersion,
 	Resource: "applicationconfigurations",
 }
 
