@@ -48,7 +48,8 @@ type BomDoc struct {
 type BomComponent struct {
 	// The name of the component, for example: Istio
 	Name string `json:"name"`
-
+	// Version of the component
+	Version string `json:"version,omitempty"`
 	// SubComponents is the array of subcomponents in the component
 	SubComponents []BomSubComponent `json:"subcomponents"`
 }
@@ -173,6 +174,15 @@ func (b *Bom) GetVersion() string {
 	return b.bomDoc.Version
 }
 
+// GetComponentVersion gets the BOM component's version
+func (b *Bom) GetComponentVersion(component string) string {
+	for _, comp := range b.bomDoc.Components {
+		if comp.Name == component {
+			return comp.Version
+		}
+	}
+	return ""
+}
 // GetSubcomponent gets the bom subcomponent
 func (b *Bom) GetSubcomponent(subComponentName string) (*BomSubComponent, error) {
 	sc, ok := b.subComponentMap[subComponentName]

@@ -4,6 +4,7 @@
   "components": [
     {
       "name": "verrazzano-platform-operator",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -20,6 +21,7 @@
     },
     {
       "name": "ingress-nginx",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -43,6 +45,7 @@
     },
     {
       "name": "cert-manager",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -77,6 +80,7 @@
     },
     {
       "name": "external-dns",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -95,6 +99,7 @@
     },
     {
       "name": "istio",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -118,6 +123,7 @@
     },
     {
       "name": "rancher",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -174,6 +180,7 @@
     },
     {
       "name": "verrazzano",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -213,6 +220,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -260,6 +268,7 @@
     },
     {
       "name": "monitoring-init-images",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -281,6 +290,7 @@
     },
     {
       "name": "oam-kubernetes-runtime",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -298,6 +308,7 @@
     },
     {
       "name": "verrazzano-application-operator",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -314,6 +325,7 @@
     },
     {
       "name": "weblogic-operator",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -335,6 +347,7 @@
     },
     {
       "name": "coherence-operator",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -351,6 +364,7 @@
     },
     {
       "name": "kiali-server",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -368,6 +382,7 @@
     },
     {
       "name": "mysql",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -392,6 +407,7 @@
     },
     {
       "name": "keycloak",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -419,6 +435,7 @@
     },
     {
       "name": "prometheus-operator",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -478,6 +495,7 @@
     },
     {
       "name": "prometheus-adapter",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -495,6 +513,7 @@
     },
     {
       "name": "kube-state-metrics",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -512,6 +531,7 @@
     },
     {
       "name": "prometheus-pushgateway",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -529,6 +549,7 @@
     },
     {
       "name": "node-exporter",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -546,6 +567,7 @@
     },
     {
       "name": "jaeger",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -640,6 +662,7 @@
     },
     {
       "name": "velero",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -667,6 +690,7 @@
     },
     {
       "name": "rancher-backup",
+      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano/rancher",

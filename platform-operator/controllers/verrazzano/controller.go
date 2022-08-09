@@ -6,6 +6,8 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"strings"
 	"sync"
 	"time"
@@ -669,6 +671,15 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 
 	// Set the state of resource
 	componentStatus.State = checkCondtitionType(conditionType)
+
+	/*
+	if componentStatusVersion, err := helmcli.GetReleaseAppVersion(componentName,"verrazzano-system"); err != nil {
+		componentStatus.Version = componentStatusVersion
+	}
+	*/
+	bomFile, _ := bom.NewBom(config.GetDefaultBOMFilePath())
+	componentStatus.Version = bomFile.GetComponentVersion(componentName)
+	fmt.Println("GetComponentVersion : ", componentStatus.Version)
 
 	// Update the status
 	return r.updateVerrazzanoStatus(log, cr)
