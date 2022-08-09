@@ -132,6 +132,7 @@ pipeline {
                     switch(env.LRE_CLUSTER_ENV) {
                         case "dev":
                             env.LRE_KUBECONFIG = "dev-lre-config"
+                            echo env.LRE_KUBECONFIG
                             break
                         case "prod":
                             env.CLUSTER_ID = "${prod_lre_cluster_id}"
@@ -141,12 +142,13 @@ pipeline {
                             break
                         default:
                             env.LRE_KUBECONFIG = "dev-lre-config"
+                            echo env.LRE_KUBECONFIG
                             break
                     }
                     echo env.LRE_KUBECONFIG
                     sh """
                         mkdir -p ${WORKSPACE}/.kube
-                        cp ${env.LRE_KUBECONFIG} ${KUBECONFIG}
+                        cp dev-lre-config ${KUBECONFIG}
                         cat ${KUBECONFIG}
                     """
                 }
