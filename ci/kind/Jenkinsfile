@@ -344,6 +344,7 @@ pipeline {
                                     sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
                                 }
                             }
+                        }
                         stage ('Grafana with DB') {
                             when {
                                 expression {params.USE_DB_FOR_GRAFANA == true}
