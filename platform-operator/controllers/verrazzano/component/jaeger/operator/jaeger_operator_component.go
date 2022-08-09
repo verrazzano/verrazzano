@@ -102,7 +102,7 @@ func (c jaegerOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		defaultJaegerEnabled, err := isJaegerCREnabled(ctx)
-		if err != nil && defaultJaegerEnabled {
+		if err == nil && defaultJaegerEnabled {
 			return isJaegerOperatorReady(ctx) && isDefaultJaegerReady(ctx)
 		}
 		return isJaegerOperatorReady(ctx)
