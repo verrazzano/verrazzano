@@ -293,6 +293,7 @@ func ListCronJobNamesMatchingLabels(namespace string, matchLabels map[string]str
 	return cronjobNames, nil
 }
 
+// listV1CronJobNames lists the cronjob under batch/v1 api version for k8s version > 1.20
 func listV1CronJobNames(clientset *kubernetes.Clientset, namespace string, listOptions metav1.ListOptions) ([]v1.CronJob, error) {
 	var cronJobs []v1.CronJob
 	cronJobList, err := clientset.BatchV1().CronJobs(namespace).List(context.TODO(), listOptions)
@@ -303,6 +304,7 @@ func listV1CronJobNames(clientset *kubernetes.Clientset, namespace string, listO
 	return cronJobList.Items, nil
 }
 
+// listV1Beta1CronJobNames lists the cronjob under batch/v1beta1 api version for k8s version <= 1.20
 func listV1Beta1CronJobNames(clientset *kubernetes.Clientset, namespace string, listOptions metav1.ListOptions) ([]v1beta1.CronJob, error) {
 	var cronJobs []v1beta1.CronJob
 	cronJobList, err := clientset.BatchV1beta1().CronJobs(namespace).List(context.TODO(), listOptions)
