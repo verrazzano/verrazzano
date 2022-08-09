@@ -77,6 +77,24 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 
 				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 				Expect(err).ToNot(HaveOccurred())
+
+				start = time.Now()
+				t.Logs.Info("Verify Local AuthConfig")
+				var localAuthConfigEnabled bool
+
+				Eventually(func() error {
+					localAuthConfigData, err := k8sClient.Resource(gvkToGvr(rancher.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigLocal, v1.GetOptions{})
+					if err != nil {
+						t.Logs.Error(fmt.Sprintf("error getting local authConfig: %v", err))
+						return err
+					}
+
+					authConfigAttributes := localAuthConfigData.UnstructuredContent()
+					localAuthConfigEnabled = authConfigAttributes[rancher.AuthConfigAttributeEnabled].(bool)
+					return nil
+				}, waitTimeout, pollingInterval).Should(Equal(nil), "failed fetching local authconfig")
+				metrics.Emit(t.Metrics.With("get_local_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
+
 				if minVer14 {
 					start = time.Now()
 					t.Logs.Info("Verify OCI driver status")
@@ -140,8 +158,13 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 
+						keycloakAuthConfigEnabled := authConfigAttributes[rancher.AuthConfigAttributeEnabled].(bool)
+						if err = verifyAuthConfigAttribute(rancher.AuthConfigAttributeEnabled, keycloakAuthConfigEnabled, !localAuthConfigEnabled); err != nil {
+							return false, err
+						}
+
 						return true, nil
-					}, waitTimeout, pollingInterval).Should(Equal(true), "keycloak oidc authconfig not enabled")
+					}, waitTimeout, pollingInterval).Should(Equal(true), "keycloak oidc authconfig not configured correctly")
 					metrics.Emit(t.Metrics.With("get_kc_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
 
 					start = time.Now()
@@ -191,6 +214,10 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					}, waitTimeout, pollingInterval).Should(Equal(true), "verrazzano rancher user global role binding does not exist")
 					metrics.Emit(t.Metrics.With("get_vz_rancher_user_gbr_elapsed_time", time.Since(start).Milliseconds()))
 
+				} else {
+					if !localAuthConfigEnabled {
+						t.Fail("local auth config not enabled")
+					}
 				}
 			}
 		})
