@@ -628,9 +628,9 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	componentStatus.State = checkCondtitionType(conditionType)
 
 	/*
-	if componentStatusVersion, err := helmcli.GetReleaseAppVersion(componentName,"verrazzano-system"); err != nil {
-		componentStatus.Version = componentStatusVersion
-	}
+		if componentStatusVersion, err := helmcli.GetReleaseAppVersion(componentName,"verrazzano-system"); err != nil {
+			componentStatus.Version = componentStatusVersion
+		}
 	*/
 	bomFile, _ := bom.NewBom(config.GetDefaultBOMFilePath())
 	componentStatus.Version = bomFile.GetComponentVersion(componentName)
