@@ -146,6 +146,7 @@ func VerifyMCResourcesV100(kubeconfigPath string, isAdminCluster bool, placedInT
 		} else {
 			ok = ok && !vzManagedLabelExists
 		}
+		return ok
 	} else {
 		// don't expect either
 		return !mcAppConfExists && !mcCompExists
