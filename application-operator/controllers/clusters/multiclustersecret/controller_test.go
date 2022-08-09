@@ -5,10 +5,12 @@ package multiclustersecret
 
 import (
 	"context"
+	"testing"
+
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"testing"
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
@@ -413,6 +415,9 @@ func assertSecretValid(assert *asserts.Assertions, s *v1.Secret, secretData map[
 	assert.Equal(namespace, s.ObjectMeta.Namespace)
 	assert.Equal(crName, s.ObjectMeta.Name)
 	assert.Equal(secretData, s.Data)
+	// assert that the secret is labeled verrazzano-managed=true since it was created by Verrazzano
+	assert.NotNil(s.Labels)
+	assert.Equal(constants.LabelVerrazzanoManagedDefault, s.Labels[vzconst.VerrazzanoManagedLabelKey])
 }
 
 // getSampleMCSecret creates and returns a sample MultiClusterSecret used in tests
