@@ -117,7 +117,7 @@ data:
   password: $USER_SECRET
 EOF
   # deploy MySQL instance
-  kubectl apply -f $WORKSPACE/verrazzano/tests/testdata/grafana/grafana-mysql.yaml
+  kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
 fi
 
 # create secret in verrazzano-install ns
