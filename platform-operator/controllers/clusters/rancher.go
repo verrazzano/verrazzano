@@ -6,7 +6,7 @@ package clusters
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec //#gosec G501 // package used for caching only, not security
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -207,7 +207,7 @@ func getAllClustersInRancher(rc *rancherConfig, log vzlog.VerrazzanoLogger) ([]s
 	reqURL := rc.baseURL + clustersPath
 	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
 
-	hash := md5.New()
+	hash := md5.New() //nolint:gosec //#gosec G401
 	clusterNames := []string{}
 	for {
 		response, responseBody, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)

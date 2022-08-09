@@ -150,7 +150,8 @@ func (r *RancherClusterSyncer) deleteVMCs(rancherClusterNames []string, log vzlo
 	}
 
 	// for each VMC, if it does not exist in Rancher, delete it
-	for _, cluster := range clusterList.Items {
+	for i := range clusterList.Items {
+		cluster := clusterList.Items[i] // avoids "G601: Implicit memory aliasing in for loop" linter error
 		if cluster.Name == localClusterName {
 			continue
 		}
