@@ -4188,83 +4188,8 @@ spec:
                         - domain
                         type: object
                     type: object
-                  elasticsearch:
-                    properties:
-                      enabled:
-                        type: boolean
-                      nodes:
-                        items:
-                          properties:
-                            name:
-                              type: string
-                            replicas:
-                              format: int32
-                              type: integer
-                            resources:
-                              properties:
-                                limits:
-                                  additionalProperties:
-                                    anyOf:
-                                    - type: integer
-                                    - type: string
-                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                    x-kubernetes-int-or-string: true
-                                  type: object
-                                requests:
-                                  additionalProperties:
-                                    anyOf:
-                                    - type: integer
-                                    - type: string
-                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                    x-kubernetes-int-or-string: true
-                                  type: object
-                              type: object
-                            roles:
-                              items:
-                                type: string
-                              type: array
-                            storage:
-                              properties:
-                                size:
-                                  type: string
-                              required:
-                              - size
-                              type: object
-                          type: object
-                        type: array
-                      policies:
-                        items:
-                          properties:
-                            indexPattern:
-                              type: string
-                            minIndexAge:
-                              pattern: ^[0-9]+(d|h|m|s|ms|micros|nanos)$
-                              type: string
-                            policyName:
-                              type: string
-                            rollover:
-                              properties:
-                                minDocCount:
-                                  type: integer
-                                minIndexAge:
-                                  pattern: ^[0-9]+(d|h|m|s|ms|micros|nanos)$
-                                  type: string
-                                minSize:
-                                  pattern: ^[0-9]+(b|kb|mb|gb|tb|pb)$
-                                  type: string
-                              type: object
-                          required:
-                          - indexPattern
-                          - policyName
-                          type: object
-                        type: array
-                    type: object
                   fluentd:
                     properties:
-                      elasticsearchSecret:
-                        type: string
-                      elasticsearchURL:
-                        type: string
                       enabled:
                         type: boolean
                       extraVolumeMounts:
@@ -4294,6 +4219,10 @@ spec:
                         - defaultAppLogId
                         - systemLogId
                         type: object
+                      opensearchSecret:
+                        type: string
+                      opensearchURL:
+                        type: string
                       overrides:
                         items:
                           properties:
@@ -4398,36 +4327,6 @@ spec:
                     properties:
                       enabled:
                         type: boolean
-                      ingress:
-                        properties:
-                          ports:
-                            items:
-                              properties:
-                                appProtocol:
-                                  type: string
-                                name:
-                                  type: string
-                                nodePort:
-                                  format: int32
-                                  type: integer
-                                port:
-                                  format: int32
-                                  type: integer
-                                protocol:
-                                  default: TCP
-                                  type: string
-                                targetPort:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  x-kubernetes-int-or-string: true
-                              required:
-                              - port
-                              type: object
-                            type: array
-                          type:
-                            type: string
-                        type: object
                       injectionEnabled:
                         type: boolean
                       monitorChanges:
@@ -5278,14 +5177,6 @@ spec:
                           type: object
                         type: array
                     type: object
-                  kibana:
-                    properties:
-                      enabled:
-                        type: boolean
-                      replicas:
-                        format: int32
-                        type: integer
-                    type: object
                   kubeStateMetrics:
                     properties:
                       enabled:
@@ -5357,6 +5248,85 @@ spec:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
                         type: array
+                    type: object
+                  opensearch:
+                    properties:
+                      enabled:
+                        type: boolean
+                      nodes:
+                        items:
+                          properties:
+                            name:
+                              type: string
+                            replicas:
+                              format: int32
+                              type: integer
+                            resources:
+                              properties:
+                                limits:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  type: object
+                                requests:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  type: object
+                              type: object
+                            roles:
+                              items:
+                                type: string
+                              type: array
+                            storage:
+                              properties:
+                                size:
+                                  type: string
+                              required:
+                              - size
+                              type: object
+                          type: object
+                        type: array
+                      policies:
+                        items:
+                          properties:
+                            indexPattern:
+                              type: string
+                            minIndexAge:
+                              pattern: ^[0-9]+(d|h|m|s|ms|micros|nanos)$
+                              type: string
+                            policyName:
+                              type: string
+                            rollover:
+                              properties:
+                                minDocCount:
+                                  type: integer
+                                minIndexAge:
+                                  pattern: ^[0-9]+(d|h|m|s|ms|micros|nanos)$
+                                  type: string
+                                minSize:
+                                  pattern: ^[0-9]+(b|kb|mb|gb|tb|pb)$
+                                  type: string
+                              type: object
+                          required:
+                          - indexPattern
+                          - policyName
+                          type: object
+                        type: array
+                    type: object
+                  opensearchDashboards:
+                    properties:
+                      enabled:
+                        type: boolean
+                      replicas:
+                        format: int32
+                        type: integer
                     type: object
                   prometheus:
                     properties:
@@ -6546,8 +6516,6 @@ spec:
                 properties:
                   consoleUrl:
                     type: string
-                  elasticUrl:
-                    type: string
                   grafanaUrl:
                     type: string
                   jaegerUrl:
@@ -6556,7 +6524,9 @@ spec:
                     type: string
                   kialiUrl:
                     type: string
-                  kibanaUrl:
+                  openSearchDashboardsUrl:
+                    type: string
+                  openSearchUrl:
                     type: string
                   prometheusUrl:
                     type: string

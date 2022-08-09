@@ -530,7 +530,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1",
+              "tag": "v1.3.1-20220809160001-ed1baa61",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
