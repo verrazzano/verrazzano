@@ -68,7 +68,7 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport()
 	}
 })
 

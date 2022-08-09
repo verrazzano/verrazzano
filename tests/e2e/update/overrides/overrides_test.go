@@ -140,7 +140,7 @@ var _ = t.AfterSuite(func() {
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	_ = update.GetCR()
 	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport()
 	}
 })
 

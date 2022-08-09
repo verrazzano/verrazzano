@@ -70,12 +70,12 @@ var _ = t.AfterEach(func() {
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
 		// bobbys frontend
-		pkg.DumpContainerLogs(namespace, "bobbys-front-end-adminserver", "weblogic-server", "/scratch/logs/bobbys-front-end")
-		pkg.DumpContainerLogs(namespace, "bobbys-front-end-managed-server1", "weblogic-server", "/scratch/logs/bobbys-front-end")
+		pkg.CaptureContainerLogs(namespace, "bobbys-front-end-adminserver", "weblogic-server", "/scratch/logs/bobbys-front-end")
+		pkg.CaptureContainerLogs(namespace, "bobbys-front-end-managed-server1", "weblogic-server", "/scratch/logs/bobbys-front-end")
 		// Bobs Bookstore
-		pkg.DumpContainerLogs(namespace, "bobs-bookstore-adminserver", "weblogic-server", "/scratch/logs/bobs-orders-wls")
-		pkg.DumpContainerLogs(namespace, "bobs-bookstore-managed-server1", "weblogic-server", "/scratch/logs/bobs-orders-wls")
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.CaptureContainerLogs(namespace, "bobs-bookstore-adminserver", "weblogic-server", "/scratch/logs/bobs-orders-wls")
+		pkg.CaptureContainerLogs(namespace, "bobs-bookstore-managed-server1", "weblogic-server", "/scratch/logs/bobs-orders-wls")
+		pkg.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		undeployBobsBooksExample()

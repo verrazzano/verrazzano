@@ -51,7 +51,7 @@ var (
 	t = framework.NewTestFramework("deploymetrics")
 )
 
-var clusterDump = pkg.NewClusterDumpWrapper()
+var clusterDump = pkg.NewClusterDumpWrapper(generatedNamespace)
 var kubeconfig string
 var _ = clusterDump.BeforeSuite(func() {
 	if !skipDeploy {

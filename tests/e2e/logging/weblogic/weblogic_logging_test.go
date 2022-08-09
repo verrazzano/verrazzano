@@ -106,7 +106,7 @@ var _ = t.BeforeSuite(func() {
 // Delete all of the resources to undeploy the application
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(namespace)
 	}
 	start := time.Now()
 

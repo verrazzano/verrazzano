@@ -142,7 +142,7 @@ var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", Lab
 
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(testNamespace)
 	}
 })
 

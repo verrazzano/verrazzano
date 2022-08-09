@@ -113,7 +113,7 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
-		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
+		err := pkg.ExecuteBugReport(appNamespace)
 		if err != nil {
 			return
 		}

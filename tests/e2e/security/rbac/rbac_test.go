@@ -50,7 +50,7 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(rbacTestNamespace)
 	}
 
 	t.Logs.Info("Delete namespace")

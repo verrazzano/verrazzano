@@ -42,7 +42,7 @@ var username, password string
 var (
 	t                  = framework.NewTestFramework("socks")
 	generatedNamespace = pkg.GenerateNamespace("sockshop")
-	clusterDump        = pkg.NewClusterDumpWrapper()
+	clusterDump        = pkg.NewClusterDumpWrapper(generatedNamespace)
 )
 
 // creates the sockshop namespace and applies the components and application yaml

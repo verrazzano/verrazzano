@@ -40,7 +40,7 @@ var _ = t.AfterEach(func() {
 var _ = t.AfterSuite(func() {
 	start := time.Now()
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport()
 	}
 	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
 })

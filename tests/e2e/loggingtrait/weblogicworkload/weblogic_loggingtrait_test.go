@@ -50,7 +50,7 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(namespace)
 	}
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)
 })

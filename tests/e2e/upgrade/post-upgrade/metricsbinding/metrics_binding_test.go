@@ -28,7 +28,7 @@ const (
 
 var (
 	t           = framework.NewTestFramework("deploymentworkload")
-	clusterDump = pkg.NewClusterDumpWrapper()
+	clusterDump = pkg.NewClusterDumpWrapper(deploymentNamespace, podNamespace, replicasetNamespace, statefulsetNamespace)
 )
 
 var _ = clusterDump.BeforeSuite(func() {}) // Needed to initialize cluster dump flags

@@ -28,7 +28,7 @@ var (
 	kubeConfig         = os.Getenv("KUBECONFIG")
 	t                  = framework.NewTestFramework("helidonworkload")
 	generatedNamespace = pkg.GenerateNamespace("hello-helidon-logging")
-	clusterDump        = pkg.NewClusterDumpWrapper()
+	clusterDump        = pkg.NewClusterDumpWrapper(generatedNamespace)
 )
 
 var _ = clusterDump.BeforeSuite(func() {

@@ -251,7 +251,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
-		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
+		err := pkg.ExecuteBugReport(testNamespace)
 		if err != nil {
 			return
 		}
