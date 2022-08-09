@@ -37,13 +37,11 @@ var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
 
 var isError bool
+var isLiveCluster bool
+var isVerbose bool
+
 var multiWriterOut io.Writer
 var multiWriterErr io.Writer
-
-var isLiveCluster bool
-
-const bugReportMsgPrefix = "Capturing "
-const analysisMsgPrefix = "Analyzing "
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
 func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
@@ -667,7 +665,12 @@ func IsErrorReported() bool {
 
 // SetMultiWriterOut sets MultiWriter for standard output
 func SetMultiWriterOut(outStream io.Writer, outFile *os.File) {
-	multiWriterOut = io.MultiWriter(outStream, outFile)
+	// When verbose output is disabled, log the resources captured to outFile alone
+	if isVerbose {
+		multiWriterOut = io.MultiWriter(outStream, outFile)
+	} else {
+		multiWriterOut = io.MultiWriter(outFile)
+	}
 }
 
 // GetMultiWriterOut returns the MultiWriter for standard output
@@ -677,7 +680,12 @@ func GetMultiWriterOut() io.Writer {
 
 // SetMultiWriterErr sets MultiWriter for standard error
 func SetMultiWriterErr(errStream io.Writer, errFile *os.File) {
-	multiWriterErr = io.MultiWriter(errStream, errFile)
+	// When verbose output is disabled, log the error capturing resources to errFile alone
+	if isVerbose {
+		multiWriterErr = io.MultiWriter(errStream, errFile)
+	} else {
+		multiWriterErr = io.MultiWriter(errFile)
+	}
 }
 
 // GetMultiWriterErr returns the MultiWriter for standard error
@@ -697,9 +705,14 @@ func GetIsLiveCluster() bool {
 
 // LogMessage logs a message to the standard output
 func LogMessage(msg string) {
-	msgPrefix := bugReportMsgPrefix
+	msgPrefix := constants.BugReportMsgPrefix
 	if isLiveCluster {
-		msgPrefix = analysisMsgPrefix
+		msgPrefix = constants.AnalysisMsgPrefix
 	}
 	fmt.Fprintf(GetMultiWriterOut(), msgPrefix+msg)
+}
+
+// SetVerboseOutput sets the verbose output for the bug-report command
+func SetVerboseOutput(enableVerbose bool) {
+	isVerbose = enableVerbose
 }

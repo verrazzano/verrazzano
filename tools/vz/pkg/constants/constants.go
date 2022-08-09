@@ -110,6 +110,11 @@ const (
 	BugReportIncludeNSFlagShort = "i"
 	BugReportIncludeNSFlagUsage = "A comma separated list of additional namespaces to collect information from the cluster. This flag can be specified multiple times like --include-namespaces ns1 --include-namespaces ns..."
 
+	BugReportVerboseFlagName    = "verbose"
+	BugReportVerboseFlagShort   = "v"
+	BugReportVerboseFlagDefault = false
+	BugReportVerboseFlagUsage   = "Enable verbose output for the bug-report command"
+
 	BugReportDir = "bug-report"
 
 	// File name for the log captured from the pod
@@ -153,4 +158,8 @@ const (
 	// Label for application
 	AppLabel    = "app"
 	K8SAppLabel = "k8s-app"
+
+	// Message prefix for bug-report and live cluster analysis
+	BugReportMsgPrefix = "Capturing "
+	AnalysisMsgPrefix  = "Analyzing "
 )

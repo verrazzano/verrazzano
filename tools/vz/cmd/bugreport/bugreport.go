@@ -46,6 +46,7 @@ const minLineLength = 100
 
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
+
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdBugReport(cmd, args, vzHelper)
 	}
@@ -53,7 +54,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
 	cmd.PersistentFlags().StringSliceP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, []string{}, constants.BugReportIncludeNSFlagUsage)
-
+	cmd.PersistentFlags().BoolP(constants.BugReportVerboseFlagName, constants.BugReportVerboseFlagShort, constants.BugReportVerboseFlagDefault, constants.BugReportVerboseFlagUsage)
 	return cmd
 }
 
@@ -110,6 +111,21 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 	}
 	defer os.RemoveAll(bugReportDir)
+
+	// set the flag to control the display the resources captured
+	isVerbose, err := cmd.PersistentFlags().GetBool(constants.BugReportVerboseFlagName)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.BugReportVerboseFlagName, err.Error())
+	}
+	helpers.SetVerboseOutput(isVerbose)
+
+	var msgPrefix string
+	if helpers.GetIsLiveCluster() {
+		msgPrefix = constants.AnalysisMsgPrefix
+	} else {
+		msgPrefix = constants.BugReportMsgPrefix
+	}
+	fmt.Fprintf(vzHelper.GetOutputStream(), msgPrefix+" resources from the cluster ...\n")
 
 	// Capture cluster snapshot
 	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, bugReportDir, moreNS, vzHelper)
