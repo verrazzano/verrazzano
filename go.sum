@@ -347,6 +347,7 @@ github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25Kn
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153 h1:yUdfgN0XgIJw7foRItutHYUIhlcKzcSf5vDpdhQAKTc=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
+github.com/emicklei/go-restful v2.9.5+incompatible h1:spTtZBk5DYEvbxMVutUuTyh1Ao2r4iyvLdACqsl/Ljk=
 github.com/emicklei/go-restful v2.9.5+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
@@ -957,6 +958,10 @@ github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220706002248-a0
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220706002248-a07bafbdc991/go.mod h1:Tpaz1662UlhEvo9A5nUKCi+NcCrrZ1elkOBukyerktc=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220715142548-a838f721d905 h1:dyFeN4SKuhtDN6EqzAtzm2s+DjmvF6V9J/NoiAm2Jv8=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220715142548-a838f721d905/go.mod h1:tnZPcS9eAnpRG4FYgE3qvVKLpfrKya8dltJ+P/ve5dk=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220804152858-ed2bad5a19fe h1:ioZneATLnJqGpkmNEg8iGAg69LFYpSPLd/uJVWOTsN0=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220804152858-ed2bad5a19fe/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220809165148-71bb590446ee h1:qISYsuP+gQ6vMeZDVkSgQWsze2rIPUTqjYzEkzXgqbQ=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220809165148-71bb590446ee/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
 github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852/go.mod h1:twkDnbuQxJYemMlGd4JFIcuhgX83tXhKS2B/PRMpOho=

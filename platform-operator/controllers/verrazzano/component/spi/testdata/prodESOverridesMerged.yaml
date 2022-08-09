@@ -118,14 +118,6 @@ spec:
       elasticsearchSecret: verrazzano-es-internal
     grafana:
       enabled: true
-      replicas: 2
-      database:
-        host: mysql.keycloak.svc.cluster.local:3306
-        name: grafanadb
-        rootSecret:
-          namespace: keycloak
-          name: mysql
-          key: mysql-root-password
     ingress:
       enabled: true
       type: LoadBalancer

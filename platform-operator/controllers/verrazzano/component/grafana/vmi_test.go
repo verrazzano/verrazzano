@@ -21,16 +21,11 @@ var grafanaEnabledCR = vzapi.Verrazzano{
 		Profile: vzapi.Prod,
 		Components: vzapi.ComponentSpec{
 			Grafana: &vzapi.GrafanaComponent{
-				Enabled: &enabled,
+				Enabled:  &enabled,
 				Replicas: resources.NewVal(2),
 				Database: &vzapi.DatabaseInfo{
-					Host:       "testhost:3032",
-					Name:       "grafanadb",
-					RootSecret: &vzapi.SecretKey{
-						Namespace: "testns",
-						Name:      "rootsecret",
-						Key:       "password",
-					},
+					Host: "testhost:3032",
+					Name: "grafanadb",
 				},
 			},
 		},

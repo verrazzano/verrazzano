@@ -1640,21 +1640,6 @@ spec:
                             type: string
                           name:
                             type: string
-                          rootSecret:
-                            description: SecretKey identifies a value in a Kubernetes
-                              Secret by its namespace, name and key in the Secret.
-                            properties:
-                              key:
-                                type: string
-                              name:
-                                type: string
-                              namespace:
-                                type: string
-                            required:
-                            - key
-                            - name
-                            - namespace
-                            type: object
                         type: object
                       enabled:
                         type: boolean
