@@ -152,13 +152,16 @@ func overrideRancherImageLocation(regYAML string, log vzlog.VerrazzanoLogger) st
 	// if the Verrazzano installation is using the default image registry, there's nothing to do
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry == "" {
+		log.Oncef("Using a default image registry so returning -- debugging")
 		return regYAML
 	}
 
 	// pull the Rancher agent image out of the registration YAML
 	r := regexp.MustCompile(`image: (?P<image>.*)`)
 	match := r.FindStringSubmatch(regYAML)
+	log.Oncef("Pulling the rancher agent image out of registration YAML: %v", match)
 	if len(match) != 2 {
+		log.Oncef("returning the regYAML when length of match is not equal to 2: %v", len(match))
 		return regYAML
 	}
 
@@ -168,13 +171,17 @@ func overrideRancherImageLocation(regYAML string, log vzlog.VerrazzanoLogger) st
 
 	// split the image path and pull out the repo and image:tag
 	imageParts := strings.Split(match[1], "/")
+	log.Oncef("Printing the Rancher imageParts: %v", imageParts)
 	if len(imageParts) < 2 {
+		log.Oncef("Printing the Length of Rancher imageParts: %v", len(imageParts))
 		return regYAML
 	}
 
 	// imageParts[len(imageParts)-2] = "verrazzano", imageParts[len(imageParts)-1] = "rancher-agent:tag"
+	log.Oncef("Printing the Rancher agent image part ImageParts[len(imageParts)-2]: %v", imageParts[len(imageParts)-2])
+	log.Oncef("Printing the Rancher agent image part imageParts[len(imageParts)-1: %v", imageParts[len(imageParts)-1])
 	image := imageParts[len(imageParts)-2] + "/" + imageParts[len(imageParts)-1]
-
+	log.Oncef("Printing the final rancher Image: %v", image)
 	// build a new image path using the registry override (and optionally a repo override)
 	imagePath := registry
 	if repo := os.Getenv(constants.ImageRepoOverrideEnvVar); repo != "" {
