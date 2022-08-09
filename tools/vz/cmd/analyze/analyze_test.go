@@ -48,7 +48,7 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 	err = cmd.Execute()
 	assert.Nil(t, err)
 	// This should generate a report from the live cluster
-	assert.Contains(t, buf.String(), "Analyzing Verrazzano resource", "No issues detected or to report for the cluster")
+	assert.Contains(t, buf.String(), "Verrazzano analysis CLI did not detect any issue in the cluster")
 }
 
 func TestAnalyzeCommandValidCapturedDir(t *testing.T) {
