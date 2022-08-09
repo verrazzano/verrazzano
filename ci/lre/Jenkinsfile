@@ -45,6 +45,7 @@ pipeline {
 //        CLEAN_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test/verrazzano_periodic-commit.txt"
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
 //        CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
+        OPERATOR_YAML_LOCATION = "${WORKSPACE}/operator.yaml"
 
         TEST_ENV = "LRE"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
@@ -185,41 +186,21 @@ pipeline {
                 """
 
                 script {
-
                     // Get the last stable commit ID that passed the triggered tests
                     def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
                     GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
                     echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_TO_USE}").trim()
+                    echo "Last stable short commit: ${SHORT_COMMIT_HASH}"
 
-                   /*
-                    LAST_CLEAN_PERIODIC_COMMIT=getLastCleanPeriodicCommit()
-                    echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
+                    // Get the version we are upgrading to
+                    VERRAZZANO_UPGRADE_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+                    echo "Version to upgrade to: ${VERRAZZANO_UPGRADE_VERSION}"
+                 }
 
-                    if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
-                        periodicsUpToDate = true
-                    }
-
-                    echo "Up to date: ${periodicsUpToDate}"
-                    echo "Dry run: ${params.DRY_RUN}"
-                    echo "Force run: ${params.FORCE}"
-                    echo "Execute tests: " + runTests()
-
-                    // Indicate in title if run is up-to-date or dry-run
-                    if (params.DRY_RUN) {
-                        currentBuild.displayName = "${currentBuild.displayName} : DRY-RUN"
-                    }
-                    if (periodicsUpToDate) {
-                        currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE"
-                    }
-                    if (params.FORCE) {
-                        currentBuild.displayName = "${currentBuild.displayName} : FORCE"
-                    }
-
-                    if (runTests()) {
-                        echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
-                    }
-                    */
-                }
+                sh """
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/operator.yaml --file ${STABLE_COMMIT_LOCATION}
+                """
             }
         }
 
