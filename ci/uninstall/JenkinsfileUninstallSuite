@@ -128,76 +128,84 @@ pipeline {
             parallel {
                 stage('VPO killed during uninstall') {
                     steps {
-                        script {
-                            build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'INSTALL_PROFILE', value: "prod"),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                    string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.interrupt.uninstall')
-                                ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'INSTALL_PROFILE', value: "prod"),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.interrupt.uninstall')
+                                    ], wait: true
+                            }
                         }
                     }
                 }
                 stage('Install Loop - Prod') {
                     steps {
-                        script {
-                            build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'INSTALL_LOOP_COUNT', value: "5"),
-                                    string(name: 'INSTALL_PROFILE', value: "prod"),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                    string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop')
-                                ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'INSTALL_LOOP_COUNT', value: "5"),
+                                        string(name: 'INSTALL_PROFILE', value: "prod"),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop')
+                                    ], wait: true
+                            }
                         }
                     }
                 }
                 stage('Install Loop - Dev') {
                     steps {
-                        script {
-                            build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'INSTALL_LOOP_COUNT', value: "5"),
-                                    string(name: 'INSTALL_PROFILE', value: "dev"),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                    string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop')
-                                ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'INSTALL_LOOP_COUNT', value: "5"),
+                                        string(name: 'INSTALL_PROFILE', value: "dev"),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop')
+                                    ], wait: true
+                            }
                         }
                     }
                 }
                 stage('Install Loop - Managed Cluster') {
                     steps {
-                        script {
-                            build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'INSTALL_LOOP_COUNT', value: "5"),
-                                    string(name: 'INSTALL_PROFILE', value: "managed-cluster"),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                    string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop')
-                                ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'INSTALL_LOOP_COUNT', value: "5"),
+                                        string(name: 'INSTALL_PROFILE', value: "managed-cluster"),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop')
+                                    ], wait: true
+                            }
                         }
                     }
                 }
@@ -207,7 +215,7 @@ pipeline {
     post {
         failure {
             script {
-                if (env.JOB_NAME == "verrazzano-uninstall-resiliency-tests/master" || env.JOB_NAME ==~ "verrazzano-uninstall-resiliency-tests/release-1.*") {
+                if (env.JOB_NAME == "verrazzano-uninstall-resiliency-test/master" || env.JOB_NAME ==~ "verrazzano-uninstall-resiliency-test/release-1.*") {
                     if (isPagerDutyEnabled()) {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     }
