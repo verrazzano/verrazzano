@@ -183,6 +183,7 @@ func (b *Bom) GetComponentVersion(component string) string {
 	}
 	return ""
 }
+
 // GetSubcomponent gets the bom subcomponent
 func (b *Bom) GetSubcomponent(subComponentName string) (*BomSubComponent, error) {
 	sc, ok := b.subComponentMap[subComponentName]
