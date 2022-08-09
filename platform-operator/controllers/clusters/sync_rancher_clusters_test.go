@@ -31,6 +31,7 @@ import (
 const (
 	clusterName1                 = "test-cluster-1"
 	clusterName2                 = "test-cluster-2"
+	clusterName3                 = "test-cluster-3"
 	preExistingClusterNotLabeled = "test-cluster-not-labeled"
 	preExistingClusterLabeled    = "test-cluster-labeled"
 )
@@ -89,6 +90,51 @@ func TestSyncRancherClusters(t *testing.T) {
 	// the pre-existing VMC that is labeled (so auto-created) should have been deleted
 	err = r.Get(context.TODO(), types.NamespacedName{Name: preExistingClusterLabeled, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.True(errors.IsNotFound(err))
+}
+
+// TestSyncRancherClustersWithPaging tests the SyncRancherClusters function with Rancher API paging.
+// GIVEN clusters that exist in Rancher that do not have VMCs
+//  WHEN the SyncRancherClusters function is called
+//   AND the Rancher API call to retrieve clusters results in multiple pages of clusters
+//  THEN VMCs are created for clusters returned in all pages
+func TestSyncRancherClustersWithPaging(t *testing.T) {
+	asserts := assert.New(t)
+
+	// create mocks and set the Rancher HTTP client to use the HTTP mock
+	mocker := gomock.NewController(t)
+	httpMock := mocks.NewMockRequestSender(mocker)
+	savedRancherHTTPClient := rancherHTTPClient
+	defer func() {
+		rancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherHTTPClient = httpMock
+
+	// create the k8s fake populated with resources
+	k8sFake := createK8sFake()
+
+	// expect HTTP calls
+	expectHTTPCalls(t, httpMock, true)
+
+	// call the syncer
+	r := &RancherClusterSyncer{Client: k8sFake}
+	log := r.initLogger()
+	r.syncRancherClusters(log)
+
+	mocker.Finish()
+
+	// we should have created three VMCs (2 from the first page of the clusters API response and one from the 2nd)
+	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterName1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	asserts.NoError(err)
+	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
+
+	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterName2, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	asserts.NoError(err)
+	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
+
+	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterName3, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	asserts.NoError(err)
+	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
 }
 
 // createK8sFake creates a k8s fake populated with resources for testing
@@ -151,7 +197,7 @@ func expectHTTPCalls(t *testing.T, httpMock *mocks.MockRequestSender, testPaging
 			return resp, nil
 		})
 
-	// expect an HTTP request to fetch all of the clusters from Rancher
+	// expect an HTTP request to fetch the clusters from Rancher
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -159,7 +205,9 @@ func expectHTTPCalls(t *testing.T, httpMock *mocks.MockRequestSender, testPaging
 
 			var r io.ReadCloser
 			if testPaging {
-				r = ioutil.NopCloser(bytes.NewReader([]byte(`{"pagination":{"next":"https://test?token=test"}, "data":[{"name":"` + clusterName1 + `"},{"name":"` + clusterName2 + `"}]}`)))
+				// if we're testing paging, include a next page URL
+				data := `{"pagination":{"next":"https://host` + clustersPath + `?token=test"}, "data":[{"name":"` + clusterName1 + `"},{"name":"` + clusterName2 + `"}]}`
+				r = ioutil.NopCloser(bytes.NewReader([]byte(data)))
 			} else {
 				r = ioutil.NopCloser(bytes.NewReader([]byte(`{"data":[{"name":"` + clusterName1 + `"},{"name":"` + clusterName2 + `"}]}`)))
 			}
@@ -170,4 +218,21 @@ func expectHTTPCalls(t *testing.T, httpMock *mocks.MockRequestSender, testPaging
 			}
 			return resp, nil
 		})
+
+	// if we're testing paging, return another page with a cluster
+	if testPaging {
+		httpMock.EXPECT().
+			Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+			DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+				asserts.Equal(clustersPath, req.URL.Path)
+
+				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"data":[{"name":"` + clusterName3 + `"}]}`)))
+				resp := &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       r,
+					Request:    &http.Request{Method: http.MethodGet},
+				}
+				return resp, nil
+			})
+	}
 }
