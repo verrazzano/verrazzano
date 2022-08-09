@@ -962,6 +962,8 @@ github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220804152858-ed
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220804152858-ed2bad5a19fe/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220809165148-71bb590446ee h1:qISYsuP+gQ6vMeZDVkSgQWsze2rIPUTqjYzEkzXgqbQ=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220809165148-71bb590446ee/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220809184117-1506910b4b81 h1:qE/0RoZfysz41a/60iawVXf3P1/w5hQy1oVowY7waGE=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220809184117-1506910b4b81/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
 github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852/go.mod h1:twkDnbuQxJYemMlGd4JFIcuhgX83tXhKS2B/PRMpOho=
