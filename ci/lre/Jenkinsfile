@@ -29,6 +29,11 @@ pipeline {
     environment {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
+        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+        OCI_CLI_USER = credentials('oci-dev-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+        OCI_CLI_REGION = "us-ashburn-1"
 
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
@@ -145,6 +150,29 @@ pipeline {
             }
         }
 
+        stage("create oci config file") {
+            steps {
+                script{
+                    sh """
+                        mkdir -p ~/.oci
+                        cp ${OCI_CLI_KEY_FILE} ~/.oci
+                        ls -ls ~/.oci
+                        cat ~/.oci/alm.pem
+                        rm -rf ~/.oci/config
+                        {
+                          echo '[DEFAULT]'
+                          echo 'user=${OCI_CLI_USER}'
+                          echo 'fingerprint=${OCI_CLI_FINGERPRINT}'
+                          echo 'tenancy=${OCI_CLI_TENANCY}'
+                          echo 'region=${OCI_CLI_REGION}'
+                          echo 'key_file=~/.oci/alm.pem'
+                        } >> ~/.oci/config
+                        oci setup repair-file-permissions --file /home/opc/.oci/config
+                        cat ~/.oci/config
+                    """
+                }
+            }
+        }
        stage('Check last clean periodic') {
             steps {
                 sh """
