@@ -17,8 +17,13 @@ func TestConvertTo(t *testing.T) {
 			false,
 		},
 		{
-			"converts to v1alpha1 status",
+			"converts status to v1alpha1",
 			testCaseStatus,
+			false,
+		},
+		{
+			"converts all comps to v1alpha1",
+			testCaseToAllComps,
 			false,
 		},
 	}
@@ -28,20 +33,22 @@ func TestConvertTo(t *testing.T) {
 			// load the expected v1beta1 CR for conversion
 			v1Beta1CR, err := loadV1Beta1(tt.testCase)
 			assert.NoError(t, err)
-			// load the expected v1alpha1 CR
-			v1alpha1Expected, err := loadV1Alpha1CR(tt.testCase)
-			assert.NoError(t, err)
+
 			// compute the actual v1beta1 CR from the v1alpha1 CR
 			v1alpha1Actual := &v1alpha1.Verrazzano{}
 			err = v1Beta1CR.ConvertTo(v1alpha1Actual)
-			if (err == nil) == tt.hasError {
-				t.Errorf("err: %v", err)
+			if tt.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				// load the expected v1alpha1 CR
+				v1alpha1Expected, err := loadV1Alpha1CR(tt.testCase)
+				assert.NoError(t, err)
+				// expected and actual v1beta1 CRs must be equal
+				assert.EqualValues(t, v1alpha1Expected.ObjectMeta, v1alpha1Actual.ObjectMeta)
+				assert.EqualValues(t, v1alpha1Expected.Spec, v1alpha1Actual.Spec)
+				assert.EqualValues(t, v1alpha1Expected.Status, v1alpha1Actual.Status)
 			}
-
-			// expected and actual v1beta1 CRs must be equal
-			assert.EqualValues(t, v1alpha1Expected.ObjectMeta, v1alpha1Actual.ObjectMeta)
-			assert.EqualValues(t, v1alpha1Expected.Spec, v1alpha1Actual.Spec)
-			assert.EqualValues(t, v1alpha1Expected.Status, v1alpha1Actual.Status)
 		})
 	}
 }

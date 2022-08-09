@@ -17,7 +17,10 @@ const (
 	testCaseInstallArgs       = "frominstallargs"
 	testCaseIstioInstallArgs  = "fromistioinstallargs"
 	testCaseIstioAffinityArgs = "fromistioaffinityargs"
-	testCaseAllComps          = "fromallcomps"
+	testCaseFromAllComps      = "fromallcomps"
+	testCaseOpensearch        = "fromopensearch"
+	testCaseInstallArgsErr    = "frominstallargserr"
+	testCaseToAllComps        = "toallcomps"
 )
 
 type converisonTestCase struct {

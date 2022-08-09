@@ -326,8 +326,18 @@ func TestConvertFrom(t *testing.T) {
 		},
 		{
 			"convert all components from 1alpha1",
-			testCaseAllComps,
+			testCaseFromAllComps,
 			false,
+		},
+		{
+			"convert opensearch from v1alpha1",
+			testCaseOpensearch,
+			false,
+		},
+		{
+			"convert err on keycloak install args",
+			testCaseInstallArgsErr,
+			true,
 		},
 	}
 
@@ -336,20 +346,21 @@ func TestConvertFrom(t *testing.T) {
 			// load the expected v1alpha1 CR for conversion
 			v1alpha1CR, err := loadV1Alpha1CR(tt.testCase)
 			assert.NoError(t, err)
-			// load the expected v1beta1 CR
-			v1beta1CRExpected, err := loadV1Beta1(tt.testCase)
-			assert.NoError(t, err)
 			// compute the actual v1beta1 CR from the v1alpha1 CR
 			v1beta1CRActual := &Verrazzano{}
 			err = v1beta1CRActual.ConvertFrom(v1alpha1CR)
-			if (err == nil) == tt.hasError {
-				t.Errorf("err: %v", err)
+			if tt.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				// load the expected v1beta1 CR
+				v1beta1CRExpected, err := loadV1Beta1(tt.testCase)
+				assert.NoError(t, err)
+				// expected and actual v1beta1 CRs must be equal
+				assert.EqualValues(t, v1beta1CRExpected.ObjectMeta, v1beta1CRActual.ObjectMeta)
+				assert.EqualValues(t, v1beta1CRExpected.Spec, v1beta1CRActual.Spec)
+				assert.EqualValues(t, v1beta1CRExpected.Status, v1beta1CRActual.Status)
 			}
-
-			// expected and actual v1beta1 CRs must be equal
-			assert.EqualValues(t, v1beta1CRExpected.ObjectMeta, v1beta1CRActual.ObjectMeta)
-			assert.EqualValues(t, v1beta1CRExpected.Spec, v1beta1CRActual.Spec)
-			assert.EqualValues(t, v1beta1CRExpected.Status, v1beta1CRActual.Status)
 		})
 	}
 }
