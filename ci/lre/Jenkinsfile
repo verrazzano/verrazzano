@@ -131,8 +131,8 @@ pipeline {
                 script {
                     switch(env.LRE_CLUSTER_ENV) {
                         case "dev":
-                            env.LRE_KUBECONFIG = "dev-lre-config"
-                            echo env.LRE_KUBECONFIG
+                            env.LRE_KUBECONFIG = "config.dev.lre"
+                            echo "1.${env.LRE_KUBECONFIG}"
                             break
                         case "prod":
                             env.CLUSTER_ID = "${prod_lre_cluster_id}"
@@ -141,11 +141,11 @@ pipeline {
                             env.CLUSTER_ID = "${test_lre_cluster_id}"
                             break
                         default:
-                            env.LRE_KUBECONFIG = "dev-lre-config"
-                            echo env.LRE_KUBECONFIG
+                            env.LRE_KUBECONFIG = "config.dev.lre"
+                            echo "2.${env.LRE_KUBECONFIG}"
                             break
                     }
-                    echo env.LRE_KUBECONFIG
+                    echo "${env.LRE_KUBECONFIG}"
                     sh """
                         mkdir -p ${WORKSPACE}/.kube
                         cp ${GO_REPO_PATH}/verrazzano/ci/lre/config.dev.lre ${KUBECONFIG}
@@ -162,7 +162,7 @@ pipeline {
                         echo "run kubectl get nodes"
                         kubectl get nodes
                         echo "run kubectl get pods"
-                        kubectl get pods
+                        kubectl get pods -A
                     '''
                 }
             }
