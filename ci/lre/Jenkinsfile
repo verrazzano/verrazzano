@@ -153,11 +153,12 @@ pipeline {
 
                 script {
 
-                    // Get the last stable commit ID to pass the triggered tests
+                    // Get the last stable commit ID that passed the triggered tests
                     def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
                     GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
                     echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
 
+                   /*
                     LAST_CLEAN_PERIODIC_COMMIT=getLastCleanPeriodicCommit()
                     echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
 
@@ -166,7 +167,6 @@ pipeline {
                     }
 
                     echo "Up to date: ${periodicsUpToDate}"
-                    /*
                     echo "Dry run: ${params.DRY_RUN}"
                     echo "Force run: ${params.FORCE}"
                     echo "Execute tests: " + runTests()
