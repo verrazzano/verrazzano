@@ -353,7 +353,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					assertPersistentVolume("vmi-system-grafana", size)
 					assertPersistentVolume(esMaster0, size)
 
-					Expect(len(vzMonitoringVolumeClaims)).To(Equal(vzPrometheusReplicas))
+					Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(vzPrometheusReplicas)))
 					assertPrometheusVolume(size)
 				} else {
 					Expect(len(volumeClaims)).To(Equal(3))
@@ -369,7 +369,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Check persistent volumes for managed cluster profile", func() {
 			if minVer14 {
 				Expect(len(volumeClaims)).To(Equal(0))
-				Expect(len(vzMonitoringVolumeClaims)).To(Equal(vzPrometheusReplicas))
+				Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(vzPrometheusReplicas)))
 				assertPrometheusVolume(size)
 			} else {
 				Expect(len(volumeClaims)).To(Equal(1))
@@ -380,7 +380,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Check persistent volumes for prod cluster profile", func() {
 			if minVer14 {
 				Expect(len(volumeClaims)).To(Equal(7))
-				Expect(len(vzMonitoringVolumeClaims)).To(Equal(vzPrometheusReplicas))
+				Expect(len(vzMonitoringVolumeClaims)).To(Equal(int(vzPrometheusReplicas)))
 				assertPrometheusVolume(size)
 			} else {
 				Expect(len(volumeClaims)).To(Equal(8))
