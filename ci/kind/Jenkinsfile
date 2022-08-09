@@ -354,7 +354,7 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('grafana-db')
-                            }                            }
+                            }
                         }
                     }
                     post {
