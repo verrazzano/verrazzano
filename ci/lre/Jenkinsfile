@@ -59,7 +59,6 @@ pipeline {
 
         OCI_CLI_REGION = "us-ashburn-1"
         KUBECONFIG = "${WORKSPACE}/.kube/config"
-        LRE_KUBECONFIG = ""
         ssh_public_key_path = "${WORKSPACE}/.ssh/id_rsa.pub"
         ssh_private_key_path = "${WORKSPACE}/.ssh/id_rsa"
 
@@ -132,7 +131,7 @@ pipeline {
                     switch(env.LRE_CLUSTER_ENV) {
                         case "dev":
                             env.LRE_KUBECONFIG = "config.dev.lre"
-                            echo "1.${env.LRE_KUBECONFIG}"
+                            echo "${env.LRE_KUBECONFIG}"
                             break
                         case "prod":
                             env.CLUSTER_ID = "${prod_lre_cluster_id}"
@@ -142,11 +141,11 @@ pipeline {
                             break
                         default:
                             env.LRE_KUBECONFIG = "config.dev.lre"
-                            echo "2.${env.LRE_KUBECONFIG}"
+                            echo "${env.LRE_KUBECONFIG}"
                             break
                     }
-                    echo "${env.LRE_KUBECONFIG}"
                     sh """
+                        echo "${env.LRE_KUBECONFIG}"
                         mkdir -p ${WORKSPACE}/.kube
                         cp ${GO_REPO_PATH}/verrazzano/ci/lre/config.dev.lre ${KUBECONFIG}
                         cat ${KUBECONFIG}
