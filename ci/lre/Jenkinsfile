@@ -148,7 +148,7 @@ pipeline {
                     echo env.LRE_KUBECONFIG
                     sh """
                         mkdir -p ${WORKSPACE}/.kube
-                        cp ${GO_REPO_PATH}/verrazzan/ci/lre/dev-lre-config ${KUBECONFIG}
+                        cp ${GO_REPO_PATH}/verrazzano/ci/lre/dev-lre-config ${KUBECONFIG}
                         cat ${KUBECONFIG}
                     """
                 }
