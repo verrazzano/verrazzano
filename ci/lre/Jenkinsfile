@@ -129,7 +129,7 @@ pipeline {
         stage('Set kubeconfig') {
             steps {
                 script {
-                    switch(LRE_CLUSTER_ENV) {
+                    switch(env.LRE_CLUSTER_ENV) {
                         case "dev":
                             env.LRE_KUBECONFIG = "dev-lre-config"
                             break
@@ -140,7 +140,7 @@ pipeline {
                             env.CLUSTER_ID = "${test_lre_cluster_id}"
                             break
                         default:
-                            LRE_KUBECONFIG = "dev-lre-config"
+                            env.LRE_KUBECONFIG = "dev-lre-config"
                             break
                     }
                     echo env.LRE_KUBECONFIG
