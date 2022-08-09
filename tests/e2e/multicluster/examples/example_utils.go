@@ -10,9 +10,9 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	constants2 "github.com/verrazzano/verrazzano/application-operator/constants"
+	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -250,8 +250,8 @@ func verrazzanoManagedLabelExists(kubeconfigPath string, namespace string) bool 
 	}
 	appLabels := appconf.GetLabels()
 	compLabels := comp.GetLabels()
-	return appLabels[constants.VerrazzanoManagedLabel] == constants2.LabelVerrazzanoManagedDefault &&
-		compLabels[constants.VerrazzanoManagedLabel] == constants2.LabelVerrazzanoManagedDefault
+	return appLabels[constants3.VerrazzanoManagedLabelKey] == constants2.LabelVerrazzanoManagedDefault &&
+		compLabels[constants3.VerrazzanoManagedLabelKey] == constants2.LabelVerrazzanoManagedDefault
 }
 
 func componentExists(kubeconfigPath string, namespace string) bool {
