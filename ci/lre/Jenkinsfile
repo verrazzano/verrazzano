@@ -59,6 +59,7 @@ pipeline {
 
         OCI_CLI_REGION = "us-ashburn-1"
         KUBECONFIG = "${WORKSPACE}/.kube/config"
+        LRE_KUBECONFIG = ""
         ssh_public_key_path = "${WORKSPACE}/.ssh/id_rsa.pub"
         ssh_private_key_path = "${WORKSPACE}/.ssh/id_rsa"
 
@@ -128,26 +129,24 @@ pipeline {
         stage('Set kubeconfig') {
             steps {
                 script {
-                    environment {
-                        switch(LRE_CLUSTER_ENV) {
-                            case "dev":
-                                LRE_KUBECONFIG = "dev-lre-config"
-                                break
-                            case "prod":
-                                env.CLUSTER_ID = "${prod_lre_cluster_id}"
-                                break
-                            case "test":
-                                env.CLUSTER_ID = "${test_lre_cluster_id}"
-                                break
-                            default:
-                                LRE_KUBECONFIG = "dev-lre-config"
-                                break
-                        }
+                    switch(LRE_CLUSTER_ENV) {
+                        case "dev":
+                            env.LRE_KUBECONFIG = "dev-lre-config"
+                            break
+                        case "prod":
+                            env.CLUSTER_ID = "${prod_lre_cluster_id}"
+                            break
+                        case "test":
+                            env.CLUSTER_ID = "${test_lre_cluster_id}"
+                            break
+                        default:
+                            LRE_KUBECONFIG = "dev-lre-config"
+                            break
                     }
                     echo env.LRE_KUBECONFIG
                     sh """
                         mkdir -p ${WORKSPACE}/.kube
-                        cp ${LRE_KUBECONFIG} ${KUBECONFIG}
+                        cp ${env.LRE_KUBECONFIG} ${KUBECONFIG}
                         cat ${KUBECONFIG}
                     """
                 }
