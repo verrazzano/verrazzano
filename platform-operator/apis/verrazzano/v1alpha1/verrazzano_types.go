@@ -407,7 +407,7 @@ type ElasticsearchComponent struct {
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
-	Nodes []OpenSearchNode `json:"nodes,omitempty"`
+	Nodes []OpenSearchNode `json:"nodes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 //OpenSearchNode specifies a node group in the OpenSearch cluster
