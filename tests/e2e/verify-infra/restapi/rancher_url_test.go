@@ -92,7 +92,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					authConfigAttributes := localAuthConfigData.UnstructuredContent()
 					localAuthConfigEnabled = authConfigAttributes[rancher.AuthConfigAttributeEnabled].(bool)
 					return nil
-				}, waitTimeout, pollingInterval).Should(Equal(nil), "failed fetching local authconfig")
+				}, waitTimeout, pollingInterval).Should(BeNil(), "failed fetching local authconfig")
 				metrics.Emit(t.Metrics.With("get_local_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
 
 				if minVer14 {
@@ -105,7 +105,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 						return ociDriverData.UnstructuredContent()["spec"].(map[string]interface{})["active"].(bool), nil
-					}, waitTimeout, pollingInterval).Should(BeNil(), "rancher OCI driver not activated")
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher OCI driver not activated")
 					metrics.Emit(t.Metrics.With("get_oci_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 
 					start = time.Now()
