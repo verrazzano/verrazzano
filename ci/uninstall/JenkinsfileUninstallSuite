@@ -215,7 +215,7 @@ pipeline {
     post {
         failure {
             script {
-                if (env.JOB_NAME == "verrazzano-uninstall-resiliency-test/master" || env.JOB_NAME ==~ "verrazzano-uninstall-resiliency-test/release-1.*") {
+                if (isAlertingEnabled()) {
                     if (isPagerDutyEnabled()) {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     }
@@ -233,6 +233,15 @@ def isPagerDutyEnabled() {
     // this controls whether PD alerts are enabled
     if (NOTIFY_PAGERDUTY_TRIGGERED_FAILURES.equals("true")) {
         echo "Pager-Duty notifications enabled via global override setting"
+        return true
+    }
+    return false
+}
+
+def isAlertingEnabled() {
+    // this controls whether any alerting happens for these tests
+    if (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1.")) {
+        echo "Alert notifications enabled for ${env.BRANCH_NAME}"
         return true
     }
     return false
