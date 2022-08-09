@@ -33,7 +33,7 @@ func EventuallyPodsReady(log *zap.SugaredLogger, cs *kubernetes.Clientset) {
 		}
 		return returnValue
 
-	}, LongWaitTimeout, PollingInterval).Should(gomega.BeTrue())
+	}, WaitTimeout, PollingInterval).Should(gomega.BeTrue())
 }
 
 func IsPodReadyOrCompleted(pod corev1.Pod) bool {
