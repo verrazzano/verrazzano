@@ -246,16 +246,6 @@ func ListCronJobNamesMatchingLabels(namespace string, matchLabels map[string]str
 	if err != nil {
 		return nil, err
 	}
-	listOptions := metav1.ListOptions{}
-	if matchLabels != nil {
-		var selector labels.Selector
-		for k, v := range matchLabels {
-			selectorLabel, _ := labels.NewRequirement(k, selection.Equals, []string{v})
-			selector = labels.NewSelector()
-			selector = selector.Add(*selectorLabel)
-		}
-		listOptions.LabelSelector = selector.String()
-	}
 	info, err := clientset.ServerVersion()
 	if err != nil {
 		return nil, err
@@ -274,7 +264,7 @@ func ListCronJobNamesMatchingLabels(namespace string, matchLabels map[string]str
 	// For k8s version 1.20 and lesser, cronjobs are created under version batch/v1beta1
 	// For k8s version greater than 1.20, cronjobs are created under version batch/v1
 	if minorVersion <= 20 {
-		cronJobs, err := listV1Beta1CronJobNames(clientset, namespace, listOptions)
+		cronJobs, err := listV1Beta1CronJobNames(clientset, namespace, fillLabelSelectors(matchLabels))
 		if err != nil {
 			return nil, err
 		}
@@ -282,7 +272,7 @@ func ListCronJobNamesMatchingLabels(namespace string, matchLabels map[string]str
 			cronjobNames = append(cronjobNames, cronjob.Name)
 		}
 	} else {
-		cronJobs, err := listV1CronJobNames(clientset, namespace, listOptions)
+		cronJobs, err := listV1CronJobNames(clientset, namespace, fillLabelSelectors(matchLabels))
 		if err != nil {
 			return nil, err
 		}
@@ -291,6 +281,21 @@ func ListCronJobNamesMatchingLabels(namespace string, matchLabels map[string]str
 		}
 	}
 	return cronjobNames, nil
+}
+
+// fillLabelSelectors fills the match labels from map to be passed in list options
+func fillLabelSelectors(matchLabels map[string]string) metav1.ListOptions {
+	listOptions := metav1.ListOptions{}
+	if matchLabels != nil {
+		var selector labels.Selector
+		for k, v := range matchLabels {
+			selectorLabel, _ := labels.NewRequirement(k, selection.Equals, []string{v})
+			selector = labels.NewSelector()
+			selector = selector.Add(*selectorLabel)
+		}
+		listOptions.LabelSelector = selector.String()
+	}
+	return listOptions
 }
 
 // listV1CronJobNames lists the cronjob under batch/v1 api version for k8s version > 1.20
