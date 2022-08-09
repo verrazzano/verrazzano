@@ -376,18 +376,11 @@ func convertInstallArgsToOSNodes(args []v1alpha1.InstallArgs) ([]OpenSearchNode,
 		}
 	}
 
-	// Only include nodes with non-zero replica counts
-	var nodes []OpenSearchNode
-	if masterNode.Replicas > 0 {
-		nodes = append(nodes, *masterNode)
-	}
-	if dataNode.Replicas > 0 {
-		nodes = append(nodes, *dataNode)
-	}
-	if ingestNode.Replicas > 0 {
-		nodes = append(nodes, *ingestNode)
-	}
-	return nodes, nil
+	return []OpenSearchNode{
+		*masterNode,
+		*dataNode,
+		*ingestNode,
+	}, nil
 }
 
 func convertFluentdFrom(src *v1alpha1.FluentdComponent) *FluentdComponent {
