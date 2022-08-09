@@ -5,18 +5,21 @@ package istio
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -25,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -384,4 +388,32 @@ func removeTempFiles(log vzlog.VerrazzanoLogger) {
 	if err := os2.RemoveTempFiles(log.GetZapLogger(), istioTmpFileCleanPattern); err != nil {
 		log.Errorf("Unexpected error removing temp files: %v", err.Error())
 	}
+}
+
+// getIstioIngressGatewayServiceType returns the service type of the Istio ingress service for use in checking its status
+func getIstioIngressGatewayServiceType(vz *vzapi.Verrazzano) (vzapi.IngressType, error) {
+	istioComp := vz.Spec.Components.Istio
+	if istioComp == nil {
+		return vzapi.LoadBalancer, nil
+	}
+	ingressConfig := istioComp.Ingress
+	if ingressConfig == nil || len(ingressConfig.Type) == 0 {
+		return vzapi.LoadBalancer, nil
+	}
+	switch ingressConfig.Type {
+	case vzapi.NodePort, vzapi.LoadBalancer:
+		return ingressConfig.Type, nil
+	default:
+		return "", fmt.Errorf("Unrecognized ingress type %s", ingressConfig.Type)
+	}
+}
+
+// verifyIstioIngressGatewayIP checks the status of the Istio Ingress service and
+// returns an error if not found or missing external IP
+func verifyIstioIngressGatewayIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
+	serviceType, err := getIstioIngressGatewayServiceType(vz)
+	if err != nil {
+		return "", err
+	}
+	return vzconfig.GetExternalIP(client, serviceType, IstioIngressgatewayDeployment, globalconst.IstioSystemNamespace)
 }

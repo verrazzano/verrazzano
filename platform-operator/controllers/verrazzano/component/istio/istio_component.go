@@ -343,6 +343,17 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 		context.Log().Progressf("%s is waiting for istioctl verify-install to successfully complete", prefix)
 		return false
 	}
+
+	// istioctl verify-install does not check that the Load Balancer service has an external IP address,
+	// so we have to check this manually to get a useful error message
+	_, err = verifyIstioIngressGatewayIP(context.Client(), context.EffectiveCR())
+	if err != nil {
+		// Only log for the Istio component context
+		if context.GetComponent() == ComponentName {
+			context.Log().Errorf("Ingress external IP pending for component %s: %v", ComponentName, err)
+		}
+		return false
+	}
 	return true
 }
 
