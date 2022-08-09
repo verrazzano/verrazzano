@@ -118,9 +118,17 @@ func ChangePlacementV100(kubeConfigPath string, patchFile string, namespace stri
 // cluster and whether the resources are placed in the given cluster
 func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, namespace string) bool {
 	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)
-
+	vzManagedLabelExists := verrazzanoManagedLabelExists(kubeconfigPath, namespace)
 	if isAdminCluster || placedInThisCluster {
 		// always expect MC resources on admin cluster - otherwise expect them only if placed here
+		if placedInThisCluster {
+			// the verrazzano-managed label will exist on unwrapped resources in the cluster where
+			// app is placed
+			return mcAppConfExists && vzManagedLabelExists
+		} else {
+			return mcAppConfExists && !vzManagedLabelExists
+		}
+
 		return mcAppConfExists
 	} else {
 		// don't expect
@@ -136,17 +144,10 @@ func VerifyMCResourcesV100(kubeconfigPath string, isAdminCluster bool, placedInT
 	// since we should check both in all cases
 	mcAppConfExists := mcAppConfExists(kubeconfigPath, namespace)
 	mcCompExists := mcComponentExists(kubeconfigPath, namespace)
-	vzManagedLabelExists := verrazzanoManagedLabelExists(kubeconfigPath, namespace)
 
 	if isAdminCluster || placedInThisCluster {
 		// always expect MC resources on admin cluster - otherwise expect them only if placed here
-		ok := mcAppConfExists && mcCompExists
-		if placedInThisCluster {
-			ok = ok && vzManagedLabelExists
-		} else {
-			ok = ok && !vzManagedLabelExists
-		}
-		return ok
+		return mcAppConfExists && mcCompExists
 	} else {
 		// don't expect either
 		return !mcAppConfExists && !mcCompExists
