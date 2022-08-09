@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.7.1-1-20220721154822-a55857d4",
+              "tag": "v1.7.1-1-20220808163033-a55857d4",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.7.1-1-20220721154822-a55857d4",
+              "tag": "v1.7.1-1-20220808163033-a55857d4",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.7.1-1-20220721154822-a55857d4",
+              "tag": "v1.7.1-1-20220808163033-a55857d4",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.7.1-1-20220721154822-a55857d4",
+              "tag": "v1.7.1-1-20220808163033-a55857d4",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v15.0.2-20220802181153-3c526fbe0f",
+              "tag": "v15.0.2-20220808193821-3c526fbe0f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -668,7 +668,7 @@
           "images": [
             {
               "image": "backup-restore-operator",
-              "tag": "v2.1.0-20220803210954-09d528e",
+              "tag": "v2.1.0-20220808171934-bbeff72",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

@@ -5,6 +5,7 @@ package metricsbinding
 
 import (
 	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -30,7 +31,8 @@ var (
 	clusterDump = pkg.NewClusterDumpWrapper()
 )
 
-var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
+var _ = clusterDump.BeforeSuite(func() {}) // Needed to initialize cluster dump flags
+var _ = clusterDump.AfterEach(func() {})   // Dump cluster if spec fails
 
 var _ = clusterDump.AfterSuite(func() {
 	undeployApplication(deploymentNamespace, deploymentYaml, *t)
