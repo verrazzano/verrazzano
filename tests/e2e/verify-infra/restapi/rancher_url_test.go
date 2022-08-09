@@ -121,15 +121,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 
-						if err = verifyAuthConfigAttribute(rancher.AuthConfigAttributeEnabled, authConfigAttributes[rancher.AuthConfigAttributeEnabled].(bool), true); err != nil {
-							return false, err
-						}
-
 						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeGroupSearchEnabled, authConfigAttributes[rancher.AuthConfigKeycloakAttributeGroupSearchEnabled].(bool), true); err != nil {
-							return false, err
-						}
-
-						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeAuthEndpoint, authConfigAttributes[rancher.AuthConfigKeycloakAttributeAuthEndpoint].(string), keycloakURL+rancher.AuthConfigKeycloakURLPathAuthEndPoint); err != nil {
 							return false, err
 						}
 

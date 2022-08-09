@@ -507,7 +507,6 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig := keycloakAuthConfig.UnstructuredContent()
 	authConfig[AuthConfigKeycloakAttributeAccessMode] = AuthConfigKeycloakAccessMode
 	authConfig[AuthConfigKeycloakAttributeClientID] = AuthConfigKeycloakClientIDRancher
-	authConfig[AuthConfigAttributeEnabled] = false
 	authConfig[AuthConfigKeycloakAttributeGroupSearchEnabled] = true
 	authConfig[AuthConfigKeycloakAttributeAuthEndpoint] = keycloakURL + AuthConfigKeycloakURLPathAuthEndPoint
 	authConfig[AuthConfigKeycloakAttributeClientSecret] = clientSecret

@@ -269,34 +269,8 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
 
-	if err := configureKeycloakOIDCProvider(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
-	}
-
-	ver140, err := semver.NewSemVersion("v" + constants.VerrazzanoVersion1_4_0)
-	if err != nil {
-		return err
-	}
-
-	vz = ctx.ActualCR()
-	var vzStatusVer *semver.SemVersion
-	if vz.Status.Version != "" {
-		vzStatusVer, err = semver.NewSemVersion(vz.Status.Version)
-		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed Rancher post-install: Invalid Verrazzano version: %v", err)
-		}
-	}
-
-	if vz.Status.Version == "" || (vzStatusVer.IsGreatherThan(ver140) || vzStatusVer.IsEqualTo(ver140)) {
-		enableKeycloak := vz.Spec.Components.Rancher == nil || vz.Spec.Components.Rancher.AuthtType == v1alpha1.Keycloak
-		if err := disableOrEnableAuthProvider(ctx, AuthConfigKeycloak, enableKeycloak); err != nil {
-			return log.ErrorfThrottledNewErr("failed enabling keycloak oidc provider: %s", err.Error())
-		}
-
-		enableLocal := (vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local) || !enableKeycloak
-		if err := disableOrEnableAuthProvider(ctx, AuthConfigLocal, enableLocal); err != nil {
-			return log.ErrorfThrottledNewErr("failed disabling local oidc provider: %s", err.Error())
-		}
+	if err := configureAuthProviders(ctx, false); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
 	}
 
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
@@ -334,34 +308,8 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := configureKeycloakOIDCProvider(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
-	}
-
-	ver140, err := semver.NewSemVersion("v" + constants.VerrazzanoVersion1_4_0)
-	if err != nil {
-		return err
-	}
-	vz := ctx.ActualCR()
-
-	var vzSpecVer *semver.SemVersion
-	if vz.Spec.Version != "" {
-		vzSpecVer, err = semver.NewSemVersion(vz.Spec.Version)
-		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed Rancher post-upgrade: Invalid Verrazzano version: %v", err)
-		}
-	}
-
-	if vzSpecVer != nil && (vzSpecVer.IsGreatherThan(ver140) || vzSpecVer.IsEqualTo(ver140)) {
-		enableKeycloak := vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Keycloak
-		if err := disableOrEnableAuthProvider(ctx, AuthConfigKeycloak, enableKeycloak); err != nil {
-			return log.ErrorfThrottledNewErr("failed changing state of keycloak oidc provider: %s", err.Error())
-		}
-
-		enableLocal := (vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Local) || !enableKeycloak
-		if err := disableOrEnableAuthProvider(ctx, AuthConfigLocal, enableLocal); err != nil {
-			return log.ErrorfThrottledNewErr("failed changing state of  local oidc provider: %s", err.Error())
-		}
+	if err := configureAuthProviders(ctx, true); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
 	}
 
 	if err := r.HelmComponent.PostUpgrade(ctx); err != nil {
@@ -386,8 +334,8 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 	return nil
 }
 
-// configureKeycloakOIDCProvider configures keycloak as OIDC provider for rancher and default user verrazzano
-func configureKeycloakOIDCProvider(ctx spi.ComponentContext) error {
+// configureAuthProviders configures keycloak as OIDC provider for rancher and creates default user verrazzano.
+func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 	log := ctx.Log()
 	if err := configureKeycloakOIDC(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
@@ -405,5 +353,107 @@ func configureKeycloakOIDCProvider(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
 	}
 
+	if err := toggleAuthProviders(ctx, isUpgrade); err != nil {
+		return log.ErrorfThrottledNewErr("failed enabling or disbling auth providers: %s", err.Error())
+	}
+
 	return nil
+}
+
+func parseVersions(ctx spi.ComponentContext, isUpgrade bool) (*semver.SemVersion, *semver.SemVersion, *semver.SemVersion, error) {
+	ver140, err := semver.NewSemVersion("v" + constants.VerrazzanoVersion1_4_0)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	var vzSourceVersion, vzTargetVersion *semver.SemVersion
+	vz := ctx.ActualCR()
+
+	if vz.Spec.Version != "" {
+		vzTargetVersion, err = semver.NewSemVersion(vz.Spec.Version)
+		if err != nil {
+			return nil, nil, nil, ctx.Log().ErrorfNewErr("Failed Rancher post-%v: Invalid Verrazzano spec version: %v", formatBool(isUpgrade, "upgrade", "install"), err)
+		}
+	}
+
+	if vz.Status.Version != "" {
+		vzSourceVersion, err = semver.NewSemVersion(vz.Status.Version)
+		if err != nil {
+			return nil, nil, nil, ctx.Log().ErrorfNewErr("Failed Rancher post-%v: Invalid Verrazzano status version: %v", formatBool(isUpgrade, "upgrade", "install"), err)
+		}
+	}
+
+	return ver140, vzSourceVersion, vzTargetVersion, nil
+}
+
+func authProviderForRancherImplemented(ver140 *semver.SemVersion, vzSourceVersion *semver.SemVersion, vzTargetVersion *semver.SemVersion, isUpgrade bool) (bool, error) {
+	var version *semver.SemVersion
+	if isUpgrade {
+		version = vzTargetVersion
+	} else {
+		version = vzSourceVersion
+	}
+
+	return version == nil || (version.IsGreatherThan(ver140) || version.IsEqualTo(ver140)), nil
+}
+
+func isKeycloakAuthEnabled(isUpgrade bool, vz *vzapi.Verrazzano, ver140 *semver.SemVersion, vzSourceVersion *semver.SemVersion, vzTargetVersion *semver.SemVersion) bool {
+	if vz.Spec.Components.Keycloak != nil && vz.Spec.Components.Keycloak.Enabled != nil && !*vz.Spec.Components.Keycloak.Enabled {
+		return false
+	}
+
+	if vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Keycloak {
+		return true
+	}
+
+	if vz.Spec.Components.Rancher == nil {
+		if !isUpgrade {
+			return true
+		}
+
+		if vzSourceVersion != nil && (vzSourceVersion.IsGreatherThan(ver140) || vzSourceVersion.IsEqualTo(ver140)) && vzTargetVersion != nil && (vzTargetVersion.IsGreatherThan(vzSourceVersion) || vzTargetVersion.IsEqualTo(vzSourceVersion)) {
+			return true
+		}
+
+	}
+
+	return false
+}
+
+func toggleAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
+	ver140, vzSourceVersion, vzTargetVersion, err := parseVersions(ctx, isUpgrade)
+	if err != nil {
+		return err
+	}
+
+	checkAuthProvider, err := authProviderForRancherImplemented(ver140, vzSourceVersion, vzTargetVersion, isUpgrade)
+	if err != nil {
+		return err
+	}
+
+	if !checkAuthProvider {
+		ctx.Log().Debug("Rancher Keycloak AuthProvider not implemented")
+		return nil
+	}
+
+	log := ctx.Log()
+	vz := ctx.ActualCR()
+	enableKeycloak := isKeycloakAuthEnabled(isUpgrade, vz, ver140, vzSourceVersion, vzTargetVersion)
+	if err := disableOrEnableAuthProvider(ctx, AuthConfigKeycloak, enableKeycloak); err != nil {
+		return log.ErrorfThrottledNewErr("failed to %s keycloak oidc auth provider, error: %s", formatBool(enableKeycloak, "enable", "disable"), err.Error())
+	}
+
+	if err := disableOrEnableAuthProvider(ctx, AuthConfigLocal, !enableKeycloak); err != nil {
+		return log.ErrorfThrottledNewErr("failed to %s local auth provider: %s", formatBool(!enableKeycloak, "enable", "disable"), err.Error())
+	}
+
+	return nil
+
+}
+
+func formatBool(isTrue bool, trueValue string, falseValue string) string {
+	if isTrue {
+		return trueValue
+	}
+	return falseValue
 }
