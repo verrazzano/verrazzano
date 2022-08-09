@@ -1,15 +1,6 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-/*
-properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
-                    maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
-               [$class: 'BuildDiscarderProperty',
-                strategy: [$class: 'LogRotator', numToKeepStr: '10']],
-                pipelineTriggers([cron('H/5 * * * *')]),
-           ])
-*/
-
 pipeline {
     options {
         skipDefaultCheckout true
@@ -137,20 +128,23 @@ pipeline {
         stage('Set kubeconfig') {
             steps {
                 script {
-                    switch(LRE_CLUSTER_ENV) {
-                        case "dev":
-                            LRE_KUBECONFIG = dev-lre-config
-                            break
-                        case "prod":
-                            env.CLUSTER_ID = "${prod_lre_cluster_id}"
-                            break
-                        case "test":
-                            env.CLUSTER_ID = "${test_lre_cluster_id}"
-                            break
-                        default:
-                            LRE_KUBECONFIG = dev-lre-config
-                            break
+                    environment {
+                        switch(LRE_CLUSTER_ENV) {
+                            case "dev":
+                                LRE_KUBECONFIG = "dev-lre-config"
+                                break
+                            case "prod":
+                                env.CLUSTER_ID = "${prod_lre_cluster_id}"
+                                break
+                            case "test":
+                                env.CLUSTER_ID = "${test_lre_cluster_id}"
+                                break
+                            default:
+                                LRE_KUBECONFIG = "dev-lre-config"
+                                break
+                        }
                     }
+                    echo env.LRE_KUBECONFIG
                     sh """
                         mkdir -p ${WORKSPACE}/.kube
                         cp ${LRE_KUBECONFIG} ${KUBECONFIG}
