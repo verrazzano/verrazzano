@@ -80,19 +80,16 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 
 				start = time.Now()
 				t.Logs.Info("Verify Local AuthConfig")
-				var localAuthConfigEnabled bool
-
-				Eventually(func() error {
+				Eventually(func() (bool, error) {
 					localAuthConfigData, err := k8sClient.Resource(gvkToGvr(rancher.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigLocal, v1.GetOptions{})
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("error getting local authConfig: %v", err))
-						return err
+						return false, err
 					}
 
 					authConfigAttributes := localAuthConfigData.UnstructuredContent()
-					localAuthConfigEnabled = authConfigAttributes[rancher.AuthConfigAttributeEnabled].(bool)
-					return nil
-				}, waitTimeout, pollingInterval).Should(BeNil(), "failed fetching local authconfig")
+					return authConfigAttributes[rancher.AuthConfigAttributeEnabled].(bool), nil
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "failed verifying local authconfig")
 				metrics.Emit(t.Metrics.With("get_local_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
 
 				if minVer14 {
@@ -158,11 +155,6 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 
-						keycloakAuthConfigEnabled := authConfigAttributes[rancher.AuthConfigAttributeEnabled].(bool)
-						if err = verifyAuthConfigAttribute(rancher.AuthConfigAttributeEnabled, keycloakAuthConfigEnabled, !localAuthConfigEnabled); err != nil {
-							return false, err
-						}
-
 						return true, nil
 					}, waitTimeout, pollingInterval).Should(Equal(true), "keycloak oidc authconfig not configured correctly")
 					metrics.Emit(t.Metrics.With("get_kc_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
@@ -214,10 +206,6 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					}, waitTimeout, pollingInterval).Should(Equal(true), "verrazzano rancher user global role binding does not exist")
 					metrics.Emit(t.Metrics.With("get_vz_rancher_user_gbr_elapsed_time", time.Since(start).Milliseconds()))
 
-				} else {
-					if !localAuthConfigEnabled {
-						t.Fail("local auth config not enabled")
-					}
 				}
 			}
 		})

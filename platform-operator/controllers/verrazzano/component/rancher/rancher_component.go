@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -334,7 +333,12 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 	return nil
 }
 
-// configureAuthProviders configures keycloak as OIDC provider for rancher and creates default user verrazzano.
+// configureAuthProviders
+// +configures Keycloak as OIDC provider for Rancher.
+// +creates or updates default user verrazzano.
+// +creates or updates admin role binding for  user verrazzano.
+// +disables first login setting to disable prompting for password on first login.
+// +enables or disables Keycloak Auth provider.
 func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 	log := ctx.Log()
 	if err := configureKeycloakOIDC(ctx); err != nil {
@@ -353,7 +357,7 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 		return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
 	}
 
-	if err := toggleAuthProviders(ctx, isUpgrade); err != nil {
+	if err := toggleKeycloakAuthProvider(ctx, isUpgrade); err != nil {
 		return log.ErrorfThrottledNewErr("failed enabling or disbling auth providers: %s", err.Error())
 	}
 
@@ -394,24 +398,29 @@ func authProviderForRancherImplemented(ver140 *semver.SemVersion, vzSourceVersio
 		version = vzSourceVersion
 	}
 
-	return version == nil || (version.IsGreatherThan(ver140) || version.IsEqualTo(ver140)), nil
+	return version == nil || version.IsGreaterThanOrEqualTo(ver140), nil
 }
 
+// isKeycloakAuthEnabled checks if Keycloak as an Auth provider is enabled for Rancher
+// +returns false if Keycloak component is itself disabled.
+// +returns true when the keycloakAuthEnabled attribute is set to true in rancher component of VZ CR.
+// +when keycloakAuthEnabled is not specified, returns true for new installs and in case of upgrades between versions>=1.4.
+// +returns false otherwise.
 func isKeycloakAuthEnabled(isUpgrade bool, vz *vzapi.Verrazzano, ver140 *semver.SemVersion, vzSourceVersion *semver.SemVersion, vzTargetVersion *semver.SemVersion) bool {
-	if vz.Spec.Components.Keycloak != nil && vz.Spec.Components.Keycloak.Enabled != nil && !*vz.Spec.Components.Keycloak.Enabled {
+	if !vzconfig.IsKeycloakEnabled(vz) {
 		return false
 	}
 
-	if vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.AuthtType == v1alpha1.Keycloak {
+	if vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.KeycloakAuthEnabled != nil && *vz.Spec.Components.Rancher.KeycloakAuthEnabled {
 		return true
 	}
 
-	if vz.Spec.Components.Rancher == nil {
+	if vz.Spec.Components.Rancher == nil || vz.Spec.Components.Rancher.KeycloakAuthEnabled == nil {
 		if !isUpgrade {
 			return true
 		}
 
-		if vzSourceVersion != nil && (vzSourceVersion.IsGreatherThan(ver140) || vzSourceVersion.IsEqualTo(ver140)) && vzTargetVersion != nil && (vzTargetVersion.IsGreatherThan(vzSourceVersion) || vzTargetVersion.IsEqualTo(vzSourceVersion)) {
+		if vzSourceVersion != nil && vzSourceVersion.IsGreaterThanOrEqualTo(ver140) && vzTargetVersion != nil && vzTargetVersion.IsGreaterThanOrEqualTo(vzSourceVersion) {
 			return true
 		}
 
@@ -420,7 +429,8 @@ func isKeycloakAuthEnabled(isUpgrade bool, vz *vzapi.Verrazzano, ver140 *semver.
 	return false
 }
 
-func toggleAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
+// toggleKeycloakAuthProvider enables/disables Keycloak as Auth provider
+func toggleKeycloakAuthProvider(ctx spi.ComponentContext, isUpgrade bool) error {
 	ver140, vzSourceVersion, vzTargetVersion, err := parseVersions(ctx, isUpgrade)
 	if err != nil {
 		return err
@@ -441,10 +451,6 @@ func toggleAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 	enableKeycloak := isKeycloakAuthEnabled(isUpgrade, vz, ver140, vzSourceVersion, vzTargetVersion)
 	if err := disableOrEnableAuthProvider(ctx, AuthConfigKeycloak, enableKeycloak); err != nil {
 		return log.ErrorfThrottledNewErr("failed to %s keycloak oidc auth provider, error: %s", formatBool(enableKeycloak, "enable", "disable"), err.Error())
-	}
-
-	if err := disableOrEnableAuthProvider(ctx, AuthConfigLocal, !enableKeycloak); err != nil {
-		return log.ErrorfThrottledNewErr("failed to %s local auth provider: %s", formatBool(!enableKeycloak, "enable", "disable"), err.Error())
 	}
 
 	return nil

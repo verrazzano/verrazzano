@@ -29,16 +29,6 @@ const (
 	NodePort IngressType = "NodePort"
 )
 
-// RancherAuthType is the Authentication provider to be used for Rancher
-type RancherAuthType string
-
-const (
-	// Keycloak identifies the Keycloak Auth Type for Rancher
-	Keycloak RancherAuthType = "keycloak"
-	// Local identifies the local Auth Type for Rancher
-	Local RancherAuthType = "local"
-)
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=verrazzanos
 // +kubebuilder:subresource:status
@@ -620,9 +610,9 @@ type RancherComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
-	// AuthtType is the Auth provider to be used for Rancher.  Default is "keycloak".
+	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is false.
 	// +optional
-	AuthtType RancherAuthType `json:"authType,omitempty"`
+	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
 }
 
 // RancherBackupComponent specifies the Rancher Backup configuration

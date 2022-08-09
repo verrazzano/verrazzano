@@ -2802,9 +2802,9 @@ spec:
                     type: object
                   rancher:
                     properties:
-                      authType:
-                        type: string
                       enabled:
+                        type: boolean
+                      keycloakAuthEnabled:
                         type: boolean
                       monitorChanges:
                         type: boolean
@@ -5499,9 +5499,9 @@ spec:
                     type: object
                   rancher:
                     properties:
-                      authType:
-                        type: string
                       enabled:
+                        type: boolean
+                      keycloakAuthEnabled:
                         type: boolean
                       monitorChanges:
                         type: boolean

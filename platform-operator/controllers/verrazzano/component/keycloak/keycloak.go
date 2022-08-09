@@ -336,7 +336,18 @@ const rancherClientTmpl = `
             "claim.name": "full_group_path",
             "userinfo.token.claim": "true"
           }
-        }
+        },
+		{
+		  "name": "full name",
+	      "protocol": "openid-connect",
+		  "protocolMapper": "oidc-full-name-mapper",
+		  "consentRequired": false,
+		  "config": {
+			  "id.token.claim": "true",
+			  "access.token.claim": "true",
+			  "userinfo.token.claim": "true"
+		  }
+		}
       ],
       "defaultClientScopes": [
         "web-origins",
@@ -691,19 +702,19 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Creating Verrazzano User
-	err = createUser(ctx, cfg, cli, vzUserName, "verrazzano", vzAdminGroup)
+	err = createUser(ctx, cfg, cli, vzUserName, "verrazzano", vzAdminGroup, "Verrazzano", "Admin")
 	if err != nil {
 		return err
 	}
 
 	// Creating Verrazzano Internal Prometheus User
-	err = createUser(ctx, cfg, cli, vzInternalPromUser, "verrazzano-prom-internal", vzSystemGroup)
+	err = createUser(ctx, cfg, cli, vzInternalPromUser, "verrazzano-prom-internal", vzSystemGroup, "", "")
 	if err != nil {
 		return err
 	}
 
 	// Creating Verrazzano Internal ES User
-	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-es-internal", vzSystemGroup)
+	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-es-internal", vzSystemGroup, "", "")
 	if err != nil {
 		return err
 	}
@@ -972,7 +983,7 @@ func grantRolesToGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	return nil
 }
 
-func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName string, secretName string, groupName string) error {
+func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName string, secretName string, groupName string, firstName string, lastName string) error {
 	kcPod := keycloakPod()
 	keycloakUsers, err := getKeycloakUsers(ctx, cfg, cli, kcPod)
 	if err == nil && userExists(keycloakUsers, userName) {
@@ -981,6 +992,14 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 	vzUser := "username=" + userName
 	vzUserGroup := "groups[0]=/" + vzUsersGroup + "/" + groupName
 	createVzUserCmd := "/opt/jboss/keycloak/bin/kcadm.sh create users -r " + vzSysRealm + " -s " + vzUser + " -s " + vzUserGroup + " -s enabled=true"
+	if firstName != "" {
+		createVzUserCmd = createVzUserCmd + " -s firstName=" + firstName
+	}
+
+	if lastName != "" {
+		createVzUserCmd = createVzUserCmd + " -s lastName=" + lastName
+	}
+
 	ctx.Log().Debugf("createUser: Create Verrazzano User Cmd = %s", createVzUserCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createVzUserCmd))
 	if err != nil {
