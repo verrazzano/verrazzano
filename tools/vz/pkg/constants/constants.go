@@ -101,7 +101,7 @@ const (
 	ReportFileFlagUsage = "Name of report output file. (default stdout)"
 
 	ReportFormatFlagName  = "report-format"
-	ReportFormatFlagUsage = "The format of the report output. Valid report formats are \"summary\" and \"detailed\". (default summary)"
+	ReportFormatFlagUsage = "The format of the report output. Valid report formats are \"summary\" and \"detailed\"."
 
 	SummaryReport  = "summary"
 	DetailedReport = "detailed"
