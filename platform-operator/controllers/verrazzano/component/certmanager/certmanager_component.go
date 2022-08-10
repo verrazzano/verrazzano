@@ -175,8 +175,9 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 	} else {
 		// Create resources needed for CA certificates
 		if opResult, err = createOrUpdateCAResources(compContext); err != nil {
-			compContext.Log().Oncef("Failed creating CA resources: %v", err)
-			return err
+			msg := fmt.Sprintf("Failed creating CA resources: %v", err)
+			compContext.Log().Once(msg)
+			return fmt.Errorf(msg)
 		}
 	}
 	if opResult == controllerutil.OperationResultCreated {
