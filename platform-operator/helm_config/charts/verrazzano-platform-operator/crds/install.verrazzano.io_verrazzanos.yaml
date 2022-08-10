@@ -2804,6 +2804,8 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      keycloakAuthEnabled:
+                        type: boolean
                       monitorChanges:
                         type: boolean
                       overrides:
@@ -5468,6 +5470,8 @@ spec:
                   rancher:
                     properties:
                       enabled:
+                        type: boolean
+                      keycloakAuthEnabled:
                         type: boolean
                       monitorChanges:
                         type: boolean
