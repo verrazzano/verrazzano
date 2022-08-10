@@ -176,7 +176,7 @@ func main() {
 			log.Errorf("Failed to create or update network policies: %v", err)
 			os.Exit(1)
 		}
-		//return
+		return
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
