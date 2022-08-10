@@ -71,6 +71,7 @@ func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 // bugReportDirectory - The directory to store the bug report within.
 // ns - One or more additional namespaces, from where the resources need to be captured by the bug-report CLI
 func executeBugReport(vzCommand string, kubeconfig string, bugReportDirectory string, ns ...string) error {
+	fmt.Println("Bug report called with namespace(s) ", ns)
 	var cmd *exec.Cmd
 	if vzCommand == "" {
 		return nil
@@ -100,7 +101,7 @@ func executeBugReport(vzCommand string, kubeconfig string, bugReportDirectory st
 	}
 
 	// Extract the bug-report and run vz-analyze
-	err := analyzeBugReport(bugReportDirectory, "bug-report.tar.gz")
+	err := analyzeBugReport(vzCommand, bugReportDirectory, "bug-report.tar.gz")
 	if err != nil {
 		return err
 	}
@@ -162,7 +163,7 @@ func CaptureContainerLogs(namespace string, podName string, containerName string
 }
 
 // analyzeBugReport extracts the bug report and runs vz analyze by providing the extracted directory for flag --capture-dir
-func analyzeBugReport(bugReportDirectory, bugReportFile string) error {
+func analyzeBugReport(vzCommand, bugReportDirectory, bugReportFile string) error {
 	cmd := exec.Command("tar", "-xf", bugReportFile)
 	cmd.Dir = bugReportDirectory
 	cmd.Stdout = os.Stdout
@@ -179,7 +180,7 @@ func analyzeBugReport(bugReportDirectory, bugReportFile string) error {
 	// Safe to remove bugReportFile
 	os.Remove(filepath.Join(bugReportDirectory, bugReportFile))
 	reportFile := fmt.Sprintf("%s/cluster-snapshot/analysis.report", bugReportDirectory)
-	cmd = exec.Command("vz", "analyze", "--capture-dir", bugReportDirectory, "--report-format", "detailed", "--report-file", reportFile)
+	cmd = exec.Command(vzCommand, "analyze", "--capture-dir", bugReportDirectory, "--report-format", "detailed", "--report-file", reportFile)
 	fmt.Println(cmd.String())
 	if err := cmd.Start(); err != nil {
 		fmt.Printf("Failed to start the command analyze %v \n", err)
