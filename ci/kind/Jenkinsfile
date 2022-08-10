@@ -345,17 +345,6 @@ pipeline {
                                 }
                             }
                         }
-                        stage ('Grafana with DB') {
-                            when {
-                                expression {params.USE_DB_FOR_GRAFANA == true}
-                            }
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
-                            }
-                            steps {
-                                runGinkgo('grafana-db')
-                            }
-                        }
                     }
                     post {
                         always {
@@ -414,6 +403,17 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('logging/opensearch')
+                            }
+                        }
+                        stage ('Grafana with DB') {
+                            when {
+                                expression {params.USE_DB_FOR_GRAFANA == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
+                            }
+                            steps {
+                                runGinkgo('grafana-db')
                             }
                         }
                         stage('examples logging helidon') {
