@@ -64,27 +64,27 @@ func deployFooApplication() {
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(fooNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": istioInjection})
-	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
+	}, waitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Create Sleep Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Create Backend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Create Frontend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 }
 
@@ -94,27 +94,27 @@ func deployBarApplication() {
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(barNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": istioInjection})
-	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
+	}, waitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Create Sleep Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Create Backend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Create Frontend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 }
 
@@ -124,27 +124,27 @@ func deployNoIstioApplication() {
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(noIstioNamespace, map[string]string{"verrazzano-managed": "true"})
-	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
+	}, waitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Create Sleep Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Create Backend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Create Frontend Component")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 }
 
@@ -154,20 +154,20 @@ func undeployFooApplication() {
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() (bool, error) {
 		return pkg.PodsNotRunning(fooNamespace, expectedPodsFoo)
@@ -176,7 +176,7 @@ func undeployFooApplication() {
 	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(fooNamespace)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(fooNamespace)
@@ -190,20 +190,20 @@ func undeployBarApplication() {
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() (bool, error) {
 		return pkg.PodsNotRunning(barNamespace, expectedPodsBar)
@@ -212,7 +212,7 @@ func undeployBarApplication() {
 	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(barNamespace)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(barNamespace)
@@ -226,20 +226,20 @@ func undeployNoIstioApplication() {
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() (bool, error) {
 		return pkg.PodsNotRunning(noIstioNamespace, expectedPodsBar)
@@ -248,7 +248,7 @@ func undeployNoIstioApplication() {
 	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(noIstioNamespace)
-	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, waitTimeout, shortPollingInterval).Should(HaveOccurred())
 
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(noIstioNamespace)
@@ -418,7 +418,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	// If this should fail because the call succeeded, verify that peerauthentication exists in istio-system and is set to STRICT
 	t.It("Verify NoIstio Frontend canNOT call Bar Backend.", func() {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).Should(HaveOccurred())
 		Eventually(func() bool {
 			t.Logs.Infof("Ingress: %s", noIstioHost)
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", noIstioHost)
