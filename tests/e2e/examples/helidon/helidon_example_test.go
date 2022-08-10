@@ -117,7 +117,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 				Skip(skipVerifications)
 			}
 			Eventually(func() bool {
-				return isDeploymentLabelSelectorSupported()
+				return isDeploymentLabelSelectorValuesMatched()
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
@@ -192,13 +192,24 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 
 })
 
-func isDeploymentLabelSelectorSupported() bool {
+// isDeploymentLabelSelectorValuesMatched tests labelselector must exists into deployment
+// also must have values into matchlabels & matchexpressions
+
+func isDeploymentLabelSelectorValuesMatched() bool {
+	// fetch labelselector from hello helidon deployment
 	labelSelector, err := pkg.GetDeploymentLabelSelector(namespace, helloHelidonDeploymentName)
 	if err != nil {
 		return false
 	}
-	fmt.Println(labelSelector)
-	return labelSelector.MatchLabels != nil && labelSelector.MatchExpressions != nil
+	// check labelselector matchlabels must have at least 1 pair of matchlabels arg
+	if val, ok := labelSelector.MatchLabels["app"]; !ok || val != helloHelidon {
+		return false
+	}
+	// check labelselector matchexpressions must not be empty
+	if len(labelSelector.MatchExpressions) == 0 {
+		return false
+	}
+	return true
 }
 
 func helloHelidonPodsRunning() bool {
