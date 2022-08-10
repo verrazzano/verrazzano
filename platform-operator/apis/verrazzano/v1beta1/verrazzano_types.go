@@ -117,10 +117,10 @@ type InstanceInfo struct {
 	KeyCloakURL *string `json:"keyCloakUrl,omitempty"`
 	// RancherURL The Rancher URL for this Verrazzano installation
 	RancherURL *string `json:"rancherUrl,omitempty"`
-	// ElasticURL The Elasticsearch URL for this Verrazzano installation
-	ElasticURL *string `json:"elasticUrl,omitempty"`
-	// KibanaURL The Kibana URL for this Verrazzano installation
-	KibanaURL *string `json:"kibanaUrl,omitempty"`
+	// OpenSearchURL The OpenSearch URL for this Verrazzano installation
+	OpenSearchURL *string `json:"openSearchUrl,omitempty"`
+	// OpenSearchDashboardsURL The Kibana URL for this Verrazzano installation
+	OpenSearchDashboardsURL *string `json:"openSearchDashboardsUrl,omitempty"`
 	// GrafanaURL The Grafana URL for this Verrazzano installation
 	GrafanaURL *string `json:"grafanaUrl,omitempty"`
 	// PrometheusURL The Prometheus URL for this Verrazzano installation
@@ -301,9 +301,9 @@ type ComponentSpec struct {
 	// +patchStrategy=replace
 	DNS *DNSComponent `json:"dns,omitempty" patchStrategy:"replace"`
 
-	// Elasticsearch configuration
+	// OpenSearch configuration
 	// +optional
-	Elasticsearch *ElasticsearchComponent `json:"elasticsearch,omitempty"`
+	OpenSearch *OpenSearchComponent `json:"opensearch,omitempty"`
 
 	// Fluentd configuration
 	// +optional
@@ -333,9 +333,9 @@ type ComponentSpec struct {
 	// +optional
 	Keycloak *KeycloakComponent `json:"keycloak,omitempty"`
 
-	// Grafana configuration
+	// OpenSearch Dashboards configuration
 	// +optional
-	Kibana *KibanaComponent `json:"kibana,omitempty"`
+	OpenSearchDashboards *OpenSearchDashboardsComponent `json:"opensearchDashboards,omitempty"`
 
 	// KubeStateMetrics configuration
 	// +optional
@@ -382,8 +382,8 @@ type ComponentSpec struct {
 	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
 }
 
-// ElasticsearchComponent specifies the Elasticsearch configuration.
-type ElasticsearchComponent struct {
+// OpenSearchComponent specifies the OpenSearch configuration.
+type OpenSearchComponent struct {
 	// +optional
 	Enabled  *bool                         `json:"enabled,omitempty"`
 	Policies []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
@@ -403,8 +403,8 @@ type OpenSearchNodeStorage struct {
 	Size string `json:"size"`
 }
 
-// KibanaComponent specifies the Kibana configuration.
-type KibanaComponent struct {
+// OpenSearchDashboardsComponent specifies the OpenSearch Dashboards configuration.
+type OpenSearchDashboardsComponent struct {
 	// +optional
 	Enabled  *bool  `json:"enabled,omitempty"`
 	Replicas *int32 `json:"replicas,omitempty"`
@@ -565,8 +565,6 @@ type IstioComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
 	InjectionEnabled *bool `json:"injectionEnabled,omitempty"`
-	// +optional
-	Ingress *IstioIngressSection `json:"ingress,omitempty"`
 }
 
 // IsInjectionEnabled is istio sidecar injection enabled check
@@ -610,6 +608,9 @@ type RancherComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
+	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is false.
+	// +optional
+	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
 }
 
 // RancherBackupComponent specifies the Rancher Backup configuration
@@ -628,9 +629,9 @@ type FluentdComponent struct {
 	// +patchStrategy=merge,retainKeys
 	ExtraVolumeMounts []VolumeMount `json:"extraVolumeMounts,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"source"`
 	// +optional
-	ElasticsearchURL string `json:"elasticsearchURL,omitempty"`
+	OpenSearchURL string `json:"opensearchURL,omitempty"`
 	// +optional
-	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
+	OpenSearchSecret string `json:"opensearchSecret,omitempty"`
 
 	// Configuration for integration with OCI (Oracle Cloud Infrastructure) Logging Service
 	// +optional

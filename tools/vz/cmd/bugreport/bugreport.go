@@ -41,11 +41,11 @@ The values specified for the flag --include-namespaces are case-sensitive.
 `
 )
 
-const lineSeparator = "-"
 const minLineLength = 100
 
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
+
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdBugReport(cmd, args, vzHelper)
 	}
@@ -53,7 +53,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
 	cmd.PersistentFlags().StringSliceP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, []string{}, constants.BugReportIncludeNSFlagUsage)
-
+	cmd.PersistentFlags().BoolP(constants.VerboseFlag, constants.VerboseFlagShorthand, constants.VerboseFlagDefault, constants.VerboseFlagUsage)
 	return cmd
 }
 
@@ -110,6 +110,13 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 	}
 	defer os.RemoveAll(bugReportDir)
+
+	// set the flag to control the display the resources captured
+	isVerbose, err := cmd.PersistentFlags().GetBool(constants.VerboseFlag)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.VerboseFlag, err.Error())
+	}
+	helpers.SetVerboseOutput(isVerbose)
 
 	// Capture cluster snapshot
 	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, bugReportDir, moreNS, vzHelper)
@@ -198,7 +205,7 @@ func displayWarning(successMessage string, helper helpers.VZHelper) {
 	if len(successMessage) < minLineLength {
 		count = minLineLength
 	}
-	sep := strings.Repeat(lineSeparator, count)
+	sep := strings.Repeat(constants.LineSeparator, count)
 
 	// Any change in BugReportWarning, requires a change here to adjust the whitespace characters before the message
 	wsCount := count - len(constants.BugReportWarning)
