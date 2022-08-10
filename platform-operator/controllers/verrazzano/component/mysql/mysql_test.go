@@ -60,7 +60,7 @@ var mySQLSecret = v1.Secret{
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 4
+	minExpectedHelmOverridesCount = 5
 	testBomFilePath               = "../../testdata/test_bom.json"
 )
 
@@ -589,7 +589,7 @@ func TestPostUpgradeDevProfile(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestAppendMySQLOverridesUpgradeProdProfile tests the appendMySQLOverrides function
+// TestAppendMySQLOverridesUpgradeDevProfile tests the appendMySQLOverrides function
 // GIVEN a call to appendMySQLOverrides during upgrade for a dev profile cluster
 // WHEN I pass in a VZ CR
 // THEN the correct overrides are returned
@@ -700,7 +700,7 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 	assert.NotEmpty(t, bom.FindKV(kvs, mySQLUsernameKey))

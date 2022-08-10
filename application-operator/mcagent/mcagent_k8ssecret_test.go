@@ -11,7 +11,9 @@ import (
 
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
+	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -61,17 +63,15 @@ func TestCreateSecretOneMCAppConfig(t *testing.T) {
 	secret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(3, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
+	assert.Equal(4, len(secret.Labels))
+	assertCommonLabels(assert, secret, "unit-mcappconfig")
 	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
 
 	secret = &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(2, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
+	assert.Equal(3, len(secret.Labels))
+	assertCommonLabels(assert, secret, "unit-mcappconfig")
 }
 
 // TestCreateSecretTwoMCAppConfigs tests the synchronization method for the following use case.
@@ -118,17 +118,17 @@ func TestCreateSecretTwoMCAppConfigs(t *testing.T) {
 	secret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(3, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
+	assert.Equal(4, len(secret.Labels))
+	assertCommonLabels(assert, secret, "unit-mcappconfig,unit-mcappconfig2")
 	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig,unit-mcappconfig2", "secret label did not match")
 
 	secret = &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(2, len(secret.Labels))
+	assert.Equal(3, len(secret.Labels))
 	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
 	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
+	assert.Contains(secret.Labels[constants2.VerrazzanoManagedLabelKey], constants.LabelVerrazzanoManagedDefault, "secret label did not match")
 }
 
 // TestChangePlacement tests the synchronization method for the following use case.
@@ -170,17 +170,15 @@ func TestChangePlacement(t *testing.T) {
 	secret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(3, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
+	assert.Equal(4, len(secret.Labels))
+	assertCommonLabels(assert, secret, "unit-mcappconfig")
 	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
 
 	secret = &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(2, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
+	assert.Equal(3, len(secret.Labels))
+	assertCommonLabels(assert, secret, "unit-mcappconfig")
 
 	testMCAppConfig.Spec.Placement.Clusters[0].Name = "managed2"
 	err = s.AdminClient.Update(s.Context, &testMCAppConfig)
@@ -238,17 +236,15 @@ func TestDeleteSecret(t *testing.T) {
 	secret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(3, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
+	assert.Equal(4, len(secret.Labels))
 	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
+	assertCommonLabels(assert, secret, "unit-mcappconfig")
 
 	secret = &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(2, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
+	assert.Equal(3, len(secret.Labels))
+	assertCommonLabels(assert, secret, "unit-mcappconfig")
 
 	// Delete the MultiClusterApplicationConfigurarion object from the admin cluster
 	err = s.AdminClient.Delete(s.Context, &testMCAppConfig)
@@ -308,17 +304,15 @@ func TestDeleteSecretSharedSecret(t *testing.T) {
 	secret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(3, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
+	assert.Equal(4, len(secret.Labels))
+	assertCommonLabels(assert, secret, "unit-mcappconfig,unit-mcappconfig2")
 	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig,unit-mcappconfig2", "secret label did not match")
 
 	secret = &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(2, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
+	assert.Equal(3, len(secret.Labels))
+	assertCommonLabels(assert, secret, "unit-mcappconfig")
 
 	// Delete the MultiClusterApplicationConfigurarion object from the admin cluster
 	err = s.AdminClient.Delete(s.Context, &testMCAppConfig1)
@@ -379,10 +373,9 @@ func TestDeleteSecretExtra(t *testing.T) {
 	secret := &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret1.Name, Namespace: testSecret1.Namespace}, secret)
 	assert.NoError(err)
-	assert.Equal(3, len(secret.Labels))
-	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
+	assert.Equal(4, len(secret.Labels))
+	assertCommonLabels(assert, secret, "unit-mcappconfig")
 	assert.Contains(secret.Labels["label1"], "test1", "secret label did not match")
-	assert.Contains(secret.Labels[mcAppConfigsLabel], "unit-mcappconfig", "secret label did not match")
 
 	secret = &corev1.Secret{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testSecret2.Name, Namespace: testSecret2.Namespace}, secret)
@@ -420,6 +413,13 @@ func getSampleSecret(filePath string) (corev1.Secret, error) {
 
 	err = json.Unmarshal(rawResource, &secret)
 	return secret, err
+}
+
+// assert labels common to all K8S secrets synced to managed cluster
+func assertCommonLabels(assert *asserts.Assertions, secret *corev1.Secret, appConfigs string) {
+	assert.Contains(secret.Labels[managedClusterLabel], testClusterName, "secret label did not match")
+	assert.Contains(secret.Labels[mcAppConfigsLabel], appConfigs, "secret label did not match")
+	assert.Contains(secret.Labels[constants2.VerrazzanoManagedLabelKey], constants.LabelVerrazzanoManagedDefault, "secret label did not match")
 }
 
 func newTestScheme() *runtime.Scheme {

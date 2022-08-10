@@ -5,7 +5,9 @@ package multiclustercomponent
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/constants"
+
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -42,7 +44,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == constants.KubeSystem {
+	if req.Namespace == vzconst.KubeSystem {
 		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)
 		log.Infof("Multi-cluster component resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
@@ -143,7 +145,6 @@ func (r *Reconciler) createOrUpdateComponent(ctx context.Context, mcComp cluster
 	var oamComp v1alpha2.Component
 	oamComp.Namespace = mcComp.Namespace
 	oamComp.Name = mcComp.Name
-
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &oamComp, func() error {
 		r.mutateComponent(mcComp, &oamComp)
 		return nil
@@ -154,6 +155,10 @@ func (r *Reconciler) createOrUpdateComponent(ctx context.Context, mcComp cluster
 func (r *Reconciler) mutateComponent(mcComp clustersv1alpha1.MultiClusterComponent, oamComp *v1alpha2.Component) {
 	oamComp.Spec = mcComp.Spec.Template.Spec
 	oamComp.Labels = mcComp.Spec.Template.Metadata.Labels
+	if oamComp.Labels == nil {
+		oamComp.Labels = map[string]string{}
+	}
+	oamComp.Labels[vzconst.VerrazzanoManagedLabelKey] = constants.LabelVerrazzanoManagedDefault
 	oamComp.Annotations = mcComp.Spec.Template.Metadata.Annotations
 }
 

@@ -32,6 +32,7 @@ const (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=verrazzanos
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=vz;vzs
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano installation"
@@ -674,6 +675,9 @@ type RancherComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
+	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is false.
+	// +optional
+	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
 }
 
 // RancherBackupComponent specifies the Rancher Backup configuration

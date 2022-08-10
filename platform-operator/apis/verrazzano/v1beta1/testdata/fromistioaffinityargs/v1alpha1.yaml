@@ -1,0 +1,59 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: prod
+  components:
+    istio:
+      enabled: true
+      injectionEnabled: true
+      egress:
+        kubernetes:
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-egressgateway
+                    topologyKey: kubernetes.io/hostname
+                  weight: 100
+          replicas: 2
+      ingress:
+        kubernetes:
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-ingressgateway
+                    topologyKey: kubernetes.io/hostname
+                  weight: 100
+          replicas: 2
+        ports:
+          - name: port1
+            nodePort: 32443
+            port: 8000
+            protocol: TCP
+            targetPort: 2000
+        type: NodePort
+      istioInstallArgs:
+        - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
+          value: 10Mbps
+        - name: global.defaultPodDisruptionBudget.enabled
+          value: "false"
+        - name: pilot.resources.requests.memory
+          value: 128Mi
+        - name: gateways.istio-ingressgateway.externalIPs
+          value: 1.2.3.4
+

@@ -173,16 +173,38 @@ func TestBugReportSuccess(t *testing.T) {
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 	cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
 	cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install,default")
+	cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
 	err = cmd.Execute()
 	if err != nil {
 		assert.Error(t, err)
 	}
 
 	assert.NoError(t, err)
-	assert.Contains(t, buf.String(), "Capturing Verrazzano resource",
+	assert.Contains(t, buf.String(), "Capturing  resources from the cluster", "Capturing Verrazzano resource",
 		"Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace",
 		"Successfully created the bug report",
 		"WARNING: Please examine the contents of the bug report for sensitive data", "Namespace dummy not found in the cluster")
+	assert.FileExists(t, bugRepFile)
+
+	// Validate the fact that --verbose is disabled by default
+	buf = new(bytes.Buffer)
+	errBuf = new(bytes.Buffer)
+	rc = helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	bugRepFile = tmpDir + string(os.PathSeparator) + "bug-report-verbose-false.tgz"
+	cmd = NewCmdBugReport(rc)
+	cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	err = cmd.Execute()
+	if err != nil {
+		assert.Error(t, err)
+	}
+
+	assert.NoError(t, err)
+	assert.Contains(t, buf.String(), "Capturing  resources from the cluster",
+		"Successfully created the bug report",
+		"WARNING: Please examine the contents of the bug report for sensitive data")
+	assert.NotContains(t, buf.String(), "Capturing Verrazzano resource",
+		"Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace")
 	assert.FileExists(t, bugRepFile)
 }
 
@@ -204,6 +226,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
+	cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
 	if err != nil {

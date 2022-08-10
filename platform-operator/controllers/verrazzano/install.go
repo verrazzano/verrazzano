@@ -92,7 +92,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			if err := r.updateComponentStatus(compContext, "Component is Ready", vzapi.CondInstallComplete); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
-			r.ClearWatch(comp.GetJSONName())
 			continue
 		case vzapi.CompStateDisabled:
 			if !comp.IsEnabled(compContext.EffectiveCR()) {
@@ -104,6 +103,13 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				// User needs to do upgrade before this component can be installed
 				compLog.Progressf("Component %s cannot be installed until Verrazzano is upgraded to at least version %s",
 					comp.Name(), comp.GetMinVerrazzanoVersion())
+				continue
+			}
+			if cr.Status.State == vzapi.VzStateReady {
+				// This is the case where the component was previously disabled but is now enabled in the effective CR, so
+				// we need to prevent the component from being installed when the VPO is upgraded and wait for the user
+				// to initiate the upgrade via the VZ CR
+				compLog.Oncef("Component %s was previously disabled and upgrade is not in progress, skipping install", compName)
 				continue
 			}
 			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
@@ -154,6 +160,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			compLog.Progressf("Component %s waiting to finish installing", compName)
 			requeue = true
 		}
+		r.ClearWatch(comp.GetJSONName())
 	}
 	if requeue {
 		return newRequeueWithDelay(), nil
