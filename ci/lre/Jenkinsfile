@@ -172,6 +172,8 @@ pipeline {
                             echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_UPGRADE_VERSION}
                             ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
                         """
+                    } else {
+                        echo "No upgrade is needed.  Verrazzano is already at the expected version."
                     }
                 }
             }
