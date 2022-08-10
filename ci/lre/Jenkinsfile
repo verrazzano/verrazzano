@@ -4,7 +4,7 @@
 properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
     maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
     [$class: 'BuildDiscarderProperty',    strategy: [$class: 'LogRotator', numToKeepStr: '10']],
-    pipelineTriggers([cron('45 14 * * *')]),])
+    pipelineTriggers([cron('0 11 * * *')]),])
 
 pipeline {
     options {
@@ -30,10 +30,11 @@ pipeline {
     }
 
     environment {
+        LRE_CLUSTER_ENV = "${params.LRE_CLUSTER}"
+
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-
         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
         OCI_CLI_USER = credentials('oci-dev-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
@@ -44,17 +45,15 @@ pipeline {
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
         OPERATOR_YAML_LOCATION = "${WORKSPACE}/operator.yaml"
 
-        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
-
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
         NETRC_FILE = credentials('netrc')
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        LRE_CLUSTER_ENV = "${params.LRE_CLUSTER}"
 
         DEV_LRE_KUBECONFIG = credentials('dev-lre-kubeconfig')
         KUBECONFIG = "${WORKSPACE}/.kube/config"
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
     }
 
     stages {
