@@ -53,13 +53,13 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 	}
 	// If Jaeger instance creation is disabled in the VZ CR, then just return
 	if !jsc.jaegerCreate {
-		r.log.Infow("Jaeger instance creation is disabled in the Verrazzano CR. Skipping multicluster Jaeger" +
+		r.log.Once("Jaeger instance creation is disabled in the Verrazzano CR. Skipping multicluster Jaeger" +
 			" configuration.")
 		return jc, nil
 	}
 	// If OpenSearch storage is not configured for the Jaeger instance, then just return
 	if jsc.storageType != "elasticsearch" {
-		r.log.Infow("A Jaeger instance with OpenSearch storage is not configured. Skipping multicluster Jaeger" +
+		r.log.Once("A Jaeger instance with OpenSearch storage is not configured. Skipping multicluster Jaeger" +
 			" configuration.")
 		return jc, nil
 	}
@@ -97,70 +97,71 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.VerrazzanoList) (jaegerSpecConfig, error) {
 	jsc := jaegerSpecConfig{}
 	for _, vz := range vzList.Items {
-		if isJaegerOperatorEnabled(vz) {
-			// Set values for default Jaeger instance
-			if canUseVZOpenSearchStorage(vz) {
-				jsc.jaegerCreate = true
-				jsc.OSURL = vzconstants.DefaultJaegerOSURL
-				jsc.secName = vzconstants.DefaultJaegerSecretName
-				jsc.storageType = "elasticsearch"
-			}
-			overrides := vz.Spec.Components.JaegerOperator.ValueOverrides
-			overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(r.Client, overrides, jaegerNamespace)
+		if !isJaegerOperatorEnabled(vz) {
+			continue
+		}
+		// Set values for default Jaeger instance
+		if canUseVZOpenSearchStorage(vz) {
+			jsc.jaegerCreate = true
+			jsc.OSURL = vzconstants.DefaultJaegerOSURL
+			jsc.secName = vzconstants.DefaultJaegerSecretName
+			jsc.storageType = "elasticsearch"
+		}
+		overrides := vz.Spec.Components.JaegerOperator.ValueOverrides
+		overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(r.Client, overrides, jaegerNamespace)
+		if err != nil {
+			return jsc, err
+		}
+		for _, overrideYAML := range overrideYAMLs {
+			value, err := common.ExtractValueFromOverrideString(overrideYAML, jaegerCreateField)
 			if err != nil {
 				return jsc, err
 			}
-			for _, overrideYAML := range overrideYAMLs {
-				value, err := common.ExtractValueFromOverrideString(overrideYAML, jaegerCreateField)
-				if err != nil {
-					return jsc, err
-				}
-				if value != nil {
-					jsc.jaegerCreate = value.(bool)
-				}
-				// Check if there are any Helm chart override values defined for Jaeger storage
-				value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerStorageTypeField)
-				if err != nil {
-					return jsc, err
-				}
-				if value != nil {
-					jsc.storageType = value.(string)
-				}
-				value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerOSURLField)
-				if err != nil {
-					return jsc, err
-				}
-				if value != nil {
-					jsc.OSURL = value.(string)
-				}
-				value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerOSCAField)
-				if err != nil {
-					return jsc, err
-				}
-				if value != nil {
-					jsc.CAFileName = filepath.Base(value.(string))
-				}
-				value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerOSTLSKeyField)
-				if err != nil {
-					return jsc, err
-				}
-				if value != nil {
-					jsc.TLSKeyFileName = filepath.Base(value.(string))
-				}
-				value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerOSTLSCertField)
-				if err != nil {
-					return jsc, err
-				}
-				if value != nil {
-					jsc.TLSCertFileName = filepath.Base(value.(string))
-				}
-				value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerSecNameField)
-				if err != nil {
-					return jsc, err
-				}
-				if value != nil {
-					jsc.secName = value.(string)
-				}
+			if value != nil {
+				jsc.jaegerCreate = value.(bool)
+			}
+			// Check if there are any Helm chart override values defined for Jaeger storage
+			value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerStorageTypeField)
+			if err != nil {
+				return jsc, err
+			}
+			if value != nil {
+				jsc.storageType = value.(string)
+			}
+			value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerOSURLField)
+			if err != nil {
+				return jsc, err
+			}
+			if value != nil {
+				jsc.OSURL = value.(string)
+			}
+			value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerOSCAField)
+			if err != nil {
+				return jsc, err
+			}
+			if value != nil {
+				jsc.CAFileName = filepath.Base(value.(string))
+			}
+			value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerOSTLSKeyField)
+			if err != nil {
+				return jsc, err
+			}
+			if value != nil {
+				jsc.TLSKeyFileName = filepath.Base(value.(string))
+			}
+			value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerOSTLSCertField)
+			if err != nil {
+				return jsc, err
+			}
+			if value != nil {
+				jsc.TLSCertFileName = filepath.Base(value.(string))
+			}
+			value, err = common.ExtractValueFromOverrideString(overrideYAML, jaegerSecNameField)
+			if err != nil {
+				return jsc, err
+			}
+			if value != nil {
+				jsc.secName = value.(string)
 			}
 		}
 	}
