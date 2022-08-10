@@ -161,7 +161,7 @@ pipeline {
                     echo "Version to upgrade to: ${VERRAZZANO_UPGRADE_VERSION}"
 
                     // If we are already at the upgrade version then no upgrade is needed.
-                    if VERRAZZANO_UPGRADE_VERSION != RUNNING_OPERATOR_VERSION  {
+                    if (VERRAZZANO_UPGRADE_VERSION != RUNNING_OPERATOR_VERSION)  {
                         return
                     }
                  }
