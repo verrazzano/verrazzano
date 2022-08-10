@@ -1,0 +1,47 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: prod
+  components:
+    elasticsearch:
+      installArgs:
+        - name: "nodes.master.replicas"
+          value: "3"
+        - name: "nodes.data.replicas"
+          value: "3"
+        - name: "nodes.ingest.replicas"
+          value: "1"
+        - name: "nodes.master.requests.storage"
+          value: "50Gi"
+        - name: "nodes.data.requests.storage"
+          value: "250Gi"
+        - name: "nodes.master.requests.memory"
+          value: "1Gi"
+        - name: "nodes.data.requests.memory"
+          value: "3Gi"
+        - name: "nodes.ingest.requests.memory"
+          value: "2Gi"
+    keycloak:
+      keycloakInstallArgs:
+        - name: "foo"
+          value: "bar"
+      mysql:
+        mysqlInstallArgs:
+          - name: "a.b.c"
+            value: "1"
+          - name: "a.b.d"
+            value: "2"
+    ingress:
+      nginxInstallArgs:
+        - name: "foo"
+          value: "bar"
+    verrazzano:
+      installArgs:
+        - name: "a.b.c"
+          value: "1"
+        - name: "a.b.d"
+          value: "2"
