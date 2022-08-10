@@ -321,12 +321,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.4.0",
+              "tag": "3.4.2",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.0.5",
+              "tag": "2.0.7",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
@@ -559,7 +559,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "tag": "1.34.1-20220809161126-ae4bd702",
               "helmFullImageKey": "jaegerAgentImage"
             }
           ]
@@ -570,7 +570,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "tag": "1.34.1-20220809161126-ae4bd702",
               "helmFullImageKey": "jaegerCollectorImage"
             }
           ]
@@ -581,7 +581,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "tag": "1.34.1-20220809161126-ae4bd702",
               "helmFullImageKey": "jaegerQueryImage"
             }
           ]
@@ -592,7 +592,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "tag": "1.34.1-20220809161126-ae4bd702",
               "helmFullImageKey": "jaegerIngesterImage"
             }
           ]
@@ -603,7 +603,7 @@
           "images": [
             {
               "image": "jaeger-es-index-cleaner",
-              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "tag": "1.34.1-20220809161126-ae4bd702",
               "helmFullImageKey": "jaegerESIndexCleanerImage"
             }
           ]
@@ -614,7 +614,7 @@
           "images": [
             {
               "image": "jaeger-es-rollover",
-              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "tag": "1.34.1-20220809161126-ae4bd702",
               "helmFullImageKey": "jaegerESRolloverImage"
             }
           ]
@@ -625,7 +625,7 @@
           "images": [
             {
               "image": "jaeger-all-in-one",
-              "tag": "1.34.1-20220718052137-ae4bd702",
+              "tag": "1.34.1-20220809161126-ae4bd702",
               "helmFullImageKey": "jaegerAllInOneImage"
             }
           ]
