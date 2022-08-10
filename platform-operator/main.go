@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"os"
 	"sync"
@@ -155,6 +156,14 @@ func main() {
 			os.Exit(1)
 		}
 
+		log.Debug("Updating conversion webhook")
+		apixClient, err := apiextensionsv1client.NewForConfig(config)
+		if err != nil {
+			log.Errorf("Failed to get apix clientset: %v", err)
+			os.Exit(1)
+		}
+		err = certificate.UpdateConversionWebhookConfiguration(apixClient, caCert)
+
 		client, err := client.New(config, client.Options{})
 		if err != nil {
 			log.Errorf("Failed to get controller-runtime client: %v", err)
@@ -167,7 +176,7 @@ func main() {
 			log.Errorf("Failed to create or update network policies: %v", err)
 			os.Exit(1)
 		}
-		return
+		//return
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
