@@ -33,6 +33,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+
         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
         OCI_CLI_USER = credentials('oci-dev-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
@@ -43,27 +44,17 @@ pipeline {
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
         OPERATOR_YAML_LOCATION = "${WORKSPACE}/operator.yaml"
 
-        TEST_ENV = "LRE"
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
-        DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'ghcr.io'
-        DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
-        OCR_CREDS = credentials('ocr-pull-and-push-account')
-        OCR_REPO = 'container-registry.oracle.com'
-        IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         LRE_CLUSTER_ENV = "${params.LRE_CLUSTER}"
 
         DEV_LRE_KUBECONFIG = credentials('dev-lre-kubeconfig')
         KUBECONFIG = "${WORKSPACE}/.kube/config"
-
-        //used to emit metrics
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
     }
 
     stages {
@@ -169,7 +160,15 @@ pipeline {
                  }
 
                 sh """
+                    echo "Downloading operator.yaml from object storage"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/operator.yaml --file ${OPERATOR_YAML_LOCATION}
+                """
+
+                downloadCLI()
+
+                sh """
+                    echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_UPGRADE_VERSION}
+    //                ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
                 """
             }
         }
@@ -179,6 +178,17 @@ pipeline {
         cleanup {
             emitJobMetrics()
         }
+    }
+}
+
+def downloadCLI() {
+    script {
+        sh """
+            echo "Downloading vz CLI from object storage"
+            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+            tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+            ${GO_REPO_PATH}/vz version
+        """
     }
 }
 
