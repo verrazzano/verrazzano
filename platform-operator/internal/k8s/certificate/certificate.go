@@ -196,7 +196,7 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 				},
 				CABundle: caCert.Bytes(),
 			},
-			ConversionReviewVersions: []string{"v1beta1", "v1alpha1"},
+			//ConversionReviewVersions: []string{"v1beta1", "v1alpha1"},
 		},
 	}
 	_, err = apiextClient.CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{})
