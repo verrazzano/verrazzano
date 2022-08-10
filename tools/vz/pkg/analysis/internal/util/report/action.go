@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
-	"io/ioutil"
 	"os"
+	"os/exec"
 	"regexp"
 )
 
@@ -37,13 +37,12 @@ func (action *Action) Validate(log *zap.SugaredLogger) (err error) {
 }
 
 func GetDevelopmentVersion() string {
-	fileName := "../../../../../../../.verrazzano-development-version"
-	content, err := ioutil.ReadFile(fileName)
+	out, err := exec.Command("vz", "version").Output()
 	if err != nil {
-		return fmt.Sprintf("error reading the file: %s", fileName)
+		fmt.Errorf("error getting vz version")
 	}
-	str := string(content)
-	var re = regexp.MustCompile(`(?m)verrazzano-development-version=?(.*)(\.{1}\d{1,4})`)
+	str := string(out)
+	var re = regexp.MustCompile(`(?m)Version: (.*)\.\d{1,3}`)
 	s := re.FindAllStringSubmatch(str, -1)[0][1] //This will get the group 1 of 1st match which is "1.4"
 	return fmt.Sprintf("v%s", s)
 }
