@@ -141,11 +141,11 @@ pipeline {
 
        stage('Upgrade to stable commit') {
             steps {
-                sh """
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
-                """
-
                 script {
+                    sh """
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
+                    """
+
                     // Get the last stable commit ID that passed the triggered tests
                     def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
                     GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
@@ -162,24 +162,22 @@ pipeline {
 
                     // If we are already at the upgrade version then no upgrade is needed.
                     if (VERRAZZANO_UPGRADE_VERSION != RUNNING_OPERATOR_VERSION)  {
-                        return
+                        sh """
+                            echo "Downloading operator.yaml from object storage"
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/operator.yaml --file ${OPERATOR_YAML_LOCATION}
+                        """
+
+                        downloadCLI()
+
+                        sh """
+                            echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_UPGRADE_VERSION}
+                        """
                     }
-                 }
-
-                sh """
-                    echo "Downloading operator.yaml from object storage"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/operator.yaml --file ${OPERATOR_YAML_LOCATION}
-                """
-
-                downloadCLI()
-
-//                     ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
-
-                sh """
-                    echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_UPGRADE_VERSION}
-                """
+                }
             }
-        }
+       }
+
+    //                     ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
 
     }
     post {
