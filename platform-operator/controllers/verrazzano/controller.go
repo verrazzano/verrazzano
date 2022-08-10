@@ -672,14 +672,11 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	// Set the state of resource
 	componentStatus.State = checkCondtitionType(conditionType)
 
-	/*
-	if componentStatusVersion, err := helmcli.GetReleaseAppVersion(componentName,"verrazzano-system"); err != nil {
+	// Set the version of component
+	bomFile, _ := bom.NewBom(config.GetDefaultBOMFilePath())
+	if componentStatusVersion := bomFile.GetComponentVersion(componentName); componentStatusVersion != "" {
 		componentStatus.Version = componentStatusVersion
 	}
-	*/
-	bomFile, _ := bom.NewBom(config.GetDefaultBOMFilePath())
-	componentStatus.Version = bomFile.GetComponentVersion(componentName)
-	fmt.Println("GetComponentVersion : ", componentStatus.Version)
 
 	// Update the status
 	return r.updateVerrazzanoStatus(log, cr)
