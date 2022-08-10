@@ -163,6 +163,10 @@ func main() {
 			os.Exit(1)
 		}
 		err = certificate.UpdateConversionWebhookConfiguration(apixClient, caCert)
+		if err != nil {
+			log.Errorf("Failed to update conversion webhook: %v", err)
+			os.Exit(1)
+		}
 
 		client, err := client.New(config, client.Options{})
 		if err != nil {
