@@ -9,6 +9,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -109,6 +110,16 @@ func (s *Syncer) updateVerrazzanoProjectStatus(name types.NamespacedName, newCon
 func mutateVerrazzanoProject(vp clustersv1alpha1.VerrazzanoProject, vpNew *clustersv1alpha1.VerrazzanoProject) {
 	vpNew.Spec.Template = vp.Spec.Template
 	vpNew.Spec.Placement = vp.Spec.Placement
+	// Mark the VerrazzanoProject we synced from Admin cluster with verrazzano-managed=true, to
+	// distinguish from any (though unlikely) that the user might have created on managed cluster
+	if vpNew.Labels == nil {
+		vpNew.Labels = map[string]string{}
+	}
+	if vp.Labels != nil {
+		vpNew.Labels = vp.Labels
+	}
+	vpNew.Labels[vzconst.VerrazzanoManagedLabelKey] = constants.LabelVerrazzanoManagedDefault
+	vpNew.Annotations = vp.Annotations
 }
 
 // projectListContains returns boolean indicating if the list contains the object with the specified name and namespace
