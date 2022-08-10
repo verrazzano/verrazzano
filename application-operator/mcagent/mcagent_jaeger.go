@@ -44,6 +44,7 @@ apiVersion: ` + jaegerAPIVersion + `
 kind: ` + jaegerKind + `
 metadata:
   name: ` + jaegerName + `
+  namespace: ` + jaegerNamespace + `
 spec:
   annotations:
     sidecar.istio.io/inject: "true"
@@ -173,9 +174,7 @@ func (s *Syncer) createJaegerSecret(secName string, mcSecret corev1.Secret) erro
 		},
 	}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), s.LocalClient, secret, func() error {
-		if secret.Data == nil {
-			secret.Data = make(map[string][]byte)
-		}
+		secret.Data = make(map[string][]byte)
 		if _, exists := mcSecret.Data[mcconstants.JaegerOSUsernameKey]; exists {
 			secret.Data[mcconstants.JaegerOSUsernameKey] = mcSecret.Data[mcconstants.JaegerOSUsernameKey]
 		}

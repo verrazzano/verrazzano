@@ -9,6 +9,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"path/filepath"
 )
 
@@ -48,18 +49,18 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 	// Get the OpenSearch URL, secret and other details configured in Jaeger spec
 	jsc, err := r.getJaegerSpecConfig(vzList)
 	if err != nil {
-		return jc, r.log.ErrorfNewErr("Failed to fetch the Jaeger spec details from VZ CR %v", err)
+		return jc, r.log.ErrorfNewErr("Failed to fetch the Jaeger spec details from the Verrazzano CR %v", err)
 	}
 	// If Jaeger instance creation is disabled in the VZ CR, then just return
 	if !jsc.jaegerCreate {
-		r.log.Infof("Jaeger instance creation is disabled in the VZ CR. Skipping to configure the Jaeger" +
-			" details for Multicluster.")
+		r.log.Infow("Jaeger instance creation is disabled in the Verrazzano CR. Skipping multicluster Jaeger" +
+			" configuration.")
 		return jc, nil
 	}
 	// If OpenSearch storage is not configured for the Jaeger instance, then just return
 	if jsc.storageType != "elasticsearch" {
-		r.log.Infof("A Jaeger instance with OpenSearch storage is not configured. Skipping to configure the Jaeger" +
-			" details for Multicluster.")
+		r.log.Infow("A Jaeger instance with OpenSearch storage is not configured. Skipping multicluster Jaeger" +
+			" configuration.")
 		return jc, nil
 	}
 
@@ -95,10 +96,8 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 // getJaegerSpecConfig returns the OpenSearch URL, secret and other details configured for Jaeger instance
 func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.VerrazzanoList) (jaegerSpecConfig, error) {
 	jsc := jaegerSpecConfig{}
-	// what to do when there is more than one Verrazzano CR
 	for _, vz := range vzList.Items {
-		if vz.Spec.Components.JaegerOperator != nil && vz.Spec.Components.JaegerOperator.Enabled != nil &&
-			*vz.Spec.Components.JaegerOperator.Enabled {
+		if isJaegerOperatorEnabled(vz) {
 			// Set values for default Jaeger instance
 			if canUseVZOpenSearchStorage(vz) {
 				jsc.jaegerCreate = true
@@ -171,10 +170,12 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.V
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
 // As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
 func canUseVZOpenSearchStorage(vz vzapi.Verrazzano) bool {
-	if (vz.Spec.Components.Elasticsearch != nil && vz.Spec.Components.Elasticsearch.Enabled != nil &&
-		!*vz.Spec.Components.Elasticsearch.Enabled) || (vz.Spec.Components.Keycloak != nil &&
-		vz.Spec.Components.Keycloak.Enabled != nil && !*vz.Spec.Components.Keycloak.Enabled) {
-		return false
+	if vzconfig.IsElasticsearchEnabled(&vz) && vzconfig.IsKeycloakEnabled(&vz) {
+		return true
 	}
-	return true
+	return false
+}
+
+func isJaegerOperatorEnabled(vz vzapi.Verrazzano) bool {
+	return vzconfig.IsJaegerOperatorEnabled(&vz)
 }
