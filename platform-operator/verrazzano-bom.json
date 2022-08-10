@@ -426,7 +426,7 @@
             },
             {
               "image": "kube-webhook-certgen",
-              "tag": "1.1.1-20220414195226-864e56292",
+              "tag": "v1.1.1-20220809190136-943f98fb0",
               "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
               "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
             }
