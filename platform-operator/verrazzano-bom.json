@@ -479,7 +479,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.9.1-20220803141232-f097a569",
+              "tag": "v0.9.1-20220810134842-f097a569",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -513,7 +513,7 @@
           "images": [
             {
               "image": "prometheus-pushgateway",
-              "tag": "v1.4.2",
+              "tag": ":v1.4.2-20220810135136-71204144",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
