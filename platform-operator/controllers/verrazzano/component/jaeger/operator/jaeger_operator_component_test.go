@@ -27,14 +27,16 @@ import (
 const profilesRelativePath = "../../../../../manifests/profiles"
 
 const (
-	nameOverrideJSON          = "{\"nameOverride\": \"test\"}"
-	fullnameOverrideJSON      = "{\"fullnameOverride\": \"testFullName\"}"
-	serviceAccountNameJSON    = "{\"serviceAccount\": {\"name\": \"testServiceAccount\"}}"
-	ingressJSON               = "{\"ingress\": {\"enabled\": true}}"
-	validOverrideJSON         = "{\"serviceAccount\": {\"create\": false}}"
-	defaultJaegerDisabledJSON = "{\"jaeger\":{\"create\": false}}"
-	defaultJaegerEnabledJSON  = "{\"jaeger\":{\"create\": true}}"
-	k8sAppNameLabel           = "app.kubernetes.io/name"
+	nameOverrideJSON             = "{\"nameOverride\": \"test\"}"
+	fullnameOverrideJSON         = "{\"fullnameOverride\": \"testFullName\"}"
+	serviceAccountNameJSON       = "{\"serviceAccount\": {\"name\": \"testServiceAccount\"}}"
+	ingressJSON                  = "{\"ingress\": {\"enabled\": true}}"
+	validOverrideJSON            = "{\"serviceAccount\": {\"create\": false}}"
+	defaultJaegerDisabledJSON    = "{\"jaeger\":{\"create\": false}}"
+	defaultJaegerEnabledJSON     = "{\"jaeger\":{\"create\": true}}"
+	k8sAppNameLabel              = "app.kubernetes.io/name"
+	podTemplateHashLabel         = "pod-template-hash"
+	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 )
 
 var enabled = true
@@ -864,8 +866,8 @@ func getJaegerOperatorObjects(availableReplicas int32) []client.Object {
 				Namespace: ComponentNamespace,
 				Name:      deploymentName + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					k8sAppNameLabel:     ComponentName,
+					podTemplateHashLabel: "95d8c5d96",
+					k8sAppNameLabel:      ComponentName,
 				},
 			},
 		},
@@ -873,7 +875,7 @@ func getJaegerOperatorObjects(availableReplicas int32) []client.Object {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
 				Name:        deploymentName + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	}
@@ -905,8 +907,8 @@ func getJaegerCollectorObjects(availableReplicas int32) []client.Object {
 				Namespace: ComponentNamespace,
 				Name:      JaegerCollectorDeploymentName + "-95d8c4c96-m6ncr",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c4c96",
-					k8sAppNameLabel:     JaegerCollectorDeploymentName,
+					podTemplateHashLabel: "95d8c4c96",
+					k8sAppNameLabel:      JaegerCollectorDeploymentName,
 				},
 			},
 		},
@@ -914,7 +916,7 @@ func getJaegerCollectorObjects(availableReplicas int32) []client.Object {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
 				Name:        JaegerCollectorDeploymentName + "-95d8c4c96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	}
@@ -946,8 +948,8 @@ func getJaegerQueryObjects(availableReplicas int32) []client.Object {
 				Namespace: ComponentNamespace,
 				Name:      JaegerQueryDeploymentName + "-95d8c3b96-m689r",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c3b96",
-					k8sAppNameLabel:     JaegerQueryDeploymentName,
+					podTemplateHashLabel: "95d8c3b96",
+					k8sAppNameLabel:      JaegerQueryDeploymentName,
 				},
 			},
 		},
@@ -955,7 +957,7 @@ func getJaegerQueryObjects(availableReplicas int32) []client.Object {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
 				Name:        JaegerQueryDeploymentName + "-95d8c3b96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	}
