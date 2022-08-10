@@ -7,23 +7,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-)
-
-const (
-	promConfigmap = "vmi-system-prometheus-config"
-	dataKey       = "prometheus.yml"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // QueryMetricWithLabel queries a metric using a label from the Prometheus host, derived from the kubeconfig
@@ -177,7 +169,7 @@ func ScrapeTargets() ([]interface{}, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error retrieving targets %d", resp.StatusCode)
 	}
-	//Log(Info, fmt.Sprintf("targets: %s", string(resp.Body)))
+	// Log(Info, fmt.Sprintf("targets: %s", string(resp.Body)))
 	var result map[string]interface{}
 	json.Unmarshal(resp.Body, &result)
 	activeTargets := Jq(result, "data", "activeTargets").([]interface{})
@@ -233,19 +225,6 @@ func DoesMetricsTemplateExist(namespacedName types.NamespacedName) bool {
 	return false
 }
 
-// IsAppInPromConfig checks to see if the Prom config data contains the passed in App name
-func IsAppInPromConfig(configAppName string) bool {
-	promConfig, err := GetConfigMap(promConfigmap, constants.VerrazzanoSystemNamespace)
-	if err != nil {
-		return false
-	}
-	found := strings.Contains(promConfig.Data[dataKey], configAppName)
-	if !found {
-		Log(Error, fmt.Sprintf("scrap target %s not found in Prometheus configmap", configAppName))
-	}
-	return found
-}
-
 // getPromOperatorClient returns a client for fetching ServiceMonitor resources
 func getPromOperatorClient() (client.Client, error) {
 	config, err := k8sutil.GetKubeConfig()
@@ -261,6 +240,18 @@ func getPromOperatorClient() (client.Client, error) {
 		return nil, err
 	}
 	return cli, nil
+}
+
+// GetAppServiceMonitorName returns the service monitor name used in VZ 1.4+ for the given
+// namespace and app name
+func GetAppServiceMonitorName(namespace string, appName string) string {
+	// For VZ versions starting from 1.4.0, the service monitor name for prometheus is of the format
+	// <app_name>_<app_namespace>
+	smName := fmt.Sprintf("%s-%s", appName, namespace)
+	if len(smName) > 63 {
+		smName = smName[:63]
+	}
+	return smName
 }
 
 // GetServiceMonitor returns the ServiceMonitor identified by namespace and name
