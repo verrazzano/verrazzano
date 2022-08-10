@@ -319,7 +319,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				Fail(err.Error())
 			}
 			if vz.Spec.Version != "" {
-				t.Logs.Info("Skipping test because Verrazzano has been upgraded %s")
+				t.Logs.Info("Skipping test because Verrazzano has been upgraded")
 			} else {
 				Eventually(assertAdminRole, waitTimeout, pollingInterval).Should(BeTrue())
 			}
