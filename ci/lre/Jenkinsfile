@@ -152,9 +152,18 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_TO_USE}").trim()
                     echo "Last stable short commit: ${SHORT_COMMIT_HASH}"
 
+                    // Get the current version of Verrazzano
+                    RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "kubectl get verrazzano -A -o jsonpath='{.items[0].status.version}'").trim()
+                    echo "Current version of Verrazzano: ${RUNNING_OPERATOR_VERSION}"
+
                     // Get the version we are upgrading to
                     VERRAZZANO_UPGRADE_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
                     echo "Version to upgrade to: ${VERRAZZANO_UPGRADE_VERSION}"
+
+                    // If we are already at the upgrade version then no upgrade is needed.
+                    if VERRAZZANO_UPGRADE_VERSION != RUNNING_OPERATOR_VERSION  {
+                        return
+                    }
                  }
 
                 sh """
@@ -164,14 +173,13 @@ pipeline {
 
                 downloadCLI()
 
+//                     ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
+
                 sh """
                     echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_UPGRADE_VERSION}
                 """
             }
         }
-                    /*
-                    ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
-                    */
 
     }
     post {
