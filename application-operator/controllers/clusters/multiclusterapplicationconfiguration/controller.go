@@ -5,9 +5,11 @@ package multiclusterapplicationconfiguration
 
 import (
 	"context"
+
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
@@ -46,7 +48,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == constants.KubeSystem {
+	if req.Namespace == vzconst.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
 		log.Infof("Multi-cluster application configuration resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
@@ -157,6 +159,12 @@ func (r *Reconciler) createOrUpdateAppConfig(ctx context.Context, mcAppConfig cl
 func (r *Reconciler) mutateAppConfig(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration, oamAppConfig *v1alpha2.ApplicationConfiguration) {
 	oamAppConfig.Spec = mcAppConfig.Spec.Template.Spec
 	oamAppConfig.Labels = mcAppConfig.Spec.Template.Metadata.Labels
+	// Mark the app config we unwrapped with verrazzano-managed=true, to distinguish from
+	// those that the user might have created directly
+	if oamAppConfig.Labels == nil {
+		oamAppConfig.Labels = map[string]string{}
+	}
+	oamAppConfig.Labels[vzconst.VerrazzanoManagedLabelKey] = constants.LabelVerrazzanoManagedDefault
 	oamAppConfig.Annotations = mcAppConfig.Spec.Template.Metadata.Annotations
 }
 

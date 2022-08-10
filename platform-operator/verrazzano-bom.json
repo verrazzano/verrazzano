@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20220802182047-c0868153c",
+              "tag": "v1.1.1-20220809190136-943f98fb0",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.1.1-20220802182047-c0868153c",
+              "tag": "v1.1.1-20220809190136-943f98fb0",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -197,7 +197,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20220802182047-c0868153c",
+              "tag": "v1.1.1-20220809190136-943f98fb0",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
@@ -231,7 +231,7 @@
             },
             {
               "image": "grafana",
-              "tag": "v7.5.15",
+              "tag": "v7.5.15-20220809163103-24d2f584",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -251,7 +251,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20220802182047-c0868153c",
+              "tag": "v1.1.1-20220809190136-943f98fb0",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -358,7 +358,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.42.0",
+              "tag": "v1.42.0-20220809183027-16c3e409",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
@@ -420,7 +420,7 @@
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.55.1",
+              "tag": "v0.55.1-20220809181134-615042e9",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
@@ -438,7 +438,7 @@
           "images": [
             {
               "image": "prometheus-config-reloader",
-              "tag": "v0.55.1",
+              "tag": "v0.55.1-20220809181134-615042e9",
               "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
               "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
             }
@@ -462,7 +462,7 @@
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.34.0-1",
+              "tag": "v2.34.0-20220809191930-6df068d2",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
@@ -641,18 +641,18 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.8.1",
+              "tag": "v1.8.1-20220617192749-f0db842f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "velero-plugin-for-aws",
-              "tag": "v1.4.1",
+              "tag": "v1.4.1-20220617193554-272b3ebc",
               "helmFullImageKey": "initContainers[0].image"
             },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.8.1",
+              "tag": "v1.8.1-20220617192909-f0db842f",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]

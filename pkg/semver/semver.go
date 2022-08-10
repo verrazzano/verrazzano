@@ -166,3 +166,8 @@ func compareVersionSubstring(v1 string, v2 string) int {
 	}
 	return 1
 }
+
+// IsGreaterThanOrEqualTo Returns true if to >= from
+func (v *SemVersion) IsGreaterThanOrEqualTo(from *SemVersion) bool {
+	return v.IsGreatherThan(from) || v.IsEqualTo(from)
+}

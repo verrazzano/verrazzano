@@ -16,7 +16,9 @@ import (
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -27,6 +29,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // EnvVarKubeConfig Name of Environment Variable for KUBECONFIG
@@ -327,4 +330,14 @@ func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error)
 		return nil, err
 	}
 	return dynamic.NewForConfig(config)
+}
+
+// GetHostFromIngress returns the url for an Ingress
+func GetURLForIngress(client client.Client, name string, namespace string, scheme string) (string, error) {
+	var ingress = &networkingv1.Ingress{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, ingress)
+	if err != nil {
+		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", name, namespace, err)
+	}
+	return fmt.Sprintf("%s://%s", scheme, ingress.Spec.Rules[0].Host), nil
 }

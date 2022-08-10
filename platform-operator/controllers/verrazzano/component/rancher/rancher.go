@@ -11,9 +11,11 @@ import (
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -91,12 +93,40 @@ const (
 )
 
 const (
-	APIGroupRancherManagement        = "management.cattle.io"
-	APIGroupVersionRancherManagement = "v3"
-	SettingServerURL                 = "server-url"
-	KontainerDriverOKE               = "oraclecontainerengine"
-	NodeDriverOCI                    = "oci"
-	ClusterLocal                     = "local"
+	APIGroupRancherManagement                     = "management.cattle.io"
+	APIGroupVersionRancherManagement              = "v3"
+	SettingServerURL                              = "server-url"
+	SettingFirstLogin                             = "first-login"
+	KontainerDriverOKE                            = "oraclecontainerengine"
+	NodeDriverOCI                                 = "oci"
+	ClusterLocal                                  = "local"
+	AuthConfigKeycloak                            = "keycloakoidc"
+	AuthConfigLocal                               = "local"
+	UserVerrazzano                                = "u-verrazzano"
+	UserVerrazzanoDescription                     = "Verrazzano Admin"
+	GlobalRoleBindingVerrazzano                   = "gbr-" + UserVerrazzano
+	AuthConfigKeycloakURLPathVerifyAuth           = "/verify-auth"
+	AuthConfigKeycloakURLPathIssuer               = "/auth/realms/verrazzano-system"
+	AuthConfigKeycloakURLPathAuthEndPoint         = "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
+	AuthConfigKeycloakClientIDRancher             = "rancher"
+	AuthConfigKeycloakAccessMode                  = "unrestricted"
+	AuthConfigKeycloakAttributeAccessMode         = "accessMode"
+	AuthConfigKeycloakAttributeClientID           = "clientId"
+	AuthConfigAttributeEnabled                    = "enabled"
+	AuthConfigKeycloakAttributeGroupSearchEnabled = "groupSearchEnabled"
+	AuthConfigKeycloakAttributeAuthEndpoint       = "authEndpoint"
+	AuthConfigKeycloakAttributeClientSecret       = "clientSecret"
+	AuthConfigKeycloakAttributeIssuer             = "issuer"
+	AuthConfigKeycloakAttributeRancherURL         = "rancherUrl"
+	UserPrincipalKeycloakPrefix                   = "keycloakoidc_user://"
+	UserPrincipalLocalPrefix                      = "local://"
+	UserAttributeDisplayName                      = "displayName"
+	UserAttributeUserName                         = "username"
+	UserAttributePrincipalIDs                     = "principalIds"
+	UserAttributeDescription                      = "description"
+	GlobalRoleBindingAttributeRoleName            = "globalRoleName"
+	GlobalRoleBindingRoleName                     = "admin"
+	GlobalRoleBindingAttributeUserName            = "userName"
 )
 
 var GVKSetting = schema.GroupVersionKind{
@@ -121,6 +151,24 @@ var GVKKontainerDriver = schema.GroupVersionKind{
 	Group:   APIGroupRancherManagement,
 	Version: APIGroupVersionRancherManagement,
 	Kind:    "KontainerDriver",
+}
+
+var GVKAuthConfig = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "AuthConfig",
+}
+
+var GVKUser = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "User",
+}
+
+var GVKGlobalRoleBinding = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "GlobalRoleBinding",
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
@@ -370,7 +418,7 @@ func DeleteLocalCluster(log vzlog.VerrazzanoLogger, c client.Client) {
 	log.Once("Successfully deleted Rancher local cluster")
 }
 
-// activateOCIDriver activates the oci nodeDriver
+// activateOCIDriver activates the OCI nodeDriver
 func activateOCIDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
 	ociDriver := unstructured.Unstructured{}
 	ociDriver.SetGroupVersionKind(GVKNodeDriver)
@@ -410,7 +458,7 @@ func activatOKEDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
 	return nil
 }
 
-// putServerURL updates the server-url Setting kontainerDriver
+// putServerURL updates the server-url Setting
 func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string) error {
 	serverURLSetting := unstructured.Unstructured{}
 	serverURLSetting.SetGroupVersionKind(GVKSetting)
@@ -424,6 +472,168 @@ func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string)
 	err = c.Update(context.Background(), &serverURLSetting)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("Failed updating server-url Setting: %s", err.Error())
+	}
+
+	return nil
+}
+
+func configureKeycloakOIDC(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	keycloakAuthConfig := unstructured.Unstructured{}
+	keycloakAuthConfig.SetGroupVersionKind(GVKAuthConfig)
+	keycloakAuthConfigName := types.NamespacedName{Name: AuthConfigKeycloak}
+	err := c.Get(context.Background(), keycloakAuthConfigName, &keycloakAuthConfig)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak authConfig: %s", err.Error())
+	}
+
+	keycloakURL, err := k8sutil.GetURLForIngress(c, "keycloak", "keycloak", "https")
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak url: %s", err.Error())
+	}
+
+	rancherURL, err := k8sutil.GetURLForIngress(c, "rancher", "cattle-system", "https")
+	if err != nil {
+		log.Oncef("skipping configuring keycloak as OIDC provider for rancher, unable to fetch rancher url: %s", err.Error())
+		return nil
+	}
+
+	clientSecret, err := keycloak.GetRancherClientSecretFromKeycloak(ctx)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch rancher client secret: %s", err.Error())
+	}
+
+	authConfig := keycloakAuthConfig.UnstructuredContent()
+	authConfig[AuthConfigKeycloakAttributeAccessMode] = AuthConfigKeycloakAccessMode
+	authConfig[AuthConfigKeycloakAttributeClientID] = AuthConfigKeycloakClientIDRancher
+	authConfig[AuthConfigKeycloakAttributeGroupSearchEnabled] = true
+	authConfig[AuthConfigKeycloakAttributeAuthEndpoint] = keycloakURL + AuthConfigKeycloakURLPathAuthEndPoint
+	authConfig[AuthConfigKeycloakAttributeClientSecret] = clientSecret
+	authConfig[AuthConfigKeycloakAttributeIssuer] = keycloakURL + AuthConfigKeycloakURLPathIssuer
+	authConfig[AuthConfigKeycloakAttributeRancherURL] = rancherURL + AuthConfigKeycloakURLPathVerifyAuth
+
+	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher: %s", err.Error())
+	}
+
+	return nil
+}
+
+func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	vzRancherUser := unstructured.Unstructured{}
+	vzRancherUser.SetGroupVersionKind(GVKUser)
+	vzRancherUserName := types.NamespacedName{Name: UserVerrazzano}
+	err := c.Get(context.Background(), vzRancherUserName, &vzRancherUser)
+	createUser := false
+	if err != nil {
+		if errors.IsNotFound(err) {
+			createUser = true
+			log.Debug("Rancher user verrazzano does not exist")
+		} else {
+			return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user: %s", err.Error())
+		}
+	}
+
+	vzUser, err := keycloak.GetVerrazzanoUserFromKeycloak(ctx)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user id from keycloak: %s", err.Error())
+	}
+
+	userData := vzRancherUser.UnstructuredContent()
+	userData[UserAttributeUserName] = vzUser.Username
+	userData[UserAttributeDisplayName] = strings.Title(vzUser.Username)
+	userData[UserAttributeDescription] = strings.Title(UserVerrazzanoDescription)
+	userData[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + UserVerrazzano}
+
+	if createUser {
+		vzRancherUser.SetName(UserVerrazzano)
+		err = c.Create(context.Background(), &vzRancherUser, &client.CreateOptions{})
+	} else {
+		err = c.Update(context.Background(), &vzRancherUser, &client.UpdateOptions{})
+	}
+
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user: %s", err.Error())
+	}
+
+	return nil
+}
+
+func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	vzRancherGlobalRoleBinding := unstructured.Unstructured{}
+	vzRancherGlobalRoleBinding.SetGroupVersionKind(GVKGlobalRoleBinding)
+	vzRancherGRBName := types.NamespacedName{Name: GlobalRoleBindingVerrazzano}
+	err := c.Get(context.Background(), vzRancherGRBName, &vzRancherGlobalRoleBinding)
+	createNew := false
+	if err != nil {
+		if errors.IsNotFound(err) {
+			createNew = true
+			log.Debug("Rancher GlobalRoleBinding for verrazzano user does not exist")
+		} else {
+			return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user GlobalRoleBinding, unable to fetch GlobalRoleBinding: %s", err.Error())
+		}
+	}
+
+	globalRoleBindingData := vzRancherGlobalRoleBinding.UnstructuredContent()
+	globalRoleBindingData[GlobalRoleBindingAttributeRoleName] = GlobalRoleBindingRoleName
+	globalRoleBindingData[GlobalRoleBindingAttributeUserName] = UserVerrazzano
+
+	if createNew {
+		vzRancherGlobalRoleBinding.SetName(GlobalRoleBindingVerrazzano)
+		err = c.Create(context.Background(), &vzRancherGlobalRoleBinding, &client.CreateOptions{})
+	} else {
+		err = c.Update(context.Background(), &vzRancherGlobalRoleBinding, &client.UpdateOptions{})
+	}
+
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user GlobalRoleBinding: %s", err.Error())
+	}
+
+	return nil
+}
+
+func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string, enable bool) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	authConfig := unstructured.Unstructured{}
+	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfigName := types.NamespacedName{Name: name}
+	err := c.Get(context.Background(), authConfigName, &authConfig)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, unable to fetch, error: %s", enable, name, err.Error())
+	}
+
+	authConfigData := authConfig.UnstructuredContent()
+	authConfigData[AuthConfigAttributeEnabled] = enable
+	err = c.Update(context.Background(), &authConfig, &client.UpdateOptions{})
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, error: %s", enable, name, err.Error())
+	}
+
+	return nil
+}
+
+func disableFirstLogin(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	firstLoginSetting := unstructured.Unstructured{}
+	firstLoginSetting.SetGroupVersionKind(GVKSetting)
+	firstLoginSettingName := types.NamespacedName{Name: SettingFirstLogin}
+	err := c.Get(context.Background(), firstLoginSettingName, &firstLoginSetting)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting first-login Setting: %s", err.Error())
+	}
+
+	firstLoginSetting.UnstructuredContent()["value"] = "false"
+	err = c.Update(context.Background(), &firstLoginSetting)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed updating first-login Setting: %s", err.Error())
 	}
 
 	return nil

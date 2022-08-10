@@ -675,6 +675,9 @@ type RancherComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
+	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is false.
+	// +optional
+	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
 }
 
 // RancherBackupComponent specifies the Rancher Backup configuration
