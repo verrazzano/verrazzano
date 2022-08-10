@@ -4,7 +4,7 @@
 properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
     maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
     [$class: 'BuildDiscarderProperty',    strategy: [$class: 'LogRotator', numToKeepStr: '10']],
-    pipelineTriggers([cron('')]),])
+    pipelineTriggers([cron('45 14 * * *')]),])
 
 pipeline {
     options {
@@ -150,7 +150,6 @@ pipeline {
                     // Get the last stable commit ID that passed the triggered tests
                     def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
                     GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
-                    echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_TO_USE}").trim()
                     echo "Last stable short commit: ${SHORT_COMMIT_HASH}"
 
@@ -168,10 +167,12 @@ pipeline {
 
                 sh """
                     echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_UPGRADE_VERSION}
-    //                ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
                 """
             }
         }
+                    /*
+                    ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
+                    */
 
     }
     post {
