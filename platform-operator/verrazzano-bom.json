@@ -426,7 +426,7 @@
             },
             {
               "image": "kube-webhook-certgen",
-              "tag": "1.1.1-20220414195226-864e56292",
+              "tag": "v1.1.1-20220809190136-943f98fb0",
               "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
               "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
             }
@@ -479,7 +479,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.9.1-20220803141232-f097a569",
+              "tag": "v0.9.1-20220810134842-f097a569",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -513,7 +513,7 @@
           "images": [
             {
               "image": "prometheus-pushgateway",
-              "tag": "v1.4.2",
+              "tag": "v1.4.2-20220810135136-71204144",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
