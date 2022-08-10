@@ -10,7 +10,9 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,9 +23,17 @@ import (
 	"testing"
 )
 
+var deployment = &appsv1.Deployment{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: jaegerNamespace,
+		Name:      jaegerOperatorName,
+	},
+}
+
 func TestConfigureJaegerCR(t *testing.T) {
 	type fields struct {
 		mcRegSecret  *corev1.Secret
+		joDeployment *appsv1.Deployment
 		jaegerCreate bool
 		mutualTLS    bool
 	}
@@ -31,18 +41,24 @@ func TestConfigureJaegerCR(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		{"Default Jaeger instance", fields{mcRegSecret: createMCRegSecretWithoutMutualTLS(), jaegerCreate: true}},
+		{"Default Jaeger instance", fields{mcRegSecret: createMCRegSecretWithoutMutualTLS(),
+			joDeployment: deployment, jaegerCreate: true}},
 		{"Jaeger instance with external OpenSearch mutual TLS", fields{mcRegSecret: createMCRegSecretWithMutualTLS(),
-			jaegerCreate: true, mutualTLS: true}},
-		{"OpenSearch URL not present", fields{mcRegSecret: &corev1.Secret{}, jaegerCreate: false}},
-		{"MC registration secret not exists", fields{mcRegSecret: &corev1.Secret{}, jaegerCreate: false}},
+			joDeployment: deployment, jaegerCreate: true, mutualTLS: true}},
+		{"OpenSearch URL not present", fields{mcRegSecret: &corev1.Secret{},
+			joDeployment: deployment, jaegerCreate: false}},
+		{"MC registration secret not exists", fields{mcRegSecret: &corev1.Secret{}, joDeployment: deployment,
+			jaegerCreate: false}},
+		{"Jaeger Operator not installed", fields{mcRegSecret: &corev1.Secret{},
+			joDeployment: &appsv1.Deployment{}, jaegerCreate: false}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
+			_ = appsv1.AddToScheme(scheme)
 			mgdClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-				tt.fields.mcRegSecret).Build()
+				tt.fields.mcRegSecret, tt.fields.joDeployment).Build()
 			adminClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 			s := &Syncer{

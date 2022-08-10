@@ -8,7 +8,9 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,6 +21,7 @@ import (
 )
 
 const (
+	jaegerOperatorName = "jaeger-operator"
 	jaegerNamespace    = constants.VerrazzanoMonitoringNamespace
 	jaegerAPIVersion   = "jaegertracing.io/v1"
 	jaegerKind         = "Jaeger"
@@ -87,6 +90,10 @@ spec:
 
 // Creates or Updates Jaeger CR
 func (s *Syncer) configureJaegerCR() {
+	// Skip the creation of Jaeger instance if Jaeger Operator is not installed
+	if !s.isJaegerOperatorConfigured() {
+		return
+	}
 	var osURL, clusterName string
 	// Get the secret containing managed cluster name and OpenSearch URL
 	secretNamespacedName := types.NamespacedName{Name: constants.MCRegistrationSecret,
@@ -196,4 +203,21 @@ func (s *Syncer) createJaegerSecret(secName string, mcSecret corev1.Secret) erro
 		return err
 	}
 	return nil
+}
+
+func (s *Syncer) isJaegerOperatorConfigured() bool {
+	namespaceName := types.NamespacedName{Name: jaegerOperatorName, Namespace: jaegerNamespace}
+	deployment := appsv1.Deployment{}
+	err := s.LocalClient.Get(context.TODO(), namespaceName, &deployment)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			s.Log.Debugf("Jaeger Operator deployment %s/%s does not exit. Skipping Jaeger instance creation",
+				jaegerNamespace, jaegerOperatorName)
+			return false
+		}
+		s.Log.Errorf("Failed to check Jaeger Operator deployment %s/%s: %v", jaegerNamespace, jaegerOperatorName,
+			err)
+		return false
+	}
+	return true
 }
