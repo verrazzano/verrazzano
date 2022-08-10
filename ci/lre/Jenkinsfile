@@ -28,7 +28,8 @@ pipeline {
         choice (name: 'LRE_CLUSTER',
                 description: 'Which LRE cluster to run the test against',
                 // 1st choice is the default value
-                choices: [ "dev", "prod" ])
+                // Currently, dev is the only option
+                choices: [ "dev" ])
     }
 
     environment {
@@ -66,9 +67,6 @@ pipeline {
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-
-	    WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
-        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
     }
 
     stages {
@@ -106,32 +104,10 @@ pipeline {
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
                 """
-
-                script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
-                }
-            }
         }
 
         stage('Set kubeconfig') {
             steps {
-                script {
-                    switch(env.LRE_CLUSTER_ENV) {
-                        case "dev":
-                            env.LRE_KUBECONFIG = "config.dev.lre"
-                            break
-                        case "prod":
-                            // Placeholder for prod - not functioning yet
-                            env.LRE_KUBECONFIG = "config.prod.lre"
-                            break
-                        default:
-                            env.LRE_KUBECONFIG = "config.dev.lre"
-                            break
-                    }
                     sh """
                         mkdir -p ${WORKSPACE}/.kube
                         cp ${DEV_LRE_KUBECONFIG} ${KUBECONFIG}
@@ -172,7 +148,8 @@ pipeline {
                     """
                 }
             }
-        }
+       }
+
        stage('Upgrade to stable commit') {
             steps {
                 sh """
