@@ -81,7 +81,7 @@ var _ = t.BeforeSuite(func() {
 		"It should be possible to create a Grafana dashboard and persist it.")
 })
 
-var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
+var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.logging.es"), func() {
 
 	// GIVEN a running grafana instance,
 	// WHEN a GET call is made  to Grafana with the UID of the newly created testDashboard,
