@@ -182,7 +182,7 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 	if err != nil {
 		return err
 	}
-	convertURL := "/convert-verrazzano-install"
+	convertPath := "/convert"
 	var webhookPort int32 = 443
 	crd.Spec.Conversion = &apiextensionsv1.CustomResourceConversion{
 		Strategy: apiextensionsv1.WebhookConverter,
@@ -191,7 +191,7 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 				Service: &apiextensionsv1.ServiceReference{
 					Name:      OperatorName,
 					Namespace: OperatorNamespace,
-					Path:      &convertURL,
+					Path:      &convertPath,
 					Port:      &webhookPort,
 				},
 				CABundle: caCert.Bytes(),
