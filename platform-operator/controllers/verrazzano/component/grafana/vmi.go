@@ -53,6 +53,6 @@ func newGrafana(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, exi
 			Name:           grafanaSpec.Database.Name,
 		}
 	}
-	log.Infof("VMO grafana spec: %v", grafana)
+	log.Debugf("VMO grafana spec: %v", grafana)
 	return grafana
 }
