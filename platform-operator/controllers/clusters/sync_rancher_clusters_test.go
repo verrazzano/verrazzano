@@ -81,12 +81,12 @@ func TestSyncRancherClusters(t *testing.T) {
 
 	// we should have created two VMCs
 	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterID1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterName1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
 	asserts.Equal(clusterID1, cr.Status.RancherRegistration.ClusterID)
 
-	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterID2, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterName2, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
 	asserts.Equal(clusterID2, cr.Status.RancherRegistration.ClusterID)
@@ -132,17 +132,17 @@ func TestSyncRancherClustersWithPaging(t *testing.T) {
 
 	// we should have created three VMCs (2 from the first page of the clusters API response and one from the 2nd)
 	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterID1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterName1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
 	asserts.Equal(clusterID1, cr.Status.RancherRegistration.ClusterID)
 
-	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterID2, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterName2, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
 	asserts.Equal(clusterID2, cr.Status.RancherRegistration.ClusterID)
 
-	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterID3, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterName3, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
 	asserts.Equal(clusterID3, cr.Status.RancherRegistration.ClusterID)

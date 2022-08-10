@@ -118,12 +118,16 @@ func (r *RancherClusterSyncer) ensureVMCs(rancherClusters []rancherCluster, log 
 				log.Infof("Creating empty VMC for discovered Rancher cluster with name: %s", rancherCluster.name)
 				vmc := newVMC(rancherCluster)
 				if err := r.Create(context.TODO(), vmc); err != nil {
-					log.Infof("Unable to create VMC with name %s: %v", rancherCluster.name, err)
+					log.Errorf("Unable to create VMC with name %s: %v", rancherCluster.name, err)
+					return err
+				}
+				if err := r.Status().Update(context.TODO(), vmc); err != nil {
+					log.Errorf("Unable to update VMC status with name %s: %v", rancherCluster.name, err)
 					return err
 				}
 				continue
 			}
-			log.Infof("Unable to get VMC with name %s: %v", rancherCluster.name, err)
+			log.Errorf("Unable to get VMC with name %s: %v", rancherCluster.name, err)
 			return err
 		}
 	}
@@ -135,8 +139,7 @@ func (r *RancherClusterSyncer) ensureVMCs(rancherClusters []rancherCluster, log 
 func newVMC(rancherCluster rancherCluster) *clustersv1alpha1.VerrazzanoManagedCluster {
 	return &clustersv1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: v1.ObjectMeta{
-			// VMC name is the Rancher cluster ID to guarantee uniqueness
-			Name:      rancherCluster.id,
+			Name:      rancherCluster.name,
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 			Labels: map[string]string{
 				createdByLabel: createdByVerrazzano,
@@ -156,7 +159,7 @@ func (r *RancherClusterSyncer) deleteVMCs(rancherClusters []rancherCluster, log 
 	clusterList := &clustersv1alpha1.VerrazzanoManagedClusterList{}
 	selector := &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{createdByLabel: createdByVerrazzano})}
 	if err := r.List(context.TODO(), clusterList, &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}, selector); err != nil {
-		log.Infof("Unable to list VMCs: %v", err)
+		log.Errorf("Unable to list VMCs: %v", err)
 		return err
 	}
 
@@ -166,11 +169,10 @@ func (r *RancherClusterSyncer) deleteVMCs(rancherClusters []rancherCluster, log 
 		if cluster.Name == localClusterName {
 			continue
 		}
-		// VMC name is the Rancher cluster ID
 		if !clusterInRancher(cluster.Name, rancherClusters) {
 			log.Infof("Deleting VMC %s because it is no longer in Rancher", cluster.Name)
 			if err := r.Delete(context.TODO(), &cluster); err != nil {
-				log.Infof("Unable to delete VMC: %v", err)
+				log.Errorf("Unable to delete VMC: %v", err)
 				return err
 			}
 		}
@@ -180,9 +182,9 @@ func (r *RancherClusterSyncer) deleteVMCs(rancherClusters []rancherCluster, log 
 }
 
 // clusterInRancher returns true if the cluster id is in the list of clusters in Rancher
-func clusterInRancher(clusterID string, rancherClusters []rancherCluster) bool {
+func clusterInRancher(clusterName string, rancherClusters []rancherCluster) bool {
 	for _, rancherCluster := range rancherClusters {
-		if clusterID == rancherCluster.id {
+		if clusterName == rancherCluster.name {
 			return true
 		}
 	}
