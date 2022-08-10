@@ -10,7 +10,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -81,7 +80,7 @@ func (r *RancherClusterSyncer) syncRancherClusters(log vzlog.VerrazzanoLogger) {
 		return
 	}
 
-	clusterNames, newClustersResponseHash, err := getAllClustersInRancher(rc, log)
+	clusters, newClustersResponseHash, err := getAllClustersInRancher(rc, log)
 	if err != nil {
 		log.Errorf("Error getting cluster list from Rancher: %v", err)
 		return
@@ -94,10 +93,10 @@ func (r *RancherClusterSyncer) syncRancherClusters(log vzlog.VerrazzanoLogger) {
 	}
 
 	// for every cluster (ignoring "local") make sure a VMC exists
-	ensureErr := r.ensureVMCs(clusterNames, log)
+	ensureErr := r.ensureVMCs(clusters, log)
 
 	// for any auto-created VMC objects that do not have a Rancher cluster, delete the VMC resource
-	deleteErr := r.deleteVMCs(clusterNames, log)
+	deleteErr := r.deleteVMCs(clusters, log)
 
 	// only update the hash if there were no errors, so that we retry on the next run of this function
 	if ensureErr == nil && deleteErr == nil {
@@ -106,25 +105,25 @@ func (r *RancherClusterSyncer) syncRancherClusters(log vzlog.VerrazzanoLogger) {
 }
 
 // ensureVMCs ensures that there is a VMC resource for every cluster in Rancher, creating VMCs as necessary
-func (r *RancherClusterSyncer) ensureVMCs(rancherClusterNames []string, log vzlog.VerrazzanoLogger) error {
-	for _, clusterName := range rancherClusterNames {
+func (r *RancherClusterSyncer) ensureVMCs(rancherClusters []rancherCluster, log vzlog.VerrazzanoLogger) error {
+	for _, rancherCluster := range rancherClusters {
 		// ignore the "local" cluster
-		if clusterName == localClusterName {
+		if rancherCluster.name == localClusterName {
 			continue
 		}
 
 		cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
-		if err := r.Get(context.TODO(), types.NamespacedName{Name: clusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr); err != nil {
+		if err := r.Get(context.TODO(), types.NamespacedName{Name: rancherCluster.name, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr); err != nil {
 			if errors.IsNotFound(err) {
-				log.Infof("Creating empty VMC for discovered Rancher cluster with name: %s", clusterName)
-				vmc := newVMC(clusterName)
+				log.Infof("Creating empty VMC for discovered Rancher cluster with name: %s", rancherCluster.name)
+				vmc := newVMC(rancherCluster)
 				if err := r.Create(context.TODO(), vmc); err != nil {
-					log.Infof("Unable to create VMC with name %s: %v", clusterName, err)
+					log.Infof("Unable to create VMC with name %s: %v", rancherCluster.name, err)
 					return err
 				}
 				continue
 			}
-			log.Infof("Unable to get VMC with name %s: %v", clusterName, err)
+			log.Infof("Unable to get VMC with name %s: %v", rancherCluster.name, err)
 			return err
 		}
 	}
@@ -133,20 +132,26 @@ func (r *RancherClusterSyncer) ensureVMCs(rancherClusterNames []string, log vzlo
 }
 
 // newVMC returns a minimally populated VMC object
-func newVMC(name string) *clustersv1alpha1.VerrazzanoManagedCluster {
+func newVMC(rancherCluster rancherCluster) *clustersv1alpha1.VerrazzanoManagedCluster {
 	return &clustersv1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      name,
+			// VMC name is the Rancher cluster ID to guarantee uniqueness
+			Name:      rancherCluster.id,
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 			Labels: map[string]string{
 				createdByLabel: createdByVerrazzano,
+			},
+		},
+		Status: clustersv1alpha1.VerrazzanoManagedClusterStatus{
+			RancherRegistration: clustersv1alpha1.RancherRegistration{
+				ClusterID: rancherCluster.id,
 			},
 		},
 	}
 }
 
 // deleteVMCs deletes any auto-created VMCs that are no longer in Rancher
-func (r *RancherClusterSyncer) deleteVMCs(rancherClusterNames []string, log vzlog.VerrazzanoLogger) error {
+func (r *RancherClusterSyncer) deleteVMCs(rancherClusters []rancherCluster, log vzlog.VerrazzanoLogger) error {
 	// list the VMCs using a selector to only get the auto-created resources
 	clusterList := &clustersv1alpha1.VerrazzanoManagedClusterList{}
 	selector := &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{createdByLabel: createdByVerrazzano})}
@@ -161,8 +166,9 @@ func (r *RancherClusterSyncer) deleteVMCs(rancherClusterNames []string, log vzlo
 		if cluster.Name == localClusterName {
 			continue
 		}
-		if !vzstring.SliceContainsString(rancherClusterNames, cluster.Name) {
-			log.Infof("Deleting VMC %s because it is no longer in Rancher")
+		// VMC name is the Rancher cluster ID
+		if !clusterInRancher(cluster.Name, rancherClusters) {
+			log.Infof("Deleting VMC %s because it is no longer in Rancher", cluster.Name)
 			if err := r.Delete(context.TODO(), &cluster); err != nil {
 				log.Infof("Unable to delete VMC: %v", err)
 				return err
@@ -171,4 +177,14 @@ func (r *RancherClusterSyncer) deleteVMCs(rancherClusterNames []string, log vzlo
 	}
 
 	return nil
+}
+
+// clusterInRancher returns true if the cluster id is in the list of clusters in Rancher
+func clusterInRancher(clusterID string, rancherClusters []rancherCluster) bool {
+	for _, rancherCluster := range rancherClusters {
+		if clusterID == rancherCluster.id {
+			return true
+		}
+	}
+	return false
 }

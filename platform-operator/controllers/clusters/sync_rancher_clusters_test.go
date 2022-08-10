@@ -30,9 +30,14 @@ import (
 )
 
 const (
-	clusterName1                 = "test-cluster-1"
-	clusterName2                 = "test-cluster-2"
-	clusterName3                 = "test-cluster-3"
+	clusterName1 = "test-cluster-1"
+	clusterName2 = "test-cluster-2"
+	clusterName3 = "test-cluster-3"
+
+	clusterID1 = "c-6fw7h"
+	clusterID2 = "c-2rd1k"
+	clusterID3 = "c-9gx3y"
+
 	preExistingClusterNotLabeled = "test-cluster-not-labeled"
 	preExistingClusterLabeled    = "test-cluster-labeled"
 )
@@ -76,13 +81,15 @@ func TestSyncRancherClusters(t *testing.T) {
 
 	// we should have created two VMCs
 	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterName1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterID1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
+	asserts.Equal(clusterID1, cr.Status.RancherRegistration.ClusterID)
 
-	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterName2, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterID2, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
+	asserts.Equal(clusterID2, cr.Status.RancherRegistration.ClusterID)
 
 	// the pre-existing VMC that is not labeled (so not auto-created) should still be here
 	err = r.Get(context.TODO(), types.NamespacedName{Name: preExistingClusterNotLabeled, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
@@ -125,17 +132,20 @@ func TestSyncRancherClustersWithPaging(t *testing.T) {
 
 	// we should have created three VMCs (2 from the first page of the clusters API response and one from the 2nd)
 	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterName1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterID1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
+	asserts.Equal(clusterID1, cr.Status.RancherRegistration.ClusterID)
 
-	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterName2, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterID2, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
+	asserts.Equal(clusterID2, cr.Status.RancherRegistration.ClusterID)
 
-	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterName3, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	err = r.Get(context.TODO(), types.NamespacedName{Name: clusterID3, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
+	asserts.Equal(clusterID3, cr.Status.RancherRegistration.ClusterID)
 }
 
 // createK8sFake creates a k8s fake populated with resources for testing
@@ -199,10 +209,12 @@ func expectHTTPCalls(httpMock *mocks.MockRequestSender, testPaging bool) {
 			var r io.ReadCloser
 			if testPaging {
 				// if we're testing paging, include a next page URL
-				data := `{"pagination":{"next":"https://host` + clustersPath + `?token=test"}, "data":[{"name":"` + clusterName1 + `"},{"name":"` + clusterName2 + `"}]}`
+				data := `{"pagination":{"next":"https://host` + clustersPath + `?token=test"}, "data":[{"name":"` +
+					clusterName1 + `","id":"` + clusterID1 + `"},{"name":"` + clusterName2 + `","id":"` + clusterID2 + `"}]}`
 				r = ioutil.NopCloser(bytes.NewReader([]byte(data)))
 			} else {
-				r = ioutil.NopCloser(bytes.NewReader([]byte(`{"data":[{"name":"` + clusterName1 + `"},{"name":"` + clusterName2 + `"}]}`)))
+				data := `{"data":[{"name":"` + clusterName1 + `","id":"` + clusterID1 + `"},{"name":"` + clusterName2 + `","id":"` + clusterID2 + `"}]}`
+				r = ioutil.NopCloser(bytes.NewReader([]byte(data)))
 			}
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
@@ -217,7 +229,8 @@ func expectHTTPCalls(httpMock *mocks.MockRequestSender, testPaging bool) {
 		httpMock.EXPECT().
 			Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath)).
 			DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"data":[{"name":"` + clusterName3 + `"}]}`)))
+				data := `{"data":[{"name":"` + clusterName3 + `","id":"` + clusterID3 + `"}]}`
+				r := ioutil.NopCloser(bytes.NewReader([]byte(data)))
 				resp := &http.Response{
 					StatusCode: http.StatusOK,
 					Body:       r,

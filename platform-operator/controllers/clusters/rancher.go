@@ -60,6 +60,11 @@ type rancherConfig struct {
 	additionalCA             []byte
 }
 
+type rancherCluster struct {
+	name string
+	id   string
+}
+
 var defaultRetry = wait.Backoff{
 	Steps:    10,
 	Duration: 1 * time.Second,
@@ -202,13 +207,13 @@ func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log vzlog.Ve
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "data.0.id", "unable to find clusterId in Rancher response")
 }
 
-// getAllClustersInRancher returns a slice of the cluster names registered with Rancher
-func getAllClustersInRancher(rc *rancherConfig, log vzlog.VerrazzanoLogger) ([]string, []byte, error) {
+// getAllClustersInRancher returns cluster information for every cluster registered with Rancher
+func getAllClustersInRancher(rc *rancherConfig, log vzlog.VerrazzanoLogger) ([]rancherCluster, []byte, error) {
 	reqURL := rc.baseURL + clustersPath
 	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
 
 	hash := md5.New() //nolint:gosec //#gosec G401
-	clusterNames := []string{}
+	clusters := []rancherCluster{}
 	for {
 		response, responseBody, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
 		if response != nil && response.StatusCode != http.StatusOK {
@@ -233,9 +238,18 @@ func getAllClustersInRancher(rc *rancherConfig, log vzlog.VerrazzanoLogger) ([]s
 
 		for _, item := range items {
 			i := item.(map[string]interface{})
-			if name, ok := i["name"]; ok {
-				clusterNames = append(clusterNames, name.(string))
+			var ok bool
+			var name, id interface{}
+			if name, ok = i["name"]; !ok {
+				log.Infof("Expected to find 'name' field in Rancher cluster data: %s", responseBody)
+				continue
 			}
+			if id, ok = i["id"]; !ok {
+				log.Infof("Expected to find 'id' field in Rancher cluster data: %s", responseBody)
+				continue
+			}
+			cluster := rancherCluster{name: name.(string), id: id.(string)}
+			clusters = append(clusters, cluster)
 		}
 
 		// add this response body to the hash
@@ -249,7 +263,7 @@ func getAllClustersInRancher(rc *rancherConfig, log vzlog.VerrazzanoLogger) ([]s
 
 	// unfortunately Rancher does not support ETags, so we return a hash of the response bodies which allows the caller to know if
 	// there were any changes to the clusters
-	return clusterNames, hash.Sum(nil), nil
+	return clusters, hash.Sum(nil), nil
 }
 
 // isManagedClusterActiveInRancher returns true if the managed cluster is active
