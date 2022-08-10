@@ -6,9 +6,6 @@ properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatch
     [$class: 'BuildDiscarderProperty',    strategy: [$class: 'LogRotator', numToKeepStr: '10']],
     pipelineTriggers([cron('')]),])
 
-def GIT_COMMIT_TO_USE
-def LAST_CLEAN_PERIODIC_COMMIT
-
 pipeline {
     options {
         skipDefaultCheckout true
@@ -108,6 +105,7 @@ pipeline {
 
         stage('Set kubeconfig') {
             steps {
+                script {
                     sh """
                         mkdir -p ${WORKSPACE}/.kube
                         cp ${DEV_LRE_KUBECONFIG} ${KUBECONFIG}
@@ -120,11 +118,11 @@ pipeline {
         stage ("Run kubectl commands") {
             steps {
                 script {
-                    sh '''
+                    sh """
                         kubectl get nodes
                         kubectl get pods -A
                         kubectl get vz -A
-                    '''
+                    """
                 }
             }
         }
