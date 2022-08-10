@@ -41,17 +41,21 @@ spec:
     egressGateways:
       - name: istio-egressgateway
         enabled: true
+{{- if .EgressKubernetes }}
         k8s:
           replicaCount: {{.EgressReplicaCount}}
 {{- if .EgressAffinity }}
           affinity:
 {{ multiLineIndent 12 .EgressAffinity }}
 {{- end }}
+{{- end }}
     ingressGateways:
       - name: istio-ingressgateway
         enabled: true
         k8s:
+{{- if .IngressKubernetes }}
           replicaCount: {{.IngressReplicaCount}}
+{{- end }}
           service:
             type: {{.IngressServiceType}}
             {{- if .IngressServicePorts }}
@@ -76,6 +80,8 @@ const (
 )
 
 type istioTemplateData struct {
+	IngressKubernetes   bool
+	EgressKubernetes    bool
 	IngressReplicaCount uint32
 	EgressReplicaCount  uint32
 	IngressAffinity     string
@@ -205,6 +211,7 @@ func configureIngressGateway(istioComponent *v1alpha1.IstioComponent, data *isti
 	}
 	ingress := istioComponent.Ingress
 	if ingress.Kubernetes != nil {
+		data.IngressKubernetes = true
 		data.IngressReplicaCount = ingress.Kubernetes.Replicas
 		if ingress.Kubernetes.Affinity != nil {
 			yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Affinity)
@@ -237,6 +244,7 @@ func configureEgressGateway(istioComponent *v1alpha1.IstioComponent, data *istio
 	}
 	egress := istioComponent.Egress
 	if egress.Kubernetes != nil {
+		data.EgressKubernetes = true
 		data.EgressReplicaCount = egress.Kubernetes.Replicas
 		if egress.Kubernetes.Affinity != nil {
 			yml, err := yaml.Marshal(egress.Kubernetes.Affinity)
