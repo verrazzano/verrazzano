@@ -137,21 +137,18 @@ func isJaegerOperatorReady(ctx spi.ComponentContext) bool {
 
 // isDefaultJaegerReady checks if the deployments of default Jaeger instance managed by VZ are ready
 func isDefaultJaegerReady(ctx spi.ComponentContext) bool {
-	jaegerQueryDeployment := []types.NamespacedName{
+	jaegerDeployments := []types.NamespacedName{
 		{
 			Name:      JaegerQueryDeploymentName,
 			Namespace: ComponentNamespace,
 		},
-	}
-	jaegerCollectorDeployment := []types.NamespacedName{
 		{
 			Name:      JaegerCollectorDeploymentName,
 			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), jaegerQueryDeployment, 1, prefix) &&
-		status.DeploymentsAreReady(ctx.Log(), ctx.Client(), jaegerCollectorDeployment, 1, prefix)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), jaegerDeployments, 1, prefix)
 }
 
 // PreInstall implementation for the Jaeger Operator Component

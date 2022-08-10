@@ -32,6 +32,9 @@ const (
 	serviceAccountNameJSON = "{\"serviceAccount\": {\"name\": \"testServiceAccount\"}}"
 	ingressJSON            = "{\"ingress\": {\"enabled\": true}}"
 	validOverrideJSON      = "{\"serviceAccount\": {\"create\": false}}"
+	defaultJaegerDisabledJSON = "{\"jaeger\":{\"create\": false}}"
+	defaultJaegerEnabledJSON = "{\"jaeger\":{\"create\": true}}"
+	k8sAppNameLabel        = "app.kubernetes.io/name"
 )
 
 var enabled = true
@@ -119,147 +122,17 @@ func TestIsReady(t *testing.T) {
 	tests := []struct {
 		name       string
 		client     client.Client
+		cr         *vzapi.Verrazzano
 		expectTrue bool
 		dryRun     bool
 	}{
-		{
-			// GIVEN the Jaeger Operator deployment exists and there are available replicas
-			// WHEN we call IsReady
-			// THEN the call returns true
-			name: "Test IsReady when Jaeger Operator is successfully deployed",
-			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        deploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerCollectorDeploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerCollectorDeploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        JaegerCollectorDeploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerQueryDeploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerQueryDeploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        JaegerQueryDeploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-			).Build(),
-			expectTrue: true,
-			dryRun:     true,
-		},
-		{
-			// GIVEN the Jaeger Operator deployment exists and there are no available replicas
-			// WHEN we call isJaegerOperatorReady
-			// THEN the call returns false
-			name: "Test IsReady when Jaeger Operator deployment is not ready",
-			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 0,
-						Replicas:          1,
-						UpdatedReplicas:   0,
-					},
-				}).Build(),
-			expectTrue: false,
-			dryRun:     true,
-		},
 		{
 			// GIVEN the Jaeger Operator deployment does not exist
 			// WHEN we call IsReady
 			// THEN the call returns false
 			name:       "Test IsReady when Jaeger Operator deployment does not exist",
 			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			cr:         &vzapi.Verrazzano{},
 			expectTrue: false,
 			dryRun:     true,
 		},
@@ -269,461 +142,137 @@ func TestIsReady(t *testing.T) {
 			// THEN the call returns false
 			name:       "Test IsReady when Jaeger Operator deployment does not exist",
 			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			cr:         &vzapi.Verrazzano{},
 			expectTrue: false,
 			dryRun:     false,
 		},
+		//0XX
 		{
-			// GIVEN the Jaeger Collector deployment exists and there are available replicas
-			// WHEN we call IsReady
-			// THEN the call returns true
-			name: "Test IsReady when Jaeger Collector is successfully deployed",
+			// GIVEN Jaeger operator, collector and query have no available pods,
+			// WHEN we call IsReady,
+			// THEN the call returns false.
+			name: "Test IsReady when Jaeger Operator, Collector and Query are not available",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        deploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerCollectorDeploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerCollectorDeploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        JaegerCollectorDeploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerQueryDeploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerQueryDeploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        JaegerQueryDeploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
+				getAllJaegerObjects(0, 0, 0)...,
 			).Build(),
-			expectTrue: true,
-			dryRun:     true,
-		},
-		{
-			// GIVEN the Jaeger Collector deployment exists and there are no available replicas
-			// WHEN we call IsReady
-			// THEN the call returns false
-			name: "Test IsReady when Jaeger Collector is successfully deployed",
-			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        deploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerCollectorDeploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 0,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerCollectorDeploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        JaegerCollectorDeploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerQueryDeploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerQueryDeploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        JaegerQueryDeploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-			).Build(),
+			cr:         &vzapi.Verrazzano{},
 			expectTrue: false,
 			dryRun:     true,
 		},
 		{
-			// GIVEN the Jaeger Query deployment exists and there are available replicas
-			// WHEN we call IsReady
-			// THEN the call returns true
-			name: "Test IsReady when Jaeger Query is successfully deployed",
+			// GIVEN Jaeger operator and collector have no available pods, but query has available pods,
+			// WHEN we call IsReady,
+			// THEN the call returns false.
+			name: "Test IsReady when Jaeger Operator and Collector is not available but Query is available",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        deploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerCollectorDeploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerCollectorDeploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        JaegerCollectorDeploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerQueryDeploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerQueryDeploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        JaegerQueryDeploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
+				getAllJaegerObjects(0, 0, 1)...,
 			).Build(),
+			cr:         &vzapi.Verrazzano{},
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and query have no available pods, but collector has available pods
+			// WHEN we call IsReady
+			// THEN the call returns false
+			name: "Test IsReady when Jaeger Operator and Query is not available but Collector is available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(0, 1, 0)...,
+			).Build(),
+			cr:         &vzapi.Verrazzano{},
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator has no available pods, but collector and query have available pods
+			// WHEN we call IsReady,
+			// THEN the call returns false.
+			name: "Test IsReady when Jaeger Operator is not available but Query and Collector is available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(0, 1, 1)...,
+			).Build(),
+			cr:         &vzapi.Verrazzano{},
+			expectTrue: false,
+			dryRun:     true,
+		},
+		//1XX
+		{
+			// GIVEN Jaeger operator has available pods but collector and query have no available pods,
+			// WHEN we call IsReady,
+			// THEN the call returns false.
+			name: "Test IsReady when Jaeger Operator is available but Collector and Query are not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 0, 0)...,
+			).Build(),
+			cr:         &vzapi.Verrazzano{},
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and query have available pods but collector has no available pods,
+			// WHEN we call IsReady,
+			// THEN the call returns false.
+			name: "Test IsReady when Jaeger Operator and Query are available but Collector is not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 0, 1)...,
+			).Build(),
+			cr:         &vzapi.Verrazzano{},
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and collector have available pods but query has no available pods,
+			// WHEN we call IsReady,
+			// THEN the call returns false.
+			name: "Test IsReady when Jaeger Operator and Collector is available but Query is not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 0)...,
+			).Build(),
+			cr:         &vzapi.Verrazzano{},
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator, collector and query have available pods,
+			// WHEN we call IsReady,
+			// THEN the call returns false.
+			name: "Test IsReady when Jaeger Operator, Collector and Query pods are available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 1)...,
+			).Build(),
+			cr:         &vzapi.Verrazzano{},
 			expectTrue: true,
 			dryRun:     true,
 		},
 		{
-			// GIVEN the Jaeger Query deployment exists and there are no available replicas
-			// WHEN we call IsReady
-			// THEN the call returns false
-			name: "Test IsReady when Jaeger Query is successfully deployed",
+			// GIVEN Jaeger operator has available pods and VZ managed default jaeger CR is disabled,
+			// WHEN we call IsReady,
+			// THEN the call returns true.
+			name: "Test IsReady when Jaeger Operator is available but default Jaeger CR is disabled",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        deploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerCollectorDeploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerCollectorDeploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        JaegerCollectorDeploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerQueryDeploymentName,
-						Labels:    map[string]string{"name": ComponentName},
-					},
-					Spec: appsv1.DeploymentSpec{
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"name": ComponentName},
-						},
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 0,
-						Replicas:          1,
-						UpdatedReplicas:   1,
-					},
-				},
-				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      JaegerQueryDeploymentName + "-95d8c5d96-m6mbr",
-						Labels: map[string]string{
-							"pod-template-hash": "95d8c5d96",
-							"name":              ComponentName,
-						},
-					},
-				},
-				&appsv1.ReplicaSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:   ComponentNamespace,
-						Name:        JaegerQueryDeploymentName + "-95d8c5d96",
-						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
-					},
-				},
+				getJaegerOperatorObjects(1)...,
 			).Build(),
+			cr:         getVZCRWithDefaultJaegerOverride(defaultJaegerDisabledJSON),
+			expectTrue: true,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator has available pods and VZ managed default jaeger CR is explicitly enabled without
+			//       deployments for collector and query components,
+			// WHEN we call IsReady,
+			// THEN the call returns false.
+			name: "Test IsReady when Jaeger Operator is available and default Jaeger CR is enabled without query and collector deployments",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getJaegerOperatorObjects(1)...,
+			).Build(),
+			cr:         getVZCRWithDefaultJaegerOverride(defaultJaegerEnabledJSON),
 			expectTrue: false,
 			dryRun:     true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, tt.dryRun)
+			ctx := spi.NewFakeContext(tt.client, tt.cr, tt.dryRun)
 			assert.Equal(t, tt.expectTrue, NewComponent().IsReady(ctx))
 		})
 	}
@@ -1279,6 +828,158 @@ func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
 			},
 			createFakeClient(vzIngressService),
 			nil,
+		},
+	}
+}
+
+func getAllJaegerObjects(operatorReplicas, collectorReplicas, queryReplicas int32) []client.Object {
+	allJaegerObjects := append(getJaegerOperatorObjects(operatorReplicas), getJaegerCollectorObjects(collectorReplicas)...)
+	allJaegerObjects = append(allJaegerObjects, getJaegerQueryObjects(queryReplicas)...)
+	return allJaegerObjects
+}
+
+// getJaegerOperatorObjects returns the K8S objects for the Jaeger Operator component.
+func getJaegerOperatorObjects(availableReplicas int32) []client.Object {
+	return []client.Object{
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      deploymentName,
+				Labels:    map[string]string{k8sAppNameLabel: ComponentName},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{k8sAppNameLabel: ComponentName},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: availableReplicas,
+				ReadyReplicas:     availableReplicas,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      deploymentName + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					k8sAppNameLabel:     ComponentName,
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        deploymentName + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+	}
+}
+
+// getJaegerCollectorObjects returns the K8S objects for the Jaeger Collector component.
+func getJaegerCollectorObjects(availableReplicas int32) []client.Object {
+	return []client.Object{
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      JaegerCollectorDeploymentName,
+				Labels:    map[string]string{k8sAppNameLabel: JaegerCollectorDeploymentName},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{k8sAppNameLabel: JaegerCollectorDeploymentName},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: availableReplicas,
+				ReadyReplicas:     availableReplicas,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      JaegerCollectorDeploymentName + "-95d8c4c96-m6ncr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c4c96",
+					k8sAppNameLabel:     JaegerCollectorDeploymentName,
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        JaegerCollectorDeploymentName + "-95d8c4c96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+	}
+}
+
+// getJaegerQueryObjects returns the K8S objects for the Jaeger Query component.
+func getJaegerQueryObjects(availableReplicas int32) []client.Object {
+	return []client.Object{
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      JaegerQueryDeploymentName,
+				Labels:    map[string]string{k8sAppNameLabel: JaegerQueryDeploymentName},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{k8sAppNameLabel: JaegerQueryDeploymentName},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: availableReplicas,
+				ReadyReplicas:     availableReplicas,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      JaegerQueryDeploymentName + "-95d8c3b96-m689r",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c3b96",
+					k8sAppNameLabel:     JaegerQueryDeploymentName,
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        JaegerQueryDeploymentName + "-95d8c3b96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+	}
+}
+
+// getVZCRWithDefaultJaegerOverride returns VZ with the given Jaeger CR overrides applied
+func getVZCRWithDefaultJaegerOverride(jaegerCROverride string) *vzapi.Verrazzano {
+	return &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &enabled,
+					InstallOverrides: vzapi.InstallOverrides{
+						MonitorChanges: &trueValue,
+						ValueOverrides: []vzapi.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(jaegerCROverride),
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
