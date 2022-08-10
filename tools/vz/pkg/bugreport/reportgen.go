@@ -67,6 +67,15 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	// Get the list of namespaces based on the failed components and value specified by flag --include-namespaces
 	nsList, additionalNS := collectNamespaces(kubeClient, moreNS, vz, vzHelper)
 
+	var msgPrefix string
+	if pkghelpers.GetIsLiveCluster() {
+		msgPrefix = constants.AnalysisMsgPrefix
+	} else {
+		msgPrefix = constants.BugReportMsgPrefix
+	}
+	// Print initial message to console output only
+	fmt.Fprintf(vzHelper.GetOutputStream(), msgPrefix+" resources from the cluster ...\n")
+
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
 	err = captureResources(client, kubeClient, bugReportDir, vz, vzHelper, nsList)
 	if err != nil {
