@@ -65,7 +65,7 @@ func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 	})
 }
 
-// ExecuteBugReport executes the bug-report CLI.
+// executeBugReport executes the bug-report CLI to capture the cluster resources and analyze on the bug report
 // vzCommand - The fully qualified bug report executable.
 // kubeconfig - The kube config file to use when executing the bug-report CLI.
 // bugReportDirectory - The directory to store the bug report within.
@@ -91,11 +91,17 @@ func executeBugReport(vzCommand string, kubeconfig string, bugReportDirectory st
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
-		fmt.Printf("Failed to start the command %v \n", err)
+		fmt.Printf("Failed to start the command bug-report: %v \n", err)
 		return err
 	}
 	if err := cmd.Wait(); err != nil {
-		fmt.Printf("Failed waiting for the command %v \n", err)
+		fmt.Printf("Failed waiting for the command bug-report: %v \n", err)
+		return err
+	}
+
+	// Extract the bug-report and run vz-analyze
+	err := analyzeBugReport(bugReportDirectory, "bug-report.tar.gz")
+	if err != nil {
 		return err
 	}
 	return nil
@@ -153,4 +159,35 @@ func CaptureContainerLogs(namespace string, podName string, containerName string
 	if err := cmd.Wait(); err != nil {
 		Log(Info, fmt.Sprintf("Error WAIT kubectl %s end log copy, err: %s", podName, err))
 	}
+}
+
+// analyzeBugReport extracts the bug report and runs vz analyze by providing the extracted directory for flag --capture-dir
+func analyzeBugReport(bugReportDirectory, bugReportFile string) error {
+	cmd := exec.Command("tar", "-xf", bugReportFile)
+	cmd.Dir = bugReportDirectory
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("Failed to start the command to extract the bug report %v \n", err)
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		fmt.Printf("Failed waiting for the command to extract the bug report %v \n", err)
+		return err
+	}
+
+	// Safe to remove bugReportFile
+	os.Remove(filepath.Join(bugReportDirectory, bugReportFile))
+	reportFile := fmt.Sprintf("%s/cluster-snapshot/analysis.report", bugReportDirectory)
+	cmd = exec.Command("vz", "analyze", "--capture-dir", bugReportDirectory, "--report-format", "detailed", "--report-file", reportFile)
+	fmt.Println(cmd.String())
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("Failed to start the command analyze %v \n", err)
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		fmt.Printf("Failed waiting for the command analyze %v \n", err)
+		return err
+	}
+	return nil
 }
