@@ -143,12 +143,12 @@ var _ = t.AfterSuite(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.Describe("Jaeger Operator", Label("f:jaeger.helidon-workload"), func() {
+var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-workload"), func() {
 	t.Context("after successful installation", func() {
 		// GIVEN the Jaeger Operator is enabled and a sample application is installed,
 		// WHEN we check for traces for that service,
 		// THEN we are able to get the traces
-		WhenJaegerOperatorEnabledIt("should have a verrazzano-monitoring namespace", func() {
+		WhenJaegerOperatorEnabledIt("traces for the helidon app should be available when queried from Jaeger", func() {
 			Eventually(func() (bool, error) {
 				// Check if the service name is registered in Jaeger and traces are present for that service
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -175,7 +175,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:jaeger.helidon-workload"), func()
 		// GIVEN the Jaeger Operator component is enabled,
 		// WHEN a sample application is installed,
 		// THEN the traces are found in OpenSearch Backend
-		WhenJaegerOperatorEnabledIt("should have running pods", func() {
+		WhenJaegerOperatorEnabledIt("traces for the helidon app should be available in the OS backend storage.", func() {
 			Eventually(func() (bool, error) {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -188,7 +188,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:jaeger.helidon-workload"), func()
 		// GIVEN the Jaeger Operator component is enabled,
 		// WHEN we check for metrics related to Jaeger operator
 		// THEN we see that the metrics are present in prometheus
-		WhenJaegerOperatorEnabledIt("should have the correct default Jaeger images", func() {
+		WhenJaegerOperatorEnabledIt("metrics of jaeger operator are available in prometheus", func() {
 			Eventually(func() bool {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -202,7 +202,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:jaeger.helidon-workload"), func()
 		// GIVEN the Jaeger Operator component is installed with default Jaeger CR enabled
 		// WHEN we check for metrics related to Jaeger Components (jaeger-query, jaeger-collector, jaeger-agent)
 		// THEN we see that the metrics are present in prometheus
-		WhenJaegerOperatorEnabledIt("should have the correct Jaeger Operator CRDs", func() {
+		WhenJaegerOperatorEnabledIt("metrics of jaeger components are available in prometheus", func() {
 			Eventually(func() bool {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
