@@ -316,12 +316,15 @@ func TestCreateServiceMonitorName(t *testing.T) {
 	}
 	assert := asserts.New(t)
 	for _, tt := range tests {
-		smName, err := createServiceMonitorName(tt.trait, tt.portNum)
-		jobName, err := createPrometheusScrapeConfigMapJobName(tt.trait, tt.portNum)
+		smName, err1 := createServiceMonitorName(tt.trait, tt.portNum)
+		jobName, err2 := createPrometheusScrapeConfigMapJobName(tt.trait, tt.portNum)
 		if tt.expectError {
-			assert.Error(err)
+			assert.Error(err1)
+			assert.Error(err2)
 		} else {
-			assert.NoError(err)
+			assert.NoError(err1)
+			assert.NoError(err2)
+
 		}
 		asserts.Equal(t, tt.expectedServiceMonitorName, smName)
 		asserts.Equal(t, tt.expectedLegacyJobName, jobName)

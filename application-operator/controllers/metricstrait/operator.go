@@ -78,6 +78,9 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 			return reconcile.Result{}, log.ErrorfNewErr("Failed to create Service Monitor name: %v", err)
 		}
 		opResult, err = r.deleteServiceMonitor(ctx, trait.Namespace, serviceMonitorName, trait, log)
+		if err != nil {
+			return reconcile.Result{}, log.ErrorfNewErr("Failed to delete Service Monitor %s for disabled metrics trait: %v", serviceMonitorName, err)
+		}
 		rel = vzapi.QualifiedResourceRelation{APIVersion: promoperapi.SchemeGroupVersion.String(), Kind: promoperapi.ServiceMonitorsKind, Namespace: trait.Namespace, Name: serviceMonitorName, Role: scraperRole}
 	}
 	status.RecordOutcome(rel, opResult, err)
