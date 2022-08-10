@@ -27,14 +27,14 @@ import (
 const profilesRelativePath = "../../../../../manifests/profiles"
 
 const (
-	nameOverrideJSON       = "{\"nameOverride\": \"test\"}"
-	fullnameOverrideJSON   = "{\"fullnameOverride\": \"testFullName\"}"
-	serviceAccountNameJSON = "{\"serviceAccount\": {\"name\": \"testServiceAccount\"}}"
-	ingressJSON            = "{\"ingress\": {\"enabled\": true}}"
-	validOverrideJSON      = "{\"serviceAccount\": {\"create\": false}}"
+	nameOverrideJSON          = "{\"nameOverride\": \"test\"}"
+	fullnameOverrideJSON      = "{\"fullnameOverride\": \"testFullName\"}"
+	serviceAccountNameJSON    = "{\"serviceAccount\": {\"name\": \"testServiceAccount\"}}"
+	ingressJSON               = "{\"ingress\": {\"enabled\": true}}"
+	validOverrideJSON         = "{\"serviceAccount\": {\"create\": false}}"
 	defaultJaegerDisabledJSON = "{\"jaeger\":{\"create\": false}}"
-	defaultJaegerEnabledJSON = "{\"jaeger\":{\"create\": true}}"
-	k8sAppNameLabel        = "app.kubernetes.io/name"
+	defaultJaegerEnabledJSON  = "{\"jaeger\":{\"create\": true}}"
+	k8sAppNameLabel           = "app.kubernetes.io/name"
 )
 
 var enabled = true
