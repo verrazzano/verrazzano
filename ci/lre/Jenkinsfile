@@ -159,8 +159,8 @@ pipeline {
                     VERRAZZANO_UPGRADE_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
                     echo "Version to upgrade to: ${VERRAZZANO_UPGRADE_VERSION}"
 
-                    // If we are already at the upgrade version then no upgrade is needed.
-                    if (VERRAZZANO_UPGRADE_VERSION == RUNNING_VERSION)  {
+                    // Only do an upgrade if the running version and version to upgrade are different.
+                    if (VERRAZZANO_UPGRADE_VERSION != RUNNING_VERSION)  {
                         sh """
                             echo "Downloading operator.yaml from object storage"
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/operator.yaml --file ${OPERATOR_YAML_LOCATION}
@@ -170,13 +170,12 @@ pipeline {
 
                         sh """
                             echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_UPGRADE_VERSION}
+                            ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
                         """
                     }
                 }
             }
        }
-
-    //                     ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
 
     }
     post {
