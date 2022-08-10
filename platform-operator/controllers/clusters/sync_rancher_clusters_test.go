@@ -14,6 +14,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -64,7 +65,7 @@ func TestSyncRancherClusters(t *testing.T) {
 	k8sFake := createK8sFake()
 
 	// expect HTTP calls
-	expectHTTPCalls(t, httpMock, false)
+	expectHTTPCalls(httpMock, false)
 
 	// call the syncer
 	r := &RancherClusterSyncer{Client: k8sFake}
@@ -113,7 +114,7 @@ func TestSyncRancherClustersWithPaging(t *testing.T) {
 	k8sFake := createK8sFake()
 
 	// expect HTTP calls
-	expectHTTPCalls(t, httpMock, true)
+	expectHTTPCalls(httpMock, true)
 
 	// call the syncer
 	r := &RancherClusterSyncer{Client: k8sFake}
@@ -177,17 +178,11 @@ func createK8sFake() client.Client {
 }
 
 // expectHTTPCalls mocks the HTTP calls we expect the Rancher client to make
-func expectHTTPCalls(t *testing.T, httpMock *mocks.MockRequestSender, testPaging bool) {
-	asserts := assert.New(t)
-
+func expectHTTPCalls(httpMock *mocks.MockRequestSender, testPaging bool) {
 	// expect an HTTP request to fetch the admin token from Rancher
 	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(strings.Split(loginPath, "?")[0])).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			urlParts := strings.Split(loginPath, "?")
-			asserts.Equal(urlParts[0], req.URL.Path)
-			asserts.Equal(urlParts[1], req.URL.RawQuery)
-
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
@@ -199,10 +194,8 @@ func expectHTTPCalls(t *testing.T, httpMock *mocks.MockRequestSender, testPaging
 
 	// expect an HTTP request to fetch the clusters from Rancher
 	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			asserts.Equal(clustersPath, req.URL.Path)
-
 			var r io.ReadCloser
 			if testPaging {
 				// if we're testing paging, include a next page URL
@@ -222,10 +215,8 @@ func expectHTTPCalls(t *testing.T, httpMock *mocks.MockRequestSender, testPaging
 	// if we're testing paging, return another page with a cluster
 	if testPaging {
 		httpMock.EXPECT().
-			Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+			Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath)).
 			DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-				asserts.Equal(clustersPath, req.URL.Path)
-
 				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"data":[{"name":"` + clusterName3 + `"}]}`)))
 				resp := &http.Response{
 					StatusCode: http.StatusOK,
