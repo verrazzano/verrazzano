@@ -92,6 +92,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			if err := r.updateComponentStatus(compContext, "Component is Ready", vzapi.CondInstallComplete); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
+			r.ClearWatch(comp.GetJSONName())
 			continue
 		case vzapi.CompStateDisabled:
 			if !comp.IsEnabled(compContext.EffectiveCR()) {
@@ -160,7 +161,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			compLog.Progressf("Component %s waiting to finish installing", compName)
 			requeue = true
 		}
-		r.ClearWatch(comp.GetJSONName())
 	}
 	if requeue {
 		return newRequeueWithDelay(), nil

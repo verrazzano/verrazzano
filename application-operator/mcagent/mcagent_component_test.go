@@ -13,8 +13,10 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -25,8 +27,10 @@ import (
 const testMCComponentName = "unit-mccomp"
 const testMCComponentNamespace = "unit-mccomp-namespace"
 
-var mcComponentTestLabels = map[string]string{"label1": "test1"}
-var mcComponentTestUpdatedLabels = map[string]string{"label1": "test1updated"}
+var mcComponentTestExpectedLabels = map[string]string{"label1": "test1",
+	vzconst.VerrazzanoManagedLabelKey: constants.LabelVerrazzanoManagedDefault}
+var mcComponentTestExpectedLabelsOnUpdate = map[string]string{"label1": "test1updated",
+	vzconst.VerrazzanoManagedLabelKey: constants.LabelVerrazzanoManagedDefault}
 
 // TestCreateMCComponent tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterComponent objects
@@ -71,7 +75,7 @@ func TestCreateMCComponent(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, mcComponent *clustersv1alpha1.MultiClusterComponent, opts ...client.CreateOption) error {
 			assert.Equal(testMCComponentNamespace, mcComponent.Namespace, "mccomponent namespace did not match")
 			assert.Equal(testMCComponentName, mcComponent.Name, "mccomponent name did not match")
-			assert.Equal(mcComponentTestLabels, mcComponent.Labels, "mccomponent labels did not match")
+			assert.Equal(mcComponentTestExpectedLabels, mcComponent.Labels, "mccomponent labels did not match")
 			assert.Equal(testClusterName, mcComponent.Spec.Placement.Clusters[0].Name, "mccomponent does not contain expected placement")
 			return nil
 		})
@@ -149,7 +153,7 @@ func TestUpdateMCComponent(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, mcComponent *clustersv1alpha1.MultiClusterComponent, opts ...client.UpdateOption) error {
 			assert.Equal(testMCComponentNamespace, mcComponent.Namespace, "mccomponent namespace did not match")
 			assert.Equal(testMCComponentName, mcComponent.Name, "mccomponent name did not match")
-			assert.Equal(mcComponentTestUpdatedLabels, mcComponent.Labels, "mccomponent labels did not match")
+			assert.Equal(mcComponentTestExpectedLabelsOnUpdate, mcComponent.Labels, "mccomponent labels did not match")
 			workload := v1alpha2.ContainerizedWorkload{}
 			err := json.Unmarshal(mcComponent.Spec.Template.Spec.Workload.Raw, &workload)
 			assert.NoError(err, "failed to unmarshal the containerized workload")

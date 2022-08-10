@@ -255,6 +255,20 @@ pipeline {
                         rm -rf $WORKSPACE/*
                     """
 
+                    script {
+                        echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
+                        echo "[INFO] agentlabel: $agentLabel"
+                        echo "[INFO] $NODE_LABELS"
+                        SHORT_COMMIT_HASH=sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                        // update the description with some meaningful info
+                        setDisplayName()
+                        currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
+                        // derive the prefix for the OLCNE cluster
+                        OLCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
+                        // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+                        env.K8S_VERSION_LABEL=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
+                    }
+
                     echo "[INFO] SCM checkout of $OLCNE_TERRAFORM_GIT_URL $OLCNE_BRANCH_TO_USE"
                     def scmInfo=checkout([
                         $class: 'GitSCM',
@@ -293,19 +307,6 @@ pipeline {
                         chmod 600 $WORKSPACE/.netrc
                     """
 
-                    script {
-                        echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
-                        echo "[INFO] agentlabel: $agentLabel"
-                        echo "[INFO] $NODE_LABELS"
-                        SHORT_COMMIT_HASH=sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                        // update the description with some meaningful info
-                        setDisplayName()
-                        currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
-                        // derive the prefix for the OLCNE cluster
-                        OLCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
-                        // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                        env.K8S_VERSION_LABEL=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
-                    }
                     script {
                         sh """
                             echo "Downloading VZ CLI from object storage"

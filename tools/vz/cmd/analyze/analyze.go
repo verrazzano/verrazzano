@@ -41,7 +41,8 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 	cmd.PersistentFlags().String(constants.DirectoryFlagName, constants.DirectoryFlagValue, constants.DirectoryFlagUsage)
 	cmd.PersistentFlags().String(constants.ReportFileFlagName, constants.ReportFileFlagValue, constants.ReportFileFlagUsage)
-	cmd.PersistentFlags().String(constants.ReportFormatFlagName, constants.ReportFormatFlagValue, constants.ReportFormatFlagUsage)
+	cmd.PersistentFlags().String(constants.ReportFormatFlagName, constants.SummaryReport, constants.ReportFormatFlagUsage)
+	cmd.PersistentFlags().BoolP(constants.VerboseFlag, constants.VerboseFlagShorthand, constants.VerboseFlagDefault, constants.VerboseFlagUsage)
 	return cmd
 }
 
@@ -51,6 +52,13 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
 	}
 	reportFormat := getReportFormat(cmd)
+
+	// set the flag to control the display the resources captured
+	isVerbose, err := cmd.PersistentFlags().GetBool(constants.VerboseFlag)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.VerboseFlag, err.Error())
+	}
+	helpers.SetVerboseOutput(isVerbose)
 
 	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
 
@@ -108,21 +116,25 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
 		}
 	}
-	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat.String())
+	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat)
 }
 
+// validateReportFormat validates the value specified for flag report-format
 func validateReportFormat(cmd *cobra.Command) error {
 	reportFormatValue := getReportFormat(cmd)
-	if reportFormatValue == "simple" {
+	switch reportFormatValue {
+	case constants.SummaryReport, constants.DetailedReport:
 		return nil
+	default:
+		return fmt.Errorf("%q is not valid for flag report-format, only %q and %q are valid", reportFormatValue, constants.SummaryReport, constants.DetailedReport)
 	}
-	return fmt.Errorf("unsupported output format: %s, only supported type is \"simple\"", reportFormatValue)
 }
 
-func getReportFormat(cmd *cobra.Command) cmdhelpers.LogFormat {
+// getReportFormat returns the value set for flag report-format
+func getReportFormat(cmd *cobra.Command) string {
 	reportFormat := cmd.PersistentFlags().Lookup(constants.ReportFormatFlagName)
 	if reportFormat == nil {
-		return cmdhelpers.LogFormatSimple
+		return constants.SummaryReport
 	}
-	return cmdhelpers.LogFormat(reportFormat.Value.String())
+	return reportFormat.Value.String()
 }
