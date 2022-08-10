@@ -197,7 +197,8 @@ func isDeploymentLabelSelectorSupported() bool {
 	if err != nil {
 		return false
 	}
-	return labelSelector != nil
+	fmt.Println(labelSelector)
+	return labelSelector.MatchLabels != nil && labelSelector.MatchExpressions != nil
 }
 
 func helloHelidonPodsRunning() bool {
