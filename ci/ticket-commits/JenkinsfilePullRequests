@@ -41,13 +41,13 @@ pipeline {
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
                 """
-            }
-            script {
-                sh """
-                    echo "Downloading verrazzano-helper from object storage"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
-                    chmod uog+x ${WORKSPACE}/verrazzano-helper
-                """
+                script {
+                    sh """
+                        echo "Downloading verrazzano-helper from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                        chmod uog+x ${WORKSPACE}/verrazzano-helper
+                    """
+                }
             }
         }
 
