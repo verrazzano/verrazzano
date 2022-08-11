@@ -361,6 +361,11 @@ func TestConvertFrom(t *testing.T) {
 			false,
 		},
 		{
+			"convert rancher keycloak auth from v1alpha1",
+			testCaseRancherKeycloak,
+			false,
+		},
+		{
 			"convert err on keycloak install args",
 			testCaseInstallArgsErr,
 			true,
