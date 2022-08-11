@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"os"
 	"sync"
@@ -52,6 +53,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = vmov1.AddToScheme(scheme)
 	_ = installv1alpha1.AddToScheme(scheme)
+	_ = installv1beta1.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
 
 	_ = istioclinet.AddToScheme(scheme)
@@ -154,6 +156,18 @@ func main() {
 			os.Exit(1)
 		}
 
+		log.Debug("Updating conversion webhook")
+		apixClient, err := apiextensionsv1client.NewForConfig(config)
+		if err != nil {
+			log.Errorf("Failed to get apix clientset: %v", err)
+			os.Exit(1)
+		}
+		err = certificate.UpdateConversionWebhookConfiguration(apixClient, caCert)
+		if err != nil {
+			log.Errorf("Failed to update conversion webhook: %v", err)
+			os.Exit(1)
+		}
+
 		client, err := client.New(config, client.Options{})
 		if err != nil {
 			log.Errorf("Failed to get controller-runtime client: %v", err)
@@ -202,7 +216,11 @@ func main() {
 	if config.WebhooksEnabled {
 		log.Debug("Setting up Verrazzano webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
-			log.Errorf("Failed to setup webhook with manager: %v", err)
+			log.Errorf("Failed to setup install.v1alpha1.Verrazzano webhook with manager: %v", err)
+			os.Exit(1)
+		}
+		if err = (&installv1beta1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
+			log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().CertDir = config.CertDir

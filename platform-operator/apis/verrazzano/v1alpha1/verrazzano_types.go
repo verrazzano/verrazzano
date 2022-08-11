@@ -404,7 +404,10 @@ type ElasticsearchComponent struct {
 	// +patchStrategy=merge,retainKeys
 	ESInstallArgs []InstallArgs                 `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	Policies      []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
-	Nodes         []OpenSearchNode              `json:"nodes,omitempty"`
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	Nodes []OpenSearchNode `json:"nodes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 //OpenSearchNode specifies a node group in the OpenSearch cluster
@@ -434,10 +437,18 @@ type KubeStateMetricsComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
+// DatabaseInfo specifies the database host, name, and username/password secret for Grafana DB instance
+type DatabaseInfo struct {
+	Host string `json:"host,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
 // GrafanaComponent specifies the Grafana configuration.
 type GrafanaComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled  *bool         `json:"enabled,omitempty"`
+	Replicas *int32        `json:"replicas,omitempty"`
+	Database *DatabaseInfo `json:"database,omitempty"`
 }
 
 // PrometheusComponent specifies the Prometheus configuration.
