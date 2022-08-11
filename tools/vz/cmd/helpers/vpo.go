@@ -207,7 +207,10 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for {
-			sc.Scan()
+			ok := sc.Scan()
+			if !ok {
+				fmt.Fprintf(outputStream, fmt.Sprintf("Scanning stopped: %s", sc.Err().Error()))
+			}
 			if logFormat == LogFormatSimple {
 				PrintSimpleLogFormat(sc, outputStream, re)
 			} else if logFormat == LogFormatJSON {
@@ -217,17 +220,19 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	}(vzHelper.GetOutputStream())
 
 	// goroutine to wait for the completion of the operation
-	go func() {
+	go func(outputStream io.Writer) {
 		for {
 			// Pause before each status check
 			time.Sleep(1 * time.Second)
 			select {
 			case <-feedbackChan:
+				fmt.Fprintf(outputStream, fmt.Sprint("feedbackChan set"))
 				return
 			default:
 				// Return when the Verrazzano operation has completed
 				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
 				if err != nil {
+					fmt.Fprintf(outputStream, fmt.Sprintf("Error getting vz resource: %s", err.Error()))
 					resChan <- err
 					return
 				}
@@ -240,7 +245,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 				}
 			}
 		}
-	}()
+	}(vzHelper.GetOutputStream())
 
 	select {
 	case result := <-resChan:
