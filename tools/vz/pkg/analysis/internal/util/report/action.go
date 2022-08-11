@@ -38,14 +38,12 @@ func (action *Action) Validate(log *zap.SugaredLogger) (err error) {
 
 func GetEffectiveDocsVersion() string {
 	if os.Getenv("USE_V8O_DOC_STAGE") == "true" {
-		fmt.Println("USE_V8O_DOC_STAGE is enabled, so returning 'devel' version for docs")
 		return "devel"
 	}
 	cliVersion := version.CliVersion
 	var re = regexp.MustCompile(`(?m)(\d.\d)(.*)`)
 	s := re.FindAllStringSubmatch(cliVersion, -1)[0][1] //This will get the group 1 of 1st match which is "1.4.0" to "1.4"
-	fmt.Println("Extracted version for docs is: ", s)
-	return fmt.Sprintf("v%s", s) //return v1.4 by appending prefex 'v'
+	return fmt.Sprintf("v%s", s)                        //return v1.4 by appending prefex 'v'
 }
 
 // Standard Action Summaries
