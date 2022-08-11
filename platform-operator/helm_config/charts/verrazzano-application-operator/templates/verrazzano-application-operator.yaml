@@ -287,6 +287,15 @@ rules:
       - patch
       - update
       - watch
+  - apiGroups:
+      - jaegertracing.io
+    resources:
+      - jaegers
+    verbs:
+      - create
+      - get
+      - list
+      - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

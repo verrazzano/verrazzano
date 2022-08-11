@@ -139,23 +139,27 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		t.It("MetricsTrait can be disabled", func() {
 			pkg.Concurrently(
 				func() {
+					pkg.Log(pkg.Info, "Checking for scrape target existence")
 					Eventually(scrapeTargetExists, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(scrapeConfigExists, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+					pkg.Log(pkg.Info, "Checking for service monitor existence")
+					Eventually(serviceMonitorExists, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 			)
-
+			pkg.Log(pkg.Info, "Disabling metrics trait")
 			Eventually(func() error {
 				return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(
 					"tests/e2e/examples/helidonmetrics/testdata/hello-helidon-app-metrics-disabled.yaml", namespace)
 			}, shortWaitTimeout, shortPollingInterval, "Failed to disable metrics").ShouldNot(HaveOccurred())
 			pkg.Concurrently(
 				func() {
+					pkg.Log(pkg.Info, "Checking for scrape target to no longer exist")
 					Eventually(scrapeTargetExists, shortWaitTimeout, longPollingInterval).Should(BeFalse())
 				},
 				func() {
-					Eventually(scrapeConfigExists, shortWaitTimeout, longPollingInterval).Should(BeFalse())
+					pkg.Log(pkg.Info, "Checking for service monitor to no longer exist")
+					Eventually(serviceMonitorExists, shortWaitTimeout, longPollingInterval).Should(BeFalse())
 				},
 			)
 		})
@@ -170,8 +174,14 @@ func helidonConfigPodsRunning() bool {
 	return result
 }
 
-func scrapeConfigExists() bool {
-	return pkg.IsAppInPromConfig(namespace)
+func serviceMonitorExists() bool {
+	smName := pkg.GetAppServiceMonitorName(namespace, "hello-helidon")
+	sm, err := pkg.GetServiceMonitor(namespace, smName)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get the Service Monitor from the cluster: %v", err))
+		return false
+	}
+	return sm != nil
 }
 
 func scrapeTargetExists() bool {
