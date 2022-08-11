@@ -6,47 +6,53 @@ package istio
 import (
 	"context"
 	"fmt"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
+const collectorZipkinPort = 9411
+
 //configureJaeger configures Jaeger for Istio integration and returns install args for the Istio install.
 // If a Jaeger collector service is detected in a Verrazzano managed namespace:
 // return Istio install args for the tracing endpoint and the Istio tracing TLS mode
 func configureJaeger(ctx spi.ComponentContext) ([]vzapi.InstallArgs, error) {
-	if !vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
-		return nil, nil
-	}
+	// During istio bootstrap, if Jaeger operator is not enabled, or if the Jaeger services are not created yet,
+	// use the collector URL of the default Jaeger instance that would eventually be created.
+	collectorURL := fmt.Sprintf("%s-collector.%s.svc.cluster.local:%d",
+		globalconst.JaegerInstanceName,
+		constants.VerrazzanoMonitoringNamespace,
+		collectorZipkinPort,
+	)
+	// If there is an existing Jaeger collector service already running in the cluster,
+	// use that URL.
 	service, err := findFirstJaegerCollectorService(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	if service != nil {
 		port := zipkinPort(*service)
-		collectorURL := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+		collectorURL = fmt.Sprintf("%s.%s.svc.cluster.local:%d",
 			service.Name,
 			service.Namespace,
 			port,
 		)
-		return []vzapi.InstallArgs{
-			{
-				Name:  meshConfigTracingTLSMode,
-				Value: "ISTIO_MUTUAL",
-			},
-			{
-				Name:  meshConfigTracingAddress,
-				Value: collectorURL,
-			},
-		}, nil
 	}
 
-	return nil, nil
+	return []vzapi.InstallArgs{
+		{
+			Name:  meshConfigTracingTLSMode,
+			Value: "ISTIO_MUTUAL",
+		},
+		{
+			Name:  meshConfigTracingAddress,
+			Value: collectorURL,
+		},
+	}, nil
 }
 
 //findFirstJaegerCollectorService gets the first Jaeger collector service in the cluster that is not a headless service
@@ -73,5 +79,5 @@ func zipkinPort(service v1.Service) int32 {
 			return port.Port
 		}
 	}
-	return 9411
+	return collectorZipkinPort
 }
