@@ -216,6 +216,8 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 		}
 	}(vzHelper.GetOutputStream())
 
+	startTime := time.Now().UTC()
+
 	// goroutine to wait for the completion of the operation
 	go func() {
 		for {
@@ -234,8 +236,17 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 				for _, condition := range vz.Status.Conditions {
 					// Operation condition met for install/upgrade
 					if condition.Type == condType {
-						resChan <- nil
-						return
+						condTime, err := time.Parse(time.RFC3339, condition.LastTransitionTime)
+						if err != nil {
+							resChan <- fmt.Errorf("Failed parsing status condition lastTransitionTime: %s", err.Error())
+							return
+						}
+						// There can be multiple conditions with the same type.  Make sure we find a match
+						// beyond the start time.
+						if condTime.After(startTime) {
+							resChan <- nil
+							return
+						}
 					}
 				}
 			}
