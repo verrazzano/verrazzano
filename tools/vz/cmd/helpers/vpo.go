@@ -207,10 +207,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for {
-			ok := sc.Scan()
-			if !ok {
-				fmt.Fprintf(outputStream, fmt.Sprintf("Scanning stopped: %s", sc.Err().Error()))
-			}
+			sc.Scan()
 			if logFormat == LogFormatSimple {
 				PrintSimpleLogFormat(sc, outputStream, re)
 			} else if logFormat == LogFormatJSON {
@@ -219,33 +216,42 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 		}
 	}(vzHelper.GetOutputStream())
 
+	startTime := time.Now().UTC()
+
 	// goroutine to wait for the completion of the operation
-	go func(outputStream io.Writer) {
+	go func() {
 		for {
 			// Pause before each status check
 			time.Sleep(1 * time.Second)
 			select {
 			case <-feedbackChan:
-				fmt.Fprintf(outputStream, fmt.Sprint("feedbackChan set"))
 				return
 			default:
 				// Return when the Verrazzano operation has completed
 				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
 				if err != nil {
-					fmt.Fprintf(outputStream, fmt.Sprintf("Error getting vz resource: %s", err.Error()))
 					resChan <- err
 					return
 				}
 				for _, condition := range vz.Status.Conditions {
 					// Operation condition met for install/upgrade
 					if condition.Type == condType {
-						resChan <- nil
-						return
+						condTime, err := time.Parse(time.RFC3339, condition.LastTransitionTime)
+						if err != nil {
+							resChan <- fmt.Errorf("Failed parsing status condition lastTransitionTime: %s", err.Error())
+							return
+						}
+						// There can be multiple conditions with the same type.  Make sure we find a match
+						// beyond the start time.
+						if condTime.After(startTime) {
+							resChan <- nil
+							return
+						}
 					}
 				}
 			}
 		}
-	}(vzHelper.GetOutputStream())
+	}()
 
 	select {
 	case result := <-resChan:
