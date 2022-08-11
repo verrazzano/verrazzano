@@ -165,7 +165,7 @@ func TestIsReady(t *testing.T) {
 			// GIVEN Jaeger operator and collector have no available pods, but query has available pods,
 			// WHEN we call IsReady,
 			// THEN the call returns false.
-			name: "Test IsReady when Jaeger Operator and Collector is not available but Query is available",
+			name: "Test IsReady when Jaeger Operator and Collector are not available but Query is available",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				getAllJaegerObjects(0, 0, 1)...,
 			).Build(),
@@ -177,7 +177,7 @@ func TestIsReady(t *testing.T) {
 			// GIVEN Jaeger operator and query have no available pods, but collector has available pods
 			// WHEN we call IsReady
 			// THEN the call returns false
-			name: "Test IsReady when Jaeger Operator and Query is not available but Collector is available",
+			name: "Test IsReady when Jaeger Operator and Query are not available but Collector is available",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				getAllJaegerObjects(0, 1, 0)...,
 			).Build(),
@@ -189,7 +189,7 @@ func TestIsReady(t *testing.T) {
 			// GIVEN Jaeger operator has no available pods, but collector and query have available pods
 			// WHEN we call IsReady,
 			// THEN the call returns false.
-			name: "Test IsReady when Jaeger Operator is not available but Query and Collector is available",
+			name: "Test IsReady when Jaeger Operator is not available but Query and Collector are available",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				getAllJaegerObjects(0, 1, 1)...,
 			).Build(),
@@ -226,7 +226,7 @@ func TestIsReady(t *testing.T) {
 			// GIVEN Jaeger operator and collector have available pods but query has no available pods,
 			// WHEN we call IsReady,
 			// THEN the call returns false.
-			name: "Test IsReady when Jaeger Operator and Collector is available but Query is not available",
+			name: "Test IsReady when Jaeger Operator and Collector are available but Query is not available",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				getAllJaegerObjects(1, 1, 0)...,
 			).Build(),
