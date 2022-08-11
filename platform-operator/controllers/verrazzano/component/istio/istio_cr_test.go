@@ -208,6 +208,13 @@ spec:
     global:
       defaultPodDisruptionBudget:
         enabled: false
+    meshConfig:
+      defaultConfig:
+        tracing:
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+          zipkin:
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local:9411
     pilot:
       resources:
         requests:
@@ -356,6 +363,13 @@ spec:
     global:
       defaultPodDisruptionBudget:
         enabled: false
+    meshConfig:
+      defaultConfig:
+        tracing:
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+          zipkin:
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local:9411
     pilot:
       resources:
         requests:
@@ -503,6 +517,14 @@ spec:
         service:
           type: LoadBalancer
       name: istio-ingressgateway
+  values:
+    meshConfig:
+      defaultConfig:
+        tracing:
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+          zipkin:
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local:9411
 `
 
 var cr4 = &vzapi.IstioComponent{
