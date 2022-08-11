@@ -7,7 +7,10 @@ package report
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"go.uber.org/zap"
+	"os"
+	"regexp"
 )
 
 // TODO: Add helpers for working with Actions
@@ -33,6 +36,18 @@ func (action *Action) Validate(log *zap.SugaredLogger) (err error) {
 	return nil
 }
 
+func GetEffectiveDocsVersion() string {
+	if os.Getenv("USE_V8O_DOC_STAGE") == "true" {
+		fmt.Println("USE_V8O_DOC_STAGE is enabled, so returning 'devel' version for docs")
+		return "devel"
+	}
+	cliVersion := version.CliVersion
+	var re = regexp.MustCompile(`(?m)(\d.\d)(.*)`)
+	s := re.FindAllStringSubmatch(cliVersion, -1)[0][1] //This will get the group 1 of 1st match which is "1.4.0" to "1.4"
+	fmt.Println("Extracted version for docs is: ", s)
+	return fmt.Sprintf("v%s", s) //return v1.4 by appending prefex 'v'
+}
+
 // Standard Action Summaries
 const (
 	ConsultRunbook = "Consult %s using supporting details identified in the report"
@@ -40,20 +55,20 @@ const (
 
 // RunbookLinks are known runbook links
 var RunbookLinks = map[string][]string{
-	ImagePullBackOff:          {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/imagepullbackoff"},
-	ImagePullRateLimit:        {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/imagepullratelimit"},
-	ImagePullNotFound:         {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/imagepullnotfound"},
-	ImagePullService:          {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/imagepullservice"},
-	InsufficientMemory:        {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/insufficientmemory"},
-	IngressInstallFailure:     {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressinstallfailure"},
-	IngressLBLimitExceeded:    {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingresslblimitexceeded"},
-	IngressNoLoadBalancerIP:   {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
-	IngressOciIPLimitExceeded: {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressociiplimitexceeded"},
-	InstallFailure:            {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/installfailure"},
-	PendingPods:               {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/pendingpods"},
-	PodProblemsNotReported:    {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported"},
-	IngressNoIPFound:          {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
-	IngressShapeInvalid:       {"https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape"},
+	ImagePullBackOff:          {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/imagepullbackoff"},
+	ImagePullRateLimit:        {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/imagepullratelimit"},
+	ImagePullNotFound:         {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/imagepullnotfound"},
+	ImagePullService:          {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/imagepullservice"},
+	InsufficientMemory:        {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/insufficientmemory"},
+	IngressInstallFailure:     {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressinstallfailure"},
+	IngressLBLimitExceeded:    {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingresslblimitexceeded"},
+	IngressNoLoadBalancerIP:   {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
+	IngressOciIPLimitExceeded: {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressociiplimitexceeded"},
+	InstallFailure:            {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/installfailure"},
+	PendingPods:               {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/pendingpods"},
+	PodProblemsNotReported:    {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported"},
+	IngressNoIPFound:          {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
+	IngressShapeInvalid:       {"https://verrazzano.io/" + GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape"},
 }
 
 // KnownActions are Standard Action types

@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 )
 
-var cliVersion string
+var CliVersion string
 var buildDate string
 var gitCommit string
 
@@ -42,7 +42,7 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdVersion(vzHelper helpers.VZHelper) error {
 
 	templateValues := map[string]string{
-		"cli_version": cliVersion,
+		"cli_version": CliVersion,
 		"build_date":  buildDate,
 		"git_commit":  gitCommit,
 	}

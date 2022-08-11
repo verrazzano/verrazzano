@@ -17,7 +17,7 @@ import (
 // TestVersionCmd - check that command reports not implemented yet
 func TestVersionCmd(t *testing.T) {
 
-	cliVersion = "1.2.3"
+	CliVersion = "1.2.3"
 	buildDate = "2022-06-10T13:57:03Z"
 	gitCommit = "9dbc916b58ab9781f7b4c25e51748fb31ec940f8"
 

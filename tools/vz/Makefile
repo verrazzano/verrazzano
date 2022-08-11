@@ -21,7 +21,7 @@ endif
 DIST_DIR:=dist
 ENV_NAME=vz
 GO=GO111MODULE=on GOPRIVATE=github.com/verrazzano/* go
-CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.buildDate=${BUILD_DATE}' -X '${VERSION_DIR}.cliVersion=${CLI_VERSION}'
+CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.buildDate=${BUILD_DATE}' -X '${VERSION_DIR}.CliVersion=${CLI_VERSION}'
 
 #
 # CLI
