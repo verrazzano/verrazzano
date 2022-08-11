@@ -387,7 +387,10 @@ type OpenSearchComponent struct {
 	// +optional
 	Enabled  *bool                         `json:"enabled,omitempty"`
 	Policies []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
-	Nodes    []OpenSearchNode              `json:"nodes,omitempty"`
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	Nodes []OpenSearchNode `json:"nodes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 //OpenSearchNode specifies a node group in the OpenSearch cluster

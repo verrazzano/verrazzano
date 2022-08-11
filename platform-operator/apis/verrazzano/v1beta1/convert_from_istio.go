@@ -41,17 +41,21 @@ spec:
     egressGateways:
       - name: istio-egressgateway
         enabled: true
+{{- if .EgressKubernetes }}
         k8s:
           replicaCount: {{.EgressReplicaCount}}
 {{- if .EgressAffinity }}
           affinity:
 {{ multiLineIndent 12 .EgressAffinity }}
 {{- end }}
+{{- end }}
     ingressGateways:
       - name: istio-ingressgateway
         enabled: true
         k8s:
+{{- if .IngressKubernetes }}
           replicaCount: {{.IngressReplicaCount}}
+{{- end }}
           service:
             type: {{.IngressServiceType}}
             {{- if .IngressServicePorts }}
@@ -76,6 +80,8 @@ const (
 )
 
 type istioTemplateData struct {
+	IngressKubernetes   bool
+	EgressKubernetes    bool
 	IngressReplicaCount uint32
 	EgressReplicaCount  uint32
 	IngressAffinity     string
@@ -159,40 +165,12 @@ func fixExternalIPYaml(yaml string) string {
 // value replicas and create Istio gateway yaml
 func configureGateways(istioComponent *v1alpha1.IstioComponent, externalIP string) (string, error) {
 	var data = istioTemplateData{}
-
-	data.IngressReplicaCount = istioComponent.Ingress.Kubernetes.Replicas
-	data.EgressReplicaCount = istioComponent.Egress.Kubernetes.Replicas
-
-	if istioComponent.Ingress.Kubernetes.Affinity != nil {
-		yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Affinity)
-		if err != nil {
-			return "", err
-		}
-		data.IngressAffinity = string(yml)
-	}
-
-	if istioComponent.Egress.Kubernetes.Affinity != nil {
-		yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Affinity)
-		if err != nil {
-			return "", err
-		}
-		data.EgressAffinity = string(yml)
-	}
-
 	data.IngressServiceType = string(v1alpha1.LoadBalancer)
-	if istioComponent.Ingress.Type == v1alpha1.NodePort {
-		data.IngressServiceType = string(v1alpha1.NodePort)
+	if err := configureIngressGateway(istioComponent, &data); err != nil {
+		return "", err
 	}
-
-	data.IngressServicePorts = ""
-	if len(istioComponent.Ingress.Ports) > 0 {
-		y, err := yaml.Marshal(istioComponent.Ingress.Ports)
-		if err != nil {
-			if err != nil {
-				return "", err
-			}
-		}
-		data.IngressServicePorts = string(y)
+	if err := configureEgressGateway(istioComponent, &data); err != nil {
+		return "", err
 	}
 
 	data.ExternalIps = ""
@@ -225,4 +203,56 @@ func configureGateways(istioComponent *v1alpha1.IstioComponent, externalIP strin
 	}
 
 	return b.String(), nil
+}
+
+func configureIngressGateway(istioComponent *v1alpha1.IstioComponent, data *istioTemplateData) error {
+	if istioComponent.Ingress == nil {
+		return nil
+	}
+	ingress := istioComponent.Ingress
+	if ingress.Kubernetes != nil {
+		data.IngressKubernetes = true
+		data.IngressReplicaCount = ingress.Kubernetes.Replicas
+		if ingress.Kubernetes.Affinity != nil {
+			yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Affinity)
+			if err != nil {
+				return err
+			}
+			data.IngressAffinity = string(yml)
+		}
+	}
+
+	if ingress.Type == v1alpha1.NodePort {
+		data.IngressServiceType = string(v1alpha1.NodePort)
+	}
+
+	if len(ingress.Ports) > 0 {
+		y, err := yaml.Marshal(ingress.Ports)
+		if err != nil {
+			if err != nil {
+				return err
+			}
+		}
+		data.IngressServicePorts = string(y)
+	}
+	return nil
+}
+
+func configureEgressGateway(istioComponent *v1alpha1.IstioComponent, data *istioTemplateData) error {
+	if istioComponent.Egress == nil {
+		return nil
+	}
+	egress := istioComponent.Egress
+	if egress.Kubernetes != nil {
+		data.EgressKubernetes = true
+		data.EgressReplicaCount = egress.Kubernetes.Replicas
+		if egress.Kubernetes.Affinity != nil {
+			yml, err := yaml.Marshal(egress.Kubernetes.Affinity)
+			if err != nil {
+				return err
+			}
+			data.EgressAffinity = string(yml)
+		}
+	}
+	return nil
 }

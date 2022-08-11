@@ -12,6 +12,8 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"math/big"
 	"os"
 	"time"
@@ -26,6 +28,7 @@ const (
 	OperatorName = "verrazzano-platform-operator"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-install"
+	CRDName           = "verrazzanos.install.verrazzano.io"
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
@@ -170,9 +173,32 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCe
 	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
 	validatingWebhook.Webhooks[1].ClientConfig.CABundle = caCert.Bytes()
 	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
+	return err
+}
+
+//UpdateConversionWebhookConfiguration sets the conversion webhook for the Verrazzano resource
+func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.ApiextensionsV1Client, caCert *bytes.Buffer) error {
+	crd, err := apiextClient.CustomResourceDefinitions().Get(context.TODO(), CRDName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
-
-	return nil
+	convertPath := "/convert"
+	var webhookPort int32 = 443
+	crd.Spec.Conversion = &apiextensionsv1.CustomResourceConversion{
+		Strategy: apiextensionsv1.WebhookConverter,
+		Webhook: &apiextensionsv1.WebhookConversion{
+			ClientConfig: &apiextensionsv1.WebhookClientConfig{
+				Service: &apiextensionsv1.ServiceReference{
+					Name:      OperatorName,
+					Namespace: OperatorNamespace,
+					Path:      &convertPath,
+					Port:      &webhookPort,
+				},
+				CABundle: caCert.Bytes(),
+			},
+			ConversionReviewVersions: []string{"v1beta1"},
+		},
+	}
+	_, err = apiextClient.CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{})
+	return err
 }
