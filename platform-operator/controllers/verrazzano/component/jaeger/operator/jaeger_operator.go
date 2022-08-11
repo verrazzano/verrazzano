@@ -60,7 +60,6 @@ const (
 	tmpSuffix             = "yaml"
 	tmpFileCreatePattern  = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern   = tmpFilePrefix + ".*\\." + tmpSuffix
-	jaegerSecName         = "verrazzano-jaeger-secret"
 	jaegerCreateField     = "jaeger.create"
 	jaegerSecNameField    = "jaeger.spec.storage.secretName"
 	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"
@@ -258,7 +257,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		if err != nil {
 			return nil, err
 		}
-		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: jaegerSecName}
+		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName}
 		err = template.Execute(&b, data)
 		if err != nil {
 			return nil, err
@@ -394,7 +393,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 		return nil
 	}
 	// Copy the internal Elasticsearch secret
-	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", jaegerSecName)
+	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", globalconst.DefaultJaegerSecretName)
 	esInternalSecret, err := getESInternalSecret(ctx)
 	if err != nil {
 		return err
@@ -404,7 +403,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      jaegerSecName,
+			Name:      globalconst.DefaultJaegerSecretName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -420,7 +419,8 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 		}
 		return nil
 	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v", jaegerSecName, err)
+		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v",
+			globalconst.DefaultJaegerSecretName, err)
 	}
 	return nil
 }
