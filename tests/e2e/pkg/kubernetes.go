@@ -401,6 +401,11 @@ func ListPodsInCluster(namespace string, clientset *kubernetes.Clientset) (*core
 	return clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 }
 
+// ListPodsWithLabelsInCluster returns the list of pods in a given namespace that matches a specific label for the cluster
+func ListPodsWithLabelsInCluster(namespace, labels string, clientset *kubernetes.Clientset) (*corev1.PodList, error) {
+	return clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: labels})
+}
+
 // DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
 func DoesPodExist(namespace string, name string) (bool, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -767,7 +772,7 @@ func IsJaegerOperatorEnabled(kubeconfigPath string) bool {
 		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
 		return false
 	}
-	if vz.Spec.Components.JaegerOperator == nil || vz.Spec.Components.JaegerOperator.Enabled == nil {
+	if vz == nil || vz.Spec.Components.JaegerOperator == nil || vz.Spec.Components.JaegerOperator.Enabled == nil {
 		return false
 	}
 	return *vz.Spec.Components.JaegerOperator.Enabled

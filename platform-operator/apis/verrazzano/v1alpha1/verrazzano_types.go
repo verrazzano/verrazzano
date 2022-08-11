@@ -404,7 +404,10 @@ type ElasticsearchComponent struct {
 	// +patchStrategy=merge,retainKeys
 	ESInstallArgs []InstallArgs                 `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	Policies      []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
-	Nodes         []OpenSearchNode              `json:"nodes,omitempty"`
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	Nodes []OpenSearchNode `json:"nodes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 //OpenSearchNode specifies a node group in the OpenSearch cluster
@@ -675,6 +678,9 @@ type RancherComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
+	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is false.
+	// +optional
+	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
 }
 
 // RancherBackupComponent specifies the Rancher Backup configuration

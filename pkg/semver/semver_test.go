@@ -338,3 +338,49 @@ func TestMissingPrefix(t *testing.T) {
 	assert.True(t, v011v.IsGreatherThan(v010))
 	assert.True(t, v011v.IsGreatherThan(v010))
 }
+
+// TestIsGreatherThanOrEqualTo Tests IsGreatherThanOrEqualTo for various combinations of SemVersion objects
+// GIVEN a call to IsGreatherThanOrEqualTo with different SemVersion objects
+// WHEN v > arg, v < arg, and v == arg
+// THEN True v >= arg, false otherwise
+func TestIsGreatherThanOrEqualTo(t *testing.T) {
+	v010, _ := NewSemVersion("v0.1.0")
+	v010_2, _ := NewSemVersion("v0.1.0")
+	v020, _ := NewSemVersion("v0.2.0")
+	v011, _ := NewSemVersion("v0.1.1")
+	v100, _ := NewSemVersion("v1.0.0")
+	v200, _ := NewSemVersion("v2.0.0")
+
+	assert.True(t, v010.IsGreaterThanOrEqualTo(v010))
+	assert.True(t, v010.IsGreaterThanOrEqualTo(v010_2))
+	assert.False(t, v010.IsGreaterThanOrEqualTo(v020))
+	assert.False(t, v010.IsGreaterThanOrEqualTo(v011))
+	assert.False(t, v010.IsGreaterThanOrEqualTo(v100))
+
+	assert.True(t, v020.IsGreaterThanOrEqualTo(v010))
+	assert.True(t, v020.IsGreaterThanOrEqualTo(v010_2))
+	assert.True(t, v020.IsGreaterThanOrEqualTo(v020))
+	assert.True(t, v020.IsGreaterThanOrEqualTo(v011))
+	assert.False(t, v020.IsGreaterThanOrEqualTo(v100))
+
+	assert.True(t, v011.IsGreaterThanOrEqualTo(v010))
+	assert.True(t, v011.IsGreaterThanOrEqualTo(v010_2))
+	assert.False(t, v011.IsGreaterThanOrEqualTo(v020))
+	assert.True(t, v011.IsGreaterThanOrEqualTo(v011))
+	assert.False(t, v011.IsGreaterThanOrEqualTo(v100))
+
+	assert.True(t, v100.IsGreaterThanOrEqualTo(v010))
+	assert.True(t, v100.IsGreaterThanOrEqualTo(v010_2))
+	assert.True(t, v100.IsGreaterThanOrEqualTo(v020))
+	assert.True(t, v100.IsGreaterThanOrEqualTo(v011))
+	assert.True(t, v100.IsGreaterThanOrEqualTo(v100))
+	assert.False(t, v100.IsGreaterThanOrEqualTo(v200))
+
+	v009, _ := NewSemVersion("v0.0.9")
+	v009_2, _ := NewSemVersion("v0.0.9")
+	v0010, _ := NewSemVersion("v0.0.10")
+	assert.True(t, v009.IsGreaterThanOrEqualTo(v009_2))
+	assert.False(t, v009.IsGreaterThanOrEqualTo(v0010))
+	assert.True(t, v0010.IsGreaterThanOrEqualTo(v009))
+	assert.True(t, v009.IsGreaterThanOrEqualTo(v009))
+}

@@ -159,7 +159,7 @@ pipeline {
                     if (!"${env.GIT_BRANCH}".startsWith("release-")) {
                         env.VERRAZZANO_VERSION = "${env.VERRAZZANO_VERSION}-${env.BUILD_NUMBER}+${SHORT_COMMIT_HASH}"
                     }
-                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    DOCKER_IMAGE_TAG = "v${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
                     def currentCommitHash = env.GIT_COMMIT
@@ -396,17 +396,21 @@ pipeline {
                 script {
                     VZ_TEST_METRIC = metricJobName('kind_test')
                     metricTimerStart("${VZ_TEST_METRIC}")
-                    build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                        parameters: [
-                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
-                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                            booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
-                            booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
-                            booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
-                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
-                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                        ], wait: true
+                }
+                retry(count: JOB_PROMOTION_RETRIES) {
+                    script {
+                        build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            parameters: [
+                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
+                                booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
+                                booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
+                                string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+                                booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                            ], wait: true
+                    }
                 }
             }
             post {

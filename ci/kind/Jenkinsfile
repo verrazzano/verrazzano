@@ -60,6 +60,7 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to run JWT tests', name: 'ENABLE_JWT_TESTING', defaultValue: false)
+        booleanParam (description: 'Whether to run slow tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
     }
 
     environment {
@@ -418,6 +419,14 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('examples/helidon')
+                            }
+                        }
+                        stage('jaeger helidon') {
+                            environment {
+                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-helidon"
+                            }
+                            steps {
+                               runGinkgo('jaeger/helidon')
                             }
                         }
                         stage('JWT Workload Component') {

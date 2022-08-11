@@ -43,6 +43,11 @@ const (
 	FilenameFlag          = "filename"
 	FilenameFlagShorthand = "f"
 	FilenameFlagHelp      = "Path to file containing Verrazzano custom resource.  This flag can be specified multiple times to overlay multiple files.  Specifying \"-\" as the filename accepts input from stdin."
+
+	VerboseFlag          = "verbose"
+	VerboseFlagShorthand = "v"
+	VerboseFlagDefault   = false
+	VerboseFlagUsage     = "Enable verbose output"
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
@@ -83,6 +88,8 @@ const OAMManagedClusters = "verrazzanomanagedclusters"
 
 const VerrazzanoManagedLabel = "verrazzano-managed=true"
 
+const LineSeparator = "-"
+
 // Analysis tool flags
 const (
 	DirectoryFlagName  = "capture-dir"
@@ -94,8 +101,10 @@ const (
 	ReportFileFlagUsage = "Name of report output file. (default stdout)"
 
 	ReportFormatFlagName  = "report-format"
-	ReportFormatFlagValue = "simple"
-	ReportFormatFlagUsage = "The format of the report output. Valid output format is \"simple\""
+	ReportFormatFlagUsage = "The format of the report output. Valid report formats are \"summary\" and \"detailed\"."
+
+	SummaryReport  = "summary"
+	DetailedReport = "detailed"
 )
 
 // Constants for bug report
@@ -153,4 +162,8 @@ const (
 	// Label for application
 	AppLabel    = "app"
 	K8SAppLabel = "k8s-app"
+
+	// Message prefix for bug-report and live cluster analysis
+	BugReportMsgPrefix = "Capturing "
+	AnalysisMsgPrefix  = "Analyzing "
 )

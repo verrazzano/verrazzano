@@ -10,7 +10,9 @@ import (
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -98,6 +100,12 @@ func mutateMCAppConfig(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfi
 	mcAppConfigNew.Spec.Placement = mcAppConfig.Spec.Placement
 	mcAppConfigNew.Spec.Template = mcAppConfig.Spec.Template
 	mcAppConfigNew.Labels = mcAppConfig.Labels
+	// Mark the MC app config we synced from Admin cluster with verrazzano-managed=true, to
+	// distinguish from any (though unlikely) that the user might have created directly
+	if mcAppConfigNew.Labels == nil {
+		mcAppConfigNew.Labels = map[string]string{}
+	}
+	mcAppConfigNew.Labels[vzconst.VerrazzanoManagedLabelKey] = constants.LabelVerrazzanoManagedDefault
 }
 
 // appConfigPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace and the placement
@@ -186,6 +194,9 @@ func (s *Syncer) mutateComponent(managedClusterName string, mcAppConfigName stri
 	componentNew.Labels[mcAppConfigsLabel] = vzstring.AppendToCommaSeparatedString(componentNew.Labels[mcAppConfigsLabel], mcAppConfigName)
 
 	componentNew.Labels[managedClusterLabel] = managedClusterName
+	// Mark the component synced from Admin cluster with verrazzano-managed=true, to distinguish
+	// those directly created by user on managed cluster
+	componentNew.Labels[vzconst.VerrazzanoManagedLabelKey] = constants.LabelVerrazzanoManagedDefault
 	componentNew.Spec = component.Spec
 	componentNew.Annotations = component.Annotations
 }

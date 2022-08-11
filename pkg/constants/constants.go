@@ -120,8 +120,15 @@ const TestPrometheusJobScrapeInterval = "0s"
 // TestPrometheusJob - Name of a test prometheus scraper job
 const TestPrometheusScrapeJob = "test_job"
 
-// Default Opensearch URL
+// Default OpenSearch URL
 const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"
+
+// Default Jaeger OpenSearch URL
+const DefaultJaegerOSURL = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
+
+// DefaultJaegerSecretName is the Jaeger secret name used by the default Jaeger instance
+// #nosec
+const DefaultJaegerSecretName = "verrazzano-jaeger-secret"
 
 // VerrazzanoManagedLabelKey is a constant for a Kubernetes label that is applied to Verrazzano application namespaces
 const VerrazzanoManagedLabelKey = "verrazzano-managed"

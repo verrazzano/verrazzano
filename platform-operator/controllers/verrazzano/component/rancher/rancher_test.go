@@ -193,6 +193,15 @@ func createServerURLSetting() unstructured.Unstructured {
 	return serverURLSetting
 }
 
+func createFirstLoginSetting() unstructured.Unstructured {
+	firstLoginSetting := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	firstLoginSetting.SetGroupVersionKind(GVKSetting)
+	firstLoginSetting.SetName(SettingFirstLogin)
+	return firstLoginSetting
+}
+
 func createOciDriver() unstructured.Unstructured {
 	ociDriver := unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -217,6 +226,36 @@ func createOkeDriver() unstructured.Unstructured {
 	okeDriver.SetGroupVersionKind(GVKKontainerDriver)
 	okeDriver.SetName(KontainerDriverOKE)
 	return okeDriver
+}
+
+func createKeycloakAuthConfig() unstructured.Unstructured {
+	authConfig := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfig.SetName(AuthConfigKeycloak)
+	return authConfig
+}
+
+func createLocalAuthConfig() unstructured.Unstructured {
+	authConfig := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfig.SetName(AuthConfigLocal)
+	return authConfig
+}
+
+func createKeycloakSecret() v1.Secret {
+	return v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "keycloak",
+			Name:      "keycloak-http",
+		},
+		Data: map[string][]byte{
+			"password": []byte("blahblah"),
+		},
+	}
 }
 
 // TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR

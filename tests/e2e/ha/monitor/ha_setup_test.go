@@ -34,6 +34,6 @@ var _ = t.BeforeSuite(func() {
 	web.httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	web.clientset = k8sutil.GetKubernetesClientsetOrDie()
 	web.users.verrazzano = pkg.EventuallyGetSystemVMICredentials()
-	web.hosts.rancher = pkg.EventuallyGetRancherURL(t.Logs, web.api)
+	web.hosts.rancher = pkg.EventuallyGetURLForIngress(t.Logs, web.api, "cattle-system", "rancher", "https")
 	web.hosts.kiali = pkg.EventuallyGetKialiHost(web.clientset)
 })
