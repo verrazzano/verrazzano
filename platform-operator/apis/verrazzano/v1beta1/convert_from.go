@@ -41,6 +41,9 @@ type expandInfo struct {
 
 func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha1.Verrazzano)
+	if src == nil {
+		return nil
+	}
 	in.ObjectMeta = src.ObjectMeta
 
 	// Convert Spec
