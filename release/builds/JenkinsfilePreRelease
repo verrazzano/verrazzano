@@ -39,6 +39,10 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         PERIODIC_JOB_PROJECT_NAME = 'verrazzano-periodic-triggered-tests'
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_SHARED_BUCKET="build-shared-files"
+        OCI_OS_REGION="us-phoenix-1"
     }
 
     stages {
@@ -86,6 +90,12 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.COMMIT_TO_USE
+                }
+                script {
+                    sh """
+                        echo "Downloading verrazzano-helper from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                    """
                 }
             }
         }

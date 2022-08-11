@@ -16,6 +16,12 @@ pipeline {
         }
     }
 
+    environment {
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_SHARED_BUCKET="build-shared-files"
+    }
+
     stages {
         stage('Clean workspace and checkout') {
             environment {
@@ -36,6 +42,12 @@ pipeline {
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
                 """
             }
+            script {
+                sh """
+                    echo "Downloading verrazzano-helper from object storage"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                """
+            }
         }
 
         stage('Update JIRA tickets with pull request') {
@@ -50,7 +62,7 @@ pipeline {
                         // Escape double quotes in the PR title
                         env.PR_TITLE = sh(script:'echo "${CHANGE_TITLE}" | sed \'s/"/\\\\"/g\'', returnStdout: true).trim()
                         sh """
-                            verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.PR_TITLE}" --pr-target "${env.CHANGE_TARGET}" --token unused --jira-env=prod
+                            ${WORKSPACE}/verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.PR_TITLE}" --pr-target "${env.CHANGE_TARGET}" --token unused --jira-env=prod
                         """
                     } else {
                         echo "Existing pull request updated, skipping update of JIRA ticket"
