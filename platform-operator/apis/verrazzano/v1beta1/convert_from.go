@@ -583,8 +583,9 @@ func convertRancherFrom(src *v1alpha1.RancherComponent) *RancherComponent {
 		return nil
 	}
 	return &RancherComponent{
-		Enabled:          src.Enabled,
-		InstallOverrides: convertInstallOverridesFrom(src.InstallOverrides),
+		Enabled:             src.Enabled,
+		InstallOverrides:    convertInstallOverridesFrom(src.InstallOverrides),
+		KeycloakAuthEnabled: src.KeycloakAuthEnabled,
 	}
 }
 
