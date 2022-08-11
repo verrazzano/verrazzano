@@ -24,6 +24,12 @@ pipeline {
                         trim: true)
     }
 
+    environment {
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_SHARED_BUCKET="build-shared-files"
+    }
+
     stages {
         stage('Clean workspace and checkout') {
             environment {
@@ -56,6 +62,7 @@ pipeline {
                 sh """
                     echo "Downloading verrazzano-helper from object storage"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                    chmod uog+x ${WORKSPACE}/verrazzano-helper
                 """
             }
         }
