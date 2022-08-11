@@ -443,8 +443,8 @@ func convertRancherTo(in *RancherComponent) *v1alpha1.RancherComponent {
 		return nil
 	}
 	return &v1alpha1.RancherComponent{
-		Enabled:          in.Enabled,
-		InstallOverrides: convertInstallOverridesTo(in.InstallOverrides),
+		Enabled:             in.Enabled,
+		InstallOverrides:    convertInstallOverridesTo(in.InstallOverrides),
 		KeycloakAuthEnabled: in.KeycloakAuthEnabled,
 	}
 }
