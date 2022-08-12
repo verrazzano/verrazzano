@@ -89,7 +89,10 @@ pipeline {
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
         TF_VAR_node_pool_size = '4'
 
-        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
 
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
