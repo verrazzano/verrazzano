@@ -330,12 +330,14 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return result, nil
 	}
 
+	if done, err := r.checkUpgradeComplete(vzctx); !done || err != nil {
+		log.Progressf("Upgrade is waiting for all components to enter a Ready state before completion")
+		return newRequeueWithDelay(), err
+	}
+
 	// Upgrade done along with any post-upgrade installations of new components that are enabled by default.
 	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", actualCR.Spec.Version)
 	log.Once(msg)
-	if err := r.updateStatus(log, actualCR, msg, installv1alpha1.CondUpgradeComplete); err != nil {
-		return newRequeueWithDelay(), err
-	}
 	return ctrl.Result{}, nil
 }
 
@@ -459,6 +461,23 @@ func (r *Reconciler) checkInstallComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	message := "Verrazzano install completed successfully"
 	// Status update must be performed on the actual CR read from K8S
 	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete)
+}
+
+// checkUpgradeComplete checks to see if the upgrade is complete
+func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bool, error) {
+	log := vzctx.Log
+	actualCR := vzctx.ActualCR
+	ready, err := r.checkComponentReadyState(vzctx)
+	if err != nil {
+		return false, err
+	}
+	if !ready {
+		return false, nil
+	}
+	// Set upgrade complete IFF all subcomponent status' are "CompStateReady"
+	message := "Verrazzano upgrade completed successfully"
+	// Status update must be performed on the actual CR read from K8S
+	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondUpgradeComplete)
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
