@@ -228,27 +228,7 @@ pipeline {
                     // derive the prefix for the OKE cluster
                     OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
                 }
-            }
-        }
 
-        stage("Create OCI config file") {
-            steps {
-                script{
-                    sh """
-                        mkdir -p ~/.oci
-                        cp ${OCI_CLI_KEY_FILE} ~/.oci
-                        rm -rf ~/.oci/config
-                        {
-                          echo '[DEFAULT]'
-                          echo 'user=${OCI_CLI_USER}'
-                          echo 'fingerprint=${OCI_CLI_FINGERPRINT}'
-                          echo 'tenancy=${OCI_CLI_TENANCY}'
-                          echo 'region=${OCI_CLI_REGION}'
-                          echo 'key_file=~/.oci/alm.pem'
-                        } >> ~/.oci/config
-                        oci setup repair-file-permissions --file /home/opc/.oci/config
-                    """
-                }
                 script {
                     sh """
                         echo "Downloading VZ CLI from object storage"
@@ -264,7 +244,7 @@ pipeline {
             stages {
                 stage('Create OKE Cluster') {
                     steps {
-                        sh "TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=rollingupgrade-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
+                        sh "OCI_CLI_AUTH="instance_principal" TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=rollingupgrade-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
                     }
                     post {
                         failure {
