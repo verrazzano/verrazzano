@@ -4,7 +4,6 @@
   "components": [
     {
       "name": "verrazzano-platform-operator",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -21,7 +20,6 @@
     },
     {
       "name": "ingress-nginx",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -80,7 +78,6 @@
     },
     {
       "name": "external-dns",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -99,7 +96,6 @@
     },
     {
       "name": "istio",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -268,7 +264,6 @@
     },
     {
       "name": "monitoring-init-images",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -489,7 +484,6 @@
     },
     {
       "name": "prometheus-adapter",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -507,7 +501,6 @@
     },
     {
       "name": "kube-state-metrics",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -525,7 +518,6 @@
     },
     {
       "name": "prometheus-pushgateway",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -543,7 +535,6 @@
     },
     {
       "name": "node-exporter",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -561,7 +552,6 @@
     },
     {
       "name": "jaeger",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -656,7 +646,6 @@
     },
     {
       "name": "velero",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -684,7 +673,6 @@
     },
     {
       "name": "rancher-backup",
-      "version": "1.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano/rancher",
