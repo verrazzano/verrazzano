@@ -27,12 +27,8 @@ const (
 )
 
 var (
-	t                 = framework.NewTestFramework("jaeger")
-	waitTimeout       = 10 * time.Minute
-	pollingInterval   = 30 * time.Second
-	failed            = false
-	beforeSuitePassed = false
-	start             = time.Now()
+	t     = framework.NewTestFramework("jaeger")
+	start = time.Now()
 )
 
 func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {

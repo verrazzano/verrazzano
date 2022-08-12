@@ -443,23 +443,23 @@ func elasticConnected() bool {
 	return elastic.Connect()
 }
 
-func elasticHealth() bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
-		return false
-	}
-	return elastic.CheckHealth(kubeconfigPath)
-}
-
-func elasticIndicesHealth() bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
-		return false
-	}
-	return elastic.CheckIndicesHealth(kubeconfigPath)
-}
+//func elasticHealth() bool {
+//	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+//	if err != nil {
+//		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
+//		return false
+//	}
+//	return elastic.CheckHealth(kubeconfigPath)
+//}
+//
+//func elasticIndicesHealth() bool {
+//	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+//	if err != nil {
+//		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
+//		return false
+//	}
+//	return elastic.CheckIndicesHealth(kubeconfigPath)
+//}
 
 func elasticTLSSecret() bool {
 	return elastic.CheckTLSSecret()
