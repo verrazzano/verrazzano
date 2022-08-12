@@ -199,11 +199,6 @@ function create_image_repos_from_bom() {
         local repo_path=${from_image_prefix}/${imageName}
 
         create_ocir_repo ${repo_path}
-        if [ ! -z "$LIST_IMAGES_ONLY" ]; then
-          echo ${to_image} >> $LIST_IMAGES_ONLY
-        else
-          process_image ${from_image} ${to_image}
-        fi
       done
     done
   done
