@@ -677,7 +677,7 @@ def getLastCleanPeriodicCommit() {
     echo "command out: ${lastPeriodicCommitCommandOutput}"
     if (lastPeriodicCommitCommandOutput.length() > 0) {
         // We can get warning messages here as well even when the command succeeded, so be more precise on the checking
-        if lastPeriodicCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/ {
+        if (lastPeriodicCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
             // If we think we had a status: NNN, we ignore 404 and fail for others
             assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
         } else {
