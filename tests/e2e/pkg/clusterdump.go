@@ -133,7 +133,7 @@ func ExecuteExtractBugReport(kubeconfig string, bugReportDirectory string) error
 	var cmd *exec.Cmd
 	filename := fmt.Sprintf("%s/%s", bugReportDirectory, "bug-report.tar.gz")
 	extractedBugReportDir := bugReportDirectory + "/bug-report"
-	fmt.Printf("Starting bug report extract: KUBECONFIG=%s; tar -xvf %s -C %s", filename, extractedBugReportDir)
+	fmt.Printf("Starting bug report extract: KUBECONFIG=%s; tar -xvf %s -C %s", kubeconfig, filename, extractedBugReportDir)
 	errExtractedBugReportDir := os.MkdirAll(extractedBugReportDir, 0755)
 	if errExtractedBugReportDir != nil {
 		return errExtractedBugReportDir
