@@ -21,9 +21,9 @@ type ComponentContext interface {
 	ActualCR() *vzapi.Verrazzano
 	// EffectiveCR returns the effective merged v1alpha1.Verrazzano CR
 	EffectiveCR() *vzapi.Verrazzano
-	// ActualCRV1Beta1 returns the actual unmerged v1alpha1.Verrazzano resource
+	// ActualCRV1Beta1 returns the actual unmerged v1beta1.Verrazzano resource
 	ActualCRV1Beta1() *installv1beta1.Verrazzano
-	// EffectiveCRV1Beta1 returns the effective merged v1alpha1.Verrazzano CR
+	// EffectiveCRV1Beta1 returns the effective merged v1beta1.Verrazzano CR
 	EffectiveCRV1Beta1() *installv1beta1.Verrazzano
 	// IsDryRun indicates the component context is in DryRun mode
 	IsDryRun() bool

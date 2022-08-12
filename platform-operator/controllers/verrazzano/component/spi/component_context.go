@@ -101,7 +101,7 @@ type componentContext struct {
 	cr *vzapi.Verrazzano
 	// crv1beta1 Represents the current v1beta1.Verrazzano object state in the cluster
 	crv1beta1 *vzapiv1beta1.Verrazzano
-	// effectiveCR Represents the configuration resulting from any named profiles used and any configured overrides in the CR
+	// effectiveCR Represents the configuration resulting from any named profiles used and any configured overrides in the v1alpha1.Verrazzano resource
 	effectiveCR *vzapi.Verrazzano
 	// effectiveCRv1beta1 effectiveCR in v1beta1 form
 	effectiveCRv1beta1 *vzapiv1beta1.Verrazzano
