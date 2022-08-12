@@ -17,7 +17,7 @@ import (
 // TestVersionCmd - check that command reports not implemented yet
 func TestVersionCmd(t *testing.T) {
 
-	CliVersion = "1.2.3"
+	cliVersion = "1.2.3"
 	buildDate = "2022-06-10T13:57:03Z"
 	gitCommit = "9dbc916b58ab9781f7b4c25e51748fb31ec940f8"
 
@@ -37,4 +37,18 @@ func TestVersionCmd(t *testing.T) {
 	assert.Regexp(t, `^(Version: )?(v)?(\d+\.)?(\d+\.)?(\d+)$`, version)
 	assert.Regexp(t, `^(BuildDate: )?(\d+\-)?(\d+\-)?(\d+T)?(\d+\:)?(\d+\:)?(\d+Z)$`, build)
 	assert.Regexp(t, `^(GitCommit: )?(\w{40})$`, commit)
+}
+
+func TestGetEffectiveDocsVersion(t *testing.T) {
+	cliVersion = "1.2.3"
+	assert.True(t, GetEffectiveDocsVersion() == "v1.2")
+}
+
+func TestGetEffectiveDocsVersionWhenDocStageEnabled(t *testing.T) {
+	cliVersion = "1.2.3"
+	t.Setenv("USE_V8O_DOC_STAGE", "true")
+	assert.True(t, GetEffectiveDocsVersion() == "devel")
+
+	t.Setenv("USE_V8O_DOC_STAGE", "false")
+	assert.True(t, GetEffectiveDocsVersion() == "v1.2")
 }

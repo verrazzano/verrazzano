@@ -9,9 +9,11 @@ import (
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
+	"os"
+	"regexp"
 )
 
-var CliVersion string
+var cliVersion string
 var buildDate string
 var gitCommit string
 
@@ -42,7 +44,7 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdVersion(vzHelper helpers.VZHelper) error {
 
 	templateValues := map[string]string{
-		"cli_version": CliVersion,
+		"cli_version": cliVersion,
 		"build_date":  buildDate,
 		"git_commit":  gitCommit,
 	}
@@ -53,4 +55,13 @@ func runCmdVersion(vzHelper helpers.VZHelper) error {
 	}
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), result)
 	return nil
+}
+
+func GetEffectiveDocsVersion() string {
+	if os.Getenv("USE_V8O_DOC_STAGE") == "true" || len(cliVersion) == 0 {
+		return "devel"
+	}
+	var re = regexp.MustCompile(`(?m)(\d.\d)(.*)`)
+	s := re.FindAllStringSubmatch(cliVersion, -1)[0][1] //This will get the group 1 of 1st match which is "1.4.0" to "1.4"
+	return fmt.Sprintf("v%s", s)                        //return v1.4 by appending prefex 'v'
 }
