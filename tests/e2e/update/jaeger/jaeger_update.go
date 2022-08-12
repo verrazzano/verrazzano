@@ -4,7 +4,7 @@
 package jaeger
 
 import (
-	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -60,7 +60,7 @@ func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
 	kubeconfig, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		t.It(text, func() {
-			Fail(err.Error())
+			ginkgo.Fail(err.Error())
 		})
 	}
 	if pkg.IsJaegerOperatorEnabled(kubeconfig) {
