@@ -462,7 +462,7 @@ def uninstallVerrazzano(vpoLogsDir) {
         // Delete VZ in the background
         sh """
             echo "Deleting the Verrazzano resource..."
-            kubectl delete --wait=true --timeout=20m verrazzano my-verrazzano
+            kubectl delete --wait=true --timeout=20m verrazzanos.v1alpha1.install.verrazzano.io my-verrazzano
 
             #if kubectl get verrazzano my-verrazzano 2>&1 > /dev/null; then
             #  echo "Waiting for Verrazzano resource to be deleted..."
