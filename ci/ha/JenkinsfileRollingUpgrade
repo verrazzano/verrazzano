@@ -89,10 +89,12 @@ pipeline {
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
         TF_VAR_node_pool_size = '4'
 
+        OCI_CLI_AUTH="instance_principal"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
 
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
@@ -133,7 +135,6 @@ pipeline {
 
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
-        OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
@@ -226,6 +227,27 @@ pipeline {
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                     // derive the prefix for the OKE cluster
                     OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
+                }
+            }
+        }
+
+        stage("Create OCI config file") {
+            steps {
+                script{
+                    sh """
+                        mkdir -p ~/.oci
+                        cp ${OCI_CLI_KEY_FILE} ~/.oci
+                        rm -rf ~/.oci/config
+                        {
+                          echo '[DEFAULT]'
+                          echo 'user=${OCI_CLI_USER}'
+                          echo 'fingerprint=${OCI_CLI_FINGERPRINT}'
+                          echo 'tenancy=${OCI_CLI_TENANCY}'
+                          echo 'region=${OCI_CLI_REGION}'
+                          echo 'key_file=~/.oci/alm.pem'
+                        } >> ~/.oci/config
+                        oci setup repair-file-permissions --file /home/opc/.oci/config
+                    """
                 }
                 script {
                     sh """
