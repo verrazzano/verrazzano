@@ -429,6 +429,14 @@ pipeline {
                                runGinkgo('jaeger/helidon')
                             }
                         }
+                        stage('jaeger system') {
+                            environment {
+                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-system"
+                            }
+                            steps {
+                               runGinkgo('jaeger/system')
+                            }
+                        }
                         stage('JWT Workload Component') {
                             when {
                                 expression {params.ENABLE_JWT_TESTING == true}

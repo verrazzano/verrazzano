@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -42,9 +43,9 @@ const (
 	// ComponentSecretName  is the name of the secret.
 	ComponentSecretName = "jaeger-operator-service-cert"
 	// JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
-	JaegerCollectorDeploymentName = "jaeger-operator-jaeger-collector"
+	JaegerCollectorDeploymentName = globalconst.JaegerInstanceName + "-" + globalconst.JaegerCollectorComponentName
 	// JaegerQueryDeploymentName is the name of the Jaeger instance query deployment.
-	JaegerQueryDeploymentName = "jaeger-operator-jaeger-query"
+	JaegerQueryDeploymentName = globalconst.JaegerInstanceName + "-" + globalconst.JaegerCollectorComponentName
 	// JaegerInstanceName is the name of the jaeger instance
 	JaegerInstanceName = "jaeger-operator-jaeger"
 )

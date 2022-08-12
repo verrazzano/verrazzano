@@ -18,8 +18,9 @@ const collectorZipkinPort = 9411
 func configureJaeger(ctx spi.ComponentContext) ([]vzapi.InstallArgs, error) {
 	// During istio bootstrap, if Jaeger operator is not enabled, or if the Jaeger services are not created yet,
 	// use the collector URL of the default Jaeger instance that would eventually be created.
-	collectorURL := fmt.Sprintf("%s-collector.%s.svc.cluster.local:%d",
+	collectorURL := fmt.Sprintf("%s-%s.%s.svc.cluster.local:%d",
 		globalconst.JaegerInstanceName,
+		globalconst.JaegerCollectorComponentName,
 		constants.VerrazzanoMonitoringNamespace,
 		collectorZipkinPort,
 	)

@@ -213,10 +213,10 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				)
 			})
 
-		t.It("Elasticsearch health should be green", func() {
-			Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
-			Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
-		})
+		//t.It("Elasticsearch health should be green", func() {
+		//	Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
+		//	Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
+		//})
 
 		t.It("Elasticsearch systemd journal Index should be accessible", Label("f:observability.logging.es"),
 			func() {
