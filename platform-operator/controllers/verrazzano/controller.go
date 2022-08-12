@@ -331,7 +331,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 	}
 
 	if done, err := r.checkUpgradeComplete(vzctx); !done || err != nil {
-		log.Progressf("Upgrade is waiting for all components to enter a Ready state before completion")
+		log.Infof("Upgrade is waiting for all components to enter a Ready state before completion")
 		return newRequeueWithDelay(), err
 	}
 
