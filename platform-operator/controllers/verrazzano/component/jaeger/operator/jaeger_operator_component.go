@@ -45,9 +45,7 @@ const (
 	// JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
 	JaegerCollectorDeploymentName = globalconst.JaegerInstanceName + "-" + globalconst.JaegerCollectorComponentName
 	// JaegerQueryDeploymentName is the name of the Jaeger instance query deployment.
-	JaegerQueryDeploymentName = globalconst.JaegerInstanceName + "-" + globalconst.JaegerCollectorComponentName
-	// JaegerInstanceName is the name of the jaeger instance
-	JaegerInstanceName = "jaeger-operator-jaeger"
+	JaegerQueryDeploymentName = globalconst.JaegerInstanceName + "-" + globalconst.JaegerQueryComponentName
 )
 
 type jaegerOperatorComponent struct {
@@ -167,7 +165,7 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed searching for Jaeger release: %v", err)
 	}
 	if !installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
-		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! Either disable the Verrazzano's default Jaeger instance creation by overriding jaeger.create Helm value for Jaeger Operator component to false or delete and recreate the existing Jaeger deployment in a different namespace: %v", ComponentNamespace, JaegerInstanceName, err)
+		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! Either disable the Verrazzano's default Jaeger instance creation by overriding jaeger.create Helm value for Jaeger Operator component to false or delete and recreate the existing Jaeger deployment in a different namespace: %v", ComponentNamespace, globalconst.JaegerInstanceName, err)
 	}
 	err = removeOldJaegerResources(ctx)
 	if err != nil {
