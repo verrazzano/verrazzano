@@ -37,31 +37,6 @@ var testZipkinService = corev1.Service{
 	},
 }
 
-func TestZipkinPort(t *testing.T) {
-	var tests = []struct {
-		name    string
-		service corev1.Service
-		port    int32
-	}{
-		{
-			"9411 when no named port",
-			corev1.Service{},
-			9411,
-		},
-		{
-			"service port when named port",
-			testZipkinService,
-			5555,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.port, zipkinPort(tt.service))
-		})
-	}
-}
-
 func TestConfigureJaeger(t *testing.T) {
 	ctxNoService := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
 	ctxWithServiceAndUnmanagedNamespace := spi.NewFakeContext(fake.NewClientBuilder().
