@@ -641,18 +641,18 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.8.1-20220617192749-f0db842f",
+              "tag": "v1.8.1-20220811175045-7bc0e55e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "velero-plugin-for-aws",
-              "tag": "v1.4.1-20220617193554-272b3ebc",
+              "tag": "v1.4.1-20220811172550-645bcc83",
               "helmFullImageKey": "initContainers[0].image"
             },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.8.1-20220617192909-f0db842f",
+              "tag": "v1.8.1-20220811175045-7bc0e55e",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]
