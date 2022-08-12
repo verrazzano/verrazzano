@@ -60,7 +60,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 				tracesFound := false
 				servicesWithJaegerTraces := pkg.ListServicesInJaeger(kubeconfigPath)
 				for _, serviceName := range servicesWithJaegerTraces {
-					pkg.Log(pkg.Info, "Inspecting Service Name: "+serviceName)
+					pkg.Log(pkg.Info, fmt.Sprintf("Inspecting traces for service: %s", serviceName))
 					if strings.HasPrefix(serviceName, "fluentd.verrazzano-system") {
 						traceIds := pkg.ListJaegerTraces(kubeconfigPath, serviceName)
 						tracesFound = len(traceIds) > 0

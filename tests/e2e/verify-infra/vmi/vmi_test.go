@@ -213,10 +213,10 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				)
 			})
 
-		//t.It("Elasticsearch health should be green", func() {
-		//	Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
-		//	Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
-		//})
+		t.It("Elasticsearch health should be green", func() {
+			Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
+			Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
+		})
 
 		t.It("Elasticsearch systemd journal Index should be accessible", Label("f:observability.logging.es"),
 			func() {
@@ -443,23 +443,23 @@ func elasticConnected() bool {
 	return elastic.Connect()
 }
 
-//func elasticHealth() bool {
-//	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-//	if err != nil {
-//		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
-//		return false
-//	}
-//	return elastic.CheckHealth(kubeconfigPath)
-//}
-//
-//func elasticIndicesHealth() bool {
-//	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-//	if err != nil {
-//		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
-//		return false
-//	}
-//	return elastic.CheckIndicesHealth(kubeconfigPath)
-//}
+func elasticHealth() bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
+		return false
+	}
+	return elastic.CheckHealth(kubeconfigPath)
+}
+
+func elasticIndicesHealth() bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
+		return false
+	}
+	return elastic.CheckIndicesHealth(kubeconfigPath)
+}
 
 func elasticTLSSecret() bool {
 	return elastic.CheckTLSSecret()
