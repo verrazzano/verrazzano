@@ -15,24 +15,24 @@ import (
 )
 
 const (
-	shortPollingInterval     = 10 * time.Second
-	shortWaitTimeout         = 5 * time.Minute
+	shortPollingInterval = 10 * time.Second
+	shortWaitTimeout     = 5 * time.Minute
 )
 
 const (
-	jaegerOperatorSampleMetric   = "jaeger_operator_instances_managed"
-	jaegerAgentSampleMetric      = "jaeger_agent_collector_proxy_total"
-	jaegerQuerySampleMetric      = "jaeger_query_requests_total"
-	jaegerCollectorSampleMetric  = "jaeger_collector_queue_capacity"
+	jaegerOperatorSampleMetric  = "jaeger_operator_instances_managed"
+	jaegerAgentSampleMetric     = "jaeger_agent_collector_proxy_total"
+	jaegerQuerySampleMetric     = "jaeger_query_requests_total"
+	jaegerCollectorSampleMetric = "jaeger_collector_queue_capacity"
 )
 
 var (
-	t                        = framework.NewTestFramework("jaeger")
-	waitTimeout              = 10 * time.Minute
-	pollingInterval          = 30 * time.Second
-	failed                   = false
-	beforeSuitePassed        = false
-	start                    = time.Now()
+	t                 = framework.NewTestFramework("jaeger")
+	waitTimeout       = 10 * time.Minute
+	pollingInterval   = 30 * time.Second
+	failed            = false
+	beforeSuitePassed = false
+	start             = time.Now()
 )
 
 func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
@@ -47,8 +47,6 @@ func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
 	}
 	t.Logs.Infof("Skipping spec, Jaeger Operator is disabled")
 }
-
-
 
 var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.system-traces"), func() {
 	t.Context("after successful installation", func() {
@@ -66,7 +64,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 				tracesFound := false
 				servicesWithJaegerTraces := pkg.ListServicesInJaeger(kubeconfigPath)
 				for _, serviceName := range servicesWithJaegerTraces {
-					pkg.Log(pkg.Info, "Inspecting Service Name: " + serviceName)
+					pkg.Log(pkg.Info, "Inspecting Service Name: "+serviceName)
 					if strings.HasPrefix(serviceName, "fluentd.verrazzano-system") {
 						traceIds := pkg.ListJaegerTraces(kubeconfigPath, serviceName)
 						tracesFound = len(traceIds) > 0
@@ -93,7 +91,6 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 				return pkg.JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, "fluentd.verrazzano-system")
 			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
-
 
 		// GIVEN the Jaeger Operator component is enabled,
 		// WHEN we check for metrics related to Jaeger operator
