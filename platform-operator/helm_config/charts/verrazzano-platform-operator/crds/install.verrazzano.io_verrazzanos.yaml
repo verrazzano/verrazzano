@@ -828,8 +828,20 @@ spec:
                     type: object
                   grafana:
                     properties:
+                      database:
+                        description: DatabaseInfo specifies the database host, name,
+                          and username/password secret for Grafana DB instance
+                        properties:
+                          host:
+                            type: string
+                          name:
+                            type: string
+                        type: object
                       enabled:
                         type: boolean
+                      replicas:
+                        format: int32
+                        type: integer
                     type: object
                   ingress:
                     properties:
@@ -2803,6 +2815,8 @@ spec:
                   rancher:
                     properties:
                       enabled:
+                        type: boolean
+                      keycloakAuthEnabled:
                         type: boolean
                       monitorChanges:
                         type: boolean
@@ -5468,6 +5482,8 @@ spec:
                   rancher:
                     properties:
                       enabled:
+                        type: boolean
+                      keycloakAuthEnabled:
                         type: boolean
                       monitorChanges:
                         type: boolean

@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -23,7 +24,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -323,6 +326,26 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 			Namespace: common.CattleSystem,
 			Name:      constants.RancherIngress,
 		},
+		Spec: v1.IngressSpec{
+			Rules: []v1.IngressRule{
+				{
+					Host: "rancher",
+				},
+			},
+		},
+	}
+	kcIngress := v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "keycloak",
+			Name:      "keycloak",
+		},
+		Spec: v1.IngressSpec{
+			Rules: []v1.IngressRule{
+				{
+					Host: "keycloak",
+				},
+			},
+		},
 	}
 	time := metav1.Now()
 	cert := certapiv1.Certificate{
@@ -336,23 +359,42 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	serverURLSetting := createServerURLSetting()
 	ociDriver := createOciDriver()
 	okeDriver := createOkeDriver()
+	authConfig := createKeycloakAuthConfig()
+	localAuthConfig := createLocalAuthConfig()
+	kcSecret := createKeycloakSecret()
+	firstLoginSetting := createFirstLoginSetting()
 
-	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver).Build()
+	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting).Build()
 	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
 
-	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver).Build()
+	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting).Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
-
 	// mock the pod executor when resetting the Rancher admin password
+	scheme.Scheme.AddKnownTypes(schema.GroupVersion{Group: "", Version: "v1"}, &corev1.PodExecOptions{})
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
-	k8sutilfake.PodSTDOUT = "password"
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
+		var commands []string
+		if commands = url.Query()["command"]; len(commands) == 3 {
+			if strings.Contains(commands[2], "id,clientId") {
+				return "[{\"id\":\"something\", \"clientId\":\"" + AuthConfigKeycloakClientIDRancher + "\"}]", "", nil
+			}
+
+			if strings.Contains(commands[2], "client-secret") {
+				return "{\"type\":\"secret\",\"value\":\"abcdef\"}", "", nil
+			}
+
+			if strings.Contains(commands[2], "get users") {
+				return "[{\"id\":\"something\", \"username\":\"verrazzano\"}]", "", nil
+			}
+
+		}
+		return "", "", nil
+	}
 	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
 		config, k := k8sutilfake.NewClientsetConfig()
 		return config, k, nil
 	}
-
 	return ctxWithoutIngress, ctxWithIngress
-
 }
 
 func newReadyDeployment(namespace string, name string) *appsv1.Deployment {

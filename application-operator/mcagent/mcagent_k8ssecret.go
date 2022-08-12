@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -108,7 +110,6 @@ func (s *Syncer) createOrUpdateSecret(secret corev1.Secret, mcAppConfigName stri
 	var secretNew corev1.Secret
 	secretNew.Namespace = secret.Namespace
 	secretNew.Name = secret.Name
-
 	// Create or update on the local cluster
 	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &secretNew, func() error {
 		mutateSecret(s.ManagedClusterName, mcAppConfigName, secret, &secretNew)
@@ -127,7 +128,9 @@ func mutateSecret(managedClusterName string, mcAppConfigName string, secret core
 
 	secretNew.Labels[mcAppConfigsLabel] = vzstring.AppendToCommaSeparatedString(secretNew.Labels[mcAppConfigsLabel], mcAppConfigName)
 	secretNew.Labels[managedClusterLabel] = managedClusterName
-
+	// Mark the secret synced from Admin cluster with verrazzano-managed=true, to distinguish
+	// those directly created by user on managed cluster
+	secretNew.Labels[vzconst.VerrazzanoManagedLabelKey] = constants.LabelVerrazzanoManagedDefault
 	secretNew.Annotations = secret.Annotations
 	secretNew.Type = secret.Type
 	secretNew.Immutable = secret.Immutable

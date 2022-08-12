@@ -25,7 +25,7 @@ primary:
         - -R
         - 999:999
         - /oracle/mysql
-      image: "ghcr.io/oracle/oraclelinux:7-slim"
+      image: "{{ .Values.initContainerImage }}"
       imagePullPolicy: IfNotPresent
       name: chown-data-dir
       resources:

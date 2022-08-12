@@ -173,7 +173,7 @@ func TestBugReportSuccess(t *testing.T) {
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 	cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
 	cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install,default")
-	cmd.PersistentFlags().Set(constants.BugReportVerboseFlagName, "true")
+	cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
 	err = cmd.Execute()
 	if err != nil {
 		assert.Error(t, err)
@@ -226,7 +226,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
-	cmd.PersistentFlags().Set(constants.BugReportVerboseFlagName, "true")
+	cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
 	if err != nil {

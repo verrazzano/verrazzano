@@ -2,11 +2,9 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
-                    maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
-               [$class: 'BuildDiscarderProperty',
-                strategy: [$class: 'LogRotator', numToKeepStr: '10']],
-                pipelineTriggers([cron('H/5 * * * *')]),
-           ])
+    maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
+    [$class: 'BuildDiscarderProperty',    strategy: [$class: 'LogRotator', numToKeepStr: '10']],
+    pipelineTriggers([cron('0 11 * * *')]),])
 
 pipeline {
     options {
@@ -27,53 +25,35 @@ pipeline {
         choice (name: 'LRE_CLUSTER',
                 description: 'Which LRE cluster to run the test against',
                 // 1st choice is the default value
-                choices: [ "dev", "prod", "test" ])
+                // Currently, dev is the only option
+                choices: [ "dev" ])
     }
 
     environment {
-        TEST_ENV = "LRE"
-        DOCKER_CREDS = credentials('github-packages-credentials-rw')
-        DOCKER_EMAIL = credentials('github-packages-email')
-        DOCKER_REPO = 'ghcr.io'
-        DOCKER_NAMESPACE = 'verrazzano'
-        NETRC_FILE = credentials('netrc')
-        OCR_CREDS = credentials('ocr-pull-and-push-account')
-        OCR_REPO = 'container-registry.oracle.com'
-        IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        GOPATH = '/home/opc/go'
-        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         LRE_CLUSTER_ENV = "${params.LRE_CLUSTER}"
-        dev_lre_compartment_id = credentials('dev-lre-compartment-id')
-        dev2_lre_compartment_id = credentials('dev2-lre-compartment-id')
-        dev2_lre_cluster_id = credentials('dev2-lre-cluster-id')
-        prod_lre_compartment_id = credentials('prod-lre-compartment-id')
-        prod_lre_cluster_id = credentials('prod-lre-cluster-id')
-        test_lre_compartment_id = credentials('test-lre-compartment-id')
-        test_lre_cluster_id = credentials('test-lre-cluster-id')
-        dev2_private_ip = credentials('dev2-lre-cluster-ip')
-        prod_private_ip = credentials('prod-lre-cluster-ip')
-        test_private_ip = credentials('test-lre-cluster-ip')
-        dev_lre_bastion_ip = credentials('dev-lre-bastion-ip')
-        OCI_CLI_REGION = "us-ashburn-1"
-        KUBECONFIG = "${WORKSPACE}/.kube/config"
-        ssh_public_key_path = "${WORKSPACE}/.ssh/id_rsa.pub"
-        ssh_private_key_path = "${WORKSPACE}/.ssh/id_rsa"
 
-        //used to emit metrics
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-
-        OCI_CLI_AUTH="api_key"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
         OCI_CLI_USER = credentials('oci-dev-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
-        NO_PROXY = ".nip.io"
+        OCI_CLI_REGION = "us-ashburn-1"
 
-	    WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
-        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+        STABLE_COMMIT_OS_LOCATION = "master/last-stable-commit.txt"
+        STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
+        OPERATOR_YAML_LOCATION = "${WORKSPACE}/operator.yaml"
+
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
+        NETRC_FILE = credentials('netrc')
+        GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+
+        DEV_LRE_KUBECONFIG = credentials('dev-lre-kubeconfig')
+        KUBECONFIG = "${WORKSPACE}/.kube/config"
+        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
     }
 
     stages {
@@ -94,14 +74,14 @@ pipeline {
                 script {
                     try {
                         sh """
-                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
                         """
                     } catch(error) {
                         echo "docker login failed, retrying after sleep"
                         retry(4) {
                             sleep(30)
                             sh """
-                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
                             """
                         }
                     }
@@ -111,25 +91,40 @@ pipeline {
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
                 """
+            }
+        }
 
+        stage('Set kubeconfig') {
+            steps {
                 script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    sh """
+                        mkdir -p ${WORKSPACE}/.kube
+                        rm -rf ${KUBECONFIG}
+                        cp ${DEV_LRE_KUBECONFIG} ${KUBECONFIG}
+                        cat ${KUBECONFIG}
+                    """
                 }
             }
         }
 
-        stage("create oci config file") {
+        stage ("Run kubectl commands") {
+            steps {
+                script {
+                    sh """
+                        kubectl get nodes
+                        kubectl get pods -A
+                        kubectl get vz -A
+                    """
+                }
+            }
+        }
+
+        stage("Create OCI config file") {
             steps {
                 script{
                     sh """
                         mkdir -p ~/.oci
                         cp ${OCI_CLI_KEY_FILE} ~/.oci
-                        ls -ls ~/.oci
-                        cat ~/.oci/alm.pem
                         rm -rf ~/.oci/config
                         {
                           echo '[DEFAULT]'
@@ -140,219 +135,51 @@ pipeline {
                           echo 'key_file=~/.oci/alm.pem'
                         } >> ~/.oci/config
                         oci setup repair-file-permissions --file /home/opc/.oci/config
-                        cat ~/.oci/config
                     """
                 }
             }
-        }
+       }
 
-        stage('Download kubeconfig') {
+       stage('Upgrade to stable commit') {
             steps {
                 script {
-                    switch(LRE_CLUSTER_ENV) {
-                        case "dev":
-                            env.CLUSTER_ID = "${dev2_lre_cluster_id}"
-                            break
-                        case "prod":
-                            env.CLUSTER_ID = "${prod_lre_cluster_id}"
-                            break
-                        case "test":
-                            env.CLUSTER_ID = "${test_lre_cluster_id}"
-                            break
-                        default:
-                            env.CLUSTER_ID = "${dev2_lre_cluster_id}"
-                            break
-                    }
+                    // Get the last stable commit ID that passed the triggered tests
                     sh """
-                        mkdir -p ${WORKSPACE}/.kube
-                        rm -rf ${KUBECONFIG}
-                        # get kubeconfig from OCI
-                        oci ce cluster create-kubeconfig \
-                        --cluster-id ${CLUSTER_ID} \
-                        --file ${KUBECONFIG} \
-                        --region ${OCI_CLI_REGION} \
-                        --token-version 2.0.0  \
-                        --kube-endpoint PRIVATE_ENDPOINT
-                        cat ${KUBECONFIG}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
                     """
-                }
-            }
-        }
+                    def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
+                    GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${GIT_COMMIT_TO_USE}").trim()
+                    echo "Last stable short commit: ${SHORT_COMMIT_HASH}"
 
-        stage('set up ssh tunnel') {
-            steps {
-                script {
-                    switch(LRE_CLUSTER_ENV) {
-                        case "dev" :
-                            //dev2 lre cluster use bastion host from lre/dev compartment
-                            env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
-                            env.CLUSTER_IP = "${dev2_private_ip}"
-                            env.SESSION_NAME = "lre-dev2-pf-session"
-                            break
-                        case "prod" :
-                            env.COMPARTMENT_ID = "${prod_lre_compartment_id}"
-                            env.CLUSTER_IP = "${prod_private_ip}"
-                            env.SESSION_NAME = "lre-prod-pf-session"
-                            break
-                        case "test" :
-                            //test lre cluster use bastion host from lre/dev compartment
-                            env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
-                            env.CLUSTER_IP = "${test_private_ip}"
-                            env.SESSION_NAME = "lre-test-pf-session"
-                            break
-                        default:
-                            //dev2 lre cluster use bastion host from lre/dev compartment
-                            env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
-                            env.CLUSTER_IP = "${dev2_private_ip}"
-                            env.SESSION_NAME = "lre-dev2-pf-session"
-                            break
-                    }
-                    withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
-                        sh '''
-                            rm -f ${WORKSPACE}/.ssh/id_rsa*
-                            mkdir -p ${WORKSPACE}/.ssh
-                            # get the ssh public key
-                            ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
-                            # convert SSH2 public key into an OpenSSH format
-                            ssh-keygen -i -f /tmp/opc_ssh2.pub > ${WORKSPACE}/.ssh/id_rsa.pub
-                            # export the ssh public key value for LRE cluster
-                            export ssh_public_key_path=${WORKSPACE}/.ssh/id_rsa.pub
-                            ls -ls ${WORKSPACE}/.ssh
-                            echo "cat the private key file"
-                            cat ${OPC_USER_KEY_FILE}
+                    // Get the running version of Verrazzano
+                    RUNNING_VERSION = sh(returnStdout: true, script: "kubectl get verrazzano -A -o jsonpath='{.items[0].status.version}'").trim()
+                    echo "Current version of Verrazzano: ${RUNNING_VERSION}"
 
-                            echo "create ssh tunnel"
-                            cd ${GO_REPO_PATH}/verrazzano/
-                            ci/scripts/lre_setup_ssh_tunnel.sh
-                            #wait a bit for the tunnel to be setup
-                            sleep 60
-                            ls -ls ${KUBECONFIG}
-                            sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
-                            cat ${KUBECONFIG}
-                            # updating kubeconfig with sa
-                            cd ${GO_REPO_PATH}/verrazzano/
-                            ci/scripts/update_lre_kubeconfig.sh
+                    // Get the version we are upgrading to
+                    VERRAZZANO_UPGRADE_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+                    echo "Version to upgrade to: ${VERRAZZANO_UPGRADE_VERSION}"
 
-                            echo "run kubectl get nodes"
-                            kubectl get nodes
-                            echo "run kubectl get pods"
-                            kubectl get pods
-                        '''
+                    // Only do an upgrade if the running version and version to upgrade are different.
+                    if (VERRAZZANO_UPGRADE_VERSION != RUNNING_VERSION)  {
+                        sh """
+                            echo "Downloading operator.yaml from object storage"
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/operator.yaml --file ${OPERATOR_YAML_LOCATION}
+                        """
+
+                        downloadCLI()
+
+                        sh """
+                            echo "Upgrading the Verrazzano installation to version" ${VERRAZZANO_UPGRADE_VERSION}
+                            ${GO_REPO_PATH}/vz upgrade --version ${VERRAZZANO_UPGRADE_VERSION} --operator-file ${OPERATOR_YAML_LOCATION}
+                        """
+                    } else {
+                        echo "No upgrade is needed.  Verrazzano is already at the expected version."
                     }
                 }
             }
-        }
+       }
 
-        stage ("run kubectl commands") {
-            steps {
-                script {
-                    sh '''
-                        cat ${KUBECONFIG}
-                        echo "run kubectl get nodes"
-                        kubectl get nodes
-                        echo "run kubectl get pods"
-                        kubectl get pods
-                    '''
-                }
-            }
-        }
-
-        stage('Run Acceptance Tests') {
-            parallel {
-                stage('verify-infra restapi') {
-                    steps {
-                        sh '''
-                            echo ${KUBECONFIG}
-                        '''
-                        runGinkgoRandomize('verify-infra/restapi')
-                    }
-                }
-                stage('verify-infra vmi') {
-                    steps {
-                        runGinkgoRandomize('verify-infra/vmi')
-                    }
-                }
-                stage('istio authorization policy') {
-                    steps {
-                        runGinkgo('istio/authz')
-                    }
-                }
-                stage('security role based access') {
-                    steps {
-                        runGinkgo('security/rbac')
-                    }
-                }
-                stage('system logging') {
-                    steps {
-                        runGinkgo('logging/system')
-                    }
-                }
-                stage('examples logging helidon') {
-                    steps {
-                        runGinkgo('logging/helidon')
-                    }
-                }
-                stage('examples helidon') {
-                    steps {
-                        runGinkgo('examples/helidon')
-                    }
-                }
-                stage('examples helidonconfig') {
-                    steps {
-                        runGinkgo('examples/helidonconfig')
-                    }
-                }
-                stage('examples springboot') {
-                    steps {
-                        runGinkgo('examples/springboot')
-                    }
-                }
-
-		        stage('examples socks') {
-                    steps {
-                        runSocksVariant('helidon')
-                        runSocksVariant('micronaut')
-                        runSocksVariant('spring')
-                    }
-                }
-                stage('examples todo') {
-                    steps {
-                        runGinkgo('examples/todo')
-                    }
-                }
-                stage('examples bobs') {
-                    steps {
-                        runGinkgo('examples/bobsbooks')
-                    }
-                }
-                stage('k8s deployment workload metrics') {
-                    steps {
-                        runGinkgo('metrics/deploymetrics')
-                    }
-                }
-                stage('logging trait helodin workload') {
-                    steps {
-                        runGinkgo('loggingtrait/helidonworkload')
-                    }
-                }
-                stage('logging trait weblogic workload') {
-                    steps {
-                        runGinkgo('loggingtrait/weblogicworkload')
-                    }
-                }
-                stage('logging trait coherence workload') {
-                    steps {
-                        runGinkgo('loggingtrait/coherenceworkload')
-                    }
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
     }
     post {
         cleanup {
@@ -361,12 +188,21 @@ pipeline {
     }
 }
 
+def downloadCLI() {
+    script {
+        sh """
+            echo "Downloading vz CLI from object storage"
+            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/master/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+            tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+            ${GO_REPO_PATH}/vz version
+        """
+    }
+}
+
 def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            echo in runGinkgoRandomize ${KUBECONFIG}
-            cat ${KUBECONFIG}
             ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
         """
     }
@@ -377,15 +213,6 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${testSuitePath}/...
-        """
-    }
-}
-
-def runSocksVariant(variant) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color examples/socks/...
         """
     }
 }
