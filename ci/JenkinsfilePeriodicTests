@@ -307,18 +307,19 @@ pipeline {
                        }
                    }
                }
-                stage('Kind Acceptance Tests on 1.20') {
+                stage('Kind Acceptance Tests With Grafana DB on 1.23') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
+                                        booleanParam(name: 'ENABLE_JWT_TESTING', value: true),
+                                        booleanParam(name: 'USE_DB_FOR_GRAFANA', value: true)
                         ], wait: true
                             }
                         }
@@ -675,7 +676,19 @@ def getLastCleanPeriodicCommit() {
         ).trim()
     echo "command out: ${lastPeriodicCommitCommandOutput}"
     if (lastPeriodicCommitCommandOutput.length() > 0) {
-        assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+        // We can get warning messages here as well even when the command succeeded, so be more precise on the checking
+        if (lastPeriodicCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
+            // If we think we had a status: NNN, we ignore 404 and fail for others
+            assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+        } else {
+            // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
+            sh """
+                if [ ! -f ${CLEAN_PERIODIC_LOCATION} ]; then
+                    echo "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+                    exit 1
+                fi
+            """
+        }
     }
     // Get the commit ID for the last known clean pass of the Periodic tests
     def cleanPeriodicsCommitProps = readProperties file: "${CLEAN_PERIODIC_LOCATION}"

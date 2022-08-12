@@ -5,7 +5,6 @@ package metricstrait
 
 import (
 	"context"
-	"strings"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -27,12 +26,10 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 	}
 
 	// Creating a service monitor with name and namespace
-	// Replacing underscores with dashes in name to appease Kubernetes requirements
 	pmName, err := createServiceMonitorName(trait, 0)
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, log.ErrorfNewErr("Failed to create Service Monitor name: %v", err)
 	}
-	pmName = strings.Replace(pmName, "_", "-", -1)
 
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
 	secret, err := fetchSourceCredentialsSecretIfRequired(ctx, trait, traitDefaults, workload, r.Client)
@@ -87,19 +84,19 @@ func (r *Reconciler) updateServiceMonitor(ctx context.Context, trait *vzapi.Metr
 }
 
 // deleteServiceMonitor deletes the object responsible for transporting metrics from the source to Prometheus
-func (r *Reconciler) deleteServiceMonitor(ctx context.Context, rel vzapi.QualifiedResourceRelation, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) deleteServiceMonitor(ctx context.Context, namespace string, name string, trait *vzapi.MetricsTrait, log vzlog.VerrazzanoLogger) (controllerutil.OperationResult, error) {
 	if trait.DeletionTimestamp.IsZero() && isEnabled(trait) {
-		log.Debugf("Maintaining Service Monitor name: %s namespace: %s because the trait is enabled and not in the deletion process", rel.Name, rel.Namespace)
-		return rel, controllerutil.OperationResultNone, nil
+		log.Debugf("Maintaining Service Monitor name: %s namespace: %s because the trait is enabled and not in the deletion process", name, namespace)
+		return controllerutil.OperationResultNone, nil
 	}
 
 	// If the trait is being deleted or is not enabled, delete the Service Monitor
-	log.Debugf("Deleting Service Monitor name: %s namespace: %s from resource relation", rel.Name, rel.Namespace)
+	log.Debugf("Deleting Service Monitor name: %s namespace: %s from resource relation", name, namespace)
 	serviceMonitor := promoperapi.ServiceMonitor{}
-	serviceMonitor.SetName(rel.Name)
-	serviceMonitor.SetNamespace(rel.Namespace)
+	serviceMonitor.SetName(name)
+	serviceMonitor.SetNamespace(namespace)
 	if err := r.Delete(ctx, &serviceMonitor); err != nil {
-		return rel, controllerutil.OperationResultNone, err
+		return controllerutil.OperationResultNone, err
 	}
-	return rel, controllerutil.OperationResultUpdated, nil
+	return controllerutil.OperationResultUpdated, nil
 }

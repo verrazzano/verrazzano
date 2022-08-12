@@ -4,6 +4,9 @@
 package rancher
 
 import (
+	"net/url"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
@@ -12,7 +15,6 @@ import (
 	testclient "k8s.io/client-go/rest/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var validStdOut = "W1122 18:11:20.905585\nNew password for default admin user (user-p958n):\npassword\n"
@@ -98,7 +100,7 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			k8sutilfake.PodSTDOUT = tt.stdout
+			k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) { return tt.stdout, "", nil }
 			err := createAdminSecretIfNotExists(log, tt.c)
 			if tt.isErr {
 				assert.NotNil(t, err)

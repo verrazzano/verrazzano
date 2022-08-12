@@ -41,6 +41,7 @@ pipeline {
                 choices: [ "nip.io", "sslip.io"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to use a database for Grafana persistence', name: 'USE_DB_FOR_GRAFANA', defaultValue: false)
         string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
@@ -60,6 +61,7 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to run JWT tests', name: 'ENABLE_JWT_TESTING', defaultValue: false)
+        booleanParam (description: 'Whether to run slow tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
     }
 
     environment {
@@ -215,7 +217,7 @@ pipeline {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${params.USE_DB_FOR_GRAFANA}
                         """
                         script {
                             if (params.ENABLE_JWT_TESTING) {
@@ -404,6 +406,17 @@ pipeline {
                                 runGinkgo('logging/opensearch')
                             }
                         }
+                        stage ('Grafana with DB') {
+                            when {
+                                expression {params.USE_DB_FOR_GRAFANA == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
+                            }
+                            steps {
+                                runGinkgo('grafana-db')
+                            }
+                        }
                         stage('examples logging helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
@@ -418,6 +431,14 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('examples/helidon')
+                            }
+                        }
+                        stage('jaeger helidon') {
+                            environment {
+                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-helidon"
+                            }
+                            steps {
+                               runGinkgo('jaeger/helidon')
                             }
                         }
                         stage('JWT Workload Component') {

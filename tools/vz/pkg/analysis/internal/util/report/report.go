@@ -8,9 +8,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -130,30 +132,46 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, reportFormat
 
 		// Print the Source as it has issues
 		delete(sourcesWithoutIssues, source)
-
+		var issuesDetected string
 		if helpers.GetIsLiveCluster() {
-			_, err = fmt.Fprintf(writeOut, "\n\nDetected %d issues in the cluster:\n\n", len(actuallyReported))
+			issuesDetected = fmt.Sprintf("Detected %d issues in the cluster:", len(actuallyReported))
 		} else {
-			_, err = fmt.Fprintf(writeOut, "\n\nDetected %d issues for %s:\n\n", len(actuallyReported), source)
+			issuesDetected = fmt.Sprintf("Detected %d issues for %s:", len(actuallyReported), source)
 		}
+		sep := strings.Repeat(constants.LineSeparator, len(issuesDetected))
+		fmt.Fprintf(writeOut, "\n"+issuesDetected+"\n")
+		fmt.Fprintf(writeOut, sep+"\n")
 
-		if err != nil {
-			return err
-		}
 		for _, issue := range actuallyReported {
+			// Display only summary and action when the report-format is set to summary
+			if reportFormat == constants.SummaryReport {
+				_, err = fmt.Fprintf(writeOut, "\n\tISSUE (%s): %s\n", issue.Type, issue.Summary)
+				if err != nil {
+					return err
+				}
+				for _, action := range issue.Actions {
+					_, err = fmt.Fprintf(writeOut, "\t%s\n", action.Summary)
+					if err != nil {
+						return err
+					}
+				}
+				continue
+			}
+
 			// Print the Issue out
 			_, err = fmt.Fprintf(writeOut, "\n\tISSUE (%s)\n\t\tsummary: %s\n", issue.Type, issue.Summary)
 			if err != nil {
 				return err
 			}
-			_, err = fmt.Fprintf(writeOut, "\t\tconfidence: %d\n", issue.Confidence)
-			if err != nil {
-				return err
-			}
-			_, err = fmt.Fprintf(writeOut, "\t\timpact: %d\n", issue.Impact)
-			if err != nil {
-				return err
-			}
+			// Revisit to display confidence and impact, if/when required
+			//_, err = fmt.Fprintf(writeOut, "\t\tconfidence: %d\n", issue.Confidence)
+			//if err != nil {
+			//	return err
+			//}
+			//_, err = fmt.Fprintf(writeOut, "\t\timpact: %d\n", issue.Impact)
+			//if err != nil {
+			//	return err
+			//}
 			if len(issue.Actions) > 0 && includeActions {
 				log.Debugf("Output actions")
 				_, err = fmt.Fprintf(writeOut, "\t\tactions:\n")

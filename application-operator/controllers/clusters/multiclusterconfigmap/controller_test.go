@@ -6,11 +6,13 @@ package multiclusterconfigmap
 import (
 	"context"
 	"encoding/json"
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/go-logr/logr"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"path/filepath"
 	"testing"
+
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/go-logr/logr"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
@@ -424,7 +426,9 @@ func assertConfigMapValid(assert *asserts.Assertions, cm *v1.ConfigMap, mcConfig
 	assert.Equal(crName, cm.ObjectMeta.Name)
 	assert.Equal(mcConfigMap.Spec.Template.Data, cm.Data)
 	assert.Equal(mcConfigMap.Spec.Template.BinaryData, cm.BinaryData)
-
+	// assert that the configmap is labeled verrazzano-managed=true since it was created by Verrazzano
+	assert.NotNil(cm.Labels)
+	assert.Equal(constants.LabelVerrazzanoManagedDefault, cm.Labels[vzconst.VerrazzanoManagedLabelKey])
 }
 
 // getMCConfigMap creates and returns a sample MultiClusterConfigMap used in tests

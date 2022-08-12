@@ -22,6 +22,11 @@ func TestConvertTo(t *testing.T) {
 			false,
 		},
 		{
+			"converts rancher keycloak auth",
+			testCaseRancherKeycloak,
+			false,
+		},
+		{
 			"converts all comps to v1alpha1",
 			testCaseToAllComps,
 			false,

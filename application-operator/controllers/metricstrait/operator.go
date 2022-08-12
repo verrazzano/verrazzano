@@ -6,6 +6,7 @@ package metricstrait
 import (
 	"context"
 
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -13,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -65,7 +67,23 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 	// Create or update the related resources of the trait and collect the outcomes.
 	status := r.createOrUpdateRelatedWorkloads(ctx, trait, workload, traitDefaults, children, log)
 
-	status.RecordOutcome(r.updateServiceMonitor(ctx, trait, workload, traitDefaults, log))
+	var opResult controllerutil.OperationResult
+	var rel vzapi.QualifiedResourceRelation
+	// update the ServiceMonitor if trait is enabled, delete it if trait is disabled
+	if isEnabled(trait) {
+		rel, opResult, err = r.updateServiceMonitor(ctx, trait, workload, traitDefaults, log)
+	} else {
+		serviceMonitorName, err := createServiceMonitorName(trait, 0)
+		if err != nil {
+			return reconcile.Result{}, log.ErrorfNewErr("Failed to create Service Monitor name: %v", err)
+		}
+		opResult, err = r.deleteServiceMonitor(ctx, trait.Namespace, serviceMonitorName, trait, log)
+		if err != nil {
+			return reconcile.Result{}, log.ErrorfNewErr("Failed to delete Service Monitor %s for disabled metrics trait: %v", serviceMonitorName, err)
+		}
+		rel = vzapi.QualifiedResourceRelation{APIVersion: promoperapi.SchemeGroupVersion.String(), Kind: promoperapi.ServiceMonitorsKind, Namespace: trait.Namespace, Name: serviceMonitorName, Role: scraperRole}
+	}
+	status.RecordOutcome(rel, opResult, err)
 
 	return r.updateTraitStatus(ctx, trait, status, log)
 }

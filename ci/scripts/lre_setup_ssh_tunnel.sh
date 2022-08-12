@@ -24,7 +24,7 @@ fi
 echo "Compartment id is ${COMPARTMENT_ID}"
 echo "Cluster IP is ${CLUSTER_IP}"
 BASTION_ID=$(oci bastion bastion list \
-            --compartment-id "${COMPARTMENT_ID}" --all \
+            --compartment-id "${COMPARTMENT_ID}" --all --bastion-lifecycle-state ACTIVE \
             | jq -r '.data[0]."id"')
 
 if [ -z "$BASTION_ID" ]; then
