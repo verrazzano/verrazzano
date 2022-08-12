@@ -38,17 +38,3 @@ func TestVersionCmd(t *testing.T) {
 	assert.Regexp(t, `^(BuildDate: )?(\d+\-)?(\d+\-)?(\d+T)?(\d+\:)?(\d+\:)?(\d+Z)$`, build)
 	assert.Regexp(t, `^(GitCommit: )?(\w{40})$`, commit)
 }
-
-func TestGetEffectiveDocsVersion(t *testing.T) {
-	cliVersion = "1.2.3"
-	assert.True(t, GetEffectiveDocsVersion() == "v1.2")
-}
-
-func TestGetEffectiveDocsVersionWhenDocStageEnabled(t *testing.T) {
-	cliVersion = "1.2.3"
-	t.Setenv("USE_V8O_DOC_STAGE", "true")
-	assert.True(t, GetEffectiveDocsVersion() == "devel")
-
-	t.Setenv("USE_V8O_DOC_STAGE", "false")
-	assert.True(t, GetEffectiveDocsVersion() == "v1.2")
-}
