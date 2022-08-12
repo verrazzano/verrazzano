@@ -244,7 +244,9 @@ pipeline {
             stages {
                 stage('Create OKE Cluster') {
                     steps {
-                        sh "OCI_CLI_AUTH="instance_principal" TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=rollingupgrade-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
+                        sh """
+                            OCI_CLI_AUTH="instance_principal" TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=rollingupgrade-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh
+                        """
                     }
                     post {
                         failure {
