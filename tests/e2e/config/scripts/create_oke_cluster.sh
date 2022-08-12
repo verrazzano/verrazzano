@@ -57,6 +57,8 @@ fi
 echo "Check OCI CLI is working..."
 # If OCI CLI is not configured correctly, the following command will have a non-zero return code
 # which will cause the job to fail at this point
+echo "Compartment ID ${TF_VAR_compartment_id}"
+echo "Region ${TF_VAR_region}"
 oci ce cluster list --compartment-id=${TF_VAR_compartment_id} --region=${TF_VAR_region} > /dev/null
 
 # check available resources
