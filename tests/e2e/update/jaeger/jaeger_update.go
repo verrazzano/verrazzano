@@ -29,16 +29,6 @@ var (
 	start     = time.Now()
 )
 
-var _ = t.BeforeSuite(func() {
-	m := JaegerOperatorEnabledModifier{}
-	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-})
-
-var _ = t.AfterSuite(func() {
-	m := JaegerOperatorCleanupModifier{}
-	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-})
-
 type JaegerOperatorCleanupModifier struct {
 }
 type JaegerOperatorEnabledModifier struct {
@@ -49,10 +39,8 @@ func (u JaegerOperatorCleanupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (u JaegerOperatorEnabledModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	if cr.Spec.Components.JaegerOperator == nil {
-		cr.Spec.Components.JaegerOperator = &vzapi.JaegerOperatorComponent{
-			Enabled: &trueValue,
-		}
+	cr.Spec.Components.JaegerOperator = &vzapi.JaegerOperatorComponent{
+		Enabled: &trueValue,
 	}
 }
 
@@ -68,3 +56,8 @@ func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
 	}
 	t.Logs.Infof("Skipping spec, Jaeger Operator is disabled")
 }
+
+var _ = t.BeforeSuite(func() {
+	m := JaegerOperatorEnabledModifier{}
+	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+})

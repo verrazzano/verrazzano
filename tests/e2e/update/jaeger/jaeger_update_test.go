@@ -18,6 +18,7 @@ import (
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
+	disableErrorMsg = "disabling component jaegerOperator is not allowed"
 )
 
 const (
@@ -122,6 +123,17 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 			return pkg.IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, nil) &&
 				pkg.IsJaegerMetricFound(kubeconfigPath, jaegerQuerySampleMetric, nil) &&
 				pkg.IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, nil)
+		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+	})
+
+	// GIVEN a VZ custom resource in dev profile with Jaeger operator enabled,
+	// WHEN user tries to disable it,
+	// THEN the operation should be denied with an error
+	WhenJaegerOperatorEnabledIt("disabling previously enabled Jaeger operator should be disallowed", func() {
+		Eventually( func() bool {
+			m := JaegerOperatorCleanupModifier{}
+			err := update.UpdateCR(m)
+			return err != nil && strings.Contains(err.Error(), disableErrorMsg)
 		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 })
