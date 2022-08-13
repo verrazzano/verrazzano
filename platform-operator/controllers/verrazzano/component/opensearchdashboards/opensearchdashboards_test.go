@@ -83,6 +83,73 @@ func TestIsReadyNotInstalled(t *testing.T) {
 	assert.False(t, isOSDReady(ctx))
 }
 
+// TestIsReadyMultipleReplicas tests the areOpenSearchDashboardsReady call
+// GIVEN OpenSearch-Dashboards components that are all enabled explicitly
+//  WHEN I call areOpenSearchDashboardsReady when all requirements are met
+//  THEN true is returned
+func TestIsReadyMultipleReplicas(t *testing.T) {
+	replicas := int32(2)
+	enabled := true
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      kibanaStatefulSet,
+				Labels:    map[string]string{"app": "system-kibana"},
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Replicas: &replicas,
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "system-kibana"},
+				},
+			},
+			Status: appsv1.StatefulSetStatus{
+				ReadyReplicas:   2,
+				UpdatedReplicas: 2,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      kibanaStatefulSet + "-0",
+				Labels: map[string]string{
+					"controller-revision-hash": "test-95d8c5d96",
+					"app":                      "system-kibana",
+				},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      kibanaStatefulSet + "-1",
+				Labels: map[string]string{
+					"controller-revision-hash": "test-95d8c5d96",
+					"app":                      "system-kibana",
+				},
+			},
+		},
+		&appsv1.ControllerRevision{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-95d8c5d96",
+				Namespace: ComponentNamespace,
+			},
+			Revision: 1,
+		},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
+			Namespace: ComponentNamespace}},
+	).Build()
+
+	vz := &vzapi.Verrazzano{}
+	vz.Spec.Components = vzapi.ComponentSpec{
+		Kibana: &vzapi.KibanaComponent{
+			Enabled:  &enabled,
+			Replicas: &replicas,
+		},
+	}
+	ctx := spi.NewFakeContext(c, vz, false)
+	assert.True(t, isOSDReady(ctx))
+}
+
 // TestIsReady tests the areOpenSearchDashboardsReady call
 // GIVEN OpenSearch-Dashboards components that are all enabled by default
 //  WHEN I call areOpenSearchDashboardsReady when all requirements are met
