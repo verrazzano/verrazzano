@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
@@ -28,6 +29,30 @@ const (
 	jaegerCollectorSampleMetric = "jaeger_collector_queue_capacity"
 	jaegerESIndexCleanerJob     = "jaeger-operator-jaeger-es-index-cleaner"
 )
+
+var (
+	// Initialize the Test Framework
+	t     = framework.NewTestFramework("update Jaeger operator")
+	start = time.Now()
+)
+
+func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
+	kubeconfig, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.It(text, func() {
+			Fail(err.Error())
+		})
+	}
+	if pkg.IsJaegerOperatorEnabled(kubeconfig) {
+		t.ItMinimumVersion(text, "1.3.0", kubeconfig, args...)
+	}
+	t.Logs.Infof("Skipping spec, Jaeger Operator is disabled")
+}
+
+var _ = t.BeforeSuite(func() {
+	m := JaegerOperatorEnabledModifier{}
+	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+})
 
 var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 

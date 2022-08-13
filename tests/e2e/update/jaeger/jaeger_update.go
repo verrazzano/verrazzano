@@ -4,12 +4,7 @@
 package jaeger
 
 import (
-	"github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	"time"
 )
 
@@ -22,12 +17,7 @@ const (
 	jaegerQueryLabelValue     = "jaeger-operator-jaeger-query"
 )
 
-var (
-	// Initialize the Test Framework
-	t         = framework.NewTestFramework("update Jaeger operator")
-	trueValue = true
-	start     = time.Now()
-)
+var trueValue = true
 
 type JaegerOperatorCleanupModifier struct {
 }
@@ -43,21 +33,3 @@ func (u JaegerOperatorEnabledModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		Enabled: &trueValue,
 	}
 }
-
-func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
-	kubeconfig, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		t.It(text, func() {
-			ginkgo.Fail(err.Error())
-		})
-	}
-	if pkg.IsJaegerOperatorEnabled(kubeconfig) {
-		t.ItMinimumVersion(text, "1.3.0", kubeconfig, args...)
-	}
-	t.Logs.Infof("Skipping spec, Jaeger Operator is disabled")
-}
-
-var _ = t.BeforeSuite(func() {
-	m := JaegerOperatorEnabledModifier{}
-	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-})
