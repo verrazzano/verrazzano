@@ -4,6 +4,8 @@
 package opensearchdashboards
 
 import (
+	"testing"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -19,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
@@ -85,42 +86,41 @@ func TestIsReadyNotInstalled(t *testing.T) {
 // TestIsReady tests the areOpenSearchDashboardsReady call
 // GIVEN OpenSearch-Dashboards components that are all enabled by default
 //  WHEN I call areOpenSearchDashboardsReady when all requirements are met
-//  THEN false is returned
+//  THEN true is returned
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
+		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      kibanaDeployment,
+				Name:      kibanaStatefulSet,
 				Labels:    map[string]string{"app": "system-kibana"},
 			},
-			Spec: appsv1.DeploymentSpec{
+			Spec: appsv1.StatefulSetSpec{
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{"app": "system-kibana"},
 				},
 			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
+			Status: appsv1.StatefulSetStatus{
+				ReadyReplicas:   1,
+				UpdatedReplicas: 1,
 			},
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      kibanaDeployment,
+				Name:      kibanaStatefulSet + "-0",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "system-kibana",
+					"controller-revision-hash": "test-95d8c5d96",
+					"app":                      "system-kibana",
 				},
 			},
 		},
-		&appsv1.ReplicaSet{
+		&appsv1.ControllerRevision{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   ComponentNamespace,
-				Name:        kibanaDeployment + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Name:      "test-95d8c5d96",
+				Namespace: ComponentNamespace,
 			},
+			Revision: 1,
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
@@ -131,22 +131,26 @@ func TestIsReady(t *testing.T) {
 	assert.True(t, isOSDReady(ctx))
 }
 
-// TestIsReadyDeploymentNotAvailable tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
+// TestIsReadyStatefulSetNotAvailable tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
 // GIVEN an OpenSearch-Dashboards component
-//  WHEN I call areOpenSearchDashboardsReady when the Kibana deployment is not available
+//  WHEN I call areOpenSearchDashboardsReady when the Kibana StatefulSet is not available
 //  THEN false is returned
-func TestIsReadyDeploymentNotAvailable(t *testing.T) {
+func TestIsReadyStatefulSetNotAvailable(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&appsv1.Deployment{
+		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      kibanaDeployment,
+				Name:      kibanaStatefulSet,
 				Labels:    map[string]string{"app": "system-kibana"},
 			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   0,
+			Spec: appsv1.StatefulSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "system-kibana"},
+				},
+			},
+			Status: appsv1.StatefulSetStatus{
+				ReadyReplicas:   0,
+				UpdatedReplicas: 1,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
