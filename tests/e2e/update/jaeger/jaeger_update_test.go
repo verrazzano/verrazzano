@@ -18,7 +18,7 @@ import (
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
-	disableErrorMsg = "disabling component jaegerOperator is not allowed"
+	disableErrorMsg      = "disabling component jaegerOperator is not allowed"
 )
 
 const (
@@ -130,7 +130,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// WHEN user tries to disable it,
 	// THEN the operation should be denied with an error
 	WhenJaegerOperatorEnabledIt("disabling previously enabled Jaeger operator should be disallowed", func() {
-		Eventually( func() bool {
+		Eventually(func() bool {
 			m := JaegerOperatorCleanupModifier{}
 			err := update.UpdateCR(m)
 			return err != nil && strings.Contains(err.Error(), disableErrorMsg)
