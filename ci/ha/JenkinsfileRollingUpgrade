@@ -87,7 +87,6 @@ pipeline {
         TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
         TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
-        TF_VAR_node_pool_size = '4'
 
         OCI_CLI_AUTH="instance_principal"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
