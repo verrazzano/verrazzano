@@ -385,6 +385,43 @@ func ValidateSystemTracesInOSFunc(start time.Time) func() (bool, error) {
 	}
 }
 
+// ValidateApplicationTraces returns a function that validates if application traces can be successfully queried from Jaeger
+func ValidateApplicationTraces(start time.Time, appServiceName string) func() (bool, error) {
+	return func() (bool, error) {
+		// Check if the service name is registered in Jaeger and traces are present for that service
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false, err
+		}
+		tracesFound := false
+		servicesWithJaegerTraces := ListServicesInJaeger(kubeconfigPath)
+		for _, serviceName := range servicesWithJaegerTraces {
+			if strings.HasPrefix(serviceName, appServiceName) {
+				traceIds := ListJaegerTraces(kubeconfigPath, serviceName)
+				tracesFound = len(traceIds) > 0
+				if !tracesFound {
+					errMsg := fmt.Sprintf("traces not found for service: %s", serviceName)
+					Log(Error, errMsg)
+					return false, fmt.Errorf(errMsg)
+				}
+				break
+			}
+		}
+		return tracesFound, nil
+	}
+}
+
+// ValidateApplicationTracesInOS returns a function that validates if application traces are stored successfully in OS backend storage
+func ValidateApplicationTracesInOS(start time.Time, appServiceName string) func() (bool, error) {
+	return func() (bool, error) {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false, err
+		}
+		return JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, appServiceName)
+	}
+}
+
 // fillLabelSelectors fills the match labels from map to be passed in list options
 func fillLabelSelectors(matchLabels map[string]string) metav1.ListOptions {
 	listOptions := metav1.ListOptions{}
