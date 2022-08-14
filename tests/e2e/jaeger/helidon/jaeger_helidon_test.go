@@ -57,7 +57,7 @@ var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-wor
 		// THEN we are able to get the traces
 		jaeger.WhenJaegerOperatorEnabledIt(t, "traces for the helidon app should be available when queried from Jaeger", func() {
 			validatorFn := pkg.ValidateApplicationTraces(start, helloHelidonServiceName)
-			Eventually(validatorFn()).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
 		// GIVEN the Jaeger Operator component is enabled,
