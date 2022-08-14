@@ -12,5 +12,5 @@ import (
 
 func TestJaegerPostInstallUpdate(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Post Install Update Jaeger Operator Suite")
+	ginkgo.RunSpecs(t, "Post Install Update of Jaeger Operator Suite")
 }

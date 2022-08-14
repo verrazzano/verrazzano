@@ -32,7 +32,7 @@ const (
 
 var (
 	// Initialize the Test Framework
-	t     = framework.NewTestFramework("update Jaeger operator")
+	t     = framework.NewTestFramework("update jaeger operator")
 	start = time.Now()
 )
 
@@ -43,10 +43,7 @@ func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
 			Fail(err.Error())
 		})
 	}
-	if pkg.IsJaegerOperatorEnabled(kubeconfig) {
-		t.ItMinimumVersion(text, "1.3.0", kubeconfig, args...)
-	}
-	t.Logs.Infof("Skipping spec, Jaeger Operator is disabled")
+	t.ItMinimumVersion(text, "1.3.0", kubeconfig, args...)
 }
 
 var _ = t.BeforeSuite(func() {
