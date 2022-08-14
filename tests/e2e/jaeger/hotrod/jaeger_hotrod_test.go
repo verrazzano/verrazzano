@@ -22,6 +22,8 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+	waitTimeout              = 10 * time.Minute
+	pollingInterval          = 30 * time.Second
 )
 
 const (
@@ -33,8 +35,6 @@ var (
 	t                  = framework.NewTestFramework("jaeger")
 	generatedNamespace = pkg.GenerateNamespace("hotrod-tracing")
 	expectedPodsHotrod = []string{"hotrod-workload"}
-	waitTimeout        = 10 * time.Minute
-	pollingInterval    = 30 * time.Second
 	failed             = false
 	beforeSuitePassed  = false
 	start              = time.Now()
@@ -85,7 +85,13 @@ var _ = t.BeforeSuite(func() {
 	}).WithPolling(imagePullPollingInterval).WithTimeout(imagePullWaitTimeout).Should(BeTrue())
 
 	// Verify hotrod-workload pod is running
-	Eventually(hotrodPodsRunning(), waitTimeout, pollingInterval).Should(BeTrue())
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, expectedPodsHotrod)
+		if err != nil {
+			return false
+		}
+		return result
+	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
@@ -184,12 +190,3 @@ var _ = t.Describe("Hotrod App with Jaeger Traces", Label("f:jaeger.hotrod-workl
 	})
 
 })
-
-//hotrodPodsRunning checks if the hotrod pods are running
-func hotrodPodsRunning() bool {
-	result, err := pkg.PodsRunning(namespace, expectedPodsHotrod)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
-	}
-	return result
-}

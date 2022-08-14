@@ -46,49 +46,56 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// WHEN Jaeger operator is enabled,
 	// THEN Jaeger OpenSearch Index Cleaner cron job exists
 	t.It("should have a Jaeger OpenSearch Index Cleaner cron job", func() {
-		Eventually(pkg.ValidateEsIndexCleanerCronJobFunc()).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		validatorFn := pkg.ValidateEsIndexCleanerCronJobFunc()
+		Eventually(validatorFn).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we are able to get the traces
 	t.It("traces for the fluentd system service should be available when queried from Jaeger", func() {
-		Eventually(pkg.ValidateSystemTracesFunc(start)).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+		validatorFn := pkg.ValidateSystemTracesFunc(start)
+		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we are able to get the traces
 	t.It("traces for the fluentd system service should be available in the OS backend storage.", func() {
-		Eventually(pkg.ValidateSystemTracesInOSFunc(start)).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+		validatorFn := pkg.ValidateSystemTracesInOSFunc(start)
+		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger operator are present in prometheus
 	t.It("metrics of jaeger operator are available in prometheus", func() {
-		Eventually(pkg.ValidateJaegerOperatorMetricFunc()).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+		validatorFn := pkg.ValidateJaegerOperatorMetricFunc()
+		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger collector are present in prometheus
 	t.It("metrics of jaeger collector are available in prometheus", func() {
-		Eventually(pkg.ValidateJaegerCollectorMetricFunc()).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+		validatorFn := pkg.ValidateJaegerCollectorMetricFunc()
+		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger query are present in prometheus
 	t.It("metrics of jaeger query are available in prometheus", func() {
-		Eventually(pkg.ValidateJaegerQueryMetricFunc()).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+		validatorFn := pkg.ValidateJaegerQueryMetricFunc()
+		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger agent are present in prometheus
 	t.It("metrics of jaeger agent are available in prometheus", func() {
-		Eventually(pkg.ValidateJaegerAgentMetricFunc()).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+		validatorFn := pkg.ValidateJaegerAgentMetricFunc()
+		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a VZ custom resource in dev profile with Jaeger operator enabled,

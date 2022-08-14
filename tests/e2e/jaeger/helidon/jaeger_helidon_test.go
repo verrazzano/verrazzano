@@ -22,26 +22,23 @@ const (
 	shortWaitTimeout         = 5 * time.Minute
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
+	waitTimeout              = 10 * time.Minute
+	pollingInterval          = 30 * time.Second
 )
 
 const (
 	testAppComponentFilePath     = "testdata/jaeger/helidon/helidon-tracing-comp.yaml"
 	testAppConfigurationFilePath = "testdata/jaeger/helidon/helidon-tracing-app.yaml"
-	jaegerOperatorSampleMetric   = "jaeger_operator_instances_managed"
-	jaegerAgentSampleMetric      = "jaeger_agent_collector_proxy_total"
-	jaegerQuerySampleMetric      = "jaeger_query_requests_total"
-	jaegerCollectorSampleMetric  = "jaeger_collector_queue_capacity"
 )
 
 var (
 	t                        = framework.NewTestFramework("jaeger")
 	generatedNamespace       = pkg.GenerateNamespace("jaeger-tracing")
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
-	waitTimeout              = 10 * time.Minute
-	pollingInterval          = 30 * time.Second
 	failed                   = false
 	beforeSuitePassed        = false
 	start                    = time.Now()
+	helloHelidonServiceName  = "hello-helidon"
 )
 
 func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
@@ -88,7 +85,13 @@ var _ = t.BeforeSuite(func() {
 	}).WithPolling(imagePullPollingInterval).WithTimeout(imagePullWaitTimeout).Should(BeTrue())
 
 	// Verify hello-helidon-workload pod is running
-	Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+		if err != nil {
+			return false
+		}
+		return result
+	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
@@ -158,7 +161,7 @@ var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-wor
 				tracesFound := false
 				servicesWithJaegerTraces := pkg.ListServicesInJaeger(kubeconfigPath)
 				for _, serviceName := range servicesWithJaegerTraces {
-					if strings.HasPrefix(serviceName, "hello-helidon") {
+					if strings.HasPrefix(serviceName, helloHelidonServiceName) {
 						traceIds := pkg.ListJaegerTraces(kubeconfigPath, serviceName)
 						tracesFound = len(traceIds) > 0
 						if !tracesFound {
@@ -181,47 +184,9 @@ var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-wor
 				if err != nil {
 					return false, err
 				}
-				return pkg.JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, "hello-helidon")
-			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
-		})
-
-		// GIVEN the Jaeger Operator component is enabled,
-		// WHEN we check for metrics related to Jaeger operator
-		// THEN we see that the metrics are present in prometheus
-		WhenJaegerOperatorEnabledIt("metrics of jaeger operator are available in prometheus", func() {
-			Eventually(func() bool {
-				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					return false
-				}
-				return pkg.IsJaegerMetricFound(kubeconfigPath, jaegerOperatorSampleMetric, nil)
-			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
-
-		})
-
-		// GIVEN the Jaeger Operator component is installed with default Jaeger CR enabled
-		// WHEN we check for metrics related to Jaeger Components (jaeger-query, jaeger-collector, jaeger-agent)
-		// THEN we see that the metrics are present in prometheus
-		WhenJaegerOperatorEnabledIt("metrics of jaeger components are available in prometheus", func() {
-			Eventually(func() bool {
-				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					return false
-				}
-				return pkg.IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, nil) &&
-					pkg.IsJaegerMetricFound(kubeconfigPath, jaegerQuerySampleMetric, nil) &&
-					pkg.IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, nil)
+				return pkg.JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, helloHelidonServiceName)
 			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 	})
 
 })
-
-//helloHelidonPodsRunning checks if the helidon pods are running
-func helloHelidonPodsRunning() bool {
-	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
-	}
-	return result
-}
