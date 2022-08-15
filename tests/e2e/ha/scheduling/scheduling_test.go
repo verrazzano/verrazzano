@@ -14,7 +14,7 @@ import (
 var t = framework.NewTestFramework("scheduling")
 var clientset = k8sutil.GetKubernetesClientsetOrDie()
 
-var _ = t.Describe("Kind Scheduling", Label("f:platform-lcm:ha"), func() {
+var _ = t.Describe("OKE Scheduling", Label("f:platform-lcm:ha"), func() {
 	t.It("marks half the worker nodes in the cluster as unschedulable", func() {
 		nodes := ha.EventuallyGetNodes(clientset, t.Logs)
 		var workerNodes []corev1.Node
