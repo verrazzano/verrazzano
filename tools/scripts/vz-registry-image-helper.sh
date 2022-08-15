@@ -409,11 +409,6 @@ function pull_and_save_images() {
       done
     done
   done
-  if [ "${DRY_RUN}" != "true" ]; then
-    tar -czf $tarFile -C $imagesDir .
-    echo "Cleaning up images from ${imagesDir}"
-    rm ${imagesDir}/*.tar
-  fi
 }
 
 output_bom_components() {
