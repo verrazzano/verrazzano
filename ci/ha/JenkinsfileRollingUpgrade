@@ -109,7 +109,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE = "./examples/ha/ha.yaml"
+        INSTALL_CONFIG_FILE = "examples/ha/ha.yaml"
         INSTALL_PROFILE = "prod"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -248,7 +248,7 @@ pipeline {
                             echo "Downloading platform operator from object storage"
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                             echo "Installing Verrazzano"
-                            ${GO_REPO_PATH}/vz install --kubeconfig --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/downloaded-operator.yaml
+                            ${GO_REPO_PATH}/vz install --kubeconfig --filename ${GO_REPO_PATH}/verrazzano/${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/downloaded-operator.yaml
                        """
                     }
                     post {
