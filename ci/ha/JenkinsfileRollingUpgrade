@@ -243,7 +243,7 @@ pipeline {
                             echo "Downloading platform operator from object storage"
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                             echo "Installing Verrazzano"
-                            ${GO_REPO_PATH}/vz install --kubeconfig --filename ${WORKSPACE}/${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/downloaded-operator.yaml
+                            ${GO_REPO_PATH}/vz install --filename ${GO_REPO_PATH}/verrazzano/${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/downloaded-operator.yaml
                        """
                     }
                     post {
