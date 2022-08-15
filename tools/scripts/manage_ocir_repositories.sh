@@ -17,6 +17,7 @@ PARENT_REPO=""
 USE_BOM=false
 CREATE_REPOS=false
 DELETE_REPOS=false
+DELETE_ALL_REPOS=false
 USE_LOCAL_IMAGES=false
 INCLUDE_COMPONENTS=
 EXCLUDE_COMPONENTS=
@@ -83,6 +84,12 @@ $0 -c -p myreporoot/testuser/myrepo/v8o -r uk-london-1 -i ocid.compartment.oc1..
 
 # Force-delete all repos starting with myreporoot/testuser/myrepo/v8o in the specified compartment and wait for it to finish
 $0 -d  -c -p myreporoot/testuser/myrepo/v8o -r uk-london-1 -i ocid.compartment.oc1..blah -f -w
+
+# Create only the cert-manager repos in the specified BOM file and wait for it to finish
+$0 -c -r phx -i ocid1.compartment.oc1..aaaaaaaa7cfqxbsnon63unlmm5z63zidx5wvq4gieuc5kixemfitzliwvxeq -p myreporoot/testuser/myrepo/v8o -n cert-manager -b ./master-generated-verrazzano-bom.json -f -w
+
+# Force-delete only the cert-manager repos in the specified BOM file and wait for it to finish
+$0 -d -r phx -i ocid1.compartment.oc1..aaaaaaaa7cfqxbsnon63unlmm5z63zidx5wvq4gieuc5kixemfitzliwvxeq -p myreporoot/testuser/myrepo/v8o -n cert-manager -b ./master-generated-verrazzano-bom.json -f -w
   """
   exit ${ec}
 }
@@ -120,7 +127,7 @@ function delete_ocir_repo_by_ocid() {
 }
 
 # Main driver for processing images from a locally downloaded set of tarballs
-function create_image_repos_from_archives() {
+function process_image_repos_from_archives() {
   # Loop through tar files
   echo "Using local image downloads"
   for file in ${IMAGES_DIR}/*.tar; do
@@ -140,7 +147,7 @@ function create_image_repos_from_archives() {
       repo_path=${PARENT_REPO}/${repo_path}
     fi
 
-    create_ocir_repo ${repo_path}
+    process_image_repo ${repo_path}
   done
 }
 
@@ -158,7 +165,16 @@ function is_component_excluded() {
     return $in
 }
 
-function create_image_repos_from_bom() {
+function process_image_repo() {
+  local repo_path=$1
+  if [ "${CREATE_REPOS}" == "true" ]; then
+    create_ocir_repo ${repo_path}
+  elif [ "${DELETE_REPOS}" == "true" ]; then
+    delete_all_repos_for_path ${repo_path}
+  fi
+}
+
+function process_image_repos_from_bom() {
   # Loop through registry components
   echo "Using image registry ${BOM_FILE}"
 
@@ -198,7 +214,7 @@ function create_image_repos_from_bom() {
         local imageName=$(echo $base_image | cut -d \: -f 1)
         local repo_path=${from_image_prefix}/${imageName}
 
-        create_ocir_repo ${repo_path}
+        process_image_repo ${repo_path}
       done
     done
   done
@@ -221,8 +237,11 @@ function delete_all_repos_for_path() {
   return 0
 }
 
-while getopts "cdfhwzb:e:i:l:n:p:r:s:" opt; do
+while getopts "acdfhwzb:e:i:l:n:p:r:s:" opt; do
   case ${opt} in
+  a) # Delete all repos, with -d
+    DELETE_ALL_REPOS=true
+    ;;
   b) # Create repo
     USE_BOM=true
     BOM_FILE=${OPTARG}
@@ -277,22 +296,45 @@ done
 shift $((OPTIND - 1))
 
 function check() {
-  if [ "${CREATE_REPOS}" == "true" ] && [ "${DELETE_REPOS}" == "true" ]; then
-    echo "Create and delete flags both specified, these can not be used together"
+  if [ "${CREATE_REPOS}" == "${DELETE_REPOS}" ]; then
+    echo "Must specify only one valid operation, only one of -c or -d must be set"
     exit 1
   fi
 
-  if [ "${USE_LOCAL_IMAGES}" == "true" ] && [ "${USE_BOM}" == "true" ]; then
-    echo "Use-local and use-BOM flags both specified, these can not be used together"
-    exit 1
+  if [ "${CREATE_REPOS}" == "true" ] && [ "${DELETE_ALL_REPOS}" == "true" ]; then
+    echo "Warning: -a (delete all repos) set with -c, ignoring"
+    DELETE_ALL_REPOS=false
   fi
 
-  if [ "${USE_LOCAL_IMAGES}" == "true" ]; then
-    echo "Use local images specified, ignoring -b if set"
-    if [ -z "${IMAGES-DIR}" ]; then
-      echo "Use local images specified, but no location specified"
+  if [[ "${DELETE_ALL_REPOS}" == "true" ]]; then
+    if [[ -n "${INCLUDE_COMPONENTS}" || -n "${EXCLUDE_COMPONENTS}" ]]; then
+      echo "Can not specify -n or -e with -a"
       exit 1
     fi
+    if [[ "${USE_BOM}" == "true" || "${USE_LOCAL_IMAGES}" ]]; then
+      echo "Can not specify -l (archives location) or -b (BOM file) with -a"
+      exit 1
+    fi
+  fi
+
+  if [ "${USE_LOCAL_IMAGES}" == "${USE_BOM}" ]; then
+    echo "Must specify only one images/repo source, only one of -l (archives location) or -b (BOM file) must be set"
+    exit 1
+  fi
+
+  if [ "${USE_LOCAL_IMAGES}" == "true" ] && [ -z "${IMAGES_DIR}" ]; then
+    echo "Use local images specified, but no location specified"
+    exit 1
+  fi
+
+  if [ -z "${PARENT_REPO}" ]; then
+    echo "Repository pattern not provided"
+    exit 1
+  fi
+
+  if [ -z "${COMPARTMENT_ID}" ]; then
+    echo "Compartment ID not provided"
+    exit 1
   fi
 
   echo "Checking if OCI CLI is installed ..."
@@ -319,26 +361,20 @@ function check() {
       exit 1
     fi
   fi
-
-  if [ -z "${PARENT_REPO}" ]; then
-    echo "Repository pattern not provided"
-    exit 1
-  fi
-  if [ -z "${COMPARTMENT_ID}" ]; then
-    echo "Compartment ID not provided"
-    exit 1
-  fi
 }
 
 function main() {
-  if [ "${CREATE_REPOS}" == "true" ]; then
-    if [ "${USE_LOCAL_IMAGES}" == "true" ]; then
-      create_image_repos_from_archives
-    elif [ "${USE_BOM}" == "true" ]; then
-      create_image_repos_from_bom
-    fi
-  elif [ "${DELETE_REPOS}" == "true" ]; then
+  if [ "${DELETE_ALL_REPOS}" == "true" ] && [ "${DELETE_REPOS}" == "true" ]; then
+    echo "Deleting all OCIR repositories matching the path ${PARENT_REPO}"
     delete_all_repos_for_path ${PARENT_REPO}
+  else
+    if [ "${USE_LOCAL_IMAGES}" == "true" ]; then
+      echo "Processing images from local archives at ${IMAGES_DIR}"
+      process_image_repos_from_archives
+    elif [ "${USE_BOM}" == "true" ]; then
+      echo "Processing images from BOM file ${BOM_FILE}"
+      process_image_repos_from_bom
+    fi
   fi
 
   echo "Done."
