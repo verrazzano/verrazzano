@@ -168,8 +168,8 @@ func ListJaegerTraces(kubeconfigPath string, start time.Time, serviceName string
 	var traces []string
 	params := url.Values{}
 	params.Add("service", serviceName)
-	params.Add("start", strconv.FormatInt(start.UnixMicro(), 10))
-	params.Add("end", strconv.FormatInt(time.Now().UnixMicro(), 10))
+	//params.Add("start", strconv.FormatInt(start.UnixMicro(), 10))
+	//params.Add("end", strconv.FormatInt(time.Now().UnixMicro(), 10))
 	url := fmt.Sprintf("%s/api/traces?%s", getJaegerURL(kubeconfigPath), params.Encode())
 	username, password, err := getJaegerUsernamePassword(kubeconfigPath)
 	if err != nil {
