@@ -103,6 +103,8 @@ const jaegerCreateTemplate = `jaeger:
       options:
         es:
           server-urls: {{.OpenSearchURL}}
+          num-shards: 5
+          num-replicas: 0
       secretName: {{.SecretName}}
 `
 
