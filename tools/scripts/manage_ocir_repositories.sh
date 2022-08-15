@@ -57,6 +57,7 @@ Delete usage:
 
 $0  -d -p <parent-repo> -i <compartment-ocid> [-r <region-name> | -s <region-code> ]
 
+-a                  Used with -d, delete all repositories in specified compartment matching -p <repo-path>
 -b <path>           Bill of materials (BOM) of Verrazzano components; if not specified, defaults to ./verrazzano-bom.json
 -c                  Create repository
 -d                  Delete repository
@@ -83,10 +84,10 @@ $0 -c -p myreporoot/testuser/myrepo/v8o -r uk-london-1 -i ocid.compartment.oc1..
 $0 -c -p myreporoot/testuser/myrepo/v8o -r uk-london-1 -i ocid.compartment.oc1..blah -b /tmp/local-bom.json -n istio -n ingress-nginx
 
 # Force-delete all repos starting with myreporoot/testuser/myrepo/v8o in the specified compartment and wait for it to finish
-$0 -d  -c -p myreporoot/testuser/myrepo/v8o -r uk-london-1 -i ocid.compartment.oc1..blah -f -w
+$0 -d -a -p myreporoot/testuser/myrepo/v8o -r uk-london-1 -i ocid.compartment.oc1..blah -f -w
 
 # Create only the cert-manager repos in the specified BOM file and wait for it to finish
-$0 -c -r phx -i ocid1.compartment.oc1..aaaaaaaa7cfqxbsnon63unlmm5z63zidx5wvq4gieuc5kixemfitzliwvxeq -p myreporoot/testuser/myrepo/v8o -n cert-manager -b ./master-generated-verrazzano-bom.json -f -w
+$0 -c -r phx -i ocid1.compartment.oc1..aaaaaaaa7cfqxbsnon63unlmm5z63zidx5wvq4gieuc5kixemfitzliwvxeq -p myreporoot/testuser/myrepo/v8o -n cert-manager -b ./master-generated-verrazzano-bom.json
 
 # Force-delete only the cert-manager repos in the specified BOM file and wait for it to finish
 $0 -d -r phx -i ocid1.compartment.oc1..aaaaaaaa7cfqxbsnon63unlmm5z63zidx5wvq4gieuc5kixemfitzliwvxeq -p myreporoot/testuser/myrepo/v8o -n cert-manager -b ./master-generated-verrazzano-bom.json -f -w
