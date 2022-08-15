@@ -104,8 +104,8 @@ pipeline {
         stage('Release Candidate Validation Checks') {
             environment {
                 IGNORE_FAILURES = "false"
-                JIRA_USERNAME = credentials('jira-username')
-                JIRA_PASSWORD = credentials('jira-password')
+                TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
+                TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"
                 OCI_CLI_AUTH="api_key"

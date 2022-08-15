@@ -52,7 +52,7 @@ else
     fi
 
     echo "Checking for missing backport commits..."
-    ${WORKSPACE}/verrazzano-helper get ticket-backports $VERSION --jira-env prod --token unused
+    ${WORKSPACE}/verrazzano-helper get ticket-backports $VERSION --ticket-env prod --token unused
     ((EXIT_CODE |= $?))
 fi
 

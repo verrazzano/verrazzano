@@ -152,8 +152,8 @@ pipeline {
             }
             environment {
                 IGNORE_FAILURES = "${params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES}"
-                JIRA_USERNAME = credentials('jira-username')
-                JIRA_PASSWORD = credentials('jira-password')
+                TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
+                TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
             }
             steps {
                 script {

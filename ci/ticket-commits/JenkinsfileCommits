@@ -67,10 +67,10 @@ pipeline {
             }
         }
 
-        stage('Update JIRA tickets with commits') {
+        stage('Update tracking tickets with commits') {
             environment {
-                JIRA_USERNAME = credentials('jira-username')
-                JIRA_PASSWORD = credentials('jira-password')
+                TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
+                TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
             }
             steps {
                 script {
@@ -90,7 +90,7 @@ pipeline {
                         echo Processing commits:
                         cat ${tmpfile}; echo
 
-                        ${WORKSPACE}/verrazzano-helper update ticket-commits --commit-file "${tmpfile}" --backport-labels --token unused --jira-env=prod
+                        ${WORKSPACE}/verrazzano-helper update ticket-commits --commit-file "${tmpfile}" --backport-labels --token unused --ticket-env=prod
                     """
                 }
             }

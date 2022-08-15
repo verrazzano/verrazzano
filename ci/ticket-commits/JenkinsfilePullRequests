@@ -51,22 +51,22 @@ pipeline {
             }
         }
 
-        stage('Update JIRA tickets with pull request') {
+        stage('Update tracking tickets with pull request') {
             environment {
-                JIRA_USERNAME = credentials('jira-username')
-                JIRA_PASSWORD = credentials('jira-password')
+                TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
+                TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
             }
             steps {
                 script {
-                    // Do not add a comment to the JIRA if an existing pull request is being updated
+                    // Do not add a comment to the tracking ticket if an existing pull request is being updated
                     if (currentBuild.changeSets.size() == 0) {
                         // Escape double quotes in the PR title
                         env.PR_TITLE = sh(script:'echo "${CHANGE_TITLE}" | sed \'s/"/\\\\"/g\'', returnStdout: true).trim()
                         sh """
-                            ${WORKSPACE}/verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.PR_TITLE}" --pr-target "${env.CHANGE_TARGET}" --token unused --jira-env=prod
+                            ${WORKSPACE}/verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.PR_TITLE}" --pr-target "${env.CHANGE_TARGET}" --token unused --ticket-env=prod
                         """
                     } else {
-                        echo "Existing pull request updated, skipping update of JIRA ticket"
+                        echo "Existing pull request updated, skipping update of tracking ticket"
                     }
                 }
             }
