@@ -51,6 +51,7 @@ func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 		if c.failed || !c.beforeSuitePassed {
 			ExecuteClusterDumpWithEnvVarSuffix(fmt.Sprintf("fail-%d", time.Now().Unix()))
 			ExecuteBugReportWithEnvVarSuffix(fmt.Sprintf("fail-%d", time.Now().Unix()))
+			ExecuteExtractBugReportWithEnvVarSuffix(fmt.Sprintf("fail-%d", time.Now().Unix()))
 		}
 
 		// ginkgo.Fail and gomega matchers panic if they fail. Recover is used to capture the panic and
@@ -59,6 +60,7 @@ func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 			if r := recover(); r != nil {
 				ExecuteClusterDumpWithEnvVarSuffix(fmt.Sprintf("aftersuite-%d", time.Now().Unix()))
 				ExecuteBugReportWithEnvVarSuffix(fmt.Sprintf("aftersuite-%d", time.Now().Unix()))
+				ExecuteExtractBugReportWithEnvVarSuffix(fmt.Sprintf("aftersuite-%d", time.Now().Unix()))
 			}
 		}()
 		body()
@@ -101,7 +103,7 @@ func ExecuteBugReport(vzCommand string, kubeconfig string, bugReportDirectory st
 	}
 
 	filename := fmt.Sprintf("%s/%s", bugReportDirectory, "bug-report.tar.gz")
-	fmt.Printf("Starting bug report command: KUBECONFIG=%s; %s --report-file %s\n", kubeconfig, vzCommand, filename)
+	fmt.Printf("Starting bug report command: KUBECONFIG=%s; %s bug-report --report-file %s\n", kubeconfig, vzCommand, filename)
 	os.MkdirAll(bugReportDirectory, 0755)
 	cmd = exec.Command(vzCommand, "bug-report", "--report-file", filename)
 	fmt.Printf("past the exec.Command \n")
@@ -124,6 +126,38 @@ func ExecuteBugReport(vzCommand string, kubeconfig string, bugReportDirectory st
 	return nil
 }
 
+//ExecuteExtractBugReport extracts bug-report tar file to directory
+// bugReportDirectory - The directory to store the bug report within.
+// kubeconfig - The kube config file to use when executing the cluster dump tool.
+func ExecuteExtractBugReport(kubeconfig string, bugReportDirectory string) error {
+	var cmd *exec.Cmd
+	filename := fmt.Sprintf("%s/%s", bugReportDirectory, "bug-report.tar.gz")
+	extractedBugReportDir := bugReportDirectory + "/bug-report"
+	fmt.Printf("Starting bug report extract: KUBECONFIG=%s; tar -xvf %s -C %s", kubeconfig, filename, extractedBugReportDir)
+	errExtractedBugReportDir := os.MkdirAll(extractedBugReportDir, 0755)
+	if errExtractedBugReportDir != nil {
+		return errExtractedBugReportDir
+	}
+	cmd = exec.Command("tar", "-xvf", filename, "-C", extractedBugReportDir)
+	fmt.Printf("past the exec.Command \n")
+
+	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	fmt.Printf("About to call start \n")
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("Failed to start command %v \n", err)
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		fmt.Printf("Failed waiting for command %v \n", err)
+		return err
+	}
+	fmt.Printf("command succeeded without error \n")
+	return nil
+}
+
 func ExecuteClusterDumpWithEnvVarSuffix(directorySuffix string) error {
 	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
 	clusterDumpDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix)
@@ -138,6 +172,12 @@ func ExecuteBugReportWithEnvVarSuffix(directorySuffix string) error {
 	return ExecuteBugReport(vzCommand, kubeconfig, bugReportDirectory)
 }
 
+func ExecuteExtractBugReportWithEnvVarSuffix(directorySuffix string) error {
+	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
+	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY")+"/bug-report", directorySuffix)
+	return ExecuteExtractBugReport(kubeconfig, bugReportDirectory)
+}
+
 // ExecuteClusterDumpWithEnvVarConfig executes the cluster dump tool using config from environment variables.
 // DUMP_KUBECONFIG - The kube config file to use when executing the cluster dump tool.
 // DUMP_DIRECTORY - The directory to store the cluster dump within.
@@ -145,14 +185,19 @@ func ExecuteBugReportWithEnvVarSuffix(directorySuffix string) error {
 func ExecuteClusterDumpWithEnvVarConfig() error {
 	err1 := ExecuteClusterDumpWithEnvVarSuffix("")
 	err2 := ExecuteBugReportWithEnvVarSuffix("")
-	if err1 != nil || err2 != nil {
-		if err1 == nil {
-			return err2
-		} else if err2 == nil {
-			return err1
-		} else {
-			return errors.New(err1.Error() + err2.Error())
+	err3 := ExecuteExtractBugReportWithEnvVarSuffix("")
+	cumulativeError := ""
+	if err1 != nil || err2 != nil || err3 != nil {
+		if err1 != nil {
+			cumulativeError += err1.Error() + ";"
 		}
+		if err2 != nil {
+			cumulativeError += err2.Error() + ";"
+		}
+		if err3 != nil {
+			cumulativeError += err3.Error() + ";"
+		}
+		return errors.New(cumulativeError)
 	}
 	return nil
 }
