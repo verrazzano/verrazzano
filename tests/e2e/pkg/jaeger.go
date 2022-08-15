@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -165,8 +166,11 @@ func IsJaegerMetricFound(kubeconfigPath, metricName string, kv map[string]string
 //ListJaegerTraces lists all trace ids for a given service.
 func ListJaegerTraces(kubeconfigPath string, start time.Time, serviceName string) []string {
 	var traces []string
-	Log(Info, "Start time:"+start.String())
-	url := fmt.Sprintf("%s/api/traces?service=%s", getJaegerURL(kubeconfigPath), serviceName)
+	params := url.Values{}
+	params.Add("service", serviceName)
+	params.Add("start", strconv.FormatInt(start.UnixMicro(), 10))
+	params.Add("end", strconv.FormatInt(time.Now().UnixMicro(), 10))
+	url := fmt.Sprintf("%s/api/traces?%s", getJaegerURL(kubeconfigPath), params.Encode())
 	username, password, err := getJaegerUsernamePassword(kubeconfigPath)
 	if err != nil {
 		return traces
