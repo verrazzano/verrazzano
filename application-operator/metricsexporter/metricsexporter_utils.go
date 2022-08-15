@@ -11,6 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -60,10 +62,21 @@ const (
 )
 
 // InitRegisterStart initalizes the metrics object, registers the metrics, and then starts the server
-func InitRegisterStart(log *zap.SugaredLogger) {
+func InitRegisterStart(log *zap.SugaredLogger) error {
+	vlog, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+		Name:           "",
+		Namespace:      "",
+		ID:             "",
+		Generation:     0,
+		ControllerName: "metricsexporter",
+	})
+	if err != nil {
+		return err
+	}
 	RequiredInitialization()
-	RegisterMetrics(log)
-	StartMetricsServer(log)
+	RegisterMetrics(vlog)
+	StartMetricsServer(vlog)
+	return nil
 }
 
 // RequiredInitialization initalizes the metrics object, but does not register the metrics
@@ -78,7 +91,7 @@ func RequiredInitialization() {
 }
 
 // RegisterMetrics begins the process of registering metrics
-func RegisterMetrics(log *zap.SugaredLogger) {
+func RegisterMetrics(log vzlog.VerrazzanoLogger) {
 	InitializeAllMetricsArray()
 	go registerMetricsHandlers(log)
 }
@@ -337,12 +350,12 @@ func registerMetricsHandlersHelper() error {
 }
 
 // registerMetricsHandlers registers the metrics and provides error handling
-func registerMetricsHandlers(log *zap.SugaredLogger) {
+func registerMetricsHandlers(log vzlog.VerrazzanoLogger) {
 	// Get list of metrics to register initially
 	initializeFailedMetricsArray()
 	// Loop until there is no error in registering
 	for err := registerMetricsHandlersHelper(); err != nil; err = registerMetricsHandlersHelper() {
-		zap.S().Errorf("Failed to register metrics for VMI %v \n", err)
+		log.Oncef("Failed to register metrics for VMI %v \n", err)
 		time.Sleep(time.Second)
 	}
 }
@@ -355,12 +368,12 @@ func initializeFailedMetricsArray() {
 }
 
 // StartMetricsServer starts the metric server to begin emitting metrics to Prometheus
-func StartMetricsServer(log *zap.SugaredLogger) {
+func StartMetricsServer(log vzlog.VerrazzanoLogger) {
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
 		err := http.ListenAndServe(":9100", nil)
 		if err != nil {
-			zap.S().Errorf("Failed to start metrics server for VMI: %v", err)
+			log.Oncef("Failed to start metrics server for VMI: %v", err)
 		}
 	}, time.Second*3, wait.NeverStop)
 }
@@ -392,7 +405,7 @@ func GetDurationMetric(name metricName) (*DurationMetrics, error) {
 	return durationMetric, nil
 }
 func ExposeControllerMetrics(controllerName string, successname metricName, errorname metricName, durationname metricName) (*SimpleCounterMetric, *SimpleCounterMetric, *DurationMetrics, *zap.SugaredLogger, error) {
-	zapLogForMetrics := zap.S().With(controllerName)
+	zapLogForMetrics := zap.S().With(vzlogInit.FieldController, controllerName)
 	counterMetricObject, err := GetSimpleCounterMetric(successname)
 	if err != nil {
 		zapLogForMetrics.Error(err)

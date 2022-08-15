@@ -6,6 +6,8 @@ package operator
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -15,7 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -113,10 +114,10 @@ func TestGetMinVerrazzanoVersion(t *testing.T) {
 	assert.Equal(t, constants.VerrazzanoVersion1_3_0, NewComponent().GetMinVerrazzanoVersion())
 }
 
-// TestGetDependencies tests whether cert-manager component is a dependency
-// that needs to be installed prior to Jaeger operator
+// TestGetDependencies tests whether the cert-manager and opensearch components are dependencies
+// that need to be installed prior to Jaeger operator
 func TestGetDependencies(t *testing.T) {
-	assert.Equal(t, []string{"cert-manager"}, NewComponent().GetDependencies())
+	assert.Equal(t, []string{"cert-manager", "opensearch"}, NewComponent().GetDependencies())
 }
 
 // TestIsReady tests the IsReady function for the Jaeger Operator
