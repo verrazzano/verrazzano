@@ -335,10 +335,6 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return newRequeueWithDelay(), err
 	}
 
-	if err := r.updateVzState(log, actualCR, installv1alpha1.VzStateReady); err != nil {
-		return ctrl.Result{}, log.ErrorfNewErr("Failed to update the VZ state to ready after an upgrade completed: %v", err)
-	}
-
 	// Upgrade done along with any post-upgrade installations of new components that are enabled by default.
 	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", actualCR.Spec.Version)
 	log.Once(msg)
