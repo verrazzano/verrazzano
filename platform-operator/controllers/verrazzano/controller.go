@@ -486,8 +486,8 @@ func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	}
 	// Set upgrade complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano upgrade completed successfully"
-	// Status update must be performed on the actual CR read from K8S
-	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondUpgradeComplete)
+	// Status and State update must be performed on the actual CR read from K8S
+	return true, r.updateVzStatusAndState(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
@@ -603,6 +603,27 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 
 // updateVzState updates the status state in the Verrazzano CR
 func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.VzStateType) error {
+	// Set the state of resource
+	cr.Status.State = state
+	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
+
+	// Update the status
+	return r.updateVerrazzanoStatus(log, cr)
+}
+
+// updateVzState updates the status state in the Verrazzano CR
+func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, state installv1alpha1.VzStateType) error {
+	t := time.Now().UTC()
+	condition := installv1alpha1.Condition{
+		Type:    conditionType,
+		Status:  corev1.ConditionTrue,
+		Message: message,
+		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
+			t.Year(), t.Month(), t.Day(),
+			t.Hour(), t.Minute(), t.Second()),
+	}
+	cr.Status.Conditions = append(cr.Status.Conditions, condition)
+
 	// Set the state of resource
 	cr.Status.State = state
 	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
