@@ -374,6 +374,21 @@ pipeline {
                         }
                     }
                 }
+                stage('Upgrade tests') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-upgrade-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                    ], wait: true
+                            }
+                        }
+                    }
+                }
                 /*
                 stage('Upgrade Resiliency tests') {
                     steps {
