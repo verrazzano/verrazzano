@@ -39,13 +39,16 @@ func TestVersionCmd(t *testing.T) {
 	assert.Regexp(t, `^(GitCommit: )?(\w{40})$`, commit)
 }
 
-func TestGetEffectiveDocsVersion(t *testing.T) {
-	cliVersion = "1.2.3"
-	assert.True(t, GetEffectiveDocsVersion() == "v1.2")
-}
-
 func TestGetEffectiveDocsVersionWhenDocStageEnabled(t *testing.T) {
 	cliVersion = "1.2.3"
+
+	use_v8o_doc := os.Getenv("USE_V8O_DOC_STAGE")
+	if use_v8o_doc == "true" {
+		assert.True(t, GetEffectiveDocsVersion() == "devel")
+	} else {
+		assert.True(t, GetEffectiveDocsVersion() == "v1.2")
+	}
+
 	t.Setenv("USE_V8O_DOC_STAGE", "true")
 	assert.True(t, GetEffectiveDocsVersion() == "devel")
 
