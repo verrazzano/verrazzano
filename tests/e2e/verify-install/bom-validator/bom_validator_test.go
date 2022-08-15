@@ -188,7 +188,6 @@ func populateClusterImages(installedNamespace string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	for _, podList := range podsList.Items {
 		for _, initContainer := range podList.Spec.InitContainers {
 			clusterImageArray = append(clusterImageArray, initContainer.Image)
@@ -215,6 +214,7 @@ func populateClusterContainerImages() {
 func BomValidationReport() bool {
 	// Dump Images Not Found to Console, Informational
 	const textDivider = "----------------------------------------"
+
 	if len(clusterImageWarnings) > 0 {
 		fmt.Println()
 		fmt.Println("Image Warnings - Tags not at expected BOM level due to known issues")
