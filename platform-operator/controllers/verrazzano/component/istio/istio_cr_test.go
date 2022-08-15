@@ -214,7 +214,7 @@ spec:
           tlsSettings:
             mode: ISTIO_MUTUAL
           zipkin:
-            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local:9411
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
     pilot:
       resources:
         requests:
@@ -369,7 +369,7 @@ spec:
           tlsSettings:
             mode: ISTIO_MUTUAL
           zipkin:
-            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local:9411
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
     pilot:
       resources:
         requests:
@@ -524,7 +524,7 @@ spec:
           tlsSettings:
             mode: ISTIO_MUTUAL
           zipkin:
-            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local:9411
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
 `
 
 var cr4 = &vzapi.IstioComponent{
@@ -618,7 +618,7 @@ spec:
           tlsSettings:
             mode: ISTIO_MUTUAL
           zipkin:
-            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local:9411
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
       enableTracing: true
 `
 
