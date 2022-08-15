@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: hotrod-container
-          image: "jaegertracing/example-hotrod:1"
+          image: "jaegertracing/example-hotrod:1.34.1"
           env:
             - name: JAEGER_AGENT_HOST
               value: "localhost"
