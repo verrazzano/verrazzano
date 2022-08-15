@@ -170,7 +170,6 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	for {
 		ready, err := clik8sutil.DeploymentsAreReady(client, deployments, 1, lastTransitionTime)
 		if ready {
-			fmt.Println("Verrazzano Platform Operator is Ready")
 			break
 		}
 

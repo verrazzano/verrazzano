@@ -705,6 +705,7 @@ def isMinVersion(v1, v2) {
 }
 
 
+
 def createOCIDNSZone() {
     script {
         dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
