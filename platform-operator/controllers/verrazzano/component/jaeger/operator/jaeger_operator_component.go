@@ -100,6 +100,10 @@ func (c jaegerOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 // IsReady checks if the Jaeger Operator deployment is ready
 func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
+		defaultJaegerEnabled, err := isJaegerCREnabled(ctx)
+		if err == nil && defaultJaegerEnabled {
+			return isJaegerOperatorReady(ctx) && isDefaultJaegerInstanceReady(ctx)
+		}
 		return isJaegerOperatorReady(ctx)
 	}
 	return false
