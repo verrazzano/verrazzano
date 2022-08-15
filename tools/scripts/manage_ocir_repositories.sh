@@ -301,24 +301,30 @@ function check() {
     exit 1
   fi
 
+  if [[ "${DELETE_REPOS}" == "true" ]]; then
+    if [[ "${USE_LOCAL_IMAGES}" == "true" && (-n "${INCLUDE_COMPONENTS}" || -n "${EXCLUDE_COMPONENTS}") ]]; then
+      echo "Delete repositories, can only use -e or -n with -b (BOM File) option, not -l"
+      exit 1
+    fi 
+  fi
+
   if [ "${CREATE_REPOS}" == "true" ] && [ "${DELETE_ALL_REPOS}" == "true" ]; then
     echo "Warning: -a (delete all repos) set with -c, ignoring"
     DELETE_ALL_REPOS=false
   fi
 
-  if [[ "${DELETE_ALL_REPOS}" == "true" ]]; then
-    if [[ -n "${INCLUDE_COMPONENTS}" || -n "${EXCLUDE_COMPONENTS}" ]]; then
-      echo "Can not specify -n or -e with -a"
-      exit 1
-    fi
-    if [[ "${USE_BOM}" == "true" || "${USE_LOCAL_IMAGES}" ]]; then
-      echo "Can not specify -l (archives location) or -b (BOM file) with -a"
-      exit 1
-    fi
+  if [[ "${DELETE_REPOS}" == "true" && "${USE_LOCAL_IMAGES}" == "true" ]]; then
+    echo "Can not specify -l with -d"
+    exit 1
   fi
 
-  if [ "${USE_LOCAL_IMAGES}" == "${USE_BOM}" ]; then
-    echo "Must specify only one images/repo source, only one of -l (archives location) or -b (BOM file) must be set"
+  if [[ "${DELETE_REPOS}" == "true" && "${USE_BOM}" == "false" && "${DELETE_ALL_REPOS}" == "false" ]]; then
+    echo "Delete repostories, must specify exactly one of either -a (all repos) or -b (BOM file)"
+    exit 1
+  fi
+
+  if [[ "${DELETE_ALL_REPOS}" == "true" && (-n "${INCLUDE_COMPONENTS}" || -n "${EXCLUDE_COMPONENTS}" || "${USE_BOM}" == "true" || "${USE_LOCAL_IMAGES}" == "true") ]]; then
+    echo "Can not specify -l, -b, -n, or -e with -a"
     exit 1
   fi
 
