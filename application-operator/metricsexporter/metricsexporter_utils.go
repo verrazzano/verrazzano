@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -404,7 +405,7 @@ func GetDurationMetric(name metricName) (*DurationMetrics, error) {
 	return durationMetric, nil
 }
 func ExposeControllerMetrics(controllerName string, successname metricName, errorname metricName, durationname metricName) (*SimpleCounterMetric, *SimpleCounterMetric, *DurationMetrics, *zap.SugaredLogger, error) {
-	zapLogForMetrics := zap.S().With(controllerName)
+	zapLogForMetrics := zap.S().With(vzlogInit.FieldController, controllerName)
 	counterMetricObject, err := GetSimpleCounterMetric(successname)
 	if err != nil {
 		zapLogForMetrics.Error(err)
