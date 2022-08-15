@@ -28,7 +28,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// GIVEN the Jaeger Operator is enabled and istio tracing is enabled,
 		// WHEN we query for traces from verrazzano system components,
 		// THEN we are able to get the traces
-		jaeger.WhenJaegerOperatorEnabledIt(t, "traces for the fluentd system service should be available when queried from Jaeger", func() {
+		jaeger.WhenJaegerOperatorEnabledIt(t, "traces from verrazzano system components should be available when queried from Jaeger", func() {
 			validatorFn := pkg.ValidateSystemTracesFunc(start)
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
@@ -36,7 +36,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// GIVEN the Jaeger Operator is enabled and istio tracing is enabled,
 		// WHEN we check for traces from verrazzano system components in Opensearch Storage,
 		// THEN we are able to get the traces
-		jaeger.WhenJaegerOperatorEnabledIt(t, "traces for the fluentd system service should be available in the OS backend storage.", func() {
+		jaeger.WhenJaegerOperatorEnabledIt(t, "traces from verrazzano system components should be available in the OS backend storage.", func() {
 			validatorFn := pkg.ValidateSystemTracesInOSFunc(start)
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})

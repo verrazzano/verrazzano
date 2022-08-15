@@ -53,7 +53,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we are able to get the traces
-	t.It("traces for the fluentd system service should be available when queried from Jaeger", func() {
+	t.It("traces from verrazzano system components should be available when queried from Jaeger", func() {
 		validatorFn := pkg.ValidateSystemTracesFunc(start)
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
@@ -61,7 +61,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we are able to get the traces
-	t.It("traces for the fluentd system service should be available in the OS backend storage.", func() {
+	t.It("traces from verrazzano system components should be available in the OS backend storage.", func() {
 		validatorFn := pkg.ValidateSystemTracesInOSFunc(start)
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
