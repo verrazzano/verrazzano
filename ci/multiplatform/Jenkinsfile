@@ -68,6 +68,8 @@ pipeline {
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
+
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
@@ -450,7 +452,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/*bug-report*/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
@@ -505,7 +507,11 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        mkdir -p ${dumpDirectory}/cluster-snapshot
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+        mkdir -p ${dumpDirectory}/bug-report
+        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report
     """
 }
 
