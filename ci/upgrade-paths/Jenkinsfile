@@ -462,8 +462,8 @@ pipeline {
                 }
             }
         }
-        //stage ('Verify Install') {
-          //  parallel {
+        stage ('Verify Install') {
+            parallel {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomizeSerial('verify-install')
@@ -476,8 +476,8 @@ pipeline {
                         runGinkgoRandomizeParallel('multicluster/verify-install')
                     }
                 }
-            //}
-       // }
+            }
+        }
 
         // Run Verify Registry
         stage('Verify Registry') {
@@ -497,8 +497,7 @@ pipeline {
         }
 
         stage ('Verify Infra') {
-            //parallel {
-            stages {
+            parallel {
                 stage('verify-scripts') {
                     steps {
                         runGinkgoRandomizeParallel('scripts')
@@ -519,7 +518,6 @@ pipeline {
                         runGinkgoRandomizeParallel('verify-infra/vmi')
                     }
                 }
-           // }
             }
             post {
                 always {
@@ -530,17 +528,17 @@ pipeline {
         }
         stage('Post-upgrade Acceptance Tests') {
             stages {
-                        stage ('Console') {
-                            when { expression { isMultiCluster() } }
-                            steps {
-                                runConsoleTests()
-                            }
-                            post {
-                                always {
-                                    saveConsoleTestArtifacts()
-                                }
+                stage ('Console') {
+                    when { expression { isMultiCluster() } }
+                        steps {
+                            runConsoleTests()
+                        }
+                        post {
+                            always {
+                                saveConsoleTestArtifacts()
                             }
                         }
+                }
                 stage('Post-upgrade Acceptance Tests parallel') {
                     parallel {
                         stage('post-upgrade verify keycloak') {

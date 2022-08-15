@@ -129,7 +129,7 @@ func (r *Reconciler) handleCustomMetricsTemplate(ctx context.Context, metricsBin
 	if configYaml, err = yaml.YAMLToJSON([]byte(scrapeConfigString)); err != nil {
 		return log.ErrorfNewErr("Failed to convert scrape config YAML to JSON: %v", err)
 	}
-	
+
 	var newScrapeConfig *gabs.Container
 	if newScrapeConfig, err = gabs.ParseJSON(configYaml); err != nil {
 		return log.ErrorfNewErr("Failed to convert scrape config JSON to container: %v", err)
