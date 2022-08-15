@@ -48,10 +48,4 @@ func TestGetEffectiveDocsVersionWhenDocStageEnabled(t *testing.T) {
 	} else {
 		assert.True(t, GetEffectiveDocsVersion() == "v1.2")
 	}
-
-	t.Setenv("USE_V8O_DOC_STAGE", "true")
-	assert.True(t, GetEffectiveDocsVersion() == "devel")
-
-	t.Setenv("USE_V8O_DOC_STAGE", "false")
-	assert.True(t, GetEffectiveDocsVersion() == "v1.2")
 }
