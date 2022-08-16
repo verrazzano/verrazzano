@@ -18,15 +18,30 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 )
 
 const (
-	jaegerSpanIndexPrefix  = "verrazzano-jaeger-span"
-	jaegerClusterNameLabel = "verrazzano_cluster"
-	jaegerClusterName      = "local"
+	jaegerSpanIndexPrefix       = "verrazzano-jaeger-span"
+	jaegerClusterNameLabel      = "verrazzano_cluster"
+	jaegerClusterName           = "local"
+	jaegerOperatorSampleMetric  = "jaeger_operator_instances_managed"
+	jaegerAgentSampleMetric     = "jaeger_agent_collector_proxy_total"
+	jaegerQuerySampleMetric     = "jaeger_query_requests_total"
+	jaegerCollectorSampleMetric = "jaeger_collector_queue_capacity"
+	jaegerESIndexCleanerJob     = "jaeger-operator-jaeger-es-index-cleaner"
+)
+
+var (
+	systemServiceNames = []string{
+		"verrazzano-authproxy.verrazzano-system",
+		"jaeger-operator-jaeger.verrazzano-monitoring",
+		"system-es-master.verrazzano-system",
+		"fluentd.verrazzano-system",
+	}
 )
 
 type JaegerTraceData struct {
@@ -93,10 +108,10 @@ func IsJaegerInstanceCreated() (bool, error) {
 }
 
 //JaegerSpanRecordFoundInOpenSearch checks if jaeger span records are found in OpenSearch storage
-func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, serviceName string) (bool, error) {
+func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, serviceName string) bool {
 	indexName, err := GetJaegerSpanIndexName(kubeconfigPath)
 	if err != nil {
-		return false, err
+		return false
 	}
 	fields := map[string]string{
 		"process.serviceName": serviceName,
@@ -104,13 +119,13 @@ func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, s
 	searchResult := querySystemElasticSearch(indexName, fields, kubeconfigPath)
 	if len(searchResult) == 0 {
 		Log(Info, fmt.Sprintf("Expected to find log record matching fields %v", fields))
-		return false, nil
+		return false
 	}
 	found := findJaegerSpanHits(searchResult, &after)
 	if !found {
 		Log(Error, fmt.Sprintf("Failed to find recent jaeger span record for service %s", serviceName))
 	}
-	return found, nil
+	return found
 }
 
 //GetJaegerSpanIndexName returns the index name used in OpenSearch used for storage
@@ -149,9 +164,13 @@ func IsJaegerMetricFound(kubeconfigPath, metricName string, kv map[string]string
 }
 
 //ListJaegerTraces lists all trace ids for a given service.
-func ListJaegerTraces(kubeconfigPath string, serviceName string) []string {
+func ListJaegerTraces(kubeconfigPath string, start time.Time, serviceName string) []string {
 	var traces []string
-	url := fmt.Sprintf("%s/api/traces?service=%s", getJaegerURL(kubeconfigPath), serviceName)
+	params := url.Values{}
+	params.Add("service", serviceName)
+	params.Add("start", strconv.FormatInt(start.UnixMicro(), 10))
+	params.Add("end", strconv.FormatInt(time.Now().UnixMicro(), 10))
+	url := fmt.Sprintf("%s/api/traces?%s", getJaegerURL(kubeconfigPath), params.Encode())
 	username, password, err := getJaegerUsernamePassword(kubeconfigPath)
 	if err != nil {
 		return traces
@@ -281,6 +300,151 @@ func ListCronJobNamesMatchingLabels(namespace string, matchLabels map[string]str
 		}
 	}
 	return cronjobNames, nil
+}
+
+// ValidateJaegerOperatorMetricFunc returns a function that validates if metrics of Jaeger operator is scraped by prometheus.
+func ValidateJaegerOperatorMetricFunc() func() bool {
+	return func() bool {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false
+		}
+		return IsJaegerMetricFound(kubeconfigPath, jaegerOperatorSampleMetric, nil)
+	}
+}
+
+// ValidateJaegerCollectorMetricFunc returns a function that validates if metrics of Jaeger collector is scraped by prometheus.
+func ValidateJaegerCollectorMetricFunc() func() bool {
+	return func() bool {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false
+		}
+		return IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, nil)
+	}
+}
+
+// ValidateJaegerQueryMetricFunc returns a function that validates if metrics of Jaeger query is scraped by prometheus.
+func ValidateJaegerQueryMetricFunc() func() bool {
+	return func() bool {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false
+		}
+		return IsJaegerMetricFound(kubeconfigPath, jaegerQuerySampleMetric, nil)
+	}
+}
+
+// ValidateJaegerAgentMetricFunc returns a function that validates if metrics of Jaeger agent is scraped by prometheus.
+func ValidateJaegerAgentMetricFunc() func() bool {
+	return func() bool {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false
+		}
+		return IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, nil)
+	}
+}
+
+// ValidateEsIndexCleanerCronJobFunc returns a function that validates if cron job for periodically cleaning the OS indices are created.
+func ValidateEsIndexCleanerCronJobFunc() func() (bool, error) {
+	return func() (bool, error) {
+		create, err := IsJaegerInstanceCreated()
+		if err != nil {
+			Log(Error, fmt.Sprintf("Error checking if Jaeger CR is available %s", err.Error()))
+		}
+		if create {
+			return DoesCronJobExist(constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
+		}
+		return false, nil
+	}
+}
+
+// ValidateSystemTracesFunc returns a function that validates if system traces can be successfully queried from Jaeger
+func ValidateSystemTracesFunc(start time.Time) func() (bool, error) {
+	return func() (bool, error) {
+		// Check if the service name is registered in Jaeger and traces are present for that service
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false, err
+		}
+		tracesFound := true
+		for i := 0; i < len(systemServiceNames); i++ {
+			Log(Info, fmt.Sprintf("Inspecting traces for service: %s", systemServiceNames[i]))
+			if i == 0 {
+				tracesFound = len(ListJaegerTraces(kubeconfigPath, start, systemServiceNames[i])) > 0
+			} else {
+				tracesFound = tracesFound && len(ListJaegerTraces(kubeconfigPath, start, systemServiceNames[i])) > 0
+			}
+			Log(Info, fmt.Sprintf("Trace found flag for service: %s is %v", systemServiceNames[i], tracesFound))
+			// return early and retry later
+			if !tracesFound {
+				return false, nil
+			}
+		}
+		return tracesFound, nil
+	}
+}
+
+// ValidateSystemTracesInOSFunc returns a function that validates if system traces are stored successfully in OS backend storage
+func ValidateSystemTracesInOSFunc(start time.Time) func() bool {
+	return func() bool {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false
+		}
+		tracesFound := true
+		for i := 0; i < len(systemServiceNames); i++ {
+			Log(Info, fmt.Sprintf("Finding traces for service %s after %s", systemServiceNames[i], start.String()))
+			if i == 0 {
+				tracesFound = JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i])
+			} else {
+				tracesFound = tracesFound && JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i])
+			}
+			// return early and retry later
+			if !tracesFound {
+				return false
+			}
+		}
+		return tracesFound
+	}
+}
+
+// ValidateApplicationTraces returns a function that validates if application traces can be successfully queried from Jaeger
+func ValidateApplicationTraces(start time.Time, appServiceName string) func() (bool, error) {
+	return func() (bool, error) {
+		// Check if the service name is registered in Jaeger and traces are present for that service
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false, err
+		}
+		tracesFound := false
+		servicesWithJaegerTraces := ListServicesInJaeger(kubeconfigPath)
+		for _, serviceName := range servicesWithJaegerTraces {
+			if strings.HasPrefix(serviceName, appServiceName) {
+				traceIds := ListJaegerTraces(kubeconfigPath, start, serviceName)
+				tracesFound = len(traceIds) > 0
+				if !tracesFound {
+					errMsg := fmt.Sprintf("traces not found for service: %s", serviceName)
+					Log(Error, errMsg)
+					return false, fmt.Errorf(errMsg)
+				}
+				break
+			}
+		}
+		return tracesFound, nil
+	}
+}
+
+// ValidateApplicationTracesInOS returns a function that validates if application traces are stored successfully in OS backend storage
+func ValidateApplicationTracesInOS(start time.Time, appServiceName string) func() bool {
+	return func() bool {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false
+		}
+		return JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, appServiceName)
+	}
 }
 
 // fillLabelSelectors fills the match labels from map to be passed in list options

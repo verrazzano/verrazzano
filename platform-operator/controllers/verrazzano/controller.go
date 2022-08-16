@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -1018,24 +1017,6 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 		}))
 }
 
-func (r *Reconciler) watchJaegerService(namespace string, name string, log vzlog.VerrazzanoLogger) error {
-	// Watch services and trigger reconciles for Verrazzano resources when the Jaeger collector service is created
-	log.Debugf("Watching for services to activate reconcile for Verrazzano CR %s/%s", namespace, name)
-	return r.Controller.Watch(
-		&source.Kind{Type: &corev1.Service{}},
-		createReconcileEventHandler(namespace, name),
-		createPredicate(func(e event.CreateEvent) bool {
-			// Cast object to service
-			service := e.Object.(*corev1.Service)
-			if service.Labels[vzconst.KubernetesAppLabel] == vzconst.JaegerCollectorService {
-				log.Debugf("Jaeger service %s/%s created", service.Namespace, service.Name)
-				r.AddWatch(istio.ComponentJSONName)
-				return true
-			}
-			return false
-		}))
-}
-
 func createReconcileEventHandler(namespace, name string) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(a client.Object) []reconcile.Request {
@@ -1086,11 +1067,6 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 	// Watch pods in the keycloak namespace to handle recycle of the MySQL pod
 	if err := r.watchPods(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("Failed to set Pod watch for Verrazzano CR %s: %v", vz.Name, err)
-		return newRequeueWithDelay(), err
-	}
-
-	if err := r.watchJaegerService(vz.Namespace, vz.Name, log); err != nil {
-		log.Errorf("Failed to set Service watch for Jaeger Collector service: %v", err)
 		return newRequeueWithDelay(), err
 	}
 

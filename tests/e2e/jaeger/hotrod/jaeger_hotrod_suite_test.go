@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidon
+package hotrod
 
 import (
 	"flag"
@@ -17,7 +17,7 @@ func init() {
 	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
 }
 
-func TestJaegerHelidonTracing(t *testing.T) {
+func TestJaegerHotrodTracing(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Jaeger Tracing Suite")
+	ginkgo.RunSpecs(t, "Jaeger Hotrod Application Tracing Suite")
 }
