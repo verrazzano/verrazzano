@@ -178,7 +178,7 @@ func TestAppendOverrides(t *testing.T) {
 		{
 			name:         "OverrideJaegerCreate",
 			description:  "Test overriding Jaeger create",
-			expectedYAML: "testdata/jaegerOperatorOverrideJaegerCreateValues.yaml",
+			expectedYAML: "testdata/jaegerOperatorJaegerCreateDisabledValues.yaml",
 			actualCR:     "testdata/jaegerOperatorOverrideJaegerCreateVz.yaml",
 			numKeyValues: 1,
 			expectedErr:  nil,
@@ -189,6 +189,14 @@ func TestAppendOverrides(t *testing.T) {
 			expectedYAML: "testdata/jaegerOperatorOverrideValues.yaml",
 			actualCR:     "testdata/jaegerOperatorOverrideMetricsStorageVz.yaml",
 			numKeyValues: 2,
+			expectedErr:  nil,
+		},
+		{
+			name:         "OpenSearchDisabled",
+			description:  "Test OpenSearch disabled",
+			expectedYAML: "testdata/jaegerOperatorJaegerCreateDisabledValues.yaml",
+			actualCR:     "testdata/jaegerOperatorDisableOpenSearchVz.yaml",
+			numKeyValues: 1,
 			expectedErr:  nil,
 		},
 	}

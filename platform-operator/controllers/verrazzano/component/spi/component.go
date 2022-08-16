@@ -6,6 +6,7 @@ package spi
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -16,10 +17,14 @@ type ComponentContext interface {
 	Log() vzlog.VerrazzanoLogger
 	// GetClient returns the controller client for the context
 	Client() clipkg.Client
-	// ActualCR returns the actual unmerged Verrazzano resource
+	// ActualCR returns the actual unmerged v1alpha1.Verrazzano resource
 	ActualCR() *vzapi.Verrazzano
-	// EffectiveCR returns the effective merged Verrazzano CR
+	// EffectiveCR returns the effective merged v1alpha1.Verrazzano CR
 	EffectiveCR() *vzapi.Verrazzano
+	// ActualCRV1Beta1 returns the actual unmerged v1beta1.Verrazzano resource
+	ActualCRV1Beta1() *installv1beta1.Verrazzano
+	// EffectiveCRV1Beta1 returns the effective merged v1beta1.Verrazzano CR
+	EffectiveCRV1Beta1() *installv1beta1.Verrazzano
 	// IsDryRun indicates the component context is in DryRun mode
 	IsDryRun() bool
 	// Copy returns a copy of the current context

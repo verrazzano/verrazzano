@@ -70,18 +70,6 @@ func EventuallyEvictNode(cs *kubernetes.Clientset, name string, log *zap.Sugared
 					return false
 				}
 			}
-
-			// Delete any PVC's the pod may have, otherwise the pod may not reschedule due
-			// to a volume node affinity conflict
-			for _, volume := range pod.Spec.Volumes {
-				pvc := volume.PersistentVolumeClaim
-				if pvc != nil {
-					if err := cs.CoreV1().PersistentVolumeClaims(pod.Namespace).Delete(context.TODO(), pvc.ClaimName, metav1.DeleteOptions{}); err != nil {
-						log.Errorf("Failed to delete pvc[%s] for pod[%s] for node[%s]: %v", pvc.ClaimName, pod.Name, name, err)
-						return false
-					}
-				}
-			}
 		}
 		return true
 	}, WaitTimeout, PollingInterval).Should(gomega.BeTrue())

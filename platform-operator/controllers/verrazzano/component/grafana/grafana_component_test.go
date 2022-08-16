@@ -222,7 +222,16 @@ func TestPreInstall(t *testing.T) {
 	// WHEN the Grafana component PreInstall function is called
 	// THEN the function succeeds and the Grafana admin secret has been created
 	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, false)
 	err := NewComponent().PreInstall(ctx)
 	assert.NoError(t, err)
 
@@ -236,7 +245,16 @@ func TestPreUpgrade(t *testing.T) {
 	// WHEN the Grafana component PreUpgrade function is called
 	// THEN the function succeeds and the Grafana admin secret has been created
 	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, false)
 	err := NewComponent().PreUpgrade(ctx)
 	assert.NoError(t, err)
 

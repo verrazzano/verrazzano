@@ -60,7 +60,6 @@ const (
 	tmpSuffix             = "yaml"
 	tmpFileCreatePattern  = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern   = tmpFilePrefix + ".*\\." + tmpSuffix
-	jaegerSecName         = "verrazzano-jaeger-secret"
 	jaegerCreateField     = "jaeger.create"
 	jaegerSecNameField    = "jaeger.spec.storage.secretName"
 	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"
@@ -69,6 +68,7 @@ const (
 	jaegerCertificateName = "jaeger-tls"
 	openSearchURL         = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
 	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090"
+	componentPrefixFmt    = "Component %s"
 )
 
 // Define the Jaeger images using extraEnv key.
@@ -123,7 +123,7 @@ type jaegerData struct {
 	SecretName    string
 }
 
-// isjaegerOperatorReady checks if the Jaeger Operator deployment is ready
+// isJaegerOperatorReady checks if the Jaeger Operator deployment is ready
 func isJaegerOperatorReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{
@@ -131,8 +131,14 @@ func isJaegerOperatorReady(ctx spi.ComponentContext) bool {
 			Namespace: ComponentNamespace,
 		},
 	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+}
+
+// isDefaultJaegerInstanceReady checks if the deployments of default Jaeger instance managed by VZ are in ready state
+func isDefaultJaegerInstanceReady(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
 }
 
 // PreInstall implementation for the Jaeger Operator Component
@@ -258,7 +264,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		if err != nil {
 			return nil, err
 		}
-		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: jaegerSecName}
+		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName}
 		err = template.Execute(&b, data)
 		if err != nil {
 			return nil, err
@@ -394,7 +400,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 		return nil
 	}
 	// Copy the internal Elasticsearch secret
-	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", jaegerSecName)
+	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", globalconst.DefaultJaegerSecretName)
 	esInternalSecret, err := getESInternalSecret(ctx)
 	if err != nil {
 		return err
@@ -404,7 +410,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      jaegerSecName,
+			Name:      globalconst.DefaultJaegerSecretName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -420,7 +426,8 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 		}
 		return nil
 	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v", jaegerSecName, err)
+		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v",
+			globalconst.DefaultJaegerSecretName, err)
 	}
 	return nil
 }
@@ -545,21 +552,9 @@ func ReassociateResources(cli clipkg.Client) error {
 	return nil
 }
 
-// Verifies if User created Jaeger instance deployments exists
 func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
-	client := ctx.Client()
-	deployments := []types.NamespacedName{
-		{
-			Name:      JaegerCollectorDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      JaegerQueryDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DoDeploymentsExist(ctx.Log(), client, deployments, 1, prefix)
+	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
+	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
 }
 
 // removeMutatingWebhookConfig removes the  jaeger-operator-mutating-webhook-configuration resource during the pre-upgrade
@@ -675,6 +670,19 @@ func removeOldCertAndSecret(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to delete secret %s/%s: %v", ComponentNamespace, ComponentSecretName, err)
 	}
 	return nil
+}
+
+func getJaegerComponentDeployments() []types.NamespacedName {
+	return []types.NamespacedName{
+		{
+			Name:      JaegerCollectorDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      JaegerQueryDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+	}
 }
 
 // GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the

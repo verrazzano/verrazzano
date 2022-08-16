@@ -151,6 +151,7 @@ pipeline {
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
@@ -558,7 +559,7 @@ pipeline {
             dumpNginxIngressControllerLogs()
             dumpVerrazzanoPlatformOperatorLogs()
 
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot*/**,**/*bug-report*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -643,7 +644,11 @@ def runGinkgoFailFast(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        mkdir -p ${dumpDirectory}/cluster-snapshot
+        ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+        mkdir -p ${dumpDirectory}/bug-report
+        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report
     """
 }
 

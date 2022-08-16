@@ -133,7 +133,7 @@ func Test_getNamespaceFromObjectMetaOrDefault(t *testing.T) {
 }
 
 // Test_parseYAMLString tests metrics trait utility function parseYAMLString
-//func parseYAMLString(s string) (*gabs.Container, error) {
+// func parseYAMLString(s string) (*gabs.Container, error) {
 func Test_parseYAMLString(t *testing.T) {
 	assert := asserts.New(t)
 	var cont *gabs.Container
@@ -261,21 +261,23 @@ func TestGetSupportedWorkloadType(t *testing.T) {
 	assert.Empty(workloadType)
 }
 
-// TestCreateServiceMonitorName test the creation of a service monitor name from relevant resources
+// TestCreateServiceMonitorName test the creation of a service monitor name from relevant resources,
+// as well as the creation of a legacy prometheus configmap job name
 func TestCreateServiceMonitorName(t *testing.T) {
 	tests := []struct {
-		name         string
-		trait        *vzapi.MetricsTrait
-		portNum      int
-		expectedName string
-		expectError  bool
+		name                       string
+		trait                      *vzapi.MetricsTrait
+		portNum                    int
+		expectedServiceMonitorName string
+		expectedLegacyJobName      string
+		expectError                bool
 	}{
 		{
-			name:         "test empty trait",
-			trait:        &vzapi.MetricsTrait{},
-			portNum:      0,
-			expectedName: "",
-			expectError:  true,
+			name:                       "test empty trait",
+			trait:                      &vzapi.MetricsTrait{},
+			portNum:                    0,
+			expectedServiceMonitorName: "",
+			expectError:                true,
 		},
 		{
 			name: "test empty trait",
@@ -289,9 +291,10 @@ func TestCreateServiceMonitorName(t *testing.T) {
 					},
 				},
 			},
-			portNum:      0,
-			expectedName: "test-app_default_test-namespace_test-comp",
-			expectError:  false,
+			portNum:                    0,
+			expectedServiceMonitorName: "test-app-default-test-namespace-test-comp",
+			expectedLegacyJobName:      "test-app_default_test-namespace_test-comp",
+			expectError:                false,
 		},
 		{
 			name: "test name too long",
@@ -305,19 +308,25 @@ func TestCreateServiceMonitorName(t *testing.T) {
 					},
 				},
 			},
-			portNum:      1,
-			expectedName: "test-app-long-label_test-namespace_1",
-			expectError:  false,
+			portNum:                    1,
+			expectedServiceMonitorName: "test-app-long-label-test-namespace-1",
+			expectedLegacyJobName:      "test-app-long-label_test-namespace_1",
+			expectError:                false,
 		},
 	}
 	assert := asserts.New(t)
 	for _, tt := range tests {
-		name, err := createServiceMonitorName(tt.trait, tt.portNum)
+		smName, err1 := createServiceMonitorName(tt.trait, tt.portNum)
+		jobName, err2 := createPrometheusScrapeConfigMapJobName(tt.trait, tt.portNum)
 		if tt.expectError {
-			assert.Error(err)
+			assert.Error(err1)
+			assert.Error(err2)
 		} else {
-			assert.NoError(err)
+			assert.NoError(err1)
+			assert.NoError(err2)
+
 		}
-		asserts.Equal(t, tt.expectedName, name)
+		asserts.Equal(t, tt.expectedServiceMonitorName, smName)
+		asserts.Equal(t, tt.expectedLegacyJobName, jobName)
 	}
 }

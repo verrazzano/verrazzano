@@ -92,6 +92,7 @@ pipeline {
         // Used for dumping cluster from inside tests
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
 
         CLUSTER_NAME = 'verrazzano'
@@ -462,21 +463,7 @@ def uninstallVerrazzano(vpoLogsDir) {
         // Delete VZ in the background
         sh """
             echo "Deleting the Verrazzano resource..."
-            kubectl delete --wait=true --timeout=20m verrazzano my-verrazzano
-
-            #if kubectl get verrazzano my-verrazzano 2>&1 > /dev/null; then
-            #  echo "Waiting for Verrazzano resource to be deleted..."
-            #  kubectl wait verrazzano my-verrazzano --for=delete --timeout=20m
-            #else
-            #  echo "Verrazzano resource my-verrazzano successfully deleted"
-            #fi
-
-            # Wait a bit before continuing
-            sleep 90s
-            kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${vpoLogsDir}/verrazzano-platform-operator-post-uninstall.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-
-            echo "Deleting the Platform Operator resources"
-            kubectl delete -f ${TARGET_OPERATOR_FILE} --wait=true --timeout=10m
+            ${GO_REPO_PATH}/vz uninstall --timeout=20m 
         """
     }
 }
@@ -625,7 +612,11 @@ def runnerCleanup() {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        mkdir -p ${dumpDirectory}/cluster-snapshot
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
+        mkdir -p ${dumpDirectory}/bug-report
+        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report
     """
 }
 

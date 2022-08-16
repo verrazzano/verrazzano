@@ -136,9 +136,9 @@ func GetSupportedWorkloadType(apiVerKind string) string {
 	return ""
 }
 
-// createServiceMonitorName creates a Prometheus scrape configmap job name from a trait.
+// createJobOrServiceMonitorName creates a Prometheus scrape configmap job name from a trait.
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
-func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
+func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
 	cluster := getClusterNameFromObjectMetaOrDefault(trait.ObjectMeta)
 	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
 	app, found := trait.Labels[appObjectMetaLabel]
@@ -163,6 +163,17 @@ func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, e
 		}
 	}
 	return finalName, nil
+}
+
+// createJobOrServiceMonitorName creates a valid Prometheus ServiceMonitor name from a trait,
+// replacing underscores with dashes in name to appease Kubernetes requirements
+// Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
+func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
+	sname, err := createJobOrServiceMonitorName(trait, portNum)
+	if err != nil {
+		return "", err
+	}
+	return strings.Replace(sname, "_", "-", -1), nil
 }
 
 // getPortSpecs returns a complete set of port specs from the trait and the trait defaults

@@ -1,0 +1,141 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-initialization
+  namespace: verrazzano-install
+data:
+  create-db.sql: |-
+    create database if not exists grafana; use grafana; GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON grafana.* TO 'grafana'@'%';flush privileges;
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: verrazzano-install
+  labels:
+    app: mysql
+    release: "mysql"
+spec:
+  type: ClusterIP
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+  selector:
+    app: mysql
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: verrazzano-install
+  labels:
+    app: mysql
+    release: "mysql"
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mysql
+      release: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+        release: mysql
+    spec:
+      imagePullSecrets:
+        - name: verrazzano-container-registry
+      serviceAccountName: default
+      initContainers:
+        - name: "remove-lost-found"
+          image: "ghcr.io/oracle/oraclelinux:7-slim"
+          imagePullPolicy: "IfNotPresent"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          command:  ["rm", "-fr", "/var/lib/mysql/lost+found"]
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+        - command:
+            - chown
+            - -R
+            - 27:27
+            - /var/lib/mysql
+          image: "ghcr.io/oracle/oraclelinux:7-slim"
+          imagePullPolicy: IfNotPresent
+          name: chown-data-dir
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: data
+      containers:
+        - name: mysql
+          image: "ghcr.io/verrazzano/mysql:8.0.29"
+          imagePullPolicy: "IfNotPresent"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-db
+                  key: root-password
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-db
+                  key: password
+            - name: MYSQL_USER
+              value: "grafana"
+            - name: MYSQL_DATABASE
+              value: ""
+          ports:
+            - name: mysql
+              containerPort: 3306
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD}"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD}"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+            - name: migrations
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: migrations
+          configMap:
+            name: mysql-initialization
+        - name: data
+          emptyDir: {}

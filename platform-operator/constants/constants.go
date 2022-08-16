@@ -161,6 +161,9 @@ const VMISecret = "verrazzano"
 // GrafanaSecret is the secret used for VMI
 const GrafanaSecret = "grafana-admin"
 
+// GrafanaDBSecret is the secret used for VMI
+const GrafanaDBSecret = "grafana-db"
+
 // VMIBackupSecretName is the backup VMI secret
 const VMIBackupSecretName = "verrazzano-backup" //nolint:gosec //#gosec G101
 

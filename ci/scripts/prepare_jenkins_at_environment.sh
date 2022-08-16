@@ -22,6 +22,7 @@ fi
 
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
+USE_DB_FOR_GRAFANA=${3:-false}
 KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
 TEST_OVERRIDE_CONFIGMAP_FILE="./tests/e2e/config/scripts/pre-install-overrides/test-overrides-configmap.yaml"
 TEST_OVERRIDE_SECRET_FILE="./tests/e2e/config/scripts/pre-install-overrides/test-overrides-secret.yaml"
@@ -94,6 +95,31 @@ tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
 # Create the verrazzano-install namespace
 kubectl create namespace verrazzano-install
 
+# if enabled, deploy the Grafana MySQL instance and create the Grafana DB secret
+if [ $USE_DB_FOR_GRAFANA == true ]; then
+  # create the necessary secrets
+  MYSQL_ROOT_PASSWORD=$(openssl rand -base64 12)
+  MYSQL_PASSWORD=$(openssl rand -base64 12)
+  ROOT_SECRET=$(echo -n $MYSQL_ROOT_PASSWORD | base64)
+  USER_SECRET=$(echo -n $MYSQL_PASSWORD | base64)
+  USER=$(echo -n "grafana" | base64)
+
+  kubectl apply -f - <<-EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-db
+  namespace: verrazzano-install
+type: Opaque
+data:
+  root-password: $ROOT_SECRET
+  username: $USER
+  password: $USER_SECRET
+EOF
+  # deploy MySQL instance
+  kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
+fi
+
 # create secret in verrazzano-install ns
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
@@ -105,6 +131,10 @@ fi
 # Configure the custom resource to install Verrazzano on Kind
 VZ_INSTALL_FILE=${VZ_INSTALL_FILE:-"${WORKSPACE}/acceptance-test-config.yaml"}
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
+# If grafana is using a DB add the database configuration to the VZ file
+if [ $USE_DB_FOR_GRAFANA == true ]; then
+  ./tests/e2e/config/scripts/process_grafana_db_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
+fi
 cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
 
 echo "Creating Override ConfigMap"

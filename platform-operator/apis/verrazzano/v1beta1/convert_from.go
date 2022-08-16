@@ -41,6 +41,9 @@ type expandInfo struct {
 
 func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha1.Verrazzano)
+	if src == nil {
+		return nil
+	}
 	in.ObjectMeta = src.ObjectMeta
 
 	// Convert Spec
@@ -376,18 +379,11 @@ func convertInstallArgsToOSNodes(args []v1alpha1.InstallArgs) ([]OpenSearchNode,
 		}
 	}
 
-	// Only include nodes with non-zero replica counts
-	var nodes []OpenSearchNode
-	if masterNode.Replicas > 0 {
-		nodes = append(nodes, *masterNode)
-	}
-	if dataNode.Replicas > 0 {
-		nodes = append(nodes, *dataNode)
-	}
-	if ingestNode.Replicas > 0 {
-		nodes = append(nodes, *ingestNode)
-	}
-	return nodes, nil
+	return []OpenSearchNode{
+		*masterNode,
+		*dataNode,
+		*ingestNode,
+	}, nil
 }
 
 func convertFluentdFrom(src *v1alpha1.FluentdComponent) *FluentdComponent {
@@ -590,8 +586,9 @@ func convertRancherFrom(src *v1alpha1.RancherComponent) *RancherComponent {
 		return nil
 	}
 	return &RancherComponent{
-		Enabled:          src.Enabled,
-		InstallOverrides: convertInstallOverridesFrom(src.InstallOverrides),
+		Enabled:             src.Enabled,
+		InstallOverrides:    convertInstallOverridesFrom(src.InstallOverrides),
+		KeycloakAuthEnabled: src.KeycloakAuthEnabled,
 	}
 }
 

@@ -772,7 +772,7 @@ func IsJaegerOperatorEnabled(kubeconfigPath string) bool {
 		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
 		return false
 	}
-	if vz.Spec.Components.JaegerOperator == nil || vz.Spec.Components.JaegerOperator.Enabled == nil {
+	if vz == nil || vz.Spec.Components.JaegerOperator == nil || vz.Spec.Components.JaegerOperator.Enabled == nil {
 		return false
 	}
 	return *vz.Spec.Components.JaegerOperator.Enabled

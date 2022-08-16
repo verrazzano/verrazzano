@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -1282,92 +1281,6 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 
 	mocker.Finish()
 	asserts.Error(err)
-}
-
-// TestRegisterClusterWithRancherOverrideRegistry tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
-// WHEN a VerrazzanoManagedCluster resource has been applied
-// AND the Verrazzano installation overrides the image registry and repository (i.e. the private registry scenario)
-// THEN ensure that the Rancher registration manifest YAML contains a Rancher agent image with the overridden registry and repo
-func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
-	namespace := constants.VerrazzanoMultiClusterNamespace
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	mockRequestSender := mocks.NewMockRequestSender(mocker)
-	savedRancherHTTPClient := rancherHTTPClient
-	defer func() {
-		rancherHTTPClient = savedRancherHTTPClient
-	}()
-	rancherHTTPClient = mockRequestSender
-
-	// override the image registry and repo
-	const registry = "unit-test-registry.io"
-	const imageRepo = "unit-test-repo"
-	oldRegistryEnv := os.Getenv(vpoconstants.RegistryOverrideEnvVar)
-	oldImageRepoEnv := os.Getenv(vpoconstants.ImageRepoOverrideEnvVar)
-	defer func() {
-		_ = os.Setenv(vpoconstants.RegistryOverrideEnvVar, oldRegistryEnv)
-		_ = os.Setenv(vpoconstants.ImageRepoOverrideEnvVar, oldImageRepoEnv)
-	}()
-	_ = os.Setenv(vpoconstants.RegistryOverrideEnvVar, registry)
-	_ = os.Setenv(vpoconstants.ImageRepoOverrideEnvVar, imageRepo)
-
-	// replace the image registry in the Rancher agent image with the overridden registry and repo
-	expectedRancherYAML := strings.Replace(rancherManifestYAML, "image: "+rancherAgentRegistry, "image: "+registry+"/"+imageRepo, 1)
-
-	defer setConfigFunc(getConfigFunc)
-	setConfigFunc(fakeGetConfig)
-
-	expectVmcGetAndUpdate(t, mock, testManagedCluster, true, false)
-	expectSyncServiceAccount(t, mock, testManagedCluster, true)
-	expectSyncRoleBinding(t, mock, testManagedCluster, true)
-	expectSyncAgent(t, mock, testManagedCluster, false)
-	expectSyncRegistration(t, mock, testManagedCluster, false)
-	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, expectedRancherYAML)
-	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
-	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
-		asserts.Len(configMap.Data, 2, "no data found")
-		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
-		prometheusYaml := configMap.Data["prometheus.yml"]
-		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
-
-		scrapeConfig, err := getScrapeConfig(prometheusYaml, testManagedCluster)
-		if err != nil {
-			asserts.Fail("failed due to error %v", err)
-		}
-		validateScrapeConfig(t, scrapeConfig, prometheusConfigBasePath, true)
-		return nil
-	}, func(secret *corev1.Secret) error {
-		scrapeConfigYaml := secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]
-		scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(scrapeConfigYaml))
-		if err != nil {
-			asserts.Fail("failed due to error %v", err)
-		}
-		scrapeConfig := getJob(scrapeConfigs.Children(), testManagedCluster)
-		validateScrapeConfig(t, scrapeConfig, managedCertsBasePath, true)
-		return nil
-	}, func(secret *corev1.Secret) error {
-		asserts.NotEmpty(secret.Data["ca-test"], "Expected to find a managed cluster TLS cert")
-		return nil
-	})
-
-	// expect status updated with condition Ready=true
-	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "", false)
-
-	// Create and make the request
-	request := newRequest(namespace, testManagedCluster)
-	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing

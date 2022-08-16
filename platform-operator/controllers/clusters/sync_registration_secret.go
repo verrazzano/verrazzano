@@ -121,6 +121,12 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		return err
 	}
 
+	// Get the Jaeger OpenSearch related data if it exists
+	jaegerStorage, err := r.getJaegerOpenSearchConfig(&vzList)
+	if err != nil {
+		return err
+	}
+
 	// Build the secret data
 	secret.Data = map[string][]byte{
 		mcconstants.ManagedClusterNameKey:   []byte(manageClusterName),
@@ -130,6 +136,12 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		mcconstants.RegistrationPasswordKey: esPassword,
 		mcconstants.KeycloakURLKey:          []byte(keycloakURL),
 		mcconstants.AdminCaBundleKey:        adminCaBundle,
+		mcconstants.JaegerOSURLKey:          []byte(jaegerStorage.URL),
+		mcconstants.JaegerOSTLSCAKey:        jaegerStorage.CA,
+		mcconstants.JaegerOSTLSKey:          jaegerStorage.TLSKey,
+		mcconstants.JaegerOSTLSCertKey:      jaegerStorage.TLSCert,
+		mcconstants.JaegerOSUsernameKey:     jaegerStorage.username,
+		mcconstants.JaegerOSPasswordKey:     jaegerStorage.password,
 	}
 	return nil
 }

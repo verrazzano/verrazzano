@@ -160,6 +160,16 @@ func EnsureGrafanaAdminSecret(cli client.Client) error {
 	return nil
 }
 
+// EnsureGrafanaDatabaseSecret ensures that the DB login secret provided in the verrazzano-install namespace is copied
+// to the verrazzano-system namespace
+func EnsureGrafanaDatabaseSecret(ctx spi.ComponentContext) error {
+	if ctx.EffectiveCR().Spec.Components.Grafana.Database != nil {
+		// an external database is configured
+		return CopySecret(ctx, constants.GrafanaDBSecret, constants.VerrazzanoSystemNamespace, "Grafana Database")
+	}
+	return nil
+}
+
 // EnsureBackupSecret creates or updates the VMI backup secret
 func EnsureBackupSecret(cli client.Client) error {
 	secret := &corev1.Secret{
