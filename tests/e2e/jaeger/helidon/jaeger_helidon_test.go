@@ -103,7 +103,7 @@ var _ = t.AfterSuite(func() {
 		return
 	}
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(namespace)
 	}
 	// undeploy the application here
 	start := time.Now()

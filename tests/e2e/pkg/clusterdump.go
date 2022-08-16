@@ -17,10 +17,9 @@ import (
 )
 
 const (
-	AnalysisReport  = "analysis.report"
-	BugReport       = "bug-report.tar.gz"
-	BugReportDir    = "bug-report"
-	ClusterSnapshot = "cluster-snapshot"
+	AnalysisReport = "analysis.report"
+	BugReport      = "bug-report.tar.gz"
+	FullCluster    = "full-cluster"
 )
 
 //ClusterDumpWrapper creates cluster snapshots if the test fails (spec or aftersuite)
@@ -57,35 +56,47 @@ func (c *ClusterDumpWrapper) AfterEach(body func()) bool {
 //AfterSuite wraps ginkgo.AfterSuite
 // usage: var _ = c.AfterSuite(func() { ...after suite logic... })
 func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
+	// Capture full cluster snapshot when environment variable CAPTURE_FULL_CLUSTER is set
+	isFullCapture := os.Getenv("CAPTURE_FULL_CLUSTER")
 	return ginkgo.AfterSuite(func() {
 		if c.failed || !c.beforeSuitePassed {
-			executeClusterDumpWithEnvVarSuffix(fmt.Sprintf("fail-%d", time.Now().Unix()))
-			executeBugReportWithDirectorySuffix(fmt.Sprintf("fail-%d", time.Now().Unix()), c.namespaces...)
+			dirSuffix := fmt.Sprintf("fail-%d", time.Now().Unix())
+			if strings.EqualFold(isFullCapture, "true") {
+				executeClusterDumpWithEnvVarSuffix(dirSuffix)
+			}
+			executeBugReportWithDirectorySuffix(dirSuffix, c.namespaces...)
 		}
 
 		// ginkgo.Fail and gomega matchers panic if they fail. Recover is used to capture the panic and
 		// generate the cluster snapshot
 		defer func() {
 			if r := recover(); r != nil {
-				executeClusterDumpWithEnvVarSuffix(fmt.Sprintf("aftersuite-%d", time.Now().Unix()))
-				executeBugReportWithDirectorySuffix(fmt.Sprintf("aftersuite-%d", time.Now().Unix()), c.namespaces...)
+				dirSuffix := fmt.Sprintf("aftersuite-%d", time.Now().Unix())
+				if strings.EqualFold(isFullCapture, "true") {
+					executeClusterDumpWithEnvVarSuffix(dirSuffix)
+				}
+				executeBugReportWithDirectorySuffix(dirSuffix, c.namespaces...)
 			}
 		}()
 		body()
 	})
 }
 
-// ExecuteClusterDump executes the cluster dump tool.
+// executeClusterDump executes the cluster dump tool.
 // clusterDumpCommand - The fully qualified cluster dump executable.
 // kubeConfig - The kube config file to use when executing the cluster dump tool.
 // clusterDumpDirectory - The directory to store the cluster dump within.
-func ExecuteClusterDump(clusterDumpCommand string, kubeConfig string, clusterDumpDirectory string) error {
+func executeClusterDump(clusterDumpCommand string, kubeConfig string, clusterDumpDirectory string) error {
 	var cmd *exec.Cmd
 	fmt.Printf("Execute cluster dump: KUBECONFIG=%s; %s -d %s\n", kubeConfig, clusterDumpCommand, clusterDumpDirectory)
 	if clusterDumpCommand == "" {
 		return nil
 	}
-	reportFile := filepath.Join(clusterDumpDirectory, ClusterSnapshot, AnalysisReport)
+	reportFile := filepath.Join(clusterDumpDirectory, AnalysisReport)
+	if err := os.MkdirAll(clusterDumpDirectory, 0755); err != nil {
+		return err
+	}
+
 	cmd = exec.Command(clusterDumpCommand, "-d", clusterDumpDirectory, "-r", reportFile)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeConfig))
 	cmd.Stdout = os.Stdout
@@ -112,7 +123,10 @@ func executeBugReport(vzCommand string, kubeConfig string, bugReportDirectory st
 	}
 
 	filename := filepath.Join(bugReportDirectory, BugReport)
-	os.MkdirAll(bugReportDirectory, 0755)
+	if err := os.MkdirAll(bugReportDirectory, 0755); err != nil {
+		return err
+	}
+
 	if len(ns) > 0 {
 		includeNS := strings.Join(ns[:], ",")
 		cmd = exec.Command(vzCommand, "bug-report", "--report-file", filename, "--include-namespaces", includeNS)
@@ -123,7 +137,6 @@ func executeBugReport(vzCommand string, kubeConfig string, bugReportDirectory st
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	fmt.Printf("About to call start \n")
 	if err := cmd.Start(); err != nil {
 		fmt.Printf("Failed to start the command bug-report: %v \n", err)
 		return err
@@ -132,9 +145,8 @@ func executeBugReport(vzCommand string, kubeConfig string, bugReportDirectory st
 		fmt.Printf("Failed waiting for the command bug-report: %v \n", err)
 		return err
 	}
-	fmt.Printf("command succeeded without error \n")
 	// Extract the bug-report and run vz-analyze
-	err := analyzeBugReport(kubeConfig, vzCommand, BugReport, bugReportDirectory)
+	err := analyzeBugReport(kubeConfig, vzCommand, bugReportDirectory)
 	if err != nil {
 		return err
 	}
@@ -142,14 +154,10 @@ func executeBugReport(vzCommand string, kubeConfig string, bugReportDirectory st
 }
 
 // analyzeBugReport extracts the bug report and runs vz analyze by providing the extracted directory for flag --capture-dir
-func analyzeBugReport(kubeConfig, vzCommand, bugReportFile, bugReportDirectory string) error {
-	extractedBugReportDir := filepath.Join(bugReportDirectory, BugReportDir)
-	err := os.MkdirAll(extractedBugReportDir, 0755)
-	if err != nil {
-		return err
-	}
+func analyzeBugReport(kubeConfig, vzCommand, bugReportDirectory string) error {
+	bugReportFile := filepath.Join(bugReportDirectory, BugReport)
 
-	cmd := exec.Command("tar", "-xf", bugReportFile, "-C", extractedBugReportDir)
+	cmd := exec.Command("tar", "-xf", bugReportFile, "-C", bugReportDirectory)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeConfig))
@@ -164,9 +172,9 @@ func analyzeBugReport(kubeConfig, vzCommand, bugReportFile, bugReportDirectory s
 	}
 
 	// Safe to remove bugReportFile
-	os.Remove(filepath.Join(bugReportDirectory, bugReportFile))
-	reportFile := fmt.Sprintf("%s/%s", extractedBugReportDir, AnalysisReport)
-	cmd = exec.Command(vzCommand, "analyze", "--capture-dir", extractedBugReportDir, "--report-format", "detailed", "--report-file", reportFile)
+	os.Remove(filepath.Join(bugReportFile))
+	reportFile := filepath.Join(bugReportDirectory, AnalysisReport)
+	cmd = exec.Command(vzCommand, "analyze", "--capture-dir", bugReportDirectory, "--report-format", "detailed", "--report-file", reportFile)
 	fmt.Println(cmd.String())
 	if err := cmd.Start(); err != nil {
 		fmt.Printf("Failed to start the command analyze %v \n", err)
@@ -180,20 +188,20 @@ func analyzeBugReport(kubeConfig, vzCommand, bugReportFile, bugReportDirectory s
 }
 
 func executeClusterDumpWithEnvVarSuffix(directorySuffix string) error {
-	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
-	clusterDumpDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix)
+	kubeConfig := os.Getenv("DUMP_KUBECONFIG")
+	clusterDumpDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix, FullCluster)
 	clusterDumpCommand := os.Getenv("DUMP_COMMAND")
-	return ExecuteClusterDump(clusterDumpCommand, kubeconfig, clusterDumpDirectory)
+	return executeClusterDump(clusterDumpCommand, kubeConfig, clusterDumpDirectory)
 }
 
 // executeBugReportWithDirectorySuffix executes the bug-report CLI.
 // directorySuffix - The suffix for the directory where the bug-report CLI needs to create the report file.
 // ns - One or more additional namespaces, from where the resources need to be captured by the bug-report CLI
 func executeBugReportWithDirectorySuffix(directorySuffix string, ns ...string) error {
-	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
-	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), BugReportDir, directorySuffix)
+	kubeConfig := os.Getenv("DUMP_KUBECONFIG")
+	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix)
 	vzCommand := os.Getenv("VZ_COMMAND")
-	return executeBugReport(vzCommand, kubeconfig, bugReportDirectory, ns...)
+	return executeBugReport(vzCommand, kubeConfig, bugReportDirectory, ns...)
 }
 
 // ExecuteBugReport executes the cluster bug-report CLI using config from environment variables.
@@ -202,9 +210,14 @@ func executeBugReportWithDirectorySuffix(directorySuffix string, ns ...string) e
 // DUMP_COMMAND - The fully qualified cluster snapshot executable.
 // One or more additional namespaces specified using ns are set for the flag --include-namespaces
 func ExecuteBugReport(ns ...string) error {
-	// TODO: Capture full cluster snapshot based on an environment variable
-	err1 := executeClusterDumpWithEnvVarSuffix("")
-	err2 := executeBugReportWithDirectorySuffix("", ns...)
+	var err1, err2 error
+	err1 = executeClusterDumpWithEnvVarSuffix("")
+
+	// Capture full cluster snapshot when environment variable CAPTURE_FULL_CLUSTER is set
+	isFullCapture := os.Getenv("CAPTURE_FULL_CLUSTER")
+	if strings.EqualFold(isFullCapture, "true") {
+		err2 = executeBugReportWithDirectorySuffix("", ns...)
+	}
 	cumulativeError := ""
 	if err1 != nil || err2 != nil {
 		if err1 != nil {
@@ -231,14 +244,14 @@ func ExecuteBugReport(ns ...string) error {
 // DUMP_DIRECTORY - The directory to store the cluster snapshot within.
 func CaptureContainerLogs(namespace string, podName string, containerName string, containerLogsDir string) {
 	directory := os.Getenv(test.DumpDirectoryEnvVarName)
-	kubeconfig := os.Getenv(test.DumpKubeconfigEnvVarName)
+	kubeConfig := os.Getenv(test.DumpKubeconfigEnvVarName)
 
 	containerPath := fmt.Sprintf("%s/%s:%s", namespace, podName, containerLogsDir)
 	destDir := fmt.Sprintf("%s/%s/%s", directory, podName, containerName)
 
 	cmd := exec.Command("kubectl", "cp", containerPath, "-c", containerName, destDir)
 	Log(Info, fmt.Sprintf("kubectl command to capture %s logs: %s", podName, cmd.String()))
-	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
+	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeConfig))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
