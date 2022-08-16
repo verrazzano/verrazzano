@@ -5,6 +5,7 @@ package ha
 
 import (
 	"context"
+	"strings"
 
 	"github.com/onsi/gomega"
 	"go.uber.org/zap"
@@ -26,6 +27,10 @@ func EventuallyPodsReady(log *zap.SugaredLogger, cs *kubernetes.Clientset) {
 		// Assume all pods are ready.  If debug enabled, log status of each pod that is not ready yet
 		returnValue := true
 		for _, pod := range pods.Items {
+			// Skips helm-operation-* pods in cattle-system since they sometimes have a status of error during install.
+			if pod.Namespace == "cattle-system" && strings.Contains(pod.Name, "helm-operation-") {
+				continue
+			}
 			if !IsPodReadyOrCompleted(pod) {
 				log.Debugf("Pod [%s] in namespace [%s] not ready or completed [%s]", pod.Name, pod.Namespace, string(pod.Status.Phase))
 				returnValue = false
