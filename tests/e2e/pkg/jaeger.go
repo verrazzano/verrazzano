@@ -121,8 +121,14 @@ func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, s
 	}
 	fields := map[string]string{
 		"process.serviceName": serviceName,
-		"process.tags.key":    jaegerClusterNameLabel,
-		"process.tags.value":  clusterName,
+	}
+	// For multi cluster scenario check for verrazzano_cluster tag.
+	if clusterName != "" {
+		fields = map[string]string{
+			"process.serviceName": serviceName,
+			"process.tags.key":    jaegerClusterNameLabel,
+			"process.tags.value":  clusterName,
+		}
 	}
 	searchResult := querySystemElasticSearch(indexName, fields, kubeconfigPath)
 	if len(searchResult) == 0 {
@@ -479,9 +485,9 @@ func ValidateSystemTracesInOSFunc(start time.Time) func() bool {
 		for i := 0; i < len(systemServiceNames); i++ {
 			Log(Info, fmt.Sprintf("Finding traces for service %s after %s", systemServiceNames[i], start.String()))
 			if i == 0 {
-				tracesFound = JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i], adminClusterName)
+				tracesFound = JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i], "")
 			} else {
-				tracesFound = tracesFound && JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i], adminClusterName)
+				tracesFound = tracesFound && JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i], "")
 			}
 			// return early and retry later
 			if !tracesFound {
@@ -525,7 +531,7 @@ func ValidateApplicationTracesInOS(start time.Time, appServiceName string) func(
 		if err != nil {
 			return false
 		}
-		return JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, appServiceName, adminClusterName)
+		return JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, appServiceName, "")
 	}
 }
 

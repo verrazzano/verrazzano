@@ -22,7 +22,6 @@ const (
 
 var t = framework.NewTestFramework("jaeger_system_test")
 
-var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 

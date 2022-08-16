@@ -49,9 +49,9 @@ var _ = t.Describe("Multi Cluster Jaeger Validation", Label("f:platform-lcm.inst
 				for i := 0; i < len(systemServiceNames); i++ {
 					pkg.Log(pkg.Info, fmt.Sprintf("Finding traces for service %s after %s", systemServiceNames[i], start.String()))
 					if i == 0 {
-						tracesFound = pkg.JaegerSpanRecordFoundInOpenSearch(adminKubeconfig, start, systemServiceNames[i], clusterName)
+						tracesFound = pkg.JaegerSpanRecordFoundInOpenSearch(adminKubeconfig, start, systemServiceNames[i], managedClusterName)
 					} else {
-						tracesFound = tracesFound && pkg.JaegerSpanRecordFoundInOpenSearch(adminKubeconfig, start, systemServiceNames[i], clusterName)
+						tracesFound = tracesFound && pkg.JaegerSpanRecordFoundInOpenSearch(adminKubeconfig, start, systemServiceNames[i], managedClusterName)
 					}
 					// return early and retry later
 					if !tracesFound {
