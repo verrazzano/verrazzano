@@ -50,15 +50,6 @@ var _ = t.BeforeSuite(func() {
 		Eventually(func() bool {
 			return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
 		}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
-
-		//if replicas != 1 {
-		//	Eventually(func() bool {
-		//		if !helloHelidonPodsRunning() {
-		//			return false
-		//		}
-		//
-		//	})
-		//}
 	}
 
 	// Verify hello-helidon-deployment pod is running
@@ -84,7 +75,7 @@ var _ = t.AfterSuite(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace)
+		pkg.UndeployHelloHelidonApplication(namespace, helloHelidonAppConfig)
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -238,21 +229,6 @@ func helloHelidonPodsRunning() bool {
 	}
 	return result
 }
-
-//func updateDeploymentWithReplicas() err {
-//	// Get the Kubernetes clientset
-//	clientset, err := k8sutil.GetKubernetesClientset()
-//	if err != nil {
-//		return err
-//	}
-//	deployment := &appsv1.Deployment{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Namespace: namespace,
-//			Name:      helloHelidonDeployment,
-//		},
-//	}
-//	a, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), helloHelidonDeployment)
-//}
 
 func appEndpointAccessible(url string, hostname string) bool {
 	req, err := retryablehttp.NewRequest("GET", url, nil)

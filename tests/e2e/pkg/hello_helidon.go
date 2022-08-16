@@ -57,8 +57,12 @@ func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 }
 
 // UndeployHelloHelidonApplication undeploys the Hello Helidon example application.
-func UndeployHelloHelidonApplication(namespace string) {
+func UndeployHelloHelidonApplication(namespace string, customAppConfig string) {
 	Log(Info, "Undeploy Hello Helidon Application")
+	// use custom Hello-Helidon Component if it is passed in
+	if customAppConfig != "" {
+		helidonAppYaml = customAppConfig
+	}
 	if exists, _ := DoesNamespaceExist(namespace); exists {
 		Log(Info, "Delete Hello Helidon application")
 		gomega.Eventually(func() error {

@@ -80,7 +80,7 @@ var _ = t.AfterSuite(func() {
 		},
 		func() {
 			start := time.Now()
-			pkg.UndeployHelloHelidonApplication(helidonNamespace)
+			pkg.UndeployHelloHelidonApplication(helidonNamespace, "")
 			metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 		},
 	)

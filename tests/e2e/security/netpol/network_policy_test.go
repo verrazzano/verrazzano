@@ -122,7 +122,7 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	start = time.Now()
-	pkg.UndeployHelloHelidonApplication(namespace)
+	pkg.UndeployHelloHelidonApplication(namespace, "")
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 

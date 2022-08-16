@@ -318,6 +318,29 @@ pipeline {
                     }
                 }
 
+                stage('Install and Test Hello-Helidon') {
+                    when {
+                        expression { TESTS_FAILED == false }
+                    }
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-install"
+                    }
+                    steps{
+                        runGinkgoRandomize('examples/helidon', '--skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
+                }
+
                 stage('Reschedule 50% of Worker Nodes') {
                     when {
                         expression { TESTS_FAILED == false }
@@ -517,15 +540,12 @@ pipeline {
     }
 }
 
-def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
+def runGinkgoRandomize(testSuitePath, arguments = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            if [ ! -z "${kubeConfig}" ]; then
-                export KUBECONFIG="${kubeConfig}"
-            fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
             fi
         """
     }
