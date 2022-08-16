@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	AnalysisReport = "analysis.report"
-	BugReport      = "bug-report.tar.gz"
-	FullCluster    = "full-cluster"
+	AnalysisReport  = "analysis.report"
+	BugReport       = "bug-report.tar.gz"
+	FullCluster     = "full-cluster"
+	ClusterSnapshot = "cluster-snapshot"
 )
 
 //ClusterDumpWrapper creates cluster snapshots if the test fails (spec or aftersuite)
@@ -173,7 +174,7 @@ func analyzeBugReport(kubeConfig, vzCommand, bugReportDirectory string) error {
 
 	// Safe to remove bugReportFile
 	os.Remove(filepath.Join(bugReportFile))
-	reportFile := filepath.Join(bugReportDirectory, AnalysisReport)
+	reportFile := filepath.Join(bugReportDirectory, ClusterSnapshot, AnalysisReport)
 	cmd = exec.Command(vzCommand, "analyze", "--capture-dir", bugReportDirectory, "--report-format", "detailed", "--report-file", reportFile)
 	fmt.Println(cmd.String())
 	if err := cmd.Start(); err != nil {
@@ -211,13 +212,12 @@ func executeBugReportWithDirectorySuffix(directorySuffix string, ns ...string) e
 // One or more additional namespaces specified using ns are set for the flag --include-namespaces
 func ExecuteBugReport(ns ...string) error {
 	var err1, err2 error
-	err1 = executeClusterDumpWithEnvVarSuffix("")
-
 	// Capture full cluster snapshot when environment variable CAPTURE_FULL_CLUSTER is set
 	isFullCapture := os.Getenv("CAPTURE_FULL_CLUSTER")
 	if strings.EqualFold(isFullCapture, "true") {
-		err2 = executeBugReportWithDirectorySuffix("", ns...)
+		err1 = executeClusterDumpWithEnvVarSuffix("")
 	}
+	err2 = executeBugReportWithDirectorySuffix("", ns...)
 	cumulativeError := ""
 	if err1 != nil || err2 != nil {
 		if err1 != nil {
