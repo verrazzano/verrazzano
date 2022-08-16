@@ -25,7 +25,7 @@ import (
 const (
 	shortWaitTimeout         = 7 * time.Minute
 	shortPollingInterval     = 10 * time.Second
-	waitTimeout              = 5 * time.Minute
+	waitTimeout              = 10 * time.Minute
 	longWaitTimeout          = 20 * time.Minute
 	pollingInterval          = 30 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
@@ -121,7 +121,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 				return false
 			}
 			return appConfig != nil
-		}, waitTimeout, pollingInterval).ShouldNot(BeTrue(), "Failed to get the application configuration for Sockshop")
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to get the application configuration for Sockshop")
 	})
 
 	t.It("SockShop can be accessed and user can be registered", func() {

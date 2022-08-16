@@ -110,7 +110,7 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 					return 0, err
 				}
 				return *logs.Summary.ResultCount, nil
-			}, waitTimeout, pollingInterval).Should(BeZero(), "Expected to find kube-system logs but found none")
+			}, waitTimeout, pollingInterval).Should(Not(BeZero()), "Expected to find kube-system logs but found none")
 		})
 
 		// GIVEN a Verrazzano installation

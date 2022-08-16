@@ -20,7 +20,7 @@ import (
 const (
 	shortWaitTimeout         = 10 * time.Minute
 	shortPollingInterval     = 10 * time.Second
-	longWaitTimeout          = 5 * time.Minute
+	longWaitTimeout          = 20 * time.Minute
 	longPollingInterval      = 20 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
@@ -220,7 +220,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobbys-front-end", host)
 				return pkg.GetWebPage(url, host)
-			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Reproduce an error, this won't be there Bobby's Books")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
 		})
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
