@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	AnalysisReport  = "analysis.report"
-	BugReport       = "bug-report.tar.gz"
-	FullCluster     = "full-cluster"
-	ClusterSnapshot = "cluster-snapshot"
+	AnalysisReport = "analysis.report"
+	BugReport      = "bug-report.tar.gz"
+	FullCluster    = "full-cluster"
+	BugReportDir   = "bug-report"
 )
 
 //ClusterDumpWrapper creates cluster snapshots if the test fails (spec or aftersuite)
@@ -174,7 +174,7 @@ func analyzeBugReport(kubeConfig, vzCommand, bugReportDirectory string) error {
 
 	// Safe to remove bugReportFile
 	os.Remove(filepath.Join(bugReportFile))
-	reportFile := filepath.Join(bugReportDirectory, ClusterSnapshot, AnalysisReport)
+	reportFile := filepath.Join(bugReportDirectory, AnalysisReport)
 	cmd = exec.Command(vzCommand, "analyze", "--capture-dir", bugReportDirectory, "--report-format", "detailed", "--report-file", reportFile)
 	fmt.Println(cmd.String())
 	if err := cmd.Start(); err != nil {
@@ -200,7 +200,7 @@ func executeClusterDumpWithEnvVarSuffix(directorySuffix string) error {
 // ns - One or more additional namespaces, from where the resources need to be captured by the bug-report CLI
 func executeBugReportWithDirectorySuffix(directorySuffix string, ns ...string) error {
 	kubeConfig := os.Getenv("DUMP_KUBECONFIG")
-	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix)
+	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix, BugReportDir)
 	vzCommand := os.Getenv("VZ_COMMAND")
 	return executeBugReport(vzCommand, kubeConfig, bugReportDirectory, ns...)
 }
