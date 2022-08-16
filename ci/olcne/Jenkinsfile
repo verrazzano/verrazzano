@@ -1013,17 +1013,9 @@ def installVerrazzanoPlatformOperator() {
 def installVerrazzano() {
     env.installedVZ="true"
     sh """
-        # yq -i eval '.spec.environmentName = "$VZ_ENVIRONMENT_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
-        # yq -i eval '.spec.profile = "$INSTALL_PROFILE"' "$INSTALL_CONFIG_FILE_OLCNE"
-        # cat "$INSTALL_CONFIG_FILE_OLCNE"
-
-        # apply config to create cluster
-        ${GO_REPO_PATH}/vz install -f $INSTALL_CONFIG_FILE_OLCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME"
-        ${GO_REPO_PATH}/vz status
-
-        # wait for Verrazzano install to complete
-        # $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-
+        # Install Verrazzano
+        $GO_REPO_PATH/vz install -f $INSTALL_CONFIG_FILE_OLCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME"
+        $GO_REPO_PATH/vz status
         # Print out the username and passwords
         echo "Verrazzano username: verrazzano"
         kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
@@ -1044,9 +1036,9 @@ def updateLoadBalancerHealthCheck() {
 }
 
 def deleteVerrazzano() {
-    sh '''
-        kubectl delete verrazzano $(kubectl  get vz -o jsonpath="{.items[0].metadata.name}") --wait=true
-    '''
+    sh """
+        $GO_REPO_PATH/vz uninstall --wait
+    """
 }
 
 def deleteOLCNECluster() {
