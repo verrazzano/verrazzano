@@ -18,7 +18,7 @@ import (
 //ClusterDumpWrapper creates cluster snapshots if the test fails (spec or aftersuite)
 // A maximum of two cluster snapshots will be generated:
 // - a snapshot if any spec in the suite fails
-// - a snapshots if the aftersuite fails
+// - a snapshot if the aftersuite fails
 type ClusterDumpWrapper struct {
 	failed            bool
 	beforeSuitePassed bool
@@ -64,6 +64,32 @@ func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 		body()
 	})
 }
+
+// ExecuteClusterDump executes the cluster dump tool.
+// clusterDumpCommand - The fully qualified cluster dump executable.
+// kubeconfig - The kube config file to use when executing the cluster dump tool.
+// clusterDumpDirectory - The directory to store the cluster dump within.
+func ExecuteClusterDump(clusterDumpCommand string, kubeconfig string, clusterDumpDirectory string) error {
+	var cmd *exec.Cmd
+	fmt.Printf("Execute cluster dump: KUBECONFIG=%s; %s -d %s\n", kubeconfig, clusterDumpCommand, clusterDumpDirectory)
+	if clusterDumpCommand == "" {
+		return nil
+	}
+	reportFile := fmt.Sprintf("%s/cluster-snapshot/analysis.report", clusterDumpDirectory)
+	cmd = exec.Command(clusterDumpCommand, "-d", clusterDumpDirectory, "-r", reportFile)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 
 // executeBugReport executes the bug-report CLI to capture the cluster resources and analyze on the bug report
 // vzCommand - The fully qualified bug report executable.
