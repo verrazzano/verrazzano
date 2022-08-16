@@ -160,14 +160,14 @@ func ExecuteExtractBugReport(kubeconfig string, bugReportDirectory string) error
 
 func getKubeConfig() (string, error) {
 	var kubeconfig string
-	dump_kubeconfig := os.Getenv("DUMP_KUBECONFIG")
-	vz_kubeconfig := os.Getenv("VERRAZZANO_KUBECONFIG")
-	if dump_kubeconfig == "" && vz_kubeconfig == "" {
+	dumpKubeconfig := os.Getenv("DUMP_KUBECONFIG")
+	vzKubeconfig := os.Getenv("VERRAZZANO_KUBECONFIG")
+	if dumpKubeconfig == "" && vzKubeconfig == "" {
 		return "", fmt.Errorf("error getting kubeconfig")
-	} else if dump_kubeconfig != "" {
-		kubeconfig = dump_kubeconfig
+	} else if dumpKubeconfig != "" {
+		kubeconfig = dumpKubeconfig
 	} else {
-		kubeconfig = vz_kubeconfig
+		kubeconfig = vzKubeconfig
 	}
 	return kubeconfig, nil
 }
