@@ -15,6 +15,8 @@ import (
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
+	longPollingInterval = 30 * time.Second
+	longWaitTimeout     = 15 * time.Minute
 )
 
 var (
@@ -30,7 +32,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// THEN we are able to get the traces
 		jaeger.WhenJaegerOperatorEnabledIt(t, "traces from verrazzano system components should be available when queried from Jaeger", func() {
 			validatorFn := pkg.ValidateSystemTracesFunc(start)
-			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+			Eventually(validatorFn).WithPolling(longPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
 		})
 
 		// GIVEN the Jaeger Operator is enabled and istio tracing is enabled,
@@ -38,7 +40,7 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// THEN we are able to get the traces
 		jaeger.WhenJaegerOperatorEnabledIt(t, "traces from verrazzano system components should be available in the OS backend storage.", func() {
 			validatorFn := pkg.ValidateSystemTracesInOSFunc(start)
-			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+			Eventually(validatorFn).WithPolling(longPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
 		})
 
 		// GIVEN the Jaeger Operator component is enabled,
