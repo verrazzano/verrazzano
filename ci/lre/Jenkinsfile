@@ -184,7 +184,7 @@ pipeline {
     post {
         always {
             script {
-                if (env.GIT_BRANCH == "master" || || env.BRANCH_NAME ==~ "rdonat/*" ) {
+                if (env.GIT_BRANCH == "master" || env.BRANCH_NAME ==~ "rdonat/*" ) {
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n@rdonat" )
                 }
             }
