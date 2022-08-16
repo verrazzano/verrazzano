@@ -307,6 +307,7 @@ pipeline {
                     }
                     post {
                         always {
+                            kubectl get pods -A
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
