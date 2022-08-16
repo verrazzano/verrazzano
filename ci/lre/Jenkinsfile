@@ -64,7 +64,8 @@ pipeline {
                 """
 
                 script {
-                    checkout scm
+                    def scmInfo = checkout scm
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
                 }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -184,7 +185,7 @@ pipeline {
     post {
         always {
             script {
-                if (env.GIT_BRANCH == "master" || env.BRANCH_NAME ==~ "rdonat/*" ) {
+                if (env.GIT_BRANCH == "master" || env.GIT_BRANCH ==~ "rdonat/*" ) {
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n@rdonat" )
                 }
             }
