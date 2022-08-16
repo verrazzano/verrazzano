@@ -279,7 +279,7 @@ pipeline {
                             ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
                             echo "Installing Verrazzano"
-                            ${GO_REPO_PATH}/vz install --set components.kibana.enabled=false --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/downloaded-operator.yaml
+                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/downloaded-operator.yaml
                        """
                     }
                     post {
