@@ -249,7 +249,7 @@ pipeline {
                             }
                         }
                         always {
-                            archiveArtifacts artifacts: '**/*kubeconfig*', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/*test_kubeconfig*', allowEmptyArchive: true
                             script {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
