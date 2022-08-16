@@ -29,7 +29,13 @@ pipeline {
     }
 
     environment {
-        OCI_CLI_AUTH="instance_principal"
+        OCI_CLI_AUTH="api_key"
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = "us-phoenix-1"
+        OCI_REGION = "${env.OCI_CLI_REGION}"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_SHARED_BUCKET="build-shared-files"
     }
