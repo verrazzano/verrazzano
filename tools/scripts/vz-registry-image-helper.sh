@@ -409,6 +409,12 @@ function pull_and_save_images() {
       done
     done
   done
+  echo "Creating tar file $tarFile..."
+  if [ "${DRY_RUN}" != "true" ]; then
+    tar -czf $tarFile -C $imagesDir .
+  else
+    echo "Dry run, skipping tar file creation"
+  fi
 }
 
 output_bom_components() {
