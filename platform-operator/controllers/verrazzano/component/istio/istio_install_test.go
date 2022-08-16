@@ -433,7 +433,6 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName)).AnyTimes()
-
 	return mock
 }
 

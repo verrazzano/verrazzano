@@ -14,6 +14,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -103,6 +104,7 @@ const jaegerCreateTemplate = `jaeger:
       options:
         es:
           server-urls: {{.OpenSearchURL}}
+          num-replicas: {{.OpenSearchReplicaCount}}
       secretName: {{.SecretName}}
 `
 
@@ -119,8 +121,9 @@ type imageData struct {
 
 // jaegerData needed for template rendering
 type jaegerData struct {
-	OpenSearchURL string
-	SecretName    string
+	OpenSearchURL          string
+	SecretName             string
+	OpenSearchReplicaCount int32
 }
 
 // isJaegerOperatorReady checks if the Jaeger Operator deployment is ready
@@ -264,7 +267,11 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		if err != nil {
 			return nil, err
 		}
-		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName}
+		var osReplicaCount int32 = 1
+		if opensearch.IsSingleDataNodeCluster(compContext) {
+			osReplicaCount = 0
+		}
+		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
 		err = template.Execute(&b, data)
 		if err != nil {
 			return nil, err
