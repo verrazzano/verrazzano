@@ -240,7 +240,30 @@ pipeline {
                         sh """
                             TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=rollingupgrade-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh
                             kubectl get nodes
+                       """
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                        always {
+                            archiveArtifacts artifacts: "${KUBECONFIG}", allowEmptyArchive: true
+                            script {
+                                VZ_TEST_METRIC = metricJobName('')
+                                metricTimerStart("${VZ_TEST_METRIC}")
+                            }
+                        }
+                    }
+                }
 
+                stage('Install Verrazzano') {
+                    when {
+                        expression { TESTS_FAILED == false }
+                    }
+                    steps {
+                        sh """
                             cd ${GO_REPO_PATH}/verrazzano
 
                             echo "Downloading platform operator from object storage"
@@ -261,17 +284,12 @@ pipeline {
                     }
                     post {
                         failure {
-                            archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
                             script {
                                 TESTS_FAILED = true
                             }
                         }
                         always {
-                            archiveArtifacts artifacts: "${KUBECONFIG} ${WORKSPACE}/downloaded-operator.yaml", allowEmptyArchive: true
-                            script {
-                                VZ_TEST_METRIC = metricJobName('')
-                                metricTimerStart("${VZ_TEST_METRIC}")
-                            }
+                            archiveArtifacts artifacts: "${WORKSPACE}/downloaded-operator.yaml", allowEmptyArchive: true
                             // enable debug logging of Verrazzano api istio proxy
                             script {
                                 if (params.ENABLE_API_ENVOY_LOGGING) {
