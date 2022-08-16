@@ -50,6 +50,7 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = "us-phoenix-1"
         OCI_REGION = "${env.OCI_CLI_REGION}"
+        OCI_OS_SHARED_BUCKET="build-shared-files"
     }
 
     stages {

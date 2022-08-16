@@ -65,9 +65,6 @@ pipeline {
 
     stages {
         stage('Clean workspace and checkout') {
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-            }
             steps {
                 sh """
                     echo "${NODE_LABELS}"
