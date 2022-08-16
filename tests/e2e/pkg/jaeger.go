@@ -27,7 +27,7 @@ import (
 const (
 	jaegerSpanIndexPrefix       = "verrazzano-jaeger-span"
 	jaegerClusterNameLabel      = "verrazzano_cluster"
-	jaegerClusterName           = "local"
+	adminClusterName            = "local"
 	jaegerOperatorSampleMetric  = "jaeger_operator_instances_managed"
 	jaegerAgentSampleMetric     = "jaeger_agent_collector_proxy_total"
 	jaegerQuerySampleMetric     = "jaeger_query_requests_total"
@@ -40,6 +40,12 @@ var (
 		"verrazzano-authproxy.verrazzano-system",
 		"jaeger-operator-jaeger.verrazzano-monitoring",
 		"system-es-master.verrazzano-system",
+		"fluentd.verrazzano-system",
+	}
+
+	managedServerSystemServiceNames = []string{
+		"verrazzano-authproxy.verrazzano-system",
+		"jaeger-operator-jaeger.verrazzano-monitoring",
 		"fluentd.verrazzano-system",
 	}
 )
@@ -108,13 +114,15 @@ func IsJaegerInstanceCreated() (bool, error) {
 }
 
 //JaegerSpanRecordFoundInOpenSearch checks if jaeger span records are found in OpenSearch storage
-func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, serviceName string) bool {
+func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, serviceName, clusterName string) bool {
 	indexName, err := GetJaegerSpanIndexName(kubeconfigPath)
 	if err != nil {
 		return false
 	}
 	fields := map[string]string{
 		"process.serviceName": serviceName,
+		"process.tags.key":    jaegerClusterNameLabel,
+		"process.tags.value":  clusterName,
 	}
 	searchResult := querySystemElasticSearch(indexName, fields, kubeconfigPath)
 	if len(searchResult) == 0 {
@@ -144,8 +152,8 @@ func GetJaegerSpanIndexName(kubeconfigPath string) (string, error) {
 }
 
 // IsJaegerMetricFound validates if the given jaeger metrics contain the labels with values specified as key-value pairs of the map
-func IsJaegerMetricFound(kubeconfigPath, metricName string, kv map[string]string) bool {
-	compMetrics, err := QueryMetricWithLabel(metricName, kubeconfigPath, jaegerClusterNameLabel, jaegerClusterName)
+func IsJaegerMetricFound(kubeconfigPath, metricName, clusterName string, kv map[string]string) bool {
+	compMetrics, err := QueryMetricWithLabel(metricName, kubeconfigPath, jaegerClusterNameLabel, clusterName)
 	if err != nil {
 		return false
 	}
@@ -170,6 +178,42 @@ func ListJaegerTraces(kubeconfigPath string, start time.Time, serviceName string
 	params.Add("service", serviceName)
 	params.Add("start", strconv.FormatInt(start.UnixMicro(), 10))
 	params.Add("end", strconv.FormatInt(time.Now().UnixMicro(), 10))
+	url := fmt.Sprintf("%s/api/traces?%s", getJaegerURL(kubeconfigPath), params.Encode())
+	username, password, err := getJaegerUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return traces
+	}
+	resp, err := getJaegerWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting Jaeger traces: url=%s, error=%v", url, err))
+		return traces
+	}
+	if resp.StatusCode != http.StatusOK {
+		Log(Error, fmt.Sprintf("Error retrieving Jaeger traces: url=%s, status=%d", url, resp.StatusCode))
+		return traces
+	}
+	Log(Debug, fmt.Sprintf("traces: %s", resp.Body))
+	var jaegerTraceDataWrapper JaegerTraceDataWrapper
+	json.Unmarshal(resp.Body, &jaegerTraceDataWrapper)
+	for _, traceObj := range jaegerTraceDataWrapper.Data {
+		traces = append(traces, traceObj.TraceID)
+	}
+	return traces
+}
+
+//ListJaegerTraces lists all trace ids for a given service.
+func ListJaegerTracesWithTags(kubeconfigPath string, start time.Time, serviceName string, tags map[string]string) []string {
+	var traces []string
+	params := url.Values{}
+	params.Add("service", serviceName)
+	params.Add("start", strconv.FormatInt(start.UnixMicro(), 10))
+	params.Add("end", strconv.FormatInt(time.Now().UnixMicro(), 10))
+	jsonStr, err := json.Marshal(tags)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error parsing tags %v to JSON string", tags))
+		return traces
+	}
+	params.Add("tags", string(jsonStr))
 	url := fmt.Sprintf("%s/api/traces?%s", getJaegerURL(kubeconfigPath), params.Encode())
 	username, password, err := getJaegerUsernamePassword(kubeconfigPath)
 	if err != nil {
@@ -218,8 +262,8 @@ func ListServicesInJaeger(kubeconfigPath string) []string {
 }
 
 // DoesCronJobExist returns whether a cronjob with the given name and namespace exists for the cluster
-func DoesCronJobExist(namespace string, name string) (bool, error) {
-	cronjobs, err := ListCronJobNamesMatchingLabels(namespace, nil)
+func DoesCronJobExist(kubeconfigPath, namespace string, name string) (bool, error) {
+	cronjobs, err := ListCronJobNamesMatchingLabels(kubeconfigPath, namespace, nil)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed listing deployments in cluster for namespace %s: %v", namespace, err))
 		return false, err
@@ -232,10 +276,10 @@ func DoesCronJobExist(namespace string, name string) (bool, error) {
 	return false, nil
 }
 
-// ListDeploymentsMatchingLabels returns the list of deployments in a given namespace matching the given labels for the cluster
-func ListDeploymentsMatchingLabels(namespace string, matchLabels map[string]string) (*appsv1.DeploymentList, error) {
+// ListDeploymentsMatchingLabelsInCluster returns the list of deployments in a given namespace matching the given labels for the cluster
+func ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, namespace string, matchLabels map[string]string) (*appsv1.DeploymentList, error) {
 	// Get the Kubernetes clientset
-	clientset, err := k8sutil.GetKubernetesClientset()
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -258,10 +302,10 @@ func ListDeploymentsMatchingLabels(namespace string, matchLabels map[string]stri
 }
 
 // ListCronJobNamesMatchingLabels returns the list of cronjobs in a given namespace matching the given labels for the cluster
-func ListCronJobNamesMatchingLabels(namespace string, matchLabels map[string]string) ([]string, error) {
+func ListCronJobNamesMatchingLabels(kubeconfigPath, namespace string, matchLabels map[string]string) ([]string, error) {
 	var cronjobNames []string
 	// Get the Kubernetes clientset
-	clientset, err := k8sutil.GetKubernetesClientset()
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -302,6 +346,16 @@ func ListCronJobNamesMatchingLabels(namespace string, matchLabels map[string]str
 	return cronjobNames, nil
 }
 
+// GetJaegerSystemServicesInManagedCluster returns the system services that needs to be running in a managed cluster
+func GetJaegerSystemServicesInManagedCluster() []string {
+	return managedServerSystemServiceNames
+}
+
+// GetJaegerSystemServicesInAdminCluster returns the system services that needs to be running in a admin cluster
+func GetJaegerSystemServicesInAdminCluster() []string {
+	return systemServiceNames
+}
+
 // ValidateJaegerOperatorMetricFunc returns a function that validates if metrics of Jaeger operator is scraped by prometheus.
 func ValidateJaegerOperatorMetricFunc() func() bool {
 	return func() bool {
@@ -309,7 +363,7 @@ func ValidateJaegerOperatorMetricFunc() func() bool {
 		if err != nil {
 			return false
 		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerOperatorSampleMetric, nil)
+		return IsJaegerMetricFound(kubeconfigPath, jaegerOperatorSampleMetric, adminClusterName, nil)
 	}
 }
 
@@ -320,7 +374,7 @@ func ValidateJaegerCollectorMetricFunc() func() bool {
 		if err != nil {
 			return false
 		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, nil)
+		return IsJaegerMetricFound(kubeconfigPath, jaegerCollectorSampleMetric, adminClusterName, nil)
 	}
 }
 
@@ -331,7 +385,7 @@ func ValidateJaegerQueryMetricFunc() func() bool {
 		if err != nil {
 			return false
 		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerQuerySampleMetric, nil)
+		return IsJaegerMetricFound(kubeconfigPath, jaegerQuerySampleMetric, adminClusterName, nil)
 	}
 }
 
@@ -342,7 +396,7 @@ func ValidateJaegerAgentMetricFunc() func() bool {
 		if err != nil {
 			return false
 		}
-		return IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, nil)
+		return IsJaegerMetricFound(kubeconfigPath, jaegerAgentSampleMetric, adminClusterName, nil)
 	}
 }
 
@@ -353,8 +407,12 @@ func ValidateEsIndexCleanerCronJobFunc() func() (bool, error) {
 		if err != nil {
 			Log(Error, fmt.Sprintf("Error checking if Jaeger CR is available %s", err.Error()))
 		}
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			return false, err
+		}
 		if create {
-			return DoesCronJobExist(constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
+			return DoesCronJobExist(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
 		}
 		return false, nil
 	}
@@ -386,6 +444,30 @@ func ValidateSystemTracesFunc(start time.Time) func() (bool, error) {
 	}
 }
 
+// ValidateSystemTracesFuncInCluster returns a function that validates if system traces for the given cluster can be successfully queried from Jaeger
+func ValidateSystemTracesFuncInCluster(kubeconfigPath string, start time.Time, clusterName string) func() (bool, error) {
+	return func() (bool, error) {
+		// Check if the service name is registered in Jaeger and traces are present for that service
+		tracesFound := true
+		for i := 0; i < len(systemServiceNames); i++ {
+			Log(Info, fmt.Sprintf("Inspecting traces for service: %s", systemServiceNames[i]))
+			if i == 0 {
+				tracesFound =
+					len(ListJaegerTracesWithTags(kubeconfigPath, start, systemServiceNames[i],
+						map[string]string{"verrazzano_cluster": clusterName})) > 0
+			} else {
+				tracesFound = tracesFound && len(ListJaegerTraces(kubeconfigPath, start, systemServiceNames[i])) > 0
+			}
+			Log(Info, fmt.Sprintf("Trace found flag for service: %s is %v", systemServiceNames[i], tracesFound))
+			// return early and retry later
+			if !tracesFound {
+				return false, nil
+			}
+		}
+		return tracesFound, nil
+	}
+}
+
 // ValidateSystemTracesInOSFunc returns a function that validates if system traces are stored successfully in OS backend storage
 func ValidateSystemTracesInOSFunc(start time.Time) func() bool {
 	return func() bool {
@@ -397,9 +479,9 @@ func ValidateSystemTracesInOSFunc(start time.Time) func() bool {
 		for i := 0; i < len(systemServiceNames); i++ {
 			Log(Info, fmt.Sprintf("Finding traces for service %s after %s", systemServiceNames[i], start.String()))
 			if i == 0 {
-				tracesFound = JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i])
+				tracesFound = JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i], adminClusterName)
 			} else {
-				tracesFound = tracesFound && JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i])
+				tracesFound = tracesFound && JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i], adminClusterName)
 			}
 			// return early and retry later
 			if !tracesFound {
@@ -443,7 +525,7 @@ func ValidateApplicationTracesInOS(start time.Time, appServiceName string) func(
 		if err != nil {
 			return false
 		}
-		return JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, appServiceName)
+		return JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, appServiceName, adminClusterName)
 	}
 }
 

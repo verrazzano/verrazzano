@@ -151,9 +151,14 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				create, err := pkg.IsJaegerInstanceCreated()
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error checking if Jaeger CR is available %s", err.Error()))
+					return false, err
+				}
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				if err != nil {
+					return false, err
 				}
 				if create {
-					return pkg.DoesCronJobExist(constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
+					return pkg.DoesCronJobExist(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
 				}
 				return false, nil
 			}, waitTimeout, pollingInterval).Should(BeTrue())
