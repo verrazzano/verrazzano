@@ -267,7 +267,7 @@ pipeline {
                             }
                         }
                         always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                            archiveArtifacts artifacts: "${KUBECONFIG} ${WORKSPACE}/downloaded-operator.yaml", allowEmptyArchive: true
                             script {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
@@ -316,9 +316,7 @@ pipeline {
                         failure {
                             script {
                                 TESTS_FAILED = true
-                            if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                                 dumpK8sCluster('ha-reschedule-workers-cluster-snapshot')
-                        }
                             }
                         }
                     }
