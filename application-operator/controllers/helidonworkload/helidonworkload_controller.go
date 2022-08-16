@@ -217,10 +217,6 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload vzapi.VerrazzanoH
 
 // convertWorkloadToDeployment converts a VerrazzanoHelidonWorkload into a Deployment.
 func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelidonWorkload, log vzlog.VerrazzanoLogger) (*appsv1.Deployment, error) {
-	if workload.Spec.DeploymentTemplate.Selector.MatchLabels == nil {
-		workload.Spec.DeploymentTemplate.Selector.MatchLabels = make(map[string]string)
-	}
-	workload.Spec.DeploymentTemplate.Selector.MatchLabels[labelKey] = string(workload.GetUID())
 	d := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       deploymentKind,
@@ -239,6 +235,10 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 			},
 		},
 	}
+	if d.Spec.Selector.MatchLabels == nil {
+		d.Spec.Selector.MatchLabels = make(map[string]string)
+	}
+	d.Spec.Selector.MatchLabels[labelKey] = string(workload.GetUID())
 	// Set metadata on deployment from workload spec's metadata
 	d.ObjectMeta.SetLabels(workload.Spec.DeploymentTemplate.Metadata.GetLabels())
 	d.ObjectMeta.SetAnnotations(workload.Spec.DeploymentTemplate.Metadata.GetAnnotations())
@@ -247,7 +247,7 @@ func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelid
 	// Set PodSpec on deployment's PodTemplate from workload spec
 	workload.Spec.DeploymentTemplate.PodSpec.DeepCopyInto(&d.Spec.Template.Spec)
 	// making sure pods have same label as selector on deployment
-	d.Spec.Template.ObjectMeta.SetLabels(workload.Spec.DeploymentTemplate.Selector.MatchLabels)
+	d.Spec.Template.ObjectMeta.SetLabels(d.Spec.Selector.MatchLabels)
 
 	// pass through label and annotation from the workload to the deployment
 	passLabelAndAnnotation(workload, d)
