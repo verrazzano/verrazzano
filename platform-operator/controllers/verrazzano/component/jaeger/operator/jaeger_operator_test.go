@@ -199,6 +199,14 @@ func TestAppendOverrides(t *testing.T) {
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
+		{
+			name:         "OpenSearchReplicasInProdProfile",
+			description:  "Test OpenSearch replica count setting in prod profile",
+			expectedYAML: "testdata/jaegerOperatorProdOverrideValues.yaml",
+			actualCR:     "testdata/jaegerOperatorProdOverrideVz.yaml",
+			numKeyValues: 1,
+			expectedErr:  nil,
+		},
 	}
 	defer resetWriteFileFunc()
 	for _, test := range tests {

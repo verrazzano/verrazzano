@@ -25,5 +25,5 @@ jaeger:
       options:
         es:
           server-urls: "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
-          num-replicas: 0
+          num-replicas: 1
       secretName: "verrazzano-jaeger-secret"
