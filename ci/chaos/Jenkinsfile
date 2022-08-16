@@ -140,32 +140,31 @@ pipeline {
                 """
 
                 script {
-
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                    if (params.GIT_COMMIT_FOR_UPGRADE == "NONE") {
-                        // Get the last stable commit ID to pass the triggered tests
+                    COMMIT_FOR_UPGRADE = params.GIT_COMMIT_FOR_UPGRADE
+                    if (COMMIT_FOR_UPGRADE == "NONE") {
                         echo "Specific GIT commit was not specified, using last stable commit"
                         def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
-                        env.GIT_COMMIT = stableCommitProps['git-commit']
-                        echo "SCM checkout of commit ${env.GIT_COMMIT}"
-                    } else {
-                        echo "SCM checkout of commit ${params.GIT_COMMIT_FOR_UPGRADE}"
-                        def scmInfo = checkout([
-                                $class: 'GitSCM',
-                                branches: [[name: params.GIT_COMMIT_FOR_UPGRADE]],
-                                doGenerateSubmoduleConfigurations: false,
-                                extensions: [],
-                                submoduleCfg: [],
-                                userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_FOR_UPGRADE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_FOR_UPGRADE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
-                        echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                        COMMIT_FOR_UPGRADE = stableCommitProps['git-commit']
                     }
+                    echo "Checking out commit ${COMMIT_FOR_UPGRADE}"
+                    def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: COMMIT_FOR_UPGRADE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
+                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+
+                    // If the commit we were handed is not what the SCM says we are using, fail
+                    if (!env.GIT_COMMIT.equals(COMMIT_FOR_UPGRADE)) {
+                        echo "SCM didn't checkout the commit we expected. Expected: ${COMMIT_FOR_UPGRADE}, Found: ${scmInfo.GIT_COMMIT}"
+                        exit 1
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+
                 }
 
                 sh """
