@@ -239,7 +239,7 @@ pipeline {
                     steps {
                         sh """
                             TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=rollingupgrade-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh
-                            kubectl get nodes
+                            kubectl get nodes --show-labels
                        """
                     }
                     post {
@@ -249,7 +249,7 @@ pipeline {
                             }
                         }
                         always {
-                            archiveArtifacts artifacts: "${KUBECONFIG}", allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/*kubeconfig*', allowEmptyArchive: true
                             script {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
@@ -289,7 +289,7 @@ pipeline {
                             }
                         }
                         always {
-                            archiveArtifacts artifacts: "${WORKSPACE}/downloaded-operator.yaml", allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/downloaded-operator.yaml', allowEmptyArchive: true
                             // enable debug logging of Verrazzano api istio proxy
                             script {
                                 if (params.ENABLE_API_ENVOY_LOGGING) {
