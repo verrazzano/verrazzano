@@ -15,7 +15,7 @@ pipeline {
 
     agent {
        docker {
-            image "${RELEASE_RUNNER_IMAGE}"
+            image "${EXPERIMENTAL_RELEASE_RUNNER_IMAGE}"
             args "${RELEASE_RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -33,6 +33,10 @@ pipeline {
         booleanParam (description: 'Whether to copy the product zip into the release object store from the last clean periodic test',
                 name: 'COPY_PRODUCT_ZIP_FROM_PERIODIC', defaultValue: false)
         booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
+        string (name: 'VERRAZZANO_HELPER_BRANCH',
+                        defaultValue: 'master',
+                        description: 'verrazzano-helper branch. master is used for 1.3+, release-1.2 is used for 1.2 and earlier, user branch name is used when testing verrazzano-helper changes',
+                        trim: true)
     }
 
     environment {
@@ -111,7 +115,7 @@ pipeline {
                 script {
                     sh """
                         echo "Downloading verrazzano-helper from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${params.VERRAZZANO_HELPER_BRANCH}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
                         chmod uog+x ${WORKSPACE}/verrazzano-helper
                     """
                 }

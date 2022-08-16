@@ -9,7 +9,7 @@ pipeline {
 
     agent {
         docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${EXPERIMENTAL_RELEASE_RUNNER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             label 'internal'
@@ -76,4 +76,3 @@ pipeline {
         }
     }
 }
-

@@ -14,7 +14,7 @@ pipeline {
 
     agent {
         docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${EXPERIMENTAL_RELEASE_RUNNER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -463,7 +463,7 @@ def uninstallVerrazzano(vpoLogsDir) {
         // Delete VZ in the background
         sh """
             echo "Deleting the Verrazzano resource..."
-            ${GO_REPO_PATH}/vz uninstall --timeout=20m 
+            ${GO_REPO_PATH}/vz uninstall --timeout=20m
         """
     }
 }

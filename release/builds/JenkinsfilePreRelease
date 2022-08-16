@@ -17,7 +17,7 @@ pipeline {
 
     agent {
        docker {
-            image "${RELEASE_RUNNER_IMAGE}"
+            image "${EXPERIMENTAL_RELEASE_RUNNER_IMAGE}"
             args "${RELEASE_RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -94,7 +94,7 @@ pipeline {
                 script {
                     sh """
                         echo "Downloading verrazzano-helper from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${env.BRANCH_NAME}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${params.VERRAZZANO_HELPER_BRANCH}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
                         chmod uog+x ${WORKSPACE}/verrazzano-helper
                     """
                 }
