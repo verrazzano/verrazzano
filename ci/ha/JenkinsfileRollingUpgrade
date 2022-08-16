@@ -105,7 +105,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE = "examples/ha/ha.yaml"
+        INSTALL_CONFIG_FILE = "./examples/ha/ha.yaml"
         INSTALL_PROFILE = "prod"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -240,12 +240,23 @@ pipeline {
                         sh """
                             TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=rollingupgrade-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh
                             kubectl get nodes
-                            kubectl get pods -A
+
+                            cd ${GO_REPO_PATH}/verrazzano
+
                             echo "Downloading platform operator from object storage"
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+
+                            echo "Create the verrazzano-install namespace"
+                            kubectl create namespace verrazzano-install
+
+                            echo "Create Image Pull Secrets"
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
                             echo "Installing Verrazzano"
-                            ${GO_REPO_PATH}/vz install --filename ${GO_REPO_PATH}/verrazzano/${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/downloaded-operator.yaml
-                            kubectl get pods -A
+                            ${GO_REPO_PATH}/vz install --set components.kibana.enabled=false --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/downloaded-operator.yaml
                        """
                     }
                     post {
