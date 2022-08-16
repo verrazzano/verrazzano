@@ -986,19 +986,20 @@ def createImagePullSecrets() {
 
 def installVerrazzanoPlatformOperator() {
     sh """
-        oci --region us-phoenix-1 os object get \
-            --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
-            --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
-            --file $WORKSPACE/downloaded-operator.yaml
+        # oci --region us-phoenix-1 os object get \
+        #    --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
+        #    --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
+        #    --file $WORKSPACE/downloaded-operator.yaml
 
         # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands instead of "wget"
-        # wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
+        wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
 
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
         # Install the verrazzano-platform-operator
         kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+        
         # make sure ns exists
         chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
@@ -1012,14 +1013,16 @@ def installVerrazzanoPlatformOperator() {
 def installVerrazzano() {
     env.installedVZ="true"
     sh """
-        yq -i eval '.spec.environmentName = "$VZ_ENVIRONMENT_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
-        yq -i eval '.spec.profile = "$INSTALL_PROFILE"' "$INSTALL_CONFIG_FILE_OLCNE"
-        cat "$INSTALL_CONFIG_FILE_OLCNE"
+        # yq -i eval '.spec.environmentName = "$VZ_ENVIRONMENT_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
+        # yq -i eval '.spec.profile = "$INSTALL_PROFILE"' "$INSTALL_CONFIG_FILE_OLCNE"
+        # cat "$INSTALL_CONFIG_FILE_OLCNE"
 
         # apply config to create cluster
-        kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
+        vz install -f $INSTALL_CONFIG_FILE_OLCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME"
+        vz status
+
         # wait for Verrazzano install to complete
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+        # $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
         # Print out the username and passwords
         echo "Verrazzano username: verrazzano"
