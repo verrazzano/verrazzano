@@ -1018,8 +1018,8 @@ def installVerrazzano() {
         # cat "$INSTALL_CONFIG_FILE_OLCNE"
 
         # apply config to create cluster
-        vz install -f $INSTALL_CONFIG_FILE_OLCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME"
-        vz status
+        ${GO_REPO_PATH}/vz install -f $INSTALL_CONFIG_FILE_OLCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME"
+        ${GO_REPO_PATH}/vz status
 
         # wait for Verrazzano install to complete
         # $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
