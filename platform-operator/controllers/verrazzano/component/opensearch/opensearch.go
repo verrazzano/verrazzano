@@ -49,6 +49,11 @@ func doesOSExist(ctx spi.ComponentContext) bool {
 	return status.DoStatefulSetsExist(ctx.Log(), ctx.Client(), sts, 1, prefix)
 }
 
+// IsSingleDataNodeCluster returns true if there is exactly 1 or 0 data nodes
+func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
+	return findESReplicas(ctx, "data") <= 1
+}
+
 // isOSReady checks if the OpenSearch resources are ready
 func isOSReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
