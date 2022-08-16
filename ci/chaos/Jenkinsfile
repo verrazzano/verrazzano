@@ -147,9 +147,9 @@ pipeline {
                         echo "Specific GIT commit was not specified, using last stable commit"
                         def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
                         env.GIT_COMMIT = stableCommitProps['git-commit']
-                        echo "SCM checkout of ${env.GIT_COMMIT}"
+                        echo "SCM checkout of commit ${env.GIT_COMMIT}"
                     } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_FOR_UPGRADE}"
+                        echo "SCM checkout of commit ${params.GIT_COMMIT_FOR_UPGRADE}"
                         def scmInfo = checkout([
                                 $class: 'GitSCM',
                                 branches: [[name: params.GIT_COMMIT_FOR_UPGRADE]],
