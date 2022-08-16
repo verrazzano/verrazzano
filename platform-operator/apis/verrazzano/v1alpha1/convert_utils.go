@@ -1,11 +1,11 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1beta1
+package v1alpha1
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"os"
 	"path"
 	"sigs.k8s.io/yaml"
@@ -30,24 +30,24 @@ type converisonTestCase struct {
 	hasError bool
 }
 
-func loadV1Alpha1CR(testCase string) (*v1alpha1.Verrazzano, error) {
+func loadV1Alpha1CR(testCase string) (*Verrazzano, error) {
 	data, err := loadTestCase(testCase, "v1alpha1")
 	if err != nil {
 		return nil, err
 	}
-	vz := &v1alpha1.Verrazzano{}
+	vz := &Verrazzano{}
 	if err := yaml.Unmarshal(data, vz); err != nil {
 		return nil, err
 	}
 	return vz, nil
 }
 
-func loadV1Beta1(testCase string) (*Verrazzano, error) {
+func loadV1Beta1(testCase string) (*v1beta1.Verrazzano, error) {
 	data, err := loadTestCase(testCase, "v1beta1")
 	if err != nil {
 		return nil, err
 	}
-	vz := &Verrazzano{}
+	vz := &v1beta1.Verrazzano{}
 	if err := yaml.Unmarshal(data, vz); err != nil {
 		return nil, err
 	}

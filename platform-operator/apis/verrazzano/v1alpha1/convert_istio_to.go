@@ -3,13 +3,12 @@
 
 // Adapts code from istio_cr.go to convert the Istio component into a YAML document.
 
-package v1beta1
+package v1alpha1
 
 import (
 	"bytes"
 	"fmt"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
@@ -91,7 +90,7 @@ type istioTemplateData struct {
 	ExternalIps         string
 }
 
-func convertIstioComponentToYaml(comp *v1alpha1.IstioComponent) (string, error) {
+func convertIstioComponentToYaml(comp *IstioComponent) (string, error) {
 	var externalIPYAMLTemplateValue = ""
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
@@ -163,9 +162,9 @@ func fixExternalIPYaml(yaml string) string {
 }
 
 // value replicas and create Istio gateway yaml
-func configureGateways(istioComponent *v1alpha1.IstioComponent, externalIP string) (string, error) {
+func configureGateways(istioComponent *IstioComponent, externalIP string) (string, error) {
 	var data = istioTemplateData{}
-	data.IngressServiceType = string(v1alpha1.LoadBalancer)
+	data.IngressServiceType = string(LoadBalancer)
 	if err := configureIngressGateway(istioComponent, &data); err != nil {
 		return "", err
 	}
@@ -205,7 +204,7 @@ func configureGateways(istioComponent *v1alpha1.IstioComponent, externalIP strin
 	return b.String(), nil
 }
 
-func configureIngressGateway(istioComponent *v1alpha1.IstioComponent, data *istioTemplateData) error {
+func configureIngressGateway(istioComponent *IstioComponent, data *istioTemplateData) error {
 	if istioComponent.Ingress == nil {
 		return nil
 	}
@@ -222,8 +221,8 @@ func configureIngressGateway(istioComponent *v1alpha1.IstioComponent, data *isti
 		}
 	}
 
-	if ingress.Type == v1alpha1.NodePort {
-		data.IngressServiceType = string(v1alpha1.NodePort)
+	if ingress.Type == NodePort {
+		data.IngressServiceType = string(NodePort)
 	}
 
 	if len(ingress.Ports) > 0 {
@@ -238,7 +237,7 @@ func configureIngressGateway(istioComponent *v1alpha1.IstioComponent, data *isti
 	return nil
 }
 
-func configureEgressGateway(istioComponent *v1alpha1.IstioComponent, data *istioTemplateData) error {
+func configureEgressGateway(istioComponent *IstioComponent, data *istioTemplateData) error {
 	if istioComponent.Egress == nil {
 		return nil
 	}
