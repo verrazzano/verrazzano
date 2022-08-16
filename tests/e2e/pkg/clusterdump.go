@@ -158,22 +158,45 @@ func ExecuteExtractBugReport(kubeconfig string, bugReportDirectory string) error
 	return nil
 }
 
+func getKubeConfig() (string, error) {
+	var kubeconfig string
+	dump_kubeconfig := os.Getenv("DUMP_KUBECONFIG")
+	vz_kubeconfig := os.Getenv("VERRAZZANO_KUBECONFIG")
+	if dump_kubeconfig == "" && vz_kubeconfig == "" {
+		return "", fmt.Errorf("error getting kubeconfig")
+	} else if dump_kubeconfig != "" {
+		kubeconfig = dump_kubeconfig
+	} else {
+		kubeconfig = vz_kubeconfig
+	}
+	return kubeconfig, nil
+}
+
 func ExecuteClusterDumpWithEnvVarSuffix(directorySuffix string) error {
-	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
+	kubeconfig, err := getKubeConfig()
+	if err != nil {
+		return err
+	}
 	clusterDumpDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix)
 	clusterDumpCommand := os.Getenv("DUMP_COMMAND")
 	return ExecuteClusterDump(clusterDumpCommand, kubeconfig, clusterDumpDirectory)
 }
 
 func ExecuteBugReportWithEnvVarSuffix(directorySuffix string) error {
-	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
+	kubeconfig, err := getKubeConfig()
+	if err != nil {
+		return err
+	}
 	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY")+"/bug-report", directorySuffix)
 	vzCommand := os.Getenv("VZ_COMMAND")
 	return ExecuteBugReport(vzCommand, kubeconfig, bugReportDirectory)
 }
 
 func ExecuteExtractBugReportWithEnvVarSuffix(directorySuffix string) error {
-	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
+	kubeconfig, err := getKubeConfig()
+	if err != nil {
+		return err
+	}
 	bugReportDirectory := filepath.Join(os.Getenv("DUMP_DIRECTORY")+"/bug-report", directorySuffix)
 	return ExecuteExtractBugReport(kubeconfig, bugReportDirectory)
 }
