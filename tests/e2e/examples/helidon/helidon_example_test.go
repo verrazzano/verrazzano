@@ -22,16 +22,15 @@ import (
 )
 
 const (
-	longWaitTimeout            = 20 * time.Minute
-	longPollingInterval        = 20 * time.Second
-	shortPollingInterval       = 10 * time.Second
-	shortWaitTimeout           = 5 * time.Minute
-	imagePullWaitTimeout       = 40 * time.Minute
-	imagePullPollingInterval   = 30 * time.Second
-	skipVerifications          = "Skip Verifications"
-	helloHelidon               = "hello-helidon"
-	nodeExporterJobName        = "node-exporter"
-	helloHelidonDeploymentName = "hello-helidon-deployment"
+	longWaitTimeout          = 20 * time.Minute
+	longPollingInterval      = 20 * time.Second
+	shortPollingInterval     = 10 * time.Second
+	shortWaitTimeout         = 5 * time.Minute
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
+	skipVerifications        = "Skip Verifications"
+	helloHelidon             = "hello-helidon"
+	nodeExporterJobName      = "node-exporter"
 )
 
 var (
@@ -111,17 +110,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 
-	t.Describe("supports Selector", Label("f:selector.labels"), func() {
-		t.It("Matchlabels and Matchexpressions", func() {
-			if skipVerify {
-				Skip(skipVerifications)
-			}
-			Eventually(func() bool {
-				return isDeploymentLabelSelectorValuesMatched()
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
-
 	// Verify Prometheus scraped metrics
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
@@ -191,26 +179,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	})
 
 })
-
-// isDeploymentLabelSelectorValuesMatched tests labelselector must exists into deployment
-// also must have values into matchlabels & matchexpressions
-
-func isDeploymentLabelSelectorValuesMatched() bool {
-	// fetch labelselector from hello helidon deployment
-	labelSelector, err := pkg.GetDeploymentLabelSelector(namespace, helloHelidonDeploymentName)
-	if err != nil {
-		return false
-	}
-	// check labelselector matchlabels must have at least 1 pair of matchlabels arg
-	if val, ok := labelSelector.MatchLabels["app"]; !ok || val != helloHelidon {
-		return false
-	}
-	// check labelselector matchexpressions must not be empty
-	if len(labelSelector.MatchExpressions) == 0 {
-		return false
-	}
-	return true
-}
 
 func helloHelidonPodsRunning() bool {
 	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
