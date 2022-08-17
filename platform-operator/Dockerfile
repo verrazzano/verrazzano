@@ -28,7 +28,9 @@ RUN microdnf update -y \
     && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL8/developer/olcne/x86_64 \
     && microdnf install -y kubectl-1.20.11-4.el8 \
     && microdnf install -y helm-3.9.2-1.el8 \
+    && wget https://artifacthub-iad.oci.oraclecorp.com/artifactory/olcne-yum-incubator-ol8/istio-1.14.3-1.el8.x86_64.rpm \
     && wget https://artifacthub-iad.oci.oraclecorp.com/artifactory/olcne-yum-incubator-ol8/istio-istioctl-1.14.3-1.el8.x86_64.rpm \
+    && rpm -i istio-1.14.3-1.el8.x86_64.rpm  \
     && rpm -i istio-istioctl-1.14.3-1.el8.x86_64.rpm \
     && chmod +x /usr/local/bin/istioctl \
     && microdnf clean all \
