@@ -23,9 +23,11 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 # Use olcne15, which is required for istioctl
 # Use developer/olcne, which is required for helm
 RUN microdnf update -y \
-    && microdnf install -y openssl jq patch wget \
-    && microdnf install --enablerepo=ol8_olcne13 -y kubectl-1.20.11-4.el8 \
-    && microdnf install --enablerepo=ol8_developer_olcne install -y helm-3.9.2-1.el8 \
+    && microdnf install -y openssl jq patch wget yum-utils \
+    && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
+    && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
+    && microdnf install -y kubectl-1.20.11-4.el8 \
+    && microdnf install -y helm-3.9.2-1.el8 \
     && wget https://artifacthub-iad.oci.oraclecorp.com/artifactory/olcne-yum-incubator-ol8/istio-istioctl-1.14.3-1.el8.x86_64.rpm \
     && rpm -i istio-istioctl-1.14.3-1.el8.x86_64.rpm \
     && chmod +x /usr/local/bin/istioctl \
