@@ -433,17 +433,21 @@ pipeline {
                 script {
                     VZ_TEST_METRIC = metricJobName('kind_test')
                     metricTimerStart("${VZ_TEST_METRIC}")
-                    build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                        parameters: [
-                            string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
-                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                            booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
-                            booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
-                            booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
-                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
-                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                        ], wait: true
+                }
+                retry(count: JOB_PROMOTION_RETRIES) {
+                    script {
+                        build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            parameters: [
+                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
+                                booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
+                                booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
+                                string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+                                booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                            ], wait: true
+                    }
                 }
             }
             post {
