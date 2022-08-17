@@ -22,6 +22,7 @@ const (
 	testCaseInstallArgsErr    = "frominstallargserr"
 	testCaseToAllComps        = "toallcomps"
 	testCaseRancherKeycloak   = "rancherkeycloak"
+	testCaseVolumeOverrides   = "volumeoverrides"
 )
 
 type converisonTestCase struct {

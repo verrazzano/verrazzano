@@ -57,6 +57,7 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	out.Spec.EnvironmentName = in.Spec.EnvironmentName
 	out.Spec.Version = in.Spec.Version
 	out.Spec.DefaultVolumeSource = in.Spec.DefaultVolumeSource
+	out.Spec.VolumeClaimSpecTemplates = convertVolumeClaimTemplateTo(in.Spec.VolumeClaimSpecTemplates)
 	out.Spec.Components = components
 	out.Spec.Security = convertSecuritySpecTo(in.Spec.Security)
 
@@ -67,6 +68,17 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	out.Status.Components = convertComponentStatusMapTo(in.Status.Components)
 	out.Status.VerrazzanoInstance = convertVerrazzanoInstanceTo(in.Status.VerrazzanoInstance)
 	return nil
+}
+
+func convertVolumeClaimTemplateTo(src []VolumeClaimSpecTemplate) []v1beta1.VolumeClaimSpecTemplate {
+	var templates []v1beta1.VolumeClaimSpecTemplate
+	for _, template := range src {
+		templates = append(templates, v1beta1.VolumeClaimSpecTemplate{
+			ObjectMeta: template.ObjectMeta,
+			Spec:       template.Spec,
+		})
+	}
+	return templates
 }
 
 func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {

@@ -22,6 +22,7 @@ func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	in.Spec.EnvironmentName = src.Spec.EnvironmentName
 	in.Spec.Version = src.Spec.Version
 	in.Spec.DefaultVolumeSource = src.Spec.DefaultVolumeSource
+	in.Spec.VolumeClaimSpecTemplates = convertVoumeClaimTemplatesFromV1Beta1(src.Spec.VolumeClaimSpecTemplates)
 	in.Spec.Security = convertSecuritySpecFromV1Beta1(src.Spec.Security)
 
 	// Convert status
@@ -31,6 +32,17 @@ func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	in.Status.Components = convertComponentStatusMapFromV1Beta1(src.Status.Components)
 	in.Status.VerrazzanoInstance = convertVerrazzanoInstanceFromV1Beta1(src.Status.VerrazzanoInstance)
 	return nil
+}
+
+func convertVoumeClaimTemplatesFromV1Beta1(in []v1beta1.VolumeClaimSpecTemplate) []VolumeClaimSpecTemplate {
+	var templates []VolumeClaimSpecTemplate
+	for _, template := range in {
+		templates = append(templates, VolumeClaimSpecTemplate{
+			ObjectMeta: template.ObjectMeta,
+			Spec:       template.Spec,
+		})
+	}
+	return templates
 }
 
 func convertConditionsFromV1Beta1(conditions []v1beta1.Condition) []Condition {
