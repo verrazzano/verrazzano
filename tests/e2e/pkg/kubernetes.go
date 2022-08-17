@@ -1501,6 +1501,15 @@ func GetContainerEnv(namespace string, deploymentName string, containerName stri
 	return nil, fmt.Errorf("container %s not found in the namespace: %s", containerName, namespace)
 }
 
+func GetDeploymentLabelSelector(namespace, deploymentName string) (*metav1.LabelSelector, error) {
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Deployment %v not found in the namespace: %v, error: %v", deploymentName, namespace, err))
+		return nil, fmt.Errorf("deployment %s not found in the namespace: %s, error: %v", deploymentName, namespace, err)
+	}
+	return deployment.Spec.Selector, err
+}
+
 // GetContainerImage returns the image used by the specified container for the specified deployment
 func GetContainerImage(namespace string, deploymentName string, containerName string) (string, error) {
 	deployment, err := GetDeployment(namespace, deploymentName)
