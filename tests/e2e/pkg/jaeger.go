@@ -40,13 +40,16 @@ var (
 		"verrazzano-authproxy.verrazzano-system",
 		"jaeger-operator-jaeger.verrazzano-monitoring",
 		"system-es-master.verrazzano-system",
+		"verrazzano-monitoring-operator.verrazzano-system",
 		"fluentd.verrazzano-system",
+		"ingress-controller-ingress-nginx-controller.ingress-nginx",
 	}
 
 	managedServerSystemServiceNames = []string{
 		"verrazzano-authproxy.verrazzano-system",
-		"jaeger-operator-jaeger.verrazzano-monitoring",
+		"verrazzano-monitoring-operator.verrazzano-system",
 		"fluentd.verrazzano-system",
+		"ingress-controller-ingress-nginx-controller.ingress-nginx",
 	}
 )
 
@@ -291,10 +294,9 @@ func ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, namespace string, ma
 	}
 	listOptions := metav1.ListOptions{}
 	if matchLabels != nil {
-		var selector labels.Selector
+		selector := labels.NewSelector()
 		for k, v := range matchLabels {
 			selectorLabel, _ := labels.NewRequirement(k, selection.Equals, []string{v})
-			selector = labels.NewSelector()
 			selector = selector.Add(*selectorLabel)
 		}
 		listOptions.LabelSelector = selector.String()
