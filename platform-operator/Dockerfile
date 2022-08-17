@@ -1,7 +1,7 @@
 # Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
+FROM ghcr.io/oracle/oraclelinux:8-slim AS build_base
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
@@ -15,22 +15,21 @@ RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh
 
 # Create the verrazzano-platform-operator image
-FROM ghcr.io/oracle/oraclelinux:7-slim
+FROM ghcr.io/oracle/oraclelinux:8-slim
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
 # Use olcne13, which is required for kubectl
 # Use olcne15, which is required for istioctl
 # Use developer/olcne, which is required for helm
-RUN yum update -y \
-    && yum install -y openssl jq patch wget \
-    && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
-    && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne15/x86_64/ \
-    && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
-    && yum install -y kubectl-1.20.11-4.el7 \
-    && yum install -y helm-3.9.2-1.el7 \
-    && yum install -y istio-istioctl-1.13.5-1.el7 \
-    && yum clean all \
+RUN microdnf update -y \
+    && microdnf install -y openssl jq patch wget \
+    && microdnf install --enablerepo=ol8_olcne13 -y kubectl-1.20.11-4.el8 \
+    && microdnf install --enablerepo=ol8_developer_olcne install -y helm-3.9.2-1.el8 \
+    && wget https://artifacthub-iad.oci.oraclecorp.com/artifactory/olcne-yum-incubator-ol8/istio-istioctl-1.14.3-1.el8.x86_64.rpm \
+    && rpm -i istio-istioctl-1.14.3-1.el8.x86_64.rpm \
+    && chmod +x /usr/local/bin/istioctl \
+    && microdnf clean all \
     && rm -rf /var/cache/yum
 
 RUN groupadd -r verrazzano \

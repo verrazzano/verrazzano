@@ -97,17 +97,18 @@
       "name": "istio",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "registry": "iad.ocir.io",
+          "repository": "odsbuilddev/sandboxes/aditya.b.bharadwaj/dev",
           "name": "istiod",
           "images": [
             {
               "image": "pilot",
-              "tag": "1.13.5-1-20220810173142-0bd9ab4d",
+              "tag": "1.14.3-20220815183859-d748fe5f",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.13.5-1-20220810173142-0bd9ab4d",
+              "tag": "1.14.3-20220815183859-d748fe5f",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
