@@ -426,47 +426,25 @@ func ValidateEsIndexCleanerCronJobFunc() func() (bool, error) {
 	}
 }
 
-// ValidateSystemTracesFunc returns a function that validates if system traces can be successfully queried from Jaeger
-func ValidateSystemTracesFunc(start time.Time) func() (bool, error) {
-	return func() (bool, error) {
-		// Check if the service name is registered in Jaeger and traces are present for that service
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			return false, err
-		}
-		tracesFound := true
-		for i := 0; i < len(systemServiceNames); i++ {
-			Log(Info, fmt.Sprintf("Inspecting traces for service: %s", systemServiceNames[i]))
-			if i == 0 {
-				tracesFound = len(ListJaegerTraces(kubeconfigPath, start, systemServiceNames[i])) > 0
-			} else {
-				tracesFound = tracesFound && len(ListJaegerTraces(kubeconfigPath, start, systemServiceNames[i])) > 0
-			}
-			Log(Info, fmt.Sprintf("Trace found flag for service: %s is %v", systemServiceNames[i], tracesFound))
-			// return early and retry later
-			if !tracesFound {
-				return false, nil
-			}
-		}
-		return tracesFound, nil
-	}
-}
-
 // ValidateSystemTracesFuncInCluster returns a function that validates if system traces for the given cluster can be successfully queried from Jaeger
 func ValidateSystemTracesFuncInCluster(kubeconfigPath string, start time.Time, clusterName string) func() (bool, error) {
 	return func() (bool, error) {
 		// Check if the service name is registered in Jaeger and traces are present for that service
+		systemServices := GetJaegerSystemServicesInManagedCluster()
+		if clusterName == "admin" || clusterName == "local" {
+			systemServices = GetJaegerSystemServicesInAdminCluster()
+		}
 		tracesFound := true
-		for i := 0; i < len(systemServiceNames); i++ {
-			Log(Info, fmt.Sprintf("Inspecting traces for service: %s", systemServiceNames[i]))
+		for i := 0; i < len(systemServices); i++ {
+			Log(Info, fmt.Sprintf("Inspecting traces for service: %s", systemServices[i]))
 			if i == 0 {
 				tracesFound =
-					len(ListJaegerTracesWithTags(kubeconfigPath, start, systemServiceNames[i],
+					len(ListJaegerTracesWithTags(kubeconfigPath, start, systemServices[i],
 						map[string]string{"verrazzano_cluster": clusterName})) > 0
 			} else {
-				tracesFound = tracesFound && len(ListJaegerTraces(kubeconfigPath, start, systemServiceNames[i])) > 0
+				tracesFound = tracesFound && len(ListJaegerTraces(kubeconfigPath, start, systemServices[i])) > 0
 			}
-			Log(Info, fmt.Sprintf("Trace found flag for service: %s is %v", systemServiceNames[i], tracesFound))
+			Log(Info, fmt.Sprintf("Trace found flag for service: %s is %v", systemServices[i], tracesFound))
 			// return early and retry later
 			if !tracesFound {
 				return false, nil
