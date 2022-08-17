@@ -25,7 +25,6 @@ var userIDConfig map[string]string
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	Fail("force failing the tests")
 	beforeSuitePassed = true
 
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
@@ -76,21 +75,19 @@ var _ = t.AfterSuite(func() {
 
 var _ = t.Describe("Verify users exist in Keycloak", Label("f:platform-lcm.install"), func() {
 	t.It("Verifying user in master realm", func() {
-		Eventually(verifyUserExistsMaster, waitTimeout, pollingInterval).ShouldNot(BeTrue())
+		Eventually(verifyUserExistsMaster, waitTimeout, pollingInterval).Should(BeTrue())
 	})
 	t.It("Verifying user in verrazzano-system realm", func() {
-		Eventually(verifyUserExistsVerrazzano, waitTimeout, pollingInterval).ShouldNot(BeTrue())
+		Eventually(verifyUserExistsVerrazzano, waitTimeout, pollingInterval).Should(BeTrue())
 	})
 })
 
 func verifyUserExistsMaster() bool {
-	return false
-	//return verifyUserExists("master", userIDConfig[pkg.TestKeycloakMasterUserIDKey])
+	return verifyUserExists("master", userIDConfig[pkg.TestKeycloakMasterUserIDKey])
 }
 
 func verifyUserExistsVerrazzano() bool {
-	return false
-	//return verifyUserExists("verrazzano-system", userIDConfig[pkg.TestKeycloakVerrazzanoUserIDKey])
+	return verifyUserExists("verrazzano-system", userIDConfig[pkg.TestKeycloakVerrazzanoUserIDKey])
 }
 
 func verifyUserExists(realm, userID string) bool {

@@ -47,18 +47,18 @@ func undeployApplication(namespace string, yamlPath string, t framework.TestFram
 			t.Logs.Errorf("Failed to delete the Namespace %s from the cluster: %v", namespace, err)
 		}
 		return err
-	}, shortWaitTimeout, shortPollingInterval).Should(HaveOccurred())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for namespace finalizer to be removed")
 	Eventually(func() bool {
 		return pkg.CheckNamespaceFinalizerRemoved(namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeTrue())
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	t.Logs.Info("Wait for namespace to be deleted")
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeTrue())
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 }
 
 // verifyMetricsBindingsDeleted verifies that a metrics binding does not exist for a given namespace
