@@ -202,15 +202,15 @@ func isDeploymentLabelSelectorValuesMatched() bool {
 	}
 
 	/*
-	// Putting the exact value match on hold, reconciling during vz upgrade is wip
-	// check labelselector matchlabels must have at least 1 pair of matchlabels arg
-	if val, ok := labelSelector.MatchLabels["app"]; !ok || val != helloHelidon {
-		return false
-	}
-	// check labelselector matchexpressions must not be empty
-	if len(labelSelector.MatchExpressions) == 0 {
-		return false
-	}
+		// Putting the exact value match on hold, reconciling during vz upgrade is wip
+		// check labelselector matchlabels must have at least 1 pair of matchlabels arg
+		if val, ok := labelSelector.MatchLabels["app"]; !ok || val != helloHelidon {
+			return false
+		}
+		// check labelselector matchexpressions must not be empty
+		if len(labelSelector.MatchExpressions) == 0 {
+			return false
+		}
 	*/
 	return labelSelector != nil
 }
