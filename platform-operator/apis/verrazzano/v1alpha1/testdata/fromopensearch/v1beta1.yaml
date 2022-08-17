@@ -15,17 +15,12 @@ spec:
           indexPattern: verrazzano-app*
       nodes:
         - name: es-master
-          replicas: 0
+          replicas: 3
+          resources:
+            requests:
+              memory: 2Gi
           roles:
             - master
-        - name: es-data
-          replicas: 0
-          roles:
-            - data
-        - name: es-ingest
-          replicas: 0
-          roles:
-            - ingest
         - name: master
           replicas: 3
           roles:
@@ -45,3 +40,11 @@ spec:
               memory: 3Gi
           storage:
             size: 250Gi
+        - name: es-data
+          replicas: 3
+          roles:
+            - data
+        - name: es-ingest
+          replicas: 1
+          roles:
+            - ingest

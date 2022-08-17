@@ -8,12 +8,23 @@ spec:
   profile: prod
   components:
     elasticsearch:
+      installArgs:
+        - name: "nodes.master.replicas"
+          value: "3"
+        - name: "nodes.data.replicas"
+          value: "3"
+        - name: "nodes.ingest.replicas"
+          value: "1"
       policies:
         - name: p1
           indexPattern: verrazzano-system
         - name: p2
           indexPattern: verrazzano-app*
       nodes:
+        - name: es-master
+          resources:
+            requests:
+              memory: 2Gi
         - name: master
           replicas: 3
           roles:

@@ -290,7 +290,8 @@ func convertOpenSearchToV1Beta1(src *ElasticsearchComponent) (*v1beta1.OpenSearc
 }
 
 func convertOSNodesToV1Beta1(args []InstallArgs, nodes []OpenSearchNode) ([]v1beta1.OpenSearchNode, error) {
-	out, err := convertInstallArgsToOSNodes(args)
+	var out []v1beta1.OpenSearchNode
+	installArgNodes, err := convertInstallArgsToOSNodes(args)
 	if err != nil {
 		return nil, err
 	}
@@ -301,18 +302,45 @@ func convertOSNodesToV1Beta1(args []InstallArgs, nodes []OpenSearchNode) ([]v1be
 				Size: inNode.Storage.Size,
 			}
 		}
-		out = append(out, v1beta1.OpenSearchNode{
+		dst := v1beta1.OpenSearchNode{
 			Name:      inNode.Name,
 			Replicas:  inNode.Replicas,
 			Roles:     inNode.Roles,
 			Storage:   storage,
 			Resources: inNode.Resources,
-		})
+		}
+
+		// Merge any overlapping install arg nodes with user-supplied nodes
+		if src, ok := installArgNodes[dst.Name]; ok {
+			mergeOpenSearchNodes(&src, &dst)
+			delete(installArgNodes, src.Name)
+		}
+		out = append(out, dst)
 	}
+
+	for _, node := range installArgNodes {
+		out = append(out, node)
+	}
+
 	return out, nil
 }
 
-func convertInstallArgsToOSNodes(args []InstallArgs) ([]v1beta1.OpenSearchNode, error) {
+func mergeOpenSearchNodes(src, dst *v1beta1.OpenSearchNode) {
+	if src.Roles != nil {
+		dst.Roles = src.Roles
+	}
+	if src.Storage != nil {
+		dst.Storage = src.Storage
+	}
+	if src.Replicas > 0 {
+		dst.Replicas = src.Replicas
+	}
+	if src.Resources != nil {
+		dst.Resources = src.Resources
+	}
+}
+
+func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSearchNode, error) {
 	masterNode := &v1beta1.OpenSearchNode{
 		Name:  masterNodeName,
 		Roles: []vmov1.NodeRole{vmov1.MasterRole},
@@ -386,10 +414,10 @@ func convertInstallArgsToOSNodes(args []InstallArgs) ([]v1beta1.OpenSearchNode, 
 		}
 	}
 
-	return []v1beta1.OpenSearchNode{
-		*masterNode,
-		*dataNode,
-		*ingestNode,
+	return map[string]v1beta1.OpenSearchNode{
+		masterNodeName: *masterNode,
+		dataNodeName:   *dataNode,
+		ingestNodeName: *ingestNode,
 	}, nil
 }
 

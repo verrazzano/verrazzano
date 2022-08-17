@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sort"
 	"testing"
 )
 
@@ -117,7 +118,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 	var tests = []struct {
 		name  string
 		args  []InstallArgs
-		nodes []v1beta1.OpenSearchNode
+		nodes map[string]v1beta1.OpenSearchNode
 	}{
 		{
 			"single node",
@@ -127,18 +128,18 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 					Value: "1",
 				},
 			},
-			[]v1beta1.OpenSearchNode{
-				{
+			map[string]v1beta1.OpenSearchNode{
+				masterNodeName: {
 					Replicas: 1,
 					Name:     masterNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.MasterRole},
 				},
-				{
+				dataNodeName: {
 					Replicas: 0,
 					Name:     dataNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.DataRole},
 				},
-				{
+				ingestNodeName: {
 					Replicas: 0,
 					Name:     ingestNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.IngestRole},
@@ -181,8 +182,8 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 					Value: q2GiString,
 				},
 			},
-			[]v1beta1.OpenSearchNode{
-				{
+			map[string]v1beta1.OpenSearchNode{
+				masterNodeName: {
 					Name:      masterNodeName,
 					Replicas:  3,
 					Resources: resourceRequirements,
@@ -191,7 +192,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 						Size: storage50Gi,
 					},
 				},
-				{
+				dataNodeName: {
 					Name:      dataNodeName,
 					Replicas:  3,
 					Resources: resourceRequirements,
@@ -200,7 +201,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 						Size: storage250Gi,
 					},
 				},
-				{
+				ingestNodeName: {
 					Name:      ingestNodeName,
 					Replicas:  2,
 					Resources: resourceRequirements,
@@ -216,18 +217,18 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 					Value: "0",
 				},
 			},
-			[]v1beta1.OpenSearchNode{
-				{
+			map[string]v1beta1.OpenSearchNode{
+				masterNodeName: {
 					Replicas: 0,
 					Name:     masterNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.MasterRole},
 				},
-				{
+				dataNodeName: {
 					Replicas: 0,
 					Name:     dataNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.DataRole},
 				},
-				{
+				ingestNodeName: {
 					Replicas: 0,
 					Name:     ingestNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.IngestRole},
@@ -393,6 +394,11 @@ func TestConvertToV1Beta1(t *testing.T) {
 				// load the expected v1beta1 CR
 				v1beta1Expected, err := loadV1Beta1(tt.testCase)
 				assert.NoError(t, err)
+				// Arrays may not be in order, so we have to sort them by name for reflect.DeepEqual to be true
+				if v1beta1Expected.Spec.Components.OpenSearch != nil && v1beta1Actual.Spec.Components.OpenSearch != nil {
+					sortNodes(v1beta1Expected.Spec.Components.OpenSearch.Nodes)
+					sortNodes(v1beta1Actual.Spec.Components.OpenSearch.Nodes)
+				}
 				// expected and actual v1beta1 CRs must be equal
 				assert.EqualValues(t, v1beta1Expected.ObjectMeta, v1beta1Actual.ObjectMeta)
 				assert.EqualValues(t, v1beta1Expected.Spec, v1beta1Actual.Spec)
@@ -400,4 +406,10 @@ func TestConvertToV1Beta1(t *testing.T) {
 			}
 		})
 	}
+}
+
+func sortNodes(nodes []v1beta1.OpenSearchNode) {
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Name < nodes[j].Name
+	})
 }
