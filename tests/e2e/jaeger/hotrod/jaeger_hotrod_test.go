@@ -42,7 +42,7 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterSuite(func() {
 	if !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(namespace)
 	}
 	// undeploy the application here
 	start := time.Now()
