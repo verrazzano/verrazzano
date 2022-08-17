@@ -30,6 +30,7 @@ var t = framework.NewTestFramework("keycloak")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
+	Fail("force failing the tests")
 	beforeSuitePassed = true
 
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
@@ -87,10 +88,10 @@ var _ = t.AfterSuite(func() {
 
 var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), func() {
 	t.It("Creating user in master realm", func() {
-		Eventually(verifyCreateUserMaster, waitTimeout, pollingInterval).Should(Not(BeNil()))
+		Eventually(verifyCreateUserMaster, waitTimeout, pollingInterval).ShouldNot(Not(BeNil()))
 	})
 	t.It("Creating user in verrazzano-system realm", func() {
-		Eventually(verifyCreateUserVz, waitTimeout, pollingInterval).Should(Not(BeNil()))
+		Eventually(verifyCreateUserVz, waitTimeout, pollingInterval).Should(BeNil())
 	})
 })
 
