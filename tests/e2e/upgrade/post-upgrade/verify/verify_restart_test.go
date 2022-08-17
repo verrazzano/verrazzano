@@ -278,7 +278,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						return false
 					}
 					return sts.Status.ReadyReplicas > 0
-				}, twoMinutes, pollingInterval).ShouldNot(BeTrue(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
+				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
 			},
 			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
 			t.Entry("Checking StatefulSet keycloak", keycloak.ComponentNamespace, keycloak.ComponentName, "keycloak"),

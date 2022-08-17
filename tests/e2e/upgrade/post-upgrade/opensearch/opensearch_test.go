@@ -130,7 +130,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				}
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).ShouldNot(BeTrue(), "Expected to find the old data")
+		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected to find the old data")
 	})
 
 	// GIVEN a VZ environment with
