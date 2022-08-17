@@ -1667,7 +1667,7 @@ def verifyExamples() {
             runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
         },
         "Jaeger Helidon": {
-            runGinkgo("multicluster/verify-jaeger/hello-helidon", "${TEST_DUMP_ROOT}/jaeger-hello-helidon")
+            runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
         },
         "Jaeger Hotrod": {
             runGinkgo("multicluster/verify-jaeger/hotrod", "${TEST_DUMP_ROOT}/jaeger-hotrod")
