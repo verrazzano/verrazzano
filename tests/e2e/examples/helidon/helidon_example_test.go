@@ -116,6 +116,13 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			if skipVerify {
 				Skip(skipVerifications)
 			}
+			kubeConfig, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				Skip(skipVerifications)
+			}
+			if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeConfig); !ok {
+				Skip(skipVerifications)
+			}
 			Eventually(func() bool {
 				return isDeploymentLabelSelectorValuesMatched()
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
