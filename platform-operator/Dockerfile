@@ -24,8 +24,8 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 # Use developer/olcne, which is required for helm
 RUN microdnf update -y \
     && microdnf install -y openssl jq patch wget yum-utils \
-    && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
-    && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
+    && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL8/olcne13/x86_64/ \
+    && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL8/developer/olcne/x86_64 \
     && microdnf install -y kubectl-1.20.11-4.el8 \
     && microdnf install -y helm-3.9.2-1.el8 \
     && wget https://artifacthub-iad.oci.oraclecorp.com/artifactory/olcne-yum-incubator-ol8/istio-istioctl-1.14.3-1.el8.x86_64.rpm \
