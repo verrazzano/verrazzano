@@ -6,7 +6,6 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def listOfUpgradeJobs
 def upgradeJobsStageMapping
 
-def branchSpecificSchedule = getCronSchedule()
 pipeline {
     options {
         skipDefaultCheckout true
@@ -20,9 +19,6 @@ pipeline {
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
-    }
-    triggers {
-        cron(branchSpecificSchedule)
     }
     // Use cases:
     //        1) (automatic) master, release* will trigger this job by default on successful runs and supply GIT_COMMIT_TO_USE with the exact GIT commit to use for all testing (same as the upstream build)
@@ -56,6 +52,7 @@ pipeline {
                         description: 'This is the wildcard DNS domain',
                         trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
+        booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -428,6 +425,7 @@ def getStageOfUpgradeJob(job) {
                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                     ],  wait: true, propagate: true
                 }catch(err){
@@ -440,13 +438,4 @@ def getStageOfUpgradeJob(job) {
             }
         }
     }
-}
-
-def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-
-        //Set cron job to run every day at 9 AM from Monday to Friday
-        return "0 9 * * 1-5"
-    }
-    return ""
 }
