@@ -20,9 +20,6 @@ spec:
         selector:
           matchLabels:
             app: hello-helidon
-            app.kubernetes.io/name: hello-helidon-deployment
-          matchExpressions:
-            - { key: app, operator: In, values: [ hello-helidon ] }
         podSpec:
           containers:
             - name: hello-helidon-container
