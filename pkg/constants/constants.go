@@ -130,6 +130,15 @@ const DefaultJaegerOSURL = "http://verrazzano-authproxy-elasticsearch.verrazzano
 // #nosec
 const DefaultJaegerSecretName = "verrazzano-jaeger-secret"
 
+// JaegerInstanceName is the name of the default Jaeger instance
+const JaegerInstanceName = "jaeger-operator-jaeger"
+
+// JaegerQueryComponentName is the name of the collector component
+const JaegerCollectorComponentName = "collector"
+
+// JaegerQueryComponentName is the name of the collector component
+const JaegerQueryComponentName = "query"
+
 // VerrazzanoManagedLabelKey is a constant for a Kubernetes label that is applied to Verrazzano application namespaces
 const VerrazzanoManagedLabelKey = "verrazzano-managed"
 

@@ -60,7 +60,11 @@ helm upgrade --install opensearch opensearch/opensearch --version "$OPENSEARCH_C
   -f "$SCRIPT_DIR"/opensearch.yaml \
   --set service.loadBalancerIP="$EXTERNAL_IP"
 
-kubectl create ns verrazzano-install
+kubectl get namespace -o=name | grep "verrazzano-install"
+if [ $? -ne 0 ]; then
+  echo "External OpenSearch - Create the verrazzano-install namespace"
+  kubectl create namespace verrazzano-install
+fi
 cp root-ca.pem "$SCRIPT_DIR"/ca-bundle
 cat cert.pem >> "$SCRIPT_DIR"/ca-bundle
 
