@@ -6,6 +6,7 @@ package helidon
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
@@ -56,7 +57,11 @@ var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-wor
 		// WHEN we check for traces for that service,
 		// THEN we are able to get the traces
 		jaeger.WhenJaegerOperatorEnabledIt(t, "traces for the helidon app should be available when queried from Jaeger", func() {
-			validatorFn := pkg.ValidateApplicationTraces(start, helloHelidonServiceName)
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				Fail(err.Error())
+			}
+			validatorFn := pkg.ValidateApplicationTracesInCluster(kubeconfigPath, start, helloHelidonServiceName, "local")
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 

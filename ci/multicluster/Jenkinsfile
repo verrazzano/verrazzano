@@ -503,16 +503,6 @@ pipeline {
                         runGinkgoRandomize('multicluster/verify-install')
                     }
                 }
-                stage ('multicluster/verify-jaeger-install') {
-                    steps {
-                        runGinkgoRandomize('multicluster/verify-jaeger/install')
-                    }
-                }
-                stage ('multicluster/verify-jaeger-system') {
-                    steps {
-                        runGinkgoRandomize('multicluster/verify-jaeger/system')
-                    }
-                }
             }
         }
 
@@ -870,6 +860,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                     yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${verrazzanoConfig}
                     yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${verrazzanoConfig}
                     yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.jaegerOperator.enabled = true' ${verrazzanoConfig}
                 fi
 
                 echo "Applying \$verrazzanoConfig"
@@ -1649,6 +1640,12 @@ def verifyInfra() {
         "verify-infra vmi": {
             runGinkgoRandomize('verify-infra/vmi')
         },
+        "verify-infra jaeger": {
+            runGinkgoRandomize('multicluster/verify-jaeger/install')
+        },
+        "verify-infra jaeger-system-traces": {
+            runGinkgoRandomize('multicluster/verify-jaeger/system')
+        },
     ]
 }
 
@@ -1668,6 +1665,12 @@ def verifyExamples() {
         },
         "Coherence Workload": {
             runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
+        },
+        "Jaeger Helidon": {
+            runGinkgo("multicluster/verify-jaeger/hello-helidon", "${TEST_DUMP_ROOT}/jaeger-hello-helidon")
+        },
+        "Jaeger Hotrod": {
+            runGinkgo("multicluster/verify-jaeger/hotrod", "${TEST_DUMP_ROOT}/jaeger-hotrod")
         },
     ]
 }

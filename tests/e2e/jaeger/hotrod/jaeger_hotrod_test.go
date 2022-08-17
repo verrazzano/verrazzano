@@ -7,6 +7,7 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
@@ -57,7 +58,11 @@ var _ = t.Describe("Hotrod App with Jaeger Traces", Label("f:jaeger.hotrod-workl
 		// WHEN we check for traces for that service,
 		// THEN we are able to get the traces
 		jaeger.WhenJaegerOperatorEnabledIt(t, "traces for the hotrod app should be available when queried from Jaeger", func() {
-			validatorFn := pkg.ValidateApplicationTraces(start, hotrodServiceName)
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				Fail(err.Error())
+			}
+			validatorFn := pkg.ValidateApplicationTracesInCluster(kubeconfigPath, start, hotrodServiceName, "local")
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 

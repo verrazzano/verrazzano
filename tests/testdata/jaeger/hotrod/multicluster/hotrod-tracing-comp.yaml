@@ -1,0 +1,30 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: hotrod-component
+  namespace: hotrod
+spec:
+  workload:
+    apiVersion: core.oam.dev/v1alpha2
+    kind: ContainerizedWorkload
+    metadata:
+      name: hotrod-workload
+      annotations:
+        "sidecar.jaegertracing.io/inject": "true"
+      labels:
+        app: hotrod
+        version: v1
+    spec:
+      containers:
+        - name: hotrod-container
+          image: "jaegertracing/example-hotrod:1.34.1"
+          env:
+            - name: JAEGER_AGENT_HOST
+              value: "localhost"
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+          ports:
+            - containerPort: 8080
+              name: http

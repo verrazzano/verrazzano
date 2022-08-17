@@ -67,11 +67,12 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 			if err != nil {
 				return false
 			}
-			if len(deployments.Items) > 1 {
-				pkg.Log(pkg.Error, "Managed cluster cannot have more than one Jaeger collectors")
-				return false
+			if len(deployments.Items) == 1 {
+				// check if the only available Jaeger collector is the one managed by the mcagent.
+				return deployments.Items[0].Labels["app.kubernetes.io/instance"] == "jaeger-verrazzano-managed-cluster"
 			}
-			return deployments.Items[0].Labels["app.kubernetes.io/instance"] == "jaeger-verrazzano-managed-cluster"
+			pkg.Log(pkg.Error, "Managed cluster cannot have zero or more than one Jaeger collectors")
+			return false
 		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 

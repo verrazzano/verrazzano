@@ -442,7 +442,8 @@ func ValidateSystemTracesFuncInCluster(kubeconfigPath string, start time.Time, c
 					len(ListJaegerTracesWithTags(kubeconfigPath, start, systemServices[i],
 						map[string]string{"verrazzano_cluster": clusterName})) > 0
 			} else {
-				tracesFound = tracesFound && len(ListJaegerTraces(kubeconfigPath, start, systemServices[i])) > 0
+				tracesFound = tracesFound && len(ListJaegerTracesWithTags(kubeconfigPath, start, systemServices[i],
+					map[string]string{"verrazzano_cluster": clusterName})) > 0
 			}
 			Log(Info, fmt.Sprintf("Trace found flag for service: %s is %v", systemServices[i], tracesFound))
 			// return early and retry later
@@ -478,19 +479,15 @@ func ValidateSystemTracesInOSFunc(start time.Time) func() bool {
 	}
 }
 
-// ValidateApplicationTraces returns a function that validates if application traces can be successfully queried from Jaeger
-func ValidateApplicationTraces(start time.Time, appServiceName string) func() (bool, error) {
+// ValidateApplicationTracesInCluster returns a function that validates if application traces can be successfully queried from Jaeger
+func ValidateApplicationTracesInCluster(kubeconfigPath string, start time.Time, appServiceName, clusterName string) func() (bool, error) {
 	return func() (bool, error) {
-		// Check if the service name is registered in Jaeger and traces are present for that service
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			return false, err
-		}
 		tracesFound := false
 		servicesWithJaegerTraces := ListServicesInJaeger(kubeconfigPath)
 		for _, serviceName := range servicesWithJaegerTraces {
 			if strings.HasPrefix(serviceName, appServiceName) {
-				traceIds := ListJaegerTraces(kubeconfigPath, start, serviceName)
+				traceIds := ListJaegerTracesWithTags(kubeconfigPath, start, appServiceName,
+					map[string]string{"verrazzano_cluster": clusterName})
 				tracesFound = len(traceIds) > 0
 				if !tracesFound {
 					errMsg := fmt.Sprintf("traces not found for service: %s", serviceName)
