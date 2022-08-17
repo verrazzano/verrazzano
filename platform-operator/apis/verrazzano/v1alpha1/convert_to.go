@@ -835,7 +835,7 @@ func convertValueOverridesToV1Beta1(overrides []Overrides) []v1beta1.Overrides {
 		out = append(out, v1beta1.Overrides{
 			ConfigMapRef: override.ConfigMapRef,
 			SecretRef:    override.SecretRef,
-			Values:       override.Values,
+			Values:       override.Values.DeepCopy(),
 		})
 	}
 	return out
