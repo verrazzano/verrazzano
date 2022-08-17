@@ -5,6 +5,8 @@ package hotrod
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -12,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"time"
 )
 
 const (

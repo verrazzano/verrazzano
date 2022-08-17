@@ -5,13 +5,14 @@ package helidon
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"os"
-	"time"
 )
 
 const (
@@ -105,6 +106,14 @@ var _ = t.AfterSuite(func() {
 		}
 		return nil
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
+
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(projectName, managedKubeconfig)
+	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(projectName, adminKubeconfig)
+	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
+
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
