@@ -52,26 +52,32 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	sb.Write([]byte(yamlSep))
 	sb.Write(regYaml)
 
-	// register the cluster with Rancher - the cluster will show as "pending" until the
-	// Rancher YAML is applied on the managed cluster
-	// NOTE: If this errors we log it and do not fail the reconcile
-	var clusterID string
-	rc, err := newRancherConfig(r.Client, r.log)
-	if err != nil {
-		msg := fmt.Sprintf("Failed to create Rancher API client: %v", err)
-		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, "", msg)
-		r.log.Infof("Unable to connect to Rancher API on admin cluster, manifest secret will not contain Rancher YAML: %v", err)
+	// if we created the VMC from a Rancher cluster, then wait for the cluster id to be populated in the status before we
+	// attempt to fetch the registration manifest YAML
+	if vmc.Labels != nil && vmc.Labels[createdByLabel] == createdByVerrazzano && len(vmc.Status.RancherRegistration.ClusterID) == 0 {
+		r.log.Infof("Waiting for Verrazzano-created VMC named %s to have a cluster id in the status before attempting to fetch Rancher registration manifest", vmc.Name)
 	} else {
-		var rancherYAML string
-		rancherYAML, clusterID, err = registerManagedClusterWithRancher(rc, vmc.Name, vmc.Status.RancherRegistration.ClusterID, r.log)
+		// register the cluster with Rancher - the cluster will show as "pending" until the
+		// Rancher YAML is applied on the managed cluster
+		// NOTE: If this errors we log it and do not fail the reconcile
+		var clusterID string
+		rc, err := newRancherConfig(r.Client, r.log)
 		if err != nil {
-			msg := fmt.Sprintf("Failed to register managed cluster with Rancher: %v", err)
-			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, clusterID, msg)
-			r.log.Info("Failed to register managed cluster, manifest secret will not contain Rancher YAML")
+			msg := fmt.Sprintf("Failed to create Rancher API client: %v", err)
+			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, "", msg)
+			r.log.Infof("Unable to connect to Rancher API on admin cluster, manifest secret will not contain Rancher YAML: %v", err)
 		} else {
-			msg := "Registration of managed cluster completed successfully"
-			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, clusterID, msg)
-			sb.WriteString(rancherYAML)
+			var rancherYAML string
+			rancherYAML, clusterID, err = registerManagedClusterWithRancher(rc, vmc.Name, vmc.Status.RancherRegistration.ClusterID, r.log)
+			if err != nil {
+				msg := fmt.Sprintf("Failed to register managed cluster with Rancher: %v", err)
+				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, clusterID, msg)
+				r.log.Info("Failed to register managed cluster, manifest secret will not contain Rancher YAML")
+			} else {
+				msg := "Registration of managed cluster completed successfully"
+				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, clusterID, msg)
+				sb.WriteString(rancherYAML)
+			}
 		}
 	}
 
