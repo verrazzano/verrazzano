@@ -5,6 +5,7 @@ package install
 
 import (
 	"fmt"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -18,8 +19,11 @@ import (
 const (
 	waitTimeout             = 5 * time.Minute
 	pollingInterval         = 10 * time.Second
-	jaegerESIndexCleanerJob = "jaeger-operator-jaeger-es-index-cleaner"
+	jaegerESIndexCleanerJob = globalconst.JaegerInstanceName + "-es-index-cleaner"
 	testSkipMsgFmt          = "Cluster name is '%s'. Skipping tests meant for managed clusters"
+	componentLabelKey       = "app.kubernetes.io/component"
+	instanceLabelKey        = "app.kubernetes.io/instance"
+	jaegerMCInstance        = "jaeger-verrazzano-managed-cluster"
 )
 
 var t = framework.NewTestFramework("jaeger_mc_system_test")
@@ -35,8 +39,8 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 	t.It("Jaeger Collector pods must be running in managed cluster", func() {
 		skipIfAdminCluster()
 		labels := map[string]string{
-			"app.kubernetes.io/component": "collector",
-			"app.kubernetes.io/instance":  "jaeger-verrazzano-managed-cluster",
+			componentLabelKey: globalconst.JaegerCollectorComponentName,
+			instanceLabelKey:  jaegerMCInstance,
 		}
 		Eventually(func() bool {
 			deployments, err := pkg.ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, labels)
@@ -60,7 +64,7 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 	t.It("Atmost only one Jaeger Collector pods must be running in managed cluster", func() {
 		skipIfAdminCluster()
 		labels := map[string]string{
-			"app.kubernetes.io/component": "collector",
+			componentLabelKey: globalconst.JaegerCollectorComponentName,
 		}
 		Eventually(func() bool {
 			deployments, err := pkg.ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, labels)
@@ -69,7 +73,7 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 			}
 			if len(deployments.Items) == 1 {
 				// check if the only available Jaeger collector is the one managed by the mcagent.
-				return deployments.Items[0].Labels["app.kubernetes.io/instance"] == "jaeger-verrazzano-managed-cluster"
+				return deployments.Items[0].Labels[instanceLabelKey] == jaegerMCInstance
 			}
 			pkg.Log(pkg.Error, "Managed cluster cannot have zero or more than one Jaeger collectors")
 			return false
@@ -82,8 +86,8 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 	t.It("Jaeger Query pods must NOT be running in managed cluster", func() {
 		skipIfAdminCluster()
 		labels := map[string]string{
-			"app.kubernetes.io/component": "query",
-			"app.kubernetes.io/instance":  "jaeger-verrazzano-managed-cluster",
+			componentLabelKey: globalconst.JaegerQueryComponentName,
+			instanceLabelKey:  jaegerMCInstance,
 		}
 		isRunning := false
 		deployments, err := pkg.ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, labels)

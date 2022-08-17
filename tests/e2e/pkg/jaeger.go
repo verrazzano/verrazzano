@@ -35,22 +35,24 @@ const (
 	jaegerESIndexCleanerJob     = "jaeger-operator-jaeger-es-index-cleaner"
 )
 
+const (
+	jaegerListServicesErrFmt = "Error listing services in Jaeger: url=%s, error=%v"
+	jaegerListTracesErrFmt   = "Error listing traces in Jaeger: url=%s, error=%v"
+)
+
 var (
-	systemServiceNames = []string{
+	// common services running in both admin and managed cluster
+	managedClusterSystemServiceNames = []string{
 		"verrazzano-authproxy.verrazzano-system",
-		"jaeger-operator-jaeger.verrazzano-monitoring",
-		"system-es-master.verrazzano-system",
 		"verrazzano-monitoring-operator.verrazzano-system",
 		"fluentd.verrazzano-system",
 		"ingress-controller-ingress-nginx-controller.ingress-nginx",
 	}
 
-	managedServerSystemServiceNames = []string{
-		"verrazzano-authproxy.verrazzano-system",
-		"verrazzano-monitoring-operator.verrazzano-system",
-		"fluentd.verrazzano-system",
-		"ingress-controller-ingress-nginx-controller.ingress-nginx",
-	}
+	// services that are common plus the ones unique to admin cluster
+	adminClusterSystemServiceNames = append(managedClusterSystemServiceNames,
+		"jaeger-operator-jaeger.verrazzano-monitoring",
+		"system-es-master.verrazzano-system")
 )
 
 type JaegerTraceData struct {
@@ -117,21 +119,13 @@ func IsJaegerInstanceCreated() (bool, error) {
 }
 
 //JaegerSpanRecordFoundInOpenSearch checks if jaeger span records are found in OpenSearch storage
-func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, serviceName, clusterName string) bool {
+func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, serviceName string) bool {
 	indexName, err := GetJaegerSpanIndexName(kubeconfigPath)
 	if err != nil {
 		return false
 	}
 	fields := map[string]string{
 		"process.serviceName": serviceName,
-	}
-	// For multi cluster scenario check for verrazzano_cluster tag.
-	if clusterName != "" {
-		fields = map[string]string{
-			"process.serviceName": serviceName,
-			"process.tags.key":    jaegerClusterNameLabel,
-			"process.tags.value":  clusterName,
-		}
 	}
 	searchResult := querySystemElasticSearch(indexName, fields, kubeconfigPath)
 	if len(searchResult) == 0 {
@@ -180,37 +174,7 @@ func IsJaegerMetricFound(kubeconfigPath, metricName, clusterName string, kv map[
 	return false
 }
 
-//ListJaegerTraces lists all trace ids for a given service.
-func ListJaegerTraces(kubeconfigPath string, start time.Time, serviceName string) []string {
-	var traces []string
-	params := url.Values{}
-	params.Add("service", serviceName)
-	params.Add("start", strconv.FormatInt(start.UnixMicro(), 10))
-	params.Add("end", strconv.FormatInt(time.Now().UnixMicro(), 10))
-	url := fmt.Sprintf("%s/api/traces?%s", getJaegerURL(kubeconfigPath), params.Encode())
-	username, password, err := getJaegerUsernamePassword(kubeconfigPath)
-	if err != nil {
-		return traces
-	}
-	resp, err := getJaegerWithBasicAuth(url, "", username, password, kubeconfigPath)
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting Jaeger traces: url=%s, error=%v", url, err))
-		return traces
-	}
-	if resp.StatusCode != http.StatusOK {
-		Log(Error, fmt.Sprintf("Error retrieving Jaeger traces: url=%s, status=%d", url, resp.StatusCode))
-		return traces
-	}
-	Log(Debug, fmt.Sprintf("traces: %s", resp.Body))
-	var jaegerTraceDataWrapper JaegerTraceDataWrapper
-	json.Unmarshal(resp.Body, &jaegerTraceDataWrapper)
-	for _, traceObj := range jaegerTraceDataWrapper.Data {
-		traces = append(traces, traceObj.TraceID)
-	}
-	return traces
-}
-
-//ListJaegerTraces lists all trace ids for a given service.
+//ListJaegerTracesWithTags lists all trace ids for a given service with the given tags
 func ListJaegerTracesWithTags(kubeconfigPath string, start time.Time, serviceName string, tags map[string]string) []string {
 	var traces []string
 	params := url.Values{}
@@ -230,14 +194,13 @@ func ListJaegerTracesWithTags(kubeconfigPath string, start time.Time, serviceNam
 	}
 	resp, err := getJaegerWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting Jaeger traces: url=%s, error=%v", url, err))
+		Log(Error, fmt.Sprintf(jaegerListTracesErrFmt, url, err))
 		return traces
 	}
 	if resp.StatusCode != http.StatusOK {
-		Log(Error, fmt.Sprintf("Error retrieving Jaeger traces: url=%s, status=%d", url, resp.StatusCode))
+		Log(Error, fmt.Sprintf(jaegerListTracesErrFmt, url, resp.StatusCode))
 		return traces
 	}
-	Log(Debug, fmt.Sprintf("traces: %s", resp.Body))
 	var jaegerTraceDataWrapper JaegerTraceDataWrapper
 	json.Unmarshal(resp.Body, &jaegerTraceDataWrapper)
 	for _, traceObj := range jaegerTraceDataWrapper.Data {
@@ -256,14 +219,13 @@ func ListServicesInJaeger(kubeconfigPath string) []string {
 	}
 	resp, err := getJaegerWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting Jaeger traces: url=%s, error=%v", url, err))
+		Log(Error, fmt.Sprintf(jaegerListServicesErrFmt, url, err))
 		return services
 	}
 	if resp.StatusCode != http.StatusOK {
-		Log(Error, fmt.Sprintf("Error retrieving Jaeger traces: url=%s, status=%d", url, resp.StatusCode))
+		Log(Error, fmt.Sprintf(jaegerListServicesErrFmt, url, resp.StatusCode))
 		return services
 	}
-	Log(Debug, fmt.Sprintf("traces: %s", resp.Body))
 	var serviceMap map[string][]string
 	json.Unmarshal(resp.Body, &serviceMap)
 	services = append(services, serviceMap["data"]...)
@@ -356,12 +318,12 @@ func ListCronJobNamesMatchingLabels(kubeconfigPath, namespace string, matchLabel
 
 // GetJaegerSystemServicesInManagedCluster returns the system services that needs to be running in a managed cluster
 func GetJaegerSystemServicesInManagedCluster() []string {
-	return managedServerSystemServiceNames
+	return managedClusterSystemServiceNames
 }
 
 // GetJaegerSystemServicesInAdminCluster returns the system services that needs to be running in a admin cluster
 func GetJaegerSystemServicesInAdminCluster() []string {
-	return systemServiceNames
+	return adminClusterSystemServiceNames
 }
 
 // ValidateJaegerOperatorMetricFunc returns a function that validates if metrics of Jaeger operator is scraped by prometheus.
@@ -463,12 +425,13 @@ func ValidateSystemTracesInOSFunc(start time.Time) func() bool {
 			return false
 		}
 		tracesFound := true
-		for i := 0; i < len(systemServiceNames); i++ {
-			Log(Info, fmt.Sprintf("Finding traces for service %s after %s", systemServiceNames[i], start.String()))
+		systemServices := GetJaegerSystemServicesInAdminCluster()
+		for i := 0; i < len(systemServices); i++ {
+			Log(Info, fmt.Sprintf("Finding traces for service %s after %s", systemServices[i], start.String()))
 			if i == 0 {
-				tracesFound = JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i], "")
+				tracesFound = JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServices[i])
 			} else {
-				tracesFound = tracesFound && JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServiceNames[i], "")
+				tracesFound = tracesFound && JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, systemServices[i])
 			}
 			// return early and retry later
 			if !tracesFound {
@@ -508,7 +471,7 @@ func ValidateApplicationTracesInOS(start time.Time, appServiceName string) func(
 		if err != nil {
 			return false
 		}
-		return JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, appServiceName, "")
+		return JaegerSpanRecordFoundInOpenSearch(kubeconfigPath, start, appServiceName)
 	}
 }
 
