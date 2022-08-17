@@ -924,6 +924,7 @@ def upgradeVerrazzano() {
                     yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${v8oUpgradeFile}
                     yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${v8oUpgradeFile}
                     yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${v8oUpgradeFile}
+                    yq -i eval '.spec.components.jaegerOperator.enabled = true' ${v8oUpgradeFile}
                 fi
 
                 # Do the upgrade
