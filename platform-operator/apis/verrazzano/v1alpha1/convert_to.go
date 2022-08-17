@@ -8,9 +8,12 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	operatorv1alpha1 "istio.io/api/operator/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/yaml"
 	"strconv"
@@ -497,12 +500,47 @@ func convertIstioToV1Beta1(src *IstioComponent) (*v1beta1.IstioComponent, error)
 	if err != nil {
 		return nil, err
 	}
-	overrides.ValueOverrides = append(overrides.ValueOverrides, override)
+
+	overrides.ValueOverrides, err = mergeIstioOverrides(override, overrides.ValueOverrides)
+	if err != nil {
+		return nil, err
+	}
 	return &v1beta1.IstioComponent{
 		InstallOverrides: overrides,
 		Enabled:          src.Enabled,
 		InjectionEnabled: src.InjectionEnabled,
 	}, nil
+}
+
+type IstioOperator struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	Spec              *operatorv1alpha1.IstioOperatorSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+}
+
+func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrides) ([]v1beta1.Overrides, error) {
+	if len(overrides) < 1 {
+		return []v1beta1.Overrides{
+			override,
+		}, nil
+	}
+	if !isOverrideValueUnset(override) {
+		if isOverrideValueUnset(overrides[0]) {
+			overrides[0].Values = override.Values
+		} else {
+			data, err := strategicpatch.StrategicMergePatch(override.Values.Raw, overrides[0].Values.Raw, IstioOperator{})
+			if err != nil {
+				return nil, err
+			}
+			overrides[0].Values.Raw = data
+		}
+	}
+
+	return overrides, nil
+}
+
+func isOverrideValueUnset(override v1beta1.Overrides) bool {
+	return override.Values == nil || len(override.Values.Raw) == 0
 }
 
 func convertJaegerOperatorToV1Beta1(src *JaegerOperatorComponent) *v1beta1.JaegerOperatorComponent {

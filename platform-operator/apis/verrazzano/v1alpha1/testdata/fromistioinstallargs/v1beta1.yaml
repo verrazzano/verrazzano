@@ -14,14 +14,6 @@ spec:
             kind: IstioOperator
             spec:
               components:
-                pilot:
-                  k8s:
-                    replicaCount: 2
-        - values:
-            apiVersion: install.istio.io/v1alpha1
-            kind: IstioOperator
-            spec:
-              components:
                 egressGateways:
                   - enabled: true
                     k8s:
@@ -37,3 +29,6 @@ spec:
                           - 2.2.2.2
                         type: LoadBalancer
                     name: istio-ingressgateway
+                pilot:
+                  k8s:
+                    replicaCount: 2
