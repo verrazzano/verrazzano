@@ -986,13 +986,13 @@ def createImagePullSecrets() {
 
 def installVerrazzanoPlatformOperator() {
     sh """
-        # oci --region us-phoenix-1 os object get \
-        #    --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
-        #    --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
-        #    --file $WORKSPACE/downloaded-operator.yaml
+        oci --region us-phoenix-1 os object get \
+           --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
+           --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
+           --file $WORKSPACE/downloaded-operator.yaml
 
         # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands instead of "wget"
-        wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
+        # wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
 
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
@@ -1003,7 +1003,7 @@ def installVerrazzanoPlatformOperator() {
         # make sure ns exists
         chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-        kubectl get ns
+        kubectl get namespaces
 
         # create secret in verrazzano-install ns
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
@@ -1016,6 +1016,10 @@ def installVerrazzano() {
         # Install Verrazzano
         $GO_REPO_PATH/vz install -f $INSTALL_CONFIG_FILE_OLCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME"
         $GO_REPO_PATH/vz status
+
+        # Print out the namespaces
+        kubectl get namespaces
+
         # Print out the username and passwords
         echo "Verrazzano username: verrazzano"
         kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
