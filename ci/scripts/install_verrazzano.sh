@@ -78,14 +78,43 @@ result=$?
 if [ "${POST_INSTALL_DUMP}" == "true" ]; then
   echo "Generating post-install cluster-snapshot..."
   if [ -e ${WORKSPACE}/post-vz-install-cluster-snapshot ]; then
-    echo "Removing exising post-install cluster dump"
+    echo "Removing existing post-install cluster-snapshot"
     rm -rf ${WORKSPACE}/post-vz-install-cluster-snapshot
   fi
-  ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-snapshot -r ${WORKSPACE}/post-vz-install-cluster-snapshot/analysis.report
+  # TODO: Capture full cluster only when an environment variable CAPTURE_FULL_CLUSTER is set
+  FULL_CLUSTER_DIR="${WORKSPACE}/post-vz-install-cluster-snapshot/full-cluster"
+  mkdir -p ${FULL_CLUSTER_DIR}
+  ANALYSIS_REPORT="analysis.report"
+  ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${FULL_CLUSTER_DIR} -r ${FULL_CLUSTER_DIR}/${ANALYSIS_REPORT}
   if [[ $result -ne 0 ]]; then
-    echo "Post-install cluster dump failed"
+    echo "Post-install cluster snapshot failed"
     exit 1
   fi
+
+  # Create a bug-report and run analysis tool on the bug-report
+  # Requires environment variable KUBECONFIG or $HOME/.kube/config
+  BUG_REPORT_DIR="${WORKSPACE}/post-vz-install-cluster-snapshot/bug-report"
+  BUG_REPORT_FILE="${BUG_REPORT_DIR}/bug-report.tar.gz"
+  mkdir -p ${BUG_REPORT_DIR}
+  if [[ -x $GOPATH/bin/vz ]]; then
+    $GOPATH/vz bug-report --report-file ${BUG_REPORT_FILE}
+  else
+    GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go bug-report --report-file ${BUG_REPORT_FILE}
+  fi
+
+  # Check if the bug-report exists
+  if [ -f "${BUG_REPORT_FILE}" ]; then
+    tar -xvf ${BUG_REPORT_FILE} -C ${BUG_REPORT_DIR}
+    rm ${BUG_REPORT_FILE}
+
+    # Run vz analyze on the extracted directory
+    if [[ -x $GOPATH/bin/vz ]]; then
+      $GOPATH/vz analyze --capture-dir ${BUG_REPORT_DIR} --report-format detailed --report-file ${BUG_REPORT_DIR}/${ANALYSIS_REPORT}
+    else
+      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir ${BUG_REPORT_DIR} --report-format detailed --report-file ${BUG_REPORT_DIR}/${ANALYSIS_REPORT}
+    fi
+  fi
+
 fi
 
 if [ "install_failed" == "true" ]; then
