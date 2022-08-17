@@ -502,6 +502,10 @@ pipeline {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
                     }
+                stage ('multicluster/verify-jaeger-system') {
+                    steps {
+                        runGinkgoRandomize('multicluster/verify-jaeger/system')
+                    }
                 }
             }
         }

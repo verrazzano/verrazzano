@@ -20,7 +20,7 @@ const (
 	jaegerESIndexCleanerJob = "jaeger-operator-jaeger-es-index-cleaner"
 )
 
-var t = framework.NewTestFramework("jaeger_system_test")
+var t = framework.NewTestFramework("jaeger_mc_system_test")
 
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
