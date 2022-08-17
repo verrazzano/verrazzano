@@ -23,7 +23,7 @@ const (
 const (
 	testAppComponentFilePath     = "testdata/jaeger/helidon/mc-helidon-tracing-comp.yaml"
 	testAppConfigurationFilePath = "examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml"
-	verrazzanoProjectFilePath = "examples/multicluster/hello-helidon/verrazzano-project.yaml"
+	verrazzanoProjectFilePath    = "examples/multicluster/hello-helidon/verrazzano-project.yaml"
 )
 
 var (
