@@ -21,7 +21,7 @@ dumpK8sCluster() {
   if [ -f "${BUG_REPORT_FILE}" ]; then
     mkdir -p ${dumpDirectory}/bug-report
     tar -xvf ${BUG_REPORT_FILE} -C ${dumpDirectory}/bug-report
-    rm ${BUG_REPORT_FILE}
+    rm ${BUG_REPORT_FILE} || true
 
     # Run vz analyze on the extracted directory
     if [[ -x $GOPATH/bin/vz ]]; then

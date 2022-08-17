@@ -105,7 +105,7 @@ if [ "${POST_INSTALL_DUMP}" == "true" ]; then
   # Check if the bug-report exists
   if [ -f "${BUG_REPORT_FILE}" ]; then
     tar -xvf ${BUG_REPORT_FILE} -C ${BUG_REPORT_DIR}
-    rm ${BUG_REPORT_FILE}
+    rm ${BUG_REPORT_FILE} || true
 
     # Run vz analyze on the extracted directory
     if [[ -x $GOPATH/bin/vz ]]; then
