@@ -73,7 +73,7 @@ var (
 )
 
 var t = framework.NewTestFramework("netpol")
-var clusterDump = pkg.NewClusterDumpWrapper()
+var clusterDump = pkg.NewClusterDumpWrapper(generatedNamespace)
 
 var _ = clusterDump.BeforeSuite(func() {
 	start := time.Now()

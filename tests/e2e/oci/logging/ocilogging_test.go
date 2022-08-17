@@ -70,7 +70,7 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(springbootNamespace, helidonNamespace)
 	}
 	pkg.Concurrently(
 		func() {
