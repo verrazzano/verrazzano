@@ -118,13 +118,10 @@ pipeline {
     environment {
         // Repositories and credentials
         GHCR_REPO='ghcr.io'
-        OCIR_PHX_REPO='phx.ocir.io'
         OCR_REPO='container-registry.oracle.com'
         OCR_CREDS=credentials('ocr-pull-and-push-account')
         NETRC_FILE=credentials('netrc')
         GITHUB_PKGS_CREDS=credentials('github-packages-credentials-rw')
-        WEBLOGIC_PSW=credentials('weblogic-example-domain-password') // needed by install_todo.sh OAM example test
-        DATABASE_PSW=credentials('todo-mysql-password') // needed by install_todo.sh OAM example test
         IMAGE_PULL_SECRET='verrazzano-container-registry'
 
         // Verrazzano variables
@@ -132,14 +129,12 @@ pipeline {
         VZ_ENVIRONMENT_NAME="${params.TEST_ENV.toLowerCase()}"
         BRANCH_NAME_PREFIX="${env.BRANCH_NAME.equals('master') ? 'vz' : env.BRANCH_NAME.substring(0, 2)}"
         CLUSTER_NAME="$BRANCH_NAME_PREFIX" + "$uniquePrefix"
-        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         INSTALL_PROFILE="${params.INSTALL_PROFILE}"
         GOPATH="$HOME/go"
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
         TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-olcne"
-        KUBECONFIG="$WORKSPACE/test_kubeconfig"
-        OLCNE_DUMP_DIR="$WORKSPACE/olcne"
-        VERRAZZANO_KUBECONFIG="$KUBECONFIG"
+        KUBECONFIG="$WORKSPACE/kubeconfig"
+        OLCNE_DUMP_DIR="$WORKSPACE/$VZ_ENVIRONMENT_NAME"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
         // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
         OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
@@ -174,18 +169,13 @@ pipeline {
         TF_VAR_s3_bucket_access_key=credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key=credentials('oci-s3-bucket-secret-key')
 
-        // OCI variables
+        // OCI variables - Required by update_lb_health_check.sh
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING='True'
         OCI_CLI_REGION="${params.OLCNE_CLUSTER_REGION}"
         OCI_CLI_TENANCY=credentials('oci-tenancy')
         OCI_CLI_USER=credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT=credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE=credentials('oci-api-key')
-        // OCI_DNS_COMPARTMENT_OCID and OCI_PRIVATE_KEY_FILE are needed for setting up DNS zone in OCI
-        OCI_DNS_COMPARTMENT_OCID=credentials('oci-dns-compartment')
-        OCI_DNS_SCOPE="${params.OCI_DNS_SCOPE}"
-        OCI_DNS_ZONE_SUBDOMAIN_NAME="$CLUSTER_NAME"
-        OCI_DNS_ZONE_NAME="${OCI_DNS_ZONE_SUBDOMAIN_NAME}.v8o.io"
 
         // used for cluster dump
         TEST_DUMP_ROOT="$WORKSPACE/test-cluster-snapshots"
@@ -360,23 +350,6 @@ pipeline {
                 script {
                     echo "[INFO] Enable External IP access"
                     updateOLCNEConfig()
-                }
-            }
-        }
-
-        stage("Install Verrazzano Platform Operator") {
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-            }
-            steps {
-                script {
-                    echo "[INFO] Installing Verrazzano Platform Operator"
-                    installVerrazzanoPlatformOperator()
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                 }
             }
         }
@@ -982,32 +955,8 @@ def createImagePullSecrets() {
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
     """
-}
-
-def installVerrazzanoPlatformOperator() {
-    sh """
-        oci --region us-phoenix-1 os object get \
-           --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
-           --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
-           --file $WORKSPACE/downloaded-operator.yaml
-
-        # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands instead of "wget"
-        # wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
-
-        cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
-
-        # Install the verrazzano-platform-operator
-        kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
-        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-        
-        # make sure ns exists
-        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-        kubectl get namespaces
-
-        # create secret in verrazzano-install ns
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
-    """
+    // TODO: If the secrets are required in the verrazzano-install namespace explicitly, create verrazzano-install namespace and then run the following command
+    // $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
 }
 
 def installVerrazzano() {
@@ -1020,7 +969,7 @@ def installVerrazzano() {
         # Print out the namespaces
         kubectl get namespaces
 
-        # Print out the username and passwords
+        # Print out the credentials for consoles
         echo "Verrazzano username: verrazzano"
         kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
         echo "Rancher username: admin"
