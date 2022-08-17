@@ -30,7 +30,7 @@ spec:
       replacement: local
       targetLabel: verrazzano_cluster
     - action: keep
-      regex: true;jaeger-operator-jaeger-(query|collector);admin-http
+      regex: true;jaeger-(operator-jaeger|verrazzano-managed-cluster)-(query|collector);admin-http
       sourceLabels:
       - __meta_kubernetes_pod_annotation_prometheus_io_scrape
       - __meta_kubernetes_service_name
