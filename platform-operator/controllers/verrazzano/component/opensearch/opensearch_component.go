@@ -184,6 +184,16 @@ func (o opensearchComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return validateNoDuplicatedConfiguration(vz)
 }
 
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (o opensearchComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (o opensearchComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
 // Name returns the component name
 func (o opensearchComponent) Name() string {
 	return ComponentName

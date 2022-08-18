@@ -96,6 +96,16 @@ func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return c.validateForExternalIPSWithNodePort(&vz.Spec)
 }
 
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c nginxComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c nginxComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
 func (c nginxComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoSpec) error {
 	// good if ingress is not set

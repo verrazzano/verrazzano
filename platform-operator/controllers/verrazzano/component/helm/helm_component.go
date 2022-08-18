@@ -246,6 +246,16 @@ func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazza
 	return nil
 }
 
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c HelmComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c HelmComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 func (h HelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return true
 }

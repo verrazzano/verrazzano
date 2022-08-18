@@ -83,6 +83,11 @@ func (c authProxyComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ver
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c authProxyComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // IsReady component check
 func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {

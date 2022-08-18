@@ -216,6 +216,11 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c KeycloakComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if vz != nil && vz.Spec.Components.Keycloak != nil {
 		return vz.Spec.Components.Keycloak.KeycloakInstallArgs

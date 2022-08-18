@@ -140,6 +140,16 @@ func (v veleroHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	return v.validateVelero(new)
 }
 
+// ValidateUpgrade verifies the install of the Verrazzano object
+func (c veleroHelmComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (c veleroHelmComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // PostUninstall processing for Velero
 func (v veleroHelmComponent) PostUninstall(context spi.ComponentContext) error {
 	res := resource.Resource{

@@ -123,6 +123,11 @@ func (rb rancherBackupHelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error 
 	return nil
 }
 
+// ValidateUpgrade verifies the install of the Verrazzano object
+func (rb rancherBackupHelmComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
 func (rb rancherBackupHelmComponent) IsOperatorUninstallSupported() bool {
 	return true
 }
@@ -133,6 +138,11 @@ func (rb rancherBackupHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
 	return rb.validateRancherBackup(new)
+}
+
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (rb rancherBackupHelmComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
 }
 
 // postUninstall processing for RancherBackup

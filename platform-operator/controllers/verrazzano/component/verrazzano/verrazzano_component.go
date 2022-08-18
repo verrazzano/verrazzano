@@ -189,9 +189,19 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c verrazzanoComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (c verrazzanoComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return c.HelmComponent.ValidateInstall(vz)
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c verrazzanoComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
 }
 
 func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {

@@ -94,6 +94,16 @@ func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return c.HelmComponent.ValidateInstall(vz)
 }
 
+// ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
+func (c certManagerComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c certManagerComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // PreInstall runs before cert-manager components are installed
 // The cert-manager namespace is created
 // The cert-manager manifest is patched if needed and applied to create necessary CRDs

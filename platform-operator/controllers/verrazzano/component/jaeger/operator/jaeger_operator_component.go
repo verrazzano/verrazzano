@@ -159,6 +159,16 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 	return c.validateJaegerOperator(new)
 }
 
+// ValidateInstall validates the installation of the Verrazzano CR
+func (c jaegerOperatorComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
+func (c jaegerOperatorComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // PreUpgrade Jaeger component pre-upgrade processing
 func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Jaeger pre-upgrade")

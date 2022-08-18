@@ -178,6 +178,16 @@ func (d opensearchDashboardsComponent) ValidateInstall(_ *vzapi.Verrazzano) erro
 	return nil
 }
 
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (d opensearchDashboardsComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (d opensearchDashboardsComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // Name returns the component name
 func (d opensearchDashboardsComponent) Name() string {
 	return ComponentName

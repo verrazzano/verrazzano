@@ -177,6 +177,11 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 	return r.HelmComponent.ValidateUpdate(old, new)
 }
 
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (r rancherComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // PreInstall
 /* Sets up the environment for Rancher
 - Create the Rancher namespace if it is not present (cattle-namespace)

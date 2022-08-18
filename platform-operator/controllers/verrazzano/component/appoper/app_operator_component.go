@@ -127,6 +127,11 @@ func (c applicationOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new 
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c applicationOperatorComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
 func (c applicationOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.ApplicationOperator != nil {

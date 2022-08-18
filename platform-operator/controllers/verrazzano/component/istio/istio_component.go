@@ -269,6 +269,16 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	return i.validateForExternalIPSWithNodePort(&new.Spec)
 }
 
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c istioComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c istioComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
 func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoSpec) error {
 	// good if istio or istio.ingress is not set

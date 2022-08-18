@@ -136,6 +136,16 @@ func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	return c.validatePrometheusOperator(new)
 }
 
+// ValidateInstall verifies the installation of the Verrazzano object
+func (c prometheusComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (c prometheusComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // getIngressNames - gets the names of the ingresses associated with this component
 func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
