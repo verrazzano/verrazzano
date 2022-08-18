@@ -64,6 +64,19 @@ func EventuallyEvictNode(cs *kubernetes.Clientset, name string, log *zap.Sugared
 
 		for i := range pods.Items {
 			pod := &pods.Items[i]
+			// Temporarily ignore pods associated with PVs to avoid pods going into pending state
+			// due to no available volume zone.  This will be removed once the affinity rules are working.
+			skip := false
+			for _, volume := range pod.Spec.Volumes {
+				if volume.PersistentVolumeClaim != nil {
+					skip = true
+					break
+				}
+			}
+			if skip {
+				log.Infof("Skipping the termination of pod %s/%s due to it having a PVC", pod.Namespace, pod.Name)
+				continue
+			}
 			if err := cs.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
 				if !errors.IsNotFound(err) {
 					log.Errorf("Failed to delete pod[%s] for node[%s]: %v", pod.Name, name, err)
