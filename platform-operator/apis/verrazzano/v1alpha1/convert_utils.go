@@ -17,6 +17,7 @@ const (
 	testCaseInstallArgs       = "frominstallargs"
 	testCaseIstioInstallArgs  = "fromistioinstallargs"
 	testCaseIstioAffinityArgs = "fromistioaffinityargs"
+	testCaseIstioOverrides    = "istiomultipleoverrides"
 	testCaseFromAllComps      = "fromallcomps"
 	testCaseOpensearch        = "fromopensearch"
 	testCaseInstallArgsErr    = "frominstallargserr"

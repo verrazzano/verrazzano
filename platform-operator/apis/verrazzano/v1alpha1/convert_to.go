@@ -528,7 +528,7 @@ func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrid
 		if isOverrideValueUnset(overrides[0]) {
 			overrides[0].Values = override.Values
 		} else {
-			data, err := strategicpatch.StrategicMergePatch(override.Values.Raw, overrides[0].Values.Raw, IstioOperator{})
+			data, err := strategicpatch.StrategicMergePatch(overrides[0].Values.Raw, override.Values.Raw, IstioOperator{})
 			if err != nil {
 				return nil, err
 			}

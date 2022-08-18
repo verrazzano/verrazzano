@@ -372,6 +372,11 @@ func TestConvertToV1Beta1(t *testing.T) {
 			false,
 		},
 		{
+			"convert volume claim templates from v1alpha1",
+			testCaseIstioOverrides,
+			false,
+		},
+		{
 			"convert err on keycloak install args",
 			testCaseInstallArgsErr,
 			true,
