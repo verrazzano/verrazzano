@@ -336,7 +336,7 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 // configureAuthProviders
 // +configures Keycloak as OIDC provider for Rancher.
 // +creates or updates default user verrazzano.
-// +creates or updates admin role binding for  user verrazzano.
+// +creates or updates admin clusterRole binding for  user verrazzano.
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
 func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
@@ -350,15 +350,7 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 	}
 
 	if err := createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user global role binding: %s", err.Error())
-	}
-
-	if err := createOrUpdateClusterRoleTemplateBinding(ctx, AdminRoleName); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for verrazzano-admins group: %s", AdminRoleName, err.Error())
-	}
-
-	if err := createOrUpdateClusterRoleTemplateBinding(ctx, ClusterMemberRoleName); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for verrazzano-admins group: %s", ClusterMemberRoleName, err.Error())
+		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user global clusterRole binding: %s", err.Error())
 	}
 
 	if err := disableFirstLogin(ctx); err != nil {
@@ -367,6 +359,45 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 
 	if err := toggleKeycloakAuthProvider(ctx, isUpgrade); err != nil {
 		return log.ErrorfThrottledNewErr("failed enabling or disbling auth providers: %s", err.Error())
+	}
+
+	return nil
+}
+
+func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+
+	groupRolePairs := []groupRolePair{
+		{
+			group:       VerrazzanoAdminsGroupName,
+			clusterRole: AdminRoleName,
+		},
+		{
+			group:       VerrazzanoAdminsGroupName,
+			clusterRole: VerrazzanoAdminRoleName,
+		},
+		{
+			group:       VerrazzanoAdminsGroupName,
+			clusterRole: ClusterMemberRoleName,
+		},
+		{
+			group:       VerrazzanoMonitorsGroupName,
+			clusterRole: ViewRoleName,
+		},
+		{
+			group:       VerrazzanoMonitorsGroupName,
+			clusterRole: VerrazzanoMonitorsGroupName,
+		},
+		{
+			group:       VerrazzanoMonitorsGroupName,
+			clusterRole: ClusterMemberRoleName,
+		},
+	}
+
+	for _, grp := range groupRolePairs {
+		if err := createOrUpdateClusterRoleTemplateBinding(ctx, grp.clusterRole, grp.group); err != nil {
+			return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for %s group: %s", grp.clusterRole, grp.group, err.Error())
+		}
 	}
 
 	return nil

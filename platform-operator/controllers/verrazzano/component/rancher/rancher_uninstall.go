@@ -177,7 +177,7 @@ func removeCRDFinalizers(ctx spi.ComponentContext) {
 
 // deleteMatchingResources delete the Rancher objects that need to match a string: ClusterRole, ClusterRoleBinding, RoleBinding, PersistentVolumes
 func deleteMatchingResources(ctx spi.ComponentContext) error {
-	// list of matching prefixes for cluster roles, cluster role bindings
+	// list of matching prefixes for cluster roles, cluster clusterRole bindings
 	roleMatch := []string{
 		"cattle.io",
 		"app:rancher",

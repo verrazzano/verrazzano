@@ -125,14 +125,21 @@ const (
 	UserAttributeUserName                                 = "username"
 	UserAttributePrincipalIDs                             = "principalIds"
 	UserAttributeDescription                              = "description"
-	AdminRoleName                                         = "admin"
-	ClusterMemberRoleName                                 = "cluster-member"
 	GlobalRoleBindingAttributeRoleName                    = "globalRoleName"
 	GlobalRoleBindingAttributeUserName                    = "userName"
 	ClusterRoleTemplateBindingAttributeClusterName        = "clusterName"
 	ClusterRoleTemplateBindingAttributeGroupPrincipalName = "groupPrincipalName"
 	ClusterRoleTemplateBindingAttributeRoleTemplateName   = "roleTemplateName"
-	VerrazzanoAdminsGroupPrincipalName                    = GroupPrincipalKeycloakPrefix + "verrazzano-admins"
+)
+
+const (
+	AdminRoleName               = "admin"
+	VerrazzanoAdminRoleName     = "verrazzano-admin"
+	ViewRoleName                = "view"
+	VerrazzanoMonitorRoleName   = "verrazzano-monitor"
+	ClusterMemberRoleName       = "cluster-member"
+	VerrazzanoAdminsGroupName   = "verrazzano-admins"
+	VerrazzanoMonitorsGroupName = "verrazzano-monitors"
 )
 
 var GVKSetting = schema.GroupVersionKind{
@@ -181,6 +188,11 @@ var GVKGClusterRoleTemplateBinding = schema.GroupVersionKind{
 	Group:   APIGroupRancherManagement,
 	Version: APIGroupVersionRancherManagement,
 	Kind:    "ClusterlRoleTemplateBinding",
+}
+
+type groupRolePair struct {
+	group       string
+	clusterRole string
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
@@ -651,10 +663,10 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterRole string) error {
+func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterRole string, group string) error {
 	log := ctx.Log()
 	c := ctx.Client()
-	ClusterRoleTemplateBindingName := "crtb-" + clusterRole
+	ClusterRoleTemplateBindingName := fmt.Sprintf("crtb-%s-%s", group, clusterRole)
 	clusterRoleTemplateBinding := unstructured.Unstructured{}
 	clusterRoleTemplateBinding.SetGroupVersionKind(GVKGClusterRoleTemplateBinding)
 	err := c.Get(context.Background(), types.NamespacedName{Name: ClusterRoleTemplateBindingName, Namespace: ClusterLocal}, &clusterRoleTemplateBinding)
@@ -662,15 +674,15 @@ func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterR
 	if err != nil {
 		if errors.IsNotFound(err) {
 			createNew = true
-			log.Debugf("%s ClusterRoleTemplateBinding for verrazzano-admins group does not exist", clusterRole)
+			log.Debugf("%s ClusterRoleTemplateBinding for %s group does not exist", clusterRole, group)
 		} else {
-			return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for verrazzano-admins group, unable to fetch ClusterRoleTemplateBinding: %s", clusterRole, err.Error())
+			return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for % group, unable to fetch ClusterRoleTemplateBinding: %s", clusterRole, group, err.Error())
 		}
 	}
 
 	clusterRoleTemplateBindingData := clusterRoleTemplateBinding.UnstructuredContent()
 	clusterRoleTemplateBindingData[ClusterRoleTemplateBindingAttributeClusterName] = ClusterLocal
-	clusterRoleTemplateBindingData[ClusterRoleTemplateBindingAttributeGroupPrincipalName] = VerrazzanoAdminsGroupPrincipalName
+	clusterRoleTemplateBindingData[ClusterRoleTemplateBindingAttributeGroupPrincipalName] = GroupPrincipalKeycloakPrefix + group
 	clusterRoleTemplateBindingData[ClusterRoleTemplateBindingAttributeRoleTemplateName] = clusterRole
 
 	if createNew {
@@ -682,7 +694,7 @@ func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterR
 	}
 
 	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for verrazzano-admins group: %s", clusterRole, err.Error())
+		return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for group group: %s", clusterRole, group, err.Error())
 	}
 
 	return nil
