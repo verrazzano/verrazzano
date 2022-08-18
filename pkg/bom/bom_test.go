@@ -260,3 +260,13 @@ func TestBomImageOverrides(t *testing.T) {
 	assert.Equal(t, "testRegistry", bom.ResolveRegistry(sc, img))
 	assert.Equal(t, "testRepository", bom.ResolveRepo(sc, img))
 }
+
+// TestBomComponentVersion tests the ability to fetch component version
+func TestBomComponentVersion(t *testing.T){
+	bom, err := NewBom(realBomFilePath)
+	assert.NoError(t, err)
+	c, err := bom.GetComponent("verrazzano")
+	assert.NoError(t, err)
+	assert.NotNil(t, c)
+	assert.NotNil(t, c.Version)
+}
