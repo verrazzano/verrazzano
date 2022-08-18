@@ -191,8 +191,8 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 }
 
 func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	serviceAnnotationModifier := NginxIstioIngressServiceAnnotationModifier{nginxLBShape: "flexible", istioLBShape: "10Mbps"}
-	serviceAnnotationModifier.ModifyCR(cr)
+	replicasModifier := NginxAutoscalingIstioRelicasAffintyModifier{nginxReplicas: newReplicas, istioIngressReplicas: newReplicas, istioEgressReplicas: newReplicas}
+	replicasModifier.ModifyCR(cr)
 	if cr.Spec.Components.Ingress == nil {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
@@ -215,8 +215,6 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (u NginxIstioLoadBalancerModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	serviceAnnotationModifier := NginxIstioIngressServiceAnnotationModifier{nginxLBShape: "flexible", istioLBShape: "10Mbps"}
-	serviceAnnotationModifier.ModifyCR(cr)
 	nodePortModifier := NginxIstioNodePortModifier{systemExternalLBIP: systemExternalIP, applicationExternalLBIP: applicationExternalIP}
 	nodePortModifier.ModifyCR(cr)
 	if cr.Spec.Components.Ingress == nil {
