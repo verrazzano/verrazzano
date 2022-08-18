@@ -1250,7 +1250,6 @@ def dumpK8sCluster(dumpDirectory) {
                 sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}/cluster-snapshot-${count}
-            """
             }
         }
     }
