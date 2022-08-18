@@ -148,7 +148,7 @@ func GetJaegerCollectorDeployments(kubeconfigPath, jaegerCRName string) ([]appsv
 //		verrazzano-monitoring namespace
 func GetJaegerQueryDeployments(kubeconfigPath, jaegerCRName string) ([]appsv1.Deployment, error) {
 	labels := map[string]string{
-		componentLabelKey: globalconst.JaegerCollectorComponentName,
+		componentLabelKey: globalconst.JaegerQueryComponentName,
 	}
 	if jaegerCRName != "" {
 		labels[instanceLabelKey] = jaegerCRName
