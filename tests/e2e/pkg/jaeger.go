@@ -116,12 +116,12 @@ func IsJaegerInstanceCreated(kubeconfigPath string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	Log(Info, fmt.Sprintf("cluster has %d collector deployments: %v", len(collectorDeployments), collectorDeployments))
+	Log(Info, fmt.Sprintf("cluster has %d jaeger-collector deployments", len(collectorDeployments)))
 	queryDeployments, err := GetJaegerQueryDeployments(kubeconfigPath, globalconst.JaegerInstanceName)
 	if err != nil {
 		return false, err
 	}
-	Log(Info, fmt.Sprintf("cluster has %d query deployments: %v", len(queryDeployments), queryDeployments))
+	Log(Info, fmt.Sprintf("cluster has %d jaeger-query deployments", len(queryDeployments)))
 	return len(collectorDeployments) > 0 && len(queryDeployments) > 0, nil
 }
 
