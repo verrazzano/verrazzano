@@ -198,7 +198,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, fmt.Errorf("verrazzano rancher user global role binding user in invalid")
 						}
 
-						if gbrAttributes[rancher.GlobalRoleBindingAttributeRoleName].(string) != rancher.GlobalRoleBindingRoleName {
+						if gbrAttributes[rancher.GlobalRoleBindingAttributeRoleName].(string) != rancher.AdminRoleName {
 							return false, fmt.Errorf("verrazzano rancher user global role binding role in invalid")
 						}
 

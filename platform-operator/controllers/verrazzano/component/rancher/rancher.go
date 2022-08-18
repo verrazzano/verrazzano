@@ -93,40 +93,46 @@ const (
 )
 
 const (
-	APIGroupRancherManagement                     = "management.cattle.io"
-	APIGroupVersionRancherManagement              = "v3"
-	SettingServerURL                              = "server-url"
-	SettingFirstLogin                             = "first-login"
-	KontainerDriverOKE                            = "oraclecontainerengine"
-	NodeDriverOCI                                 = "oci"
-	ClusterLocal                                  = "local"
-	AuthConfigKeycloak                            = "keycloakoidc"
-	AuthConfigLocal                               = "local"
-	UserVerrazzano                                = "u-verrazzano"
-	UserVerrazzanoDescription                     = "Verrazzano Admin"
-	GlobalRoleBindingVerrazzano                   = "gbr-" + UserVerrazzano
-	AuthConfigKeycloakURLPathVerifyAuth           = "/verify-auth"
-	AuthConfigKeycloakURLPathIssuer               = "/auth/realms/verrazzano-system"
-	AuthConfigKeycloakURLPathAuthEndPoint         = "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
-	AuthConfigKeycloakClientIDRancher             = "rancher"
-	AuthConfigKeycloakAccessMode                  = "unrestricted"
-	AuthConfigKeycloakAttributeAccessMode         = "accessMode"
-	AuthConfigKeycloakAttributeClientID           = "clientId"
-	AuthConfigAttributeEnabled                    = "enabled"
-	AuthConfigKeycloakAttributeGroupSearchEnabled = "groupSearchEnabled"
-	AuthConfigKeycloakAttributeAuthEndpoint       = "authEndpoint"
-	AuthConfigKeycloakAttributeClientSecret       = "clientSecret"
-	AuthConfigKeycloakAttributeIssuer             = "issuer"
-	AuthConfigKeycloakAttributeRancherURL         = "rancherUrl"
-	UserPrincipalKeycloakPrefix                   = "keycloakoidc_user://"
-	UserPrincipalLocalPrefix                      = "local://"
-	UserAttributeDisplayName                      = "displayName"
-	UserAttributeUserName                         = "username"
-	UserAttributePrincipalIDs                     = "principalIds"
-	UserAttributeDescription                      = "description"
-	GlobalRoleBindingAttributeRoleName            = "globalRoleName"
-	GlobalRoleBindingRoleName                     = "admin"
-	GlobalRoleBindingAttributeUserName            = "userName"
+	APIGroupRancherManagement                             = "management.cattle.io"
+	APIGroupVersionRancherManagement                      = "v3"
+	SettingServerURL                                      = "server-url"
+	SettingFirstLogin                                     = "first-login"
+	KontainerDriverOKE                                    = "oraclecontainerengine"
+	NodeDriverOCI                                         = "oci"
+	ClusterLocal                                          = "local"
+	AuthConfigKeycloak                                    = "keycloakoidc"
+	AuthConfigLocal                                       = "local"
+	UserVerrazzano                                        = "u-verrazzano"
+	UserVerrazzanoDescription                             = "Verrazzano Admin"
+	GlobalRoleBindingVerrazzano                           = "gbr-" + UserVerrazzano
+	AuthConfigKeycloakURLPathVerifyAuth                   = "/verify-auth"
+	AuthConfigKeycloakURLPathIssuer                       = "/auth/realms/verrazzano-system"
+	AuthConfigKeycloakURLPathAuthEndPoint                 = "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
+	AuthConfigKeycloakClientIDRancher                     = "rancher"
+	AuthConfigKeycloakAccessMode                          = "unrestricted"
+	AuthConfigKeycloakAttributeAccessMode                 = "accessMode"
+	AuthConfigKeycloakAttributeClientID                   = "clientId"
+	AuthConfigAttributeEnabled                            = "enabled"
+	AuthConfigKeycloakAttributeGroupSearchEnabled         = "groupSearchEnabled"
+	AuthConfigKeycloakAttributeAuthEndpoint               = "authEndpoint"
+	AuthConfigKeycloakAttributeClientSecret               = "clientSecret"
+	AuthConfigKeycloakAttributeIssuer                     = "issuer"
+	AuthConfigKeycloakAttributeRancherURL                 = "rancherUrl"
+	UserPrincipalKeycloakPrefix                           = "keycloakoidc_user://"
+	GroupPrincipalKeycloakPrefix                          = "keycloakoidc_group://"
+	UserPrincipalLocalPrefix                              = "local://"
+	UserAttributeDisplayName                              = "displayName"
+	UserAttributeUserName                                 = "username"
+	UserAttributePrincipalIDs                             = "principalIds"
+	UserAttributeDescription                              = "description"
+	AdminRoleName                                         = "admin"
+	ClusterMemberRoleName                                 = "cluster-member"
+	GlobalRoleBindingAttributeRoleName                    = "globalRoleName"
+	GlobalRoleBindingAttributeUserName                    = "userName"
+	ClusterRoleTemplateBindingAttributeClusterName        = "clusterName"
+	ClusterRoleTemplateBindingAttributeGroupPrincipalName = "groupPrincipalName"
+	ClusterRoleTemplateBindingAttributeRoleTemplateName   = "roleTemplateName"
+	VerrazzanoAdminsGroupPrincipalName                    = GroupPrincipalKeycloakPrefix + "verrazzano-admins"
 )
 
 var GVKSetting = schema.GroupVersionKind{
@@ -169,6 +175,12 @@ var GVKGlobalRoleBinding = schema.GroupVersionKind{
 	Group:   APIGroupRancherManagement,
 	Version: APIGroupVersionRancherManagement,
 	Kind:    "GlobalRoleBinding",
+}
+
+var GVKGClusterRoleTemplateBinding = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "ClusterlRoleTemplateBinding",
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
@@ -581,7 +593,7 @@ func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentConte
 	}
 
 	globalRoleBindingData := vzRancherGlobalRoleBinding.UnstructuredContent()
-	globalRoleBindingData[GlobalRoleBindingAttributeRoleName] = GlobalRoleBindingRoleName
+	globalRoleBindingData[GlobalRoleBindingAttributeRoleName] = AdminRoleName
 	globalRoleBindingData[GlobalRoleBindingAttributeUserName] = UserVerrazzano
 
 	if createNew {
@@ -634,6 +646,43 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 	err = c.Update(context.Background(), &firstLoginSetting)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("Failed updating first-login Setting: %s", err.Error())
+	}
+
+	return nil
+}
+
+func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterRole string) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	ClusterRoleTemplateBindingName := "crtb-" + clusterRole
+	clusterRoleTemplateBinding := unstructured.Unstructured{}
+	clusterRoleTemplateBinding.SetGroupVersionKind(GVKGClusterRoleTemplateBinding)
+	err := c.Get(context.Background(), types.NamespacedName{Name: ClusterRoleTemplateBindingName, Namespace: ClusterLocal}, &clusterRoleTemplateBinding)
+	createNew := false
+	if err != nil {
+		if errors.IsNotFound(err) {
+			createNew = true
+			log.Debugf("%s ClusterRoleTemplateBinding for verrazzano-admins group does not exist", clusterRole)
+		} else {
+			return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for verrazzano-admins group, unable to fetch ClusterRoleTemplateBinding: %s", clusterRole, err.Error())
+		}
+	}
+
+	clusterRoleTemplateBindingData := clusterRoleTemplateBinding.UnstructuredContent()
+	clusterRoleTemplateBindingData[ClusterRoleTemplateBindingAttributeClusterName] = ClusterLocal
+	clusterRoleTemplateBindingData[ClusterRoleTemplateBindingAttributeGroupPrincipalName] = VerrazzanoAdminsGroupPrincipalName
+	clusterRoleTemplateBindingData[ClusterRoleTemplateBindingAttributeRoleTemplateName] = clusterRole
+
+	if createNew {
+		clusterRoleTemplateBinding.SetName(ClusterRoleTemplateBindingName)
+		clusterRoleTemplateBinding.SetNamespace(ClusterLocal)
+		err = c.Create(context.Background(), &clusterRoleTemplateBinding, &client.CreateOptions{})
+	} else {
+		err = c.Update(context.Background(), &clusterRoleTemplateBinding, &client.UpdateOptions{})
+	}
+
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for verrazzano-admins group: %s", clusterRole, err.Error())
 	}
 
 	return nil
