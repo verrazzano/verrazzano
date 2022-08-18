@@ -381,17 +381,28 @@
               "helmTagKey": "image.tag"
             },
             {
+              "repository": "oracle",
+              "image": "oraclelinux",
+              "tag": "7-slim",
+              "helmFullImageKey": "initContainerImage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mysql-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "mysql-operator",
+          "images": [
+            {
               "image": "mysql-operator",
               "tag": "8.0.30-2.0.5",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "mysqlOperator.image.repository",
               "helmTagKey": "mysqlOperator.image.tag"
-            },
-            {
-              "repository": "oracle",
-              "image": "oraclelinux",
-              "tag": "7-slim",
-              "helmFullImageKey": "initContainerImage"
             }
           ]
         }

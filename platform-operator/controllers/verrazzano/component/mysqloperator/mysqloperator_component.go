@@ -20,7 +20,7 @@ const (
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 	// ComponentJSONName is the json name of the component in the CRD
-	ComponentJSONName = "mysqlOperator"
+	ComponentJSONName = "mySQLOperator"
 )
 
 type mysqlOperatorComponent struct {
@@ -38,10 +38,17 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
-			ImagePullSecretKeyname:    "image.imagePullSecrets[0].name",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
 			Dependencies:              []string{},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
+}
+
+// IsReady - component specific ready-check
+func (c mysqlOperatorComponent) IsReady(context spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(context) {
+		return isReady(context)
+	}
+	return false
 }
