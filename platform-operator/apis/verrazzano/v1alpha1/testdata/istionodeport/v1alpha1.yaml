@@ -10,7 +10,8 @@ spec:
     ingress:
       nginxInstallArgs:
         - name: "controller.service.externalIPs"
-          value: "2.2.2.2"
+          valueList:
+          - "2.2.2.2"
       ports:
         - name: https
           protocol: TCP

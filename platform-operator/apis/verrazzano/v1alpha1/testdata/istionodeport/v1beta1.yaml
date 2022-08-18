@@ -18,7 +18,8 @@ spec:
         - values:
             controller:
               service:
-                externalIPs: 2.2.2.2
+                externalIPs:
+                - 2.2.2.2
             foo: bar
 
     istio:

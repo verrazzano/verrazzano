@@ -822,7 +822,7 @@ func convertInstallArgsToYaml(args []InstallArgs) (string, error) {
 		var yamlString string
 		var err error
 		if len(arg.ValueList) > 0 {
-			yamlString, err = vzyaml.Expand(0, false, arg.Name, arg.ValueList...)
+			yamlString, err = vzyaml.Expand(0, true, arg.Name, arg.ValueList...)
 		} else {
 			yamlString, err = vzyaml.Expand(0, false, arg.Name, arg.Value)
 		}
