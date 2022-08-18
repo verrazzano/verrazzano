@@ -270,12 +270,12 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c istioComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (i istioComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c istioComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+func (i istioComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
 	return nil
 }
 

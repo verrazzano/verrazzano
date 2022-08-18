@@ -141,12 +141,12 @@ func (v veleroHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 }
 
 // ValidateUpgrade verifies the install of the Verrazzano object
-func (c veleroHelmComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+func (v veleroHelmComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
-func (c veleroHelmComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (v veleroHelmComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	return nil
 }
 

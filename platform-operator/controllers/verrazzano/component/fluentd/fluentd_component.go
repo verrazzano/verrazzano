@@ -93,12 +93,12 @@ func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c fluentdComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+func (f fluentdComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c fluentdComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (f fluentdComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	return nil
 }
 
