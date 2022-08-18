@@ -428,11 +428,11 @@ pipeline {
                             environment {
                                 OCI_CLI_AUTH="instance_principal"
                                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                                OCI_OS_BUCKET="verrazzano-builds"
+                                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                             }
                             steps {
                                 sh """
-                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
                                     chmod +x ${WORKSPACE}/bom-validator
                                     ${WORKSPACE}/bom-validator
                                 """

@@ -214,7 +214,7 @@ pipeline {
                     sh """
                         cd ${GO_REPO_PATH}/verrazzano/tools/bom-validator
                         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/bom-validator --file ./out/linux_amd64/bom-validator
-                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ./out/linux_amd64/bom-validator
+                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ./out/linux_amd64/bom-validator
                     """
                 }
             }
