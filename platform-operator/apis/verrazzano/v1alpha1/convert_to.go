@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"github.com/Jeffail/gabs/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -786,11 +787,18 @@ func convertInstallOverridesWithArgsToV1Beta1(args []InstallArgs, overrides Inst
 		} else if isOverrideValueUnset(convertedOverrides.ValueOverrides[0]) {
 			convertedOverrides.ValueOverrides[0].Values = override.Values
 		} else {
-			data, err := strategicpatch.StrategicMergePatch(convertedOverrides.ValueOverrides[0].Values.Raw, override.Values.Raw, struct{}{})
+			d1, err := gabs.ParseJSON(convertedOverrides.ValueOverrides[0].Values.Raw)
 			if err != nil {
 				return convertedOverrides, err
 			}
-			convertedOverrides.ValueOverrides[0].Values.Raw = data
+			d2, err := gabs.ParseJSON(override.Values.Raw)
+			if err != nil {
+				return convertedOverrides, err
+			}
+			if err := d2.Merge(d1); err != nil {
+				return convertedOverrides, err
+			}
+			convertedOverrides.ValueOverrides[0].Values.Raw = d2.Bytes()
 		}
 	}
 
