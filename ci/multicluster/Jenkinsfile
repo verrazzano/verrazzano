@@ -873,6 +873,8 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                     if [[ $count -gt 1 && "\$(printf '%s\n' "1.4.0" "${params.VERSION_FOR_INSTALL}" | sort -V | head -n1)" = "1.4.0" ]]; then
                         yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.zipkin.address"' ${verrazzanoConfig}
                         yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${verrazzanoConfig}
+                        yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.sampling"' ${verrazzanoConfig}
+                        yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "75.0"' ${verrazzanoConfig}
                     fi
                 fi
 
@@ -941,8 +943,10 @@ def upgradeVerrazzano() {
 
                     # For managed clusters, enable Jaeger operator and update the istio tracing configuration
                     if [[ $count -gt 1 ]]; then
-                        yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.zipkin.address"' ${verrazzanoConfig}
-                        yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${verrazzanoConfig}
+                        yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.zipkin.address"' ${v8oUpgradeFile}
+                        yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${v8oUpgradeFile}
+                        yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.sampling"' ${v8oUpgradeFile}
+                        yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "75.0"' ${v8oUpgradeFile}
                     fi
                 fi
 
