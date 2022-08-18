@@ -187,7 +187,7 @@ var GVKGlobalRoleBinding = schema.GroupVersionKind{
 var GVKGClusterRoleTemplateBinding = schema.GroupVersionKind{
 	Group:   APIGroupRancherManagement,
 	Version: APIGroupVersionRancherManagement,
-	Kind:    "ClusterlRoleTemplateBinding",
+	Kind:    "ClusterRoleTemplateBinding",
 }
 
 type groupRolePair struct {
