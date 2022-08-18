@@ -290,6 +290,7 @@ pipeline {
                         failure {
                             script {
                                 TESTS_FAILED = true
+                                dumpK8sCluster('install-fail-cluster-snapshot')
                             }
                         }
                         always {
@@ -338,7 +339,7 @@ pipeline {
                         failure {
                             script {
                                 TESTS_FAILED = true
-                                dumpK8sCluster('ha-reschedule-workers-cluster-snapshot')
+                                dumpK8sCluster('reschedule-fail-cluster-snapshot')
                             }
                         }
                     }
@@ -389,6 +390,7 @@ pipeline {
                         failure {
                             script {
                                 TESTS_FAILED = true
+                                dumpK8sCluster('verify-install-fail-cluster-snapshot')
                             }
                         }
                     }
@@ -432,6 +434,7 @@ pipeline {
                         failure {
                             script {
                                 TESTS_FAILED = true
+                                dumpK8sCluster('rolling-upgrade-fail-cluster-snapshot')
                             }
                         }
                     }
@@ -442,9 +445,6 @@ pipeline {
                 failure {
                     script {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('ha-rolling-upgrade-cluster-snapshot')
-                        }
                     }
                 }
                 success {
