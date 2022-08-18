@@ -67,7 +67,6 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
-        booleanParam (description: 'Whether to capture full cluster snapshot for test failures', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
     environment {
@@ -156,12 +155,8 @@ pipeline {
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
-        // Used for capturing cluster resources on test failures
-        DUMP_KUBECONFIG="${KUBECONFIG}"
-        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+        // Environment variable for Verrazzano CLI executable
         VZ_COMMAND="${GO_REPO_PATH}/vz"
-        CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
     }
 
     stages {
@@ -343,13 +338,13 @@ pipeline {
                 success {
                     script {
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('cluster-snapshots/install-success')
+                            dumpK8sCluster('verrazzano-install-cluster-dump')
                         }
                     }
                 }
                 failure {
                     script {
-                        dumpK8sCluster('cluster-snapshots/install-failure')
+                        dumpK8sCluster('verrazzano-install-failure-cluster-dump')
                         sh """
                             mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs
                             ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/install/build/logs/resources.log
@@ -376,7 +371,7 @@ pipeline {
                 }
                 failure {
                     script {
-                        dumpK8sCluster('cluster-snapshots/opensearch-backup-restore')
+                        dumpK8sCluster('opensearch-backup-restore-cluster-dump')
                     }
                 }
             }
@@ -396,7 +391,7 @@ pipeline {
                 }
                 failure {
                     script {
-                        dumpK8sCluster('cluster-snapshots/rancher-backup-restore')
+                        dumpK8sCluster('rancher-backup-restore-cluster-dump')
                     }
                 }
             }
@@ -417,7 +412,7 @@ pipeline {
                 }
                 failure {
                     script {
-                        dumpK8sCluster('cluster-snapshots/mysql-backup-restore')
+                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
                     }
                 }
             }
@@ -509,7 +504,7 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory} ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

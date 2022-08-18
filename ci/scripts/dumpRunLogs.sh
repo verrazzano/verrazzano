@@ -4,7 +4,6 @@
 dumpK8sCluster() {
   ANALYSIS_REPORT="analysis.report"
   dumpDirectory=$1
-  # TODO: Capture full cluster only when an environment variable CAPTURE_FULL_CLUSTER is set
   ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/${ANALYSIS_REPORT}
 
   # TODO: Handle any error in creating the bug-report or running analyze on that

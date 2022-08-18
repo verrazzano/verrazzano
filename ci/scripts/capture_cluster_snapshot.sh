@@ -2,13 +2,11 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 captureFullCluster() {
-  # TODO: Capture full cluster only when an environment variable CAPTURE_FULL_CLUSTER is set
   mkdir -p ${FULL_CLUSTER_DIR}
   ${CLUSTER_SNAPSHOT_SCRIPT} -d ${FULL_CLUSTER_DIR} -r ${FULL_CLUSTER_DIR}/${ANALYSIS_REPORT}
 }
 
 captureBugReport() {
-  # TODO: Handle any error in creating the bug-report or running analyze on that
   # Create a bug-report and run analysis tool on the bug-report
   # Requires environment variable KUBECONFIG or $HOME/.kube/config
   mkdir -p ${BUG_REPORT_DIR}
@@ -34,15 +32,13 @@ if [ -z $1 ]; then
     exit 1
 fi
 
-if [ -z $2 ]; then
-    echo "The script to capture the cluster resources is required"
-    exit 1
-fi
+CLUSTER_SNAPSHOT_ROOT=$1
+
+SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
+CLUSTER_SNAPSHOT_SCRIPT=${SCRIPT_DIR}/../../tools/scripts/k8s-dump-cluster.sh
 
 ANALYSIS_REPORT="analysis.report"
 BUG_REPORT="bug-report.tar.gz"
-CLUSTER_SNAPSHOT_ROOT=$1
-CLUSTER_SNAPSHOT_SCRIPT=$2
 
 if [ ! -f "${CLUSTER_SNAPSHOT_SCRIPT}" ]; then
   echo "The script to capture the cluster resources ${CLUSTER_SNAPSHOT_SCRIPT} doesn't exist"
