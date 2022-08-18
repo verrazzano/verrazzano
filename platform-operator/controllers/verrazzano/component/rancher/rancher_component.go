@@ -376,10 +376,10 @@ func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
 			group:       VerrazzanoAdminsGroupName,
 			clusterRole: AdminRoleName,
 		},
-		{
-			group:       VerrazzanoAdminsGroupName,
-			clusterRole: VerrazzanoAdminRoleName,
-		},
+		//{
+		//	group:       VerrazzanoAdminsGroupName,
+		//	clusterRole: VerrazzanoAdminRoleName,
+		//},
 		{
 			group:       VerrazzanoAdminsGroupName,
 			clusterRole: ClusterMemberRoleName,
@@ -388,10 +388,10 @@ func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
 			group:       VerrazzanoMonitorsGroupName,
 			clusterRole: ViewRoleName,
 		},
-		{
-			group:       VerrazzanoMonitorsGroupName,
-			clusterRole: VerrazzanoMonitorsGroupName,
-		},
+		//{
+		//	group:       VerrazzanoMonitorsGroupName,
+		//	clusterRole: VerrazzanoMonitorsRoleName,
+		//},
 		{
 			group:       VerrazzanoMonitorsGroupName,
 			clusterRole: ClusterMemberRoleName,
