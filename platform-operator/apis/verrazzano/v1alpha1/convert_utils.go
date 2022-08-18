@@ -18,6 +18,7 @@ const (
 	testCaseIstioInstallArgs  = "fromistioinstallargs"
 	testCaseIstioAffinityArgs = "fromistioaffinityargs"
 	testCaseIstioOverrides    = "istiomultipleoverrides"
+	testCaseIstioNodePort     = "istionodeport"
 	testCaseFromAllComps      = "fromallcomps"
 	testCaseOpensearch        = "fromopensearch"
 	testCaseInstallArgsErr    = "frominstallargserr"

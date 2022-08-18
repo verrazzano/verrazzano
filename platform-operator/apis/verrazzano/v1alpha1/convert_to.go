@@ -519,12 +519,12 @@ type IstioOperator struct {
 }
 
 func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrides) ([]v1beta1.Overrides, error) {
-	if len(overrides) < 1 {
-		return []v1beta1.Overrides{
-			override,
-		}, nil
-	}
 	if !isOverrideValueUnset(override) {
+		if len(overrides) < 1 {
+			return []v1beta1.Overrides{
+				override,
+			}, nil
+		}
 		if isOverrideValueUnset(overrides[0]) {
 			overrides[0].Values = override.Values
 		} else {
@@ -768,17 +768,32 @@ func convertSecuritySpecTo(security SecuritySpec) v1beta1.SecuritySpec {
 
 func convertInstallOverridesWithArgsToV1Beta1(args []InstallArgs, overrides InstallOverrides) (v1beta1.InstallOverrides, error) {
 	convertedOverrides := convertInstallOverridesToV1Beta1(overrides)
+	override := v1beta1.Overrides{}
 	if len(args) > 0 {
-		merged, err := convertInstallArgsToYaml(args)
+		rawYAML, err := convertInstallArgsToYaml(args)
 		if err != nil {
-			return v1beta1.InstallOverrides{}, err
+			return convertedOverrides, err
 		}
-		override, err := createValueOverride([]byte(merged))
+		override, err = createValueOverride([]byte(rawYAML))
 		if err != nil {
-			return v1beta1.InstallOverrides{}, err
+			return convertedOverrides, err
 		}
-		convertedOverrides.ValueOverrides = append(convertedOverrides.ValueOverrides, override)
 	}
+
+	if !isOverrideValueUnset(override) {
+		if len(convertedOverrides.ValueOverrides) < 1 {
+			convertedOverrides.ValueOverrides = []v1beta1.Overrides{override}
+		} else if isOverrideValueUnset(convertedOverrides.ValueOverrides[0]) {
+			convertedOverrides.ValueOverrides[0].Values = override.Values
+		} else {
+			data, err := strategicpatch.StrategicMergePatch(convertedOverrides.ValueOverrides[0].Values.Raw, override.Values.Raw, struct{}{})
+			if err != nil {
+				return convertedOverrides, err
+			}
+			convertedOverrides.ValueOverrides[0].Values.Raw = data
+		}
+	}
+
 	return convertedOverrides, nil
 }
 

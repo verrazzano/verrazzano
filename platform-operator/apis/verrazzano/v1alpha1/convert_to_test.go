@@ -372,8 +372,13 @@ func TestConvertToV1Beta1(t *testing.T) {
 			false,
 		},
 		{
-			"convert volume claim templates from v1alpha1",
+			"convert istio overrides",
 			testCaseIstioOverrides,
+			false,
+		},
+		{
+			"convert istio node port",
+			testCaseIstioNodePort,
 			false,
 		},
 		{
