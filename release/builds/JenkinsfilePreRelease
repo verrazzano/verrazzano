@@ -43,6 +43,7 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         PERIODIC_JOB_PROJECT_NAME = 'verrazzano-periodic-triggered-tests'
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
@@ -114,7 +115,6 @@ pipeline {
                 IGNORE_FAILURES = "false"
                 TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
                 TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"
                 OCI_CLI_AUTH="api_key"
                 OCI_CLI_TENANCY = credentials('oci-tenancy')
