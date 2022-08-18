@@ -342,6 +342,10 @@ type ComponentSpec struct {
 	// +optional
 	KubeStateMetrics *KubeStateMetricsComponent `json:"kubeStateMetrics,omitempty"`
 
+	// MySQL Operator configuration
+	// +optional
+	MySQLOperator *MySQLOperatorComponent `json:"mySQLOperator,omitempty"`
+
 	// Prometheus configuration
 	// +optional
 	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
@@ -604,6 +608,13 @@ type MySQLComponent struct {
 	// +optional
 	// +patchStrategy=replace
 	VolumeSource     *corev1.VolumeSource `json:"volumeSource,omitempty" patchStrategy:"replace"`
+	InstallOverrides `json:",inline"`
+}
+
+// MySQLOperatorComponent specifies the MySQL Operator configuration
+type MySQLOperatorComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
 }
 

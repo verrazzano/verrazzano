@@ -230,6 +230,11 @@ spec:
                           app.kubernetes.io/name: keycloak
                       topologyKey: kubernetes.io/hostname
             replicas: 1
+    mysql-operator:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
     kiali:
       enabled: true
       overrides:
