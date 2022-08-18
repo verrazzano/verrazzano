@@ -553,6 +553,14 @@ type MockComponent struct {
 	recorder *MockComponentMockRecorder
 }
 
+func (m *MockComponent) ValidateInstallV1Beta1(vz *v1alpha1.Verrazzano) error {
+	return nil
+}
+
+func (m *MockComponent) ValidateUpdateV1Beta1(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	return nil
+}
+
 // MockComponentMockRecorder is the mock recorder for MockComponent.
 type MockComponentMockRecorder struct {
 	mock *MockComponent
