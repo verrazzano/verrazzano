@@ -162,6 +162,7 @@ pipeline {
         TF_VAR_os_version="${params.OCNE_OS_VERSION}"
         TF_VAR_environment_name="myenvironment"
         TF_VAR_kubernetes_name="mycluster"
+        TF_VAR_kubernetes_extra_args="--restrict-service-externalip=false"
         TF_VAR_deploy_helm_module="true"
         TF_VAR_helm_name="myhelm"
         TF_VAR_deploy_oci_ccm_module="true"
@@ -350,7 +351,7 @@ pipeline {
             steps {
                 script {
                     echo "[INFO] Enable External IP access"
-                    updateOCNEConfig()
+                    // updateOCNEConfig()
                 }
             }
         }
