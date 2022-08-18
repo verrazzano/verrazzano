@@ -326,7 +326,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-install"
                     }
                     steps{
-                        runGinkgoRandomize('examples/helidon', '--namespace=hello-helidon --skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                        runGinkgoRandomize('examples/helidon', '--skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
                     }
                     post {
                         always {
