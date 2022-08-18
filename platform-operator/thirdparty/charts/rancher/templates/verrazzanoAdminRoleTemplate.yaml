@@ -1,0 +1,123 @@
+apiVersion: management.cattle.io/v3
+builtin: false
+context: cluster
+description: ""
+displayName: Verrazzano Admin
+external: false
+hidden: false
+kind: RoleTemplate
+metadata:
+  name: verrazzano-admin
+rules:
+  - apiGroups:
+      - verrazzano.io
+      - oam.verrazzano.io
+      - core.oam.dev
+    resources:
+      - '*'
+      - '*/status'
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - weblogic.oracle
+    resources:
+      - domains
+      - domains/status
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - coherence.oracle.com
+    resources:
+      - coherence
+      - coherence/status
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - verrazzano.io
+      - oam.verrazzano.io
+      - core.oam.dev
+    resources:
+      - '*'
+    verbs:
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection
+  - apiGroups:
+      - weblogic.oracle
+    resources:
+      - domains
+    verbs:
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection
+  - apiGroups:
+      - coherence.oracle.com
+    resources:
+      - coherence
+    verbs:
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection
+  - apiGroups:
+      - install.verrazzano.io
+    resources:
+      - '*'
+      - '*/status'
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - install.verrazzano.io
+    resources:
+      - '*'
+    verbs:
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection
+  - apiGroups:
+      - clusters.verrazzano.io
+      - images.verrazzano.io
+    resources:
+      - '*'
+      - '*/status'
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - config.istio.io
+      - networking.istio.io
+      - security.istio.io
+    resources:
+      - '*'
+      - '*/status'
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - clusters.verrazzano.io
+      - images.verrazzano.io
+    resources:
+      - '*'
+    verbs:
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection
