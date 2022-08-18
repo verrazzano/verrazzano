@@ -1248,8 +1248,9 @@ def dumpK8sCluster(dumpDirectory) {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for (int count = 1; count <= clusterCount; count++) {
                 sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}/cluster-snapshot-${count}
+                  export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                  ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}/cluster-snapshot-${count}
+                """
             }
         }
     }
