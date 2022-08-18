@@ -174,14 +174,14 @@ func (b *Bom) GetVersion() string {
 	return b.bomDoc.Version
 }
 
-// GetComponentVersion gets the BOM component's version
-func (b *Bom) GetComponentVersion(component string) string {
+// GetComponent gets the BOM component
+func (b *Bom) GetComponent(componentName string) (*BomComponent, error) {
 	for _, comp := range b.bomDoc.Components {
-		if comp.Name == component {
-			return comp.Version
+		if comp.Name == componentName {
+			return &comp, nil
 		}
 	}
-	return ""
+	return nil, errors.New("unknown component " + componentName)
 }
 
 // GetSubcomponent gets the bom subcomponent
