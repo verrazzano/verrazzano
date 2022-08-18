@@ -238,16 +238,12 @@ func (r *VerrazzanoManagedClusterReconciler) mutateServiceAccount(vmc *clustersv
 }
 
 func (r *VerrazzanoManagedClusterReconciler) createServiceAccountTokenSecret(ctx context.Context, serviceAccount *corev1.ServiceAccount) (controllerutil.OperationResult, error) {
-	name := serviceAccount.Name + "-token"
-	secret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: serviceAccount.Namespace,
-			Annotations: map[string]string{
-				corev1.ServiceAccountNameKey: serviceAccount.Name,
-			},
-		},
-		Type: corev1.SecretTypeServiceAccountToken,
+	var secret corev1.Secret
+	secret.Name = serviceAccount.Name + "-token"
+	secret.Namespace = serviceAccount.Namespace
+	secret.Type = corev1.SecretTypeServiceAccountToken
+	secret.Annotations = map[string]string{
+		corev1.ServiceAccountNameKey: serviceAccount.Name,
 	}
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &secret, func() error {
