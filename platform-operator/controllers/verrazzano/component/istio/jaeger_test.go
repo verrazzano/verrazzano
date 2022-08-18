@@ -37,31 +37,6 @@ var testZipkinService = corev1.Service{
 	},
 }
 
-func TestZipkinPort(t *testing.T) {
-	var tests = []struct {
-		name    string
-		service corev1.Service
-		port    int32
-	}{
-		{
-			"9411 when no named port",
-			corev1.Service{},
-			9411,
-		},
-		{
-			"service port when named port",
-			testZipkinService,
-			5555,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.port, zipkinPort(tt.service))
-		})
-	}
-}
-
 func TestConfigureJaeger(t *testing.T) {
 	ctxNoService := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
 	ctxWithServiceAndUnmanagedNamespace := spi.NewFakeContext(fake.NewClientBuilder().
@@ -78,17 +53,17 @@ func TestConfigureJaeger(t *testing.T) {
 		numArgs int
 	}{
 		{
-			"no args when jaeger disabled",
+			"2 args (tls mode and zipkin address) returned when Jaeger operator is disabled",
 			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false),
-			0,
+			2,
 		},
 		{
-			"no args when service not present",
+			"2 args (tls mode and zipkin address) returned when service is not present",
 			ctxNoService,
-			0,
+			2,
 		},
 		{
-			"0 args when service present",
+			"2 args (tls mode and zipkin address) returned when service is present",
 			ctxWithServiceAndUnmanagedNamespace,
 			2,
 		},

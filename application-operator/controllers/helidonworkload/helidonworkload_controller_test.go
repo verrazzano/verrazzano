@@ -236,12 +236,12 @@ func TestReconcileCreateHelidon(t *testing.T) {
 		},
 		Selector: metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"app": "hello-helidon-deployment",
+				"app": "hello-helidon",
 			},
 			MatchExpressions: []metav1.LabelSelectorRequirement{{
 				Key:      "app",
 				Operator: "In",
-				Values:   []string{"hello-helidon-deployment"},
+				Values:   []string{"hello-helidon"},
 			}},
 		},
 	}

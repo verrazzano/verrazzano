@@ -24,16 +24,15 @@ const (
 	helpShort   = "Collect information from the cluster to report an issue"
 	helpLong    = `Verrazzano command line utility to collect data from the cluster, to report an issue`
 	helpExample = `
-# Create a bug report bugreport.tar.gz by collecting data from the cluster
+# Create a bug report file, bugreport.tar.gz, by collecting data from the cluster:
 vz bug-report --report-file bugreport.tar.gz
 
-When the --report-file is not provided, the command attempts to create bug-report.tar.gz in the current directory.
+When --report-file is not provided, the command creates bug-report.tar.gz in the current directory.
 
-# Create a bug report bugreport.tgz, including additional namespace ns1 from the cluster
+# Create a bug report file, bugreport.tar.gz, including the additional namespace ns1 from the cluster:
 vz bug-report --report-file bugreport.tgz --include-namespaces ns1
 
-The flag --include-namespaces accepts comma separated values. The flag can also be specified multiple times.
-For example, the following commands create a bug report by including additional namespaces ns1, ns2 and ns3
+The flag --include-namespaces accepts comma-separated values and can be specified multiple times. For example, the following commands create a bug report by including additional namespaces ns1, ns2, and ns3:
    a. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2,ns3
    b. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-namespaces ns3
 

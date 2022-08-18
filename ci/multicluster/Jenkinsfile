@@ -1249,7 +1249,7 @@ def dumpK8sCluster(dumpDirectory) {
 
                 mkdir -p ${dumpDirectory}/bug-report-${count}/bug-report
                 ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report-${count}/bug-report.tar.gz
-                tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report-${count}/bug-report
+                tar -xvf ${dumpDirectory}/bug-report-${count}/bug-report.tar.gz -C ${dumpDirectory}/bug-report-${count}/bug-report
             """
             }
         }

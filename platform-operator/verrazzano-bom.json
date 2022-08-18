@@ -220,7 +220,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.4.0-20220811123252-03aa4e3",
+              "tag": "v1.4.0-20220817103906-703911c",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -647,18 +647,18 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.8.1-20220811175045-7bc0e55e",
+              "tag": "v1.8.1-20220816040906-c3e3b0c6",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "velero-plugin-for-aws",
-              "tag": "v1.4.1-20220811172550-645bcc83",
+              "tag": "v1.4.1-20220816055024-94cac710",
               "helmFullImageKey": "initContainers[0].image"
             },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.8.1-20220811175045-7bc0e55e",
+              "tag": "v1.8.1-20220816040906-c3e3b0c6",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]

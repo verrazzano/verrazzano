@@ -49,7 +49,7 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(fooNamespace, barNamespace, noIstioNamespace)
 	}
 	start := time.Now()
 	undeployFooApplication()
