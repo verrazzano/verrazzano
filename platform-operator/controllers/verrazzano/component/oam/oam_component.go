@@ -73,6 +73,11 @@ func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzan
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c oamComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // PreUpgrade OAM-pre-upgrade processing
 func (c oamComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir())
