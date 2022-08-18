@@ -192,9 +192,16 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 
 func (r *VerrazzanoManagedClusterReconciler) syncServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	// Create or update the service account
-	_, err := r.createOrUpdateServiceAccount(context.TODO(), vmc)
+	_, serviceAccount, err := r.createOrUpdateServiceAccount(context.TODO(), vmc)
 	if err != nil {
 		return err
+	}
+
+	if len(serviceAccount.Secrets) == 0 {
+		_, err = r.createServiceAccountTokenSecret(context.TODO(), serviceAccount)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Does the VerrazzanoManagedCluster object contain the service account name?
@@ -212,21 +219,42 @@ func (r *VerrazzanoManagedClusterReconciler) syncServiceAccount(vmc *clustersv1a
 }
 
 // Create or update the ServiceAccount for a VerrazzanoManagedCluster
-func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceAccount(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (controllerutil.OperationResult, error) {
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceAccount(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (controllerutil.OperationResult, *corev1.ServiceAccount, error) {
 	var serviceAccount corev1.ServiceAccount
 	serviceAccount.Namespace = vmc.Namespace
 	serviceAccount.Name = generateManagedResourceName(vmc.Name)
 
-	return controllerutil.CreateOrUpdate(ctx, r.Client, &serviceAccount, func() error {
+	operationResult, err := controllerutil.CreateOrUpdate(ctx, r.Client, &serviceAccount, func() error {
 		r.mutateServiceAccount(vmc, &serviceAccount)
 		// This SetControllerReference call will trigger garbage collection i.e. the serviceAccount
 		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
 		return controllerutil.SetControllerReference(vmc, &serviceAccount, r.Scheme)
 	})
+	return operationResult, &serviceAccount, err
 }
 
 func (r *VerrazzanoManagedClusterReconciler) mutateServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster, serviceAccount *corev1.ServiceAccount) {
 	serviceAccount.Name = generateManagedResourceName(vmc.Name)
+}
+
+func (r *VerrazzanoManagedClusterReconciler) createServiceAccountTokenSecret(ctx context.Context, serviceAccount *corev1.ServiceAccount) (controllerutil.OperationResult, error) {
+	name := serviceAccount.Name + "-token"
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: serviceAccount.Namespace,
+			Annotations: map[string]string{
+				corev1.ServiceAccountNameKey: serviceAccount.Name,
+			},
+		},
+		Type: corev1.SecretTypeServiceAccountToken,
+	}
+
+	return controllerutil.CreateOrUpdate(ctx, r.Client, &secret, func() error {
+		// This SetControllerReference call will trigger garbage collection i.e. the token secret
+		// will automatically get deleted when the service account is deleted
+		return controllerutil.SetControllerReference(serviceAccount, &secret, r.Scheme)
+	})
 }
 
 // syncManagedRoleBinding syncs the RoleBinding that binds the service account used by the managed cluster
