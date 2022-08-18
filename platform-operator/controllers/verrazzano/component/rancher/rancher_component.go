@@ -353,6 +353,10 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user global clusterRole binding: %s", err.Error())
 	}
 
+	if err := createOrUpdateClusterRoleTemplateBindings(ctx); err != nil {
+		return err
+	}
+
 	if err := disableFirstLogin(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
 	}
