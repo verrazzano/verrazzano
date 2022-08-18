@@ -139,7 +139,7 @@ pipeline {
         OCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
         // TODO: Update the default branch to be used for terraform-oci-olcne
         // OCNE_BRANCH_TO_USE="origin/release/$OCNE_VERSION"
-        OCNE_BRANCH_TO_USE="origin/feature/VZ-6040"
+        OCNE_BRANCH_TO_USE="origin/feature/OLCNE-4019"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
 
         // Terraform variables
