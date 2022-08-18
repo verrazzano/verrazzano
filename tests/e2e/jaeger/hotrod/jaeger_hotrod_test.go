@@ -27,7 +27,7 @@ const (
 )
 
 var (
-	t                  = framework.NewTestFramework("jaeger")
+	t                  = framework.NewTestFramework("jaeger-hotrod")
 	generatedNamespace = pkg.GenerateNamespace("hotrod-tracing")
 	expectedPodsHotrod = []string{"hotrod-workload"}
 	beforeSuitePassed  = false

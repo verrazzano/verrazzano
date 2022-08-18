@@ -22,8 +22,9 @@ const (
 )
 
 var (
-	t     = framework.NewTestFramework("jaeger")
-	start = time.Now()
+	t = framework.NewTestFramework("jaeger-system-traces")
+	// Allow 3 hour allowance in start time to find the system traces faster
+	start = time.Now().Add(-3 * time.Hour)
 )
 
 var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.system-traces"), func() {

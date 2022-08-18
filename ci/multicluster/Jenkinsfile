@@ -863,7 +863,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                     yq -i eval '.spec.components.jaegerOperator.enabled = true' ${verrazzanoConfig}
 
                     # For managed clusters, if the VZ version is greater than 1.4.0, enable Jaeger operator and update the istio tracing configuration
-                    if [[ $count -gt 0 && "$(printf '%s\n' "1.4.0" "${params.VERSION_FOR_INSTALL}" | sort -V | head -n1)" = "1.4.0" ]]; then
+                    if [[ $count -gt 0 && "\$(printf '%s\n' "1.4.0" "${params.VERSION_FOR_INSTALL}" | sort -V | head -n1)" = "1.4.0" ]]; then
                         yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.zipkin.address"' ${verrazzanoConfig}
                         yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${verrazzanoConfig}
                     fi
@@ -933,7 +933,7 @@ def upgradeVerrazzano() {
                     yq -i eval '.spec.components.jaegerOperator.enabled = true' ${v8oUpgradeFile}
 
                     # For managed clusters, enable Jaeger operator and update the istio tracing configuration
-                    if [[ $count -gt 0 && "$(printf '%s\n' "1.4.0" "${params.VERSION_FOR_INSTALL}" | sort -V | head -n1)" = "1.4.0" ]]; then
+                    if [[ $count -gt 0 ]]; then
                         yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.zipkin.address"' ${verrazzanoConfig}
                         yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${verrazzanoConfig}
                     fi

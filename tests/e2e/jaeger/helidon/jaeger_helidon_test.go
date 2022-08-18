@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	t                        = framework.NewTestFramework("jaeger")
+	t                        = framework.NewTestFramework("jaeger-helidon")
 	generatedNamespace       = pkg.GenerateNamespace("jaeger-tracing")
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 	beforeSuitePassed        = false
