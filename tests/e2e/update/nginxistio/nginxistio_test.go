@@ -102,6 +102,8 @@ type NginxIstioIngressServiceAnnotationModifier struct {
 }
 
 func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	serviceAnnotationModifier := NginxIstioIngressServiceAnnotationModifier{nginxLBShape: "flexible", istioLBShape: "10Mbps"}
+	serviceAnnotationModifier.ModifyCR(cr)
 	if cr.Spec.Components.Ingress == nil {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
@@ -109,14 +111,12 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
 	// update nginx
-	overrides := []vzapi.Overrides{
-		{
-			Values: &apiextensionsv1.JSON{
-				Raw: []byte(fmt.Sprintf("{\"controller\": {\"autoscaling\": {\"enabled\": \"true\", \"minReplicas\": %v}}}", m.nginxReplicas)),
-			},
+	override := vzapi.Overrides{
+		Values: &apiextensionsv1.JSON{
+			Raw: []byte(fmt.Sprintf("{\"controller\": {\"autoscaling\": {\"enabled\": \"true\", \"minReplicas\": %v}}}", m.nginxReplicas)),
 		},
 	}
-	cr.Spec.Components.Ingress.ValueOverrides = overrides
+	cr.Spec.Components.Ingress.ValueOverrides = append(cr.Spec.Components.Ingress.ValueOverrides, override)
 	// update istio ingress
 	if cr.Spec.Components.Istio.Ingress == nil {
 		cr.Spec.Components.Istio.Ingress = &vzapi.IstioIngressSection{}
@@ -191,6 +191,8 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 }
 
 func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	serviceAnnotationModifier := NginxIstioIngressServiceAnnotationModifier{nginxLBShape: "flexible", istioLBShape: "10Mbps"}
+	serviceAnnotationModifier.ModifyCR(cr)
 	if cr.Spec.Components.Ingress == nil {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
@@ -213,6 +215,10 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (u NginxIstioLoadBalancerModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	serviceAnnotationModifier := NginxIstioIngressServiceAnnotationModifier{nginxLBShape: "flexible", istioLBShape: "10Mbps"}
+	serviceAnnotationModifier.ModifyCR(cr)
+	nodePortModifier := NginxIstioNodePortModifier{systemExternalLBIP: systemExternalIP, applicationExternalLBIP: applicationExternalIP}
+	nodePortModifier.ModifyCR(cr)
 	if cr.Spec.Components.Ingress == nil {
 		cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{}
 	}
