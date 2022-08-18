@@ -43,6 +43,9 @@ var _ = t.BeforeSuite(func() {
 	start = time.Now()
 	// set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 
+	if adminKubeconfig == "" || managedKubeconfig == "" || managedClusterName == "" {
+		AbortSuite("One or more required env variables (ADMIN_KUBECONFIG, MANAGED_KUBECONFIG, MANAGED_CLUSTER_NAME) for the test suite are not set.")
+	}
 	// deploy the VerrazzanoProject
 	start := time.Now()
 	Eventually(func() error {
@@ -128,5 +131,4 @@ var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-wor
 		})
 
 	})
-
 })

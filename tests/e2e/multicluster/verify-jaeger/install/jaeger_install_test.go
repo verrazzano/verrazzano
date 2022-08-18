@@ -22,7 +22,6 @@ const (
 	pollingInterval         = 10 * time.Second
 	jaegerESIndexCleanerJob = globalconst.JaegerInstanceName + "-es-index-cleaner"
 	testSkipMsgFmt          = "Cluster name is '%s'. Skipping tests meant for managed clusters"
-	componentLabelKey       = "app.kubernetes.io/component"
 	instanceLabelKey        = "app.kubernetes.io/instance"
 	jaegerMCInstance        = "jaeger-verrazzano-managed-cluster"
 )
@@ -32,6 +31,12 @@ var t = framework.NewTestFramework("jaeger_mc_system_test")
 var kubeconfigPath = os.Getenv("KUBECONFIG")
 var clusterName = os.Getenv("CLUSTER_NAME")
 
+var _ = t.BeforeSuite(func() {
+	if kubeconfigPath == "" {
+		AbortSuite("Required env variable KUBECONFIG not set.")
+	}
+})
+
 var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:platform-lcm.install"), func() {
 
 	// GIVEN a multicluster setup with an admin and a manged cluster,
@@ -39,16 +44,12 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 	// THEN only the Jaeger collector pods are created in the managed cluster.
 	t.It("Jaeger Collector pods must be running in managed cluster", func() {
 		skipIfAdminCluster()
-		labels := map[string]string{
-			componentLabelKey: globalconst.JaegerCollectorComponentName,
-			instanceLabelKey:  jaegerMCInstance,
-		}
 		Eventually(func() bool {
-			deployments, err := pkg.ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, labels)
+			collectorDeployments, err := pkg.GetJaegerCollectorDeployments(kubeconfigPath, jaegerMCInstance)
 			if err != nil {
 				return false
 			}
-			for _, deployment := range deployments.Items {
+			for _, deployment := range collectorDeployments {
 				isRunning, err := pkg.PodsRunningInCluster(constants.VerrazzanoMonitoringNamespace, []string{deployment.Name}, kubeconfigPath)
 				if err != nil {
 					return false
@@ -64,19 +65,16 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 	// THEN only one Jaeger collector deployment is created in the managed cluster.
 	t.It("Atmost only one Jaeger Collector pods must be running in managed cluster", func() {
 		skipIfAdminCluster()
-		labels := map[string]string{
-			componentLabelKey: globalconst.JaegerCollectorComponentName,
-		}
 		Eventually(func() bool {
-			deployments, err := pkg.ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, labels)
+			collectorDeployments, err := pkg.GetJaegerCollectorDeployments(kubeconfigPath, "")
 			if err != nil {
 				return false
 			}
-			if len(deployments.Items) == 1 {
+			if len(collectorDeployments) == 1 {
 				// check if the only available Jaeger collector is the one managed by the mcagent.
-				return deployments.Items[0].Labels[instanceLabelKey] == jaegerMCInstance
+				return collectorDeployments[0].Labels[instanceLabelKey] == jaegerMCInstance
 			}
-			pkg.Log(pkg.Error, "Managed cluster cannot have zero or more than one Jaeger collectors")
+			pkg.Log(pkg.Error, "Managed cluster must have exactly one Jaeger collector")
 			return false
 		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
@@ -86,16 +84,12 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 	// THEN pods for the Jaeger query component do NOT get created in the managed cluster.
 	t.It("Jaeger Query pods must NOT be running in managed cluster", func() {
 		skipIfAdminCluster()
-		labels := map[string]string{
-			componentLabelKey: globalconst.JaegerQueryComponentName,
-			instanceLabelKey:  jaegerMCInstance,
-		}
 		isRunning := false
-		deployments, err := pkg.ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, labels)
+		queryDeployments, err := pkg.GetJaegerQueryDeployments(kubeconfigPath, jaegerMCInstance)
 		if err != nil {
 			Fail(err.Error())
 		}
-		for _, deployment := range deployments.Items {
+		for _, deployment := range queryDeployments {
 			var err error
 			isRunning, err = pkg.PodsRunningInCluster(constants.VerrazzanoMonitoringNamespace, []string{deployment.Name}, kubeconfigPath)
 			if err != nil {

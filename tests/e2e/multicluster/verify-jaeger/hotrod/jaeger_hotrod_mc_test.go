@@ -45,6 +45,9 @@ var _ = t.BeforeSuite(func() {
 
 	// deploy the VerrazzanoProject
 	start := time.Now()
+	if adminKubeconfig == "" || managedKubeconfig == "" || managedClusterName == "" {
+		AbortSuite("One or more required env variables (ADMIN_KUBECONFIG, MANAGED_KUBECONFIG, MANAGED_CLUSTER_NAME) for the test suite are not set.")
+	}
 	Eventually(func() error {
 		if err := pkg.CreateOrUpdateResourceFromFileInCluster(verrazzanoProjectFilePath, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to create %s project resource: %v", projectName, err)
@@ -128,5 +131,4 @@ var _ = t.Describe("Hotrod App with Jaeger Traces", Label("f:jaeger.hotrod-workl
 		})
 
 	})
-
 })

@@ -32,39 +32,41 @@ var clusterName = os.Getenv("CLUSTER_NAME")
 var _ = t.BeforeSuite(func() {
 	// Allow 3hr allowance for the traces.
 	start = time.Now().Add(-3 * time.Hour)
+	if adminKubeConfigPath == "" {
+		AbortSuite("Required env variable ADMIN_KUBECONFIG not set.")
+	}
 })
 
-var _ = t.Describe("Multi Cluster Jaeger Validation", Label("f:platform-lcm.install"),
-	func() {
+var _ = t.Describe("Multi Cluster Jaeger Validation", Label("f:platform-lcm.install"), func() {
 
-		// GIVEN a multicluster setup with an admin and a manged cluster,
-		// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
-		// THEN system traces can be queried from the Jaeger UI in the admin cluster
-		t.It("traces from verrazzano system components of managed cluster should be available when queried from Jaeger", func() {
-			validatorFn := pkg.ValidateSystemTracesFuncInCluster(adminKubeConfigPath, start, getClusterName())
-			Eventually(validatorFn).WithPolling(longPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
-		})
-
-		// GIVEN a multicluster setup with an admin and a manged cluster,
-		// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
-		// THEN we are able to query the metrics of Jaeger operator running in managed cluster
-		//      from the prometheus service running admin cluster.
-		t.It("metrics of jaeger operator running in managed cluster are available in prometheus of admin cluster", func() {
-			Eventually(func() bool {
-				return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerOperatorSampleMetric, getClusterName(), nil)
-			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
-		})
-
-		// GIVEN a multicluster setup with an admin and a manged cluster,
-		// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
-		// THEN we are able to query the metrics of Jaeger collector running in managed cluster
-		//      from the prometheus service running admin cluster.
-		t.It("metrics of jaeger collector running in managed cluster are available in prometheus of admin cluster", func() {
-			Eventually(func() bool {
-				return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerCollectorSampleMetric, getClusterName(), nil)
-			}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
-		})
+	// GIVEN a multicluster setup with an admin and a manged cluster,
+	// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
+	// THEN system traces can be queried from the Jaeger UI in the admin cluster
+	t.It("traces from verrazzano system components of managed cluster should be available when queried from Jaeger", func() {
+		validatorFn := pkg.ValidateSystemTracesFuncInCluster(adminKubeConfigPath, start, getClusterName())
+		Eventually(validatorFn).WithPolling(longPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
 	})
+
+	// GIVEN a multicluster setup with an admin and a manged cluster,
+	// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
+	// THEN we are able to query the metrics of Jaeger operator running in managed cluster
+	//      from the prometheus service running admin cluster.
+	t.It("metrics of jaeger operator running in managed cluster are available in prometheus of admin cluster", func() {
+		Eventually(func() bool {
+			return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerOperatorSampleMetric, getClusterName(), nil)
+		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+	})
+
+	// GIVEN a multicluster setup with an admin and a manged cluster,
+	// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
+	// THEN we are able to query the metrics of Jaeger collector running in managed cluster
+	//      from the prometheus service running admin cluster.
+	t.It("metrics of jaeger collector running in managed cluster are available in prometheus of admin cluster", func() {
+		Eventually(func() bool {
+			return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerCollectorSampleMetric, getClusterName(), nil)
+		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+	})
+})
 
 func getClusterName() string {
 	if clusterName == "admin" {

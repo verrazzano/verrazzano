@@ -148,13 +148,13 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// THEN we successfully find the expected cron job
 		WhenJaegerOperatorEnabledIt("should have a Jaeger OpenSearch Index Cleaner cron job", func() {
 			Eventually(func() (bool, error) {
-				create, err := pkg.IsJaegerInstanceCreated()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error checking if Jaeger CR is available %s", err.Error()))
-					return false, err
-				}
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
+					return false, err
+				}
+				create, err := pkg.IsJaegerInstanceCreated(kubeconfigPath)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error checking if Jaeger CR is available %s", err.Error()))
 					return false, err
 				}
 				if create {

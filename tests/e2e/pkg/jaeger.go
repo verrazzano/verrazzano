@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
@@ -34,6 +35,8 @@ const (
 	jaegerQuerySampleMetric     = "jaeger_query_requests_total"
 	jaegerCollectorSampleMetric = "jaeger_collector_queue_capacity"
 	jaegerESIndexCleanerJob     = "jaeger-operator-jaeger-es-index-cleaner"
+	componentLabelKey           = "app.kubernetes.io/component"
+	instanceLabelKey            = "app.kubernetes.io/instance"
 )
 
 const (
@@ -108,15 +111,53 @@ type JaegerTraceDataWrapper struct {
 }
 
 //IsJaegerInstanceCreated checks whether the default Jaeger CR is created
-func IsJaegerInstanceCreated() (bool, error) {
-	deployments, err := ListDeployments(constants.VerrazzanoMonitoringNamespace)
+func IsJaegerInstanceCreated(kubeconfigPath string) (bool, error) {
+	collectorDeployments, err := GetJaegerCollectorDeployments(kubeconfigPath, globalconst.JaegerInstanceName)
 	if err != nil {
 		return false, err
 	}
-	if len(deployments.Items) > 0 {
+	queryDeployments, err := GetJaegerQueryDeployments(kubeconfigPath, globalconst.JaegerInstanceName)
+	if err != nil {
+		return false, err
+	}
+	if len(collectorDeployments) > 0 && len(queryDeployments) > 0 {
 		return true, nil
 	}
 	return false, nil
+}
+
+// GetJaegerCollectorDeployments returns the deployment object of the Jaeger collector corresponding to the given
+//		Jaeger instance. If no instance name is provided, then it returns all Jaeger collector pods in the
+////		verrazzano-monitoring namespace.
+func GetJaegerCollectorDeployments(kubeconfigPath, jaegerCRName string) ([]appsv1.Deployment, error) {
+	labels := map[string]string{
+		componentLabelKey: globalconst.JaegerCollectorComponentName,
+	}
+	if jaegerCRName != "" {
+		labels[instanceLabelKey] = jaegerCRName
+	}
+	deployments, err := ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, labels)
+	if err != nil {
+		return nil, err
+	}
+	return deployments.Items, err
+}
+
+// GetJaegerQueryDeployments returns the deployment object of the Jaeger query corresponding to the given
+//		Jaeger instance. If no Jaeger instance name is provided, then it returns all Jaeger query pods in the
+//		verrazzano-monitoring namespace
+func GetJaegerQueryDeployments(kubeconfigPath, jaegerCRName string) ([]appsv1.Deployment, error) {
+	labels := map[string]string{
+		componentLabelKey: globalconst.JaegerCollectorComponentName,
+	}
+	if jaegerCRName != "" {
+		labels[instanceLabelKey] = jaegerCRName
+	}
+	deployments, err := ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, labels)
+	if err != nil {
+		return nil, err
+	}
+	return deployments.Items, err
 }
 
 //JaegerSpanRecordFoundInOpenSearch checks if jaeger span records are found in OpenSearch storage
@@ -374,14 +415,11 @@ func ValidateJaegerAgentMetricFunc() func() bool {
 // ValidateEsIndexCleanerCronJobFunc returns a function that validates if cron job for periodically cleaning the OS indices are created.
 func ValidateEsIndexCleanerCronJobFunc() func() (bool, error) {
 	return func() (bool, error) {
-		create, err := IsJaegerInstanceCreated()
-		if err != nil {
-			Log(Error, fmt.Sprintf("Error checking if Jaeger CR is available %s", err.Error()))
-		}
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			return false, err
 		}
+		create := IsOpensearchEnabled(kubeconfigPath)
 		if create {
 			return DoesCronJobExist(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
 		}
