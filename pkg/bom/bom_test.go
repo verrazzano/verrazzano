@@ -262,7 +262,7 @@ func TestBomImageOverrides(t *testing.T) {
 }
 
 // TestBomComponentVersion tests the ability to fetch component version
-func TestBomComponentVersion(t *testing.T){
+func TestBomComponentVersion(t *testing.T) {
 	bom, err := NewBom(realBomFilePath)
 	assert.NoError(t, err)
 	c, err := bom.GetComponent("verrazzano")

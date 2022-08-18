@@ -685,8 +685,8 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	componentStatus.State = checkCondtitionType(conditionType)
 
 	// Set the version of component
-	if bomFile, err := r.getBOM(); err != nil {
-		if component, er := bomFile.GetComponent(componentName); er != nil {
+	if bomFile, err := r.getBOM(); err == nil {
+		if component, er := bomFile.GetComponent(componentName); er == nil {
 			componentStatus.Version = component.Version
 		}
 	}
