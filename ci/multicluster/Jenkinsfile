@@ -529,6 +529,13 @@ pipeline {
                         }
                     }
                 }
+                stage ('Jaeger apps') {
+                    steps {
+                        script {
+                            parallel verifyJaegerApps()
+                        }
+                    }
+                }
                 stage ('Console') {
                     steps {
                         runConsoleTests()
@@ -1679,6 +1686,11 @@ def verifyExamples() {
         "Coherence Workload": {
             runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
         },
+    ]
+}
+
+def verifyJaegerApps() {
+    return [
         "Jaeger Helidon": {
             runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
         },
