@@ -331,7 +331,7 @@ pipeline {
                     post {
                         always {
                             sh """
-                                kubectl get pods -n hello-helidon
+                                kubectl get pods -l app=hello-helidon -A
                             """
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
