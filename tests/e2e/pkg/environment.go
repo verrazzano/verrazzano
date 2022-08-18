@@ -18,8 +18,8 @@ import (
 const (
 	// ClusterTypeKind represents a Kind cluster
 	ClusterTypeKind = "kind"
-	// ClusterTypeOlcne represents an OLCNE cluster
-	ClusterTypeOlcne     = "OLCNE"
+	// ClusterTypeOlcne represents an OCNE cluster
+	ClusterTypeOlcne     = "OCNE"
 	istioSystemNamespace = "istio-system"
 )
 
