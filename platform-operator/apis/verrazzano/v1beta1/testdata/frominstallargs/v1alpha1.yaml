@@ -35,10 +35,6 @@ spec:
             value: "1"
           - name: "a.b.d"
             value: "2"
-    mysql-operator:
-      installArgs:
-        - name: "foo"
-          value: "bar"
     ingress:
       nginxInstallArgs:
         - name: "foo"
