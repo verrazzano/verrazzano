@@ -45,6 +45,10 @@ spec:
                 b:
                   c: 1
                   d: 2
+    mysql-operator:
+      overrides:
+        - values:
+            foo: bar
     ingress:
       overrides:
         - values:
