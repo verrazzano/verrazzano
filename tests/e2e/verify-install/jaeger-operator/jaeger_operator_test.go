@@ -158,6 +158,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 					return false, err
 				}
 				if create {
+					pkg.Log(pkg.Info, fmt.Sprintf("Default Jaeger CR exists, checking if %s Cron Job exists", jaegerESIndexCleanerJob))
 					return pkg.DoesCronJobExist(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
 				}
 				return false, nil

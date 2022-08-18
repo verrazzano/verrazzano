@@ -116,14 +116,13 @@ func IsJaegerInstanceCreated(kubeconfigPath string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	Log(Info, fmt.Sprintf("cluster has %d collector deployments: %v", len(collectorDeployments), collectorDeployments))
 	queryDeployments, err := GetJaegerQueryDeployments(kubeconfigPath, globalconst.JaegerInstanceName)
 	if err != nil {
 		return false, err
 	}
-	if len(collectorDeployments) > 0 && len(queryDeployments) > 0 {
-		return true, nil
-	}
-	return false, nil
+	Log(Info, fmt.Sprintf("cluster has %d query deployments: %v", len(queryDeployments), queryDeployments))
+	return len(collectorDeployments) > 0 && len(queryDeployments) > 0, nil
 }
 
 // GetJaegerCollectorDeployments returns the deployment object of the Jaeger collector corresponding to the given
@@ -136,6 +135,7 @@ func GetJaegerCollectorDeployments(kubeconfigPath, jaegerCRName string) ([]appsv
 	if jaegerCRName != "" {
 		labels[instanceLabelKey] = jaegerCRName
 	}
+	Log(Info, fmt.Sprintf("Checking for collector deployments with labels %v", labels))
 	deployments, err := ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, labels)
 	if err != nil {
 		return nil, err
@@ -153,6 +153,7 @@ func GetJaegerQueryDeployments(kubeconfigPath, jaegerCRName string) ([]appsv1.De
 	if jaegerCRName != "" {
 		labels[instanceLabelKey] = jaegerCRName
 	}
+	Log(Info, fmt.Sprintf("Checking for query deployments with labels %v", labels))
 	deployments, err := ListDeploymentsMatchingLabelsInCluster(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, labels)
 	if err != nil {
 		return nil, err
