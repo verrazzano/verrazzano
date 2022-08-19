@@ -493,17 +493,16 @@ func convertIstioToV1Beta1(src *IstioComponent) (*v1beta1.IstioComponent, error)
 	if src == nil {
 		return nil, nil
 	}
-	istioYaml, err := convertIstioComponentToYaml(src)
+	override, err := convertIstioComponentToYaml(src)
 	if err != nil {
 		return nil, err
 	}
 	overrides := convertInstallOverridesToV1Beta1(src.InstallOverrides)
-	override, err := createValueOverride([]byte(istioYaml))
 	if err != nil {
 		return nil, err
 	}
 
-	overrides.ValueOverrides, err = mergeIstioOverrides(override, overrides.ValueOverrides)
+	overrides.ValueOverrides, err = mergeIstioOverrides(*override, overrides.ValueOverrides)
 	if err != nil {
 		return nil, err
 	}

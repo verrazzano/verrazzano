@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
@@ -90,7 +91,11 @@ type istioTemplateData struct {
 	ExternalIps         string
 }
 
-func convertIstioComponentToYaml(comp *IstioComponent) (string, error) {
+func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, error) {
+	// no v1alpha1 istio definition was supplied, can skip conversion
+	if len(comp.IstioInstallArgs) == 0 && comp.Ingress == nil && comp.Egress == nil {
+		return &v1beta1.Overrides{}, nil
+	}
 	var externalIPYAMLTemplateValue = ""
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
@@ -107,7 +112,7 @@ func convertIstioComponentToYaml(comp *IstioComponent) (string, error) {
 			//   - 1.2.3.4
 			yamlString, err := vzyaml.Expand(leftMarginExtIP, true, shortArgExternalIPs, values...)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			// This is handled separately
 			externalIPYAMLTemplateValue = yamlString
@@ -116,23 +121,24 @@ func convertIstioComponentToYaml(comp *IstioComponent) (string, error) {
 			var err error
 			expandedYamls, err = addYAML(arg.Name, values, expandedYamls)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 		}
 	}
 	gatewayYaml, err := configureGateways(comp, fixExternalIPYaml(externalIPYAMLTemplateValue))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	expandedYamls = append(expandedYamls, gatewayYaml)
 	// Merge all the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return merged, nil
+	override, err := createValueOverride([]byte(merged))
+	return &override, err
 }
 
 func addYAML(name string, values, expandedYamls []string) ([]string, error) {

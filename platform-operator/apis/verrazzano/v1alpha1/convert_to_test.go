@@ -382,6 +382,11 @@ func TestConvertToV1Beta1(t *testing.T) {
 			false,
 		},
 		{
+			"convert general overrides",
+			testCaseGeneralOverrides,
+			false,
+		},
+		{
 			"convert err on keycloak install args",
 			testCaseInstallArgsErr,
 			true,
