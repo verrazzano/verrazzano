@@ -22,12 +22,23 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 
 // isReady - component specific checks for being ready
 func isReady(ctx spi.ComponentContext) bool {
-	deployment := []types.NamespacedName{
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), getDeploymentList(), 1, getPrefix(ctx))
+}
+
+// isInstalled checks that the deployment exists
+func isInstalled(ctx spi.ComponentContext) bool {
+	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), getDeploymentList(), 1, getPrefix(ctx))
+}
+
+func getPrefix(ctx spi.ComponentContext) string {
+	return fmt.Sprintf("Component %s", ctx.GetComponent())
+}
+
+func getDeploymentList() []types.NamespacedName {
+	return []types.NamespacedName{
 		{
 			Name:      ComponentName,
 			Namespace: ComponentNamespace,
 		},
 	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, 1, prefix)
 }

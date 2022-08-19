@@ -52,3 +52,8 @@ func (c mysqlOperatorComponent) IsReady(context spi.ComponentContext) bool {
 	}
 	return false
 }
+
+// IsInstalled returns true if the component is installed
+func (g mysqlOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	return isInstalled(ctx), nil
+}
