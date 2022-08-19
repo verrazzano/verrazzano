@@ -80,8 +80,6 @@ pipeline {
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         KUBERNETES_VERSION = '1.20,1.21,1.22,1.23'
         OCI_CLI_AUTH="instance_principal"
-        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
         TARGET_UPGRADE_VERSION = "current_branch"

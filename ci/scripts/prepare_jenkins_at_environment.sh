@@ -10,7 +10,7 @@ set -o pipefail
 
 set -xv
 
-if [ -z "$JENKINS_URL" ] || [ -z "$GO_REPO_PATH" ] || [ -z "$TESTS_EXECUTED_FILE" ] || [ -z "$WORKSPACE" ] || [ -z "$VERRAZZANO_OPERATOR_IMAGE" ] || [ -z "$INSTALL_CONFIG_FILE_KIND" ] || [ -z "$OCI_OS_LOCATION" ] || [ -z "$TEST_SCRIPTS_DIR" ]; then
+if [ -z "$JENKINS_URL" ] || [ -z "$GO_REPO_PATH" ] || [ -z "$TESTS_EXECUTED_FILE" ] || [ -z "$WORKSPACE" ] || [ -z "$VERRAZZANO_OPERATOR_IMAGE" ] || [ -z "$INSTALL_CONFIG_FILE_KIND" ] || [ -z "$OCI_OS_LOCATION" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$TEST_SCRIPTS_DIR" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
@@ -64,7 +64,7 @@ if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
   # Derive the name of the operator.yaml file, copy or generate the file, then install
   if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage"
-      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
       cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
   else
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
@@ -76,8 +76,6 @@ else
   echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
   kubectl apply -f ${OPERATOR_YAML}
 fi
-
-
 
 # make sure ns exists
 ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install

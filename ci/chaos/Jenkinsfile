@@ -200,7 +200,7 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OCI_OS_LOCATION="${OCI_OS_LOCATION}"
                 OPERATOR_YAML="${OPERATOR_YAML_FILE}"
                 CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
@@ -264,19 +264,19 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
             }
             steps {
                 script {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${SHORT_COMMIT_HASH}^1").trim()
-                    while (sh(returnStatus: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${INTERIM_UPGRADE_COMMIT}/operator.yaml --file ${WORKSPACE}/interim-operator.yaml") != 0) {
+                    while (sh(returnStatus: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${INTERIM_UPGRADE_COMMIT}/operator.yaml --file ${WORKSPACE}/interim-operator.yaml") != 0) {
                         INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${INTERIM_UPGRADE_COMMIT}^1").trim()
                     }
                 }
                 sh """
                     # Download the operator.yaml for the target version that we are upgrading to
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
 
                     echo "Upgrading the Verrazzano platform operator"
@@ -289,7 +289,8 @@ pipeline {
                     then
                         echo "Upgrading VPO to earlier version from branch"
                         echo "commit: ${INTERIM_UPGRADE_COMMIT}"
-                        curl -o ${WORKSPACE}/interim-upgrade-bom.json https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${env.BRANCH_NAME}/${INTERIM_UPGRADE_COMMIT}/generated-verrazzano-bom.json
+                        curl -o ${WORKSPACE}/interim-upgrade-bom.json https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_COMMIT_BUCKET}/o/ephemeral/${env.BRANCH_NAME}/${INTERIM_UPGRADE_COMMIT}/generated-verrazzano-bom.json
+
                         kubectl apply -f ${WORKSPACE}/interim-operator.yaml
 
                     else
@@ -323,8 +324,8 @@ pipeline {
         stage("Upgrade Verrazzano and execute selected test") {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-                 OCI_CLI_AUTH="instance_principal"
+                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+                OCI_CLI_AUTH="instance_principal"
            }
             steps {
                 script {
@@ -336,7 +337,7 @@ pipeline {
                     } else if ("upgrade.failing.upgrade".equals(params.CHAOS_TEST_TYPE)) {
                         VERRAZZANO_INTERIM_VERSION = sh(returnStdout: true, script: "cat ${WORKSPACE}/interim-upgrade-bom.json | jq -r '.version'").trim()
                     }
-                    VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
+                    VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/${OCI_OS_COMMIT_BUCKET}/o/ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                 }
                 sh """

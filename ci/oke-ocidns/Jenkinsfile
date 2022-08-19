@@ -105,6 +105,7 @@ pipeline {
         OCIR_PHX_REPO = 'phx.ocir.io'
         POST_DUMP_FAILED = 'false'
         GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
 
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_user_id = credentials('oci-user-ocid')
@@ -155,7 +156,7 @@ pipeline {
         JENKINS_READ = credentials('jenkins-auditor')
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
 
         //OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
         //OC_TELEMETRY_URL = credentials('oci-telemetry-url')
@@ -287,7 +288,7 @@ pipeline {
             steps {
                 sh """
                     echo "Install Platform Operator"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
 
                     # Install the verrazzano-platform-operator
