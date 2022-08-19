@@ -9,8 +9,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
