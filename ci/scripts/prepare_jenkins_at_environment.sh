@@ -160,7 +160,6 @@ else
   GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 fi
 result=$?
-${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-snapshot -r ${WORKSPACE}/post-vz-install-cluster-snapshot/analysis.report
 if [[ $result -ne 0 ]]; then
   exit 1
 fi
