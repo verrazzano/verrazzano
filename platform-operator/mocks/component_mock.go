@@ -10,7 +10,6 @@ package mocks
 
 import (
 	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -553,11 +552,11 @@ type MockComponent struct {
 	recorder *MockComponentMockRecorder
 }
 
-func (m *MockComponent) ValidateInstallV1Beta1(vz *v1alpha1.Verrazzano) error {
+func (m *MockComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	return nil
 }
 
-func (m *MockComponent) ValidateUpdateV1Beta1(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+func (m *MockComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	return nil
 }
 
