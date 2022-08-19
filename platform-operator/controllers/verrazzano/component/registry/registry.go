@@ -80,7 +80,6 @@ func getComponents() []spi.Component {
 			authproxy.NewComponent(),
 			coherence.NewComponent(),
 			mysql.NewComponent(),
-			mysqloperator.NewComponent(),
 			keycloak.NewComponent(),
 			kiali.NewComponent(),
 			promoperator.NewComponent(),
@@ -93,6 +92,7 @@ func getComponents() []spi.Component {
 			fluentd.NewComponent(),
 			velero.NewComponent(),
 			rancherbackup.NewComponent(),
+			mysqloperator.NewComponent(),
 		}
 	}
 	return componentsRegistry
