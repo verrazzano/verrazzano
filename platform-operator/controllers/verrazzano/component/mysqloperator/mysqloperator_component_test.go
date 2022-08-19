@@ -6,10 +6,26 @@ package mysqloperator
 import (
 	"testing"
 
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = clientgoscheme.AddToScheme(testScheme)
+	_ = vzapi.AddToScheme(testScheme)
+}
 
 // TestGetInstallOverrides tests the GetInstallOverrides function
 // GIVEN a call to GetInstallOverrides
@@ -96,4 +112,73 @@ func TestIsEnabled(t *testing.T) {
 			assert.Equal(t, tt.want, c)
 		})
 	}
+}
+
+// TestIsMySQLOperatorReady tests the isReady function
+// GIVEN a call to isReady
+//  WHEN the deployment object has enough replicas available
+//  THEN true is returned
+func TestIsMySQLOperatorReady(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
+				Labels:    map[string]string{"app": ComponentName},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": ComponentName},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        ComponentName + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               ComponentName,
+				},
+			},
+		},
+	).Build()
+
+	assert.True(t, isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+}
+
+// TestIsMySQLOperatorNotReady tests the isReady function
+// GIVEN a call to isReady
+//  WHEN the deployment object does NOT have enough replicas available
+//  THEN false is returned
+func TestIsMySQLOperatorNotReady(t *testing.T) {
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentNamespace,
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
+		},
+	}).Build()
+	assert.False(t, isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
