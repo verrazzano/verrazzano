@@ -326,7 +326,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-install"
                     }
                     steps{
-                        runGinkgoRandomize('examples/helidon', '--skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                        runGinkgo('examples/helidon', '--namespace=hello-helidon --skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
                     }
                     post {
                         always {
@@ -543,22 +543,22 @@ pipeline {
     }
 }
 
-def runGinkgoRandomize(testSuitePath, arguments = '') {
+def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             fi
         """
     }
 }
 
-def runGinkgo(testSuitePath) {
+def runGinkgo(testSuitePath, arguments = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
         """
     }
 }
