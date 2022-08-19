@@ -3,11 +3,16 @@
 package capi
 
 import (
-	"sigs.k8s.io/kind/pkg/cluster"
-	"sigs.k8s.io/kind/pkg/cmd"
+	os2 "github.com/verrazzano/verrazzano/pkg/os"
+	"go.uber.org/zap"
+	"io/ioutil"
+	"os"
+	//clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	kindcluster "sigs.k8s.io/kind/pkg/cluster"
+	kind "sigs.k8s.io/kind/pkg/cmd"
 )
 
-//const BootstrapImageEnvVar = "VZ_BOOTSTRAP_IMAGE"
+const BootstrapImageEnvVar = "VZ_BOOTSTRAP_IMAGE"
 
 var bootstrapConfig = `
 kind: Cluster
@@ -22,7 +27,7 @@ nodes:
 type ClusterConfig interface {
 	ClusterName() string
 	Type() string
-	//ContainerImage() string
+	ContainerImage() string
 }
 
 type bootstrapClusterConfig struct{}
@@ -35,9 +40,9 @@ func (r bootstrapClusterConfig) Type() string {
 	return "kind"
 }
 
-//func (r bootstrapClusterConfig) ContainerImage() string {
-//	return os.Getenv(BootstrapImageEnvVar)
-//}
+func (r bootstrapClusterConfig) ContainerImage() string {
+	return os.Getenv(BootstrapImageEnvVar)
+}
 
 type ClusterLifeCycleManager interface {
 	GetConfig() ClusterConfig
@@ -52,11 +57,11 @@ type kindClusterManager struct {
 }
 
 func (r *kindClusterManager) GetKubeConfig() (string, error) {
-	po, err := cluster.DetectNodeProvider()
+	po, err := kindcluster.DetectNodeProvider()
 	if err != nil {
 		return "", nil
 	}
-	provider := cluster.NewProvider(po, cluster.ProviderWithLogger(cmd.NewLogger()))
+	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
 	kubeConfig, err := provider.KubeConfig(r.config.ClusterName(), false)
 	if err != nil {
 		return "", err
@@ -65,8 +70,34 @@ func (r *kindClusterManager) GetKubeConfig() (string, error) {
 }
 
 func (r *kindClusterManager) Init() error {
-	//TODO implement me
-	return nil
+	config, err := r.createKubeConfigFile()
+	if err != nil {
+		return err
+	}
+	defer os2.RemoveTempFiles(zap.S(), config.Name())
+	//capiclient, err := clusterapi.New("") // TODO: do we need to provide a CAPI config?
+	//if err != nil {
+	//	return err
+	//}
+	//_, err = capiclient.Init(clusterapi.InitOptions{
+	//	Kubeconfig: clusterapi.Kubeconfig{
+	//		Path: config.Name(),
+	//	},
+	//	InfrastructureProviders: []string{"docker"},
+	//})
+	return err
+}
+
+func (r *kindClusterManager) createKubeConfigFile() (*os.File, error) {
+	kcFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-"+r.config.ClusterName())
+	if err != nil {
+		return nil, err
+	}
+	config, err := r.GetKubeConfig()
+	if _, err := kcFile.Write([]byte(config)); err != nil {
+		return nil, err
+	}
+	return kcFile, nil
 }
 
 func (r *kindClusterManager) GetConfig() ClusterConfig {
@@ -74,13 +105,13 @@ func (r *kindClusterManager) GetConfig() ClusterConfig {
 }
 
 func (r *kindClusterManager) Create() error {
-	var po cluster.ProviderOption
-	po, err := cluster.DetectNodeProvider()
+	var po kindcluster.ProviderOption
+	po, err := kindcluster.DetectNodeProvider()
 	if err != nil {
 		return err
 	}
-	provider := cluster.NewProvider(po, cluster.ProviderWithLogger(cmd.NewLogger()))
-	err = provider.Create(r.config.ClusterName(), cluster.CreateWithRawConfig([]byte(bootstrapConfig)))
+	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
+	err = provider.Create(r.config.ClusterName(), kindcluster.CreateWithRawConfig([]byte(bootstrapConfig)))
 	if err != nil {
 		return err
 	}
@@ -88,12 +119,12 @@ func (r *kindClusterManager) Create() error {
 }
 
 func (r *kindClusterManager) Destroy() error {
-	var po cluster.ProviderOption
-	po, err := cluster.DetectNodeProvider()
+	var po kindcluster.ProviderOption
+	po, err := kindcluster.DetectNodeProvider()
 	if err != nil {
 		return err
 	}
-	provider := cluster.NewProvider(po, cluster.ProviderWithLogger(cmd.NewLogger()))
+	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
 	kubeconfig, err := r.GetKubeConfig()
 	if err != nil {
 		return err

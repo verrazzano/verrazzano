@@ -15,6 +15,12 @@ func TestCreateBootstrapCluster(t *testing.T) {
 	asserts.NoError(bootstrapCluster.Init())
 }
 
+func TestInitBoostrapCluster(t *testing.T) {
+	asserts := assert.New(t)
+	bootstrapCluster := NewBoostrapCluster()
+	asserts.NoError(bootstrapCluster.Init())
+}
+
 func TestDeleteBootstrapCluster(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.NoError(NewBoostrapCluster().Destroy())
