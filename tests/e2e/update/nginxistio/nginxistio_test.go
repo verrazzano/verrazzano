@@ -218,8 +218,8 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
     enabled: true
     minReplicas: %v
   service:
-	externalIPs:
-	- %s
+    externalIPs:
+      - %s
     annotations:
       service.beta.kubernetes.io/oci-load-balancer-shape: %s
       name-n: value-n`, u.nginxReplicas, u.systemExternalLBIP, u.nginxLBShape)
@@ -252,13 +252,13 @@ spec:
     gateways:
       istio-ingressgateway:
 		externalIPs:
-		- %s
-        serviceAnnotations:
-          name-i: value-i
-          service:
-            beta:
-              kubernetes:
-                io/oci-load-balancer-shape: %s`, u.istioEgressReplicas, u.istioIngressReplicas, u.applicationExternalLBIP, u.istioLBShape)
+		  - %s
+    serviceAnnotations:
+      name-i: value-i
+      service:
+        beta:
+          kubernetes:
+            io/oci-load-balancer-shape: %s`, u.istioEgressReplicas, u.istioIngressReplicas, u.applicationExternalLBIP, u.istioLBShape)
 	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
