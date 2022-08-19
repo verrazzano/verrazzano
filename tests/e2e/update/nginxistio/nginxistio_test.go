@@ -40,15 +40,9 @@ const (
 	istioEgressLabelValue    = "istio-egressgateway"
 	nginxIngressServiceName  = "ingress-controller-ingress-nginx-controller"
 	istioIngressServiceName  = "istio-ingressgateway"
-	nginxExternalIPArg       = "controller.service.externalIPs"
-	istioExternalIPArg       = "gateways.istio-ingressgateway.externalIPs"
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 10 * time.Second
 	ociLBShapeAnnotation     = "service.beta.kubernetes.io/oci-load-balancer-shape"
-	nginxLBShapeArg          = "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
-	istioLBShapeArg          = "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\""
-	nginxArgPrefixForAnno    = "controller.service.annotations."
-	istioArgPrefixForAnno    = "gateways.istio-ingressgateway.serviceAnnotations."
 	nginxTestAnnotationName  = "name-n"
 	nginxTestAnnotationValue = "value-n"
 	istioTestAnnotationName  = "name-i"
