@@ -35,8 +35,6 @@ import (
 // checkRancherUpgradeFailureSig is a function needed for unit test override
 type checkRancherUpgradeFailureSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
 
-type createOrUpdateResourceSig func() error
-
 // checkRancherUpgradeFailureFunc is the default checkRancherUpgradeFailure function
 var checkRancherUpgradeFailureFunc checkRancherUpgradeFailureSig = checkRancherUpgradeFailure
 
