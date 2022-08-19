@@ -71,6 +71,7 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
         RELEASABLE_IMAGES_OBJECT_STORE = "releasable-verrazzano-images.txt"
