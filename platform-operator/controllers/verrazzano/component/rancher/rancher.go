@@ -7,13 +7,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	rbacv1 "k8s.io/api/rbac/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
@@ -105,7 +104,7 @@ const (
 	AuthConfigLocal                  = "local"
 	UserVerrazzano                   = "u-verrazzano"
 	UserVerrazzanoDescription        = "Verrazzano Admin"
-	GlobalRoleBindingVerrazzano      = "gbr-" + UserVerrazzano
+	GlobalRoleBindingVerrazzano      = "grb-" + UserVerrazzano
 )
 
 // auth config

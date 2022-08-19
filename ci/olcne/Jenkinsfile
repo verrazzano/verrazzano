@@ -466,7 +466,7 @@ pipeline {
             dumpVerrazzanoApplicationOperatorLogs()
             dumpVerrazzanoApiLogs()
 
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*full-cluster*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -696,11 +696,7 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        mkdir -p ${dumpDirectory}/cluster-snapshot
-        $GO_REPO_PATH/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot -r ${dumpDirectory}/cluster-snapshot/analysis.report
-        ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
-        mkdir -p ${dumpDirectory}/bug-report
-        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

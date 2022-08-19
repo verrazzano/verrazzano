@@ -87,7 +87,7 @@ var _ = clusterDump.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	start = time.Now()
-	pkg.DeployHelloHelidonApplication(namespace, "", istioInjection)
+	pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, "")
 
 	t.Logs.Info("Verify test pod is running")
 	Eventually(func() bool {
@@ -122,7 +122,7 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	start = time.Now()
-	pkg.UndeployHelloHelidonApplication(namespace)
+	pkg.UndeployHelloHelidonApplication(namespace, "")
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
