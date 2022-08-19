@@ -6,8 +6,8 @@ package operator
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"path/filepath"
-
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -160,12 +160,12 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 }
 
 // ValidateInstall validates the installation of the Verrazzano CR
-func (c jaegerOperatorComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+func (c jaegerOperatorComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
-func (c jaegerOperatorComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c jaegerOperatorComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	return nil
 }
 

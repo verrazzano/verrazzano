@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"path/filepath"
 	"strings"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -270,12 +270,12 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (i istioComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (i istioComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (i istioComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+func (i istioComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
 	return nil
 }
 

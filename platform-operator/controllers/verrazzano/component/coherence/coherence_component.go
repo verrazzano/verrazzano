@@ -4,8 +4,8 @@ package coherence
 
 import (
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"path/filepath"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -73,7 +73,7 @@ func (c coherenceComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ver
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c coherenceComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c coherenceComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	return nil
 }
 

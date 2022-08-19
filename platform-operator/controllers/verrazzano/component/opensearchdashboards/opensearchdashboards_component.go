@@ -5,7 +5,7 @@ package opensearchdashboards
 
 import (
 	"fmt"
-
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -179,12 +179,12 @@ func (d opensearchDashboardsComponent) ValidateInstall(_ *vzapi.Verrazzano) erro
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (d opensearchDashboardsComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+func (d opensearchDashboardsComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (d opensearchDashboardsComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (d opensearchDashboardsComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	return nil
 }
 

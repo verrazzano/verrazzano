@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -124,7 +125,7 @@ func (rb rancherBackupHelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error 
 }
 
 // ValidateUpgrade verifies the install of the Verrazzano object
-func (rb rancherBackupHelmComponent) ValidateInstallV1Beta1(vz *vzapi.Verrazzano) error {
+func (rb rancherBackupHelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
 	return nil
 }
 
@@ -141,7 +142,7 @@ func (rb rancherBackupHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
-func (rb rancherBackupHelmComponent) ValidateUpdateV1Beta1(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (rb rancherBackupHelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	return nil
 }
 
