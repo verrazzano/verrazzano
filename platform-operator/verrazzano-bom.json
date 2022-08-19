@@ -401,8 +401,8 @@
               "image": "mysql-operator",
               "tag": "8.0.30-2.0.5",
               "helmRegKey": "image.registry",
-              "helmFullImageKey": "mysqlOperator.image.repository",
-              "helmTagKey": "mysqlOperator.image.tag"
+              "helmRepoKey": "image.repository",
+              "helmTagKey": "image.tag"
             }
           ]
         }
