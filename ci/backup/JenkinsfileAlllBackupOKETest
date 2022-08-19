@@ -449,7 +449,7 @@ pipeline {
         failure {
             script {
                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**, allowEmptyArchive: true
+                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**', allowEmptyArchive: true
                 script {
                     if (env.JOB_NAME == "verrazzano-uninstall-test/master" || env.JOB_NAME ==~ "verrazzano-uninstall-test/release-*") {
                         slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
