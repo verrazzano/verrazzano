@@ -590,7 +590,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
 			if isMinVersion140 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, mysqloperator.ComponentName)
+					return pkg.DoesDeploymentExist(constants.MySQLOperatorNamespace, mysqloperator.ComponentName)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
@@ -599,7 +599,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion140 {
-				validateCorrectNumberOfPodsRunning(mysqloperator.ComponentName, constants.VerrazzanoSystemNamespace)
+				validateCorrectNumberOfPodsRunning(mysqloperator.ComponentName, constants.MySQLOperatorNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 			}

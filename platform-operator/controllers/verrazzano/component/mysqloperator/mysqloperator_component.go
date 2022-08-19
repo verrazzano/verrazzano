@@ -4,13 +4,18 @@
 package mysqloperator
 
 import (
+	"context"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vpocons "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -18,7 +23,7 @@ const (
 	ComponentName = "mysql-operator"
 
 	// ComponentNamespace is the namespace of the component
-	ComponentNamespace = constants.VerrazzanoSystemNamespace
+	ComponentNamespace = constants.MySQLOperatorNamespace
 
 	// ComponentJSONName is the json name of the component in the CRD
 	ComponentJSONName = "mySQLOperator"
@@ -38,7 +43,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
+			MinVerrazzanoVersion:      vpocons.VerrazzanoVersion1_4_0,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
 			Dependencies:              []string{},
 			GetInstallOverridesFunc:   GetOverrides,
@@ -78,4 +83,20 @@ func (c mysqlOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 		}
 	}
 	return true
+}
+
+// PreInstall runs before components are installed
+func (c mysqlOperatorComponent) PreInstall(compContext spi.ComponentContext) error {
+	cli := compContext.Client()
+	log := compContext.Log()
+
+	// create namespace
+	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), cli, &ns, func() error {
+		return nil
+	}); err != nil {
+		return log.ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
+	}
+
+	return nil
 }
