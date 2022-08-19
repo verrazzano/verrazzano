@@ -351,7 +351,7 @@ pipeline {
             steps {
                 script {
                     echo "[INFO] Enable External IP access"
-                    // updateOCNEConfig()
+                    updateOCNEConfig()
                 }
             }
         }
@@ -942,8 +942,8 @@ def updateOCNEConfig() {
     echo CONTROL_PLANE_IP
     sh """
         # TODO: This will no longer be required after terraform-oci-olcne repository supports OCI CCM module
-        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" "$TF_VAR_api_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/oci_api_key.pem
-        $GO_REPO_PATH/verrazzano/ci/scripts/update_ocne_config.sh
+        # scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" "$TF_VAR_api_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/oci_api_key.pem
+        # $GO_REPO_PATH/verrazzano/ci/scripts/update_ocne_config.sh
 
         # TODO: This MIGHT not be required for OCNE > 1.5 releases
         # Add annotation to the storageclass created by OCNE oci-ccm module
