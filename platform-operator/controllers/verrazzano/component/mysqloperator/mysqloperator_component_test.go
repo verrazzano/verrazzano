@@ -182,3 +182,36 @@ func TestIsMySQLOperatorNotReady(t *testing.T) {
 	}).Build()
 	assert.False(t, isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
+
+// TestIsInstalled tests the isInstalled function
+// GIVEN a call to isInstalled
+//  WHEN the deployment object exists
+//  THEN true is returned
+func TestIsInstalled(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
+				Labels:    map[string]string{"app": ComponentName},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": ComponentName},
+				},
+			},
+		},
+	).Build()
+
+	assert.True(t, isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+}
+
+// TestIsInstalledFalse tests the isInstalled function
+// GIVEN a call to isInstalled
+//  WHEN the deployment object does not exist
+//  THEN false is returned
+func TestIsInstalledFalse(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build()
+
+	assert.False(t, isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+}
