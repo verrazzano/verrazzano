@@ -641,7 +641,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: "**/multicluster-uninstall-dump/**,**/*cluster-snapshot*/**,**/*bug-report*/**,**/test-cluster-snapshots/**", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "**/multicluster-uninstall-dump/**,**/*full-cluster*/**,**/*bug-report*/**,**/test-cluster-snapshots/**", allowEmptyArchive: true
                 }
             }
         }
