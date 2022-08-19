@@ -1251,9 +1251,9 @@ func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 		return nil, err
 	}
 	// Get the Client ID JSON array
-	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients -r "+vzSysRealm+" --fields id,clientId"))
+	out, stderr, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients -r "+vzSysRealm+" --fields id,clientId"))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving clients: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving clients: %s", stderr)
 		return nil, err
 	}
 	if len(out) == 0 {

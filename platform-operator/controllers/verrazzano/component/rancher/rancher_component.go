@@ -346,11 +346,15 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 	}
 
 	if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user: %s", err.Error())
+		return err
 	}
 
 	if err := createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user global clusterRole binding: %s", err.Error())
+		return err
+	}
+
+	if err := createOrUpdateRoleTemplates(ctx); err != nil {
+		return err
 	}
 
 	if err := createOrUpdateClusterRoleTemplateBindings(ctx); err != nil {
@@ -368,9 +372,15 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 	return nil
 }
 
-func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
-	log := ctx.Log()
+func createOrUpdateRoleTemplates(ctx spi.ComponentContext) error {
+	if err := createOrUpdateRoleTemplate(ctx, VerrazzanoAdminRoleName); err != nil {
+		return err
+	}
 
+	return createOrUpdateRoleTemplate(ctx, VerrazzanoMonitorRoleName)
+}
+
+func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
 	groupRolePairs := []groupRolePair{
 		{
 			group:       VerrazzanoAdminsGroupName,
@@ -400,7 +410,7 @@ func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
 
 	for _, grp := range groupRolePairs {
 		if err := createOrUpdateClusterRoleTemplateBinding(ctx, grp.clusterRole, grp.group); err != nil {
-			return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for %s group: %s", grp.clusterRole, grp.group, err.Error())
+			return err
 		}
 	}
 

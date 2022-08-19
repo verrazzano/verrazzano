@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -33,6 +34,8 @@ import (
 
 // checkRancherUpgradeFailureSig is a function needed for unit test override
 type checkRancherUpgradeFailureSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
+
+type createOrUpdateResourceSig func() error
 
 // checkRancherUpgradeFailureFunc is the default checkRancherUpgradeFailure function
 var checkRancherUpgradeFailureFunc checkRancherUpgradeFailureSig = checkRancherUpgradeFailure
@@ -184,10 +187,16 @@ var GVKGlobalRoleBinding = schema.GroupVersionKind{
 	Kind:    "GlobalRoleBinding",
 }
 
-var GVKGClusterRoleTemplateBinding = schema.GroupVersionKind{
+var GVKClusterRoleTemplateBinding = schema.GroupVersionKind{
 	Group:   APIGroupRancherManagement,
 	Version: APIGroupVersionRancherManagement,
 	Kind:    "ClusterRoleTemplateBinding",
+}
+
+var GVKRoleTemplate = schema.GroupVersionKind{
+	Group:   APIGroupRancherManagement,
+	Version: APIGroupVersionRancherManagement,
+	Kind:    "RoleTemplate",
 }
 
 type groupRolePair struct {
@@ -545,81 +554,104 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
+func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, gkv schema.GroupVersionKind, attributes map[string]interface{}) error {
 	log := ctx.Log()
 	c := ctx.Client()
-	vzRancherUser := unstructured.Unstructured{}
-	vzRancherUser.SetGroupVersionKind(GVKUser)
-	vzRancherUserName := types.NamespacedName{Name: UserVerrazzano}
-	err := c.Get(context.Background(), vzRancherUserName, &vzRancherUser)
-	createUser := false
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(gkv)
+	err := c.Get(context.Background(), nsn, &resource)
+	createNew := false
 	if err != nil {
 		if errors.IsNotFound(err) {
-			createUser = true
-			log.Debug("Rancher user verrazzano does not exist")
+			createNew = true
+			log.Debugf("%s %s does not exist", gkv.Kind, nsn.Name)
 		} else {
-			return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user: %s", err.Error())
+			return log.ErrorfThrottledNewErr("failed configuring %s, unable to fetch %s: %s", gkv.Kind, nsn.Name, err.Error())
 		}
 	}
+
+	data := resource.UnstructuredContent()
+	for k, v := range attributes {
+		data[k] = v
+	}
+
+	if createNew {
+		resource.SetName(nsn.Name)
+		resource.SetNamespace(nsn.Name)
+		err = c.Create(context.Background(), &resource, &client.CreateOptions{})
+	} else {
+		err = c.Update(context.Background(), &resource, &client.UpdateOptions{})
+	}
+
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s %s: %s", gkv.Kind, nsn.Name, err.Error())
+	}
+
+	return nil
+}
+
+func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+
+	nsn := types.NamespacedName{Name: UserVerrazzano}
 
 	vzUser, err := keycloak.GetVerrazzanoUserFromKeycloak(ctx)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user id from keycloak: %s", err.Error())
 	}
 
-	userData := vzRancherUser.UnstructuredContent()
-	userData[UserAttributeUserName] = vzUser.Username
-	userData[UserAttributeDisplayName] = strings.Title(vzUser.Username)
-	userData[UserAttributeDescription] = strings.Title(UserVerrazzanoDescription)
-	userData[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + UserVerrazzano}
+	data := map[string]interface{}{}
+	data[UserAttributeUserName] = vzUser.Username
+	data[UserAttributeDisplayName] = strings.Title(vzUser.Username)
+	data[UserAttributeDescription] = strings.Title(UserVerrazzanoDescription)
+	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + UserVerrazzano}
 
-	if createUser {
-		vzRancherUser.SetName(UserVerrazzano)
-		err = c.Create(context.Background(), &vzRancherUser, &client.CreateOptions{})
-	} else {
-		err = c.Update(context.Background(), &vzRancherUser, &client.UpdateOptions{})
-	}
-
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user: %s", err.Error())
-	}
-
-	return nil
+	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
 
 func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext) error {
+	nsn := types.NamespacedName{Name: GlobalRoleBindingVerrazzano}
+
+	data := map[string]interface{}{}
+	data[GlobalRoleBindingAttributeRoleName] = AdminRoleName
+	data[GlobalRoleBindingAttributeUserName] = UserVerrazzano
+
+	return createOrUpdateResource(ctx, nsn, GVKGlobalRoleBinding, data)
+}
+
+func createOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	log := ctx.Log()
 	c := ctx.Client()
-	vzRancherGlobalRoleBinding := unstructured.Unstructured{}
-	vzRancherGlobalRoleBinding.SetGroupVersionKind(GVKGlobalRoleBinding)
-	vzRancherGRBName := types.NamespacedName{Name: GlobalRoleBindingVerrazzano}
-	err := c.Get(context.Background(), vzRancherGRBName, &vzRancherGlobalRoleBinding)
-	createNew := false
+
+	nsn := types.NamespacedName{Name: role}
+
+	clusterRole := &rbacv1.ClusterRole{}
+	err := c.Get(context.Background(), nsn, clusterRole)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			createNew = true
-			log.Debug("Rancher GlobalRoleBinding for verrazzano user does not exist")
-		} else {
-			return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user GlobalRoleBinding, unable to fetch GlobalRoleBinding: %s", err.Error())
-		}
+		return log.ErrorfThrottledNewErr("failed creating RoleTemplate, unable to fetch ClusterRole %s: %s", role, err.Error())
 	}
 
-	globalRoleBindingData := vzRancherGlobalRoleBinding.UnstructuredContent()
-	globalRoleBindingData[GlobalRoleBindingAttributeRoleName] = AdminRoleName
-	globalRoleBindingData[GlobalRoleBindingAttributeUserName] = UserVerrazzano
+	data := map[string]interface{}{}
+	data["builtin"] = "false"
+	data["context"] = "cluster"
+	data["displayName"] = strings.Title(strings.Replace(role, "-", " ", 1))
+	data["external"] = "true"
+	data["hidden"] = "true"
+	data["Rules"] = clusterRole.Rules
 
-	if createNew {
-		vzRancherGlobalRoleBinding.SetName(GlobalRoleBindingVerrazzano)
-		err = c.Create(context.Background(), &vzRancherGlobalRoleBinding, &client.CreateOptions{})
-	} else {
-		err = c.Update(context.Background(), &vzRancherGlobalRoleBinding, &client.UpdateOptions{})
-	}
+	return createOrUpdateResource(ctx, nsn, GVKRoleTemplate, data)
+}
 
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user GlobalRoleBinding: %s", err.Error())
-	}
+func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterRole string, group string) error {
+	name := fmt.Sprintf("crtb-%s-%s", clusterRole, group)
+	nsn := types.NamespacedName{Name: name, Namespace: ClusterLocal}
 
-	return nil
+	data := map[string]interface{}{}
+	data[ClusterRoleTemplateBindingAttributeClusterName] = ClusterLocal
+	data[ClusterRoleTemplateBindingAttributeGroupPrincipalName] = GroupPrincipalKeycloakPrefix + group
+	data[ClusterRoleTemplateBindingAttributeRoleTemplateName] = clusterRole
+
+	return createOrUpdateResource(ctx, nsn, GVKClusterRoleTemplateBinding, data)
 }
 
 func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string, enable bool) error {
@@ -658,43 +690,6 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 	err = c.Update(context.Background(), &firstLoginSetting)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("Failed updating first-login Setting: %s", err.Error())
-	}
-
-	return nil
-}
-
-func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterRole string, group string) error {
-	log := ctx.Log()
-	c := ctx.Client()
-	ClusterRoleTemplateBindingName := fmt.Sprintf("crtb-%s-%s", group, clusterRole)
-	clusterRoleTemplateBinding := unstructured.Unstructured{}
-	clusterRoleTemplateBinding.SetGroupVersionKind(GVKGClusterRoleTemplateBinding)
-	err := c.Get(context.Background(), types.NamespacedName{Name: ClusterRoleTemplateBindingName, Namespace: ClusterLocal}, &clusterRoleTemplateBinding)
-	createNew := false
-	if err != nil {
-		if errors.IsNotFound(err) {
-			createNew = true
-			log.Debugf("%s ClusterRoleTemplateBinding for %s group does not exist", clusterRole, group)
-		} else {
-			return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for % group, unable to fetch ClusterRoleTemplateBinding: %s", clusterRole, group, err.Error())
-		}
-	}
-
-	clusterRoleTemplateBindingData := clusterRoleTemplateBinding.UnstructuredContent()
-	clusterRoleTemplateBindingData[ClusterRoleTemplateBindingAttributeClusterName] = ClusterLocal
-	clusterRoleTemplateBindingData[ClusterRoleTemplateBindingAttributeGroupPrincipalName] = GroupPrincipalKeycloakPrefix + group
-	clusterRoleTemplateBindingData[ClusterRoleTemplateBindingAttributeRoleTemplateName] = clusterRole
-
-	if createNew {
-		clusterRoleTemplateBinding.SetName(ClusterRoleTemplateBindingName)
-		clusterRoleTemplateBinding.SetNamespace(ClusterLocal)
-		err = c.Create(context.Background(), &clusterRoleTemplateBinding, &client.CreateOptions{})
-	} else {
-		err = c.Update(context.Background(), &clusterRoleTemplateBinding, &client.UpdateOptions{})
-	}
-
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring %s ClusterRoleTemplateBinding for group group: %s", clusterRole, group, err.Error())
 	}
 
 	return nil
