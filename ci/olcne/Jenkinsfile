@@ -126,6 +126,7 @@ pipeline {
         // Verrazzano variables
         TEST_ENV="${params.TEST_ENV}"
         VZ_ENVIRONMENT_NAME="${params.TEST_ENV.toLowerCase()}"
+        VZ_PLATFORM_OPERTOR_YAML="$WORKSPACE/platform-operator.yaml"
         BRANCH_NAME_PREFIX="${env.BRANCH_NAME.equals('master') ? 'vz' : env.BRANCH_NAME.substring(0, 2)}"
         CLUSTER_NAME="$BRANCH_NAME_PREFIX" + "$uniquePrefix"
         INSTALL_PROFILE="${params.INSTALL_PROFILE}"
@@ -350,25 +351,25 @@ pipeline {
         stage("Update OCNE configuration") {
             steps {
                 script {
-                    echo "[INFO] Enable External IP access"
+                    echo "[INFO] Update OCNE configuration"
                     updateOCNEConfig()
                 }
             }
         }
 
-        stage("Install Verrazzano Platform Operator") {
+        stage("Download Verrazzano Platform Operator") {
             environment {
                 OCI_CLI_AUTH="instance_principal"
             }
             steps {
                 script {
-                    echo "[INFO] Installing Verrazzano Platform Operator"
-                    // installVerrazzanoPlatformOperator()
+                    echo "[INFO] Download Verrazzano Platform Operator"
+                    downloadVerrazzanoPlatformOperator()
                 }
             }
             post {
                 always {
-                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "$VZ_PLATFORM_OPERTOR_YAML", allowEmptyArchive: true
                 }
             }
         }
@@ -941,10 +942,6 @@ def updateOCNEConfig() {
     env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
     echo CONTROL_PLANE_IP
     sh """
-        # TODO: This will no longer be required after terraform-oci-olcne repository supports OCI CCM module
-        # scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" "$TF_VAR_api_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/oci_api_key.pem
-        # $GO_REPO_PATH/verrazzano/ci/scripts/update_ocne_config.sh
-
         # TODO: This MIGHT not be required for OCNE > 1.5 releases
         # Add annotation to the storageclass created by OCNE oci-ccm module
         kubectl get storageclass oci-bv -o yaml > "$WORKSPACE/oci-bv.yaml"
@@ -969,29 +966,15 @@ def createImagePullSecrets() {
     """
 }
 
-def installVerrazzanoPlatformOperator() {
+def downloadVerrazzanoPlatformOperator() {
     sh """
         oci --region us-phoenix-1 os object get \
            --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
            --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
-           --file $WORKSPACE/downloaded-operator.yaml
+           --file $VZ_PLATFORM_OPERTOR_YAML
 
         # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands instead of "wget"
         # wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
-
-        cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
-
-        # Install the verrazzano-platform-operator
-        kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
-        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-        
-        # make sure ns exists
-        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-        kubectl get namespaces
-
-        # create secret in verrazzano-install ns
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
     """
 }
 
@@ -999,7 +982,7 @@ def installVerrazzano() {
     env.installedVZ="true"
     sh """
         # Install Verrazzano
-        $GO_REPO_PATH/vz install -f $INSTALL_CONFIG_FILE_OCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME"
+        $GO_REPO_PATH/vz install -f $INSTALL_CONFIG_FILE_OCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME" --operaotor-file="$VZ_PLATFORM_OPERTOR_YAML"
         $GO_REPO_PATH/vz status
 
         # Print out the namespaces
