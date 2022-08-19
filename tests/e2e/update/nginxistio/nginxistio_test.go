@@ -141,10 +141,7 @@ spec:
       istio-ingressgateway:
         serviceAnnotations:
           name-i: value-i
-          service:
-            beta:
-              kubernetes:
-                io/oci-load-balancer-shape: %s`, m.istioEgressReplicas, m.istioIngressReplicas, m.istioLBShape)
+          service.beta.kubernetes.io/oci-load-balancer-shape: %s`, m.istioEgressReplicas, m.istioIngressReplicas, m.istioLBShape)
 	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 	// istio 1.11.4 has a bug handling this particular Affinity
 	// it works fine if istio is installed with it
@@ -221,13 +218,12 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
     externalIPs:
       - %s
     annotations:
-      service.beta.kubernetes.io/oci-load-balancer-shape: %s
+      service.beta.kubernetes.io/oci-load-balancer-shape: %v
       name-n: value-n`, u.nginxReplicas, u.systemExternalLBIP, u.nginxLBShape)
 	cr.Spec.Components.Ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
 
 	// update Istio
-	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
-kind: IstioOperator
+	istioYaml := fmt.Sprintf(`kind: IstioOperator
 spec:
   components:
     egressGateways:
@@ -237,28 +233,25 @@ spec:
         name: istio-egressgateway
     ingressGateways:
       - enabled: true
+        name: istio-ingressgateway
         k8s:
           replicaCount: %v
           service:
             type: NodePort
-	        ports:
-			- name: https
-			  nodePort: 32443
-			  port: 443
-			  protocol: TCP
-			  targetPort: 8443
-        name: istio-ingressgateway
+            ports:
+              - name: https
+                nodePort: 32443
+                port: 443
+                protocol: TCP
+                targetPort: 8443
   values:
     gateways:
       istio-ingressgateway:
-		externalIPs:
-		  - %s
-    serviceAnnotations:
-      name-i: value-i
-      service:
-        beta:
-          kubernetes:
-            io/oci-load-balancer-shape: %s`, u.istioEgressReplicas, u.istioIngressReplicas, u.applicationExternalLBIP, u.istioLBShape)
+        externalIPs:
+          - %s
+        serviceAnnotations:
+          name-i: value-i
+          service.beta.kubernetes.io/oci-load-balancer-shape: %s`, u.istioEgressReplicas, u.istioIngressReplicas, u.applicationExternalLBIP, u.istioLBShape)
 	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
@@ -304,10 +297,7 @@ spec:
       istio-ingressgateway:
         serviceAnnotations:
           name-i: value-i
-          service:
-            beta:
-              kubernetes:
-                io/oci-load-balancer-shape: %s`, u.istioEgressReplicas, u.istioIngressReplicas, u.istioLBShape)
+          service.beta.kubernetes.io/oci-load-balancer-shape: %s`, u.istioEgressReplicas, u.istioIngressReplicas, u.istioLBShape)
 	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
