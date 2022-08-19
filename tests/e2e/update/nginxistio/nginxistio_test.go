@@ -109,21 +109,18 @@ func (m NginxAutoscalingIstioRelicasAffintyModifier) ModifyCR(cr *vzapi.Verrazza
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
 	// update nginx
-	nginxYaml := fmt.Sprintf(`
-controller:
+	nginxYaml := fmt.Sprintf(`controller:
   autoscaling:
     enabled: true
     minReplicas: %v
   service:
     annotations:
       service.beta.kubernetes.io/oci-load-balancer-shape: %s
-      name-n: value-n
-`, m.nginxReplicas, m.nginxLBShape)
+      name-n: value-n`, m.nginxReplicas, m.nginxLBShape)
 	cr.Spec.Components.Ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
 
 	// update Istio
-	istioYaml := fmt.Sprintf(`
-apiVersion: install.istio.io/v1alpha1
+	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   components:
@@ -147,8 +144,7 @@ spec:
           service:
             beta:
               kubernetes:
-                io/oci-load-balancer-shape: %s
-`, m.istioEgressReplicas, m.istioIngressReplicas, m.istioLBShape)
+                io/oci-load-balancer-shape: %s`, m.istioEgressReplicas, m.istioIngressReplicas, m.istioLBShape)
 	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 	// istio 1.11.4 has a bug handling this particular Affinity
 	// it works fine if istio is installed with it
@@ -217,8 +213,7 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Ingress.Ports = testNginxIngressPorts
 	cr.Spec.Components.Ingress.Type = vzapi.NodePort
 	// update nginx
-	nginxYaml := fmt.Sprintf(`
-controller:
+	nginxYaml := fmt.Sprintf(`controller:
   autoscaling:
     enabled: true
     minReplicas: %v
@@ -227,13 +222,11 @@ controller:
 	- %s
     annotations:
       service.beta.kubernetes.io/oci-load-balancer-shape: %s
-      name-n: value-n
-`, u.nginxReplicas, u.systemExternalLBIP, u.nginxLBShape)
+      name-n: value-n`, u.nginxReplicas, u.systemExternalLBIP, u.nginxLBShape)
 	cr.Spec.Components.Ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
 
 	// update Istio
-	istioYaml := fmt.Sprintf(`
-apiVersion: install.istio.io/v1alpha1
+	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   components:
@@ -265,8 +258,7 @@ spec:
           service:
             beta:
               kubernetes:
-                io/oci-load-balancer-shape: %s
-`, u.istioEgressReplicas, u.istioIngressReplicas, u.applicationExternalLBIP, u.istioLBShape)
+                io/oci-load-balancer-shape: %s`, u.istioEgressReplicas, u.istioIngressReplicas, u.applicationExternalLBIP, u.istioLBShape)
 	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
@@ -280,21 +272,18 @@ func (u NginxIstioLoadBalancerModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	}
 
 	// update nginx
-	nginxYaml := fmt.Sprintf(`
-controller:
+	nginxYaml := fmt.Sprintf(`controller:
   autoscaling:
     enabled: true
     minReplicas: %v
   service:
     annotations:
       service.beta.kubernetes.io/oci-load-balancer-shape: %s
-      name-n: value-n
-`, u.nginxReplicas, u.nginxLBShape)
+      name-n: value-n`, u.nginxReplicas, u.nginxLBShape)
 	cr.Spec.Components.Ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
 
 	// update Istio
-	istioYaml := fmt.Sprintf(`
-apiVersion: install.istio.io/v1alpha1
+	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   components:
@@ -318,8 +307,7 @@ spec:
           service:
             beta:
               kubernetes:
-                io/oci-load-balancer-shape: %s
-`, u.istioEgressReplicas, u.istioIngressReplicas, u.istioLBShape)
+                io/oci-load-balancer-shape: %s`, u.istioEgressReplicas, u.istioIngressReplicas, u.istioLBShape)
 	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
@@ -329,20 +317,17 @@ func (u NginxIstioIngressServiceAnnotationModifier) ModifyCR(cr *vzapi.Verrazzan
 	}
 	ingress := cr.Spec.Components.Ingress
 	ingress.Type = vzapi.LoadBalancer
-	nginxYaml := fmt.Sprintf(`
-controller:
+	nginxYaml := fmt.Sprintf(`controller:
   service:
     annotations:
       service.beta.kubernetes.io/oci-load-balancer-shape: %s
-      name-n: value-n
-`, u.nginxLBShape)
+      name-n: value-n`, u.nginxLBShape)
 	ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
 	istio := cr.Spec.Components.Istio
-	istioYaml := fmt.Sprintf(`
-apiVersion: install.istio.io/v1alpha1
+	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   components:
@@ -360,8 +345,7 @@ spec:
       istio-ingressgateway:
         serviceAnnotations:
           name-i: value-i
-          service.beta.kubernetes.io/oci-load-balancer-shape: %s
-`, u.istioLBShape)
+          service.beta.kubernetes.io/oci-load-balancer-shape: %s`, u.istioLBShape)
 	istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
