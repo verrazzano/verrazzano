@@ -214,7 +214,8 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Istio == nil {
 		cr.Spec.Components.Istio = &vzapi.IstioComponent{}
 	}
-
+	cr.Spec.Components.Ingress.Ports = testNginxIngressPorts
+	cr.Spec.Components.Ingress.Type = vzapi.NodePort
 	// update nginx
 	nginxYaml := fmt.Sprintf(`
 controller:
