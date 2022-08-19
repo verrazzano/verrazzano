@@ -121,6 +121,13 @@ func createRancherPodListWithAllRunning() v1.PodList {
 	}
 }
 
+func createClusterRoles(roleName string) rbacv1.ClusterRole {
+	return rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: roleName},
+		Rules:      []rbacv1.PolicyRule{},
+	}
+}
+
 func createRancherPodListWithNoneRunning() v1.PodList {
 	return v1.PodList{
 		Items: []v1.Pod{

@@ -96,34 +96,39 @@ const (
 )
 
 const (
-	APIGroupRancherManagement                             = "management.cattle.io"
-	APIGroupVersionRancherManagement                      = "v3"
-	SettingServerURL                                      = "server-url"
-	SettingFirstLogin                                     = "first-login"
-	KontainerDriverOKE                                    = "oraclecontainerengine"
-	NodeDriverOCI                                         = "oci"
-	ClusterLocal                                          = "local"
-	AuthConfigKeycloak                                    = "keycloakoidc"
-	AuthConfigLocal                                       = "local"
-	UserVerrazzano                                        = "u-verrazzano"
-	UserVerrazzanoDescription                             = "Verrazzano Admin"
-	GlobalRoleBindingVerrazzano                           = "gbr-" + UserVerrazzano
-	AuthConfigKeycloakURLPathVerifyAuth                   = "/verify-auth"
-	AuthConfigKeycloakURLPathIssuer                       = "/auth/realms/verrazzano-system"
-	AuthConfigKeycloakURLPathAuthEndPoint                 = "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
-	AuthConfigKeycloakClientIDRancher                     = "rancher"
-	AuthConfigKeycloakAccessMode                          = "unrestricted"
-	AuthConfigKeycloakAttributeAccessMode                 = "accessMode"
-	AuthConfigKeycloakAttributeClientID                   = "clientId"
-	AuthConfigAttributeEnabled                            = "enabled"
-	AuthConfigKeycloakAttributeGroupSearchEnabled         = "groupSearchEnabled"
-	AuthConfigKeycloakAttributeAuthEndpoint               = "authEndpoint"
-	AuthConfigKeycloakAttributeClientSecret               = "clientSecret"
-	AuthConfigKeycloakAttributeIssuer                     = "issuer"
-	AuthConfigKeycloakAttributeRancherURL                 = "rancherUrl"
-	UserPrincipalKeycloakPrefix                           = "keycloakoidc_user://"
-	GroupPrincipalKeycloakPrefix                          = "keycloakoidc_group://"
-	UserPrincipalLocalPrefix                              = "local://"
+	APIGroupRancherManagement        = "management.cattle.io"
+	APIGroupVersionRancherManagement = "v3"
+	SettingServerURL                 = "server-url"
+	SettingFirstLogin                = "first-login"
+	KontainerDriverOKE               = "oraclecontainerengine"
+	NodeDriverOCI                    = "oci"
+	ClusterLocal                     = "local"
+	AuthConfigKeycloak               = "keycloakoidc"
+	AuthConfigLocal                  = "local"
+	UserVerrazzano                   = "u-verrazzano"
+	UserVerrazzanoDescription        = "Verrazzano Admin"
+	GlobalRoleBindingVerrazzano      = "gbr-" + UserVerrazzano
+)
+
+// auth config
+const (
+	AuthConfigKeycloakURLPathVerifyAuth           = "/verify-auth"
+	AuthConfigKeycloakURLPathIssuer               = "/auth/realms/verrazzano-system"
+	AuthConfigKeycloakURLPathAuthEndPoint         = "/auth/realms/verrazzano-system/protocol/openid-connect/auth"
+	AuthConfigKeycloakClientIDRancher             = "rancher"
+	AuthConfigKeycloakAccessMode                  = "unrestricted"
+	AuthConfigKeycloakAttributeAccessMode         = "accessMode"
+	AuthConfigKeycloakAttributeClientID           = "clientId"
+	AuthConfigAttributeEnabled                    = "enabled"
+	AuthConfigKeycloakAttributeGroupSearchEnabled = "groupSearchEnabled"
+	AuthConfigKeycloakAttributeAuthEndpoint       = "authEndpoint"
+	AuthConfigKeycloakAttributeClientSecret       = "clientSecret"
+	AuthConfigKeycloakAttributeIssuer             = "issuer"
+	AuthConfigKeycloakAttributeRancherURL         = "rancherUrl"
+)
+
+// attributes
+const (
 	UserAttributeDisplayName                              = "displayName"
 	UserAttributeUserName                                 = "username"
 	UserAttributePrincipalIDs                             = "principalIds"
@@ -133,8 +138,15 @@ const (
 	ClusterRoleTemplateBindingAttributeClusterName        = "clusterName"
 	ClusterRoleTemplateBindingAttributeGroupPrincipalName = "groupPrincipalName"
 	ClusterRoleTemplateBindingAttributeRoleTemplateName   = "roleTemplateName"
+	RoleTemplateAttributeBuiltin                          = "builtin"
+	RoleTemplateAttributeContext                          = "context"
+	RoleTemplateAttributeDisplayName                      = "displayName"
+	RoleTemplateAttributeExternal                         = "external"
+	RoleTemplateAttributeHidden                           = "hidden"
+	RoleTemplateAttributeRules                            = "rules"
 )
 
+// roles and groups
 const (
 	AdminRoleName               = "admin"
 	VerrazzanoAdminRoleName     = "verrazzano-admin"
@@ -143,6 +155,13 @@ const (
 	ClusterMemberRoleName       = "cluster-member"
 	VerrazzanoAdminsGroupName   = "verrazzano-admins"
 	VerrazzanoMonitorsGroupName = "verrazzano-monitors"
+)
+
+// prefixes
+const (
+	UserPrincipalKeycloakPrefix  = "keycloakoidc_user://"
+	GroupPrincipalKeycloakPrefix = "keycloakoidc_group://"
+	UserPrincipalLocalPrefix     = "local://"
 )
 
 var GVKSetting = schema.GroupVersionKind{
@@ -577,7 +596,7 @@ func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, 
 
 	if createNew {
 		resource.SetName(nsn.Name)
-		resource.SetNamespace(nsn.Name)
+		resource.SetNamespace(nsn.Namespace)
 		err = c.Create(context.Background(), &resource, &client.CreateOptions{})
 	} else {
 		err = c.Update(context.Background(), &resource, &client.UpdateOptions{})
@@ -632,12 +651,14 @@ func createOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	}
 
 	data := map[string]interface{}{}
-	data["builtin"] = "false"
-	data["context"] = "cluster"
-	data["displayName"] = strings.Title(strings.Replace(role, "-", " ", 1))
-	data["external"] = "true"
-	data["hidden"] = "true"
-	data["Rules"] = clusterRole.Rules
+	data[RoleTemplateAttributeBuiltin] = false
+	data[RoleTemplateAttributeContext] = "cluster"
+	data[RoleTemplateAttributeDisplayName] = strings.Title(strings.Replace(role, "-", " ", 1))
+	data[RoleTemplateAttributeExternal] = true
+	data[RoleTemplateAttributeHidden] = true
+	if clusterRole.Rules != nil && len(clusterRole.Rules) > 0 {
+		data[RoleTemplateAttributeRules] = clusterRole.Rules
+	}
 
 	return createOrUpdateResource(ctx, nsn, GVKRoleTemplate, data)
 }
