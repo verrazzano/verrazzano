@@ -1286,6 +1286,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
 	_ = clustersapi.AddToScheme(scheme)
 	return scheme
 }
@@ -1358,6 +1359,20 @@ func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string,
 		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
 			asserts.Equalf(constants.VerrazzanoMultiClusterNamespace, serviceAccount.Namespace, "ServiceAccount namespace did not match")
 			asserts.Equalf(generateManagedResourceName(name), serviceAccount.Name, "ServiceAccount testManagedCluster did not match")
+			return nil
+		})
+
+	// Expect a call to get the Token Secret - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name) + "-token"}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, generateManagedResourceName(name)+"-token"))
+
+	// Expect a call to create the Token Secret - return success
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			asserts.Equalf(constants.VerrazzanoMultiClusterNamespace, secret.Namespace, "Secret namespace did not match")
+			asserts.Equalf(generateManagedResourceName(name)+"-token", secret.Name, "Secret testManagedCluster did not match")
 			return nil
 		})
 
