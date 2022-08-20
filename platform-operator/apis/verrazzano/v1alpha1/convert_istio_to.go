@@ -8,10 +8,11 @@ package v1alpha1
 import (
 	"bytes"
 	"fmt"
-	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
+
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 // Define the IstioOperator template which is used to insert the generated YAML values.
@@ -57,14 +58,14 @@ spec:
 {{- end }}
           service:
             type: {{.IngressServiceType}}
-            {{- if .IngressServicePorts }}
+{{- if .IngressServicePorts }}
             ports:
 {{ multiLineIndent 12 .IngressServicePorts }}
             {{- end}}
-          {{- if .ExternalIps }}
+{{- if .ExternalIps }}
             externalIPs:
 {{.ExternalIps}}
-          {{- end}}
+{{- end}}
 {{- if .IngressAffinity }}
           affinity:
 {{ multiLineIndent 12 .IngressAffinity }}
