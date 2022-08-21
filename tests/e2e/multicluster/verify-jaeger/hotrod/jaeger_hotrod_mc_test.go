@@ -5,13 +5,11 @@ package hotrod
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -80,30 +78,9 @@ var _ = t.BeforeSuite(func() {
 		return result
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
-	// Get the host URL from the gateway and send 10 test requests to generate traces
-	var host = ""
-	var err error
-	Eventually(func() (string, error) {
-		host, err = k8sutil.GetHostnameFromGatewayInCluster(projectName, "", managedKubeconfig)
-		if err != nil {
-			pkg.Log(pkg.Error, err.Error())
-		}
-		pkg.Log(pkg.Info, fmt.Sprintf("Found hostname %s from gateway", host))
-		return host, err
-	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(Not(BeEmpty()))
-
-	for i := 0; i < 10; i++ {
-		url := fmt.Sprintf("https://%s/dispatch?customer=123", host)
-		resp, err := pkg.GetWebPageInCluster(url, host, managedKubeconfig)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error sending request to hotrod app: %v", err.Error()))
-			continue
-		}
-		if resp.StatusCode == http.StatusOK {
-			pkg.Log(pkg.Info, fmt.Sprintf("Successfully sent request to hotrod app: %v", resp.StatusCode))
-		} else {
-			pkg.Log(pkg.Error, fmt.Sprintf("Got error response %v", resp))
-		}
+	err := pkg.GenerateTrafficForTraces(projectName, "", "dispatch?customer=123", managedKubeconfig)
+	if err != nil {
+		AbortSuite("Unable to send traffic requests to generate traces")
 	}
 	beforeSuitePassed = true
 })

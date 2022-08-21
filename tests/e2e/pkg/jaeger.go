@@ -517,6 +517,33 @@ func ValidateApplicationTracesInOS(start time.Time, appServiceName string) func(
 	}
 }
 
+// GenerateTrafficForTraces creates some HTTP requests to the application so that the corresponding traces would be generated for them.
+func GenerateTrafficForTraces(namespace, appConfigName, urlPath, kubeconfigPath string) error {
+	// Get the host URL from the gateway and send 10 test requests to generate traces
+	host, err := k8sutil.GetHostnameFromGatewayInCluster(namespace, appConfigName, kubeconfigPath)
+	if err != nil {
+		Log(Error, err.Error())
+		return err
+	}
+	Log(Info, fmt.Sprintf("Found hostname %s from gateway", host))
+	for i := 0; i < 10; i++ {
+		url := fmt.Sprintf("https://%s/%s", host, urlPath)
+		resp, err := GetWebPageInCluster(url, host, kubeconfigPath)
+		if err != nil {
+			Log(Error, fmt.Sprintf("Error sending request to %s app: %v", appConfigName, err.Error()))
+			return err
+		}
+		if resp.StatusCode == http.StatusOK {
+			Log(Info, fmt.Sprintf("Successfully sent request to %s app: %v", appConfigName, resp.StatusCode))
+		} else {
+			err = fmt.Errorf("got error response code %v", resp.StatusCode)
+			Log(Error, err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
 // fillLabelSelectors fills the match labels from map to be passed in list options
 func fillLabelSelectors(matchLabels map[string]string) metav1.ListOptions {
 	listOptions := metav1.ListOptions{}
