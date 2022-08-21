@@ -5,11 +5,13 @@ package helidon
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -79,6 +81,23 @@ var _ = t.BeforeSuite(func() {
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+	// Get the host URL from the gateway and send 10 test requests to generate traces
+	var host = ""
+	Eventually(func() (string, error) {
+		host, err := k8sutil.GetHostnameFromGatewayInCluster(projectName, "", managedKubeconfig)
+		return host, err
+	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(Not(BeEmpty()))
+	for i := 0; i < 10; i++ {
+		url := fmt.Sprintf("https://%s/greet", host)
+		resp, err := pkg.GetWebPageInCluster(url, host, managedKubeconfig)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error sending request to helidon app: %v", err.Error()))
+		}
+		pkg.Log(pkg.Info, fmt.Sprintf("Response Body:%v", resp.Body))
+		if resp.StatusCode == http.StatusOK {
+			pkg.Log(pkg.Info, fmt.Sprintf("Successfully sent request to helidon app: %v", resp.StatusCode))
+		}
+	}
 })
 
 var _ = t.AfterSuite(func() {
