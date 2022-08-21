@@ -522,17 +522,17 @@ pipeline {
 
         stage('Acceptance Tests') {
             stages {
-                stage ('Example apps') {
-                    steps {
-                        script {
-                            parallel verifyExamples()
-                        }
-                    }
-                }
                 stage ('Jaeger apps') {
                     steps {
                         script {
                             parallel verifyJaegerApps()
+                        }
+                    }
+                }
+                stage ('Example apps') {
+                    steps {
+                        script {
+                            parallel verifyExamples()
                         }
                     }
                 }
@@ -874,7 +874,7 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                         yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.zipkin.address"' ${verrazzanoConfig}
                         yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${verrazzanoConfig}
                         yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.sampling"' ${verrazzanoConfig}
-                        yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "75.0"' ${verrazzanoConfig}
+                        yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "25.0"' ${verrazzanoConfig}
                     fi
                 fi
 
@@ -946,7 +946,7 @@ def upgradeVerrazzano() {
                         yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.zipkin.address"' ${v8oUpgradeFile}
                         yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${v8oUpgradeFile}
                         yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.sampling"' ${v8oUpgradeFile}
-                        yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "75.0"' ${v8oUpgradeFile}
+                        yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "25.0"' ${v8oUpgradeFile}
                     fi
                 fi
 
