@@ -34,7 +34,7 @@ var (
 	expectedPodsHotrod = []string{"hotrod-workload"}
 	beforeSuitePassed  = false
 	start              = time.Now()
-	hotrodServieName   = "hotrod.hotrod"
+	hotrodServiceName  = "hotrod.hotrod"
 )
 
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
@@ -93,7 +93,7 @@ var _ = t.BeforeSuite(func() {
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(Not(BeEmpty()))
 
 	for i := 0; i < 10; i++ {
-		url := fmt.Sprintf("https://%s/", host)
+		url := fmt.Sprintf("https://%s/dispatch?customer=123", host)
 		resp, err := pkg.GetWebPageInCluster(url, host, managedKubeconfig)
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Error sending request to hotrod app: %v", err.Error()))
@@ -101,7 +101,6 @@ var _ = t.BeforeSuite(func() {
 		}
 		if resp.StatusCode == http.StatusOK {
 			pkg.Log(pkg.Info, fmt.Sprintf("Successfully sent request to hotrod app: %v", resp.StatusCode))
-			pkg.Log(pkg.Info, fmt.Sprintf("Response Body:%v", resp.Body))
 		} else {
 			pkg.Log(pkg.Error, fmt.Sprintf("Got error response %v", resp))
 		}
@@ -110,12 +109,12 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
-	//if !beforeSuitePassed {
-	err := pkg.ExecuteClusterDumpWithEnvVarConfig()
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
+	if !beforeSuitePassed {
+		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+		}
 	}
-	//}
 	// undeploy the application here
 	start := time.Now()
 	Eventually(func() error {
@@ -154,7 +153,7 @@ var _ = t.Describe("Hotrod App with Jaeger Traces", Label("f:jaeger.hotrod-workl
 		// WHEN we check for traces for that service,
 		// THEN we are able to get the traces
 		t.It("traces for the hotrod app should be available when queried from Jaeger", func() {
-			validatorFn := pkg.ValidateApplicationTracesInCluster(adminKubeconfig, start, hotrodServieName, managedClusterName)
+			validatorFn := pkg.ValidateApplicationTracesInCluster(adminKubeconfig, start, hotrodServiceName, managedClusterName)
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 

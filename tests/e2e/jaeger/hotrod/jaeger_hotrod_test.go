@@ -53,7 +53,7 @@ var _ = t.BeforeSuite(func() {
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(Not(BeEmpty()))
 
 	for i := 0; i < 10; i++ {
-		url := fmt.Sprintf("https://%s/", host)
+		url := fmt.Sprintf("https://%s/dispatch?customer=123", host)
 		resp, err := pkg.GetWebPage(url, host)
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Error sending request to hotrod app: %v", err.Error()))
@@ -61,7 +61,6 @@ var _ = t.BeforeSuite(func() {
 		}
 		if resp.StatusCode == http.StatusOK {
 			pkg.Log(pkg.Info, fmt.Sprintf("Successfully sent request to hotrod app: %v", resp.StatusCode))
-			pkg.Log(pkg.Info, fmt.Sprintf("Response Body:%v", resp.Body))
 		} else {
 			pkg.Log(pkg.Error, fmt.Sprintf("Got error response %v", resp))
 		}

@@ -62,7 +62,6 @@ var _ = t.BeforeSuite(func() {
 		}
 		if resp.StatusCode == http.StatusOK {
 			pkg.Log(pkg.Info, fmt.Sprintf("Successfully sent request to helidon app: %v", resp.StatusCode))
-			pkg.Log(pkg.Info, fmt.Sprintf("Response Body:%v", resp.Body))
 		} else {
 			pkg.Log(pkg.Error, fmt.Sprintf("Got error response %v", resp))
 		}

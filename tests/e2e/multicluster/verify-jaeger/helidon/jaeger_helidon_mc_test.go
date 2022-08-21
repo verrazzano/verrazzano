@@ -101,7 +101,6 @@ var _ = t.BeforeSuite(func() {
 		}
 		if resp.StatusCode == http.StatusOK {
 			pkg.Log(pkg.Info, fmt.Sprintf("Successfully sent request to helidon app: %v", resp.StatusCode))
-			pkg.Log(pkg.Info, fmt.Sprintf("Response Body:%v", resp.Body))
 		} else {
 			pkg.Log(pkg.Error, fmt.Sprintf("Got error response %v", resp))
 		}
@@ -110,12 +109,12 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
-	//if !beforeSuitePassed {
-	err := pkg.ExecuteClusterDumpWithEnvVarConfig()
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
+	if !beforeSuitePassed {
+		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+		}
 	}
-	//}
 	// undeploy the application here
 	start := time.Now()
 	Eventually(func() error {

@@ -488,7 +488,9 @@ func ValidateApplicationTracesInCluster(kubeconfigPath string, start time.Time, 
 		tracesFound := false
 		servicesWithJaegerTraces := ListServicesInJaeger(kubeconfigPath)
 		for _, serviceName := range servicesWithJaegerTraces {
+			Log(Info, fmt.Sprintf("Checking if service name %s matches the expected app service %s", serviceName, appServiceName))
 			if strings.HasPrefix(serviceName, appServiceName) {
+				Log(Info, fmt.Sprintf("Finding traces for service %s after %s", serviceName, start.String()))
 				traceIds := ListJaegerTracesWithTags(kubeconfigPath, start, appServiceName,
 					map[string]string{"verrazzano_cluster": clusterName})
 				tracesFound = len(traceIds) > 0
