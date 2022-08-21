@@ -4,6 +4,8 @@
 package helidon
 
 import (
+	"fmt"
+	"net/http"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -37,8 +39,35 @@ var (
 var _ = t.BeforeSuite(func() {
 	start = time.Now()
 	jaeger.DeployApplication(namespace, testAppComponentFilePath, testAppConfigurationFilePath, expectedPodsHelloHelidon)
-	beforeSuitePassed = true
+
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+	// Get the host URL from the gateway and send 10 test requests to generate traces
+	var host = ""
+	var err error
+	Eventually(func() (string, error) {
+		host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+		}
+		pkg.Log(pkg.Info, fmt.Sprintf("Found hostname %s from gateway", host))
+		return host, err
+	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(Not(BeEmpty()))
+
+	for i := 0; i < 10; i++ {
+		url := fmt.Sprintf("https://%s/greet", host)
+		resp, err := pkg.GetWebPage(url, host)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error sending request to helidon app: %v", err.Error()))
+			continue
+		}
+		if resp.StatusCode == http.StatusOK {
+			pkg.Log(pkg.Info, fmt.Sprintf("Successfully sent request to helidon app: %v", resp.StatusCode))
+			pkg.Log(pkg.Info, fmt.Sprintf("Response Body:%v", resp.Body))
+		} else {
+			pkg.Log(pkg.Error, fmt.Sprintf("Got error response %v", resp))
+		}
+	}
+	beforeSuitePassed = true
 })
 
 var _ = t.AfterSuite(func() {
