@@ -72,17 +72,6 @@ func writeYAMLString(c *gabs.Container) (string, error) {
 	return string(bytes), nil
 }
 
-// getClusterNameFromObjectMetaOrDefault extracts the customer name from object metadata.
-// meta is the object metadata to extract the cluster from.
-// Returns the cluster name or "default" if the cluster name is the empty string.
-func getClusterNameFromObjectMetaOrDefault(meta metav1.ObjectMeta) string {
-	name := meta.ClusterName
-	if name == "" {
-		return "default"
-	}
-	return name
-}
-
 // getNamespaceFromObjectMetaOrDefault extracts the namespace name from object metadata.
 // meta is the object metadata to extract the namespace name from.
 // Returns the namespace name of "default" if the namespace is the empty string.
