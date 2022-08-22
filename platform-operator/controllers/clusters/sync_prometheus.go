@@ -60,6 +60,7 @@ basic_auth:
 // entry for the cluster's CA cert added to the prometheus config map to allow for lookup of the CA cert by the scraper's HTTP client.
 func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	var secret corev1.Secret
+
 	// read the configuration secret specified if it exists
 	if len(vmc.Spec.CASecret) > 0 {
 		secretNsn := types.NamespacedName{
@@ -93,6 +94,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 	if cacrtSecret == nil || vmc.Status.PrometheusHost == "" {
 		return newScrapeConfig, nil
 	}
+
 	vzPromSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoPromInternal, true)
 	if err != nil {
 		return nil, err
@@ -107,6 +109,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 	for key, value := range newScrapeConfigMappings {
 		configTemplate = strings.ReplaceAll(configTemplate, key, value)
 	}
+
 	newScrapeConfig, err = metricsutils.ParseScrapeConfig(configTemplate)
 	if err != nil {
 		return nil, err
@@ -173,6 +176,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	newScrapeConfig.Set(managedCertsBasePath+getCAKey(vmc), "tls_config", "ca_file")
 
 	editScrapeJobName := vmc.Name
+
 	// parse the scrape config so we can manipulate it
 	jobs, err := metricsutils.ParseScrapeConfig(jobsStr)
 	if err != nil {
@@ -182,6 +186,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	if err != nil {
 		return err
 	}
+
 	bytes, err := yaml.JSONToYAML(scrapeConfigs.Bytes())
 	if err != nil {
 		return err
@@ -213,6 +218,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(c
 			Namespace: vpoconst.VerrazzanoMonitoringNamespace,
 		},
 	}
+
 	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, secret, func() error {
 		if secret.Data == nil {
 			secret.Data = make(map[string][]byte)
