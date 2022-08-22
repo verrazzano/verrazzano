@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
-	//clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	kindcluster "sigs.k8s.io/kind/pkg/cluster"
 	kind "sigs.k8s.io/kind/pkg/cmd"
 )
@@ -75,16 +75,16 @@ func (r *kindClusterManager) Init() error {
 		return err
 	}
 	defer os2.RemoveTempFiles(zap.S(), config.Name())
-	//capiclient, err := clusterapi.New("") // TODO: do we need to provide a CAPI config?
-	//if err != nil {
-	//	return err
-	//}
-	//_, err = capiclient.Init(clusterapi.InitOptions{
-	//	Kubeconfig: clusterapi.Kubeconfig{
-	//		Path: config.Name(),
-	//	},
-	//	InfrastructureProviders: []string{"docker"},
-	//})
+	capiclient, err := clusterapi.New("") // TODO: do we need to provide a CAPI config?
+	if err != nil {
+		return err
+	}
+	_, err = capiclient.Init(clusterapi.InitOptions{
+		Kubeconfig: clusterapi.Kubeconfig{
+			Path: config.Name(),
+		},
+		InfrastructureProviders: []string{"docker"},
+	})
 	return err
 }
 
