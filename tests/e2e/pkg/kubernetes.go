@@ -806,6 +806,20 @@ func IsKeycloakEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.Keycloak.Enabled
 }
 
+// IsMySQLOperatorEnabled returns false if the MySQLOperator component is not set, or the value of its Enabled field otherwise
+func IsMySQLOperatorEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.MySQLOperator == nil || vz.Spec.Components.MySQLOperator.Enabled == nil {
+		// MySQLOperator component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.MySQLOperator.Enabled
+}
+
 // IsVeleroEnabled returns false if the Velero component is not set, or the value of its Enabled field otherwise
 func IsVeleroEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
