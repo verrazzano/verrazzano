@@ -374,17 +374,9 @@
           "name": "mysql",
           "images": [
             {
-              "image": "mysql",
-              "tag": "8.0.29",
-              "helmRegKey": "image.registry",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            },
-            {
-              "repository": "oracle",
-              "image": "oraclelinux",
-              "tag": "7-slim",
-              "helmFullImageKey": "initContainerImage"
+              "image": "mysql-server",
+              "tag": "8.0.30",
+              "helmFullImageKey": "image"
             }
           ]
         }

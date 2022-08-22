@@ -52,6 +52,22 @@ spec:
       overrides:
         - values:
             replicas: 2
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 3
+              routerInstances: 1
+              podSpec: |
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - weight: 100
+                        podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/instance: mysql
+                              app.kubernetes.io/name: mysql
+                          topologyKey: kubernetes.io/hostname
     kibana:
       replicas: 2
     kiali:

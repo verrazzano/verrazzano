@@ -125,6 +125,18 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// Create secret for the keycloak DB user if it doesn't exist
+	err = createKeycloakDBSecret(ctx)
+	if err != nil {
+		return err
+	}
+
+	// create the keycloak user and database
+	err = setupDatabase(ctx)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -166,7 +178,10 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 // PreUpgrade - component level processing for pre-upgrade
 func (c KeycloakComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Determine if additional processing is required for the upgrade of the StatefulSet
-	return upgradeStatefulSet(ctx)
+	if err := upgradeStatefulSet(ctx); err != nil {
+		return err
+	}
+	return recreateDBIfEphemeralStorage(ctx)
 }
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress

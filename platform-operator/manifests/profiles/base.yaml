@@ -187,7 +187,6 @@ spec:
       enabled: true
       overrides:
         - values:
-            replicas: 1
             affinity: |
               podAntiAffinity:
                 preferredDuringSchedulingIgnoredDuringExecution:
@@ -198,6 +197,24 @@ spec:
                           app.kubernetes.io/instance: keycloak
                           app.kubernetes.io/name: keycloak
                       topologyKey: kubernetes.io/hostname
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 1
+              routerInstances: 0
+              podSpec: |
+                volumeSpec:
+                  emptyDir: {}
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - weight: 100
+                        podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/instance: mysql
+                              app.kubernetes.io/name: mysql
+                          topologyKey: kubernetes.io/hostname
     kibana:
       enabled: true
       replicas: 1
