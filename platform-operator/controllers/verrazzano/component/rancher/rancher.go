@@ -125,13 +125,13 @@ const (
 	GlobalRoleBindingAttributeUserName            = "userName"
 )
 
-var GVKSetting = common.GetRancherMgmtApiGVKForKind("Setting")
-var GVKCluster = common.GetRancherMgmtApiGVKForKind("Cluster")
-var GVKNodeDriver = common.GetRancherMgmtApiGVKForKind("NodeDriver")
-var GVKKontainerDriver = common.GetRancherMgmtApiGVKForKind("KontainerDriver")
-var GVKAuthConfig = common.GetRancherMgmtApiGVKForKind("AuthConfig")
-var GVKUser = common.GetRancherMgmtApiGVKForKind("User")
-var GVKGlobalRoleBinding = common.GetRancherMgmtApiGVKForKind("GlobalRoleBinding")
+var GVKSetting = common.GetRancherMgmtAPIGVKForKind("Setting")
+var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
+var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
+var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
+var GVKAuthConfig = common.GetRancherMgmtAPIGVKForKind("AuthConfig")
+var GVKUser = common.GetRancherMgmtAPIGVKForKind("User")
+var GVKGlobalRoleBinding = common.GetRancherMgmtAPIGVKForKind("GlobalRoleBinding")
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
 	return acme.Environment != "production"

@@ -162,7 +162,7 @@ func TestUpdateKeycloakOIDCAuthConfig(t *testing.T) {
 }
 
 func TestGetRancherMgmtApiGVKForKind(t *testing.T) {
-	kind := GetRancherMgmtApiGVKForKind("kind")
+	kind := GetRancherMgmtAPIGVKForKind("kind")
 	assert.Equal(t, APIGroupRancherManagement, kind.Group)
 	assert.Equal(t, APIGroupVersionRancherManagement, kind.Version)
 	assert.Equal(t, "kind", kind.Kind)

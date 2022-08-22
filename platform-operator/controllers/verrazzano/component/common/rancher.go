@@ -31,7 +31,7 @@ const (
 	AuthConfigKeycloak                      = "keycloakoidc"
 )
 
-var GVKAuthConfig = GetRancherMgmtApiGVKForKind("AuthConfig")
+var GVKAuthConfig = GetRancherMgmtAPIGVKForKind("AuthConfig")
 
 // GetAdminSecret fetches the Rancher admin secret
 func GetAdminSecret(c client.Reader) (string, error) {
@@ -85,7 +85,7 @@ func CertPool(certs ...[]byte) *x509.CertPool {
 	return certPool
 }
 
-func GetRancherMgmtApiGVKForKind(kind string) schema.GroupVersionKind {
+func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
 	return schema.GroupVersionKind{
 		Group:   APIGroupRancherManagement,
 		Version: APIGroupVersionRancherManagement,
