@@ -60,7 +60,6 @@ basic_auth:
 // entry for the cluster's CA cert added to the prometheus config map to allow for lookup of the CA cert by the scraper's HTTP client.
 func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	var secret corev1.Secret
-	fmt.Println("--Debug--Inside syncPrometheusScraper")
 	// read the configuration secret specified if it exists
 	if len(vmc.Spec.CASecret) > 0 {
 		secretNsn := types.NamespacedName{
@@ -72,21 +71,16 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 		if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
 			return fmt.Errorf("failed to fetch the managed cluster CA secret %s/%s, %v", vmc.Namespace, vmc.Spec.CASecret, err)
 		}
-		fmt.Println("--Debug--Secret exists")
 	}
 
 	// The additional scrape configs and managed cluster TLS secrets are needed by the Prometheus Operator Prometheus
 	// because the federated scrape config can't be represented in a PodMonitor, ServiceMonitor, etc.
-	fmt.Println("--Debug--Before mutateManagedClusterCACertsSecret")
 	err := r.mutateManagedClusterCACertsSecret(ctx, vmc, &secret)
 	if err != nil {
-		fmt.Println("--Debug--After mutateManagedClusterCACertsSecret inside error", err)
 		return err
 	}
-	fmt.Println("--Debug--Before mutateAdditionalScrapeConfigs")
 	err = r.mutateAdditionalScrapeConfigs(ctx, vmc, &secret)
 	if err != nil {
-		fmt.Println("--Debug--After mutateAdditionalScrapeConfigs inside err block", err)
 		return err
 	}
 
@@ -96,18 +90,13 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 // newScrapeConfig will return a prometheus scraper configuration based on the entries in the prometheus info structure provided
 func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Secret, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (*gabs.Container, error) {
 	var newScrapeConfig *gabs.Container
-	fmt.Println("--Debug--newScrapeConfig Before if cacrtSecret == nil || vmc.Status.PrometheusHost == '' ")
 	if cacrtSecret == nil || vmc.Status.PrometheusHost == "" {
-		fmt.Println("--Debug--newScrapeConfig Inside if cacrtSecret == nil || vmc.Status.PrometheusHost == '' ")
 		return newScrapeConfig, nil
 	}
-	fmt.Println("--Debug--newScrapeConfig Before vzPromSecret getsecret ")
 	vzPromSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoPromInternal, true)
 	if err != nil {
-		fmt.Println("--Debug--newScrapeConfig Inside vzPromSecret error ", err)
 		return nil, err
 	}
-	fmt.Println("--Debug--newScrapeConfig After vzPromSecret getsecret")
 
 	newScrapeConfigMappings := map[string]string{
 		"##JOB_NAME##":     vmc.Name,
@@ -118,11 +107,8 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 	for key, value := range newScrapeConfigMappings {
 		configTemplate = strings.ReplaceAll(configTemplate, key, value)
 	}
-	fmt.Println("--Debug--newScrapeConfig Before newScrapeConfig ParseScrapeConfig")
 	newScrapeConfig, err = metricsutils.ParseScrapeConfig(configTemplate)
-	fmt.Println("--Debug--newScrapeConfig After newScrapeConfig ParseScrapeConfig")
 	if err != nil {
-		fmt.Println("--Debug--newScrapeConfig Inside error of newScrapeConfig ParseScrapeConfig")
 		return nil, err
 	}
 	if len(cacrtSecret.Data["cacrt"]) > 0 {
@@ -169,47 +155,35 @@ func getCAKey(vmc *clustersv1alpha1.VerrazzanoManagedCluster) string {
 // in this secret to the scrape config it generates from PodMonitor and ServiceMonitor resources.
 func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *v1.Secret) error {
 	// get the existing additional scrape config, if the secret doesn't exist we will create it
-	fmt.Println("--Debug--mutateAdditionalScrapeConfigsBefore getting the secret")
 	secret, err := r.getSecret(vpoconst.VerrazzanoMonitoringNamespace, constants.PromAdditionalScrapeConfigsSecretName, false)
-	fmt.Println("--Debug--mutateAdditionalScrapeConfigs After getting the secret")
 	if err != nil && !errors.IsNotFound(err) {
-		fmt.Println("--Debug--mutateAdditionalScrapeConfigs Inside error block", err)
 		return err
 	}
 	var jobsStr string
 	if secret.Data != nil {
-		fmt.Println("--Debug--mutateAdditionalScrapeConfigs inside secret.Data", err)
 		jobsStr = string(secret.Data[constants.PromAdditionalScrapeConfigsSecretKey])
 	}
 
 	// create the scrape config for the new managed cluster
-	fmt.Println("--Debug--mutateAdditionalScrapeConfigs Before newScrapeConfig")
 	newScrapeConfig, err := r.newScrapeConfig(cacrtSecret, vmc)
 	if err != nil {
-		fmt.Println("--Debug--mutateAdditionalScrapeConfigs Inside error of  newScrapeConfig", err)
 		return err
 	}
 	// TODO: Set this in the newScrapeConfig function when we remove the "old" Prometheus code
 	newScrapeConfig.Set(managedCertsBasePath+getCAKey(vmc), "tls_config", "ca_file")
 
 	editScrapeJobName := vmc.Name
-	fmt.Println("--Debug--mutateAdditionalScrapeConfigs before ParseScrapeConfig")
 	// parse the scrape config so we can manipulate it
 	jobs, err := metricsutils.ParseScrapeConfig(jobsStr)
 	if err != nil {
-		fmt.Println("--Debug--mutateAdditionalScrapeConfigs inside error block of ParseScrapeConfig", err)
 		return err
 	}
-	fmt.Println("--Debug--mutateAdditionalScrapeConfigs before metricsutils.EditScrapeJob")
 	scrapeConfigs, err := metricsutils.EditScrapeJob(jobs, editScrapeJobName, newScrapeConfig)
 	if err != nil {
-		fmt.Println("--Debug--mutateAdditionalScrapeConfigs Inside error block of  metricsutils.EditScrapeJob", err)
 		return err
 	}
-	fmt.Println("--Debug--mutateAdditionalScrapeConfigs before  yaml.JSONToYAML(scrapeConfigs.Bytes())")
 	bytes, err := yaml.JSONToYAML(scrapeConfigs.Bytes())
 	if err != nil {
-		fmt.Println("--Debug--mutateAdditionalScrapeConfigs Inside error block  yaml.JSONToYAML(scrapeConfigs.Bytes())", err)
 		return err
 	}
 
@@ -225,7 +199,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 		secret.Data[constants.PromAdditionalScrapeConfigsSecretKey] = bytes
 		return nil
 	}); err != nil {
-		fmt.Println("--Debug--mutateAdditionalScrapeConfigs Inside error of  controllerruntime.CreateOrUpdate", err)
 		return err
 	}
 
@@ -240,22 +213,17 @@ func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(c
 			Namespace: vpoconst.VerrazzanoMonitoringNamespace,
 		},
 	}
-	fmt.Println("--Debug--Inside mutateManagedClusterCACertsSecret")
 	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, secret, func() error {
 		if secret.Data == nil {
-			fmt.Println("--Debug--secret.Data == nil mutateManagedClusterCACertsSecret")
 			secret.Data = make(map[string][]byte)
 		}
 		if cacrtSecret != nil && cacrtSecret.Data != nil && len(cacrtSecret.Data["cacrt"]) > 0 {
-			fmt.Println("--Debug--secret.Data == nil mutateManagedClusterCACertsSecret cacrtSecret != nil && cacrtSecret.Data != nil && --- > 0")
 			secret.Data[getCAKey(vmc)] = cacrtSecret.Data["cacrt"]
 		} else {
-			fmt.Println("--Debug--secret.Data == nil mutateManagedClusterCACertsSecret before delete(secret.Data, getCAKey(vmc))")
 			delete(secret.Data, getCAKey(vmc))
 		}
 		return nil
 	}); err != nil {
-		fmt.Println("--Debug--Inside mutateManagedClusterCACertsSecret err occurred")
 		return err
 	}
 
