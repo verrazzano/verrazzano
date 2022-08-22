@@ -38,7 +38,7 @@ const (
 
 var (
 	t           = framework.NewTestFramework("deploymentworkload")
-	clusterDump = pkg.NewClusterDumpWrapper()
+	clusterDump = pkg.NewClusterDumpWrapper(deploymentNamespace, podNamespace, replicasetNamespace, statefulsetNamespace)
 )
 
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails

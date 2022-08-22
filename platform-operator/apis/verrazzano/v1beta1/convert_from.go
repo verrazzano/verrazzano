@@ -115,6 +115,7 @@ func convertComponentsFrom(src v1alpha1.ComponentSpec) (ComponentSpec, error) {
 		JaegerOperator:         convertJaegerOperatorFrom(src.JaegerOperator),
 		Kiali:                  convertKialiFrom(src.Kiali),
 		Keycloak:               keycloakComponent,
+		MySQLOperator:          convertMySQLOperatorFrom(src.MySQLOperator),
 		OpenSearchDashboards:   convertOSDFrom(src.Kibana),
 		KubeStateMetrics:       convertKubeStateMetricsFrom(src.KubeStateMetrics),
 		Prometheus:             convertPrometheusFrom(src.Prometheus),
@@ -510,6 +511,16 @@ func convertKeycloakFrom(src *v1alpha1.KeycloakComponent) (*KeycloakComponent, e
 		Enabled:          src.Enabled,
 		InstallOverrides: keycloakOverrides,
 	}, nil
+}
+
+func convertMySQLOperatorFrom(src *v1alpha1.MySQLOperatorComponent) *MySQLOperatorComponent {
+	if src == nil {
+		return nil
+	}
+	return &MySQLOperatorComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesFrom(src.InstallOverrides),
+	}
 }
 
 func convertOSDFrom(src *v1alpha1.KibanaComponent) *OpenSearchDashboardsComponent {

@@ -105,6 +105,7 @@ func convertComponentsTo(in ComponentSpec) v1alpha1.ComponentSpec {
 		Keycloak:               convertKeycloakTo(in.Keycloak),
 		Kibana:                 convertOSDTo(in.OpenSearchDashboards),
 		KubeStateMetrics:       convertKubeStateMetricsTo(in.KubeStateMetrics),
+		MySQLOperator:          convertMySQLOperatorTo(in.MySQLOperator),
 		Prometheus:             convertPrometheusTo(in.Prometheus),
 		PrometheusAdapter:      convertPrometheusAdapterTo(in.PrometheusAdapter),
 		PrometheusNodeExporter: convertPrometheusNodeExporterTo(in.PrometheusNodeExporter),
@@ -354,6 +355,16 @@ func convertKeycloakTo(in *KeycloakComponent) *v1alpha1.KeycloakComponent {
 			VolumeSource:     in.MySQL.VolumeSource,
 			InstallOverrides: convertInstallOverridesTo(in.MySQL.InstallOverrides),
 		},
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesTo(in.InstallOverrides),
+	}
+}
+
+func convertMySQLOperatorTo(in *MySQLOperatorComponent) *v1alpha1.MySQLOperatorComponent {
+	if in == nil {
+		return nil
+	}
+	return &v1alpha1.MySQLOperatorComponent{
 		Enabled:          in.Enabled,
 		InstallOverrides: convertInstallOverridesTo(in.InstallOverrides),
 	}

@@ -33,6 +33,10 @@ pipeline {
         booleanParam (description: 'Whether to copy the product zip into the release object store from the last clean periodic test',
                 name: 'COPY_PRODUCT_ZIP_FROM_PERIODIC', defaultValue: false)
         booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
+        string (name: 'VERRAZZANO_HELPER_BRANCH',
+                        defaultValue: 'master',
+                        description: 'verrazzano-helper branch. master is used for 1.3+, release-1.2 is used for 1.2 and earlier, user branch name is used when testing verrazzano-helper changes',
+                        trim: true)
     }
 
     environment {
@@ -47,6 +51,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_OS_REGION="us-phoenix-1"
+        OCI_OS_SHARED_BUCKET="build-shared-files"
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
@@ -105,6 +110,13 @@ pipeline {
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.COMMIT_TO_USE
                 }
+                script {
+                    sh """
+                        echo "Downloading verrazzano-helper from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${params.VERRAZZANO_HELPER_BRANCH}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                        chmod uog+x ${WORKSPACE}/verrazzano-helper
+                    """
+                }
             }
         }
 
@@ -142,8 +154,8 @@ pipeline {
             }
             environment {
                 IGNORE_FAILURES = "${params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES}"
-                JIRA_USERNAME = credentials('jira-username')
-                JIRA_PASSWORD = credentials('jira-password')
+                TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
+                TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
             }
             steps {
                 script {
