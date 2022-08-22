@@ -198,7 +198,7 @@ spec:
                           app.kubernetes.io/instance: keycloak
                           app.kubernetes.io/name: keycloak
                       topologyKey: kubernetes.io/hostname
-    openSearchDashboards:
+    opensearchDashboards:
       enabled: true
       replicas: 1
     oam:
