@@ -27,11 +27,11 @@ pipeline {
                 // 1st choice is the default value
                 // Currently, dev is the only option
                 choices: [ "dev" ])
-        booleanParam (name: 'UPGRADE_VZ'
-                description: 'If true, upgrade Verrazzano to the most recent stable commit'
+        booleanParam (name: 'UPGRADE_VZ',
+                description: 'If true, upgrade Verrazzano to the most recent stable commit',
                 defaultValue: true)
-        booleanParam (name: 'RUN_TESTS'
-                description: 'If true, run tests to verify the status of the cluster'
+        booleanParam (name: 'RUN_TESTS',
+                description: 'If true, run tests to verify the status of the cluster',
                 defaultValue: true)
     }
 
