@@ -172,10 +172,12 @@ func GetProfilesDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
 }
 
+// GetProfileV1alpha1 returns v1alpha1 API profiles dir
 func GetProfileV1alpha1(profile string) string {
 	return filepath.Join(GetProfilesDir()+"/v1alpha1", profile+".yaml")
 }
 
+// GetProfileV1beta1 returns v1beta1 API profiles dir
 func GetProfileV1beta1(profile string) string {
 	return filepath.Join(GetProfilesDir()+"/v1beta1", profile+".yaml")
 }
