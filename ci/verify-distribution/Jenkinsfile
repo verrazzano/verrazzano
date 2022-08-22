@@ -1,0 +1,69 @@
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+// Declarative Jenkinsfile
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Initialization') {
+            steps {
+                echo 'Workspace setup: docker, OCIR, OCI config, Download CLI,...'
+            }
+        }
+
+        stage('Pull from Object storage and extract') {
+            steps {
+                echo 'something like: oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.ZIPFILE_LOCATION} --file ${downloadLocation}'
+            }
+        }
+
+        stage('Upload verrazzano images') {
+            steps {
+                echo 'use create_ocir_repositories.sh and vz-registry-image-helper.sh'
+            }
+        }
+
+        stage('Acceptance Tests') {
+            stages {
+                stage('Prepare AT env')
+                steps {
+                    echo ''
+                }
+            }
+            stages {
+                stage('Run acceptance tests')
+                steps {
+                    echo 'Mimic from private-registry tests'
+                }
+            }
+            stages {
+                stage('Verify registry')
+                steps {
+                    echo 'runGinkgo(\'registry\')'
+                }
+            }
+            stages {
+                stage('Uninstall')
+                steps {
+                    echo 'vz uninstall ...'
+                }
+            }
+            stages {
+                stage('Verify Uninstall')
+                steps {
+                    echo 'verify the uninstall job'
+                }
+            }
+        }
+    }
+
+    post {
+
+    }
+
+    cleanup {
+
+    }
+}
