@@ -6,11 +6,11 @@ spec:
       enabled: false
     rancher:
       enabled: false
-    OpenSearch:
+    opensearch:
       enabled: false
     grafana:
       enabled: false
-    OpenSearchDashboards:
+    opensearchDashboards:
       enabled: false
     console:
       enabled: false
