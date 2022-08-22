@@ -284,6 +284,12 @@ pipeline {
             steps {
                 runGinkgoAppTest('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", 'true', 'true')
             }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
         }
 
     }
