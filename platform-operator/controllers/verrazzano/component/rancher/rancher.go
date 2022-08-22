@@ -653,6 +653,7 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
 
+// createOrUpdateRancherVerrazzanoUserGlobalRoleBinding used to make the verrazzano user admin
 func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext) error {
 	nsn := types.NamespacedName{Name: GlobalRoleBindingVerrazzano}
 
