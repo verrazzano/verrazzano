@@ -42,7 +42,7 @@ createDistributionLayout() {
   fi
 
   local distributionDirectory=$1
-  echo "Creating directory ${distributionDirectory}"
+  echo "Creating the parent directory ${distributionDirectory} for the distribution layout ..."
   mkdir -p ${distributionDirectory}
   chmod uog+w ${distributionDirectory}
 
@@ -55,6 +55,7 @@ createDistributionLayout() {
 # Download the artifacts which are already built and common to both open-source distribution and commercial distribution
 downloadCommonFiles() {
   mkdir -p ${VZ_DISTRIBUTION_COMMON}
+  echo "Downloading common artifacts under ${VZ_DISTRIBUTION_COMMON} ..."
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/operator.yaml --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml
 
   # We should be able to use the bom file generated locally
@@ -78,6 +79,7 @@ copyProfiles() {
     return 1
   fi
   local profileDirectory=$1
+  echo "Copying profiles to ${profileDirectory} ..."
 
   # Get a clarification of the source directory, find out whether platform-operator/manifests/profiles should be used as source in future
   cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-default.yaml ${profileDirectory}/default.yaml
@@ -108,17 +110,21 @@ generateOpenSourceDistribution() {
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json ${VZ_OPENSOURCE_ROOT}/manifests/verrazzano-bom.json
 
   # Extract the CLI for Linux AMD64
+  echo "Extract the CLI for Linux AMD64 ..."
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT}/bin
 
   # Build distribution for Linux AMD64 architecture
+  echo "Build distribution for Linux AMD64 architecture ..."
   tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT} .
   sha256sum ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_LINUX_AMD64_TARGZ} > ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
 
   # Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture
+  echo "Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture ..."
   rm -rf ${VZ_OPENSOURCE_ROOT}/bin/vz
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT}/bin
 
   # Build distribution for Darwin AMD64 architecture
+  echo "Build distribution for Darwin AMD64 architecture ..."
   tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT} .
   sha256sum ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_DARWIN_AMD64_TARGZ} > ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256}
   echo "Display the contents of ${VZ_DISTRIBUTION_GENERATED} ..."
