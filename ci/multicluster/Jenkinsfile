@@ -527,13 +527,6 @@ pipeline {
 
         stage('Acceptance Tests') {
             stages {
-                stage ('Jaeger apps') {
-                    steps {
-                        script {
-                            parallel verifyJaegerApps()
-                        }
-                    }
-                }
                 stage ('Example apps') {
                     steps {
                         script {
@@ -872,14 +865,6 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                     yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${verrazzanoConfig}
                     yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${verrazzanoConfig}
                     yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${verrazzanoConfig}
-                    yq -i eval '.spec.components.jaegerOperator.enabled = true' ${verrazzanoConfig}
-                    yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.sampling"' ${verrazzanoConfig}
-                    yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "90.0"' ${verrazzanoConfig}
-                    # For managed clusters, if the VZ version is greater than 1.4.0, enable Jaeger operator and update the istio tracing configuration
-                    if [[ $count -gt 1 && "\$(printf '%s\n' "1.4.0" "${params.VERSION_FOR_INSTALL}" | sort -V | head -n1)" = "1.4.0" ]]; then
-                        yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.zipkin.address"' ${verrazzanoConfig}
-                        yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${verrazzanoConfig}
-                    fi
                 fi
 
                 echo "Applying \$verrazzanoConfig"
@@ -943,14 +928,6 @@ def upgradeVerrazzano() {
                     yq -i eval '.spec.components.prometheusAdapter.enabled = true' ${v8oUpgradeFile}
                     yq -i eval '.spec.components.kubeStateMetrics.enabled = true' ${v8oUpgradeFile}
                     yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${v8oUpgradeFile}
-                    yq -i eval '.spec.components.jaegerOperator.enabled = true' ${v8oUpgradeFile}
-                    yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.sampling"' ${v8oUpgradeFile}
-                    yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "90.0"' ${v8oUpgradeFile}
-                    # For managed clusters, enable Jaeger operator and update the istio tracing configuration
-                    if [[ $count -gt 1 ]]; then
-                        yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.zipkin.address"' ${v8oUpgradeFile}
-                        yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${v8oUpgradeFile}
-                    fi
                 fi
 
                 # Do the upgrade
@@ -1662,12 +1639,6 @@ def verifyInfra() {
         "verify-infra vmi": {
             runGinkgoRandomize('verify-infra/vmi')
         },
-        "verify-infra jaeger": {
-            runGinkgoRandomize('multicluster/verify-jaeger/install')
-        },
-        "verify-infra jaeger-system-traces": {
-            runGinkgoRandomize('multicluster/verify-jaeger/system')
-        },
     ]
 }
 
@@ -1687,17 +1658,6 @@ def verifyExamples() {
         },
         "Coherence Workload": {
             runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
-        },
-    ]
-}
-
-def verifyJaegerApps() {
-    return [
-        "Jaeger Helidon": {
-            runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
-        },
-        "Jaeger Hotrod": {
-            runGinkgo("multicluster/verify-jaeger/hotrod", "${TEST_DUMP_ROOT}/jaeger-hotrod")
         },
     ]
 }
