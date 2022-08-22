@@ -346,6 +346,7 @@ spec:
 func createOverridesOrDie(yamlString string) []vzapi.Overrides {
 	data, err := yaml.YAMLToJSON([]byte(yamlString))
 	if err != nil {
+		t.Logs.Errorf("Failed to convert yaml to JSON: %s", yamlString)
 		panic(err)
 	}
 	return []vzapi.Overrides{
