@@ -3,7 +3,7 @@
 
 spec:
   components:
-    elasticsearch:
+    OpenSearch:
       enabled: true
       installArgs:
       - name: nodes.master.replicas

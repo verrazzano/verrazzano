@@ -80,12 +80,12 @@ spec:
     dns:
       wildcard:
         domain: "nip.io"
-    elasticsearch:
+    OpenSearch:
       enabled: true
     fluentd:
       enabled: true
-      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
-      elasticsearchSecret: verrazzano-es-internal
+      OpenSearchURL: "http://verrazzano-authproxy-opensearch:8775"
+      OpenSearchSecret: verrazzano-es-internal
     grafana:
       enabled: true
     ingress:
@@ -198,7 +198,7 @@ spec:
                           app.kubernetes.io/instance: keycloak
                           app.kubernetes.io/name: keycloak
                       topologyKey: kubernetes.io/hostname
-    kibana:
+    OpenSearchDashboards:
       enabled: true
       replicas: 1
     oam:
