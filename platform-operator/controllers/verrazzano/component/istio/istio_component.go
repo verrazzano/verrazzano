@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"path/filepath"
 	"strings"
 
@@ -267,6 +268,16 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		}
 	}
 	return i.validateForExternalIPSWithNodePort(&new.Spec)
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (i istioComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (i istioComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
