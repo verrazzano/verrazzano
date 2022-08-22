@@ -207,8 +207,6 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
-        TRACE_SAMPLING_PERCENTAGE = "90.0"
-        TRACING_ENABLED_FLAG = "true"
     }
 
     stages {
@@ -876,9 +874,9 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
                     yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${verrazzanoConfig}
                     yq -i eval '.spec.components.jaegerOperator.enabled = true' ${verrazzanoConfig}
                     yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.enableTracing"' ${verrazzanoConfig}
-                    yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "${TRACING_ENABLED_FLAG}"' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "true"' ${verrazzanoConfig}
                     yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.sampling"' ${verrazzanoConfig}
-                    yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "${TRACE_SAMPLING_PERCENTAGE}"' ${verrazzanoConfig}
+                    yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "90.0"' ${verrazzanoConfig}
 
                     # For managed clusters, if the VZ version is greater than 1.4.0, enable Jaeger operator and update the istio tracing configuration
                     if [[ $count -gt 1 && "\$(printf '%s\n' "1.4.0" "${params.VERSION_FOR_INSTALL}" | sort -V | head -n1)" = "1.4.0" ]]; then
@@ -950,9 +948,9 @@ def upgradeVerrazzano() {
                     yq -i eval '.spec.components.prometheusPushgateway.enabled = true' ${v8oUpgradeFile}
                     yq -i eval '.spec.components.jaegerOperator.enabled = true' ${v8oUpgradeFile}
                     yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.enableTracing"' ${v8oUpgradeFile}
-                    yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "${TRACING_ENABLED_FLAG}"' ${v8oUpgradeFile}
+                    yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "true"' ${v8oUpgradeFile}
                     yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.sampling"' ${v8oUpgradeFile}
-                    yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "${TRACE_SAMPLING_PERCENTAGE}"' ${v8oUpgradeFile}
+                    yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "90.0"' ${v8oUpgradeFile}
 
                     # For managed clusters, enable Jaeger operator and update the istio tracing configuration
                     if [[ $count -gt 1 ]]; then
