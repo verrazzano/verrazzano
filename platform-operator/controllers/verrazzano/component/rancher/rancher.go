@@ -551,6 +551,7 @@ func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string)
 	return nil
 }
 
+// configureKeycloakOIDC configures Keycloak as an OIDC provider in Rancher
 func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	c := ctx.Client()
@@ -595,6 +596,7 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// createOrUpdateResource creates or updates a Rancher resource used in the Keycloak OIDC integration
 func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, gvk schema.GroupVersionKind, attributes map[string]interface{}) error {
 	log := ctx.Log()
 	c := ctx.Client()
@@ -631,6 +633,7 @@ func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, 
 	return nil
 }
 
+// createOrUpdateRancherVerrazzanoUser creates or updates the verrazzano user in Rancher
 func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 
@@ -660,6 +663,7 @@ func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentConte
 	return createOrUpdateResource(ctx, nsn, GVKGlobalRoleBinding, data)
 }
 
+// createOrUpdateRoleTemplate creates or updates RoleTemplates used to add Keycloak groups to the Rancher cluster
 func createOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	log := ctx.Log()
 	c := ctx.Client()
@@ -685,6 +689,7 @@ func createOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	return createOrUpdateResource(ctx, nsn, GVKRoleTemplate, data)
 }
 
+// createOrUpdateClusterRoleTemplateBinding creates or updates ClusterRoleTemplateBinding used to add Keycloak groups to the Rancher cluster
 func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterRole string, group string) error {
 	name := fmt.Sprintf("crtb-%s-%s", clusterRole, group)
 	nsn := types.NamespacedName{Name: name, Namespace: ClusterLocal}
@@ -697,6 +702,7 @@ func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterR
 	return createOrUpdateResource(ctx, nsn, GVKClusterRoleTemplateBinding, data)
 }
 
+// disableOrEnableAuthProvider disables Keycloak as an Auth Provider
 func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string, enable bool) error {
 	log := ctx.Log()
 	c := ctx.Client()
@@ -718,6 +724,7 @@ func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string, enable b
 	return nil
 }
 
+// disableFirstLogin disables the verrazzano user first log in
 func disableFirstLogin(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	c := ctx.Client()
