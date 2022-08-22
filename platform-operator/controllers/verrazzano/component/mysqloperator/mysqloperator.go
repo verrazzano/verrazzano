@@ -9,6 +9,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	config "github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -53,8 +54,7 @@ func (c mysqlOperatorComponent) validateMySQLOperator(vz *vzapi.Verrazzano) erro
 		}
 	}
 	// Must be enabled if Keycloak is enabled
-	keycloakComp := vz.Spec.Components.Keycloak
-	if keycloakComp == nil || keycloakComp.Enabled == nil || *keycloakComp.Enabled {
+	if config.IsKeycloakEnabled(vz) {
 		if !c.IsEnabled(vz) {
 			return fmt.Errorf("MySQLOperator must be enabled if Keycloak is enabled")
 		}
