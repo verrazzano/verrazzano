@@ -27,6 +27,12 @@ pipeline {
                 // 1st choice is the default value
                 // Currently, dev is the only option
                 choices: [ "dev" ])
+        booleanParam (name: 'UPGRADE_VZ'
+                description: 'If true, upgrade Verrazzano to the most recent stable commit'
+                defaultValue: true)
+        booleanParam (name: 'RUN_TESTS'
+                description: 'If true, run tests to verify the status of the cluster'
+                defaultValue: true)
     }
 
     environment {
@@ -140,7 +146,12 @@ pipeline {
             }
        }
 
-       stage('Upgrade to stable commit') {
+        stage('Upgrade to stable commit') {
+            when {
+                expression {
+                    return params.UPGRADE_VZ
+                }
+            }
             steps {
                 script {
                     // Get the last stable commit ID that passed the triggered tests
@@ -178,7 +189,102 @@ pipeline {
                     }
                 }
             }
-       }
+        }
+
+        stage('Verify Install') {
+            when {
+               expression {
+                   return params.RUN_TESTS
+               }
+            }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+            }
+            steps {
+                runGinkgoRandomize('verify-install')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Run Acceptance Tests Infra') {
+            when {
+               expression {
+                   return params.RUN_TESTS
+               }
+            }
+            parallel {
+                stage('verify-scripts') {
+                    steps {
+                        runGinkgoRandomize('scripts', "${KUBECONFIG}")
+                    }
+                }
+                stage('verify-infra restapi') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-infra/restapi')
+                    }
+                }
+                stage('verify-infra oam') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-infra/oam')
+                    }
+                }
+                stage('verify-infra vmi') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
+                    }
+                    steps {
+                        runGinkgoRandomize('verify-infra/vmi')
+                    }
+                }
+                stage('security role based access') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+                    }
+                    steps {
+                        runGinkgo('security/rbac')
+                    }
+                }
+                stage('system component metrics') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
+                    }
+                    steps {
+                        runGinkgo('metrics/syscomponents')
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Hello Helidon Application Test') {
+            when {
+               expression {
+                   return params.RUN_TESTS
+               }
+            }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+            }
+            steps {
+                runGinkgoAppTest('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", 'true', 'true')
+            }
+        }
 
     }
     post {
@@ -213,6 +319,18 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', skipUndeploy='false') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd $GO_REPO_PATH/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
         """
     }
 }
