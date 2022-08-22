@@ -887,25 +887,26 @@ def createOCNECluster() {
         terraform init -input=false
         terraform plan -input=false -out=tfplan -no-color
         terraform apply -input=false -no-color -auto-approve tfplan
+        terraform output > $OCNE_DUMP_DIR/terraform.out
     """
     env.API_SERVER_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw apiserver_ip """).trim()
-    sh 'echo "API_SERVER_IP: $API_SERVER_IP" > $OCNE_DUMP_DIR/tf.out'
+    sh 'echo "API_SERVER_IP: $API_SERVER_IP"'
     env.WORKER_NODES_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -json worker_nodes""").replaceAll(/["\[\]]/, "").replaceAll(",", " ").trim()
-    sh 'echo "WORKER_NODES_IP: $WORKER_NODES_IP" >> $OCNE_DUMP_DIR/tf.out'
+    sh 'echo "WORKER_NODES_IP: $WORKER_NODES_IP"'
     env.CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -json control_plane_nodes """).replaceAll(/["\[\]]/, "").replaceAll(",", " ").trim()
-    sh 'echo "CONTROL_PLANE_NODES_IP: $CONTROL_PLANE_NODES_IP" >> $OCNE_DUMP_DIR/tf.out'
+    sh 'echo "CONTROL_PLANE_NODES_IP: $CONTROL_PLANE_NODES_IP"'
     env.VCN_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw vcn_id """).trim()
-    sh 'echo "VCN_OCID: $VCN_OCID" >> $OCNE_DUMP_DIR/tf.out'
+    sh 'echo "VCN_OCID: $VCN_OCID"'
     env.VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """).trim()
-    sh 'echo "VCN_CIDR: $VCN_CIDR" >> $OCNE_DUMP_DIR/tf.out'
+    sh 'echo "VCN_CIDR: $VCN_CIDR"'
     env.NODE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw subnet_id """).trim()
-    sh 'echo "NODE_SUBNET_OCID: $NODE_SUBNET_OCID" >> $OCNE_DUMP_DIR/tf.out'
+    sh 'echo "NODE_SUBNET_OCID: $NODE_SUBNET_OCID"'
     env.BASTION_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """).trim()
-    sh 'echo "BASTION_SUBNET_OCID: $BASTION_SUBNET_OCID" >> $OCNE_DUMP_DIR/tf.out'
+    sh 'echo "BASTION_SUBNET_OCID: $BASTION_SUBNET_OCID"'
     env.BASTION_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_public_ip """).trim()
-    sh 'echo "BASTION_IP: $BASTION_IP" >> $OCNE_DUMP_DIR/tf.out'
+    sh 'echo "BASTION_IP: $BASTION_IP"'
     env.BASTION_USER=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_user """).trim()
-    sh 'echo "BASTION_USER: $BASTION_USER" >> $OCNE_DUMP_DIR/tf.out'
+    sh 'echo "BASTION_USER: $BASTION_USER"'
 }
 
 def setupSSH() {
