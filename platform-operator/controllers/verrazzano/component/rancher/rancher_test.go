@@ -233,7 +233,7 @@ func createKeycloakAuthConfig() unstructured.Unstructured {
 		Object: map[string]interface{}{},
 	}
 	authConfig.SetGroupVersionKind(GVKAuthConfig)
-	authConfig.SetName(AuthConfigKeycloak)
+	authConfig.SetName(common.AuthConfigKeycloak)
 	return authConfig
 }
 

@@ -93,14 +93,11 @@ const (
 )
 
 const (
-	APIGroupRancherManagement                     = "management.cattle.io"
-	APIGroupVersionRancherManagement              = "v3"
 	SettingServerURL                              = "server-url"
 	SettingFirstLogin                             = "first-login"
 	KontainerDriverOKE                            = "oraclecontainerengine"
 	NodeDriverOCI                                 = "oci"
 	ClusterLocal                                  = "local"
-	AuthConfigKeycloak                            = "keycloakoidc"
 	AuthConfigLocal                               = "local"
 	UserVerrazzano                                = "u-verrazzano"
 	UserVerrazzanoDescription                     = "Verrazzano Admin"
@@ -115,7 +112,6 @@ const (
 	AuthConfigAttributeEnabled                    = "enabled"
 	AuthConfigKeycloakAttributeGroupSearchEnabled = "groupSearchEnabled"
 	AuthConfigKeycloakAttributeAuthEndpoint       = "authEndpoint"
-	AuthConfigKeycloakAttributeClientSecret       = "clientSecret"
 	AuthConfigKeycloakAttributeIssuer             = "issuer"
 	AuthConfigKeycloakAttributeRancherURL         = "rancherUrl"
 	UserPrincipalKeycloakPrefix                   = "keycloakoidc_user://"
@@ -129,47 +125,13 @@ const (
 	GlobalRoleBindingAttributeUserName            = "userName"
 )
 
-var GVKSetting = schema.GroupVersionKind{
-	Group:   APIGroupRancherManagement,
-	Version: APIGroupVersionRancherManagement,
-	Kind:    "Setting",
-}
-
-var GVKCluster = schema.GroupVersionKind{
-	Group:   APIGroupRancherManagement,
-	Version: APIGroupVersionRancherManagement,
-	Kind:    "Cluster",
-}
-
-var GVKNodeDriver = schema.GroupVersionKind{
-	Group:   APIGroupRancherManagement,
-	Version: APIGroupVersionRancherManagement,
-	Kind:    "NodeDriver",
-}
-
-var GVKKontainerDriver = schema.GroupVersionKind{
-	Group:   APIGroupRancherManagement,
-	Version: APIGroupVersionRancherManagement,
-	Kind:    "KontainerDriver",
-}
-
-var GVKAuthConfig = schema.GroupVersionKind{
-	Group:   APIGroupRancherManagement,
-	Version: APIGroupVersionRancherManagement,
-	Kind:    "AuthConfig",
-}
-
-var GVKUser = schema.GroupVersionKind{
-	Group:   APIGroupRancherManagement,
-	Version: APIGroupVersionRancherManagement,
-	Kind:    "User",
-}
-
-var GVKGlobalRoleBinding = schema.GroupVersionKind{
-	Group:   APIGroupRancherManagement,
-	Version: APIGroupVersionRancherManagement,
-	Kind:    "GlobalRoleBinding",
-}
+var GVKSetting = common.GetRancherMgmtApiGVKForKind("Setting")
+var GVKCluster = common.GetRancherMgmtApiGVKForKind("Cluster")
+var GVKNodeDriver = common.GetRancherMgmtApiGVKForKind("NodeDriver")
+var GVKKontainerDriver = common.GetRancherMgmtApiGVKForKind("KontainerDriver")
+var GVKAuthConfig = common.GetRancherMgmtApiGVKForKind("AuthConfig")
+var GVKUser = common.GetRancherMgmtApiGVKForKind("User")
+var GVKGlobalRoleBinding = common.GetRancherMgmtApiGVKForKind("GlobalRoleBinding")
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
 	return acme.Environment != "production"
@@ -480,13 +442,6 @@ func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string)
 func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	c := ctx.Client()
-	keycloakAuthConfig := unstructured.Unstructured{}
-	keycloakAuthConfig.SetGroupVersionKind(GVKAuthConfig)
-	keycloakAuthConfigName := types.NamespacedName{Name: AuthConfigKeycloak}
-	err := c.Get(context.Background(), keycloakAuthConfigName, &keycloakAuthConfig)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak authConfig: %s", err.Error())
-	}
 
 	keycloakURL, err := k8sutil.GetURLForIngress(c, "keycloak", "keycloak", "https")
 	if err != nil {
@@ -504,21 +459,15 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch rancher client secret: %s", err.Error())
 	}
 
-	authConfig := keycloakAuthConfig.UnstructuredContent()
+	authConfig := make(map[string]interface{})
 	authConfig[AuthConfigKeycloakAttributeAccessMode] = AuthConfigKeycloakAccessMode
 	authConfig[AuthConfigKeycloakAttributeClientID] = AuthConfigKeycloakClientIDRancher
 	authConfig[AuthConfigKeycloakAttributeGroupSearchEnabled] = true
 	authConfig[AuthConfigKeycloakAttributeAuthEndpoint] = keycloakURL + AuthConfigKeycloakURLPathAuthEndPoint
-	authConfig[AuthConfigKeycloakAttributeClientSecret] = clientSecret
+	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
 	authConfig[AuthConfigKeycloakAttributeIssuer] = keycloakURL + AuthConfigKeycloakURLPathIssuer
 	authConfig[AuthConfigKeycloakAttributeRancherURL] = rancherURL + AuthConfigKeycloakURLPathVerifyAuth
-
-	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher: %s", err.Error())
-	}
-
-	return nil
+	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }
 
 func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
