@@ -5,6 +5,7 @@ package nginx
 
 import (
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -94,6 +95,16 @@ func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 		return err
 	}
 	return c.validateForExternalIPSWithNodePort(&vz.Spec)
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c nginxComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c nginxComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
