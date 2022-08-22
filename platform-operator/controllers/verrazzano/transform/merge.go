@@ -103,7 +103,6 @@ func GetEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
 	var profileFiles []string
 	for _, profile := range profiles {
 		profileFiles = append(profileFiles, config.GetProfileV1beta1(profile))
-
 	}
 	// Merge the profile files into an effective profile YAML string
 	effectiveCR, err := MergeProfiles(actualCR, profileFiles...)

@@ -4,7 +4,6 @@
 package config
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -178,7 +177,6 @@ func GetProfileV1alpha1(profile string) string {
 }
 
 func GetProfileV1beta1(profile string) string {
-	fmt.Println(filepath.Join("v1beta1 profile path", GetProfilesDir()+"/v1beta1", profile+".yaml"))
 	return filepath.Join(GetProfilesDir()+"/v1beta1", profile+".yaml")
 }
 
