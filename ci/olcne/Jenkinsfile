@@ -134,6 +134,7 @@ pipeline {
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
         TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-olcne"
         KUBECONFIG="$WORKSPACE/kubeconfig"
+        VZ_COMMAND="$GO_REPO_PATH/vz"
         OCNE_DUMP_DIR="$WORKSPACE/$VZ_ENVIRONMENT_NAME"
         INSTALL_CONFIG_FILE_OCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocne.yaml"
         // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
@@ -305,7 +306,7 @@ pipeline {
                             echo "Downloading VZ CLI from object storage"
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                             tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                            ${GO_REPO_PATH}/vz version
+                            $VZ_COMMAND version
                         """
                     }
                 }
@@ -471,19 +472,6 @@ pipeline {
                 }
             }
 
-            script {
-                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
-                    if (env.installedVZ && env.installedVZ == "true") {
-                        echo "[INFO] Deleting Verrazzano"
-                        deleteVerrazzano()
-                    }
-                    if (env.createdOCNECluster && env.createdOCNECluster == "true") {
-                        echo "[INFO] Deleting OCNE Cluster"
-                        deleteOCNECluster()
-                    }
-                }
-            }
-
             sh """
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                 echo "[INFO] Failures seen during dumping of artifacts, treat post as failed"
@@ -514,9 +502,21 @@ pipeline {
             }
        }
        cleanup {
-           metricBuildDuration()
-           emitJobMetrics()
-           deleteDir()
+            metricBuildDuration()
+            emitJobMetrics()
+            deleteDir()
+            script {
+                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
+                    if (env.installedVZ && env.installedVZ == "true") {
+                        echo "[INFO] Deleting Verrazzano"
+                        deleteVerrazzano()
+                    }
+                    if (env.createdOCNECluster && env.createdOCNECluster == "true") {
+                        echo "[INFO] Deleting OCNE Cluster"
+                        deleteOCNECluster()
+                    }
+                }
+            }
         }
     }
 }
@@ -982,8 +982,8 @@ def installVerrazzano() {
     env.installedVZ="true"
     sh """
         # Install Verrazzano
-        $GO_REPO_PATH/vz install -f $INSTALL_CONFIG_FILE_OCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME" --operaotor-file="$VZ_PLATFORM_OPERTOR_YAML"
-        $GO_REPO_PATH/vz status
+        $VZ_COMMAND install -f $INSTALL_CONFIG_FILE_OCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME" --operaotor-file="$VZ_PLATFORM_OPERTOR_YAML"
+        $VZ_COMMAND status
 
         # Print out the namespaces
         kubectl get namespaces
@@ -1009,7 +1009,7 @@ def updateLoadBalancerHealthCheck() {
 
 def deleteVerrazzano() {
     sh """
-        $GO_REPO_PATH/vz uninstall --wait
+        $VZ_COMMAND uninstall --wait
     """
 }
 
