@@ -28,6 +28,18 @@ if [ -z "$4" ]; then
 fi
 VZ_REPO_ROOT="$4"
 
+if [ -z "$5" ]; then
+  echo "Path to the generated BOM file must be specified"
+  exit 1
+fi
+GENERATED_BOM_FILE="$5"
+
+if [ -z "$6" ]; then
+  echo "Verrazzano development version must be specified"
+  exit 1
+fi
+VZ_DEVELOPENT_VERSION="$6"
+
 if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
@@ -36,11 +48,6 @@ fi
 
 # Create the general distribution layout under a given root directory
 createDistributionLayout() {
-  if [[ -f $1 ]]; then
-    echo "usage: iniget <directory>"
-    return 1
-  fi
-
   local distributionDirectory=$1
   echo "Creating the parent directory ${distributionDirectory} for the distribution layout ..."
   mkdir -p ${distributionDirectory}
@@ -58,30 +65,23 @@ downloadCommonFiles() {
   echo "Downloading common artifacts under ${VZ_DISTRIBUTION_COMMON} ..."
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/operator.yaml --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml
 
-  # We should be able to use the bom file generated locally
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/last-ocir-pushed-verrazzano-bom.json --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json
-
+  # Verrazzano CLI for Linux AMD64
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ}
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
 
+  # Verrazzano CLI for Darwin AMD64
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ}
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256}
 
   # Do we need SHA-256 for CLI in the distribution ?
-
-  # TODO: Copy ARM64 versions of CLI for commercial distribution
 }
 
 # Copy profiles from the source repository to the directory from where the distribution bundles will be built
 copyProfiles() {
-  if [[ -f $1 ]]; then
-    echo "usage: iniget <directory>"
-    return 1
-  fi
   local profileDirectory=$1
   echo "Copying profiles to ${profileDirectory} ..."
 
-  # Get a clarification of the source directory, find out whether platform-operator/manifests/profiles should be used as source in future
+  # Copy samples profiles from the source repository
   cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-default.yaml ${profileDirectory}/default.yaml
   cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-dev.yaml ${profileDirectory}/dev.yaml
   cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-managed-cluster.yaml ${profileDirectory}/managed-cluster.yaml
@@ -93,22 +93,24 @@ copyProfiles() {
 generateOpenSourceDistribution() {
   mkdir -p ${VZ_DISTRIBUTION_GENERATED}
 
-  # TODO: Determine if it is the correct file
   cp ${VZ_REPO_ROOT}/LICENSE.txt ${VZ_OPENSOURCE_ROOT}/LICENSE
 
+  # Include README.md and README.html
+
+  # vz-registry-image-helper.sh has a dependency on bom_utils.sh, so copy both the files
   cp ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh ${VZ_OPENSOURCE_ROOT}/bin/vz-registry-image-helper.sh
   cp ${VZ_REPO_ROOT}/tools/scripts/bom_utils.sh ${VZ_OPENSOURCE_ROOT}/bin/bom_utils.sh
-
   # Defer downloading the CLI to the end, just before creating the distribution bundle
-  # Question: Do we need tools/scripts/bom_utils.sh ?
 
+  # Copy operator.yaml and charts
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${VZ_OPENSOURCE_ROOT}/manifests/k8s/verrazzano-platform-operator.yaml
-
   cp -r ${VZ_REPO_ROOT}/platform-operator/helm_config/charts/verrazzano-platform-operator ${VZ_OPENSOURCE_ROOT}/manifests/charts
 
+  # Copy profiles
   copyProfiles ${VZ_OPENSOURCE_ROOT}/manifests/profiles
 
-  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json ${VZ_OPENSOURCE_ROOT}/manifests/verrazzano-bom.json
+  # Copy Bill Of Materials, containing the list of images
+  cp ${GENERATED_BOM_FILE} ${VZ_OPENSOURCE_ROOT}/manifests/verrazzano-bom.json
 
   # Extract the CLI for Linux AMD64
   echo "Extract the CLI for Linux AMD64 ..."
@@ -132,8 +134,8 @@ generateOpenSourceDistribution() {
   ls ${VZ_DISTRIBUTION_GENERATED}
 }
 
+# Upload the generated distribution bundles to object store
 uploadOpenSourceDistribution() {
-  # Do not upload operator.yaml and operator.yaml.sha256 again
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_LINUX_AMD64_TARGZ}
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_DARWIN_AMD64_TARGZ}
@@ -147,9 +149,6 @@ cleanupWorkspace() {
   rm -rf ${VZ_DISTRIBUTION_GENERATED}
 }
 
-# OCI_OS_BUCKET="verrazzano-builds"
-CLEAN_BRANCH_NAME="master"
-
 # List of files in storage
 VZ_CLI_LINUX_AMD64_TARGZ="vz-linux-amd64.tar.gz"
 VZ_CLI_LINUX_AMD64_TARGZ_SHA256="vz-linux-amd64.tar.gz.sha256"
@@ -157,9 +156,7 @@ VZ_CLI_LINUX_AMD64_TARGZ_SHA256="vz-linux-amd64.tar.gz.sha256"
 VZ_CLI_DARWIN_AMD64_TARGZ="vz-darwin-amd64.tar.gz"
 VZ_CLI_DARWIN_AMD64_TARGZ_SHA256="vz-darwin-amd64.tar.gz.sha256"
 
-# Get the version information from the job parameter
-# Read this from .verrazzano-dev-version
-DISTRIBUTION_PREFIX="verrazzano-1.4.0"
+DISTRIBUTION_PREFIX="verrazzano-${VZ_DEVELOPENT_VERSION}"
 
 VZ_LINUX_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz"
 VZ_LINUX_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz.sha256"
@@ -167,14 +164,22 @@ VZ_LINUX_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz.sha256"
 VZ_DARWIN_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-darwin-amd64.tar.gz"
 VZ_DARWIN_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-darwin-amd64.tar.gz.sha256"
 
+# Directory to contain the files which are common for both types of distribution bundles
 VZ_DISTRIBUTION_COMMON="${WORKSPACE}/vz-distribution-common"
+
+# Directory to hold the generated distribution bundles
 VZ_DISTRIBUTION_GENERATED="${WORKSPACE}/vz-distribution-generated"
 
+# Directory containing the layout and required files for the open-source distribution
 VZ_OPENSOURCE_ROOT="${WORKSPACE}/vz-open-source"
 
-createDistributionLayout "${VZ_OPENSOURCE_ROOT}"
+# Call the function to download the artifacts common to both types of distribution bundles
 downloadCommonFiles
+
+# Build open-source distribution bundles
+createDistributionLayout "${VZ_OPENSOURCE_ROOT}"
 generateOpenSourceDistribution "${VZ_OPENSOURCE_ROOT}"
 
-# uploadOpenSourceDistribution
-# cleanupWorkspace
+# Common for both types of distribution bundles
+uploadOpenSourceDistribution
+cleanupWorkspace
