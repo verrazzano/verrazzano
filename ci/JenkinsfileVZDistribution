@@ -91,6 +91,9 @@ pipeline {
         }
     }
     post {
+        always {
+            archiveArtifacts artifacts: "**/verrazzano-*.tar.gz,**/verrazzano-*.tar.gz.sha256", allowEmptyArchive: true
+        }
         cleanup {
             deleteDir()
         }

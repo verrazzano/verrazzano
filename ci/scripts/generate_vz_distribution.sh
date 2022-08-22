@@ -96,8 +96,9 @@ generateOpenSourceDistribution() {
   # TODO: Determine if it is the correct file
   cp ${VZ_REPO_ROOT}/LICENSE.txt ${VZ_OPENSOURCE_ROOT}/LICENSE
 
-  # TODO: VZ_REPO_ROOT
   cp ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh ${VZ_OPENSOURCE_ROOT}/bin/vz-registry-image-helper.sh
+  cp ${VZ_REPO_ROOT}/tools/scripts/bom_utils.sh ${VZ_OPENSOURCE_ROOT}/bin/bom_utils.sh
+
   # Defer downloading the CLI to the end, just before creating the distribution bundle
   # Question: Do we need tools/scripts/bom_utils.sh ?
 
@@ -115,18 +116,18 @@ generateOpenSourceDistribution() {
 
   # Build distribution for Linux AMD64 architecture
   echo "Build distribution for Linux AMD64 architecture ..."
-  tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT} .
-  sha256sum ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_LINUX_AMD64_TARGZ} > ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
+  tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT} .
+  sha256sum ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ} > ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ_SHA256}
 
   # Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture
   echo "Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture ..."
-  rm -rf ${VZ_OPENSOURCE_ROOT}/bin/vz
+  rm -f ${VZ_OPENSOURCE_ROOT}/bin/vz
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT}/bin
 
   # Build distribution for Darwin AMD64 architecture
   echo "Build distribution for Darwin AMD64 architecture ..."
-  tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT} .
-  sha256sum ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_DARWIN_AMD64_TARGZ} > ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256}
+  tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT} .
+  sha256sum ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ} > ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ_SHA256}
   echo "Display the contents of ${VZ_DISTRIBUTION_GENERATED} ..."
   ls ${VZ_DISTRIBUTION_GENERATED}
 }
@@ -157,10 +158,8 @@ VZ_CLI_DARWIN_AMD64_TARGZ="vz-darwin-amd64.tar.gz"
 VZ_CLI_DARWIN_AMD64_TARGZ_SHA256="vz-darwin-amd64.tar.gz.sha256"
 
 # Get the version information from the job parameter
-VZ_MAJOR_VERSION="1"
-VZ_MINOR_VERSION="4"
-VZ_PATCH_VERSION="0"
-DISTRIBUTION_PREFIX="verrazzano-${VZ_MAJOR_VERSION}.${VZ_MINOR_VERSION}.${VZ_PATCH_VERSION}"
+# Read this from .verrazzano-dev-version
+DISTRIBUTION_PREFIX="verrazzano-1.4.0"
 
 VZ_LINUX_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz"
 VZ_LINUX_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz.sha256"
