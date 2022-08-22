@@ -342,7 +342,7 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 // configureAuthProviders
 // +configures Keycloak as OIDC provider for Rancher.
 // +creates or updates default user verrazzano.
-// +creates or updates admin role binding for  user verrazzano.
+// +creates or updates admin clusterRole binding for  user verrazzano.
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
 func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
@@ -352,11 +352,19 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 	}
 
 	if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user: %s", err.Error())
+		return err
 	}
 
 	if err := createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user global role binding: %s", err.Error())
+		return err
+	}
+
+	if err := createOrUpdateRoleTemplates(ctx); err != nil {
+		return err
+	}
+
+	if err := createOrUpdateClusterRoleTemplateBindings(ctx); err != nil {
+		return err
 	}
 
 	if err := disableFirstLogin(ctx); err != nil {
@@ -365,6 +373,26 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 
 	if err := toggleKeycloakAuthProvider(ctx, isUpgrade); err != nil {
 		return log.ErrorfThrottledNewErr("failed enabling or disbling auth providers: %s", err.Error())
+	}
+
+	return nil
+}
+
+// createOrUpdateRoleTemplates creates or updates the verrazzano-admin and verrazzano-monitor RoleTemplates
+func createOrUpdateRoleTemplates(ctx spi.ComponentContext) error {
+	if err := createOrUpdateRoleTemplate(ctx, VerrazzanoAdminRoleName); err != nil {
+		return err
+	}
+
+	return createOrUpdateRoleTemplate(ctx, VerrazzanoMonitorRoleName)
+}
+
+// createOrUpdateClusterRoleTemplateBindings creates or updates the CRTBs for the verrazzano-admins and verrazzano-monitors groups
+func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
+	for _, grp := range GroupRolePairs {
+		if err := createOrUpdateClusterRoleTemplateBinding(ctx, grp[ClusterRoleKey], grp[GroupKey]); err != nil {
+			return err
+		}
 	}
 
 	return nil

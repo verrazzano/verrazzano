@@ -214,3 +214,79 @@ func TestIsInstalledFalse(t *testing.T) {
 
 	assert.False(t, isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
+
+// TestValidateInstall tests the ValidateInstall function
+// GIVEN a call to ValidateInstall
+//  WHEN there is a valid MySQL Operator configuration
+//  THEN the correct Helm overrides are returned
+func TestValidateInstall(t *testing.T) {
+	trueValue := true
+	falseValue := false
+
+	tests := []struct {
+		name        string
+		vz          *vzapi.Verrazzano
+		expectError bool
+	}{
+		{
+			name: "MySQL Operator explicitly enabled, Keycloak disabled",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						MySQLOperator: &vzapi.MySQLOperatorComponent{
+							Enabled: &trueValue},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: &falseValue}}}},
+			expectError: false,
+		},
+		{
+			name: "MySQL Operator explicitly disabled, Keycloak enabled",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						MySQLOperator: &vzapi.MySQLOperatorComponent{
+							Enabled: &falseValue},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: &trueValue}}}},
+			expectError: true,
+		},
+		{
+			name: "MySQL Operator and Keycloak explicitly disabled",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						MySQLOperator: &vzapi.MySQLOperatorComponent{
+							Enabled: &falseValue},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: &falseValue}}}},
+			expectError: false,
+		},
+		{
+			name: "Keycloak enabled, MySQL Operator component nil",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						MySQLOperator: &vzapi.MySQLOperatorComponent{},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: &falseValue}}}},
+			expectError: false,
+		},
+		{
+			name: "Keycloak and MySQL Operator component nil",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{}}},
+			expectError: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := NewComponent().ValidateInstall(tt.vz)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
