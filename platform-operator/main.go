@@ -149,12 +149,12 @@ func main() {
 			os.Exit(1)
 		}
 
-		//log.Debug("Updating webhook configuration")
-		//err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
-		//if err != nil {
-		//	log.Errorf("Failed to update validation webhook configuration: %v", err)
-		//	os.Exit(1)
-		//}
+		log.Debug("Updating webhook configuration")
+		err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
+		if err != nil {
+			log.Errorf("Failed to update validation webhook configuration: %v", err)
+			os.Exit(1)
+		}
 
 		log.Debug("Updating conversion webhook")
 		apixClient, err := apiextensionsv1client.NewForConfig(config)
@@ -180,7 +180,7 @@ func main() {
 			log.Errorf("Failed to create or update network policies: %v", err)
 			os.Exit(1)
 		}
-		//	return
+		return
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

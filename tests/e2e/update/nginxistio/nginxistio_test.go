@@ -222,40 +222,39 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
       service.beta.kubernetes.io/oci-load-balancer-shape: %s
       name-n: value-n`, u.nginxReplicas, u.nginxLBShape)
 	cr.Spec.Components.Ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
-	cr.Spec.Components.Istio.IstioInstallArgs = append(cr.Spec.Components.Istio.IstioInstallArgs, vzapi.InstallArgs{
-		Name:      "gateways.istio-ingressgateway.externalIPs",
-		ValueList: []string{u.applicationExternalLBIP},
-	})
+
+	istio := cr.Spec.Components.Istio
+	istio.IstioInstallArgs = []vzapi.InstallArgs{
+		{
+			Name:      "gateways.istio-ingressgateway.externalIPs",
+			ValueList: []string{u.applicationExternalLBIP},
+		},
+	}
+	istio.Ingress = &vzapi.IstioIngressSection{
+		Type:  vzapi.NodePort,
+		Ports: testIstioIngressPorts,
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: newReplicas,
+			},
+		},
+	}
+	istio.Egress = &vzapi.IstioEgressSection{
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: newReplicas,
+			},
+		},
+	}
 	// update Istio
 	istioYaml := fmt.Sprintf(`kind: IstioOperator
 spec:
-  components:
-    egressGateways:
-      - enabled: true
-        k8s:
-          replicaCount: %v
-        name: istio-egressgateway
-    ingressGateways:
-      - enabled: true
-        name: istio-ingressgateway
-        k8s:
-          replicaCount: %v
-          service:
-            type: NodePort
-            ports:
-              - name: https
-                nodePort: 32443
-                port: 443
-                protocol: TCP
-                targetPort: 8443
   values:
     gateways:
       istio-ingressgateway:
-        externalIPs:
-          - %s
         serviceAnnotations:
           name-i: value-i
-          service.beta.kubernetes.io/oci-load-balancer-shape: %s`, u.istioEgressReplicas, u.istioIngressReplicas, u.applicationExternalLBIP, u.istioLBShape)
+          service.beta.kubernetes.io/oci-load-balancer-shape: %s`, u.istioLBShape)
 	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
