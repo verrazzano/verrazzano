@@ -4,6 +4,7 @@
 package transform
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"os"
 	"strings"
@@ -63,6 +64,7 @@ func appendProfileComponentOverrides(profileFiles ...string) ([]string, error) {
 	var profileCR *vzapi.Verrazzano
 	var profileStrings []string
 	for i := range profileFiles {
+		fmt.Println("appendProfileComponentOverrides: profileFiles", profileFiles)
 		profileFile := profileFiles[len(profileFiles)-1-i]
 		data, err := os.ReadFile(profileFile)
 		if err != nil {
@@ -102,7 +104,9 @@ func GetEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
 	}
 	var profileFiles []string
 	for _, profile := range profiles {
-		profileFiles = append(profileFiles, config.GetProfile(profile))
+		fmt.Println("profile", profile)
+		profileFiles = append(profileFiles, config.GetProfileV1beta1(profile))
+
 	}
 	// Merge the profile files into an effective profile YAML string
 	effectiveCR, err := MergeProfiles(actualCR, profileFiles...)
