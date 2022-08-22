@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/create"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/status"
@@ -42,6 +43,7 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.AddCommand(uninstall.NewCmdUninstall(vzHelper))
 	cmd.AddCommand(analyze.NewCmdAnalyze(vzHelper))
 	cmd.AddCommand(bugreport.NewCmdBugReport(vzHelper))
+	cmd.AddCommand(create.NewCmdCreate(vzHelper))
 
 	return cmd
 }
