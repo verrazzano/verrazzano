@@ -4,6 +4,7 @@
 package config
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -172,14 +173,9 @@ func GetProfilesDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
 }
 
-// GetProfileV1alpha1 returns v1alpha1 API profiles dir
-func GetProfileV1alpha1(profile string) string {
-	return filepath.Join(GetProfilesDir()+"/v1alpha1", profile+".yaml")
-}
-
-// GetProfileV1beta1 returns v1beta1 API profiles dir
-func GetProfileV1beta1(profile string) string {
-	return filepath.Join(GetProfilesDir()+"/v1beta1", profile+".yaml")
+// GetProfile returns API profiles dir
+func GetProfile(groupVersion schema.GroupVersion, profile string) string {
+	return filepath.Join(GetProfilesDir()+"/"+groupVersion.Version, profile+".yaml")
 }
 
 // SetDefaultBomFilePath Sets the global default location for the BOM file
