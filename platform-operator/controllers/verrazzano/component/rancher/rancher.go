@@ -153,6 +153,8 @@ const (
 	ClusterMemberRoleName       = "cluster-member"
 	VerrazzanoAdminsGroupName   = "verrazzano-admins"
 	VerrazzanoMonitorsGroupName = "verrazzano-monitors"
+	GroupKey                    = "group"
+	ClusterRoleKey              = "clusterRole"
 )
 
 // prefixes
@@ -216,9 +218,31 @@ var GVKRoleTemplate = schema.GroupVersionKind{
 	Kind:    "RoleTemplate",
 }
 
-type groupRolePair struct {
-	group       string
-	clusterRole string
+var GroupRolePairs = []map[string]string{
+	{
+		GroupKey:       VerrazzanoAdminsGroupName,
+		ClusterRoleKey: AdminRoleName,
+	},
+	{
+		GroupKey:       VerrazzanoAdminsGroupName,
+		ClusterRoleKey: VerrazzanoAdminRoleName,
+	},
+	{
+		GroupKey:       VerrazzanoAdminsGroupName,
+		ClusterRoleKey: ClusterMemberRoleName,
+	},
+	{
+		GroupKey:       VerrazzanoMonitorsGroupName,
+		ClusterRoleKey: ViewRoleName,
+	},
+	{
+		GroupKey:       VerrazzanoMonitorsGroupName,
+		ClusterRoleKey: VerrazzanoMonitorRoleName,
+	},
+	{
+		GroupKey:       VerrazzanoMonitorsGroupName,
+		ClusterRoleKey: ClusterMemberRoleName,
+	},
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
@@ -571,19 +595,19 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, gkv schema.GroupVersionKind, attributes map[string]interface{}) error {
+func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, gvk schema.GroupVersionKind, attributes map[string]interface{}) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	resource := unstructured.Unstructured{}
-	resource.SetGroupVersionKind(gkv)
+	resource.SetGroupVersionKind(gvk)
 	err := c.Get(context.Background(), nsn, &resource)
 	createNew := false
 	if err != nil {
 		if errors.IsNotFound(err) {
 			createNew = true
-			log.Debugf("%s %s does not exist", gkv.Kind, nsn.Name)
+			log.Debugf("%s %s does not exist", gvk.Kind, nsn.Name)
 		} else {
-			return log.ErrorfThrottledNewErr("failed configuring %s, unable to fetch %s: %s", gkv.Kind, nsn.Name, err.Error())
+			return log.ErrorfThrottledNewErr("failed configuring %s, unable to fetch %s: %s", gvk.Kind, nsn.Name, err.Error())
 		}
 	}
 
@@ -601,7 +625,7 @@ func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, 
 	}
 
 	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring %s %s: %s", gkv.Kind, nsn.Name, err.Error())
+		return log.ErrorfThrottledNewErr("failed configuring %s %s: %s", gvk.Kind, nsn.Name, err.Error())
 	}
 
 	return nil

@@ -381,35 +381,8 @@ func createOrUpdateRoleTemplates(ctx spi.ComponentContext) error {
 }
 
 func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
-	groupRolePairs := []groupRolePair{
-		{
-			group:       VerrazzanoAdminsGroupName,
-			clusterRole: AdminRoleName,
-		},
-		{
-			group:       VerrazzanoAdminsGroupName,
-			clusterRole: VerrazzanoAdminRoleName,
-		},
-		{
-			group:       VerrazzanoAdminsGroupName,
-			clusterRole: ClusterMemberRoleName,
-		},
-		{
-			group:       VerrazzanoMonitorsGroupName,
-			clusterRole: ViewRoleName,
-		},
-		{
-			group:       VerrazzanoMonitorsGroupName,
-			clusterRole: VerrazzanoMonitorRoleName,
-		},
-		{
-			group:       VerrazzanoMonitorsGroupName,
-			clusterRole: ClusterMemberRoleName,
-		},
-	}
-
-	for _, grp := range groupRolePairs {
-		if err := createOrUpdateClusterRoleTemplateBinding(ctx, grp.clusterRole, grp.group); err != nil {
+	for _, grp := range GroupRolePairs {
+		if err := createOrUpdateClusterRoleTemplateBinding(ctx, grp[ClusterRoleKey], grp[GroupKey]); err != nil {
 			return err
 		}
 	}
