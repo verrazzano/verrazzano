@@ -478,19 +478,6 @@ pipeline {
                 }
             }
 
-            script {
-                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
-                    if (env.installedVZ && env.installedVZ == "true") {
-                        echo "[INFO] Deleting Verrazzano"
-                        deleteVerrazzano()
-                    }
-                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
-                        echo "[INFO] Deleting OLCNE Cluster"
-                        deleteOLCNECluster()
-                    }
-                }
-            }
-
             sh """
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                 echo "[INFO] Failures seen during dumping of artifacts, treat post as failed"
@@ -521,9 +508,21 @@ pipeline {
             }
        }
        cleanup {
-           metricBuildDuration()
-           emitJobMetrics()
-           deleteDir()
+            metricBuildDuration()
+            emitJobMetrics()
+            deleteDir()
+            script {
+                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
+                    if (env.installedVZ && env.installedVZ == "true") {
+                        echo "[INFO] Deleting Verrazzano"
+                        deleteVerrazzano()
+                    }
+                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
+                        echo "[INFO] Deleting OLCNE Cluster"
+                        deleteOLCNECluster()
+                    }
+                }
+            }
         }
     }
 }
