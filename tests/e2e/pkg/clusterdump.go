@@ -176,7 +176,6 @@ func analyzeBugReport(kubeConfig, vzCommand, bugReportDirectory string) error {
 	os.Remove(filepath.Join(bugReportFile))
 	reportFile := filepath.Join(bugReportDirectory, AnalysisReport)
 	cmd = exec.Command(vzCommand, "analyze", "--capture-dir", bugReportDirectory, "--report-format", "detailed", "--report-file", reportFile)
-	fmt.Println(cmd.String())
 	if err := cmd.Start(); err != nil {
 		fmt.Printf("Failed to start the command analyze %v \n", err)
 		return err

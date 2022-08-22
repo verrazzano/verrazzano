@@ -2,8 +2,33 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 dumpK8sCluster() {
+  ANALYSIS_REPORT="analysis.report"
   dumpDirectory=$1
-  ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+  ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/${ANALYSIS_REPORT}
+
+  # TODO: Handle any error in creating the bug-report or running analyze on that
+  # Create a bug-report and run analysis tool on the bug-report
+  # Requires environment variable KUBECONFIG or $HOME/.kube/config
+  BUG_REPORT_FILE="${dumpDirectory}/bug-report.tar.gz"
+  if [[ -x $GOPATH/bin/vz ]]; then
+    $GOPATH/vz bug-report --report-file ${BUG_REPORT_FILE}
+  else
+    GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go bug-report --report-file ${BUG_REPORT_FILE}
+  fi
+
+  # Check if the bug-report exists
+  if [ -f "${BUG_REPORT_FILE}" ]; then
+    mkdir -p ${dumpDirectory}/bug-report
+    tar -xvf ${BUG_REPORT_FILE} -C ${dumpDirectory}/bug-report
+    rm ${BUG_REPORT_FILE} || true
+
+    # Run vz analyze on the extracted directory
+    if [[ -x $GOPATH/bin/vz ]]; then
+      $GOPATH/vz analyze --capture-dir ${dumpDirectory}/bug-report --report-format detailed --report-file ${dumpDirectory}/bug-report/${ANALYSIS_REPORT}
+    else
+      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir ${dumpDirectory}/bug-report --report-format detailed --report-file ${dumpDirectory}/bug-report/${ANALYSIS_REPORT}
+    fi
+  fi
 }
 
 dumpVerrazzanoSystemPods() {
