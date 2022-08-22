@@ -209,19 +209,23 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	}
 	cr.Spec.Components.Ingress.Ports = testNginxIngressPorts
 	cr.Spec.Components.Ingress.Type = vzapi.NodePort
+	cr.Spec.Components.Ingress.NGINXInstallArgs = append(cr.Spec.Components.Ingress.NGINXInstallArgs, vzapi.InstallArgs{
+		Name:      "controller.service.externalIPs",
+		ValueList: []string{u.systemExternalLBIP},
+	})
 	// update nginx
 	nginxYaml := fmt.Sprintf(`controller:
   autoscaling:
     enabled: true
     minReplicas: %v
-  service:
-    externalIPs:
-      - %s
     annotations:
-      service.beta.kubernetes.io/oci-load-balancer-shape: %v
-      name-n: value-n`, u.nginxReplicas, u.systemExternalLBIP, u.nginxLBShape)
+      service.beta.kubernetes.io/oci-load-balancer-shape: %s
+      name-n: value-n`, u.nginxReplicas, u.nginxLBShape)
 	cr.Spec.Components.Ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
-
+	cr.Spec.Components.Istio.IstioInstallArgs = append(cr.Spec.Components.Istio.IstioInstallArgs, vzapi.InstallArgs{
+		Name:      "gateways.istio-ingressgateway.externalIPs",
+		ValueList: []string{u.applicationExternalLBIP},
+	})
 	// update Istio
 	istioYaml := fmt.Sprintf(`kind: IstioOperator
 spec:
