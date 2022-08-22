@@ -31,6 +31,8 @@ const ComponentJSONName = "ingress"
 // nginxExternalIPKey is the nginxInstallArgs key for externalIPs
 const nginxExternalIPKey = "controller.service.externalIPs"
 
+const nginxExternalIPJsonPath = "controller.service.externalIPs[0]"
+
 // nginxComponent represents an Nginx component
 type nginxComponent struct {
 	helm.HelmComponent
@@ -121,7 +123,7 @@ func (c nginxComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 
 	// look for externalIPs if NodePort
 	if vz.Components.Ingress.Type == vzapi.NodePort {
-		return vzconfig.CheckExternalIPsArgs(vz.Components.Ingress.NGINXInstallArgs, nginxExternalIPKey, c.Name())
+		return vzconfig.CheckExternalIPsArgs(vz.Components.Ingress.NGINXInstallArgs, vz.Components.Ingress.ValueOverrides, nginxExternalIPKey, nginxExternalIPJsonPath, c.Name())
 	}
 
 	return nil
