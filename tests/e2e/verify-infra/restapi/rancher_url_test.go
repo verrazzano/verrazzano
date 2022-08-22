@@ -187,24 +187,24 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					start = time.Now()
 					t.Logs.Info("Verify Verrazzano rancher user admin GlobalRoleBinding")
 					Eventually(func() (bool, error) {
-						gbrData, err := k8sClient.Resource(gvkToGvr(rancher.GVKGlobalRoleBinding)).Get(context.Background(), rancher.GlobalRoleBindingVerrazzano, v1.GetOptions{})
+						grbData, err := k8sClient.Resource(gvkToGvr(rancher.GVKGlobalRoleBinding)).Get(context.Background(), rancher.GlobalRoleBindingVerrazzano, v1.GetOptions{})
 						if err != nil {
 							t.Logs.Error(fmt.Sprintf("error getting rancher verrazzano user global role binding: %v", err))
 							return false, err
 						}
 
-						gbrAttributes := gbrData.UnstructuredContent()
-						if gbrAttributes[rancher.GlobalRoleBindingAttributeUserName].(string) != rancher.UserVerrazzano {
+						grbAttributes := grbData.UnstructuredContent()
+						if grbAttributes[rancher.GlobalRoleBindingAttributeUserName].(string) != rancher.UserVerrazzano {
 							return false, fmt.Errorf("verrazzano rancher user global role binding user in invalid")
 						}
 
-						if gbrAttributes[rancher.GlobalRoleBindingAttributeRoleName].(string) != rancher.GlobalRoleBindingRoleName {
+						if grbAttributes[rancher.GlobalRoleBindingAttributeRoleName].(string) != rancher.GlobalRoleBindingRoleName {
 							return false, fmt.Errorf("verrazzano rancher user global role binding role in invalid")
 						}
 
 						return true, nil
 					}, waitTimeout, pollingInterval).Should(Equal(true), "verrazzano rancher user global role binding does not exist")
-					metrics.Emit(t.Metrics.With("get_vz_rancher_user_gbr_elapsed_time", time.Since(start).Milliseconds()))
+					metrics.Emit(t.Metrics.With("get_vz_rancher_user_grb_elapsed_time", time.Since(start).Milliseconds()))
 
 				}
 			}

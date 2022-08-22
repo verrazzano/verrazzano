@@ -233,6 +233,8 @@ spec:
             value: "val1"
           - name: some.mysql.arg2
             value: "val2"
+    mySQLOperator:
+      enabled: true
     kibana:
       enabled: true
       replicas: 1

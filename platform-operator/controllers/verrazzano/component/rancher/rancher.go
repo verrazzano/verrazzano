@@ -104,7 +104,7 @@ const (
 	AuthConfigLocal                               = "local"
 	UserVerrazzano                                = "u-verrazzano"
 	UserVerrazzanoDescription                     = "Verrazzano Admin"
-	GlobalRoleBindingVerrazzano                   = "gbr-" + UserVerrazzano
+	GlobalRoleBindingVerrazzano                   = "grb-" + UserVerrazzano
 	AuthConfigKeycloakURLPathVerifyAuth           = "/verify-auth"
 	AuthConfigKeycloakURLPathIssuer               = "/auth/realms/verrazzano-system"
 	AuthConfigKeycloakURLPathAuthEndPoint         = "/auth/realms/verrazzano-system/protocol/openid-connect/auth"

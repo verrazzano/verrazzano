@@ -15,18 +15,22 @@ import (
 const (
 	helidonPollingInterval = 10 * time.Second
 	helidonWaitTimeout     = 5 * time.Minute
-
-	helidonComponentYaml = "examples/hello-helidon/hello-helidon-comp.yaml"
-	helidonAppYaml       = "examples/hello-helidon/hello-helidon-app.yaml"
+	helidonComponentYaml   = "examples/hello-helidon/hello-helidon-comp.yaml"
 )
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+var helidonAppYaml = "examples/hello-helidon/hello-helidon-app.yaml"
 
 // DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
 // OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
-func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjection string) {
+func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjection string, customAppConfig string) {
 	Log(Info, "Deploy Hello Helidon Application")
 	Log(Info, fmt.Sprintf("Create namespace %s", namespace))
+
+	// use custom Hello-Helidon Component if it is passed in
+	if customAppConfig != "" {
+		helidonAppYaml = customAppConfig
+	}
 	gomega.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
@@ -53,8 +57,12 @@ func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 }
 
 // UndeployHelloHelidonApplication undeploys the Hello Helidon example application.
-func UndeployHelloHelidonApplication(namespace string) {
+func UndeployHelloHelidonApplication(namespace string, customAppConfig string) {
 	Log(Info, "Undeploy Hello Helidon Application")
+	// use custom Hello-Helidon Component if it is passed in
+	if customAppConfig != "" {
+		helidonAppYaml = customAppConfig
+	}
 	if exists, _ := DoesNamespaceExist(namespace); exists {
 		Log(Info, "Delete Hello Helidon application")
 		gomega.Eventually(func() error {
