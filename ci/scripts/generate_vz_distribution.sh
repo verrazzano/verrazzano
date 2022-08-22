@@ -142,7 +142,6 @@ cleanupWorkspace() {
 
 # OCI_OS_BUCKET="verrazzano-builds"
 CLEAN_BRANCH_NAME="master"
-BRANCH_NAME=${CLEAN_BRANCH_NAME}
 
 # List of files in storage
 VZ_CLI_LINUX_AMD64_TARGZ="vz-linux-amd64.tar.gz"

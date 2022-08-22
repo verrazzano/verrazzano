@@ -18,9 +18,10 @@ pipeline {
     }
 
     parameters {
-        string (description: 'The release branch', name: 'RELEASE_BRANCH', defaultValue: 'NONE', trim: true)
-        string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'The full git commit hash from the source build', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+        string (description: 'Last stable commit to build Verrazzano Distribution bundles', name: 'LAST_STABLE_COMMIT', defaultValue: 'NONE', trim: true )
+        string (description: 'Last stable short commit', name: 'LAST_STABLE_SHORT_COMMIT', defaultValue: 'NONE', trim: true )
+        string (description: 'Clean branch name', name: 'CLEAN_BRANCH_NAME', defaultValue: 'master', trim: true )
     }
 
     environment {
@@ -75,13 +76,6 @@ pipeline {
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
                 """
-
-                script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                }
             }
         }
 
@@ -90,7 +84,7 @@ pipeline {
                 script {
                     sh """
                         cd ${WORKSPACE}/ci/scripts
-                        ./generate_vz_distribution.sh ${params.GIT_COMMIT_TO_USE} ${SHORT_COMMIT_HASH} "master-last-clean-periodic-test" ${WORKSPACE}
+                        ./generate_vz_distribution.sh ${params.LAST_STABLE_COMMIT} ${params.LAST_STABLE_SHORT_COMMIT} "master-last-clean-periodic-test" ${WORKSPACE}
                     """
                 }
             }
