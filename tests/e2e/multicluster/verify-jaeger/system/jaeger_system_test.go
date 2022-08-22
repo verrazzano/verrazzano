@@ -26,14 +26,30 @@ var start time.Time
 
 var t = framework.NewTestFramework("jaeger_mc_system_test")
 
-var adminKubeConfigPath = os.Getenv("ADMIN_KUBECONFIG")
-var clusterName = os.Getenv("CLUSTER_NAME")
+var (
+	adminKubeConfigPath = os.Getenv("ADMIN_KUBECONFIG")
+	clusterName         = os.Getenv("CLUSTER_NAME")
+	failed              = false
+)
 
 var _ = t.BeforeSuite(func() {
 	// Allow 3hr allowance for the traces.
 	start = time.Now().Add(-3 * time.Hour)
 	if adminKubeConfigPath == "" {
 		AbortSuite("Required env variable ADMIN_KUBECONFIG not set.")
+	}
+})
+
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
+var _ = t.AfterSuite(func() {
+	if failed {
+		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+		}
 	}
 })
 

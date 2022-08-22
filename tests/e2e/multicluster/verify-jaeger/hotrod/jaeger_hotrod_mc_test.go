@@ -31,6 +31,7 @@ var (
 	t                  = framework.NewTestFramework("jaeger-mc-hotrod")
 	expectedPodsHotrod = []string{"hotrod-workload"}
 	beforeSuitePassed  = false
+	failed             = false
 	start              = time.Now()
 	hotrodServiceName  = "hotrod.hotrod"
 )
@@ -85,8 +86,12 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
 var _ = t.AfterSuite(func() {
-	if !beforeSuitePassed {
+	if failed || !beforeSuitePassed {
 		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())

@@ -31,6 +31,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("hotrod-tracing")
 	expectedPodsHotrod = []string{"hotrod-workload"}
 	beforeSuitePassed  = false
+	failed             = false
 	start              = time.Now()
 	hotrodServiceName  = fmt.Sprintf("hotrod.%s", generatedNamespace)
 )
@@ -50,8 +51,12 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
 var _ = t.AfterSuite(func() {
-	if !beforeSuitePassed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	// undeploy the application here

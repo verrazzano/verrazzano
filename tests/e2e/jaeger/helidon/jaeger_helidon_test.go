@@ -30,6 +30,7 @@ var (
 	generatedNamespace       = pkg.GenerateNamespace("jaeger-tracing")
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 	beforeSuitePassed        = false
+	failed                   = false
 	start                    = time.Now()
 	helloHelidonServiceName  = "hello-helidon"
 )
@@ -50,8 +51,12 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
 var _ = t.AfterSuite(func() {
-	if !beforeSuitePassed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	// undeploy the application here

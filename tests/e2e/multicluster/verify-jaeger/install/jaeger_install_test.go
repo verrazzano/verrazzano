@@ -28,12 +28,28 @@ const (
 
 var t = framework.NewTestFramework("jaeger_mc_system_test")
 
-var kubeconfigPath = os.Getenv("KUBECONFIG")
-var clusterName = os.Getenv("CLUSTER_NAME")
+var (
+	kubeconfigPath = os.Getenv("KUBECONFIG")
+	clusterName    = os.Getenv("CLUSTER_NAME")
+	failed         = false
+)
 
 var _ = t.BeforeSuite(func() {
 	if kubeconfigPath == "" {
 		AbortSuite("Required env variable KUBECONFIG not set.")
+	}
+})
+
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
+var _ = t.AfterSuite(func() {
+	if failed {
+		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+		}
 	}
 })
 
