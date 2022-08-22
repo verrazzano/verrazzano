@@ -139,7 +139,6 @@ func GetSupportedWorkloadType(apiVerKind string) string {
 // createJobOrServiceMonitorName creates a Prometheus scrape configmap job name from a trait.
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
 func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
-	cluster := getClusterNameFromObjectMetaOrDefault(trait.ObjectMeta)
 	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
 	app, found := trait.Labels[appObjectMetaLabel]
 	if !found {
@@ -154,7 +153,7 @@ func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (stri
 		portStr = fmt.Sprintf("_%d", portNum)
 	}
 
-	finalName := fmt.Sprintf("%s_%s_%s_%s%s", app, cluster, namespace, comp, portStr)
+	finalName := fmt.Sprintf("%s_%s_%s%s", app, namespace, comp, portStr)
 	// Check for Kubernetes name length requirement
 	if len(finalName) > 63 {
 		finalName = fmt.Sprintf("%s_%s%s", app, namespace, portStr)
