@@ -47,7 +47,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      vpocons.VerrazzanoVersion1_4_0,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
 			Dependencies:              []string{},
-			GetInstallOverridesFunc:   GetOverrides,
+			GetInstallOverridesFunc:   getOverrides,
 		},
 	}
 }

@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+// getOverrides gets the install overrides
+func getOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 	if effectiveCR.Spec.Components.MySQLOperator != nil {
 		return effectiveCR.Spec.Components.MySQLOperator.ValueOverrides
 	}
