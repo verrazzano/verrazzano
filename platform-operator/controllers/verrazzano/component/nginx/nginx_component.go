@@ -31,7 +31,7 @@ const ComponentJSONName = "ingress"
 // nginxExternalIPKey is the nginxInstallArgs key for externalIPs
 const nginxExternalIPKey = "controller.service.externalIPs"
 
-const nginxExternalIPJsonPath = "controller.service.externalIPs[0]"
+const nginxExternalIPJsonPath = "controller.service.externalIPs.0"
 
 // nginxComponent represents an Nginx component
 type nginxComponent struct {
