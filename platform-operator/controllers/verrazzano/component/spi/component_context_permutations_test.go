@@ -214,6 +214,7 @@ var devAllDisabledOverride = vzapi.Verrazzano{
 			Grafana:           &vzapi.GrafanaComponent{Enabled: &falseValue},
 			Kiali:             &vzapi.KialiComponent{Enabled: &falseValue},
 			Keycloak:          &vzapi.KeycloakComponent{Enabled: &falseValue},
+			MySQLOperator:     &vzapi.MySQLOperatorComponent{Enabled: &falseValue},
 			Kibana:            &vzapi.KibanaComponent{Enabled: &falseValue},
 			Prometheus:        &vzapi.PrometheusComponent{Enabled: &falseValue},
 			Rancher:           &vzapi.RancherComponent{Enabled: &falseValue},
