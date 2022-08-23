@@ -279,7 +279,7 @@ func TestPostUninstall(t *testing.T) {
 			},
 		},
 		{
-			name: "test role binding",
+			name: "test clusterRole binding",
 			objects: []clipkg.Object{
 				&nonRancherNs,
 				&rancherNs,

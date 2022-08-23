@@ -59,6 +59,7 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
     environment {
@@ -102,10 +103,13 @@ pipeline {
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
         OCI_CLI_REGION = "us-phoenix-1"
 
-        // Used for dumping cluster from inside tests
+        // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshot"
+        CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
+
+        // Environment variable for Verrazzano CLI executable
         VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         // Ideally use the TIBURON-DEV compartment, but we need permissions
@@ -574,7 +578,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/*bug-report*/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*bug-report*/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             sh """
@@ -627,11 +631,7 @@ def runGinkgo(testSuitePath, String... extraArgs) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        mkdir -p ${dumpDirectory}/cluster-snapshot
-        ${DUMP_COMMAND} -d ${dumpDirectory}/cluster-snapshot -r ${dumpDirectory}/cluster-snapshot/analysis.report
-        ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
-        mkdir -p ${dumpDirectory}/bug-report
-        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 
