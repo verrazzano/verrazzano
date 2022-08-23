@@ -271,7 +271,7 @@ pipeline {
                         sh """
                             pwd
                             ls
-                            echo checksum file is: $checksumFile
+                            echo $checksumFile
                             sha256sum -c $checksumFile
                             tar xvf $tarfileName
                         """
