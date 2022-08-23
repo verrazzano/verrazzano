@@ -349,11 +349,11 @@ pipeline {
             }
         }
 
-        stage("Update OCNE configuration") {
+        stage("Update OCI-CCM StorageClass") {
             steps {
                 script {
-                    echo "[INFO] Update OCNE configuration"
-                    updateOCNEConfig()
+                    echo "[INFO] Update OCI-CCM StorageClass"
+                    updateStorageClass()
                 }
             }
         }
@@ -939,15 +939,13 @@ def setupKubeconfig() {
     """
 }
 
-def updateOCNEConfig() {
+def updateStorageClass() {
     env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
     echo CONTROL_PLANE_IP
     sh """
         # TODO: This MIGHT not be required for OCNE > 1.5 releases
         # Add annotation to the storageclass created by OCNE oci-ccm module
-        kubectl get storageclass oci-bv -o yaml > "$WORKSPACE/oci-bv.yaml"
-        yq -i eval '.metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true"' "$WORKSPACE/oci-bv.yaml"
-        kubectl replace -f "$WORKSPACE/oci-bv.yaml"
+        kubectl annotate storageclass oci-bv "storageclass.kubernetes.io/is-default-class"="true"
         cat << EOF | kubectl apply -f -
             apiVersion: storage.k8s.io/v1
             kind: CSIDriver
