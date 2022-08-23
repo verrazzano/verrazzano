@@ -296,6 +296,3 @@ func TestConfigureGateways(t *testing.T) {
 		})
 	}
 }
-
-func TestConvertIstioComponentToYaml(t *testing.T) {
-}
