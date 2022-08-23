@@ -1392,13 +1392,20 @@ func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	var secretName string
 	if len(serviceAccount.Secrets) == 0 {
-		msg := fmt.Sprintf("no secrets present in service account %s in namespace %s", sa, namespace)
-		Log(Error, msg)
-		return nil, errors.New(msg)
+		secretName = serviceAccount.Name + "-token"
+		msg := fmt.Sprintf("no secrets present in service account %s in namespace %s. Creating a service account token"+
+			" secret %s", sa, namespace, secretName)
+		Log(Info, msg)
+		err = createServiceAccountTokenSecret(context.TODO(), serviceAccount)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		secretName = serviceAccount.Secrets[0].Name
 	}
 
-	secretName := serviceAccount.Secrets[0].Name
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
@@ -1574,6 +1581,25 @@ func CreateConfigMap(configMap *corev1.ConfigMap) error {
 	}
 	_, err = clientset.CoreV1().ConfigMaps(configMap.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createServiceAccountTokenSecret(ctx context.Context, serviceAccount *corev1.ServiceAccount) error {
+	var secret corev1.Secret
+	secret.Name = serviceAccount.Name + "-token"
+	secret.Namespace = serviceAccount.Namespace
+	secret.Type = corev1.SecretTypeServiceAccountToken
+	secret.Annotations = map[string]string{
+		corev1.ServiceAccountNameKey: serviceAccount.Name,
+	}
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().Secrets(serviceAccount.Namespace).Create(context.TODO(), &secret, metav1.CreateOptions{})
+	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
 	return nil
