@@ -195,16 +195,57 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 
 						grbAttributes := grbData.UnstructuredContent()
 						if grbAttributes[rancher.GlobalRoleBindingAttributeUserName].(string) != rancher.UserVerrazzano {
-							return false, fmt.Errorf("verrazzano rancher user global role binding user in invalid")
+							return false, fmt.Errorf("verrazzano rancher user global role binding user is invalid")
 						}
 
-						if grbAttributes[rancher.GlobalRoleBindingAttributeRoleName].(string) != rancher.GlobalRoleBindingRoleName {
-							return false, fmt.Errorf("verrazzano rancher user global role binding role in invalid")
+						if grbAttributes[rancher.GlobalRoleBindingAttributeRoleName].(string) != rancher.AdminRoleName {
+							return false, fmt.Errorf("verrazzano rancher user global role binding role is invalid")
 						}
 
 						return true, nil
 					}, waitTimeout, pollingInterval).Should(Equal(true), "verrazzano rancher user global role binding does not exist")
 					metrics.Emit(t.Metrics.With("get_vz_rancher_user_grb_elapsed_time", time.Since(start).Milliseconds()))
+
+					start = time.Now()
+					t.Logs.Info("Verify ClusterRoleTemplateBindings are created for Keycloak groups")
+					Eventually(func() (bool, error) {
+						for _, grp := range rancher.GroupRolePairs {
+							name := fmt.Sprintf("crtb-%s-%s", grp[rancher.ClusterRoleKey], grp[rancher.GroupKey])
+							crtpData, err := k8sClient.Resource(gvkToGvr(rancher.GVKClusterRoleTemplateBinding)).Namespace(rancher.ClusterLocal).Get(context.Background(), name, v1.GetOptions{})
+							if err != nil {
+								return false, fmt.Errorf("error getting ClusterRoleTemplateBinding %s: %v", name, err)
+							}
+
+							crtpAttributes := crtpData.UnstructuredContent()
+							if crtpAttributes[rancher.ClusterRoleTemplateBindingAttributeGroupPrincipalName].(string) != rancher.GroupPrincipalKeycloakPrefix+grp[rancher.GroupKey] {
+								return false, fmt.Errorf("ClusterRoleTemplateBinding %s attribute %s is invalid, expected %s, got %s", name, rancher.ClusterRoleTemplateBindingAttributeGroupPrincipalName, crtpAttributes[rancher.ClusterRoleTemplateBindingAttributeGroupPrincipalName].(string), rancher.GroupPrincipalKeycloakPrefix+grp[rancher.GroupKey])
+							}
+
+							if crtpAttributes[rancher.ClusterRoleTemplateBindingAttributeRoleTemplateName].(string) != grp[rancher.ClusterRoleKey] {
+								return false, fmt.Errorf("ClusterRoleTemplateBinding %s attribute %s is invalid, expected %s, got %s", name, rancher.ClusterRoleTemplateBindingAttributeRoleTemplateName, crtpAttributes[rancher.ClusterRoleTemplateBindingAttributeRoleTemplateName].(string), grp[rancher.ClusterRoleKey])
+							}
+						}
+
+						return true, nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "ClusterRoleTemplateBinding not found or incorrect")
+					metrics.Emit(t.Metrics.With("get_crtb_elapsed_time", time.Since(start).Milliseconds()))
+
+					start = time.Now()
+					t.Logs.Info("Verify RoleTemplate are created for Keycloak groups ClusterRoleBindings")
+					Eventually(func() (bool, error) {
+						_, err := k8sClient.Resource(gvkToGvr(rancher.GVKRoleTemplate)).Get(context.Background(), rancher.VerrazzanoAdminRoleName, v1.GetOptions{})
+						if err != nil {
+							return false, fmt.Errorf("error getting RoleTemplate %s: %v", rancher.VerrazzanoAdminRoleName, err)
+						}
+
+						_, err = k8sClient.Resource(gvkToGvr(rancher.GVKRoleTemplate)).Get(context.Background(), rancher.VerrazzanoMonitorRoleName, v1.GetOptions{})
+						if err != nil {
+							return false, fmt.Errorf("error getting RoleTemplate %s: %v", rancher.VerrazzanoMonitorRoleName, err)
+						}
+
+						return true, nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "RoleTemplate not found")
+					metrics.Emit(t.Metrics.With("get_roletemplate_elapsed_time", time.Since(start).Milliseconds()))
 
 				}
 			}
