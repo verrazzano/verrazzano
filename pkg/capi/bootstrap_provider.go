@@ -17,25 +17,28 @@ nodes:
       containerPath: /var/run/docker.sock
 `
 
-type BootstrapProvider interface {
+// KindBootstrapProvider is an abstraction around the KIND provider, mainly for unit test purposes
+type KindBootstrapProvider interface {
 	CreateCluster(clusterName string) error
 	DestroyCluster(clusterName string) error
 	GetKubeconfig(clusterName string) (string, error)
 }
 
-func SetBootstrapProvider(p BootstrapProvider) {
+// SetKindBootstrapProvider for unit testing, override the KIND provider
+func SetKindBootstrapProvider(p KindBootstrapProvider) {
 	bootstrapProviderImpl = p
 }
 
-func ResetBootstrapProvider() {
-	bootstrapProviderImpl = &kindBootstrapProvider{}
+// ResetKindBootstrapProvider for unit testing, reset the KIND provider
+func ResetKindBootstrapProvider() {
+	bootstrapProviderImpl = &kindBootstrapProviderImpl{}
 }
 
-var bootstrapProviderImpl BootstrapProvider = &kindBootstrapProvider{}
+var bootstrapProviderImpl KindBootstrapProvider = &kindBootstrapProviderImpl{}
 
-type kindBootstrapProvider struct{}
+type kindBootstrapProviderImpl struct{}
 
-func (k *kindBootstrapProvider) CreateCluster(clusterName string) error {
+func (k *kindBootstrapProviderImpl) CreateCluster(clusterName string) error {
 	var po kindcluster.ProviderOption
 	po, err := kindcluster.DetectNodeProvider()
 	if err != nil {
@@ -45,7 +48,7 @@ func (k *kindBootstrapProvider) CreateCluster(clusterName string) error {
 	return provider.Create(clusterName, kindcluster.CreateWithRawConfig([]byte(bootstrapConfig)))
 }
 
-func (k *kindBootstrapProvider) DestroyCluster(clusterName string) error {
+func (k *kindBootstrapProviderImpl) DestroyCluster(clusterName string) error {
 	var po kindcluster.ProviderOption
 	po, err := kindcluster.DetectNodeProvider()
 	if err != nil {
@@ -59,7 +62,7 @@ func (k *kindBootstrapProvider) DestroyCluster(clusterName string) error {
 	return provider.Delete(clusterName, kubeconfig)
 }
 
-func (k *kindBootstrapProvider) GetKubeconfig(clusterName string) (string, error) {
+func (k *kindBootstrapProviderImpl) GetKubeconfig(clusterName string) (string, error) {
 	po, err := kindcluster.DetectNodeProvider()
 	if err != nil {
 		return "", nil

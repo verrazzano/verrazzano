@@ -10,11 +10,11 @@ import (
 
 func TestCreateBootstrapCluster(t *testing.T) {
 	asserts := assert.New(t)
-	SetBootstrapProvider(testBootstrapProvider{})
+	SetKindBootstrapProvider(testBootstrapProvider{})
 	SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
 		return &fakeCAPIClient{}, nil
 	})
-	defer ResetBootstrapProvider()
+	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
 
 	bootstrapCluster := NewBoostrapCluster()
@@ -24,11 +24,11 @@ func TestCreateBootstrapCluster(t *testing.T) {
 
 func TestInitBoostrapCluster(t *testing.T) {
 	asserts := assert.New(t)
-	SetBootstrapProvider(testBootstrapProvider{})
+	SetKindBootstrapProvider(testBootstrapProvider{})
 	SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
 		return &fakeCAPIClient{}, nil
 	})
-	defer ResetBootstrapProvider()
+	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
 
 	bootstrapCluster := NewBoostrapCluster()
@@ -37,11 +37,11 @@ func TestInitBoostrapCluster(t *testing.T) {
 
 func TestDeleteBootstrapCluster(t *testing.T) {
 	asserts := assert.New(t)
-	SetBootstrapProvider(testBootstrapProvider{})
+	SetKindBootstrapProvider(testBootstrapProvider{})
 	SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
 		return &fakeCAPIClient{}, nil
 	})
-	defer ResetBootstrapProvider()
+	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
 
 	asserts.NoError(NewBoostrapCluster().Destroy())

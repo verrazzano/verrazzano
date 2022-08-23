@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
 )
 
-// Dummy impls for a BootstrapProvider and a CAPI client for unit testing
+// Dummy impls for a KindBootstrapProvider and a CAPI client for unit testing
 
 type testBootstrapProvider struct{}
 
