@@ -4,6 +4,8 @@
 package jaeger
 
 import (
+	"time"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -11,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"time"
 )
 
 const (
@@ -60,7 +61,7 @@ func DeployApplication(namespace, testAppComponentFilePath, testAppConfiguration
 		return pkg.ContainerImagePullWait(namespace, expectedPods)
 	}).WithPolling(imagePullPollingInterval).WithTimeout(imagePullWaitTimeout).Should(gomega.BeTrue())
 
-	// Verify hotrod-workload pod is running
+	// Verify pods are running
 	gomega.Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, expectedPods)
 		if err != nil {
