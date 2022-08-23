@@ -135,6 +135,7 @@ generateOpenSourceDistribution() {
 
 # Upload the generated distribution bundles to object store
 uploadOpenSourceDistribution() {
+  echo "Uploading Verrazzano release distribution ..."
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ}
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ_SHA256}
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ}
