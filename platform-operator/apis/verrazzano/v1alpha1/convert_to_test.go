@@ -391,6 +391,11 @@ func TestConvertToV1Beta1(t *testing.T) {
 			testCaseInstallArgsErr,
 			true,
 		},
+		{
+			"convert prod profile",
+			testProdProfile,
+			false,
+		},
 	}
 
 	for _, tt := range tests {

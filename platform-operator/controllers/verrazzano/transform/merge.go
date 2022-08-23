@@ -13,7 +13,6 @@ import (
 
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 const (
@@ -103,7 +102,7 @@ func GetEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
 	}
 	var profileFiles []string
 	for _, profile := range profiles {
-		profileFiles = append(profileFiles, config.GetProfile(v1beta1.SchemeGroupVersion, profile))
+		profileFiles = append(profileFiles, config.GetProfile(actualCR.GroupVersionKind().GroupVersion(), profile))
 	}
 	// Merge the profile files into an effective profile YAML string
 	effectiveCR, err := MergeProfiles(actualCR, profileFiles...)

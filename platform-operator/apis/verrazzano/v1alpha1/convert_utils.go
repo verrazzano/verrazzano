@@ -26,6 +26,7 @@ const (
 	testCaseRancherKeycloak   = "rancherkeycloak"
 	testCaseVolumeOverrides   = "volumeoverrides"
 	testCaseGeneralOverrides  = "overrides"
+	testProdProfile           = "prod"
 )
 
 type converisonTestCase struct {

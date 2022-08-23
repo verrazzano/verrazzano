@@ -37,6 +37,7 @@ func RestartApps(log vzlog.VerrazzanoLogger, client clipkg.Client, generation in
 	if err := restartAllApps(log, client, restartVersion); err != nil {
 		return err
 	}
+
 	return nil
 }
 
