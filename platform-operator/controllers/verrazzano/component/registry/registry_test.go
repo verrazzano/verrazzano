@@ -156,7 +156,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, true))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, nil, true))
 	assert.True(t, ready)
 }
 
@@ -186,7 +186,7 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
 }
 
@@ -203,20 +203,18 @@ func TestComponentOptionalDependenciesMet(t *testing.T) {
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	enabled := false
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client,
-		&v1alpha1.Verrazzano{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "foo",
-			},
-			Spec: v1alpha1.VerrazzanoSpec{
-				Components: v1alpha1.ComponentSpec{
-					Istio: &v1alpha1.IstioComponent{
-						Enabled: &enabled,
-					},
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+		},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Istio: &v1alpha1.IstioComponent{
+					Enabled: &enabled,
 				},
 			},
 		},
-		false))
+	}, nil, false))
 	assert.True(t, ready)
 }
 
@@ -236,7 +234,7 @@ func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 		return helm.ChartStatusPendingInstall, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
 }
 
@@ -266,7 +264,7 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
 }
 
@@ -313,7 +311,7 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 	})
 	defer helm.SetDefaultReleaseAppVersionFunction()
 
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.True(t, ready)
 }
 
@@ -337,7 +335,7 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.False(t, ready)
 }
 
@@ -372,11 +370,11 @@ func TestComponentDependenciesCycles(t *testing.T) {
 	defer ResetGetComponentsFn()
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	assert.False(t, ComponentDependenciesMet(directCycle, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
-	assert.False(t, ComponentDependenciesMet(indirectCycle1, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
-	assert.False(t, ComponentDependenciesMet(indirectCycle2, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
-	assert.True(t, ComponentDependenciesMet(nocycles, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
-	assert.True(t, ComponentDependenciesMet(noDependencies, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
+	assert.False(t, ComponentDependenciesMet(directCycle, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+	assert.False(t, ComponentDependenciesMet(indirectCycle1, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+	assert.False(t, ComponentDependenciesMet(indirectCycle2, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+	assert.True(t, ComponentDependenciesMet(nocycles, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+	assert.True(t, ComponentDependenciesMet(noDependencies, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
 }
 
 // TestComponentDependenciesCycles tests ComponentDependenciesMet
@@ -410,7 +408,7 @@ func Test_checkDependencies(t *testing.T) {
 	defer ResetGetComponentsFn()
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)
 
 	_, err := checkDependencies(directCycle, ctx, make(map[string]bool), make(map[string]bool))
 	assert.Error(t, err)
@@ -454,11 +452,11 @@ func TestComponentDependenciesChainNoCycle(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// Dependency chain, no cycle
-	ready := ComponentDependenciesMet(chainNoCycle, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false))
+	ready := ComponentDependenciesMet(chainNoCycle, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false))
 	assert.True(t, ready)
 
 	// Same dependency listed twice, not an error
-	ready = ComponentDependenciesMet(repeatDepdendency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false))
+	ready = ComponentDependenciesMet(repeatDepdendency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false))
 	assert.True(t, ready)
 }
 
@@ -474,7 +472,7 @@ func TestRegistryDependencies(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	for _, comp := range GetComponents() {
-		_, err := checkDependencies(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false, profileDir),
+		_, err := checkDependencies(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false, profileDir),
 			make(map[string]bool), make(map[string]bool))
 		assert.NoError(t, err)
 	}
@@ -491,7 +489,7 @@ func TestNoComponentDependencies(t *testing.T) {
 		ChartNamespace: "bar",
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	assert.True(t, ready)
 }
 
@@ -558,7 +556,7 @@ func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enab
 	}
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, cr, true))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, cr, nil, true))
 	assert.Equal(t, expectedResult, ready)
 }
 

@@ -35,7 +35,7 @@ func TestAppendOverrides(t *testing.T) {
 			},
 		},
 	}
-	kvs, err := AppendOverrides(spi.NewFakeContext(fakeClient, vz, false), "", "", "", []bom.KeyValue{{Key: "key1", Value: "value1"}})
+	kvs, err := AppendOverrides(spi.NewFakeContext(fakeClient, vz, nil, false), "", "", "", []bom.KeyValue{{Key: "key1", Value: "value1"}})
 	assert.Nil(t, err)
 	assert.Len(t, kvs, 2)
 	assert.Equal(t, bom.KeyValue{Key: "key1", Value: "value1"}, kvs[0])
@@ -89,7 +89,7 @@ func TestIsKialiReady(t *testing.T) {
 		},
 	)
 
-	assert.True(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.True(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsKialiNotReady tests the isKialiReady function
@@ -113,7 +113,7 @@ func TestIsKialiNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.False(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsKialiNotReadyChartNotFound tests the isKialiReady function
@@ -127,5 +127,5 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	assert.False(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.False(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }

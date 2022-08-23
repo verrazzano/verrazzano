@@ -133,7 +133,7 @@ var testConfigMap = corev1.ConfigMap{
 
 // creates a component context for testing
 func fakeComponentContext(mock *mocks.MockClient, vz *vzapi.Verrazzano) spi.ComponentContext {
-	compContext := spi.NewFakeContext(mock, vz, false)
+	compContext := spi.NewFakeContext(mock, vz, nil, false)
 	return compContext
 }
 

@@ -129,7 +129,7 @@ func init() {
 func TestPreInstallInternal(t *testing.T) {
 	for _, tt := range getPreInstallTests() {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, tt.dryRun)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, nil, tt.dryRun)
 			err := preInstall(ctx)
 			if tt.err != nil {
 				assert.Error(t, err)
@@ -222,7 +222,7 @@ func TestAppendOverrides(t *testing.T) {
 			asserts.NoError(err)
 
 			fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
-			fakeContext := spi.NewFakeContext(fakeClient, &testCR, false, profileDir)
+			fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false, profileDir)
 
 			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
 				if test.expectedErr != nil {
@@ -295,7 +295,7 @@ func TestEnsureMonitoringOperatorNamespace(t *testing.T) {
 	// GIVEN a Verrazzano CR with Jaeger Component enabled,
 	// WHEN we call the ensureVerrazzanoMonitoringNamespace function,
 	// THEN no error is returned.
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, nil, false)
 	err := ensureVerrazzanoMonitoringNamespace(ctx)
 	assert.NoError(t, err)
 }

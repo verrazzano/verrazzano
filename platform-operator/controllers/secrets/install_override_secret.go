@@ -5,6 +5,7 @@ package secrets
 
 import (
 	"context"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -43,7 +44,7 @@ func (r *VerrazzanoSecretsReconciler) reconcileInstallOverrideSecret(ctx context
 			return result, err
 		}
 
-		componentCtx, err := spi.NewContext(r.log, r.Client, vz, false)
+		componentCtx, err := spi.NewContext(r.log, r.Client, vz, nil, false)
 		if err != nil {
 			r.log.Errorf("Failed to construct component context: %v", err)
 			return newRequeueWithDelay(), err

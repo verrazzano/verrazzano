@@ -17,14 +17,13 @@ import (
 var _ ComponentContext = componentContext{}
 
 // NewContext creates a ComponentContext from a raw CR
-func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (ComponentContext, error) {
-
+func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, actualV1beta1CR *vzapiv1beta1.Verrazzano, dryRun bool) (ComponentContext, error) {
 	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
 		return nil, err
 	}
-	crv1beta1, effectiveCRv1beta1, err := convertCRs(actualCR, effectiveCR)
+	effectiveV1beta1CR, err := transform.GetEffectiveV1beta1CR(actualV1beta1CR)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +33,8 @@ func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Ver
 		dryRun:             dryRun,
 		cr:                 actualCR,
 		effectiveCR:        effectiveCR,
-		crv1beta1:          crv1beta1,
-		effectiveCRv1beta1: effectiveCRv1beta1,
+		crv1beta1:          actualV1beta1CR,
+		effectiveCRv1beta1: effectiveV1beta1CR,
 	}, nil
 }
 
@@ -44,8 +43,9 @@ func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Ver
 // actualCR The user-supplied Verrazzano CR
 // dryRun Dry-run indicator
 // profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
-func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
+func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, actualV1beta1CR *vzapiv1beta1.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
 	effectiveCR := actualCR
+	effectiveV1beta1CR := actualV1beta1CR
 	log := vzlog.DefaultLogger()
 	if len(profilesDir) > 0 {
 		config.TestProfilesDir = profilesDir[0]
@@ -58,11 +58,11 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 			log.Errorf("Failed, unexpected error building fake context: %v", err)
 			return nil
 		}
-	}
-
-	crv1beta1, effectiveCRv1beta1, err := convertCRs(actualCR, effectiveCR)
-	if err != nil {
-		log.Errorf("Failed, error converted CRs to v1beta1: %v", err)
+		effectiveV1beta1CR, err = transform.GetEffectiveV1beta1CR(actualV1beta1CR)
+		if err != nil {
+			log.Errorf("Failed, unexpected error building fake context: %v", err)
+			return nil
+		}
 	}
 
 	return componentContext{
@@ -71,23 +71,11 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 		dryRun:             dryRun,
 		cr:                 actualCR,
 		effectiveCR:        effectiveCR,
-		crv1beta1:          crv1beta1,
-		effectiveCRv1beta1: effectiveCRv1beta1,
+		crv1beta1:          actualV1beta1CR,
+		effectiveCRv1beta1: effectiveV1beta1CR,
 		operation:          "",
 		component:          "",
 	}
-}
-
-func convertCRs(actualCR, effectiveCR *vzapi.Verrazzano) (*vzapiv1beta1.Verrazzano, *vzapiv1beta1.Verrazzano, error) {
-	crv1beta1 := &vzapiv1beta1.Verrazzano{}
-	if err := actualCR.ConvertTo(crv1beta1); err != nil {
-		return nil, nil, err
-	}
-	effectiveCRv1beta1 := &vzapiv1beta1.Verrazzano{}
-	if err := effectiveCR.ConvertTo(effectiveCRv1beta1); err != nil {
-		return nil, nil, err
-	}
-	return crv1beta1, effectiveCRv1beta1, nil
 }
 
 type componentContext struct {

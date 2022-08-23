@@ -3,10 +3,11 @@
 package spi
 
 import (
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -148,7 +149,7 @@ func TestContextProfilesMerge(t *testing.T) {
 
 			// Create the context with the effective CR
 			log := vzlog.DefaultLogger()
-			context, err := NewContext(log, fake.NewClientBuilder().WithScheme(testScheme).Build(), &test.actualCR, false)
+			context, err := NewContext(log, fake.NewClientBuilder().WithScheme(testScheme).Build(), &test.actualCR, nil, false)
 			// Assert the error expectations
 			if test.expectedErr {
 				a.Error(err)

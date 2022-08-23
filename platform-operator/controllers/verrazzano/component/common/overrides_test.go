@@ -207,7 +207,7 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 					})
 			}
 
-			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, false)
+			ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
 
 			data, err := GetInstallOverridesYAML(ctx, tt.overrides)
 			if tt.expectError {
