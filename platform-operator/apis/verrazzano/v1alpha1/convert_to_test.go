@@ -1,15 +1,16 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1beta1
+package v1alpha1
 
 import (
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sort"
 	"testing"
 )
 
@@ -29,15 +30,15 @@ const (
       f: nested args`
 )
 
-func TestConvertInstallArgsFrom(t *testing.T) {
+func TestConvertInstallArgsToV1Beta1(t *testing.T) {
 	var tests = []struct {
 		name       string
-		args       []v1alpha1.InstallArgs
+		args       []InstallArgs
 		mergedYaml string
 	}{
 		{
 			name: "converts a single arg",
-			args: []v1alpha1.InstallArgs{
+			args: []InstallArgs{
 				{
 					Name:  "foo.bar",
 					Value: "baz",
@@ -47,7 +48,7 @@ func TestConvertInstallArgsFrom(t *testing.T) {
 		},
 		{
 			name: "converts a list arg",
-			args: []v1alpha1.InstallArgs{
+			args: []InstallArgs{
 				{
 					Name: "foo",
 					ValueList: []string{
@@ -60,7 +61,7 @@ func TestConvertInstallArgsFrom(t *testing.T) {
 		},
 		{
 			name: "converts merged args",
-			args: []v1alpha1.InstallArgs{
+			args: []InstallArgs{
 				{
 					Name:  "foo.bar",
 					Value: "baz",
@@ -74,7 +75,7 @@ func TestConvertInstallArgsFrom(t *testing.T) {
 		},
 		{
 			name: "converts multiple nested args",
-			args: []v1alpha1.InstallArgs{
+			args: []InstallArgs{
 				{
 					Name:  "a.b.c",
 					Value: "hello",
@@ -116,29 +117,29 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 
 	var tests = []struct {
 		name  string
-		args  []v1alpha1.InstallArgs
-		nodes []OpenSearchNode
+		args  []InstallArgs
+		nodes map[string]v1beta1.OpenSearchNode
 	}{
 		{
 			"single node",
-			[]v1alpha1.InstallArgs{
+			[]InstallArgs{
 				{
 					Name:  masterNodeReplicas,
 					Value: "1",
 				},
 			},
-			[]OpenSearchNode{
-				{
+			map[string]v1beta1.OpenSearchNode{
+				masterNodeName: {
 					Replicas: 1,
 					Name:     masterNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.MasterRole},
 				},
-				{
+				dataNodeName: {
 					Replicas: 0,
 					Name:     dataNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.DataRole},
 				},
-				{
+				ingestNodeName: {
 					Replicas: 0,
 					Name:     ingestNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.IngestRole},
@@ -147,7 +148,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 		},
 		{
 			"multi node with storage",
-			[]v1alpha1.InstallArgs{
+			[]InstallArgs{
 				{
 					Name:  masterNodeReplicas,
 					Value: replicas3,
@@ -181,26 +182,26 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 					Value: q2GiString,
 				},
 			},
-			[]OpenSearchNode{
-				{
+			map[string]v1beta1.OpenSearchNode{
+				masterNodeName: {
 					Name:      masterNodeName,
 					Replicas:  3,
 					Resources: resourceRequirements,
 					Roles:     []vmov1.NodeRole{vmov1.MasterRole},
-					Storage: &OpenSearchNodeStorage{
+					Storage: &v1beta1.OpenSearchNodeStorage{
 						Size: storage50Gi,
 					},
 				},
-				{
+				dataNodeName: {
 					Name:      dataNodeName,
 					Replicas:  3,
 					Resources: resourceRequirements,
 					Roles:     []vmov1.NodeRole{vmov1.DataRole},
-					Storage: &OpenSearchNodeStorage{
+					Storage: &v1beta1.OpenSearchNodeStorage{
 						Size: storage250Gi,
 					},
 				},
-				{
+				ingestNodeName: {
 					Name:      ingestNodeName,
 					Replicas:  2,
 					Resources: resourceRequirements,
@@ -210,24 +211,24 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 		},
 		{
 			"no replicas no nodes",
-			[]v1alpha1.InstallArgs{
+			[]InstallArgs{
 				{
 					Name:  masterNodeName,
 					Value: "0",
 				},
 			},
-			[]OpenSearchNode{
-				{
+			map[string]v1beta1.OpenSearchNode{
+				masterNodeName: {
 					Replicas: 0,
 					Name:     masterNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.MasterRole},
 				},
-				{
+				dataNodeName: {
 					Replicas: 0,
 					Name:     dataNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.DataRole},
 				},
-				{
+				ingestNodeName: {
 					Replicas: 0,
 					Name:     ingestNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.IngestRole},
@@ -288,14 +289,14 @@ replicas: 1`
 
 	var tests = []struct {
 		name         string
-		spec         v1alpha1.CommonKubernetesSpec
+		spec         CommonKubernetesSpec
 		replicasInfo expandInfo
 		affinityInfo expandInfo
 		output       string
 	}{
 		{
 			"converts replicas and affinity",
-			v1alpha1.CommonKubernetesSpec{
+			CommonKubernetesSpec{
 				Replicas: 1,
 				Affinity: &affinity,
 			},
@@ -305,7 +306,7 @@ replicas: 1`
 		},
 		{
 			"converts only replicas when no affinity",
-			v1alpha1.CommonKubernetesSpec{
+			CommonKubernetesSpec{
 				Replicas: 1,
 			},
 			expandReplicas,
@@ -323,7 +324,7 @@ replicas: 1`
 	}
 }
 
-func TestConvertFrom(t *testing.T) {
+func TestConvertToV1Beta1(t *testing.T) {
 	var tests = []converisonTestCase{
 		{
 			"converts from v1alpha1 in the basic case",
@@ -366,6 +367,26 @@ func TestConvertFrom(t *testing.T) {
 			false,
 		},
 		{
+			"convert volume claim templates from v1alpha1",
+			testCaseVolumeOverrides,
+			false,
+		},
+		{
+			"convert istio overrides",
+			testCaseIstioOverrides,
+			false,
+		},
+		{
+			"convert istio node port",
+			testCaseIstioNodePort,
+			false,
+		},
+		{
+			"convert general overrides",
+			testCaseGeneralOverrides,
+			false,
+		},
+		{
 			"convert err on keycloak install args",
 			testCaseInstallArgsErr,
 			true,
@@ -377,21 +398,33 @@ func TestConvertFrom(t *testing.T) {
 			// load the expected v1alpha1 CR for conversion
 			v1alpha1CR, err := loadV1Alpha1CR(tt.testCase)
 			assert.NoError(t, err)
+
 			// compute the actual v1beta1 CR from the v1alpha1 CR
-			v1beta1CRActual := &Verrazzano{}
-			err = v1beta1CRActual.ConvertFrom(v1alpha1CR)
+			v1beta1Actual := &v1beta1.Verrazzano{}
+			err = v1alpha1CR.ConvertTo(v1beta1Actual)
 			if tt.hasError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 				// load the expected v1beta1 CR
-				v1beta1CRExpected, err := loadV1Beta1(tt.testCase)
+				v1beta1Expected, err := loadV1Beta1(tt.testCase)
 				assert.NoError(t, err)
+				// Arrays may not be in order, so we have to sort them by name for reflect.DeepEqual to be true
+				if v1beta1Expected.Spec.Components.OpenSearch != nil && v1beta1Actual.Spec.Components.OpenSearch != nil {
+					sortNodes(v1beta1Expected.Spec.Components.OpenSearch.Nodes)
+					sortNodes(v1beta1Actual.Spec.Components.OpenSearch.Nodes)
+				}
 				// expected and actual v1beta1 CRs must be equal
-				assert.EqualValues(t, v1beta1CRExpected.ObjectMeta, v1beta1CRActual.ObjectMeta)
-				assert.EqualValues(t, v1beta1CRExpected.Spec, v1beta1CRActual.Spec)
-				assert.EqualValues(t, v1beta1CRExpected.Status, v1beta1CRActual.Status)
+				assert.EqualValues(t, v1beta1Expected.ObjectMeta, v1beta1Actual.ObjectMeta)
+				assert.EqualValues(t, v1beta1Expected.Spec, v1beta1Actual.Spec)
+				assert.EqualValues(t, v1beta1Expected.Status, v1beta1Actual.Status)
 			}
 		})
 	}
+}
+
+func sortNodes(nodes []v1beta1.OpenSearchNode) {
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Name < nodes[j].Name
+	})
 }

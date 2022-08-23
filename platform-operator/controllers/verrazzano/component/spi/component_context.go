@@ -80,11 +80,11 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 
 func convertCRs(actualCR, effectiveCR *vzapi.Verrazzano) (*vzapiv1beta1.Verrazzano, *vzapiv1beta1.Verrazzano, error) {
 	crv1beta1 := &vzapiv1beta1.Verrazzano{}
-	if err := crv1beta1.ConvertFrom(actualCR); err != nil {
+	if err := actualCR.ConvertTo(crv1beta1); err != nil {
 		return nil, nil, err
 	}
 	effectiveCRv1beta1 := &vzapiv1beta1.Verrazzano{}
-	if err := effectiveCRv1beta1.ConvertFrom(effectiveCR); err != nil {
+	if err := effectiveCR.ConvertTo(effectiveCRv1beta1); err != nil {
 		return nil, nil, err
 	}
 	return crv1beta1, effectiveCRv1beta1, nil

@@ -2,8 +2,8 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package v1beta1 contains API Schema definitions for the install v1beta1 API group
-//+kubebuilder:object:generate=true
-//+groupName=install.verrazzano.io
+// +kubebuilder:object:generate=true
+// +groupName=install.verrazzano.io
 package v1beta1
 
 import (
