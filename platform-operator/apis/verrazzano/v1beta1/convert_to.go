@@ -298,7 +298,9 @@ func convertGrafanaTo(in *GrafanaComponent) *v1alpha1.GrafanaComponent {
 		return nil
 	}
 	return &v1alpha1.GrafanaComponent{
-		Enabled: in.Enabled,
+		Enabled:  in.Enabled,
+		Replicas: in.Replicas,
+		Database: (*v1alpha1.DatabaseInfo)(in.Database),
 	}
 }
 
