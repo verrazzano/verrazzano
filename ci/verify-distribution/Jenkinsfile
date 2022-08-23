@@ -250,7 +250,7 @@ pipeline {
                         script: "basename ${params.ZIPFILE_LOCATION} .zip",
                         returnStdout: true
                         ).trim()
-                    tarfileName = "${baseFilename}/verrazzano-1.4.0-linux-amd64.tar.gz"
+                    tarfileName = "verrazzano-1.4.0-linux-amd64.tar.gz"
                     checksumFile = "${tarfileName}.sha256"
                     echo "base name: $baseFilename, tar name: $tarfileName"
 
