@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.6-20220811150824-032ff3ebc",
+              "tag": "v2.6.7-20220823173429-341eb7a3f",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.6-20220811150824-032ff3ebc"
+              "tag": "v2.6.7-20220823173429-341eb7a3f"
             }
           ]
         },
@@ -142,7 +142,7 @@
           "images": [
             {
               "image": "shell",
-              "tag": "v0.1.16"
+              "tag": "v0.1.18"
             },
             {
               "image": "kubectl",
