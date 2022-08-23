@@ -173,6 +173,23 @@ status:
       lastReconciledGeneration: 2
       name: mysql
       state: Ready
+    mysql-operator:
+      conditions:
+        - lastTransitionTime: "2022-08-05T15:11:22Z"
+          message: PreInstall started
+          status: "True"
+          type: PreInstall
+        - lastTransitionTime: "2022-08-05T15:12:01Z"
+          message: Install started
+          status: "True"
+          type: InstallStarted
+        - lastTransitionTime: "2022-08-05T15:12:57Z"
+          message: Install complete
+          status: "True"
+          type: InstallComplete
+      lastReconciledGeneration: 2
+      name: mysql-operator
+      state: Ready
     oam-kubernetes-runtime:
       conditions:
         - lastTransitionTime: "2022-08-05T15:11:22Z"

@@ -138,6 +138,7 @@ pipeline {
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
         TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-olcne"
         KUBECONFIG="$WORKSPACE/test_kubeconfig"
+        VZ_COMMAND="$GO_REPO_PATH/vz"
         OLCNE_DUMP_DIR="$WORKSPACE/olcne"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
@@ -466,7 +467,7 @@ pipeline {
             dumpVerrazzanoApplicationOperatorLogs()
             dumpVerrazzanoApiLogs()
 
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*full-cluster*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -474,19 +475,6 @@ pipeline {
                         sh """
                             $GO_REPO_PATH/verrazzano/ci/scripts/dashboard/emit_metrics.sh "$WORKSPACE/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "[ERROR] Emit metrics failed, continuing with other post actions"
                         """
-                    }
-                }
-            }
-
-            script {
-                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
-                    if (env.installedVZ && env.installedVZ == "true") {
-                        echo "[INFO] Deleting Verrazzano"
-                        deleteVerrazzano()
-                    }
-                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
-                        echo "[INFO] Deleting OLCNE Cluster"
-                        deleteOLCNECluster()
                     }
                 }
             }
@@ -521,9 +509,21 @@ pipeline {
             }
        }
        cleanup {
-           metricBuildDuration()
-           emitJobMetrics()
-           deleteDir()
+            script {
+                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
+                    if (env.installedVZ && env.installedVZ == "true") {
+                        echo "[INFO] Deleting Verrazzano"
+                        deleteVerrazzano()
+                    }
+                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
+                        echo "[INFO] Deleting OLCNE Cluster"
+                        deleteOLCNECluster()
+                    }
+                }
+            }
+            metricBuildDuration()
+            emitJobMetrics()
+            deleteDir()
         }
     }
 }
@@ -696,11 +696,7 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        mkdir -p ${dumpDirectory}/cluster-snapshot
-        $GO_REPO_PATH/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot -r ${dumpDirectory}/cluster-snapshot/analysis.report
-        ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
-        mkdir -p ${dumpDirectory}/bug-report
-        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 
@@ -948,10 +944,12 @@ def setupSSH() {
 def setupKubeconfig() {
     sh """
         scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@"$API_SERVER_IP":/home/opc/.kube/config "$KUBECONFIG"
+        cat "$KUBECONFIG"
         yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
         cp "$KUBECONFIG" $OLCNE_DUMP_DIR/kubeconfig
+        cat "$KUBECONFIG"
         kubectl get nodes
     """
 }

@@ -94,7 +94,6 @@ type BomImage struct {
 	HelmRegistryKey string `json:"helmRegKey"`
 
 	// HelmRepoKey is the helm template Key which stores the value of the repository for an image.
-	// Note, does not seem to be used at present in the BOM.
 	HelmRepoKey string `json:"helmRepoKey"`
 
 	// HelmImageKey is the helm template Key which identifies the base image name, without the registry or parent repo
