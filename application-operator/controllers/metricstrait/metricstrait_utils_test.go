@@ -96,20 +96,12 @@ func Test_copyStringMapEntries(t *testing.T) {
 func Test_getClusterNameFromObjectMetaOrDefault(t *testing.T) {
 	assert := asserts.New(t)
 	var meta metav1.ObjectMeta
-	var name string
 
 	// GIVEN metadata with a blank cluster name
 	// WHEN the cluster name is retrieved
 	// THEN verify the "default" cluster name is returned
-	name = getClusterNameFromObjectMetaOrDefault(meta)
+	name := getClusterNameFromObjectMetaOrDefault(meta)
 	assert.Equal("default", name)
-
-	// GIVEN metadata with a non-blank cluster name
-	// WHEN the cluster name is retrieved
-	// THEN verify the correct cluster name is returned
-	meta = metav1.ObjectMeta{ClusterName: "test-cluster-name-1"}
-	name = getClusterNameFromObjectMetaOrDefault(meta)
-	assert.Equal("test-cluster-name-1", name)
 }
 
 // Test_getNamespaceFromObjectMetaOrDefault tests metrics trait utility function getNamespaceFromObjectMetaOrDefault
