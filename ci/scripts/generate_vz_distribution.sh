@@ -90,7 +90,7 @@ copyProfiles() {
   cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-ocne.yaml ${profileDirectory}/ocne.yaml
 }
 
-# Copy profiles from the source repository to the directory from where the distribution bundles will be built
+# Generate the open-source Verrazzano release distribution
 generateOpenSourceDistribution() {
   mkdir -p ${VZ_DISTRIBUTION_GENERATED}
 
@@ -131,15 +131,14 @@ generateOpenSourceDistribution() {
   echo "Build distribution for Darwin AMD64 architecture ..."
   tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT} .
   sha256sum ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ} > ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ_SHA256}
-}
 
-# Upload the generated distribution bundles to object store
-uploadOpenSourceDistribution() {
-  echo "Uploading Verrazzano release distribution ..."
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ}
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ_SHA256}
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ}
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_DARWIN_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ_SHA256}
+  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${VZ_DISTRIBUTION_GENERATED}/operator.yaml
+  cd ${VZ_DISTRIBUTION_GENERATED}
+  sha256sum operator.yaml > operator.yaml.sha256
+
+  # Create and upload the final distribution zip file and upload
+  zip ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ${VZ_LINUX_AMD64_TARGZ} ${VZ_LINUX_AMD64_TARGZ_SHA256} ${VZ_DARWIN_AMD64_TARGZ} ${VZ_DARWIN_AMD64_TARGZ_SHA256} operator.yaml operator.yaml.sha256
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE}
 }
 
 # Clean-up workspace after uploading the distribution bundles
@@ -157,6 +156,8 @@ VZ_CLI_DARWIN_AMD64_TARGZ="vz-darwin-amd64.tar.gz"
 VZ_CLI_DARWIN_AMD64_TARGZ_SHA256="vz-darwin-amd64.tar.gz.sha256"
 
 DISTRIBUTION_PREFIX="verrazzano-${VZ_DEVELOPENT_VERSION}"
+
+VZ_OPENSOURCE_RELEASE_BUNDLE="verrazzano-${VZ_DEVELOPENT_VERSION}-open-source.zip"
 
 VZ_LINUX_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz"
 VZ_LINUX_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz.sha256"
@@ -178,8 +179,7 @@ downloadCommonFiles
 
 # Build open-source distribution bundles
 createDistributionLayout "${VZ_OPENSOURCE_ROOT}"
-generateOpenSourceDistribution "${VZ_OPENSOURCE_ROOT}"
+generateOpenSourceDistribution
 
-# Common for both types of distribution bundles
-uploadOpenSourceDistribution
+# Delete the directories created under WORKSPACE
 cleanupWorkspace
