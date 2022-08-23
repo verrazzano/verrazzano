@@ -4,10 +4,10 @@
 package pushgateway
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
@@ -54,12 +54,8 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the Prometheus PrometheusPushgateway is enabled or if the component is not specified
 // in the Verrazzano CR.
-func (c prometheusPushgatewayComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.PrometheusPushgateway
-	if comp == nil || comp.Enabled == nil {
-		return false
-	}
-	return *comp.Enabled
+func (c prometheusPushgatewayComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsPrometheusPushgatewayEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus PrometheusPushgateway deployment is ready

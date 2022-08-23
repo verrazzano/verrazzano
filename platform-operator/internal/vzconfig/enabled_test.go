@@ -237,20 +237,20 @@ func TestIsGrafanaEnabled(t *testing.T) {
 		}}))
 }
 
-// TestIsElasticsearchEnabled tests the IsElasticsearchEnabled function
-// GIVEN a call to IsElasticsearchEnabled
+// TestIsElasticsearchEnabled tests the IsOpenSearchEnabled function
+// GIVEN a call to IsOpenSearchEnabled
 //  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsElasticsearchEnabled(t *testing.T) {
 	asserts := assert.New(t)
-	asserts.True(IsElasticsearchEnabled(nil))
-	asserts.True(IsElasticsearchEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
-	asserts.True(IsElasticsearchEnabled(
+	asserts.True(IsOpenSearchEnabled(nil))
+	asserts.True(IsOpenSearchEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.True(IsOpenSearchEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{},
 			},
 		}}))
-	asserts.True(IsElasticsearchEnabled(
+	asserts.True(IsOpenSearchEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
@@ -258,7 +258,7 @@ func TestIsElasticsearchEnabled(t *testing.T) {
 				},
 			},
 		}}))
-	asserts.False(IsElasticsearchEnabled(
+	asserts.False(IsOpenSearchEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
@@ -268,20 +268,20 @@ func TestIsElasticsearchEnabled(t *testing.T) {
 		}}))
 }
 
-// TestIsKibanaEnabled tests the IsKibanaEnabled function
-// GIVEN a call to IsKibanaEnabled
+// TestIsKibanaEnabled tests the IsOpenSearchDashboardsEnabled function
+// GIVEN a call to IsOpenSearchDashboardsEnabled
 //  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsKibanaEnabled(t *testing.T) {
 	asserts := assert.New(t)
-	asserts.True(IsKibanaEnabled(nil))
-	asserts.True(IsKibanaEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
-	asserts.True(IsKibanaEnabled(
+	asserts.True(IsOpenSearchDashboardsEnabled(nil))
+	asserts.True(IsOpenSearchDashboardsEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.True(IsOpenSearchDashboardsEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Kibana: &vzapi.KibanaComponent{},
 			},
 		}}))
-	asserts.True(IsKibanaEnabled(
+	asserts.True(IsOpenSearchDashboardsEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Kibana: &vzapi.KibanaComponent{
@@ -289,7 +289,7 @@ func TestIsKibanaEnabled(t *testing.T) {
 				},
 			},
 		}}))
-	asserts.False(IsKibanaEnabled(
+	asserts.False(IsOpenSearchDashboardsEnabled(
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Kibana: &vzapi.KibanaComponent{
