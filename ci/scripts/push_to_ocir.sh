@@ -17,20 +17,20 @@ TEST_SCRIPT_DIR=${SCRIPT_DIR}/../../tests/e2e/config/scripts
 
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCIR_SCAN_REGISTRY" ] \
    || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ] || [ -z "$OCIR_SCAN_COMPARTMENT" ] || [ -z "$OCIR_SCAN_TARGET" ] || [ -z "${CLEAN_BRANCH_NAME}" ] \
-   || [ -z "$IS_PERIODIC_PIPELINE" ]; then
+   || [ -z "$IS_PERIODIC_PIPELINE" ] || [ -z "$VERRAZZANO_IMAGES_DIRECTORY" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 else
   echo "INFO: push_to_ocir: basic environment provided"
 fi
 
-# We should have image tar files created already in ${WORKSPACE}/tar-files
-if [ ! -d "${WORKSPACE}/tar-files" ]; then
+# We should have image tar files created already in $VERRAZZANO_IMAGES_DIRECTORY
+if [ ! -d "${VERRAZZANO_IMAGES_DIRECTORY}" ]; then
   echo "No tar files were found to push into OCIR"
   exit 1
 else
-  echo "INFO: push_to_ocir: tar-files found to push:"
-  ls ${WORKSPACE}/tar-files
+  echo "INFO: push_to_ocir: tar files found to push:"
+  ls ${VERRAZZANO_IMAGES_DIRECTORY}
 fi
 
 BOM_FILE=${WORKSPACE}/tar-files/verrazzano-bom.json
@@ -74,13 +74,13 @@ TRIMMED_REPOSITORY_PATH=$(echo "$OCIR_SCAN_REPOSITORY_PATH" | cut -d / -f2-)
 # targeted they will be created and targeted. If they are already targeted the script will skip trying to create them
 # or updating the target. This is done to catch new images that get added in over time.
 echo "INFO: push_to_ocir: call create_ocir_repositories"
-sh $TEST_SCRIPT_DIR/create_ocir_repositories.sh -p $TRIMMED_REPOSITORY_PATH -r us-ashburn-1 -c $OCIR_SCAN_COMPARTMENT -t $OCIR_SCAN_TARGET -d ${WORKSPACE}/tar-files
+sh $TEST_SCRIPT_DIR/create_ocir_repositories.sh -p $TRIMMED_REPOSITORY_PATH -r us-ashburn-1 -c $OCIR_SCAN_COMPARTMENT -t $OCIR_SCAN_TARGET -d ${VERRAZZANO_IMAGES_DIRECTORY}
 
 # Push the images. NOTE: If a new image was added before we do the above "ensure" step, this may have the side
 # effect of pushing that image to the root compartment rather than the desired sub-compartment (OCIR behaviour),
 # and that new image will not be getting scanned until that is rectified (manually)
 echo "INFO: push_to_ocir: call vz-registry-image-helper"
-sh $TOOL_SCRIPT_DIR/vz-registry-image-helper.sh -t $OCIR_SCAN_REGISTRY -r $OCIR_SCAN_REPOSITORY_PATH -l ${WORKSPACE}/tar-files -b ${BOM_FILE}
+sh $TOOL_SCRIPT_DIR/vz-registry-image-helper.sh -t $OCIR_SCAN_REGISTRY -r $OCIR_SCAN_REPOSITORY_PATH -l ${VERRAZZANO_IMAGES_DIRECTORY} -b ${BOM_FILE}
 
 # Finally push the current verrazzano-bom.json up as the last-ocir-pushed-verrazzano-bom.json so we know those were the latest images
 # pushed up. This is used above for avoiding pushing things multiple times for no reason, and also is used when polling for
