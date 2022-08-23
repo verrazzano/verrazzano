@@ -236,7 +236,7 @@ func createKeycloakAuthConfig() unstructured.Unstructured {
 	authConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
-	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
 	authConfig.SetName(common.AuthConfigKeycloak)
 	return authConfig
 }
@@ -245,7 +245,7 @@ func createLocalAuthConfig() unstructured.Unstructured {
 	authConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
-	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
 	authConfig.SetName(AuthConfigLocal)
 	return authConfig
 }

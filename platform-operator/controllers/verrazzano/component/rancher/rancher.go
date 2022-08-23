@@ -99,7 +99,6 @@ const (
 	KontainerDriverOKE          = "oraclecontainerengine"
 	NodeDriverOCI               = "oci"
 	ClusterLocal                = "local"
-	AuthConfigKeycloak          = "keycloakoidc"
 	AuthConfigLocal             = "local"
 	UserVerrazzano              = "u-verrazzano"
 	UserVerrazzanoDescription   = "Verrazzano Admin"
@@ -166,7 +165,6 @@ var GVKSetting = common.GetRancherMgmtAPIGVKForKind("Setting")
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
 var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
-var GVKAuthConfig = common.GetRancherMgmtAPIGVKForKind("AuthConfig")
 var GVKUser = common.GetRancherMgmtAPIGVKForKind("User")
 var GVKGlobalRoleBinding = common.GetRancherMgmtAPIGVKForKind("GlobalRoleBinding")
 var GVKClusterRoleTemplateBinding = common.GetRancherMgmtAPIGVKForKind("ClusterRoleTemplateBinding")
@@ -509,8 +507,8 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	keycloakAuthConfig := unstructured.Unstructured{}
-	keycloakAuthConfig.SetGroupVersionKind(GVKAuthConfig)
-	keycloakAuthConfigName := types.NamespacedName{Name: AuthConfigKeycloak}
+	keycloakAuthConfig.SetGroupVersionKind(common.GVKAuthConfig)
+	keycloakAuthConfigName := types.NamespacedName{Name: common.AuthConfigKeycloak}
 	err := c.Get(context.Background(), keycloakAuthConfigName, &keycloakAuthConfig)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak authConfig: %s", err.Error())
@@ -542,6 +540,43 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig[AuthConfigKeycloakAttributeRancherURL] = rancherURL + AuthConfigKeycloakURLPathVerifyAuth
 
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
+}
+
+// createOrUpdateResource creates or updates a Rancher resource used in the Keycloak OIDC integration
+func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, gvk schema.GroupVersionKind, attributes map[string]interface{}) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(gvk)
+	err := c.Get(context.Background(), nsn, &resource)
+	createNew := false
+	if err != nil {
+		if errors.IsNotFound(err) {
+			createNew = true
+			log.Debugf("%s %s does not exist", gvk.Kind, nsn.Name)
+		} else {
+			return log.ErrorfThrottledNewErr("failed configuring %s, unable to fetch %s: %s", gvk.Kind, nsn.Name, err.Error())
+		}
+	}
+
+	data := resource.UnstructuredContent()
+	for k, v := range attributes {
+		data[k] = v
+	}
+
+	if createNew {
+		resource.SetName(nsn.Name)
+		resource.SetNamespace(nsn.Namespace)
+		err = c.Create(context.Background(), &resource, &client.CreateOptions{})
+	} else {
+		err = c.Update(context.Background(), &resource, &client.UpdateOptions{})
+	}
+
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s %s: %s", gvk.Kind, nsn.Name, err.Error())
+	}
+
+	return nil
 }
 
 // createOrUpdateRancherVerrazzanoUser creates or updates the verrazzano user in Rancher
@@ -619,7 +654,7 @@ func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string, enable b
 	log := ctx.Log()
 	c := ctx.Client()
 	authConfig := unstructured.Unstructured{}
-	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
 	authConfigName := types.NamespacedName{Name: name}
 	err := c.Get(context.Background(), authConfigName, &authConfig)
 	if err != nil {
@@ -652,43 +687,6 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 	err = c.Update(context.Background(), &firstLoginSetting)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("Failed updating first-login Setting: %s", err.Error())
-	}
-
-	return nil
-}
-
-// createOrUpdateResource creates or updates a Rancher resource used in the Keycloak OIDC integration
-func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, gvk schema.GroupVersionKind, attributes map[string]interface{}) error {
-	log := ctx.Log()
-	c := ctx.Client()
-	resource := unstructured.Unstructured{}
-	resource.SetGroupVersionKind(gvk)
-	err := c.Get(context.Background(), nsn, &resource)
-	createNew := false
-	if err != nil {
-		if errors.IsNotFound(err) {
-			createNew = true
-			log.Debugf("%s %s does not exist", gvk.Kind, nsn.Name)
-		} else {
-			return log.ErrorfThrottledNewErr("failed configuring %s, unable to fetch %s: %s", gvk.Kind, nsn.Name, err.Error())
-		}
-	}
-
-	data := resource.UnstructuredContent()
-	for k, v := range attributes {
-		data[k] = v
-	}
-
-	if createNew {
-		resource.SetName(nsn.Name)
-		resource.SetNamespace(nsn.Namespace)
-		err = c.Create(context.Background(), &resource, &client.CreateOptions{})
-	} else {
-		err = c.Update(context.Background(), &resource, &client.UpdateOptions{})
-	}
-
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring %s %s: %s", gvk.Kind, nsn.Name, err.Error())
 	}
 
 	return nil

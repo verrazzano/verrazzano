@@ -82,7 +82,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				start = time.Now()
 				t.Logs.Info("Verify Local AuthConfig")
 				Eventually(func() (bool, error) {
-					localAuthConfigData, err := k8sClient.Resource(gvkToGvr(rancher.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigLocal, v1.GetOptions{})
+					localAuthConfigData, err := k8sClient.Resource(gvkToGvr(common.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigLocal, v1.GetOptions{})
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("error getting local authConfig: %v", err))
 						return false, err
@@ -122,7 +122,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					t.Logs.Info("Verify Keycloak AuthConfig")
 					keycloakURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "keycloak", "keycloak", "https")
 					Eventually(func() (bool, error) {
-						authConfigData, err := k8sClient.Resource(gvkToGvr(rancher.GVKAuthConfig)).Get(context.Background(), common.AuthConfigKeycloak, v1.GetOptions{})
+						authConfigData, err := k8sClient.Resource(gvkToGvr(common.GVKAuthConfig)).Get(context.Background(), common.AuthConfigKeycloak, v1.GetOptions{})
 						if err != nil {
 							t.Logs.Error(fmt.Sprintf("error getting keycloak oidc authConfig: %v", err))
 							return false, err

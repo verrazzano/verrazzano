@@ -85,6 +85,7 @@ func CertPool(certs ...[]byte) *x509.CertPool {
 	return certPool
 }
 
+//GetRancherMgmtAPIGVKForKind returns a management.cattle.io/v3 GroupVersionKind structure for specified kind
 func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
 	return schema.GroupVersionKind{
 		Group:   APIGroupRancherManagement,
@@ -93,7 +94,8 @@ func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
 	}
 }
 
-func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, data map[string]interface{}) error {
+//UpdateKeycloakOIDCAuthConfig updates the keycloakoidc AuthConfig CR with specified attributes
+func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, attributes map[string]interface{}) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	keycloakAuthConfig := unstructured.Unstructured{}
@@ -105,7 +107,7 @@ func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, data map[string]inte
 	}
 
 	authConfig := keycloakAuthConfig.UnstructuredContent()
-	for key, value := range data {
+	for key, value := range attributes {
 		authConfig[key] = value
 	}
 	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})
