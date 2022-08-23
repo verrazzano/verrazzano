@@ -138,6 +138,7 @@ pipeline {
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
         TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-olcne"
         KUBECONFIG="$WORKSPACE/test_kubeconfig"
+        VZ_COMMAND="$GO_REPO_PATH/vz"
         OLCNE_DUMP_DIR="$WORKSPACE/olcne"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
@@ -478,19 +479,6 @@ pipeline {
                 }
             }
 
-            script {
-                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
-                    if (env.installedVZ && env.installedVZ == "true") {
-                        echo "[INFO] Deleting Verrazzano"
-                        deleteVerrazzano()
-                    }
-                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
-                        echo "[INFO] Deleting OLCNE Cluster"
-                        deleteOLCNECluster()
-                    }
-                }
-            }
-
             sh """
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                 echo "[INFO] Failures seen during dumping of artifacts, treat post as failed"
@@ -521,9 +509,21 @@ pipeline {
             }
        }
        cleanup {
-           metricBuildDuration()
-           emitJobMetrics()
-           deleteDir()
+            script {
+                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
+                    if (env.installedVZ && env.installedVZ == "true") {
+                        echo "[INFO] Deleting Verrazzano"
+                        deleteVerrazzano()
+                    }
+                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
+                        echo "[INFO] Deleting OLCNE Cluster"
+                        deleteOLCNECluster()
+                    }
+                }
+            }
+            metricBuildDuration()
+            emitJobMetrics()
+            deleteDir()
         }
     }
 }
@@ -944,10 +944,12 @@ def setupSSH() {
 def setupKubeconfig() {
     sh """
         scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@"$API_SERVER_IP":/home/opc/.kube/config "$KUBECONFIG"
+        cat "$KUBECONFIG"
         yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
         cp "$KUBECONFIG" $OLCNE_DUMP_DIR/kubeconfig
+        cat "$KUBECONFIG"
         kubectl get nodes
     """
 }
