@@ -10,6 +10,10 @@ import (
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
+const capiDockerProvider = "docker"
+
+var defaultCAPIProviders = []string{capiDockerProvider}
+
 // kindClusterManager ClusterLifecycleManager impl for a KIND-based bootstrap cluster
 type kindClusterManager struct {
 	config ClusterConfig
@@ -33,7 +37,7 @@ func (r *kindClusterManager) Init() error {
 		Kubeconfig: clusterapi.Kubeconfig{
 			Path: config.Name(),
 		},
-		InfrastructureProviders: []string{"docker"},
+		InfrastructureProviders: defaultCAPIProviders,
 	})
 	return err
 }

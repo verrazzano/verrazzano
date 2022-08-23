@@ -7,7 +7,7 @@ import (
 	kind "sigs.k8s.io/kind/pkg/cmd"
 )
 
-var bootstrapConfig = `
+const defaultKindBootstrapConfig = `
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -45,7 +45,7 @@ func (k *kindBootstrapProviderImpl) CreateCluster(clusterName string) error {
 		return err
 	}
 	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
-	return provider.Create(clusterName, kindcluster.CreateWithRawConfig([]byte(bootstrapConfig)))
+	return provider.Create(clusterName, kindcluster.CreateWithRawConfig([]byte(defaultKindBootstrapConfig)))
 }
 
 func (k *kindBootstrapProviderImpl) DestroyCluster(clusterName string) error {

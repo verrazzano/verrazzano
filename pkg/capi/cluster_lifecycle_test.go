@@ -4,15 +4,16 @@ package capi
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/capi/fake"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"testing"
 )
 
 func TestCreateBootstrapCluster(t *testing.T) {
 	asserts := assert.New(t)
-	SetKindBootstrapProvider(testBootstrapProvider{})
+	SetKindBootstrapProvider(&fake.TestBootstrapProvider{})
 	SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
-		return &fakeCAPIClient{}, nil
+		return &fake.FakeCAPIClient{}, nil
 	})
 	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
@@ -24,9 +25,9 @@ func TestCreateBootstrapCluster(t *testing.T) {
 
 func TestInitBoostrapCluster(t *testing.T) {
 	asserts := assert.New(t)
-	SetKindBootstrapProvider(testBootstrapProvider{})
+	SetKindBootstrapProvider(&fake.TestBootstrapProvider{})
 	SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
-		return &fakeCAPIClient{}, nil
+		return &fake.FakeCAPIClient{}, nil
 	})
 	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
@@ -37,9 +38,9 @@ func TestInitBoostrapCluster(t *testing.T) {
 
 func TestDeleteBootstrapCluster(t *testing.T) {
 	asserts := assert.New(t)
-	SetKindBootstrapProvider(testBootstrapProvider{})
+	SetKindBootstrapProvider(&fake.TestBootstrapProvider{})
 	SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
-		return &fakeCAPIClient{}, nil
+		return &fake.FakeCAPIClient{}, nil
 	})
 	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
