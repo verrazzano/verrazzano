@@ -287,7 +287,9 @@ pipeline {
                     echo "Upload OCIR Repository: ${ocirRegistry}"
                     # Run the image-helper to load the images into the OCIR registry in the runner's region
                     cd ${TARBALL_DIR}
-                    ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
+                    pwd
+                    ls
+                    ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo} -b manifests/verrazzano-bom.json
                 """
             }
         }
