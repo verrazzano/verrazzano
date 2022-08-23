@@ -202,8 +202,10 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 		}
 
 		// Check if any pods contain the old Istio proxy image
-		found := DoesPodContainOldIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
-		if !found {
+		foundOldIstioProxyImage := DoesPodContainOldIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
+		foundPodWithoutIstioProxy := DoesPodContainNoIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
+
+		if !foundOldIstioProxyImage || !foundPodWithoutIstioProxy {
 			continue
 		}
 
