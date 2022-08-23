@@ -266,7 +266,6 @@ pipeline {
 
                     dir(env.TARBALL_DIR) {
                         unzip zipFile: downloadLocation
-                        sh "sha256sum -c $checksumFile"
                         sh "tar xvf $tarfileName"
                         }
                 }
