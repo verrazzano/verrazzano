@@ -34,13 +34,7 @@ if [ -z "$5" ]; then
 fi
 GENERATED_BOM_FILE="$5"
 
-if [ -z "$6" ]; then
-  echo "Verrazzano development version must be specified"
-  exit 1
-fi
-VZ_DEVELOPENT_VERSION="$6"
-
-if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]; then
+if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$VERRAZZANO_DEV_VERSION" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
@@ -63,6 +57,7 @@ createDistributionLayout() {
 downloadCommonFiles() {
   mkdir -p ${VZ_DISTRIBUTION_COMMON}
   echo "Downloading common artifacts under ${VZ_DISTRIBUTION_COMMON} ..."
+
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/operator.yaml --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml
 
   # Verrazzano CLI for Linux AMD64
@@ -130,16 +125,14 @@ generateOpenSourceDistribution() {
   echo "Build distribution for Darwin AMD64 architecture ..."
   tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT} .
   sha256sum ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ} > ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ_SHA256}
-  echo "Display the contents of ${VZ_DISTRIBUTION_GENERATED} ..."
-  ls ${VZ_DISTRIBUTION_GENERATED}
 }
 
 # Upload the generated distribution bundles to object store
 uploadOpenSourceDistribution() {
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_LINUX_AMD64_TARGZ}
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_DARWIN_AMD64_TARGZ}
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256}
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ}
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ_SHA256}
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ}
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_DARWIN_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ_SHA256}
 }
 
 # Clean-up workspace after uploading the distribution bundles
@@ -156,7 +149,8 @@ VZ_CLI_LINUX_AMD64_TARGZ_SHA256="vz-linux-amd64.tar.gz.sha256"
 VZ_CLI_DARWIN_AMD64_TARGZ="vz-darwin-amd64.tar.gz"
 VZ_CLI_DARWIN_AMD64_TARGZ_SHA256="vz-darwin-amd64.tar.gz.sha256"
 
-DISTRIBUTION_PREFIX="verrazzano-${VZ_DEVELOPENT_VERSION}"
+DISTRIBUTION_PREFIX="verrazzano-${VERRAZZANO_DEV_VERSION}"
+echo "DISTRIBUTION_PREFIX ${DISTRIBUTION_PREFIX}"
 
 VZ_LINUX_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz"
 VZ_LINUX_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz.sha256"
@@ -172,9 +166,6 @@ VZ_DISTRIBUTION_GENERATED="${WORKSPACE}/vz-distribution-generated"
 
 # Directory containing the layout and required files for the open-source distribution
 VZ_OPENSOURCE_ROOT="${WORKSPACE}/vz-open-source"
-
-echo "VZ_REPO_ROOT ${VZ_REPO_ROOT}"
-ls ${VZ_REPO_ROOT}
 
 # Call the function to download the artifacts common to both types of distribution bundles
 downloadCommonFiles
