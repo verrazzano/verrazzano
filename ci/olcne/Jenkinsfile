@@ -128,7 +128,7 @@ pipeline {
         VZ_ENVIRONMENT_NAME="${params.TEST_ENV.toLowerCase()}"
         VZ_PLATFORM_OPERTOR_YAML="$WORKSPACE/platform-operator.yaml"
         BRANCH_NAME_PREFIX="${env.BRANCH_NAME.equals('master') ? 'vz' : env.BRANCH_NAME.substring(0, 2)}"
-        CLUSTER_NAME="$BRANCH_NAME_PREFIX" + "$uniquePrefix"
+        CLUSTER_NAME="$BRANCH_NAME_PREFIX" + "-ocne-" + "$uniquePrefix"
         INSTALL_PROFILE="${params.INSTALL_PROFILE}"
         GOPATH="$HOME/go"
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
