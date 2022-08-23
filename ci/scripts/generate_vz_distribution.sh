@@ -185,7 +185,7 @@ generateCommercialDistribution() {
   ls
 
   # Create and upload the final distribution zip file and upload
-  zip ${VZ_DISTRIBUTION_GENERATED}/${VZ_COMMERCIAL_RELEASE_BUNDLE} *
+  zip -r ${VZ_DISTRIBUTION_GENERATED}/${VZ_COMMERCIAL_RELEASE_BUNDLE} *
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_COMMERCIAL_RELEASE_BUNDLE}
 }
 
