@@ -282,7 +282,7 @@ pipeline {
             steps {
                 sh """
                     # Create OCIR repos for the images in the tarballs in the test compartment
-                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                    # sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
                     echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
                     # Run the image-helper to load the images into the OCIR registry in the runner's region
