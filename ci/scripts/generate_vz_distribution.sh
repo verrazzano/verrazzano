@@ -137,7 +137,10 @@ generateOpenSourceDistribution() {
   sha256sum operator.yaml > operator.yaml.sha256
 
   # Create and upload the final distribution zip file and upload
+  echo "Build open-source distribution ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
   zip ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ${VZ_LINUX_AMD64_TARGZ} ${VZ_LINUX_AMD64_TARGZ_SHA256} ${VZ_DARWIN_AMD64_TARGZ} ${VZ_DARWIN_AMD64_TARGZ_SHA256} operator.yaml operator.yaml.sha256
+
+  echo "Upload open-source distribution ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE}
 }
 
