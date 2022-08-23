@@ -22,4 +22,3 @@ tools/copyright/test
 tools/fix-copyright/copyright.go
 tools/vz/test/testdata/empty.yaml
 .idea
-.DS_Store

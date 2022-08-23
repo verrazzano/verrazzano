@@ -44,7 +44,7 @@ generate: controller-gen
 .PHONY: controller-gen
 controller-gen:
 ifeq (, $(shell command -v controller-gen))
-	$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION}
+	$(GO) get sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION}
 	$(eval CONTROLLER_GEN=$(GOBIN)/controller-gen)
 else
 	$(eval CONTROLLER_GEN=$(shell command -v controller-gen))
