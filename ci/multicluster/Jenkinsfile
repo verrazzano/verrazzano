@@ -820,6 +820,12 @@ def installVerrazzano() {
             def key = "vz-mgd-${count-1}"
             if (count == 1) {
                 key = "vz-admin"
+                sh """
+                    if [ "${EXTERNAL_ELASTICSEARCH}" != "false" ]; then
+                        yq -i eval '.spec.components.elasticsearch.enabled = false' $installerPath
+                        yq -i eval '.spec.components.kibana.enabled = false' $installerPath
+                    fi
+                """
             }
             verrazzanoInstallStages["${key}"] = installVerrazzanoOnCluster(count, installerPath)
         }
