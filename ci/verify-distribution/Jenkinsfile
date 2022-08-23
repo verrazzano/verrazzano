@@ -268,11 +268,13 @@ pipeline {
 
                     dir(env.TARBALL_DIR) {
                         unzip zipFile: downloadLocation
-                        sh "pwd"
-                        sh "ls"
-                        sh "checksum file is: $checksumFile"
-                        sh "sha256sum -c $checksumFile"
-                        sh "tar xvf $tarfileName"
+                        sh """
+                            pwd
+                            ls
+                            echo checksum file is: $checksumFile
+                            sha256sum -c $checksumFile
+                            tar xvf $tarfileName
+                        """
                         }
                 }
             }
