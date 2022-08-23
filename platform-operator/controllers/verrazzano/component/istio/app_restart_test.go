@@ -137,8 +137,8 @@ func TestWebLogicStopStart(t *testing.T) {
 // GIVEN a AppConfig that contains Helidon workloads
 // WHEN the Helidon pods have old Istio envoy sidecar
 // THEN the pods should be restarted
-// WHEN the Helidon pods do NOT have old Istio envoy sidecar
-// THEN the pods should NOT be restarted
+// WHEN the Helidon pods do NOT have an Istio envoy sidecar but within the mesh
+// THEN the pods should be restarted
 func TestHelidonStopStart(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
@@ -158,10 +158,10 @@ func TestHelidonStopStart(t *testing.T) {
 				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
-		// Test restarting Helidon workload because it doesn't have an old Istio image
+		// Test restarting Helidon workload because it doesn't have an Istio image
 		{
-			name:               "DoNotRestartHelidon",
-			expectGetAndUpdate: false,
+			name:               "RestartHelidon",
+			expectGetAndUpdate: true,
 			image:              "randomImage",
 			f: func(mock *mocks.MockClient) error {
 				return restartAllApps(vzlog.DefaultLogger(), mock, "1")

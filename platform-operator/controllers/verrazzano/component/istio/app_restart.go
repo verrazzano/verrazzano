@@ -5,6 +5,7 @@ package istio
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -207,26 +208,32 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 		//Check if any pods that contain no istio proxy container with istio injection labeled namespace
 		foundPodWithoutIstioProxy := DoesPodContainNoIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
 
-		if !foundOldIstioProxyImage && !foundPodWithoutIstioProxy {
-			continue
-		}
+		fmt.Println("foundOldIstioProxyImage", foundOldIstioProxyImage, "foundPodWithoutIstioProxy", foundPodWithoutIstioProxy)
 
-		// Set the update the restart version
-		var ac oam.ApplicationConfiguration
-		ac.Namespace = appConfig.Namespace
-		ac.Name = appConfig.Name
-		_, err = controllerutil.CreateOrUpdate(context.TODO(), client, &ac, func() error {
-			if ac.ObjectMeta.Annotations == nil {
-				ac.ObjectMeta.Annotations = make(map[string]string)
-			}
-			log.Progressf("Setting restart version for appconfig %s to %s. Previous version is %s", appConfig.Name,
-				restartVersion, ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
-			ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
-			return nil
-		})
-		if err != nil {
-			return err
+		if foundOldIstioProxyImage || foundPodWithoutIstioProxy {
+			restartOAMApp(log, appConfig, client, restartVersion)
 		}
+	}
+	return nil
+}
+
+func restartOAMApp(log vzlog.VerrazzanoLogger, appConfig oam.ApplicationConfiguration, client clipkg.Client, restartVersion string) error {
+
+	// Set the update the restart version
+	var ac oam.ApplicationConfiguration
+	ac.Namespace = appConfig.Namespace
+	ac.Name = appConfig.Name
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), client, &ac, func() error {
+		if ac.ObjectMeta.Annotations == nil {
+			ac.ObjectMeta.Annotations = make(map[string]string)
+		}
+		log.Progressf("Setting restart version for appconfig %s to %s. Previous version is %s", appConfig.Name,
+			restartVersion, ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
+		ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }
