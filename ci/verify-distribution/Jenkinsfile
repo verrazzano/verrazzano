@@ -255,7 +255,7 @@ pipeline {
                     checksumFile = "${TARBALL_DIR}/${tarfileName}.sha256"
                     echo "base name: $baseFilename, tar name: $tarfileName"
                     echo "checksum file is: $checksumFile"
-                    
+
                     zipDir = sh (
                         script: "dirname $downloadLocation",
                         returnStdout: true
@@ -271,7 +271,6 @@ pipeline {
                         sh "pwd"
                         sh "ls"
                         sh "checksum file is: $checksumFile"
-                        sh "sha256sum -c $checksumFile"
                         sh "tar xvf $tarfileName"
                         }
                 }
