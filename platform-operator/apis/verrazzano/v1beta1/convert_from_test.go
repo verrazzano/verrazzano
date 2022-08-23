@@ -133,6 +133,16 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 					Name:     masterNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.MasterRole},
 				},
+				{
+					Replicas: 0,
+					Name:     dataNodeName,
+					Roles:    []vmov1.NodeRole{vmov1.DataRole},
+				},
+				{
+					Replicas: 0,
+					Name:     ingestNodeName,
+					Roles:    []vmov1.NodeRole{vmov1.IngestRole},
+				},
 			},
 		},
 		{
@@ -206,7 +216,23 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 					Value: "0",
 				},
 			},
-			nil,
+			[]OpenSearchNode{
+				{
+					Replicas: 0,
+					Name:     masterNodeName,
+					Roles:    []vmov1.NodeRole{vmov1.MasterRole},
+				},
+				{
+					Replicas: 0,
+					Name:     dataNodeName,
+					Roles:    []vmov1.NodeRole{vmov1.DataRole},
+				},
+				{
+					Replicas: 0,
+					Name:     ingestNodeName,
+					Roles:    []vmov1.NodeRole{vmov1.IngestRole},
+				},
+			},
 		},
 	}
 
@@ -332,6 +358,11 @@ func TestConvertFrom(t *testing.T) {
 		{
 			"convert opensearch from v1alpha1",
 			testCaseOpensearch,
+			false,
+		},
+		{
+			"convert rancher keycloak auth from v1alpha1",
+			testCaseRancherKeycloak,
 			false,
 		},
 		{

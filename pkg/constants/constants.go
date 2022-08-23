@@ -4,8 +4,9 @@
 package constants
 
 import (
-	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"time"
+
+	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
@@ -58,6 +59,9 @@ const CertManagerNamespace = "cert-manager"
 
 // KeycloakNamespace - the keycloak namespace
 const KeycloakNamespace = "keycloak"
+
+// MySQLOperatorNamespace indicates the namespace to be used for the MySQLOperator installation
+const MySQLOperatorNamespace = "mysql-operator"
 
 // RancherSystemNamespace - the Rancher cattle-system namespace
 const RancherSystemNamespace = "cattle-system"
@@ -129,6 +133,15 @@ const DefaultJaegerOSURL = "http://verrazzano-authproxy-elasticsearch.verrazzano
 // DefaultJaegerSecretName is the Jaeger secret name used by the default Jaeger instance
 // #nosec
 const DefaultJaegerSecretName = "verrazzano-jaeger-secret"
+
+// JaegerInstanceName is the name of the default Jaeger instance
+const JaegerInstanceName = "jaeger-operator-jaeger"
+
+// JaegerQueryComponentName is the name of the collector component
+const JaegerCollectorComponentName = "collector"
+
+// JaegerQueryComponentName is the name of the collector component
+const JaegerQueryComponentName = "query"
 
 // VerrazzanoManagedLabelKey is a constant for a Kubernetes label that is applied to Verrazzano application namespaces
 const VerrazzanoManagedLabelKey = "verrazzano-managed"

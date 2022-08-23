@@ -21,6 +21,7 @@ const (
 	testCaseOpensearch        = "fromopensearch"
 	testCaseInstallArgsErr    = "frominstallargserr"
 	testCaseToAllComps        = "toallcomps"
+	testCaseRancherKeycloak   = "rancherkeycloak"
 )
 
 type converisonTestCase struct {

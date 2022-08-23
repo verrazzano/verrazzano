@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -104,8 +103,6 @@ func registerManagedClusterWithRancher(rc *rancherConfig, clusterName string, ra
 		return "", "", err
 	}
 
-	regYAML = overrideRancherImageLocation(regYAML, log)
-
 	return regYAML, clusterID, nil
 }
 
@@ -142,51 +139,6 @@ func newRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*rancherCo
 	rc.apiAccessToken = adminToken
 
 	return rc, nil
-}
-
-// overrideRancherImageLocation patches the Rancher agent image when the Verrazzano installation overrides
-// the image registry. The Rancher agent image is baked into the primary Rancher image so in order
-// to load Rancher agent from a different registry we replace it here in the generated
-// registration YAML.
-func overrideRancherImageLocation(regYAML string, log vzlog.VerrazzanoLogger) string {
-	// if the Verrazzano installation is using the default image registry, there's nothing to do
-	registry := os.Getenv(constants.RegistryOverrideEnvVar)
-	if registry == "" {
-		return regYAML
-	}
-
-	// pull the Rancher agent image out of the registration YAML
-	r := regexp.MustCompile(`image: (?P<image>.*)`)
-	match := r.FindStringSubmatch(regYAML)
-	if len(match) != 2 {
-		return regYAML
-	}
-
-	// match[1] has the regex capture group, and looks like: myreg.io/myrepo/ghcr.io/verrazzano/rancher-agent:tag
-	// note there are two registries in the image string due to the way Rancher
-	// concatenates the override repo and registry with the image, so we need to fix that
-
-	// split the image path and pull out the repo and image:tag
-	imageParts := strings.Split(match[1], "/")
-	if len(imageParts) < 2 {
-		return regYAML
-	}
-
-	// imageParts[len(imageParts)-2] = "verrazzano", imageParts[len(imageParts)-1] = "rancher-agent:tag"
-	image := imageParts[len(imageParts)-2] + "/" + imageParts[len(imageParts)-1]
-
-	// build a new image path using the registry override (and optionally a repo override)
-	imagePath := registry
-	if repo := os.Getenv(constants.ImageRepoOverrideEnvVar); repo != "" {
-		imagePath = imagePath + "/" + repo
-	}
-	imagePath = imagePath + "/" + image
-
-	// imagePath now looks like: myreg.io/myrepo/verrazzano/rancher-agent:tag
-	log.Oncef("Replacing Rancher agent image in registration YAML with: %s", imagePath)
-
-	// replace the image in the regYAML with the new image path
-	return strings.Replace(regYAML, match[1], imagePath, 1)
 }
 
 // importClusterToRancher uses the Rancher API to import the cluster. The cluster will show as "pending" until the registration

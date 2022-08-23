@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -330,12 +329,14 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return result, nil
 	}
 
+	if done, err := r.checkUpgradeComplete(vzctx); !done || err != nil {
+		log.Progressf("Upgrade is waiting for all components to enter a Ready state before completion")
+		return newRequeueWithDelay(), err
+	}
+
 	// Upgrade done along with any post-upgrade installations of new components that are enabled by default.
 	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", actualCR.Spec.Version)
 	log.Once(msg)
-	if err := r.updateStatus(log, actualCR, msg, installv1alpha1.CondUpgradeComplete); err != nil {
-		return newRequeueWithDelay(), err
-	}
 	return ctrl.Result{}, nil
 }
 
@@ -461,6 +462,29 @@ func (r *Reconciler) checkInstallComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete)
 }
 
+// checkUpgradeComplete checks to see if the upgrade is complete
+func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bool, error) {
+	if vzctx.ActualCR == nil {
+		return false, nil
+	}
+	if vzctx.ActualCR.Status.State != installv1alpha1.VzStateUpgrading {
+		return true, nil
+	}
+	log := vzctx.Log
+	actualCR := vzctx.ActualCR
+	ready, err := r.checkComponentReadyState(vzctx)
+	if err != nil {
+		return false, err
+	}
+	if !ready {
+		return false, nil
+	}
+	// Set upgrade complete IFF all subcomponent status' are "CompStateReady"
+	message := "Verrazzano upgrade completed successfully"
+	// Status and State update must be performed on the actual CR read from K8S
+	return true, r.updateVzStatusAndState(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
+}
+
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
 func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log vzlog.VerrazzanoLogger) error {
 	// Check if the job for running the uninstall scripts exist
@@ -574,6 +598,27 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 
 // updateVzState updates the status state in the Verrazzano CR
 func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.VzStateType) error {
+	// Set the state of resource
+	cr.Status.State = state
+	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
+
+	// Update the status
+	return r.updateVerrazzanoStatus(log, cr)
+}
+
+// updateVzState updates the status state in the Verrazzano CR
+func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, state installv1alpha1.VzStateType) error {
+	t := time.Now().UTC()
+	condition := installv1alpha1.Condition{
+		Type:    conditionType,
+		Status:  corev1.ConditionTrue,
+		Message: message,
+		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
+			t.Year(), t.Month(), t.Day(),
+			t.Hour(), t.Minute(), t.Second()),
+	}
+	cr.Status.Conditions = append(cr.Status.Conditions, condition)
+
 	// Set the state of resource
 	cr.Status.State = state
 	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
@@ -972,24 +1017,6 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 		}))
 }
 
-func (r *Reconciler) watchJaegerService(namespace string, name string, log vzlog.VerrazzanoLogger) error {
-	// Watch services and trigger reconciles for Verrazzano resources when the Jaeger collector service is created
-	log.Debugf("Watching for services to activate reconcile for Verrazzano CR %s/%s", namespace, name)
-	return r.Controller.Watch(
-		&source.Kind{Type: &corev1.Service{}},
-		createReconcileEventHandler(namespace, name),
-		createPredicate(func(e event.CreateEvent) bool {
-			// Cast object to service
-			service := e.Object.(*corev1.Service)
-			if service.Labels[vzconst.KubernetesAppLabel] == vzconst.JaegerCollectorService {
-				log.Debugf("Jaeger service %s/%s created", service.Namespace, service.Name)
-				r.AddWatch(istio.ComponentJSONName)
-				return true
-			}
-			return false
-		}))
-}
-
 func createReconcileEventHandler(namespace, name string) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(a client.Object) []reconcile.Request {
@@ -1040,11 +1067,6 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 	// Watch pods in the keycloak namespace to handle recycle of the MySQL pod
 	if err := r.watchPods(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("Failed to set Pod watch for Verrazzano CR %s: %v", vz.Name, err)
-		return newRequeueWithDelay(), err
-	}
-
-	if err := r.watchJaegerService(vz.Namespace, vz.Name, log); err != nil {
-		log.Errorf("Failed to set Service watch for Jaeger Collector service: %v", err)
 		return newRequeueWithDelay(), err
 	}
 

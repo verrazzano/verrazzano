@@ -956,6 +956,16 @@ github.com/urfave/cli v1.22.1/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtX
 github.com/urfave/cli v1.22.2/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220706002248-a07bafbdc991 h1:hWwKJXrSkmUbsfCl4wjJs+yWmWwFb/iQsM155syAIk4=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220706002248-a07bafbdc991/go.mod h1:Tpaz1662UlhEvo9A5nUKCi+NcCrrZ1elkOBukyerktc=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220715142548-a838f721d905 h1:dyFeN4SKuhtDN6EqzAtzm2s+DjmvF6V9J/NoiAm2Jv8=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220715142548-a838f721d905/go.mod h1:tnZPcS9eAnpRG4FYgE3qvVKLpfrKya8dltJ+P/ve5dk=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220804152858-ed2bad5a19fe h1:ioZneATLnJqGpkmNEg8iGAg69LFYpSPLd/uJVWOTsN0=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220804152858-ed2bad5a19fe/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220809165148-71bb590446ee h1:qISYsuP+gQ6vMeZDVkSgQWsze2rIPUTqjYzEkzXgqbQ=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220809165148-71bb590446ee/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220809184117-1506910b4b81 h1:qE/0RoZfysz41a/60iawVXf3P1/w5hQy1oVowY7waGE=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220809184117-1506910b4b81/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220810134448-c6e8df57abb2 h1:eBRnz7U/thF3u7jlUztyapqNaOT5023CISdOO9nOfys=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220810134448-c6e8df57abb2/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
 github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852/go.mod h1:twkDnbuQxJYemMlGd4JFIcuhgX83tXhKS2B/PRMpOho=

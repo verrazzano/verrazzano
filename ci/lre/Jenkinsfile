@@ -99,6 +99,7 @@ pipeline {
                 script {
                     sh """
                         mkdir -p ${WORKSPACE}/.kube
+                        rm -rf ${KUBECONFIG}
                         cp ${DEV_LRE_KUBECONFIG} ${KUBECONFIG}
                         cat ${KUBECONFIG}
                     """

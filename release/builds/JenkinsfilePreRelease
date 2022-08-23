@@ -28,6 +28,10 @@ pipeline {
     parameters {
         string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
         booleanParam (description: 'Create a release candidate EVEN if pre-release validations fail', name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', defaultValue: false)
+        string (name: 'VERRAZZANO_HELPER_BRANCH',
+                        defaultValue: 'master',
+                        description: 'verrazzano-helper branch. master is used for 1.3+, release-1.2 is used for 1.2 and earlier, user branch name is used when testing verrazzano-helper changes',
+                        trim: true)
     }
 
     environment {
@@ -39,6 +43,15 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         PERIODIC_JOB_PROJECT_NAME = 'verrazzano-periodic-triggered-tests'
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_CLI_AUTH="api_key"
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = "us-phoenix-1"
+        OCI_REGION = "${env.OCI_CLI_REGION}"
+        OCI_OS_SHARED_BUCKET="build-shared-files"
     }
 
     stages {
@@ -87,15 +100,21 @@ pipeline {
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.COMMIT_TO_USE
                 }
+                script {
+                    sh """
+                        echo "Downloading verrazzano-helper from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_SHARED_BUCKET} --name ${params.VERRAZZANO_HELPER_BRANCH}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                        chmod uog+x ${WORKSPACE}/verrazzano-helper
+                    """
+                }
             }
         }
 
         stage('Release Candidate Validation Checks') {
             environment {
                 IGNORE_FAILURES = "false"
-                JIRA_USERNAME = credentials('jira-username')
-                JIRA_PASSWORD = credentials('jira-password')
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                TICKET_SERVICE_USERNAME = credentials('ticket-service-username')
+                TICKET_SERVICE_PASSWORD = credentials('ticket-service-password')
                 OCI_OS_BUCKET="verrazzano-builds"
                 OCI_CLI_AUTH="api_key"
                 OCI_CLI_TENANCY = credentials('oci-tenancy')

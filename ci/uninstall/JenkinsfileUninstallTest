@@ -75,6 +75,7 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
     environment {
@@ -89,10 +90,14 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
-        // Used for dumping cluster from inside tests
+        // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+
+        // Environment variable for Verrazzano CLI executable
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -462,21 +467,7 @@ def uninstallVerrazzano(vpoLogsDir) {
         // Delete VZ in the background
         sh """
             echo "Deleting the Verrazzano resource..."
-            kubectl delete --wait=true --timeout=20m verrazzano my-verrazzano
-
-            #if kubectl get verrazzano my-verrazzano 2>&1 > /dev/null; then
-            #  echo "Waiting for Verrazzano resource to be deleted..."
-            #  kubectl wait verrazzano my-verrazzano --for=delete --timeout=20m
-            #else
-            #  echo "Verrazzano resource my-verrazzano successfully deleted"
-            #fi
-
-            # Wait a bit before continuing
-            sleep 90s
-            kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${vpoLogsDir}/verrazzano-platform-operator-post-uninstall.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-
-            echo "Deleting the Platform Operator resources"
-            kubectl delete -f ${TARGET_OPERATOR_FILE} --wait=true --timeout=10m
+            ${GO_REPO_PATH}/vz uninstall --timeout=20m 
         """
     }
 }
@@ -600,7 +591,7 @@ def runnerCleanup() {
         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
     """
-    archiveArtifacts artifacts: "**/coverage.html,${WORKSPACE}/console/**,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-snapshot/**,**/${TEST_REPORT}", allowEmptyArchive: true
+    archiveArtifacts artifacts: "**/coverage.html,${WORKSPACE}/console/**,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*full-cluster*/**,**/bug-report/**,**/${TEST_REPORT}", allowEmptyArchive: true
     junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
     script {
@@ -625,7 +616,7 @@ def runnerCleanup() {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

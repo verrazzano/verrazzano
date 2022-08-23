@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.6-20220801034315-6b16223e4",
+              "tag": "v2.6.6-20220811150824-032ff3ebc",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.6-20220801034315-6b16223e4"
+              "tag": "v2.6.6-20220811150824-032ff3ebc"
             }
           ]
         },
@@ -220,7 +220,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.4.0-20220809122807-fe60640",
+              "tag": "v1.4.0-20220817103906-703911c",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -370,12 +370,36 @@
       "name": "mysql",
       "subcomponents": [
         {
-          "repository": "verrazzano/mysql",
+          "repository": "verrazzano",
           "name": "mysql",
           "images": [
             {
               "image": "mysql",
               "tag": "8.0.29",
+              "helmRegKey": "image.registry",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            },
+            {
+              "repository": "oracle",
+              "image": "oraclelinux",
+              "tag": "7-slim",
+              "helmFullImageKey": "initContainerImage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mysql-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "mysql-operator",
+          "images": [
+            {
+              "image": "mysql-operator",
+              "tag": "8.0.30-2.0.5",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
               "helmTagKey": "image.tag"
@@ -641,18 +665,18 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.8.1-20220617192749-f0db842f",
+              "tag": "v1.8.1-20220816040906-c3e3b0c6",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "velero-plugin-for-aws",
-              "tag": "v1.4.1-20220617193554-272b3ebc",
+              "tag": "v1.4.1-20220816055024-94cac710",
               "helmFullImageKey": "initContainers[0].image"
             },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.8.1-20220617192909-f0db842f",
+              "tag": "v1.8.1-20220816040906-c3e3b0c6",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]

@@ -105,6 +105,7 @@ func convertComponentsTo(in ComponentSpec) v1alpha1.ComponentSpec {
 		Keycloak:               convertKeycloakTo(in.Keycloak),
 		Kibana:                 convertOSDTo(in.OpenSearchDashboards),
 		KubeStateMetrics:       convertKubeStateMetricsTo(in.KubeStateMetrics),
+		MySQLOperator:          convertMySQLOperatorTo(in.MySQLOperator),
 		Prometheus:             convertPrometheusTo(in.Prometheus),
 		PrometheusAdapter:      convertPrometheusAdapterTo(in.PrometheusAdapter),
 		PrometheusNodeExporter: convertPrometheusNodeExporterTo(in.PrometheusNodeExporter),
@@ -359,6 +360,16 @@ func convertKeycloakTo(in *KeycloakComponent) *v1alpha1.KeycloakComponent {
 	}
 }
 
+func convertMySQLOperatorTo(in *MySQLOperatorComponent) *v1alpha1.MySQLOperatorComponent {
+	if in == nil {
+		return nil
+	}
+	return &v1alpha1.MySQLOperatorComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesTo(in.InstallOverrides),
+	}
+}
+
 func convertOAMTo(in *OAMComponent) *v1alpha1.OAMComponent {
 	if in == nil {
 		return nil
@@ -443,8 +454,9 @@ func convertRancherTo(in *RancherComponent) *v1alpha1.RancherComponent {
 		return nil
 	}
 	return &v1alpha1.RancherComponent{
-		Enabled:          in.Enabled,
-		InstallOverrides: convertInstallOverridesTo(in.InstallOverrides),
+		Enabled:             in.Enabled,
+		InstallOverrides:    convertInstallOverridesTo(in.InstallOverrides),
+		KeycloakAuthEnabled: in.KeycloakAuthEnabled,
 	}
 }
 
