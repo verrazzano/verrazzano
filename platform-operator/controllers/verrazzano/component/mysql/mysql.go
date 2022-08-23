@@ -17,7 +17,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -29,15 +28,12 @@ import (
 )
 
 const (
-	secretName           = "mysql"
 	rootSecretName       = "mysql-cluster-secret"
 	helmRootPwd          = "credentials.root.password" //nolint:gosec //#gosec G101
 	mySQLRootKey         = "rootPassword"
 	statefulsetClaimName = "data-mysql-0"
 	podSpecKey           = "podSpec"
-	emptyDirPodSpec      = `
-volumeSpec:
-  emptyDir: {}
+	affinity             = `
 affinity:
   podAntiAffinity:
 	preferredDuringSchedulingIgnoredDuringExecution:
@@ -45,9 +41,14 @@ affinity:
 		podAffinityTerm:
 		  labelSelector:
 			matchLabels:
-			  app.kubernetes.io/instance: mysql
-			  app.kubernetes.io/name: mysql
+			  app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
+			  app.kubernetes.io/name: mysql-innodbcluster-mysql-server
 		  topologyKey: kubernetes.io/hostname
+`
+	emptyDirPodSpec = `
+volumeSpec:
+  emptyDir: {}
+%s
 `
 )
 
@@ -78,14 +79,14 @@ func isMySQLReady(context spi.ComponentContext) bool {
 			if err != nil {
 				return false
 			}
-			serverReplicas, _ = strconv.Atoi(value.(string))
+			serverReplicas, _ = strconv.Atoi(fmt.Sprintf("%.0f", value.(float64)))
 		}
 		if strings.Contains(overrideYaml, "routerInstances:") {
 			value, err := common.ExtractValueFromOverrideString(overrideYaml, "routerInstances")
 			if err != nil {
 				return false
 			}
-			routerReplicas, _ = strconv.Atoi(value.(string))
+			routerReplicas, _ = strconv.Atoi(fmt.Sprintf("%.0f", value.(float64)))
 		}
 	}
 	ready := status.StatefulSetsAreReady(context.Log(), context.Client(), statefulset, int32(serverReplicas), prefix)
@@ -97,15 +98,15 @@ func isMySQLReady(context spi.ComponentContext) bool {
 
 // appendMySQLOverrides appends the MySQL helm overrides
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	cr := compContext.EffectiveCR()
+	//cr := compContext.EffectiveCR()
 
-	// TODO:  talk to mike cico
-	kvs, err := appendCustomImageOverrides(kvs)
-	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-	}
+	//// TODO:  talk to mike cico
+	//kvs, err := appendCustomImageOverrides(kvs)
+	//if err != nil {
+	//	return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	//}
 
-	kvs, err = appendMySQLSecret(compContext, kvs)
+	kvs, err := appendMySQLSecret(compContext, kvs)
 	if err != nil {
 		return []bom.KeyValue{}, err
 	}
@@ -118,7 +119,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	// Convert MySQL install-args to helm overrides
-	kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
+	//kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
 
 	return kvs, nil
 }
@@ -195,7 +196,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 		// EmptyDir, disable persistence
 		kvs = append(kvs, bom.KeyValue{
 			Key:   podSpecKey,
-			Value: emptyDirPodSpec,
+			Value: fmt.Sprintf(emptyDirPodSpec, affinity),
 		})
 	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
@@ -203,14 +204,6 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
 		if !found {
 			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
-		}
-		storageClass := storageSpec.StorageClassName
-		if storageClass != nil && len(*storageClass) > 0 {
-			kvs = append(kvs, bom.KeyValue{
-				Key:       "datadirVolumeClaimTemplate.storageClassName",
-				Value:     *storageClass,
-				SetString: true,
-			})
 		}
 		storage := storageSpec.Resources.Requests.Storage()
 		if storageSpec.Resources.Requests != nil && !storage.IsZero() {
@@ -229,6 +222,10 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 				SetString: true,
 			})
 		}
+		kvs = append(kvs, bom.KeyValue{
+			Key:   podSpecKey,
+			Value: affinity,
+		})
 	}
 	return kvs, nil
 }
@@ -282,6 +279,11 @@ func appendMySQLSecret(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]
 		Namespace: ComponentNamespace,
 		Name:      rootSecretName,
 	}
+	// use self signed
+	kvs = append(kvs, bom.KeyValue{
+		Key:   "tls.useSelfSigned",
+		Value: "true",
+	})
 	// Get the mysql userSecret
 	err := compContext.Client().Get(context.TODO(), nsName, rootSecret)
 	if err != nil {

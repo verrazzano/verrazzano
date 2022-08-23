@@ -6,6 +6,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"path/filepath"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -15,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -104,27 +104,6 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
 		return err
 	}
-	// Check MySQL Secret. return error which will cause requeue
-	secret = &corev1.Secret{}
-	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: ComponentNamespace,
-		Name:      mysql.ComponentName,
-	}, secret)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			ctx.Log().Progressf("Component Keycloak waiting for the MySql password %s/%s to exist", ComponentNamespace, mysql.ComponentName)
-			return ctrlerrors.RetryableError{Source: ComponentName}
-		}
-		ctx.Log().Errorf("Component Keycloak failed to get the MySQL password %s/%s: %v", ComponentNamespace, mysql.ComponentName, err)
-		return err
-	}
-
-	// Create secret for the keycloakadmin user if it doesn't exist
-	err = createAuthSecret(ctx, ComponentNamespace, "keycloak-http", "keycloakadmin")
-	if err != nil {
-		return err
-	}
-
 	// Create secret for the keycloak DB user if it doesn't exist
 	err = createKeycloakDBSecret(ctx)
 	if err != nil {
@@ -133,6 +112,12 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 
 	// create the keycloak user and database
 	err = setupDatabase(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Create secret for the keycloakadmin user if it doesn't exist
+	err = createAuthSecret(ctx, ComponentNamespace, "keycloak-http", "keycloakadmin")
 	if err != nil {
 		return err
 	}
@@ -216,6 +201,11 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isKeycloakReady(ctx)
 	}
 	return false
+}
+
+// GetDependencies returns the dependencies of the keycloak component
+func (c KeycloakComponent) GetDependencies() []string {
+	return []string{mysqloperator.ComponentName}
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

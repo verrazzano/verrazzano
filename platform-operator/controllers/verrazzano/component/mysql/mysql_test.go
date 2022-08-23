@@ -746,8 +746,8 @@ func TestIsMySQLReady(t *testing.T) {
 			Revision: 1,
 		},
 	).Build()
-	servers := []byte(`{"serverInstances": "1"}`)
-	routers := []byte(`{"routerInstances": "1"}`)
+	servers := []byte(`{"serverInstances": 1}`)
+	routers := []byte(`{"routerInstances": 1}`)
 
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -854,8 +854,8 @@ func TestIsMySQLNotReady(t *testing.T) {
 			Revision: 1,
 		},
 	).Build()
-	servers := []byte(`{"serverInstances": "1"}`)
-	routers := []byte(`{"routerInstances": "1"}`)
+	servers := []byte(`{"serverInstances": 1}`)
+	routers := []byte(`{"routerInstances": 1}`)
 
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{

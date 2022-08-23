@@ -62,11 +62,28 @@ const (
 	rootSecretName			= "mysql-cluster-secret"
 	rootPasswordKey         = "rootPassword"
 	mySqlDbCommands 		= `
-mysql -uroot -p%s -e "CREATE USER keycloak IDENTIFIED BY '%';
+mysql -uroot -p%s -e "CREATE USER keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 USE keycloak;
 GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO 'keycloak'@'%%';
-FLUSH PRIVILEGES;"
+FLUSH PRIVILEGES;
+CREATE TABLE ` + "`DATABASECHANGELOG`" +
+  `(` + "`ID`" + ` varchar(255) NOT NULL,
+  ` + "`AUTHOR`" + ` varchar(255) NOT NULL,
+  ` + "`FILENAME`" + ` varchar(255) NOT NULL,
+  ` + "`DATEEXECUTED`" + ` datetime NOT NULL,
+  ` + "`ORDEREXECUTED`" + ` int(11) NOT NULL,
+  ` + "`EXECTYPE`" + ` varchar(10) NOT NULL,
+  ` + "`MD5SUM`" + ` varchar(35) DEFAULT NULL,
+  ` + "`DESCRIPTION`" + ` varchar(255) DEFAULT NULL,
+  ` + "`COMMENTS`" + ` varchar(255) DEFAULT NULL,
+  ` + "`TAG`" + ` varchar(255) DEFAULT NULL,
+  ` + "`LIQUIBASE`" + ` varchar(20) DEFAULT NULL,
+  ` + "`CONTEXTS`" + ` varchar(255) DEFAULT NULL,
+  ` + "`LABELS`" + ` varchar(255) DEFAULT NULL,
+  ` + "`DEPLOYMENT_ID`" + ` varchar(10) DEFAULT NULL,
+  PRIMARY KEY (` + "`ID`,`AUTHOR`,`FILENAME`" + `)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
 `
 )
 
@@ -559,6 +576,9 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		Key:   kcIngressClassKey,
 		Value: vzconfig.GetIngressClassName(compContext.EffectiveCR()),
 	})
+
+	// set the appropriate host address for DB based on the availability of the MySQL router
+	
 
 	return kvs, nil
 }
@@ -1612,6 +1632,7 @@ func setupDatabase(ctx spi.ComponentContext) error {
 	userPwd := userSecret.Data[secretKey]
 	sqlCmd := fmt.Sprintf(mySqlDbCommands, rootPwd, userPwd)
 	execCmd := []string{"bash","-c",sqlCmd}
+	ctx.Log().Infof("Executing following command to setup keycloak DB: %v", execCmd)
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
@@ -1622,7 +1643,7 @@ func setupDatabase(ctx spi.ComponentContext) error {
 	}
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
 	if err != nil {
-		ctx.Log().Errorf("Failed logging into mysql: stdout = %s: stderr = %s", stdOut, stdErr)
+		ctx.Log().Errorf("Failed logging into mysql: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, err)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	return nil

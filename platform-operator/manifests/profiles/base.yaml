@@ -203,19 +203,11 @@ spec:
           - values:
               serverInstances: 1
               routerInstances: 0
-              podSpec: |
-                volumeSpec:
-                  emptyDir: {}
-                affinity:
-                  podAntiAffinity:
-                    preferredDuringSchedulingIgnoredDuringExecution:
-                      - weight: 100
-                        podAffinityTerm:
-                          labelSelector:
-                            matchLabels:
-                              app.kubernetes.io/instance: mysql
-                              app.kubernetes.io/name: mysql
-                          topologyKey: kubernetes.io/hostname
+              image:
+                pullPolicy: IfNotPresent
+                pullSecrets:
+                  enabled: false
+                  secretName:
     mySQLOperator:
       enabled: true
     kibana:
