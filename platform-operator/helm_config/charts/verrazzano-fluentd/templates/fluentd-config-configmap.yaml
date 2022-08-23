@@ -873,7 +873,7 @@ data:
 
   es-output.conf: |
     # Matches anything that Verrazzano installs
-    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.**>
+    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**mysql-operator** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.**>
       @type opensearch_data_stream
       @id out_systemd
       @log_level info
