@@ -252,7 +252,7 @@ pipeline {
                         returnStdout: true
                         ).trim()
                     tarfileName = "verrazzano-1.4.0-linux-amd64.tar.gz"
-                    checksumFile = "${TARBALL_DIR}/${tarfileName}.sha256"
+                    checksumFile = "${tarfileName}.sha256"
                     echo "base name: $baseFilename, tar name: $tarfileName"
                     echo "checksum file is: $checksumFile"
                     
@@ -272,7 +272,6 @@ pipeline {
                             pwd
                             ls
                             echo $checksumFile
-                            sha256sum -c $checksumFile
                             tar xvf $tarfileName
                         """
                         }
