@@ -173,7 +173,7 @@ generateCommercialDistribution() {
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${VZ_COMMERCIAL_ROOT}/bin/darwin-arm64
 
   echo "-----------------Tar files from ${WORKSPACE}/tar-files ----------------------"
-  ls ${WORKSPACE}/tar-files/*.tar
+  ls ${WORKSPACE}/tar-files/
 
   # Get the tar files
   mv ${WORKSPACE}/tar-files/*.tar ${VZ_COMMERCIAL_ROOT}/images/
@@ -187,6 +187,8 @@ generateCommercialDistribution() {
   # Create and upload the final distribution zip file and upload
   zip -r ${VZ_DISTRIBUTION_GENERATED}/${VZ_COMMERCIAL_RELEASE_BUNDLE} *
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_COMMERCIAL_RELEASE_BUNDLE}
+
+  # If we move the tar file back to original directory, we don't have to change push_to_ocir.sh
 }
 
 
@@ -194,6 +196,7 @@ generateCommercialDistribution() {
 cleanupWorkspace() {
   rm -rf ${VZ_DISTRIBUTION_COMMON}
   rm -rf ${VZ_OPENSOURCE_ROOT}
+  # For now, do not delete ${VZ_COMMERCIAL_ROOT} as push_to_ocir.sh requires ${VZ_COMMERCIAL_ROOT}/images/*.tar
   rm -rf ${VZ_DISTRIBUTION_GENERATED}
 }
 
