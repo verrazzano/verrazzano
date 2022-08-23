@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.6-20220811150824-032ff3ebc",
+              "tag": "20220823073921-189760087",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.6-20220811150824-032ff3ebc"
+              "tag": "20220823073921-189760087"
             }
           ]
         },
