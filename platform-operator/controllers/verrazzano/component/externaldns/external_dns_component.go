@@ -5,6 +5,7 @@ package externaldns
 
 import (
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -77,6 +78,11 @@ func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 		return fmt.Errorf("Disabling an existing OCI DNS configuration is not allowed")
 	}
 	return e.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (e externalDNSComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

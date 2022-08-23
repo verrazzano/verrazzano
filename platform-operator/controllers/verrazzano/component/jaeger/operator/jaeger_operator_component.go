@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"path/filepath"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -157,6 +158,16 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.validateJaegerOperator(new)
+}
+
+// ValidateInstall validates the installation of the Verrazzano CR
+func (c jaegerOperatorComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
+func (c jaegerOperatorComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // PreUpgrade Jaeger component pre-upgrade processing

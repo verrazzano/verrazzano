@@ -1,0 +1,52 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: prod
+  components:
+    ingress:
+      ports:
+        - name: https
+          protocol: TCP
+          port: 443
+          nodePort: 31443
+          targetPort: https
+      overrides:
+        - values:
+            controller:
+              service:
+                externalIPs:
+                - 2.2.2.2
+            foo: bar
+
+    istio:
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                egressGateways:
+                  - enabled: true
+                    name: istio-egressgateway
+                ingressGateways:
+                  - enabled: true
+                    k8s:
+                      service:
+                        externalIPs:
+                          - 1.1.1.1
+                        ports:
+                          - name: https
+                            nodePort: 32443
+                            port: 443
+                            protocol: TCP
+                            targetPort: 8443
+                        type: NodePort
+                    name: istio-ingressgateway
+                pilot:
+                  k8s:
+                    replicaCount: 2
+
