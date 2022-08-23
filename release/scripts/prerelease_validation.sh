@@ -45,14 +45,14 @@ echo ""
 if [[ "$VERSION" == *.0 ]]; then
     echo "Not a patch release, skipping backported commits check"
 else
-    if ! command -v verrazzano-helper &> /dev/null
+    if ! command -v ${WORKSPACE}/verrazzano-helper &> /dev/null
     then
-      echo "verrazzano-helper must be in path"
+      echo "verrazzano-helper must be in the top level of the workspace"
       EXIT_CODE=1
     fi
 
     echo "Checking for missing backport commits..."
-    verrazzano-helper get ticket-backports $VERSION --jira-env prod --token unused
+    ${WORKSPACE}/verrazzano-helper get ticket-backports $VERSION --ticket-env prod --token unused
     ((EXIT_CODE |= $?))
 fi
 

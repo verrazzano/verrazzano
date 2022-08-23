@@ -60,7 +60,6 @@ const (
 	tmpFilePrefix         = "jaeger-operator-overrides-"
 	tmpSuffix             = "yaml"
 	tmpFileCreatePattern  = tmpFilePrefix + "*." + tmpSuffix
-	tmpFileCleanPattern   = tmpFilePrefix + ".*\\." + tmpSuffix
 	jaegerCreateField     = "jaeger.create"
 	jaegerSecNameField    = "jaeger.spec.storage.secretName"
 	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"

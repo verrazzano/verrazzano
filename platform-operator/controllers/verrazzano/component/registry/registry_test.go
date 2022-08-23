@@ -4,9 +4,12 @@
 package registry
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
@@ -22,6 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -44,7 +48,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
@@ -63,7 +66,7 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 28, "Wrong number of components")
+	a.Len(comps, 29, "Wrong number of components")
 	a.Equal(comps[0].Name(), oam.ComponentName)
 	a.Equal(comps[1].Name(), appoper.ComponentName)
 	a.Equal(comps[2].Name(), istio.ComponentName)
@@ -92,6 +95,7 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[25].Name(), fluentd.ComponentName)
 	a.Equal(comps[26].Name(), velero.ComponentName)
 	a.Equal(comps[27].Name(), rancherbackup.ComponentName)
+	a.Equal(comps[28].Name(), mysqloperator.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -716,6 +720,14 @@ func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 }
 
 func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	return nil
 }
 

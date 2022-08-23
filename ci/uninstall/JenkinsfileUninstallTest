@@ -75,6 +75,7 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
     environment {
@@ -89,11 +90,14 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
-        // Used for dumping cluster from inside tests
+        // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        VZ_COMMAND="${GO_REPO_PATH}/vz"
+        CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+
+        // Environment variable for Verrazzano CLI executable
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -587,7 +591,7 @@ def runnerCleanup() {
         cd ${GO_REPO_PATH}/verrazzano/tests/e2e
         find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
     """
-    archiveArtifacts artifacts: "**/coverage.html,${WORKSPACE}/console/**,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-snapshot/**,**/${TEST_REPORT}", allowEmptyArchive: true
+    archiveArtifacts artifacts: "**/coverage.html,${WORKSPACE}/console/**,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*full-cluster*/**,**/bug-report/**,**/${TEST_REPORT}", allowEmptyArchive: true
     junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
     script {
@@ -612,11 +616,7 @@ def runnerCleanup() {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        mkdir -p ${dumpDirectory}/cluster-snapshot
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot -r ${dumpDirectory}/cluster-snapshot/analysis.report
-        ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
-        mkdir -p ${dumpDirectory}/bug-report
-        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

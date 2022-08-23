@@ -79,7 +79,7 @@ var _ = t.AfterSuite(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace)
+		pkg.UndeployHelloHelidonApplication(namespace, "")
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
