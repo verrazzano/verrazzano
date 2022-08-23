@@ -23,6 +23,16 @@ type BootstrapProvider interface {
 	GetKubeconfig(clusterName string) (string, error)
 }
 
+func SetBootstrapProvider(p BootstrapProvider) {
+	bootstrapProviderImpl = p
+}
+
+func ResetBootstrapProvider() {
+	bootstrapProviderImpl = &kindBootstrapProvider{}
+}
+
+var bootstrapProviderImpl BootstrapProvider = &kindBootstrapProvider{}
+
 type kindBootstrapProvider struct{}
 
 func (k *kindBootstrapProvider) CreateCluster(clusterName string) error {
