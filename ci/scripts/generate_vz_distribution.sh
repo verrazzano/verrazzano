@@ -173,6 +173,9 @@ VZ_DISTRIBUTION_GENERATED="${WORKSPACE}/vz-distribution-generated"
 # Directory containing the layout and required files for the open-source distribution
 VZ_OPENSOURCE_ROOT="${WORKSPACE}/vz-open-source"
 
+echo "VZ_REPO_ROOT ${VZ_REPO_ROOT}"
+ls ${VZ_REPO_ROOT}
+
 # Call the function to download the artifacts common to both types of distribution bundles
 downloadCommonFiles
 
