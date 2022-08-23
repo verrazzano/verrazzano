@@ -220,7 +220,7 @@ func TestConfigureGateways(t *testing.T) {
 	var tests = []struct {
 		name           string
 		istioComponent *IstioComponent
-		externalIp     string
+		externalIP     string
 		expectedData   string
 		err            error
 	}{
@@ -290,7 +290,7 @@ func TestConfigureGateways(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actualData, err := configureGateways(tt.istioComponent, tt.externalIp)
+			actualData, err := configureGateways(tt.istioComponent, tt.externalIP)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedData, actualData)
 		})
