@@ -684,8 +684,8 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	// Set the state of resource
 	componentStatus.State = checkCondtitionType(conditionType)
 
-	// Set the version of component
-	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeStarted {
+	// Set the version of component when install and upgrade complete
+	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
 		if bomFile, err := r.getBOM(); err == nil {
 			if component, er := bomFile.GetComponent(componentName); er == nil {
 				componentStatus.Version = component.Version
