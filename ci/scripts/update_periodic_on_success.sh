@@ -25,6 +25,12 @@ if [ -z "$3" ]; then
 fi
 ZIPFILE_PREFIX="$3"
 
+if [ -z "$4" ]; then
+  echo "The Verrazzano development version must be specified"
+  exit 1
+fi
+DEVELOPENT_VERSION="$4"
+
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ] || [ -z "$BRANCH_NAME" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
@@ -68,5 +74,4 @@ echo "Creating Zip for commit ${GIT_COMMIT_USED}, short hash ${SHORT_COMMIT_HASH
 
 echo "Creating Verrazzano Release Distribution bundles"
 cd ${WORKSPACE}
-ls
-ci/scripts/generate_vz_distribution.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} ${CLEAN_BRANCH_NAME}-last-clean-periodic-test ${WORKSPACE} ${local_bom}
+ci/scripts/generate_vz_distribution.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} ${CLEAN_BRANCH_NAME}-last-clean-periodic-test ${WORKSPACE} ${local_bom} ${DEVELOPENT_VERSION}

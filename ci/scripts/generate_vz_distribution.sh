@@ -34,7 +34,13 @@ if [ -z "$5" ]; then
 fi
 GENERATED_BOM_FILE="$5"
 
-if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$VZ_DEV_VERSION" ]; then
+if [ -z "$6" ]; then
+  echo "Verrazzano development version must be specified"
+  exit 1
+fi
+VZ_DEVELOPENT_VERSION="$6"
+
+if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
@@ -149,8 +155,7 @@ VZ_CLI_LINUX_AMD64_TARGZ_SHA256="vz-linux-amd64.tar.gz.sha256"
 VZ_CLI_DARWIN_AMD64_TARGZ="vz-darwin-amd64.tar.gz"
 VZ_CLI_DARWIN_AMD64_TARGZ_SHA256="vz-darwin-amd64.tar.gz.sha256"
 
-DISTRIBUTION_PREFIX="verrazzano-${VZ_DEV_VERSION}"
-echo "DISTRIBUTION_PREFIX ${DISTRIBUTION_PREFIX}"
+DISTRIBUTION_PREFIX="verrazzano-${VZ_DEVELOPENT_VERSION}"
 
 VZ_LINUX_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz"
 VZ_LINUX_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz.sha256"
