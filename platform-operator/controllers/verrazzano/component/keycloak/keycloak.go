@@ -794,6 +794,12 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// Update Keycloak AuthConfig for Rancher with client secret
+	err = updateRancherClientSecretForKeycloakAuthConfig(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Setting password policy for master
 	err = setPasswordPolicyForRealm(ctx, cfg, cli, "master", "passwordPolicy=length(8) and notUsername")
 	if err != nil {
@@ -1682,4 +1688,16 @@ func getMySQLPod(ctx spi.ComponentContext) (*corev1.Pod, error) {
 	}
 	// return one of the pods
 	return &mysqlPods.Items[0], nil
+}
+
+func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	clientSecret, err := GetRancherClientSecretFromKeycloak(ctx)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed updating client secret in keycloak auth config, unable to fetch rancher client secret: %s", err.Error())
+	}
+
+	authConfig := make(map[string]interface{})
+	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
+	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }

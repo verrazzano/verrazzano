@@ -4,11 +4,13 @@
 package registry
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
@@ -650,7 +652,7 @@ func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return f.ready
 }
 
-func (f fakeComponent) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
+func (f fakeComponent) IsEnabled(_ runtime.Object) bool {
 	return f.enabled
 }
 
@@ -719,6 +721,14 @@ func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 }
 
 func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	return nil
 }
 

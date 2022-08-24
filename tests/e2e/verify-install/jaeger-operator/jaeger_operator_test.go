@@ -64,7 +64,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		WhenJaegerOperatorEnabledIt("should have a verrazzano-monitoring namespace", func() {
 			Eventually(func() (bool, error) {
 				return pkg.DoesNamespaceExist(constants.VerrazzanoMonitoringNamespace)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
 
 		// GIVEN the Jaeger Operator is installed
@@ -81,7 +81,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				}
 				return result
 			}
-			Eventually(jaegerOperatorPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(jaegerOperatorPodsRunning).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
 
 		// GIVEN the Jaeger Operator is installed
@@ -124,7 +124,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				}
 				return true
 			}
-			Eventually(verifyImages, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(verifyImages).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
 
 		// GIVEN the Jaeger Operator is installed
@@ -140,23 +140,28 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 				}
 				return true, nil
 			}
-			Eventually(verifyCRDList, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(verifyCRDList).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
 
 		// GIVEN the Jaeger Operator is installed
 		// WHEN we check to make sure the Jaeger OpenSearch Index Cleaner cron job exists
 		// THEN we successfully find the expected cron job
 		WhenJaegerOperatorEnabledIt("should have a Jaeger OpenSearch Index Cleaner cron job", func() {
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				Fail(err.Error())
+			}
+			create, err := pkg.IsJaegerInstanceCreated(kubeconfigPath)
+			if err != nil {
+				Fail(err.Error())
+			}
+			if !create {
+				Skip("Default Jaeger instance is not created in this cluster")
+			}
 			Eventually(func() (bool, error) {
-				create, err := pkg.IsJaegerInstanceCreated()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error checking if Jaeger CR is available %s", err.Error()))
-				}
-				if create {
-					return pkg.DoesCronJobExist(constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
-				}
-				return false, nil
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+				pkg.Log(pkg.Info, fmt.Sprintf("Default Jaeger instance exists, checking if %s cron job exists", jaegerESIndexCleanerJob))
+				return pkg.DoesCronJobExist(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
 	})
 })

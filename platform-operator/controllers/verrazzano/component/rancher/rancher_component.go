@@ -5,6 +5,8 @@ package rancher
 
 import (
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -160,12 +162,8 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 
 // IsEnabled Rancher is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
-func (r rancherComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Rancher
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (r rancherComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsRancherEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -175,6 +173,11 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return r.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (r rancherComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // PreInstall
@@ -336,7 +339,7 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 // configureAuthProviders
 // +configures Keycloak as OIDC provider for Rancher.
 // +creates or updates default user verrazzano.
-// +creates or updates admin role binding for  user verrazzano.
+// +creates or updates admin clusterRole binding for  user verrazzano.
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
 func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
@@ -346,11 +349,19 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 	}
 
 	if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user: %s", err.Error())
+		return err
 	}
 
 	if err := createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user global role binding: %s", err.Error())
+		return err
+	}
+
+	if err := createOrUpdateRoleTemplates(ctx); err != nil {
+		return err
+	}
+
+	if err := createOrUpdateClusterRoleTemplateBindings(ctx); err != nil {
+		return err
 	}
 
 	if err := disableFirstLogin(ctx); err != nil {
@@ -359,6 +370,26 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 
 	if err := toggleKeycloakAuthProvider(ctx, isUpgrade); err != nil {
 		return log.ErrorfThrottledNewErr("failed enabling or disbling auth providers: %s", err.Error())
+	}
+
+	return nil
+}
+
+// createOrUpdateRoleTemplates creates or updates the verrazzano-admin and verrazzano-monitor RoleTemplates
+func createOrUpdateRoleTemplates(ctx spi.ComponentContext) error {
+	if err := createOrUpdateRoleTemplate(ctx, VerrazzanoAdminRoleName); err != nil {
+		return err
+	}
+
+	return createOrUpdateRoleTemplate(ctx, VerrazzanoMonitorRoleName)
+}
+
+// createOrUpdateClusterRoleTemplateBindings creates or updates the CRTBs for the verrazzano-admins and verrazzano-monitors groups
+func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
+	for _, grp := range GroupRolePairs {
+		if err := createOrUpdateClusterRoleTemplateBinding(ctx, grp[ClusterRoleKey], grp[GroupKey]); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -449,7 +480,7 @@ func toggleKeycloakAuthProvider(ctx spi.ComponentContext, isUpgrade bool) error 
 	log := ctx.Log()
 	vz := ctx.ActualCR()
 	enableKeycloak := isKeycloakAuthEnabled(isUpgrade, vz, ver140, vzSourceVersion, vzTargetVersion)
-	if err := disableOrEnableAuthProvider(ctx, AuthConfigKeycloak, enableKeycloak); err != nil {
+	if err := disableOrEnableAuthProvider(ctx, common.AuthConfigKeycloak, enableKeycloak); err != nil {
 		return log.ErrorfThrottledNewErr("failed to %s keycloak oidc auth provider, error: %s", formatBool(enableKeycloak, "enable", "disable"), err.Error())
 	}
 

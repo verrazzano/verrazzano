@@ -50,7 +50,7 @@ var listOfNamespaces = []string{
 }
 
 var t = framework.NewTestFramework("registry")
-
+var extOSPod = "opensearch-cluster-master-0"
 var _ = t.BeforeSuite(func() {})
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
@@ -70,6 +70,10 @@ var _ = t.Describe("Image Registry Verification", Label("f:platform-lcm.private-
 
 					for j := range pods.Items {
 						pod = pods.Items[j]
+						// Skip private registry validation in case of external OpenSearch
+						if pod.Name == extOSPod {
+							continue
+						}
 						pkg.Log(pkg.Info, fmt.Sprintf("%d. Validating the registry url prefix for pod: %s in namespace: %s", i, pod.Name, ns))
 						for k := range pod.Spec.Containers {
 							registryURL, err := getRegistryURL(pod.Spec.Containers[k].Image)
