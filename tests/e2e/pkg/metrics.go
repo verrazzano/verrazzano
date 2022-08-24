@@ -244,10 +244,18 @@ func getPromOperatorClient() (client.Client, error) {
 
 // GetAppServiceMonitorName returns the service monitor name used in VZ 1.4+ for the given
 // namespace and app name
-func GetAppServiceMonitorName(namespace string, appName string) string {
+func GetAppServiceMonitorName(namespace string, appName string, component string) string {
 	// For VZ versions starting from 1.4.0, the service monitor name for prometheus is of the format
 	// <app_name>_<app_namespace>
-	smName := fmt.Sprintf("%s-%s", appName, namespace)
+	var smName string
+	if component == "" {
+		smName = fmt.Sprintf("%s-%s", appName, namespace)
+	} else {
+		smName = fmt.Sprintf("%s-%s-%s", appName, namespace, component)
+		if len(smName) > 63 {
+			smName = fmt.Sprintf("%s-%s", appName, namespace)
+		}
+	}
 	if len(smName) > 63 {
 		smName = smName[:63]
 	}
