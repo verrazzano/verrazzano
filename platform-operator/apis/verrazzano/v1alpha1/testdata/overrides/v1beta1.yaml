@@ -7,16 +7,20 @@ metadata:
 spec:
   profile: prod
   components:
-    istio:
+    ingress:
+      type: LoadBalancer
       overrides:
         - values:
-            apiVersion: install.istio.io/v1alpha1
-            kind: IstioOperator
-            spec:
-              components:
-                pilot:
-                  k8s:
-                    replicaCount: 2
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 3
+              service:
+                annotations:
+                  service.beta.kubernetes.io/oci-load-balancer-shape: flexible
+                  name-n: value-n
+    istio:
+      overrides:
         - values:
             apiVersion: install.istio.io/v1alpha1
             kind: IstioOperator
@@ -25,15 +29,12 @@ spec:
                 egressGateways:
                   - enabled: true
                     k8s:
-                      replicaCount: 2
+                      replicaCount: 3
                     name: istio-egressgateway
                 ingressGateways:
                   - enabled: true
-                    k8s:
-                      replicaCount: 2
-                      service:
-                        externalIPs:
-                          - 1.1.1.1
-                          - 2.2.2.2
-                        type: LoadBalancer
                     name: istio-ingressgateway
+                    k8s:
+                      replicaCount: 3
+                      service:
+                        type: NodePort

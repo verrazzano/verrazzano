@@ -5,12 +5,14 @@ package version
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 	"os"
 	"regexp"
+	capiversion "sigs.k8s.io/cluster-api/version"
 )
 
 var cliVersion string
@@ -54,6 +56,10 @@ func runCmdVersion(vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Failed to generate %s command output: %s", CommandName, err.Error())
 	}
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), result)
+
+	// Put in cluster-api package for testing purposes
+	_ = capiversion.Get()
+
 	return nil
 }
 
