@@ -69,7 +69,7 @@ var knownImageIssues = map[string]knownIssues{
 	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
 	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
-	"shell":           {alternateTags: []string{"v0.1.6"}, message: rancherWarningMessage},
+	"shell":           {alternateTags: []string{"v0.1.6", "v0.1.16"}, message: rancherWarningMessage},
 }
 
 // BOM validations validates the images of below allowed namespaces only
