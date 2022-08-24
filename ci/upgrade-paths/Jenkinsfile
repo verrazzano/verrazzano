@@ -561,11 +561,11 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
                             }
                         }
-                        /*stage('Prometheus post-upgrade') {
+                        stage('Prometheus post-upgrade') {
                             steps {
                                 runGinkgoVerifyParallel('Prometheus post-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
                             }
-                        }*/
+                        }
                         stage ("Verify install scripts") {
                             steps {
                                 runGinkgoRandomizeAdmin("scripts/install", "${TEST_DUMP_ROOT}/install-scripts")
