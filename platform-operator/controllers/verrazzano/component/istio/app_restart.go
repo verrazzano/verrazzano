@@ -5,7 +5,6 @@ package istio
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -174,14 +173,13 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 	if err != nil {
 		return log.ErrorfNewErr("Failed, restart components cannot find Istio proxy image in BOM: %v", err)
 	}
-	fmt.Println("Inside restartApps function")
+
 	// get the go client so we can bypass the cache and get directly from etcd
 	goClient, err := k8sutil.GetGoClient(log)
 	if err != nil {
-		fmt.Println("getting the goclient")
 		return err
 	}
-	fmt.Println("After getting the goclient")
+
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
 	if err := client.List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
@@ -205,12 +203,12 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 
 		// Check if any pods contain the old Istio proxy image
 		foundOldIstioProxyImage := DoesPodContainOldIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
-		fmt.Println("Before the  DoesOAMPodsContainNoIstioSidecar")
+
 		//Check if any pods that contain no istio proxy container with istio injection labeled namespace
 		foundOAMPodWithoutIstioProxy, _ := DoesOAMPodsContainNoIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
-		fmt.Println("After the DoesOAMPodsContainNoIstioSidecar")
+
 		if foundOldIstioProxyImage || foundOAMPodWithoutIstioProxy {
-			fmt.Println(foundOldIstioProxyImage, "---", foundOAMPodWithoutIstioProxy)
+
 			restartOAMApp(log, appConfig, client, restartVersion)
 		}
 	}
