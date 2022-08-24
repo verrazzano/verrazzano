@@ -78,4 +78,4 @@ ci/scripts/generate_product_zip.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} $
 #
 echo "Creating Verrazzano Release Distribution bundles"
 cd ${WORKSPACE}
-ci/scripts/generate_vz_distribution.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} ${CLEAN_BRANCH_NAME}-last-clean-periodic-test ${WORKSPACE} ${local_bom} ${DEVELOPENT_VERSION}
+ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${local_bom} ${DEVELOPENT_VERSION}

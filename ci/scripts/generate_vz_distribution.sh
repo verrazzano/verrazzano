@@ -5,40 +5,22 @@
 #
 
 if [ -z "$1" ]; then
-  echo "GIT commit must be specified"
-  exit 1
-fi
-GIT_COMMIT_USED="$1"
-
-if [ -z "$2" ]; then
-  echo "Short commit hash must be specified"
-  exit 1
-fi
-SHORT_COMMIT_HASH_ENV="$2"
-
-if [ -z "$3" ]; then
-  echo "Bucket label for zip must be specified"
-  exit 1
-fi
-BUCKET_LABEL="$3"
-
-if [ -z "$4" ]; then
   echo "Root of Verrazzano repository must be specified"
   exit 1
 fi
-VZ_REPO_ROOT="$4"
+VZ_REPO_ROOT="$1"
 
-if [ -z "$5" ]; then
+if [ -z "$2" ]; then
   echo "Path to the generated BOM file must be specified"
   exit 1
 fi
-GENERATED_BOM_FILE="$5"
+GENERATED_BOM_FILE="$2"
 
-if [ -z "$6" ]; then
+if [ -z "$3" ]; then
   echo "Verrazzano development version must be specified"
   exit 1
 fi
-VZ_DEVELOPENT_VERSION="$6"
+VZ_DEVELOPENT_VERSION="$3"
 
 if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
@@ -170,6 +152,7 @@ generateOpenSourceDistribution() {
   echo "Upload open-source distribution ${generatedDir}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE} --file ${VZ_OPENSOURCE_RELEASE_BUNDLE}
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256} --file ${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256}
+  echo "Successfully uploaded ${generatedDir}/${VZ_OPENSOURCE_RELEASE_BUNDLE}"
 }
 
 # Generate the commercial Verrazzano release distribution
@@ -193,12 +176,14 @@ generateCommercialDistribution() {
 
   # Create and upload the final distribution zip file and upload
   cd ${rootDir}
-  cd ${generatedDir}
-  zip -r ${VZ_COMMERCIAL_RELEASE_BUNDLE} *
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${VZ_COMMERCIAL_RELEASE_BUNDLE}
+  echo "Create ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE} and upload ..."
+  zip -r ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE} *
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE}
 
+  cd ${generatedDir}
   sha256sum ${VZ_COMMERCIAL_RELEASE_BUNDLE} > ${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256}
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256} --file ${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256}
+  echo "Successfully uploaded ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE}"
 }
 
 # Clean-up workspace after uploading the distribution bundles
@@ -230,7 +215,7 @@ VZ_OPENSOURCE_RELEASE_BUNDLE="verrazzano-${VZ_DEVELOPENT_VERSION}-open-source.zi
 VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256="${VZ_OPENSOURCE_RELEASE_BUNDLE}.sha256"
 
 VZ_COMMERCIAL_RELEASE_BUNDLE="verrazzano-${VZ_DEVELOPENT_VERSION}-commercial.zip"
-VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256="${VZ_COMMERCIAL_RELEASE_BUNDLE}.zip.sha256"
+VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256="${VZ_COMMERCIAL_RELEASE_BUNDLE}.sha256"
 
 # Linux AMD64 and Darwin AMD64 bundles for the open-source distribution
 VZ_LINUX_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz"
@@ -260,13 +245,6 @@ generateOpenSourceDistribution "${VZ_OPENSOURCE_ROOT}" "${VZ_OPENSOURCE_GENERATE
 # Build commercial distribution bundle
 createDistributionLayout "${VZ_COMMERCIAL_ROOT}"
 generateCommercialDistribution "${VZ_COMMERCIAL_ROOT}" "${VZ_COMMERCIAL_GENERATED}"
-
-echo "Listing ${VZ_OPENSOURCE_GENERATED}"
-ls ${VZ_OPENSOURCE_GENERATED}
-echo "-----------------------------------------"
-echo "Listing ${VZ_COMMERCIAL_GENERATED}"
-ls ${VZ_COMMERCIAL_GENERATED}
-echo "-----------------------------------------"
 
 # Delete the directories created under WORKSPACE
 cleanupWorkspace
