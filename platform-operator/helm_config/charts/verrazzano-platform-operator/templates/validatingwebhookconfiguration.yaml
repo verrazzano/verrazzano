@@ -33,7 +33,7 @@ webhooks:
     admissionReviewVersions:
       - v1beta1
       - v1
-  - name: install.verrazzano.io
+  - name: install.verrazzano.io.v1beta1
     namespaceSelector:
       matchExpressions:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
