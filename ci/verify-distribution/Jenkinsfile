@@ -263,6 +263,12 @@ pipeline {
                             tar xvf $tarfileName
                         """
                         }
+                    
+                    sh """
+                        # Installing VZ CLI
+                        cp ${TARBALL_DIR}/bin/vz ${GO_REPO_PATH}
+                        ${GO_REPO_PATH}/vz version
+                    """
                 }
             }
         }
