@@ -6,6 +6,7 @@ package appoper
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"path/filepath"
 	"strings"
 
@@ -125,6 +126,11 @@ func (c applicationOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new 
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c applicationOperatorComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

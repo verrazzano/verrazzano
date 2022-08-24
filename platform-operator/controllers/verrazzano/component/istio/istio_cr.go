@@ -20,7 +20,8 @@ import (
 const (
 	//ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
 	// Put external IPs into the IstioOperator YAML, which does support it
-	ExternalIPArg = "gateways.istio-ingressgateway.externalIPs"
+	ExternalIPArg      = "gateways.istio-ingressgateway.externalIPs"
+	externalIPJsonPath = "spec.components.ingressGateways.0.k8s.service.externalIPs.0"
 
 	//meshConfigTracingAddress is the Jaeger collector address
 	meshConfigTracingAddress = "meshConfig.defaultConfig.tracing.zipkin.address"
