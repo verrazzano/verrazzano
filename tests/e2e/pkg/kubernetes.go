@@ -1388,22 +1388,14 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 
 // GetTokenForServiceAccount returns the token associated with service account
 func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
-	serviceAccount, err := GetServiceAccount(namespace, sa)
-	if err != nil {
-		return nil, err
-	}
-	var secretName string
-	if len(serviceAccount.Secrets) == 0 {
-		secretName = serviceAccount.Name + "-token"
-		msg := fmt.Sprintf("no secrets present in service account %s in namespace %s. Creating a service account token"+
-			" secret %s", sa, namespace, secretName)
-		Log(Info, msg)
-		err = createServiceAccountTokenSecret(context.TODO(), serviceAccount)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		secretName = serviceAccount.Secrets[0].Name
+	// In k8s 1.24 and later, secret is not created for service account. Create a service account token secret and get
+	// the token from the same.
+	secretName := sa + "-token"
+	if err := createServiceAccountTokenSecret(sa, namespace); err != nil {
+		msg := fmt.Sprintf("failed to create a service account token secret %s in namespace %s: %v", secretName,
+			namespace, err)
+		Log(Error, msg)
+		return nil, errors.New(msg)
 	}
 
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -1416,11 +1408,32 @@ func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
+	// API token secret is populated asynchronously.
+	// https://github.com/kubernetes/kubernetes/issues/67882#issuecomment-422026204
+	// as a work-around, wait for up to 5 seconds for the secret to be populated.
+	timeout := time.After(5 * time.Second)
+	wait := true
+	for wait {
+		select {
+		case <-timeout:
+			return nil, errors.New("unable to find secret token associated to service account (timeout)")
+		default:
+			secret, err = clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+			if err != nil {
+				return nil, err
+			}
+			if len(secret.Data) > 0 {
+				wait = false
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}
 
 	token, ok := secret.Data["token"]
 
 	if !ok {
-		msg := fmt.Sprintf("no token present in secret %s for service account %s in namespace %s: %v", secretName, sa, namespace, err)
+		msg := fmt.Sprintf("unable to find token in secret %s for service account %s in namespace %s: %v", secretName, sa, namespace, err)
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
@@ -1586,19 +1599,19 @@ func CreateConfigMap(configMap *corev1.ConfigMap) error {
 	return nil
 }
 
-func createServiceAccountTokenSecret(ctx context.Context, serviceAccount *corev1.ServiceAccount) error {
+func createServiceAccountTokenSecret(serviceAccount string, namespace string) error {
 	var secret corev1.Secret
-	secret.Name = serviceAccount.Name + "-token"
-	secret.Namespace = serviceAccount.Namespace
+	secret.Name = serviceAccount + "-token"
+	secret.Namespace = namespace
 	secret.Type = corev1.SecretTypeServiceAccountToken
 	secret.Annotations = map[string]string{
-		corev1.ServiceAccountNameKey: serviceAccount.Name,
+		corev1.ServiceAccountNameKey: serviceAccount,
 	}
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return err
 	}
-	_, err = clientset.CoreV1().Secrets(serviceAccount.Namespace).Create(context.TODO(), &secret, metav1.CreateOptions{})
+	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), &secret, metav1.CreateOptions{})
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
