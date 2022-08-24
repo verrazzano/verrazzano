@@ -216,6 +216,44 @@ func DoesPodContainNoIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodLis
 	return false
 }
 
+// DoesOAMPodContainNoIstioSidecar returns true if any OAM pods with istio injected don't have an Istio proxy sidecar
+func DoesOAMPodsContainNoIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, _ string) (bool, error) {
+	for _, pod := range podList.Items {
+		// Ignore OAM pods that do not have Istio injected
+		noInjection := false
+		for _, item := range config.GetNoInjectionComponents() {
+			if strings.Contains(pod.Name, item) {
+				noInjection = true
+				break
+			}
+		}
+		proxyFound := false
+		goClient, err := k8sutil.GetGoClient(log)
+		if err != nil {
+			return false, log.ErrorfNewErr("Failed to get namespace for AppConfig %s/%s: %v", workloadType, workloadName, err)
+		}
+		podNamespace, _ := goClient.CoreV1().Namespaces().Get(context.TODO(), pod.GetNamespace(), metav1.GetOptions{})
+		namespaceLabels := podNamespace.GetLabels()
+		value, ok := namespaceLabels["istio-injection"]
+
+		if noInjection || (ok && value != "enabled") {
+			continue
+		}
+
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, "proxyv2") {
+				proxyFound = true
+			}
+		}
+		if !proxyFound {
+			log.Oncef("Restarting %s %s which has a pod with no Istio proxy image", workloadType, workloadName)
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // Get the matching pods in namespace given a selector
 func getMatchingPods(log vzlog.VerrazzanoLogger, client kubernetes.Interface, ns string, labelSelector *metav1.LabelSelector) (*v1.PodList, error) {
 	// Conver the resource labelselector to a go-client label selector

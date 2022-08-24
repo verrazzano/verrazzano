@@ -5,7 +5,6 @@ package istio
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -206,11 +205,9 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 		foundOldIstioProxyImage := DoesPodContainOldIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
 
 		//Check if any pods that contain no istio proxy container with istio injection labeled namespace
-		foundPodWithoutIstioProxy := DoesPodContainNoIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
+		foundOAMPodWithoutIstioProxy, _ := DoesOAMPodsContainNoIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
 
-		fmt.Println("foundOldIstioProxyImage", foundOldIstioProxyImage, "foundPodWithoutIstioProxy", foundPodWithoutIstioProxy)
-
-		if foundOldIstioProxyImage || foundPodWithoutIstioProxy {
+		if foundOldIstioProxyImage || foundOAMPodWithoutIstioProxy {
 			restartOAMApp(log, appConfig, client, restartVersion)
 		}
 	}
