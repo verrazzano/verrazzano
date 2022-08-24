@@ -39,5 +39,3 @@ spec:
                 resources:
                   requests:
                     memory: "128Mi"
-  security: {}
-status: {}

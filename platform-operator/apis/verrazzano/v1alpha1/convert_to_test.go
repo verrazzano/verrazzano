@@ -417,6 +417,7 @@ func TestConvertToV1Beta1(t *testing.T) {
 			// compute the actual v1beta1 CR from the v1alpha1 CR
 			v1beta1Actual := &v1beta1.Verrazzano{}
 			err = v1alpha1CR.ConvertTo(v1beta1Actual)
+
 			if tt.hasError {
 				assert.Error(t, err)
 			} else {
