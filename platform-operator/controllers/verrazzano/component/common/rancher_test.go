@@ -7,10 +7,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -46,6 +48,15 @@ func createAdminSecret() v1.Secret {
 			"password": []byte("foobar"),
 		},
 	}
+}
+
+func createKeycloakAuthConfig() unstructured.Unstructured {
+	authConfig := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfig.SetName(AuthConfigKeycloak)
+	return authConfig
 }
 
 // TestGetAdminSecret tests retrieving the Rancher admin secret value
@@ -117,4 +128,43 @@ func TestGetRancherTLSRootCA(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUpdateKeycloakOIDCAuthConfig(t *testing.T) {
+	authConfig := createKeycloakAuthConfig()
+	var tests = []struct {
+		testName string
+		ctx      spi.ComponentContext
+		isError  bool
+	}{
+		{
+			"should update the auth config when it exists",
+			spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&authConfig).Build(), nil, false),
+			false,
+		},
+		{
+			"should throw an error when the auth config is not present",
+			spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), nil, false),
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			err := UpdateKeycloakOIDCAuthConfig(tt.ctx, map[string]interface{}{})
+			if !tt.isError {
+				assert.Nil(t, err)
+			} else {
+				assert.NotNil(t, err)
+			}
+		})
+	}
+}
+
+func TestGetRancherMgmtApiGVKForKind(t *testing.T) {
+	kind := GetRancherMgmtAPIGVKForKind("kind")
+	assert.Equal(t, APIGroupRancherManagement, kind.Group)
+	assert.Equal(t, APIGroupVersionRancherManagement, kind.Version)
+	assert.Equal(t, "kind", kind.Kind)
+
 }
