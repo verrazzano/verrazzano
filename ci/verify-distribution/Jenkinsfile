@@ -116,6 +116,7 @@ pipeline {
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
+        BOM_DOWNLOADED_FILE_NAME = "downloaded-from-bom.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -269,14 +270,17 @@ pipeline {
             steps {
                 sh """
                     # Create OCIR repos for the images in the tarballs in the test compartment
-                    # sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                    cd ${TARBALL_DIR}
+                    sh ${TARBALL_DIR}/vz-registry-image-helper.sh -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -f ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
+                    tar xvf ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
+                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
                     echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
                     # Run the image-helper to load the images into the OCIR registry in the runner's region
                     cd ${TARBALL_DIR}
                     pwd
                     ls
-                    ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo} -b manifests/verrazzano-bom.json
+                    ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
                 """
             }
         }
