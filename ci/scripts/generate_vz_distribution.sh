@@ -49,7 +49,7 @@ fi
 # Create the general distribution layout under a given root directory
 createDistributionLayout() {
   local distributionDirectory=$1
-  echo "Creating the parent directory ${distributionDirectory} for the distribution layout ..."
+  echo "Creating the distribution layout under ${distributionDirectory} ..."
   mkdir -p ${distributionDirectory}
   chmod uog+w ${distributionDirectory}
 
@@ -59,10 +59,9 @@ createDistributionLayout() {
   mkdir -p ${distributionDirectory}/manifests/profiles
 
   if [ "${distributionDirectory}" == "${VZ_COMMERCIAL_ROOT}" ];then
+     echo "Creating the directory to place images and CLIs for supported platforms for commercial distribution ..."
      # Create a directory to place the images
      mkdir -p ${distributionDirectory}/images
-
-     # Add a check to ensure that ${distributionDirectory}/images is same as environment variable ${VERRAZZANO_IMAGES_DIRECTORY}
 
      # Directory to place the CLI
      mkdir -p ${distributionDirectory}/bin/darwin-amd64
@@ -74,24 +73,25 @@ createDistributionLayout() {
 
 # Download the artifacts which are already built and common to both open-source distribution and commercial distribution
 downloadCommonFiles() {
-  mkdir -p ${VZ_DISTRIBUTION_COMMON}
   echo "Downloading common artifacts under ${VZ_DISTRIBUTION_COMMON} ..."
+  mkdir -p ${VZ_DISTRIBUTION_COMMON}
 
+  # operator.yaml
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/operator.yaml --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml
 
-  # Verrazzano CLI for Linux AMD64
+  # CLI for Linux AMD64
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ}
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
 
-  # Verrazzano CLI for Linux ARM64
+  # CLI for Linux ARM64
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ}
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ_SHA256}
 
-  # Verrazzano CLI for Darwin AMD64
+  # CLI for Darwin AMD64
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ}
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256}
 
-  # Verrazzano CLI for Darwin ARM64
+  # CLI for Darwin ARM64
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ}
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256}
 }
@@ -133,6 +133,7 @@ copyProfiles() {
 
 # Generate the open-source Verrazzano release distribution
 generateOpenSourceDistribution() {
+  echo "Generate open-source distribution ..."
   local rootDir=$1
   local generatedDir=$2
 
@@ -140,12 +141,11 @@ generateOpenSourceDistribution() {
   includeCommonFiles $rootDir
 
   # Extract the CLI for Linux AMD64
-  echo "Extract the CLI for Linux AMD64 ..."
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${rootDir}/bin
 
   # Build distribution for Linux AMD64 architecture
   echo "Build distribution for Linux AMD64 architecture ..."
-  tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ} -C ${rootDir} .
+  tar -czf ${generatedDir}/${VZ_LINUX_AMD64_TARGZ} -C ${rootDir} .
 
   # Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture
   echo "Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture ..."
@@ -153,7 +153,6 @@ generateOpenSourceDistribution() {
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${rootDir}/bin
 
   # Build distribution for Darwin AMD64 architecture
-  echo "Build distribution for Darwin AMD64 architecture ..."
   tar -czf ${generatedDir}/${VZ_DARWIN_AMD64_TARGZ} -C ${rootDir} .
 
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${generatedDir}/operator.yaml
@@ -175,11 +174,12 @@ generateOpenSourceDistribution() {
 
 # Generate the commercial Verrazzano release distribution
 generateCommercialDistribution() {
+  echo "Generate commercial distribution ..."
   local rootDir=$1
   local generatedDir=$2
 
   mkdir -p ${generatedDir}
-  includeCommonFiles $VZ_COMMERCIAL_ROOT
+  includeCommonFiles "${rootDir}"
 
   # Extract the CLIs for supported architectures
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${rootDir}/bin/linux-amd64
@@ -261,7 +261,12 @@ generateOpenSourceDistribution "${VZ_OPENSOURCE_ROOT}" "${VZ_OPENSOURCE_GENERATE
 createDistributionLayout "${VZ_COMMERCIAL_ROOT}"
 generateCommercialDistribution "${VZ_COMMERCIAL_ROOT}" "${VZ_COMMERCIAL_GENERATED}"
 
-ls ${VZ_DISTRIBUTION_GENERATED}
+echo "Listing ${VZ_OPENSOURCE_GENERATED}"
+ls ${VZ_OPENSOURCE_GENERATED}
+echo "-----------------------------------------"
+echo "Listing ${VZ_COMMERCIAL_GENERATED}"
+ls ${VZ_COMMERCIAL_GENERATED}
+echo "-----------------------------------------"
 
 # Delete the directories created under WORKSPACE
 cleanupWorkspace
