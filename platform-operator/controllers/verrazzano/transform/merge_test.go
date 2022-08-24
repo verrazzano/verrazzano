@@ -197,15 +197,15 @@ func getMergeProfileTestData() []mergeProfileTestData {
 	return []mergeProfileTestData{
 		{
 			name:     "1",
-			actualCR: "./testdata/dev.yaml",
+			actualCR: devProfileSpecFilePath,
 			profiles: []string{
-				"./testdata/managed.yaml",
+				managedProfileSpecFilePath,
 			},
-			mergedCR: "./testdata/managed.yaml",
+			mergedCR: managedProfileSpecFilePath,
 		},
 		{
 			name:     "2",
-			actualCR: "./testdata/managed.yaml",
+			actualCR: managedProfileSpecFilePath,
 			profiles: []string{
 				consoleSpecFilePath,
 				keycloakSpecFilePath,
@@ -214,11 +214,11 @@ func getMergeProfileTestData() []mergeProfileTestData {
 		},
 		{
 			name:     "3",
-			actualCR: "./testdata/cert_base.yaml",
+			actualCR: certsBaseSpecFilePath,
 			profiles: []string{
-				"./testdata/cert_overlay.yaml",
+				certsOverlaySpecFilePath,
 			},
-			mergedCR: "./testdata/cert_base.yaml",
+			mergedCR: certsBaseSpecFilePath,
 		},
 	}
 }
