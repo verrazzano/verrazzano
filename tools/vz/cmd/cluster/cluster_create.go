@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package create
+package cluster
 
 import (
 	"fmt"
@@ -14,28 +14,28 @@ import (
 )
 
 const (
-	clusterSubCommandName = "cluster"
-	clusterHelpShort      = "Verrazzano create cluster"
-	clusterHelpLong       = `The command 'create cluster' provisions a new local cluster with the given name and type (defaults to "` + constants.ClusterNameFlagDefault + `" and "` + capi.KindClusterType + `")`
-	clusterHelpExample    = `vz create cluster --name mycluster --type ` + capi.KindClusterType
+	createSubCommandName = "create"
+	createHelpShort      = "Verrazzano cluster create"
+	createHelpLong       = `The command 'cluster create' provisions a new local cluster with the given name and type (defaults to "` + constants.ClusterNameFlagDefault + `" and "` + capi.KindClusterType + `")`
+	createHelpExample    = `vz cluster create --name mycluster --type ` + capi.KindClusterType
 )
 
-func newSubcmdCluster(vzHelper helpers.VZHelper) *cobra.Command {
-	cmd := cmdhelpers.NewCommand(vzHelper, clusterSubCommandName, clusterHelpShort, clusterHelpLong)
-	cmd.Example = clusterHelpExample
+func newSubcmdCreate(vzHelper helpers.VZHelper) *cobra.Command {
+	cmd := cmdhelpers.NewCommand(vzHelper, createSubCommandName, createHelpShort, createHelpLong)
+	cmd.Example = createHelpExample
 	cmd.PersistentFlags().String(constants.ClusterNameFlagName, constants.ClusterNameFlagDefault, constants.ClusterNameFlagHelp)
 	cmd.PersistentFlags().String(constants.ClusterTypeFlagName, constants.ClusterTypeFlagDefault, constants.ClusterTypeFlagHelp)
 	cmd.PersistentFlags().String(constants.ClusterImageFlagName, constants.ClusterImageFlagDefault, constants.ClusterImageFlagHelp)
 	// the image flag should be hidden since it is not intended for general use
 	cmd.PersistentFlags().MarkHidden(constants.ClusterImageFlagName)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdCreateCluster(cmd, args)
+		return runCmdClusterCreate(cmd, args)
 	}
 
 	return cmd
 }
 
-func runCmdCreateCluster(cmd *cobra.Command, args []string) error {
+func runCmdClusterCreate(cmd *cobra.Command, args []string) error {
 	clusterName, err := cmd.PersistentFlags().GetString(constants.ClusterNameFlagName)
 	clusterType, err := cmd.PersistentFlags().GetString(constants.ClusterTypeFlagName)
 	clusterImg, err := cmd.PersistentFlags().GetString(constants.ClusterImageFlagName)

@@ -12,7 +12,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/create"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/cluster"
 
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/uninstall"
@@ -53,7 +53,7 @@ func TestNewRootCmd(t *testing.T) {
 			foundCount++
 		case bugreport.CommandName:
 			foundCount++
-		case create.CommandName:
+		case cluster.CommandName:
 			foundCount++
 		}
 	}
@@ -72,7 +72,7 @@ func TestNewRootCmd(t *testing.T) {
 	assert.True(t, strings.Contains(buf.String(), "Flags:"))
 }
 
-func TestCreateIsHiddenInHelp(t *testing.T) {
+func TestClusterCommandIsHiddenInHelp(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
@@ -85,6 +85,5 @@ func TestCreateIsHiddenInHelp(t *testing.T) {
 	output := buf.String()
 
 	// The create command should be hidden in VZ CLI help
-	assert.NotContains(t, output, create.CommandName)
-	assert.NotContains(t, output, create.HelpShort)
+	assert.NotContains(t, output, cluster.HelpShort)
 }
