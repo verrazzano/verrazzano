@@ -94,6 +94,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 		return newScrapeConfig, nil
 	}
 	vzPromSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoPromInternal, true)
+
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +109,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 		configTemplate = strings.ReplaceAll(configTemplate, key, value)
 	}
 	newScrapeConfig, err = metricsutils.ParseScrapeConfig(configTemplate)
+
 	if err != nil {
 		return nil, err
 	}
@@ -169,20 +171,23 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	if err != nil {
 		return err
 	}
+
 	// TODO: Set this in the newScrapeConfig function when we remove the "old" Prometheus code
 	newScrapeConfig.Set(managedCertsBasePath+getCAKey(vmc), "tls_config", "ca_file")
-
 	editScrapeJobName := vmc.Name
+
 	// parse the scrape config so we can manipulate it
 	jobs, err := metricsutils.ParseScrapeConfig(jobsStr)
 	if err != nil {
 		return err
 	}
+
 	scrapeConfigs, err := metricsutils.EditScrapeJob(jobs, editScrapeJobName, newScrapeConfig)
 	if err != nil {
 		return err
 	}
 	bytes, err := yaml.JSONToYAML(scrapeConfigs.Bytes())
+
 	if err != nil {
 		return err
 	}
@@ -195,6 +200,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 		},
 		Data: map[string][]byte{},
 	}
+
 	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, &secret, func() error {
 		secret.Data[constants.PromAdditionalScrapeConfigsSecretKey] = bytes
 		return nil
@@ -213,6 +219,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(c
 			Namespace: vpoconst.VerrazzanoMonitoringNamespace,
 		},
 	}
+
 	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, secret, func() error {
 		if secret.Data == nil {
 			secret.Data = make(map[string][]byte)
