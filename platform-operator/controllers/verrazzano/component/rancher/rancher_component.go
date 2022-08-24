@@ -483,7 +483,7 @@ func toggleKeycloakAuthProvider(ctx spi.ComponentContext, isUpgrade bool) error 
 	log := ctx.Log()
 	vz := ctx.ActualCR()
 	enableKeycloak := isKeycloakAuthEnabled(isUpgrade, vz, ver140, vzSourceVersion, vzTargetVersion)
-	if err := disableOrEnableAuthProvider(ctx, AuthConfigKeycloak, enableKeycloak); err != nil {
+	if err := disableOrEnableAuthProvider(ctx, common.AuthConfigKeycloak, enableKeycloak); err != nil {
 		return log.ErrorfThrottledNewErr("failed to %s keycloak oidc auth provider, error: %s", formatBool(enableKeycloak, "enable", "disable"), err.Error())
 	}
 
