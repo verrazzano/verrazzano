@@ -10,7 +10,14 @@ import (
 
 type CAPIInitFuncType = func(path string, options ...clusterapi.Option) (clusterapi.Client, error)
 
+const (
+	KindClusterType = "kind"
+	NoClusterType   = "noCluster"
+)
+
 var capiInitFunc = clusterapi.New
+var publicSupportedClusterTypes = []string{KindClusterType}
+var allSupportedClusterTypes = append(publicSupportedClusterTypes, NoClusterType)
 
 // SetCAPIInitFunc For unit testing, override the CAPI init function
 func SetCAPIInitFunc(f CAPIInitFuncType) {
@@ -24,9 +31,9 @@ func ResetCAPIInitFunc() {
 
 // ClusterConfig Defines the properties of a cluster
 type ClusterConfig interface {
-	ClusterName() string
-	Type() string
-	ContainerImage() string
+	GetClusterName() string
+	GetType() string
+	GetContainerImage() string
 }
 
 // ClusterLifeCycleManager defines the lifecycle operations of a cluster
@@ -53,33 +60,53 @@ func NewBoostrapCluster(clusterConfig ClusterConfig) (ClusterLifeCycleManager, e
 	if err != nil {
 		return nil, err
 	}
-	return &kindClusterManager{
-		config: actualConfig,
-	}, nil
+	switch actualConfig.GetType() {
+	case KindClusterType:
+		return &kindClusterManager{
+			config: actualConfig,
+		}, nil
+	case NoClusterType:
+		return &noClusterManager{
+			config: actualConfig,
+		}, nil
+	default:
+		return nil, unknownClusterTypeError(actualConfig.GetType())
+	}
 }
 
 func setDefaults(c ClusterConfig) ClusterConfig {
 	defaultConfig := bootstrapClusterConfig{}
 	actualConfig := ClusterConfigInfo{
-		ClusterNameVal:    c.ClusterName(),
-		TypeVal:           c.Type(),
-		ContainerImageVal: c.ContainerImage(),
+		ClusterName:    c.GetClusterName(),
+		Type:           c.GetType(),
+		ContainerImage: c.GetContainerImage(),
 	}
-	if actualConfig.ClusterName() == "" {
-		actualConfig.ClusterNameVal = defaultConfig.ClusterName()
+	if actualConfig.GetClusterName() == "" {
+		actualConfig.ClusterName = defaultConfig.GetClusterName()
 	}
-	if actualConfig.Type() == "" {
-		actualConfig.TypeVal = defaultConfig.Type()
+	if actualConfig.GetType() == "" {
+		actualConfig.Type = defaultConfig.GetType()
 	}
-	if actualConfig.ContainerImage() == "" {
-		actualConfig.ContainerImageVal = defaultConfig.ContainerImage()
+	if actualConfig.GetContainerImage() == "" {
+		actualConfig.ContainerImage = defaultConfig.GetContainerImage()
 	}
 	return actualConfig
 }
 
 func validateConfig(config ClusterConfig) error {
-	if config.Type() != KindClusterType {
-		return fmt.Errorf("Unsupported cluster type %s - only %s is supported", config.Type(), KindClusterType)
+	valid := false
+	for _, clusterType := range allSupportedClusterTypes {
+		if config.GetType() == clusterType {
+			valid = true
+		}
+	}
+	if !valid {
+		return unknownClusterTypeError(config.GetType())
 	}
 	return nil
+}
+
+func unknownClusterTypeError(clusterType string) error {
+	return fmt.Errorf("unsupported cluster type %s - supported types are %v",
+		clusterType, publicSupportedClusterTypes)
 }

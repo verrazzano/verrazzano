@@ -64,9 +64,9 @@ func TestCreateBootstrapClusterConfigValidations(t *testing.T) {
 		expectedContainerImage string
 	}{
 		{clusterName: "some-cluster", clusterType: "sometype", containerImage: "someimage", errExpected: true},
-		{clusterName: "", clusterType: "", containerImage: "", errExpected: false, expectedClusterName: testBootstrapCfg.ClusterName(), expectedClusterType: testBootstrapCfg.Type(), expectedContainerImage: testBootstrapCfg.ContainerImage()},
-		{clusterName: "some-cluster", clusterType: "", containerImage: "someimage", errExpected: false, expectedClusterType: testBootstrapCfg.Type()},
-		{clusterName: "some-cluster", clusterType: KindClusterType, containerImage: "someimage", errExpected: false, expectedClusterType: testBootstrapCfg.Type()},
+		{clusterName: "", clusterType: "", containerImage: "", errExpected: false, expectedClusterName: testBootstrapCfg.GetClusterName(), expectedClusterType: testBootstrapCfg.GetType(), expectedContainerImage: testBootstrapCfg.GetContainerImage()},
+		{clusterName: "some-cluster", clusterType: "", containerImage: "someimage", errExpected: false, expectedClusterType: testBootstrapCfg.GetType()},
+		{clusterName: "some-cluster", clusterType: KindClusterType, containerImage: "someimage", errExpected: false, expectedClusterType: testBootstrapCfg.GetType()},
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
@@ -78,9 +78,9 @@ func TestCreateBootstrapClusterConfigValidations(t *testing.T) {
 			defer ResetKindBootstrapProvider()
 			defer ResetCAPIInitFunc()
 			config := ClusterConfigInfo{
-				ClusterNameVal:    tt.clusterName,
-				TypeVal:           tt.clusterType,
-				ContainerImageVal: tt.containerImage,
+				ClusterName:    tt.clusterName,
+				Type:           tt.clusterType,
+				ContainerImage: tt.containerImage,
 			}
 			cluster, err := NewBoostrapCluster(config)
 			if tt.errExpected {
@@ -102,9 +102,9 @@ func TestCreateBootstrapClusterConfigValidations(t *testing.T) {
 			if expectedContainerImage == "" {
 				expectedContainerImage = tt.containerImage
 			}
-			asserts.Equal(expectedClusterName, cfg.ClusterName())
-			asserts.Equal(expectedClusterType, cfg.Type())
-			asserts.Equal(expectedContainerImage, cfg.ContainerImage())
+			asserts.Equal(expectedClusterName, cfg.GetClusterName())
+			asserts.Equal(expectedClusterType, cfg.GetType())
+			asserts.Equal(expectedContainerImage, cfg.GetContainerImage())
 		})
 	}
 }

@@ -32,13 +32,12 @@ func newSubcmdCluster(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdCreateCluster(cmd *cobra.Command, args []string) error {
-	fmt.Println("DEVA create cluster command invoked")
 	clusterName, err := cmd.PersistentFlags().GetString(constants.ClusterNameFlagName)
 	if err != nil {
 		return fmt.Errorf("Failed to get the %s flag: %v", constants.ClusterNameFlagName, err)
 	}
 	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfigInfo{
-		ClusterNameVal: clusterName,
+		ClusterName: clusterName,
 	})
 	if err != nil {
 		return err
