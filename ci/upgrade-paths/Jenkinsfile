@@ -415,13 +415,6 @@ pipeline {
                 }
                 stage("upgrade-verrazzano") {
                     steps {
-                        script {
-                            sh """
-                            echo 'Before upgrade...'
-                            export KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                            kubectl get pods -nhello-helidon
-                            """
-                        }
                         upgradeVerrazzano()
                     }
                     post {
@@ -1032,8 +1025,6 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
             def kubeClusterConfig="${KUBECONFIG_DIR}/${count}/kube_config"
             def upgradeOperatorFile = "${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
             sh """
-                echo "Before upgrade..."
-                kubectl --kubeconfig=${kubeClusterConfig} get pods -nhello-helidon
                 cp ${TARGET_UPGRADE_OPERATOR_YAML} ${upgradeOperatorFile}
 
                 mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}
@@ -1054,8 +1045,6 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                 sleep 15
                 echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
                 helm --kubeconfig=${kubeClusterConfig} list -A
-                echo "After upgrade..."
-                kubectl --kubeconfig=${kubeClusterConfig} get pods -nhello-helidon
             """
             RUNNING_OPERATOR_VERSION = sh(returnStdout: true, script: "export KUBECONFIG='${KUBECONFIG_DIR}/${count}/kube_config' && kubectl get vz -o jsonpath='{.items[0].status.version}'").trim()
             echo "Verrazzano Version Upgrade : ${RUNNING_OPERATOR_VERSION}"

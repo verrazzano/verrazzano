@@ -162,7 +162,7 @@ func TestHelidonStopStart(t *testing.T) {
 		{
 			name:               "RestartHelidon",
 			expectGetAndUpdate: true,
-			image:              "randomImage",
+			image:              "",
 			f: func(mock *mocks.MockClient) error {
 				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
 			},

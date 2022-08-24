@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -233,19 +234,22 @@ func DoesOAMPodsContainNoIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.Po
 			return false, log.ErrorfNewErr("Failed to get namespace for AppConfig %s/%s: %v", workloadType, workloadName, err)
 		}
 		podNamespace, _ := goClient.CoreV1().Namespaces().Get(context.TODO(), pod.GetNamespace(), metav1.GetOptions{})
+		fmt.Println("Before the GetLabels")
 		namespaceLabels := podNamespace.GetLabels()
+		fmt.Println("After the GetLabels")
 		value, ok := namespaceLabels["istio-injection"]
-
 		if noInjection || (ok && value != "enabled") {
 			continue
 		}
 
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, "proxyv2") {
+				fmt.Println("PROXY FOUND")
 				proxyFound = true
 			}
 		}
 		if !proxyFound {
+			fmt.Println("Inside proxy not found")
 			log.Oncef("Restarting %s %s which has a pod with no Istio proxy image", workloadType, workloadName)
 			return true, nil
 		}

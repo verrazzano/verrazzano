@@ -4,7 +4,6 @@
 package metricsutils
 
 import (
-	"fmt"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"sigs.k8s.io/yaml"
@@ -78,7 +77,6 @@ func ParseScrapeConfig(scrapeConfigStr string) (*gabs.Container, error) {
 	scrapeConfigJSON, _ := yaml.YAMLToJSON([]byte(scrapeConfigStr))
 	newScrapeConfig, err := gabs.ParseJSON(scrapeConfigJSON)
 	if err != nil {
-		fmt.Println("--Debug--Inside error of ParseScrapeConfig", err)
 		return nil, err
 	}
 	return newScrapeConfig, nil
