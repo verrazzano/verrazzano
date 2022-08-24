@@ -61,31 +61,35 @@ const (
 	secretKey				= "mysql-password"
 	rootSecretName			= "mysql-cluster-secret"
 	rootPasswordKey         = "rootPassword"
-	mySqlDbCommands 		= `
-mysql -uroot -p%s -e "CREATE USER keycloak IDENTIFIED BY '%s';
+	noRouterAddr 		    = "mysql-instances"
+	routerAddr              = "mysql"
+    dbHostKey               = "mysql.dbHost"
+)
+
+// Keycloak DB initialization
+const mySqlDbCommands = `mysql -uroot -p%s -e "CREATE USER keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 USE keycloak;
 GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO 'keycloak'@'%%';
 FLUSH PRIVILEGES;
-CREATE TABLE ` + "`DATABASECHANGELOG`" +
-  `(` + "`ID`" + ` varchar(255) NOT NULL,
-  ` + "`AUTHOR`" + ` varchar(255) NOT NULL,
-  ` + "`FILENAME`" + ` varchar(255) NOT NULL,
-  ` + "`DATEEXECUTED`" + ` datetime NOT NULL,
-  ` + "`ORDEREXECUTED`" + ` int(11) NOT NULL,
-  ` + "`EXECTYPE`" + ` varchar(10) NOT NULL,
-  ` + "`MD5SUM`" + ` varchar(35) DEFAULT NULL,
-  ` + "`DESCRIPTION`" + ` varchar(255) DEFAULT NULL,
-  ` + "`COMMENTS`" + ` varchar(255) DEFAULT NULL,
-  ` + "`TAG`" + ` varchar(255) DEFAULT NULL,
-  ` + "`LIQUIBASE`" + ` varchar(20) DEFAULT NULL,
-  ` + "`CONTEXTS`" + ` varchar(255) DEFAULT NULL,
-  ` + "`LABELS`" + ` varchar(255) DEFAULT NULL,
-  ` + "`DEPLOYMENT_ID`" + ` varchar(10) DEFAULT NULL,
-  PRIMARY KEY (` + "`ID`,`AUTHOR`,`FILENAME`" + `)
+CREATE TABLE DATABASECHANGELOG (
+  ID varchar(255) NOT NULL,
+  AUTHOR varchar(255) NOT NULL,
+  FILENAME varchar(255) NOT NULL,
+  DATEEXECUTED datetime NOT NULL,
+  ORDEREXECUTED int(11) NOT NULL,
+  EXECTYPE varchar(10) NOT NULL,
+  MD5SUM varchar(35) DEFAULT NULL,
+  DESCRIPTION varchar(255) DEFAULT NULL,
+  COMMENTS varchar(255) DEFAULT NULL,
+  TAG varchar(255) DEFAULT NULL,
+  LIQUIBASE varchar(20) DEFAULT NULL,
+  CONTEXTS varchar(255) DEFAULT NULL,
+  LABELS varchar(255) DEFAULT NULL,
+  DEPLOYMENT_ID varchar(10) DEFAULT NULL,
+  PRIMARY KEY (ID,AUTHOR,FILENAME)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
 `
-)
 
 // Define the Keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
@@ -578,9 +582,26 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	})
 
 	// set the appropriate host address for DB based on the availability of the MySQL router
-	
+	mysqlAddr := noRouterAddr
+	if isMySQLRouterDeployed(compContext, err) {
+		mysqlAddr = routerAddr
+	}
+	kvs = append(kvs, bom.KeyValue{
+		Key:  dbHostKey,
+		Value: mysqlAddr,
+	})
 
 	return kvs, nil
+}
+
+func isMySQLRouterDeployed(compContext spi.ComponentContext, err error) bool {
+	deployment := appv1.Deployment{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: "mysql-router"}, &deployment)
+	if err != nil {
+		return false
+	}
+
+	return true
 }
 
 // getEnvironmentName returns the name of the Verrazzano install environment
@@ -1618,6 +1639,7 @@ func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, err
 
 // setupDatabase creates the user and database for keycloak
 func setupDatabase(ctx spi.ComponentContext) error {
+	// TODO:  skip this if keycloak user exists?
 	// retrieve root password for mysql
 	rootSecret := corev1.Secret{}
 	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: rootSecretName }, &rootSecret); err != nil {

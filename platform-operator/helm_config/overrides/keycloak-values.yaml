@@ -8,7 +8,8 @@
 
 postgresql:
   enabled: false
-
+mysql:
+  enabled: true
 extraEnv: |
   - name: CACHE_OWNERS
     value: "2"
@@ -17,8 +18,6 @@ extraEnv: |
   - name: JGROUPS_DISCOVERY_PROTOCOL
     value: JDBC_PING
   - name: DB_VENDOR
-    value: mysql
-  - name: DB_ADDR
     value: mysql
   - name: DB_PORT
     value: "3306"
