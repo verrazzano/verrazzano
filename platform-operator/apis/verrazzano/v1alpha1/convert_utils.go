@@ -26,6 +26,7 @@ const (
 	testCaseRancherKeycloak   = "rancherkeycloak"
 	testCaseVolumeOverrides   = "volumeoverrides"
 	testCaseGeneralOverrides  = "overrides"
+	testBaseProfile           = "base"
 	testProdProfile           = "prod"
 	testDevProfile            = "dev"
 	testManagedClusterProfile = "managed-cluster"

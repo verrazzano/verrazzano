@@ -392,6 +392,11 @@ func TestConvertToV1Beta1(t *testing.T) {
 			true,
 		},
 		{
+			"convert base profile",
+			testBaseProfile,
+			false,
+		},
+		{
 			"convert prod profile",
 			testProdProfile,
 			false,
