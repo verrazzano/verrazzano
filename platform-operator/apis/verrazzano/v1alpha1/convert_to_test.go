@@ -4,8 +4,6 @@
 package v1alpha1
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -419,10 +417,6 @@ func TestConvertToV1Beta1(t *testing.T) {
 			// compute the actual v1beta1 CR from the v1alpha1 CR
 			v1beta1Actual := &v1beta1.Verrazzano{}
 			err = v1alpha1CR.ConvertTo(v1beta1Actual)
-			var crResponse v1beta1.Verrazzano
-			temp, _ := json.Marshal(v1beta1Actual)
-			json.Unmarshal(temp, &crResponse)
-			fmt.Println(string(temp))
 			if tt.hasError {
 				assert.Error(t, err)
 			} else {
@@ -437,8 +431,6 @@ func TestConvertToV1Beta1(t *testing.T) {
 				}
 				// expected and actual v1beta1 CRs must be equal
 				assert.EqualValues(t, v1beta1Expected.ObjectMeta, v1beta1Actual.ObjectMeta)
-				//fmt.Println("v1beta1Expected.Spec", v1beta1Expected.Spec, "-----v1beta1Actual.Spec", v1beta1Actual.Spec)
-
 				assert.EqualValues(t, v1beta1Expected.Spec, v1beta1Actual.Spec)
 				assert.EqualValues(t, v1beta1Expected.Status, v1beta1Actual.Status)
 			}
