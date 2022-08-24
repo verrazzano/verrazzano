@@ -61,8 +61,7 @@ const (
 	VzProjHandleDuration                   metricName = "VzProj hanlde duration"
 )
 
-// InitRegisterStart initalizes the metrics object, registers the metrics, and then starts the server
-func InitRegisterStart(log *zap.SugaredLogger) error {
+func init() {
 	vlog, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           "",
 		Namespace:      "",
@@ -71,12 +70,10 @@ func InitRegisterStart(log *zap.SugaredLogger) error {
 		ControllerName: "metricsexporter",
 	})
 	if err != nil {
-		return err
+		panic(err)
 	}
 	RequiredInitialization()
 	RegisterMetrics(vlog)
-	StartMetricsServer(vlog)
-	return nil
 }
 
 // RequiredInitialization initalizes the metrics object, but does not register the metrics
@@ -368,14 +365,25 @@ func initializeFailedMetricsArray() {
 }
 
 // StartMetricsServer starts the metric server to begin emitting metrics to Prometheus
-func StartMetricsServer(log vzlog.VerrazzanoLogger) {
+func StartMetricsServer() error {
+	vlog, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+		Name:           "",
+		Namespace:      "",
+		ID:             "",
+		Generation:     0,
+		ControllerName: "metricsexporter",
+	})
+	if err != nil {
+		return err
+	}
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
 		err := http.ListenAndServe(":9100", nil)
 		if err != nil {
-			log.Oncef("Failed to start metrics server for VMI: %v", err)
+			vlog.Oncef("Failed to start metrics server for VMI: %v", err)
 		}
 	}, time.Second*3, wait.NeverStop)
+	return nil
 }
 
 // initConfiguration returns an empty struct of type configuration

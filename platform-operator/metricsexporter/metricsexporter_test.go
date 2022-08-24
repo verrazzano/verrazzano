@@ -26,7 +26,6 @@ const (
 // GIVEN a call to Inc
 // THEN the function should update that internal metric by one
 func TestReconcileCounterAndErrorIncrement(t *testing.T) {
-	RequiredInitialization()
 	assert := asserts.New(t)
 	test := struct {
 		name                             string
@@ -58,7 +57,6 @@ func TestReconcileCounterAndErrorIncrement(t *testing.T) {
 // WHEN a VZ CR with or without timestamps is passed to the fn
 // THEN the function properly updates or does nothing to the component's metric
 func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
-	RequiredInitialization()
 	assert := asserts.New(t)
 	emptyVZCR := installv1alpha1.Verrazzano{}
 	disabledComponentVZCR := installv1alpha1.Verrazzano{
