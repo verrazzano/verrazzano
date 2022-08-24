@@ -300,7 +300,10 @@ func convertGrafanaTo(in *GrafanaComponent) *v1alpha1.GrafanaComponent {
 	return &v1alpha1.GrafanaComponent{
 		Enabled:  in.Enabled,
 		Replicas: in.Replicas,
-		Database: (*v1alpha1.DatabaseInfo)(in.Database),
+		Database: &v1alpha1.DatabaseInfo{
+			Host: in.Database.Host,
+			Name: in.Database.Name,
+		},
 	}
 }
 

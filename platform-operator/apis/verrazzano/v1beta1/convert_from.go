@@ -431,7 +431,10 @@ func convertGrafanaFrom(src *v1alpha1.GrafanaComponent) *GrafanaComponent {
 	return &GrafanaComponent{
 		Enabled:  src.Enabled,
 		Replicas: src.Replicas,
-		Database: (*DatabaseInfo)(src.Database),
+		Database: &DatabaseInfo{
+			Host: src.Database.Host,
+			Name: src.Database.Name,
+		},
 	}
 }
 
