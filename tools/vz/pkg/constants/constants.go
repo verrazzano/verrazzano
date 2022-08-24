@@ -173,4 +173,8 @@ const (
 	ClusterNameFlagName    = "name"
 	ClusterNameFlagDefault = "vz-capi"
 	ClusterNameFlagHelp    = "The name of the cluster - defaults to " + ClusterNameFlagDefault
+
+	ClusterTypeFlagName    = "type"
+	ClusterTypeFlagDefault = "kind"
+	ClusterTypeFlagHelp    = "The type of the cluster - defaults to " + ClusterTypeFlagDefault
 )
