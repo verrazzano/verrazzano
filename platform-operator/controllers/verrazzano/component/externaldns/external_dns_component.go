@@ -6,6 +6,8 @@ package externaldns
 import (
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -58,12 +60,8 @@ func (e externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func (e externalDNSComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	dns := effectiveCR.Spec.Components.DNS
-	if dns != nil && dns.OCI != nil {
-		return true
-	}
-	return false
+func (e externalDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsExternalDNSEnabled(effectiveCR)
 }
 
 // PostUninstall Clean up external-dns resources not removed by Uninstall()

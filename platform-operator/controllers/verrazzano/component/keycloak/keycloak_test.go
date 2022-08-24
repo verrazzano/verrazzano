@@ -17,6 +17,7 @@ import (
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -24,6 +25,7 @@ import (
 	networkv1 "k8s.io/api/networking/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -91,6 +93,15 @@ func createTestNginxService() *v1.Service {
 			},
 		},
 	}
+}
+
+func createTestKeycloakAuthConfig() unstructured.Unstructured {
+	authConfig := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
+	authConfig.SetName(common.AuthConfigKeycloak)
+	return authConfig
 }
 
 func fakeConfigureRealmCommands(url *url.URL) (string, string, error) {
@@ -382,6 +393,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 	podExecFunc := k8sutilfake.PodExecResult
+	authConfig := createTestKeycloakAuthConfig()
 
 	keycloakPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -527,7 +539,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
-			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod,
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod, &authConfig,
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano",

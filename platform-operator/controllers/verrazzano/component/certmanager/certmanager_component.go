@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -61,8 +62,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
-func (c certManagerComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	return vzconfig.IsCertManagerEnabled(effectiveCR)
+func (c certManagerComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsCertManagerEnabled(effectiveCR.(*vzapi.Verrazzano))
 }
 
 // IsReady component check
