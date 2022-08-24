@@ -133,12 +133,6 @@ pipeline {
 
     stages {
         stage('Initialize workspace and checkout') {
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-                VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
-            }
             steps {
                 script {
                     echo "Current execution region: $ocirRegion"
@@ -230,14 +224,6 @@ pipeline {
                     // update the description with some meaningful info
                     setDisplayName()
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
-                }
-                script {
-                    sh """
-                        echo "Downloading VZ CLI from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
-                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                        ${GO_REPO_PATH}/vz version
-                    """
                 }
             }
         }
