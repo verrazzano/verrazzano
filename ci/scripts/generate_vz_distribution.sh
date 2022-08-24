@@ -133,57 +133,67 @@ copyProfiles() {
 
 # Generate the open-source Verrazzano release distribution
 generateOpenSourceDistribution() {
-  includeCommonFiles $VZ_OPENSOURCE_ROOT
+  local rootDir=$1
+  local generatedDir=$2
+
+  mkdir -p ${generatedDir}
+  includeCommonFiles $rootDir
 
   # Extract the CLI for Linux AMD64
   echo "Extract the CLI for Linux AMD64 ..."
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT}/bin
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${rootDir}/bin
 
   # Build distribution for Linux AMD64 architecture
   echo "Build distribution for Linux AMD64 architecture ..."
-  tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT} .
-  sha256sum ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ} > ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ_SHA256}
+  tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_LINUX_AMD64_TARGZ} -C ${rootDir} .
 
   # Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture
   echo "Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture ..."
-  rm -f ${VZ_OPENSOURCE_ROOT}/bin/vz
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT}/bin
+  rm -f ${rootDir}/bin/vz
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${rootDir}/bin
 
   # Build distribution for Darwin AMD64 architecture
   echo "Build distribution for Darwin AMD64 architecture ..."
-  tar -czf ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ} -C ${VZ_OPENSOURCE_ROOT} .
-  sha256sum ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ} > ${VZ_DISTRIBUTION_GENERATED}/${VZ_DARWIN_AMD64_TARGZ_SHA256}
+  tar -czf ${generatedDir}/${VZ_DARWIN_AMD64_TARGZ} -C ${rootDir} .
 
-  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${VZ_DISTRIBUTION_GENERATED}/operator.yaml
-  cd ${VZ_DISTRIBUTION_GENERATED}
+  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${generatedDir}/operator.yaml
+
+  cd ${generatedDir}
+  sha256sum ${VZ_LINUX_AMD64_TARGZ} > ${VZ_LINUX_AMD64_TARGZ_SHA256}
+  sha256sum ${VZ_DARWIN_AMD64_TARGZ} > ${VZ_DARWIN_AMD64_TARGZ_SHA256}
   sha256sum operator.yaml > operator.yaml.sha256
 
   # Create and upload the final distribution zip file and upload
-  echo "Build open-source distribution ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
-  zip ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ${VZ_LINUX_AMD64_TARGZ} ${VZ_LINUX_AMD64_TARGZ_SHA256} ${VZ_DARWIN_AMD64_TARGZ} ${VZ_DARWIN_AMD64_TARGZ_SHA256} operator.yaml operator.yaml.sha256
+  echo "Build open-source distribution ${generatedDir}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
+  zip ${VZ_OPENSOURCE_RELEASE_BUNDLE} ${VZ_LINUX_AMD64_TARGZ} ${VZ_LINUX_AMD64_TARGZ_SHA256} ${VZ_DARWIN_AMD64_TARGZ} ${VZ_DARWIN_AMD64_TARGZ_SHA256} operator.yaml operator.yaml.sha256
+  sha256sum ${VZ_OPENSOURCE_RELEASE_BUNDLE} > ${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256}
 
-  echo "Upload open-source distribution ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE}
+  echo "Upload open-source distribution ${generatedDir}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE} --file ${VZ_OPENSOURCE_RELEASE_BUNDLE}
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256} --file ${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256}
 }
 
 # Generate the commercial Verrazzano release distribution
 generateCommercialDistribution() {
+  local rootDir=$1
+  local generatedDir=$2
+
+  mkdir -p ${generatedDir}
   includeCommonFiles $VZ_COMMERCIAL_ROOT
 
   # Extract the CLIs for supported architectures
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${VZ_COMMERCIAL_ROOT}/bin/linux-amd64
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ} -C ${VZ_COMMERCIAL_ROOT}/bin/linux-arm64
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${rootDir}/bin/linux-amd64
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ} -C ${rootDir}/bin/linux-arm64
 
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${VZ_COMMERCIAL_ROOT}/bin/darwin-amd64
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${VZ_COMMERCIAL_ROOT}/bin/darwin-arm64
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${rootDir}/bin/darwin-amd64
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${rootDir}/bin/darwin-arm64
 
-  # Get the tar files
-  mv ${WORKSPACE}/tar-files/*.tar ${VZ_COMMERCIAL_ROOT}/images/
-
-  cd ${VZ_COMMERCIAL_ROOT}
+  # Move the tar files to images directory
+  mv ${WORKSPACE}/tar-files/*.tar ${rootDir}/images/
 
   # Create and upload the final distribution zip file and upload
-  cd ${VZ_DISTRIBUTION_GENERATED}
+  cd ${rootDir}
+  cd ${generatedDir}
   zip -r ${VZ_COMMERCIAL_RELEASE_BUNDLE} *
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${VZ_COMMERCIAL_RELEASE_BUNDLE}
 
@@ -195,8 +205,9 @@ generateCommercialDistribution() {
 cleanupWorkspace() {
   rm -rf ${VZ_DISTRIBUTION_COMMON}
   rm -rf ${VZ_OPENSOURCE_ROOT}
-  # For now, do not delete ${VZ_COMMERCIAL_ROOT} as push_to_ocir.sh requires ${VZ_COMMERCIAL_ROOT}/images/*.tar
-  rm -rf ${VZ_DISTRIBUTION_GENERATED}
+  # Do not delete ${VZ_COMMERCIAL_ROOT} as push_to_ocir.sh requires ${VZ_COMMERCIAL_ROOT}/images/*.tar
+  rm -rf ${VZ_OPENSOURCE_GENERATED}
+  rm -rf ${VZ_COMMERCIAL_GENERATED}
 }
 
 # List of files in storage
@@ -214,15 +225,14 @@ VZ_CLI_DARWIN_ARM64_TARGZ_SHA256="vz-darwin-arm64.tar.gz.sha256"
 
 DISTRIBUTION_PREFIX="verrazzano-${VZ_DEVELOPENT_VERSION}"
 
+# Release bundles and SHA256 of the bundles
 VZ_OPENSOURCE_RELEASE_BUNDLE="verrazzano-${VZ_DEVELOPENT_VERSION}-open-source.zip"
 VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256="${VZ_OPENSOURCE_RELEASE_BUNDLE}.sha256"
 
 VZ_COMMERCIAL_RELEASE_BUNDLE="verrazzano-${VZ_DEVELOPENT_VERSION}-commercial.zip"
 VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256="${VZ_COMMERCIAL_RELEASE_BUNDLE}.zip.sha256"
 
-VZ_CLI_DARWIN_AMD64_TARGZ="vz-darwin-amd64.tar.gz"
-VZ_CLI_DARWIN_AMD64_TARGZ_SHA256="vz-darwin-amd64.tar.gz.sha256"
-
+# Linux AMD64 and Darwin AMD64 bundles for the open-source distribution
 VZ_LINUX_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz"
 VZ_LINUX_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz.sha256"
 
@@ -232,26 +242,26 @@ VZ_DARWIN_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-darwin-amd64.tar.gz.sha256"
 # Directory to contain the files which are common for both types of distribution bundles
 VZ_DISTRIBUTION_COMMON="${WORKSPACE}/vz-distribution-common"
 
-# Directory to hold the generated distribution bundles
-VZ_DISTRIBUTION_GENERATED="${WORKSPACE}/vz-distribution-generated"
-mkdir -p ${VZ_DISTRIBUTION_GENERATED}
-
 # Directory containing the layout and required files for the open-source distribution
 VZ_OPENSOURCE_ROOT="${WORKSPACE}/vz-open-source"
+VZ_OPENSOURCE_GENERATED="${WORKSPACE}/vz-open-source-generated"
 
 # Directory containing the layout and required files for the commercial distribution
 VZ_COMMERCIAL_ROOT="${WORKSPACE}/vz-commercial"
+VZ_COMMERCIAL_GENERATED="${WORKSPACE}/vz-commercial-generated"
 
 # Call the function to download the artifacts common to both types of distribution bundles
 downloadCommonFiles
 
 # Build open-source distribution bundles
 createDistributionLayout "${VZ_OPENSOURCE_ROOT}"
-generateOpenSourceDistribution
+generateOpenSourceDistribution "${VZ_OPENSOURCE_ROOT}" "${VZ_OPENSOURCE_GENERATED}"
 
 # Build commercial distribution bundle
 createDistributionLayout "${VZ_COMMERCIAL_ROOT}"
-generateCommercialDistribution
+generateCommercialDistribution "${VZ_COMMERCIAL_ROOT}" "${VZ_COMMERCIAL_GENERATED}"
+
+ls ${VZ_DISTRIBUTION_GENERATED}
 
 # Delete the directories created under WORKSPACE
 cleanupWorkspace
