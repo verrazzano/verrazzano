@@ -9,10 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
-var cliVersion string
-var buildDate string
-var gitCommit string
-
 const (
 	CommandName = "cluster"
 	HelpShort   = "Verrazzano cluster operations"

@@ -37,11 +37,20 @@ func newSubcmdCreate(vzHelper helpers.VZHelper) *cobra.Command {
 
 func runCmdClusterCreate(cmd *cobra.Command, args []string) error {
 	clusterName, err := cmd.PersistentFlags().GetString(constants.ClusterNameFlagName)
-	clusterType, err := cmd.PersistentFlags().GetString(constants.ClusterTypeFlagName)
-	clusterImg, err := cmd.PersistentFlags().GetString(constants.ClusterImageFlagName)
 	if err != nil {
 		return fmt.Errorf("Failed to get the %s flag: %v", constants.ClusterNameFlagName, err)
 	}
+
+	clusterType, err := cmd.PersistentFlags().GetString(constants.ClusterTypeFlagName)
+	if err != nil {
+		return fmt.Errorf("Failed to get the %s flag: %v", constants.ClusterTypeFlagName, err)
+	}
+
+	clusterImg, err := cmd.PersistentFlags().GetString(constants.ClusterImageFlagName)
+	if err != nil {
+		return fmt.Errorf("Failed to get the %s flag: %v", constants.ClusterImageFlagName, err)
+	}
+
 	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfigInfo{
 		ClusterName:    clusterName,
 		Type:           clusterType,

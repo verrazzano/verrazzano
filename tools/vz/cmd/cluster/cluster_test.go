@@ -46,9 +46,8 @@ func TestClusterArgs(t *testing.T) {
 			if tt.expectErr {
 				asserts.Error(t, err)
 				return
-			} else {
-				asserts.NoError(t, err)
 			}
+			asserts.NoError(t, err)
 		})
 	}
 }

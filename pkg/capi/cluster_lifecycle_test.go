@@ -86,9 +86,9 @@ func TestCreateBootstrapClusterConfigValidations(t *testing.T) {
 			if tt.errExpected {
 				asserts.Error(err, "Expected error creating bootstrap cluster with config")
 				return
-			} else {
-				asserts.NoError(err, "Expected no error creating bootstrap cluster with config")
 			}
+			asserts.NoError(err, "Expected no error creating bootstrap cluster with config")
+
 			cfg := cluster.GetConfig()
 			expectedClusterName := tt.expectedClusterName
 			expectedClusterType := tt.expectedClusterType
