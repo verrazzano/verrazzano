@@ -479,46 +479,46 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 		})
 	})
 
-	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_foo_springboot-frontend is using https for scraping
+	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_default_foo_springboot-frontend is using https for scraping
 	// GIVEN that springboot deployed to Istio namespace foo
 	// WHEN the Prometheus ServiceMonitors are created
 	// THEN they should be created to use the https protocol
-	t.It("Verify that ServiceMonitor authpolicy-appconf-foo-springboot-frontend is using https for scraping.", func() {
+	t.It("Verify that ServiceMonitor authpolicy-appconf-default-foo-springboot-frontend is using https for scraping.", func() {
 		Eventually(func() bool {
-			serviceMonitor, err := testpkg.GetServiceMonitor(fooNamespace, "authpolicy-appconf-foo-springboot-frontend")
+			serviceMonitor, err := testpkg.GetServiceMonitor(fooNamespace, "authpolicy-appconf-default-foo-springboot-frontend")
 			if err != nil {
 				return false
 			}
 			return serviceMonitor.Spec.Endpoints[0].Scheme == "https"
-		}, waitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to Verify that ServiceMonitor authpolicy-appconf-foo-springboot-frontend is using https for scraping")
+		}, waitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to Verify that ServiceMonitor authpolicy-appconf-default-foo-springboot-frontend is using https for scraping")
 	})
 
-	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_bar_springboot-frontend is using https for scraping
+	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_default_bar_springboot-frontend is using https for scraping
 	// GIVEN that springboot deployed to Istio namespace bar
 	// WHEN the Prometheus ServiceMonitors are created
 	// THEN they should be created to use the https protocol
-	t.It("Verify that ServiceMonitor authpolicy-appconf-bar-springboot-frontend is using https for scraping.", func() {
+	t.It("Verify that ServiceMonitor authpolicy-appconf-default-bar-springboot-frontend is using https for scraping.", func() {
 		Eventually(func() bool {
-			serviceMonitor, err := testpkg.GetServiceMonitor(barNamespace, "authpolicy-appconf-bar-springboot-frontend")
+			serviceMonitor, err := testpkg.GetServiceMonitor(barNamespace, "authpolicy-appconf-default-bar-springboot-frontend")
 			if err != nil {
 				return false
 			}
 			return serviceMonitor.Spec.Endpoints[0].Scheme == "https"
-		}, waitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to Verify that ServiceMonitor authpolicy-appconf-bar-springboot-frontend is using https for scraping")
+		}, waitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to Verify that ServiceMonitor authpolicy-appconf-default-bar-springboot-frontend is using https for scraping")
 	})
 
-	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_noistio_springboot-frontend is using http for scraping
+	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_default_noistio_springboot-frontend is using http for scraping
 	// GIVEN that springboot deployed to namespace noistio
 	// WHEN the Prometheus ServiceMonitors are created
 	// THEN they should be created to use the http protocol
-	t.It("Verify that ServiceMonitor authpolicy-appconf-noistio-springboot-frontend is using http for scraping.", func() {
+	t.It("Verify that ServiceMonitor authpolicy-appconf-default-noistio-springboot-frontend is using http for scraping.", func() {
 		Eventually(func() bool {
-			serviceMonitor, err := testpkg.GetServiceMonitor(noIstioNamespace, "authpolicy-appconf-noistio-springboot-frontend")
+			serviceMonitor, err := testpkg.GetServiceMonitor(noIstioNamespace, "authpolicy-appconf-default-noistio-springboot-frontend")
 			if err != nil {
 				return false
 			}
 			return serviceMonitor.Spec.Endpoints[0].Scheme == "http"
-		}, waitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to Verify that ServiceMonitor authpolicy-appconf-noistio-springboot-frontend is using http for scraping")
+		}, waitTimeout, shortPollingInterval).Should(BeTrue(), "Failed to Verify that ServiceMonitor authpolicy-appconf-default-noistio-springboot-frontend is using http for scraping")
 	})
 
 })

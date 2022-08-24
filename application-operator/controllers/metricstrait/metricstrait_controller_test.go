@@ -820,7 +820,7 @@ func TestLegacyPrometheusScraper(t *testing.T) {
 	assert.Equal("metricstrait.finalizers.verrazzano.io", trait.Finalizers[0])
 
 	monitor := &promoperapi.ServiceMonitor{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app-test-namespace-test-comp"}, monitor)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app-default-test-namespace-test-comp"}, monitor)
 	assert.NoError(err)
 }
 
