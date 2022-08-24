@@ -8,13 +8,11 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"sigs.k8s.io/yaml"
-
-	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 const (
@@ -24,18 +22,18 @@ const (
 
 // MergeProfiles merges a list of v1alpha1.Verrazzano profile files with an existing Verrazzano CR.
 // The profiles must be in the Verrazzano CR format
-func MergeProfiles(actualCR *vzapi.Verrazzano, profileFiles ...string) (*vzapi.Verrazzano, error) {
+func MergeProfiles(actualCR *v1alpha1.Verrazzano, profileFiles ...string) (*v1alpha1.Verrazzano, error) {
 	// First merge the profiles
 	profileStrings, err := appendProfileComponentOverrides(profileFiles...)
 	if err != nil {
 		return nil, err
 	}
-	merged, err := vzyaml.StrategicMerge(vzapi.Verrazzano{}, profileStrings...)
+	merged, err := vzyaml.StrategicMerge(v1alpha1.Verrazzano{}, profileStrings...)
 	if err != nil {
 		return nil, err
 	}
 
-	profileVerrazzano := &vzapi.Verrazzano{}
+	profileVerrazzano := &v1alpha1.Verrazzano{}
 	if err := yaml.Unmarshal([]byte(merged), profileVerrazzano); err != nil {
 		return nil, err
 	}
@@ -49,19 +47,22 @@ func MergeProfiles(actualCR *vzapi.Verrazzano, profileFiles ...string) (*vzapi.V
 	}
 
 	// merge all profiles together into a single yaml
-	merged, err = vzyaml.StrategicMerge(vzapi.Verrazzano{}, merged, string(crYAML))
+	merged, err = vzyaml.StrategicMerge(v1alpha1.Verrazzano{}, merged, string(crYAML))
 	if err != nil {
 		return nil, err
 	}
 
 	// Return a new CR
-	var newCR vzapi.Verrazzano
-	yaml.Unmarshal([]byte(merged), &newCR)
+	var newCR v1alpha1.Verrazzano
+	err = yaml.Unmarshal([]byte(merged), &newCR)
+	if err != nil {
+		return nil, err
+	}
 
 	return &newCR, nil
 }
 
-// MergeProfiles merges a list of v1beta1.Verrazzano profile files with an existing Verrazzano CR.
+// MergeProfilesForV1beta1 merges a list of v1beta1.Verrazzano profile files with an existing Verrazzano CR.
 // The profiles must be in the Verrazzano CR format
 func MergeProfilesForV1beta1(actualCR *v1beta1.Verrazzano, profileFiles ...string) (*v1beta1.Verrazzano, error) {
 	// First merge the profiles
@@ -95,13 +96,15 @@ func MergeProfilesForV1beta1(actualCR *v1beta1.Verrazzano, profileFiles ...strin
 
 	// Return a new CR
 	var newCR v1beta1.Verrazzano
-	yaml.Unmarshal([]byte(merged), &newCR)
-
+	err = yaml.Unmarshal([]byte(merged), &newCR)
+	if err != nil {
+		return nil, err
+	}
 	return &newCR, nil
 }
 
 func appendProfileComponentOverrides(profileFiles ...string) ([]string, error) {
-	var profileCR *vzapi.Verrazzano
+	var profileCR *v1alpha1.Verrazzano
 	var profileStrings []string
 	for i := range profileFiles {
 		profileFile := profileFiles[len(profileFiles)-1-i]
@@ -109,7 +112,7 @@ func appendProfileComponentOverrides(profileFiles ...string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		cr := &vzapi.Verrazzano{}
+		cr := &v1alpha1.Verrazzano{}
 		if err := yaml.Unmarshal(data, cr); err != nil {
 			return nil, err
 		}
@@ -161,12 +164,12 @@ func appendProfileComponentOverridesV1beta1(profileFiles ...string) ([]string, e
 // GetEffectiveCR Creates an "effective" v1alpha1.Verrazzano CR based on the user defined resource merged with the profile definitions
 // - Effective CR == base profile + declared profiles + ActualCR (in order)
 // - last definition wins
-func GetEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
+func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error) {
 	if actualCR == nil {
 		return nil, nil
 	}
 	// Identify the set of profiles, base + declared
-	profiles := []string{baseProfile, string(vzapi.Prod)}
+	profiles := []string{baseProfile, string(v1alpha1.Prod)}
 	if len(actualCR.Spec.Profile) > 0 {
 		profiles = append([]string{baseProfile}, strings.Split(string(actualCR.Spec.Profile), ",")...)
 	}
@@ -179,11 +182,11 @@ func GetEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
 	if err != nil {
 		return nil, err
 	}
-	effectiveCR.Status = vzapi.VerrazzanoStatus{} // Don't replicate the CR status in the effective config
+	effectiveCR.Status = v1alpha1.VerrazzanoStatus{} // Don't replicate the CR status in the effective config
 	// if Certificate in CertManager is empty, set it to default CA
-	var emptyCertConfig = vzapi.Certificate{}
+	var emptyCertConfig = v1alpha1.Certificate{}
 	if effectiveCR.Spec.Components.CertManager.Certificate == emptyCertConfig {
-		effectiveCR.Spec.Components.CertManager.Certificate.CA = vzapi.CA{
+		effectiveCR.Spec.Components.CertManager.Certificate.CA = v1alpha1.CA{
 			SecretName:               constants.DefaultVerrazzanoCASecretName,
 			ClusterResourceNamespace: constants.CertManagerNamespace,
 		}
@@ -227,7 +230,7 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 //appendComponentOverrides copies the profile overrides of v1alpha1.Verrazzano over to the actual overrides. Any component that has overrides should be included here.
 // Because overrides lacks a proper merge key, a strategic merge will replace the array instead of merging it. This function stops that replacement from occurring.
 // The profile CR overrides must be appended to the actual CR overrides to preserve the precedence order in the way HelmComponent consumes them.
-func appendComponentOverrides(actual, profile *vzapi.Verrazzano) {
+func appendComponentOverrides(actual, profile *v1alpha1.Verrazzano) {
 	actualKubeStateMetrics := actual.Spec.Components.KubeStateMetrics
 	profileKubeStateMetrics := profile.Spec.Components.KubeStateMetrics
 	if actualKubeStateMetrics != nil && profileKubeStateMetrics != nil {
@@ -501,7 +504,7 @@ func appendComponentOverridesV1beta1(actual, profile *v1beta1.Verrazzano) {
 }
 
 ////mergeOverrides merges the various profiles overrides of v1beta1.Verrazzano into the actual overrides
-func mergeOverrides(actual, profile []vzapi.Overrides) []vzapi.Overrides {
+func mergeOverrides(actual, profile []v1alpha1.Overrides) []v1alpha1.Overrides {
 	return append(actual, profile...)
 }
 
