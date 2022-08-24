@@ -60,12 +60,16 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	if err := r.Get(context.TODO(), saNsn, &sa); err != nil {
 		return fmt.Errorf("Failed to fetch the service account for VMC %s/%s, %v", managedNamespace, saName, err)
 	}
+	var tokenName string
 	if len(sa.Secrets) == 0 {
-		return fmt.Errorf("Service account %s/%s is missing a secret name", managedNamespace, saName)
+		r.log.Infof("Service account %s/%s is missing a secret name. Using the service account token secret created"+
+			" by the VerrazzanoManagedCluster controller", managedNamespace, saName)
+		tokenName = sa.Name + "-token"
+	} else {
+		// Get the service account token from the secret
+		tokenName = sa.Secrets[0].Name
 	}
 
-	// Get the service account token from the secret
-	tokenName := sa.Secrets[0].Name
 	var serviceAccountSecret corev1.Secret
 	secretNsn := types.NamespacedName{
 		Namespace: managedNamespace,

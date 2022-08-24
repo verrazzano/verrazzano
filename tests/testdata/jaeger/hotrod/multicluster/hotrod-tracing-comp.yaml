@@ -4,6 +4,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: hotrod-component
+  namespace: hotrod
 spec:
   workload:
     apiVersion: core.oam.dev/v1alpha2

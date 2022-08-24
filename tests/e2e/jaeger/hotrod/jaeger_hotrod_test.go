@@ -5,13 +5,15 @@ package hotrod
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"time"
 )
 
 const (
@@ -25,23 +27,36 @@ const (
 )
 
 var (
-	t                  = framework.NewTestFramework("jaeger")
+	t                  = framework.NewTestFramework("jaeger-hotrod")
 	generatedNamespace = pkg.GenerateNamespace("hotrod-tracing")
 	expectedPodsHotrod = []string{"hotrod-workload"}
 	beforeSuitePassed  = false
+	failed             = false
 	start              = time.Now()
 	hotrodServiceName  = fmt.Sprintf("hotrod.%s", generatedNamespace)
 )
 
 var _ = t.BeforeSuite(func() {
 	start = time.Now()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		AbortSuite("Unable to get the default kubeconfig path")
+	}
 	jaeger.DeployApplication(namespace, testAppComponentFilePath, testAppConfigurationFilePath, expectedPodsHotrod)
-	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+	err = pkg.GenerateTrafficForTraces(namespace, "", "dispatch?customer=123", kubeconfigPath)
+	if err != nil {
+		AbortSuite("Unable to send traffic requests to generate traces")
+	}
+	beforeSuitePassed = true
+})
+
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if !beforeSuitePassed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
 	// undeploy the application here
@@ -57,7 +72,11 @@ var _ = t.Describe("Hotrod App with Jaeger Traces", Label("f:jaeger.hotrod-workl
 		// WHEN we check for traces for that service,
 		// THEN we are able to get the traces
 		jaeger.WhenJaegerOperatorEnabledIt(t, "traces for the hotrod app should be available when queried from Jaeger", func() {
-			validatorFn := pkg.ValidateApplicationTraces(start, hotrodServiceName)
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				Fail(err.Error())
+			}
+			validatorFn := pkg.ValidateApplicationTracesInCluster(kubeconfigPath, start, hotrodServiceName, "local")
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
