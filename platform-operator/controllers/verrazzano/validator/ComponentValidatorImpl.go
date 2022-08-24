@@ -13,6 +13,7 @@ import (
 type ComponentValidatorImpl struct{}
 
 var _ v1alpha1.ComponentValidator = ComponentValidatorImpl{}
+svar _ v1beta1.ComponentValidator = ComponentValidatorImpl{}
 
 func (c ComponentValidatorImpl) ValidateInstall(vz *v1alpha1.Verrazzano) []error {
 	var errs []error
@@ -32,7 +33,7 @@ func (c ComponentValidatorImpl) ValidateInstall(vz *v1alpha1.Verrazzano) []error
 	return errs
 }
 
-func (c ComponentValidatorImpl) ValidateInstallv1Beta1(vz *v1beta1.Verrazzano) []error {
+func (c ComponentValidatorImpl) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) []error {
 	var errs []error
 
 	effectiveCR, err := transform.GetEffectiveCR(vz)
@@ -72,7 +73,7 @@ func (c ComponentValidatorImpl) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1
 	return errs
 }
 
-func (c ComponentValidatorImpl) ValidateUpdatev1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) []error {
+func (c ComponentValidatorImpl) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) []error {
 	var errs []error
 
 	effectiveNew, err := transform.GetEffectiveCR(new)
