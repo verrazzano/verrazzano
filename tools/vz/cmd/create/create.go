@@ -15,14 +15,14 @@ var gitCommit string
 
 const (
 	CommandName = "create"
-	helpShort   = "Verrazzano create specified resources"
+	HelpShort   = "Verrazzano create specified resources"
 	helpLong    = `The command 'create <subcommand>' creates the resource specified by the subcommand`
 	helpExample = `vz create <subcommand>`
 	hidden      = true
 )
 
 func NewCmdCreate(vzHelper helpers.VZHelper) *cobra.Command {
-	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
+	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, HelpShort, helpLong)
 	cmd.Hidden = hidden
 	addSubCommandsCreate(vzHelper, cmd)
 	cmd.Example = helpExample

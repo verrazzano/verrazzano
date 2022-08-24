@@ -27,7 +27,7 @@ func (r *noClusterManager) GetConfig() ClusterConfig {
 }
 
 func (r *noClusterManager) Create() error {
-	fmt.Println("Creating noCluster")
+	fmt.Printf("Creating noCluster with config %v\n", r.config)
 	return nil
 }
 

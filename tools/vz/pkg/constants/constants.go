@@ -177,4 +177,8 @@ const (
 	ClusterTypeFlagName    = "type"
 	ClusterTypeFlagDefault = "kind"
 	ClusterTypeFlagHelp    = "The type of the cluster - defaults to " + ClusterTypeFlagDefault
+
+	ClusterImageFlagName    = "image"
+	ClusterImageFlagDefault = ""
+	ClusterImageFlagHelp    = "DEVELOPMENT ONLY - the image to use for the cluster"
 )

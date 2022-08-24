@@ -16,8 +16,8 @@ import (
 const (
 	clusterSubCommandName = "cluster"
 	clusterHelpShort      = "Verrazzano create cluster"
-	clusterHelpLong       = `The command 'create cluster' provisions a new local Kind cluster with the specified name (defaults to ` + constants.ClusterNameFlagDefault + `)`
-	clusterHelpExample    = `vz create cluster [ --name mycluster ]`
+	clusterHelpLong       = `The command 'create cluster' provisions a new local cluster with the given name and type (defaults to "` + constants.ClusterNameFlagDefault + `" and "` + capi.KindClusterType + `")`
+	clusterHelpExample    = `vz create cluster --name mycluster --type ` + capi.KindClusterType
 )
 
 func newSubcmdCluster(vzHelper helpers.VZHelper) *cobra.Command {
@@ -25,6 +25,9 @@ func newSubcmdCluster(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = clusterHelpExample
 	cmd.PersistentFlags().String(constants.ClusterNameFlagName, constants.ClusterNameFlagDefault, constants.ClusterNameFlagHelp)
 	cmd.PersistentFlags().String(constants.ClusterTypeFlagName, constants.ClusterTypeFlagDefault, constants.ClusterTypeFlagHelp)
+	cmd.PersistentFlags().String(constants.ClusterImageFlagName, constants.ClusterImageFlagDefault, constants.ClusterImageFlagHelp)
+	// the image flag should be hidden since it is not intended for general use
+	cmd.PersistentFlags().MarkHidden(constants.ClusterImageFlagName)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdCreateCluster(cmd, args)
 	}
@@ -35,12 +38,14 @@ func newSubcmdCluster(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdCreateCluster(cmd *cobra.Command, args []string) error {
 	clusterName, err := cmd.PersistentFlags().GetString(constants.ClusterNameFlagName)
 	clusterType, err := cmd.PersistentFlags().GetString(constants.ClusterTypeFlagName)
+	clusterImg, err := cmd.PersistentFlags().GetString(constants.ClusterImageFlagName)
 	if err != nil {
 		return fmt.Errorf("Failed to get the %s flag: %v", constants.ClusterNameFlagName, err)
 	}
 	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfigInfo{
-		ClusterName: clusterName,
-		Type:        clusterType,
+		ClusterName:    clusterName,
+		Type:           clusterType,
+		ContainerImage: clusterImg,
 	})
 	if err != nil {
 		return err
