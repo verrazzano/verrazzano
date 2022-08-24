@@ -58,15 +58,6 @@ func TestValidateNoDuplicatedConfiguration(t *testing.T) {
 		hasError bool
 	}{
 		{
-			"error when node group uses reserved name",
-			createVZ(&vzapi.ElasticsearchComponent{
-				Nodes: []vzapi.OpenSearchNode{
-					createNG("es-master", 1, nil),
-				},
-			}),
-			true,
-		},
-		{
 			"no duplication when component has no args",
 			emptyComponent,
 			false,

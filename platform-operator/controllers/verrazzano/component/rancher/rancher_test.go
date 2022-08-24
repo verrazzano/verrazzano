@@ -121,6 +121,10 @@ func createRancherPodListWithAllRunning() v1.PodList {
 	}
 }
 
+func createClusterRoles(roleName string) rbacv1.ClusterRole {
+	return rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: roleName}}
+}
+
 func createRancherPodListWithNoneRunning() v1.PodList {
 	return v1.PodList{
 		Items: []v1.Pod{
@@ -232,8 +236,8 @@ func createKeycloakAuthConfig() unstructured.Unstructured {
 	authConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
-	authConfig.SetGroupVersionKind(GVKAuthConfig)
-	authConfig.SetName(AuthConfigKeycloak)
+	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
+	authConfig.SetName(common.AuthConfigKeycloak)
 	return authConfig
 }
 
@@ -241,7 +245,7 @@ func createLocalAuthConfig() unstructured.Unstructured {
 	authConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
-	authConfig.SetGroupVersionKind(GVKAuthConfig)
+	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
 	authConfig.SetName(AuthConfigLocal)
 	return authConfig
 }

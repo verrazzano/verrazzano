@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -30,6 +32,7 @@ var isMinVersion110 bool
 var isMinVersion120 bool
 var isMinVersion140 bool
 var keycloakEnabled bool
+var mySQLOperatorEnabled bool
 
 var t = framework.NewTestFramework("verrazzano")
 
@@ -54,6 +57,7 @@ var _ = t.BeforeSuite(func() {
 		Fail(err.Error())
 	}
 	keycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
+	mySQLOperatorEnabled = pkg.IsMySQLOperatorEnabled(kubeconfigPath)
 })
 
 var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
@@ -581,6 +585,31 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.Logs.Info("Skipping Keycloak check because it is not enabled")
 	}
 
+	// The MySQLOperator is enabled if Keycloak is enabled, or if it is explicitly enabled
+	if keycloakEnabled || mySQLOperatorEnabled {
+		t.It("has expected deployment", func() {
+			if isMinVersion140 {
+				Eventually(func() (bool, error) {
+					return pkg.DoesDeploymentExist(constants.MySQLOperatorNamespace, mysqloperator.ComponentName)
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+			}
+		})
+
+		t.It("has correct number of pods running", func() {
+			if isMinVersion140 {
+				validateCorrectNumberOfPodsRunning(mysqloperator.ComponentName, constants.MySQLOperatorNamespace)
+			} else {
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+			}
+		})
+
+	} else {
+		t.Logs.Info("Skipping MySQLOperator check because it is not enabled")
+
+	}
+
 	t.Describe("service resources in verrazzano-system", Label("f:platform-lcm.install"), func() {
 		t.It("have expected Istio port names", func() {
 			validateVerrazzanoSystemServicePorts()
@@ -714,6 +743,7 @@ func validateVerrazzanoSystemServicePorts() {
 	exceptions := []string{
 		"coherence-operator-webhook",
 		"internal-weblogic-operator-svc",
+		mysqloperator.ComponentName,
 	}
 	for _, service := range services.Items {
 		for _, port := range service.Spec.Ports {
