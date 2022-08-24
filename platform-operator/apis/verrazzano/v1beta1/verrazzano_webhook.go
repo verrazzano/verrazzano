@@ -5,8 +5,9 @@ package v1beta1
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/common"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"go.uber.org/zap"
@@ -22,7 +23,7 @@ var getControllerRuntimeClient = getClient
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager, log *zap.SugaredLogger) error {
 	// clean up any temp files that may have been left over after a container restart
-	if err := common.CleanTempFiles(log); err != nil {
+	if err := validators.CleanTempFiles(log); err != nil {
 		return err
 	}
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -61,7 +62,7 @@ func (v *Verrazzano) ValidateCreate() error {
 	}
 
 	// Verify only one instance of the operator is running
-	if err := common.VerifyPlatformOperatorSingleton(client); err != nil {
+	if err := validators.VerifyPlatformOperatorSingleton(client); err != nil {
 		return err
 	}
 
@@ -70,7 +71,7 @@ func (v *Verrazzano) ValidateCreate() error {
 		return err
 	}
 
-	if err := common.ValidateVersion(v.Spec.Version); err != nil {
+	if err := validators.ValidateVersion(v.Spec.Version); err != nil {
 		return err
 	}
 
@@ -85,7 +86,7 @@ func (v *Verrazzano) ValidateCreate() error {
 	// hand the Verrazzano to component validator to validate
 	if componentValidator != nil {
 		if errs := componentValidator.ValidateInstallV1Beta1(v); len(errs) > 0 {
-			return common.CombineErrors(errs)
+			return validators.CombineErrors(errs)
 		}
 	}
 	return nil
@@ -107,7 +108,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// Verify only one instance of the operator is running
-	if err := common.VerifyPlatformOperatorSingleton(client); err != nil {
+	if err := validators.VerifyPlatformOperatorSingleton(client); err != nil {
 		return err
 	}
 
@@ -127,12 +128,15 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 
 	//ASK DEVA ABOUT CLIENT, ERR GET CONTROLLER RUNTIME. needs to happen before platformoperatorsingleton
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
-	err = ValidateUpgradeRequest(oldResource, v)
+	newSpecVerString := strings.TrimSpace(v.Spec.Version)
+	currStatusVerString := strings.TrimSpace(oldResource.Status.Version)
+	currSpecVerString := strings.TrimSpace(oldResource.Spec.Version)
+	err = validators.ValidateUpgradeRequest(newSpecVerString, currStatusVerString, currSpecVerString)
+
 	if err != nil {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
 		return err
 	}
-
 	if err := validateOCISecrets(client, &v.Spec); err != nil {
 		return err
 	}
@@ -140,7 +144,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	// hand the old and new Verrazzano to component validator to validate
 	if componentValidator != nil {
 		if errs := componentValidator.ValidateUpdateV1Beta1(oldResource, v); len(errs) > 0 {
-			return common.CombineErrors(errs)
+			return validators.CombineErrors(errs)
 		}
 	}
 

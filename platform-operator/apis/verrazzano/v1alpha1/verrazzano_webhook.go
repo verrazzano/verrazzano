@@ -8,9 +8,11 @@ import (
 	goerrors "errors"
 	"fmt"
 	"github.com/onsi/gomega/gstruct/errors"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
+	"strings"
 
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,7 +27,7 @@ var getControllerRuntimeClient = getClient
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager, log *zap.SugaredLogger) error {
 	// clean up any temp files that may have been left over after a container restart
-	if err := cleanTempFiles(log); err != nil {
+	if err := validators.CleanTempFiles(log); err != nil {
 		return err
 	}
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -73,7 +75,7 @@ func (v *Verrazzano) ValidateCreate() error {
 		return err
 	}
 
-	if err := ValidateVersion(v.Spec.Version); err != nil {
+	if err := validators.ValidateVersion(v.Spec.Version); err != nil {
 		return err
 	}
 
@@ -124,7 +126,10 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
-	err := ValidateUpgradeRequest(oldResource, v)
+	newSpecVerString := strings.TrimSpace(v.Spec.Version)
+	currStatusVerString := strings.TrimSpace(oldResource.Status.Version)
+	currSpecVerString := strings.TrimSpace(oldResource.Spec.Version)
+	err := validators.ValidateUpgradeRequest(newSpecVerString, currStatusVerString, currSpecVerString)
 	if err != nil {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
 		return err

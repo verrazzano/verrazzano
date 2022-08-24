@@ -1,4 +1,7 @@
-package common
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+package validators
 
 import (
 	"context"
@@ -30,7 +33,36 @@ const (
 	fluentdOCISecretConfigEntry = "config"
 	fluentdOCIKeyFileEntry      = "key_file=/root/.oci/key"
 	fluentdExpectedKeyPath      = "/root/.oci/key"
+	// UserPrincipal is default auth type
+	userPrincipal authenticationType = "user_principal"
+	// InstancePrincipal is used for instance principle auth type
+	instancePrincipal       authenticationType = "instance_principal"
+	ValidateInProgressError                    = "Updates to resource not allowed while uninstall or upgrade is in progress"
+
+	fluentdOCISecretPrivateKeyEntry = "key"
+	OciDNSSecretFileName            = "oci.yaml"
+	// InstancePrincipalDelegationToken is used for instance principle delegation token auth type
+	InstancePrincipalDelegationToken authenticationType = "instance_principle_delegation_token"
+	// UnknownAuthenticationType is used for none meaningful auth type
+	UnknownAuthenticationType authenticationType = "unknown_auth_type"
 )
+
+type authenticationType string
+
+// OCI DNS Secret Auth
+type authData struct {
+	Region      string             `json:"region"`
+	Tenancy     string             `json:"tenancy"`
+	User        string             `json:"user"`
+	Key         string             `json:"key"`
+	Fingerprint string             `json:"fingerprint"`
+	AuthType    authenticationType `json:"authtype"`
+}
+
+// OCI DNS Secret Auth Wrapper
+type ociAuth struct {
+	Auth authData `json:"auth"`
+}
 
 func CleanTempFiles(log *zap.SugaredLogger) error {
 	if err := vzos.RemoveTempFiles(log, validateTempFilePattern); err != nil {
@@ -164,7 +196,7 @@ func CheckUpgradeRequired(statusVersion string, bomVersion *semver.SemVersion) e
 	return nil
 }
 
-func GetInstallSecret(client client.Client, secretName string, secret *corev1.Secret) error {
+func getInstallSecret(client client.Client, secretName string, secret *corev1.Secret) error {
 	err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: constants.VerrazzanoInstallNamespace}, secret)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -175,7 +207,7 @@ func GetInstallSecret(client client.Client, secretName string, secret *corev1.Se
 	return nil
 }
 
-func ValidateSecretContents(secretName string, bytes []byte, target interface{}) error {
+func validateSecretContents(secretName string, bytes []byte, target interface{}) error {
 	if len(bytes) == 0 {
 		return fmt.Errorf("Secret \"%s\" data is empty", secretName)
 	}
@@ -185,7 +217,7 @@ func ValidateSecretContents(secretName string, bytes []byte, target interface{})
 	return nil
 }
 
-func ValidatePrivateKey(secretName string, pemData []byte) error {
+func validatePrivateKey(secretName string, pemData []byte) error {
 	block, _ := pem.Decode(pemData)
 	if block == nil {
 		return fmt.Errorf("Private key in secret \"%s\" is either empty or not a valid key in PEM format", secretName)
@@ -194,7 +226,7 @@ func ValidatePrivateKey(secretName string, pemData []byte) error {
 }
 
 //validateFluentdConfigData - Validate the OCI config contents in the Fluentd secret
-func ValidateFluentdConfigData(secret *corev1.Secret) error {
+func validateFluentdConfigData(secret *corev1.Secret) error {
 	secretName := secret.Name
 	configData, ok := secret.Data[fluentdOCISecretConfigEntry]
 	if !ok {
@@ -252,7 +284,7 @@ func ValidateFluentdConfigData(secret *corev1.Secret) error {
 	return nil
 }
 
-func ValidateSecretKey(secret *corev1.Secret, dataKey string, target interface{}) ([]byte, error) {
+func validateSecretKey(secret *corev1.Secret, dataKey string, target interface{}) ([]byte, error) {
 	var secretBytes []byte
 	var ok bool
 	if secretBytes, ok = secret.Data[dataKey]; !ok {
@@ -267,11 +299,76 @@ func ValidateSecretKey(secret *corev1.Secret, dataKey string, target interface{}
 	return secretBytes, nil
 }
 
-func validateSecretContents(secretName string, bytes []byte, target interface{}) error {
-	if len(bytes) == 0 {
-		return fmt.Errorf("Secret \"%s\" data is empty", secretName)
+func ValidateFluentdOCIAuthSecret(client client.Client, apiSecretName string) error {
+	if len(apiSecretName) > 0 {
+		secret := &corev1.Secret{}
+		if err := getInstallSecret(client, apiSecretName, secret); err != nil {
+			return err
+		}
+		// validate config secret
+		if err := validateFluentdConfigData(secret); err != nil {
+			return err
+		}
+		// Validate key data exists and is a valid pem format
+		pemData, err := validateSecretKey(secret, fluentdOCISecretPrivateKeyEntry, nil)
+		if err != nil {
+			return err
+		}
+		if err := validatePrivateKey(secret.Name, pemData); err != nil {
+			return err
+		}
 	}
-	if err := yaml.Unmarshal(bytes, &target); err != nil {
+	return nil
+}
+
+func ValidateOCIDNSSecret(client client.Client, secret *corev1.Secret, ociDNSConfigSecret string) error {
+	if err := getInstallSecret(client, ociDNSConfigSecret, secret); err != nil {
+		return err
+	}
+	// Verify that the oci secret has one value
+	if len(secret.Data) != 1 {
+		return fmt.Errorf("Secret \"%s\" for OCI DNS should have one data key, found %v", ociDNSConfigSecret, len(secret.Data))
+	}
+	for key := range secret.Data {
+		// validate auth_type
+		var authProp ociAuth
+		if err := validateSecretContents(secret.Name, secret.Data[key], &authProp); err != nil {
+			return err
+		}
+		if authProp.Auth.AuthType != instancePrincipal && authProp.Auth.AuthType != userPrincipal && authProp.Auth.AuthType != "" {
+			return fmt.Errorf("Authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.Auth.AuthType, userPrincipal, instancePrincipal)
+		}
+		if authProp.Auth.AuthType == userPrincipal {
+			if err := validatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// ValidateUpgradeRequest Ensures hat an upgrade is requested as part of an update if necessary,
+// and that the version of an upgrade request is valid.
+func ValidateUpgradeRequest(newSpecVerString string, currStatusVerString string, currSpecVerString string) error {
+	if !config.Get().VersionCheckEnabled {
+		zap.S().Infof("Version validation disabled")
+		return nil
+	}
+
+	// Get the current BOM version
+	bomVersion, err := GetCurrentBomVersion()
+	if err != nil {
+		return err
+	}
+
+	//// Make sure the requested version matches what's in the BOM and is not < the current spec version
+	if len(newSpecVerString) > 0 {
+		return ValidateNewVersion(currStatusVerString, currSpecVerString, newSpecVerString, bomVersion)
+	}
+
+	// No new version set, we haven't done any upgrade before but may need to do one before allowing any edits;
+	// this forces the user to opt-in to an upgrade before/with any other update
+	if err := CheckUpgradeRequired(strings.TrimSpace(currStatusVerString), bomVersion); err != nil {
 		return err
 	}
 	return nil
