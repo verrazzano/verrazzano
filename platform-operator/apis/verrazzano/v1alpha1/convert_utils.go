@@ -27,6 +27,8 @@ const (
 	testCaseVolumeOverrides   = "volumeoverrides"
 	testCaseGeneralOverrides  = "overrides"
 	testProdProfile           = "prod"
+	testDevProfile            = "dev"
+	testManagedClusterProfile = "managed-cluster"
 )
 
 type converisonTestCase struct {
