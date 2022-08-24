@@ -5,6 +5,7 @@ package istio
 
 import (
 	"context"
+	v1 "k8s.io/api/core/v1"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -147,6 +148,7 @@ func TestHelidonStopStart(t *testing.T) {
 		name               string
 		expectGetAndUpdate bool
 		image              string
+		isNSIstioEnabled   bool
 		f                  func(mock *mocks.MockClient) error
 	}{
 		// Test restarting Helidon workload because it has an old Istio image
@@ -161,13 +163,34 @@ func TestHelidonStopStart(t *testing.T) {
 		// Test restarting Helidon workload because it doesn't have an Istio image
 		{
 			name:               "RestartHelidon",
+			expectGetAndUpdate: false,
+			image:              "randomImage",
+			f: func(mock *mocks.MockClient) error {
+				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
+		// Test restarting Helidon workload without old istio sidecar but with istio injected namespace
+		{
+			name:               "RestartHelidon",
 			expectGetAndUpdate: true,
-			image:              "",
+			image:              "randomImage",
+			isNSIstioEnabled:   true,
+			f: func(mock *mocks.MockClient) error {
+				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
+		// Test restarting Helidon workload without old istio sidecar and without istio injected namespace
+		{
+			name:               "RestartHelidon",
+			expectGetAndUpdate: false,
+			image:              "randomImage",
+			isNSIstioEnabled:   false,
 			f: func(mock *mocks.MockClient) error {
 				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			mocker := gomock.NewController(t)
@@ -180,8 +203,16 @@ func TestHelidonStopStart(t *testing.T) {
 			wlName := "test"
 			appConfigName := "myApp"
 			podLabels := map[string]string{"app.oam.dev/name": appConfigName}
+			podNamespace := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "verrazzano-system",
+				Labels: map[string]string{"istio-injection": "enabled"},
+			}}
 
-			clientSet := fake.NewSimpleClientset(initFakePodWithLabels(test.image, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+			if test.isNSIstioEnabled == false {
+				podNamespace.Labels["istio-injection"] = "disabled"
+			}
+
+			clientSet := fake.NewSimpleClientset(initFakePodWithLabels(test.image, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet(), podNamespace)
 			k8sutil.SetFakeClient(clientSet)
 
 			conf := testAppConfigInfo{
