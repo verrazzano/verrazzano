@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -138,6 +139,16 @@ func (v veleroHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
 	return v.validateVelero(new)
+}
+
+// ValidateUpgrade verifies the install of the Verrazzano object
+func (v veleroHelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (v veleroHelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // PostUninstall processing for Velero

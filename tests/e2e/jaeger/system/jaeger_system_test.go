@@ -4,12 +4,14 @@
 package system
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"time"
 )
 
 const (
@@ -20,8 +22,9 @@ const (
 )
 
 var (
-	t     = framework.NewTestFramework("jaeger")
-	start = time.Now()
+	t = framework.NewTestFramework("jaeger-system-traces")
+	// Allow 3 hour allowance in start time to find the system traces faster
+	start = time.Now().Add(-3 * time.Hour)
 )
 
 var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.system-traces"), func() {
@@ -31,7 +34,11 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		// WHEN we query for traces from verrazzano system components,
 		// THEN we are able to get the traces
 		jaeger.WhenJaegerOperatorEnabledIt(t, "traces from verrazzano system components should be available when queried from Jaeger", func() {
-			validatorFn := pkg.ValidateSystemTracesFunc(start)
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				Fail(err.Error())
+			}
+			validatorFn := pkg.ValidateSystemTracesFuncInCluster(kubeconfigPath, start, "local")
 			Eventually(validatorFn).WithPolling(longPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
 		})
 

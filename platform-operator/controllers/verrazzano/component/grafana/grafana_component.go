@@ -5,8 +5,8 @@ package grafana
 
 import (
 	"fmt"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -125,6 +125,11 @@ func (g grafanaComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
 	return nil
 }
 
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (g grafanaComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
 // PreInstall ensures that preconditions are met before installing the Grafana component
 func (g grafanaComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
@@ -203,6 +208,11 @@ func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
 		return fmt.Errorf("Disabling component Grafana not allowed")
 	}
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (g grafanaComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	return nil
 }
 
