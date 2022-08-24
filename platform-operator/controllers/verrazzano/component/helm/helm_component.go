@@ -5,6 +5,7 @@ package helm
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -227,7 +228,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Indicates whether a component is enabled for installation
-func (h HelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (h HelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return true
 }
 

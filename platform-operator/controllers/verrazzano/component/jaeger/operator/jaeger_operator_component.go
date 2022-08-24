@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -92,12 +93,8 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true only if the Jaeger Operator is explicitly enabled
 // in the Verrazzano CR.
-func (c jaegerOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.JaegerOperator
-	if comp == nil || comp.Enabled == nil {
-		return false
-	}
-	return *comp.Enabled
+func (c jaegerOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsJaegerOperatorEnabled(effectiveCR)
 }
 
 // IsReady checks if the Jaeger Operator deployment is ready
