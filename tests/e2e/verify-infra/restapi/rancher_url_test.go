@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -81,7 +82,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				start = time.Now()
 				t.Logs.Info("Verify Local AuthConfig")
 				Eventually(func() (bool, error) {
-					localAuthConfigData, err := k8sClient.Resource(gvkToGvr(rancher.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigLocal, v1.GetOptions{})
+					localAuthConfigData, err := k8sClient.Resource(gvkToGvr(common.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigLocal, v1.GetOptions{})
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("error getting local authConfig: %v", err))
 						return false, err
@@ -121,7 +122,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					t.Logs.Info("Verify Keycloak AuthConfig")
 					keycloakURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "keycloak", "keycloak", "https")
 					Eventually(func() (bool, error) {
-						authConfigData, err := k8sClient.Resource(gvkToGvr(rancher.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigKeycloak, v1.GetOptions{})
+						authConfigData, err := k8sClient.Resource(gvkToGvr(common.GVKAuthConfig)).Get(context.Background(), common.AuthConfigKeycloak, v1.GetOptions{})
 						if err != nil {
 							t.Logs.Error(fmt.Sprintf("error getting keycloak oidc authConfig: %v", err))
 							return false, err
@@ -148,9 +149,9 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 							return false, err
 						}
 
-						authConfigClientSecret := authConfigAttributes[rancher.AuthConfigKeycloakAttributeClientSecret].(string)
+						authConfigClientSecret := authConfigAttributes[common.AuthConfigKeycloakAttributeClientSecret].(string)
 						if authConfigClientSecret == "" {
-							err = fmt.Errorf("keycloak auth config attribute %s not correctly configured, value is empty", rancher.AuthConfigKeycloakAttributeClientSecret)
+							err = fmt.Errorf("keycloak auth config attribute %s not correctly configured, value is empty", common.AuthConfigKeycloakAttributeClientSecret)
 							t.Logs.Error(err.Error())
 							return false, err
 						}
