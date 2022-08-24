@@ -1,6 +1,6 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-apiVersion: install.verrazzano.io/v1beta1
+apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
 metadata:
   name: verrazzano
@@ -11,20 +11,21 @@ spec:
       enabled: true
     authProxy:
       enabled: true
-      kubernetes:
-        replicas: 1
-        affinity:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-              - weight: 100
-                podAffinityTerm:
-                  labelSelector:
-                    matchExpressions:
-                      - key: app
-                        operator: In
-                        values:
-                          - verrazzano-authproxy
-                  topologyKey: kubernetes.io/hostname
+      overrides:
+        - values:
+            replicas: 1
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                    weight: 100
+                    podAffinityTerm:
+                      labelSelector:
+                        matchExpressions:
+                          - key: app
+                            operator: In
+                            values:
+                              - verrazzano-authproxy
+                      topologyKey: kubernetes.io/hostname
     certManager:
       enabled: true
       certificate:
@@ -131,7 +132,7 @@ spec:
             kind: IstioOperator
             spec:
               components:
-                pilot:
+                egressGateways:
                   k8s:
                     affinity:
                       podAntiAffinity:
@@ -142,6 +143,36 @@ spec:
                                   app: istiod
                               topologyKey: kubernetes.io/hostname
                             weight: 100
+      ingress:
+        kubernetes:
+          replicas: 1
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-ingressgateway
+                    topologyKey: kubernetes.io/hostname
+      egress:
+        kubernetes:
+          replicas: 1
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-egressgateway
+                    topologyKey: kubernetes.io/hostname
     kiali:
       enabled: true
       overrides:
@@ -172,6 +203,8 @@ spec:
                           app.kubernetes.io/instance: keycloak
                           app.kubernetes.io/name: keycloak
                       topologyKey: kubernetes.io/hostname
+    mySQLOperator:
+      enabled: true
     opensearchDashboards:
       enabled: true
       replicas: 1

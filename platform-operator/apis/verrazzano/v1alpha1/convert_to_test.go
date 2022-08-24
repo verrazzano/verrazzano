@@ -4,12 +4,14 @@
 package v1alpha1
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/json"
 	"sort"
 	"testing"
 )
@@ -436,6 +438,10 @@ func TestConvertToV1Beta1(t *testing.T) {
 					sortNodes(v1beta1Actual.Spec.Components.OpenSearch.Nodes)
 				}
 				// expected and actual v1beta1 CRs must be equal
+				v1a, _ := json.Marshal(v1beta1Expected.Spec)
+				v1b, _ := json.Marshal(v1beta1Actual.Spec)
+				fmt.Println("v1beta1Expected", string(v1a))
+				fmt.Println("v1beta1Actual", string(v1b))
 				assert.EqualValues(t, v1beta1Expected.ObjectMeta, v1beta1Actual.ObjectMeta)
 				assert.EqualValues(t, v1beta1Expected.Spec, v1beta1Actual.Spec)
 				assert.EqualValues(t, v1beta1Expected.Status, v1beta1Actual.Status)

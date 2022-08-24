@@ -9,6 +9,20 @@ spec:
     emptyDir: { }
   components:
     opensearch:
+      nodes:
+        - name: es-data
+          roles:
+          - data
+        - name: es-ingest
+          roles:
+          - ingest
+        - name: es-master
+          replicas: 1
+          resources:
+            requests:
+              memory: 1G
+          roles:
+          - master
       installArgs:
         - name: nodes.master.replicas
           value: "1"

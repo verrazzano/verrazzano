@@ -12,6 +12,16 @@ spec:
       enabled: false
     opensearch:
       enabled: false
+      nodes:
+        - name: es-data
+          roles:
+            - data
+        - name: es-ingest
+          roles:
+            - ingest
+        - name: es-master
+          roles:
+            - master
     grafana:
       enabled: false
     opensearchDashboards:
