@@ -539,7 +539,6 @@ func GenerateTrafficForTraces(namespace, appConfigName, urlPath, kubeconfigPath 
 		} else {
 			err = fmt.Errorf("got error response code %v", resp.StatusCode)
 			Log(Error, err.Error())
-			return err
 		}
 	}
 	return nil

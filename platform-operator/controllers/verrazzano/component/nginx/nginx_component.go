@@ -5,6 +5,8 @@ package nginx
 
 import (
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -29,6 +31,8 @@ const ComponentJSONName = "ingress"
 
 // nginxExternalIPKey is the nginxInstallArgs key for externalIPs
 const nginxExternalIPKey = "controller.service.externalIPs"
+
+const nginxExternalIPJsonPath = "controller.service.externalIPs.0"
 
 // nginxComponent represents an Nginx component
 type nginxComponent struct {
@@ -61,12 +65,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled nginx-specific enabled check for installation
-func (c nginxComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Ingress
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c nginxComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsNGINXEnabled(effectiveCR)
 }
 
 // IsReady component check
@@ -96,6 +96,16 @@ func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return c.validateForExternalIPSWithNodePort(&vz.Spec)
 }
 
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c nginxComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c nginxComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
+}
+
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
 func (c nginxComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoSpec) error {
 	// good if ingress is not set
@@ -110,7 +120,7 @@ func (c nginxComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 
 	// look for externalIPs if NodePort
 	if vz.Components.Ingress.Type == vzapi.NodePort {
-		return vzconfig.CheckExternalIPsArgs(vz.Components.Ingress.NGINXInstallArgs, nginxExternalIPKey, c.Name())
+		return vzconfig.CheckExternalIPsArgs(vz.Components.Ingress.NGINXInstallArgs, vz.Components.Ingress.ValueOverrides, nginxExternalIPKey, nginxExternalIPJsonPath, c.Name())
 	}
 
 	return nil

@@ -5,13 +5,14 @@ package grafana
 
 import (
 	"fmt"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -106,7 +107,7 @@ func (g grafanaComponent) IsOperatorInstallSupported() bool {
 }
 
 // IsEnabled returns true if the Grafana component is enabled
-func (g grafanaComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (g grafanaComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsGrafanaEnabled(effectiveCR)
 }
 
@@ -122,6 +123,11 @@ func (g grafanaComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (g grafanaComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (g grafanaComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
 	return nil
 }
 
@@ -203,6 +209,11 @@ func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
 		return fmt.Errorf("Disabling component Grafana not allowed")
 	}
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (g grafanaComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	return nil
 }
 

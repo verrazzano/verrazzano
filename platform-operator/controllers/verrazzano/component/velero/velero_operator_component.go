@@ -8,13 +8,16 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 )
@@ -75,12 +78,8 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true only if Velero is explicitly enabled
 // in the Verrazzano CR.
-func (v veleroHelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Velero
-	if comp == nil || comp.Enabled == nil {
-		return false
-	}
-	return *comp.Enabled
+func (v veleroHelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsVeleroEnabled(effectiveCR)
 }
 
 // IsInstalled returns true only if Velero is installed on the system
@@ -138,6 +137,16 @@ func (v veleroHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
 	return v.validateVelero(new)
+}
+
+// ValidateUpgrade verifies the install of the Verrazzano object
+func (v veleroHelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (v veleroHelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // PostUninstall processing for Velero

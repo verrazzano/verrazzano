@@ -3,13 +3,13 @@
 
 // Adapts code from istio_cr.go to convert the Istio component into a YAML document.
 
-package v1beta1
+package v1alpha1
 
 import (
 	"bytes"
 	"fmt"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
@@ -91,7 +91,11 @@ type istioTemplateData struct {
 	ExternalIps         string
 }
 
-func convertIstioComponentToYaml(comp *v1alpha1.IstioComponent) (string, error) {
+func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, error) {
+	// no v1alpha1 istio definition was supplied, can skip conversion
+	if len(comp.IstioInstallArgs) == 0 && comp.Ingress == nil && comp.Egress == nil {
+		return &v1beta1.Overrides{}, nil
+	}
 	var externalIPYAMLTemplateValue = ""
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
@@ -108,7 +112,7 @@ func convertIstioComponentToYaml(comp *v1alpha1.IstioComponent) (string, error) 
 			//   - 1.2.3.4
 			yamlString, err := vzyaml.Expand(leftMarginExtIP, true, shortArgExternalIPs, values...)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			// This is handled separately
 			externalIPYAMLTemplateValue = yamlString
@@ -117,23 +121,24 @@ func convertIstioComponentToYaml(comp *v1alpha1.IstioComponent) (string, error) 
 			var err error
 			expandedYamls, err = addYAML(arg.Name, values, expandedYamls)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 		}
 	}
 	gatewayYaml, err := configureGateways(comp, fixExternalIPYaml(externalIPYAMLTemplateValue))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	expandedYamls = append(expandedYamls, gatewayYaml)
 	// Merge all the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return merged, nil
+	override, err := createValueOverride([]byte(merged))
+	return &override, err
 }
 
 func addYAML(name string, values, expandedYamls []string) ([]string, error) {
@@ -163,9 +168,9 @@ func fixExternalIPYaml(yaml string) string {
 }
 
 // value replicas and create Istio gateway yaml
-func configureGateways(istioComponent *v1alpha1.IstioComponent, externalIP string) (string, error) {
+func configureGateways(istioComponent *IstioComponent, externalIP string) (string, error) {
 	var data = istioTemplateData{}
-	data.IngressServiceType = string(v1alpha1.LoadBalancer)
+	data.IngressServiceType = string(LoadBalancer)
 	if err := configureIngressGateway(istioComponent, &data); err != nil {
 		return "", err
 	}
@@ -205,7 +210,7 @@ func configureGateways(istioComponent *v1alpha1.IstioComponent, externalIP strin
 	return b.String(), nil
 }
 
-func configureIngressGateway(istioComponent *v1alpha1.IstioComponent, data *istioTemplateData) error {
+func configureIngressGateway(istioComponent *IstioComponent, data *istioTemplateData) error {
 	if istioComponent.Ingress == nil {
 		return nil
 	}
@@ -222,8 +227,8 @@ func configureIngressGateway(istioComponent *v1alpha1.IstioComponent, data *isti
 		}
 	}
 
-	if ingress.Type == v1alpha1.NodePort {
-		data.IngressServiceType = string(v1alpha1.NodePort)
+	if ingress.Type == NodePort {
+		data.IngressServiceType = string(NodePort)
 	}
 
 	if len(ingress.Ports) > 0 {
@@ -238,7 +243,7 @@ func configureIngressGateway(istioComponent *v1alpha1.IstioComponent, data *isti
 	return nil
 }
 
-func configureEgressGateway(istioComponent *v1alpha1.IstioComponent, data *istioTemplateData) error {
+func configureEgressGateway(istioComponent *IstioComponent, data *istioTemplateData) error {
 	if istioComponent.Egress == nil {
 		return nil
 	}

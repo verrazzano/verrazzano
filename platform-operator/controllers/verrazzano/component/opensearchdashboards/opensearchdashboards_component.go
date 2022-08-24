@@ -5,6 +5,8 @@ package opensearchdashboards
 
 import (
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -151,12 +153,8 @@ func (d opensearchDashboardsComponent) PostUpgrade(ctx spi.ComponentContext) err
 }
 
 // IsEnabled OpenSearch-Dashboards specific enabled check for installation
-func (d opensearchDashboardsComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Kibana
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (d opensearchDashboardsComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsOpenSearchDashboardsEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -178,6 +176,16 @@ func (d opensearchDashboardsComponent) ValidateInstall(_ *vzapi.Verrazzano) erro
 	return nil
 }
 
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (d opensearchDashboardsComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (d opensearchDashboardsComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
+}
+
 // Name returns the component name
 func (d opensearchDashboardsComponent) Name() string {
 	return ComponentName
@@ -185,7 +193,7 @@ func (d opensearchDashboardsComponent) Name() string {
 
 func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
-	if vzconfig.IsKibanaEnabled(old) && !vzconfig.IsKibanaEnabled(new) {
+	if vzconfig.IsOpenSearchDashboardsEnabled(old) && !vzconfig.IsOpenSearchDashboardsEnabled(new) {
 		return fmt.Errorf("Disabling component OpenSearch-Dashboards not allowed")
 	}
 	return nil

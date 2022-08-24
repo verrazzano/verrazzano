@@ -6,6 +6,8 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"strings"
 	"sync"
 	"time"
@@ -52,6 +54,7 @@ type Reconciler struct {
 	DryRun            bool
 	WatchedComponents map[string]bool
 	WatchMutex        *sync.RWMutex
+	Bom               *bom.Bom
 }
 
 // Name of finalizer
@@ -627,6 +630,17 @@ func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *inst
 	return r.updateVerrazzanoStatus(log, cr)
 }
 
+func (r *Reconciler) getBOM() (*bom.Bom, error) {
+	if r.Bom == nil {
+		bom, err := bom.NewBom(config.GetDefaultBOMFilePath())
+		if err != nil {
+			return nil, err
+		}
+		r.Bom = &bom
+	}
+	return r.Bom, nil
+}
+
 func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, message string, conditionType installv1alpha1.ConditionType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
@@ -669,6 +683,15 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 
 	// Set the state of resource
 	componentStatus.State = checkCondtitionType(conditionType)
+
+	// Set the version of component when install and upgrade complete
+	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
+		if bomFile, err := r.getBOM(); err == nil {
+			if component, er := bomFile.GetComponent(componentName); er == nil {
+				componentStatus.Version = component.Version
+			}
+		}
+	}
 
 	// Update the status
 	return r.updateVerrazzanoStatus(log, cr)

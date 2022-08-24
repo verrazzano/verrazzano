@@ -3,10 +3,9 @@
 package verrazzano
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
 	"strconv"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -106,7 +105,7 @@ func (f fakeComponent) IsReady(x spi.ComponentContext) bool {
 	return getBool(f.ready, "ready")
 }
 
-func (f fakeComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (f fakeComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return getBool(f.enabled, "enabled")
 }
 
