@@ -65,7 +65,7 @@ func MergeProfiles(actualCR *vzapi.Verrazzano, profileFiles ...string) (*vzapi.V
 // The profiles must be in the Verrazzano CR format
 func MergeProfilesForV1beta1(actualCR *v1beta1.Verrazzano, profileFiles ...string) (*v1beta1.Verrazzano, error) {
 	// First merge the profiles
-	profileStrings, err := appendProfileComponentOverrides(profileFiles...)
+	profileStrings, err := appendProfileComponentOverridesV1beta1(profileFiles...)
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +129,35 @@ func appendProfileComponentOverrides(profileFiles ...string) ([]string, error) {
 	return profileStrings, nil
 }
 
+func appendProfileComponentOverridesV1beta1(profileFiles ...string) ([]string, error) {
+	var profileCR *v1beta1.Verrazzano
+	var profileStrings []string
+	for i := range profileFiles {
+		profileFile := profileFiles[len(profileFiles)-1-i]
+		data, err := os.ReadFile(profileFile)
+		if err != nil {
+			return nil, err
+		}
+		cr := &v1beta1.Verrazzano{}
+		if err := yaml.Unmarshal(data, cr); err != nil {
+			return nil, err
+		}
+		if profileCR == nil {
+			profileCR = cr
+		} else {
+			appendComponentOverridesV1beta1(profileCR, cr)
+			profileStrings = append(profileStrings, string(data))
+		}
+
+	}
+	data, err := yaml.Marshal(profileCR)
+	if err != nil {
+		return nil, err
+	}
+	profileStrings = append(profileStrings, string(data))
+	return profileStrings, nil
+}
+
 // GetEffectiveCR Creates an "effective" v1alpha1.Verrazzano CR based on the user defined resource merged with the profile definitions
 // - Effective CR == base profile + declared profiles + ActualCR (in order)
 // - last definition wins
@@ -170,7 +199,7 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 		return nil, nil
 	}
 	// Identify the set of profiles, base + declared
-	profiles := []string{baseProfile, string(vzapi.Prod)}
+	profiles := []string{baseProfile, string(v1beta1.Prod)}
 	if len(actualCR.Spec.Profile) > 0 {
 		profiles = append([]string{baseProfile}, strings.Split(string(actualCR.Spec.Profile), ",")...)
 	}
