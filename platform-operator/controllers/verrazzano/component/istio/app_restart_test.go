@@ -138,8 +138,12 @@ func TestWebLogicStopStart(t *testing.T) {
 // GIVEN a AppConfig that contains Helidon workloads
 // WHEN the Helidon pods have old Istio envoy sidecar
 // THEN the pods should be restarted
-// WHEN the Helidon pods do NOT have an Istio envoy sidecar but within the mesh
+// WHEN the Helidon pods do NOT have old Istio envoy sidecar
+// THEN the pods should NOT be restarted
+// WHEN the Helidon pods do NOT have an old istio sidecar but with istio injected namespace
 // THEN the pods should be restarted
+// WHEN the Helidon pods do NOT have an old istio sidecar and without istio injected namespace
+// THEN the pods should not be restarted
 func TestHelidonStopStart(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
