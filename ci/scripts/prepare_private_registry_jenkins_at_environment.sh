@@ -57,6 +57,7 @@ cd ${GO_REPO_PATH}/verrazzano
 
 echo "Install Platform Operator"
 VPO_IMAGE=$(cat ${BOM_FILE} | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
+echo "$VPO_IMAGE"
 
 helm upgrade --install myv8o ${CHART_LOCATION}/verrazzano-platform-operator \
     --set global.imagePullSecrets[0]=${IMAGE_PULL_SECRET} \
