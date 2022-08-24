@@ -92,26 +92,6 @@ func Test_copyStringMapEntries(t *testing.T) {
 	assert.Len(target, 2)
 }
 
-// Test_getClusterNameFromObjectMetaOrDefault tests metrics trait utility function getClusterNameFromObjectMetaOrDefault
-func Test_getClusterNameFromObjectMetaOrDefault(t *testing.T) {
-	assert := asserts.New(t)
-	var meta metav1.ObjectMeta
-	var name string
-
-	// GIVEN metadata with a blank cluster name
-	// WHEN the cluster name is retrieved
-	// THEN verify the "default" cluster name is returned
-	name = getClusterNameFromObjectMetaOrDefault(meta)
-	assert.Equal("default", name)
-
-	// GIVEN metadata with a non-blank cluster name
-	// WHEN the cluster name is retrieved
-	// THEN verify the correct cluster name is returned
-	meta = metav1.ObjectMeta{ClusterName: "test-cluster-name-1"}
-	name = getClusterNameFromObjectMetaOrDefault(meta)
-	assert.Equal("test-cluster-name-1", name)
-}
-
 // Test_getNamespaceFromObjectMetaOrDefault tests metrics trait utility function getNamespaceFromObjectMetaOrDefault
 func Test_getNamespaceFromObjectMetaOrDefault(t *testing.T) {
 	assert := asserts.New(t)
@@ -292,8 +272,8 @@ func TestCreateServiceMonitorName(t *testing.T) {
 				},
 			},
 			portNum:                    0,
-			expectedServiceMonitorName: "test-app-default-test-namespace-test-comp",
-			expectedLegacyJobName:      "test-app_default_test-namespace_test-comp",
+			expectedServiceMonitorName: "test-app-test-namespace-test-comp",
+			expectedLegacyJobName:      "test-app_test-namespace_test-comp",
 			expectError:                false,
 		},
 		{
@@ -303,14 +283,14 @@ func TestCreateServiceMonitorName(t *testing.T) {
 					Name:      "test-name",
 					Namespace: "test-namespace",
 					Labels: map[string]string{
-						appObjectMetaLabel:  "test-app-long-label",
+						appObjectMetaLabel:  "test-app-really-long-label",
 						compObjectMetaLabel: "test-comp-extra-long-label",
 					},
 				},
 			},
 			portNum:                    1,
-			expectedServiceMonitorName: "test-app-long-label-test-namespace-1",
-			expectedLegacyJobName:      "test-app-long-label_test-namespace_1",
+			expectedServiceMonitorName: "test-app-really-long-label-test-namespace-1",
+			expectedLegacyJobName:      "test-app-really-long-label_test-namespace_1",
 			expectError:                false,
 		},
 	}

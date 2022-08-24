@@ -1,0 +1,34 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: hello-helidon-component
+  namespace: hello-helidon
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoHelidonWorkload
+    metadata:
+      name: hello-helidon-workload
+      labels:
+        app: hello-helidon
+        version: v1
+    spec:
+      deploymentTemplate:
+        metadata:
+          name: hello-helidon-deployment
+        podSpec:
+          containers:
+            - name: hello-helidon-container
+              image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20220513221156-7da0d32"
+              env:
+                - name: "TRACING_SERVICE"
+                  value: "hello-helidon-mc"
+                - name: "TRACING_PORT"
+                  value: "9411"
+                - name: "TRACING_HOST"
+                  value: "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local"
+              ports:
+                - containerPort: 8080
+                  name: http

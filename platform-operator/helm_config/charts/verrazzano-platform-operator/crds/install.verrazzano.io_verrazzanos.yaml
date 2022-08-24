@@ -829,8 +829,6 @@ spec:
                   grafana:
                     properties:
                       database:
-                        description: DatabaseInfo specifies the database host, name,
-                          and username/password secret for Grafana DB instance
                         properties:
                           host:
                             type: string
@@ -3894,7 +3892,7 @@ spec:
             type: object
         type: object
     served: true
-    storage: true
+    storage: false
     subresources:
       status: {}
   - additionalPrinterColumns:
@@ -6544,7 +6542,7 @@ spec:
             type: object
         type: object
     served: true
-    storage: false
+    storage: true
     subresources:
       status: {}
 status:

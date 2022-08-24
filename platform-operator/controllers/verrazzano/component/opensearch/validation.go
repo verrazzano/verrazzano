@@ -56,11 +56,6 @@ func validateNoDuplicateArgs(opensearch *vzapi.ElasticsearchComponent) error {
 //validateNoDuplicateNodeGroups rejects Nodes with duplicated group names
 func validateNoDuplicateNodeGroups(opensearch *vzapi.ElasticsearchComponent) error {
 	tracker := newTracker()
-
-	// these are the node group names used by ESInstallArgs. They should be reserved for install arg use
-	_ = tracker.add("es-master")
-	_ = tracker.add("es-data")
-	_ = tracker.add("es-ingest")
 	for _, group := range opensearch.Nodes {
 		if err := tracker.add(group.Name); err != nil {
 			return fmt.Errorf("OpenSearch node group name is duplicated or invalid: %v", err)

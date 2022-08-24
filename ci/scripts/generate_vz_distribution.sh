@@ -94,8 +94,6 @@ downloadCommonFiles() {
   # Verrazzano CLI for Darwin ARM64
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ}
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256}
-
-  # Do we need SHA-256 for CLI in the distribution ?
 }
 
 # Copy the common files to directory from where the script builds Verrazzano release distribution
@@ -168,7 +166,6 @@ generateOpenSourceDistribution() {
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_OPENSOURCE_RELEASE_BUNDLE}
 }
 
-
 # Generate the commercial Verrazzano release distribution
 generateCommercialDistribution() {
   includeCommonFiles $VZ_COMMERCIAL_ROOT
@@ -180,25 +177,19 @@ generateCommercialDistribution() {
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${VZ_COMMERCIAL_ROOT}/bin/darwin-amd64
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${VZ_COMMERCIAL_ROOT}/bin/darwin-arm64
 
-  echo "-----------------Tar files from ${WORKSPACE}/tar-files ----------------------"
-  ls ${WORKSPACE}/tar-files/
-
   # Get the tar files
   mv ${WORKSPACE}/tar-files/*.tar ${VZ_COMMERCIAL_ROOT}/images/
 
-  echo "-----------------Tar files from ${VZ_COMMERCIAL_ROOT}/images/ ----------------------"
-  ls ${VZ_COMMERCIAL_ROOT}/images/
-
   cd ${VZ_COMMERCIAL_ROOT}
-  ls
 
   # Create and upload the final distribution zip file and upload
-  zip -r ${VZ_DISTRIBUTION_GENERATED}/${VZ_COMMERCIAL_RELEASE_BUNDLE} *
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${VZ_DISTRIBUTION_GENERATED}/${VZ_COMMERCIAL_RELEASE_BUNDLE}
+  cd ${VZ_DISTRIBUTION_GENERATED}
+  zip -r ${VZ_COMMERCIAL_RELEASE_BUNDLE} *
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${VZ_COMMERCIAL_RELEASE_BUNDLE}
 
-  # If we move the tar file back to original directory, we don't have to change push_to_ocir.sh
+  sha256sum ${VZ_COMMERCIAL_RELEASE_BUNDLE} > ${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256}
+  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256} --file ${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256}
 }
-
 
 # Clean-up workspace after uploading the distribution bundles
 cleanupWorkspace() {
@@ -224,7 +215,13 @@ VZ_CLI_DARWIN_ARM64_TARGZ_SHA256="vz-darwin-arm64.tar.gz.sha256"
 DISTRIBUTION_PREFIX="verrazzano-${VZ_DEVELOPENT_VERSION}"
 
 VZ_OPENSOURCE_RELEASE_BUNDLE="verrazzano-${VZ_DEVELOPENT_VERSION}-open-source.zip"
-VZ_COMMERCIAL_RELEASE_BUNDLE="verrazzano-${VZ_DEVELOPENT_VERSION}.zip"
+VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256="${VZ_OPENSOURCE_RELEASE_BUNDLE}.sha256"
+
+VZ_COMMERCIAL_RELEASE_BUNDLE="verrazzano-${VZ_DEVELOPENT_VERSION}-commercial.zip"
+VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256="${VZ_COMMERCIAL_RELEASE_BUNDLE}.zip.sha256"
+
+VZ_CLI_DARWIN_AMD64_TARGZ="vz-darwin-amd64.tar.gz"
+VZ_CLI_DARWIN_AMD64_TARGZ_SHA256="vz-darwin-amd64.tar.gz.sha256"
 
 VZ_LINUX_AMD64_TARGZ="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz"
 VZ_LINUX_AMD64_TARGZ_SHA256="${DISTRIBUTION_PREFIX}-linux-amd64.tar.gz.sha256"
