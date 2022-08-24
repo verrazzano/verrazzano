@@ -92,6 +92,13 @@ func (c mysqlOperatorComponent) PreInstall(compContext spi.ComponentContext) err
 
 	// create namespace
 	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
+	if ns.Labels == nil {
+		ns.Labels = map[string]string{}
+	}
+	istio := compContext.EffectiveCR().Spec.Components.Istio
+	if istio != nil && istio.IsInjectionEnabled() {
+		ns.Labels[constants.LabelIstioInjection] = "enabled"
+	}
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), cli, &ns, func() error {
 		return nil
 	}); err != nil {
