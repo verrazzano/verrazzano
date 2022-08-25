@@ -323,9 +323,9 @@ type ComponentSpec struct {
 	// +optional
 	Grafana *GrafanaComponent `json:"grafana,omitempty"`
 
-	// Ingress contains the ingress-nginx component configuration
+	// IngressNGINX contains the ingress-nginx component configuration
 	// +optional
-	Ingress *IngressNginxComponent `json:"ingress,omitempty"`
+	IngressNGINX *IngressNginxComponent `json:"ingress,omitempty"`
 
 	// Istio contains the istio component configuration
 	// +optional
@@ -573,6 +573,7 @@ type DNSComponent struct {
 	// +optional
 	External         *External `json:"external,omitempty"`
 	InstallOverrides `json:",inline"`
+	SubDomain        string `json:"subdomain,omitempty"`
 }
 
 // IngressNginxComponent specifies the ingress-nginx configuration
@@ -596,12 +597,12 @@ type IngressNginxComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
-// IstioIngressSection specifies the specific config options available for the Istio Ingress Gateways.
+// IstioIngressSection specifies the specific config options available for the Istio IngressNGINX Gateways.
 type IstioIngressSection struct {
 	// Type of ingress.  Default is LoadBalancer
 	// +optional
 	Type IngressType `json:"type,omitempty"`
-	// Ports to be used for Istio Ingress Gateway
+	// Ports to be used for Istio IngressNGINX Gateway
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
 	// +optional
@@ -633,7 +634,7 @@ type IstioComponent struct {
 	// +optional
 	InjectionEnabled *bool `json:"injectionEnabled,omitempty"`
 	// +optional
-	Ingress *IstioIngressSection `json:"ingress,omitempty"`
+	IngressNGINX *IstioIngressSection `json:"ingress,omitempty"`
 	// +optional
 	Egress *IstioEgressSection `json:"egress,omitempty"`
 }

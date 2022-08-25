@@ -242,8 +242,8 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 		*out = new(GrafanaComponent)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Ingress != nil {
-		in, out := &in.Ingress, &out.Ingress
+	if in.IngressNGINX != nil {
+		in, out := &in.IngressNGINX, &out.IngressNGINX
 		*out = new(IngressNginxComponent)
 		(*in).DeepCopyInto(*out)
 	}
@@ -757,8 +757,8 @@ func (in *IstioComponent) DeepCopyInto(out *IstioComponent) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.Ingress != nil {
-		in, out := &in.Ingress, &out.Ingress
+	if in.IngressNGINX != nil {
+		in, out := &in.IngressNGINX, &out.IngressNGINX
 		*out = new(IstioIngressSection)
 		(*in).DeepCopyInto(*out)
 	}

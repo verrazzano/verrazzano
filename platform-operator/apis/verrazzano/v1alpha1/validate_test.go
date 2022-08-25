@@ -482,9 +482,9 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
-// TestValidVersionWithIngressChange Tests the validate fails if the upgrade version is OK but the Ingress component is changed
+// TestValidVersionWithIngressChange Tests the validate fails if the upgrade version is OK but the IngressNGINX component is changed
 // GIVEN an edit to update a Verrazzano spec to a new version
-// WHEN the new version is valid and the Ingress component is changed
+// WHEN the new version is valid and the IngressNGINX component is changed
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithIngressChange(t *testing.T) {
 	assert.Error(t, runValidateWithIngressChangeTest())
@@ -492,7 +492,7 @@ func TestValidVersionWithIngressChange(t *testing.T) {
 
 // TestValidVersionWithIngressChangeVersionCheckDisabled Tests the validate passes for component change with version check disabled
 // GIVEN an edit to update a Verrazzano spec to a new version
-// WHEN the new version is valid and the Ingress component is changed, but version checking is disabled
+// WHEN the new version is valid and the IngressNGINX component is changed, but version checking is disabled
 // THEN no error is returned from ValidateUpgradeRequest
 func TestValidVersionWithIngressChangeVersionCheckDisabled(t *testing.T) {
 	defer config.Set(config.Get())
@@ -510,7 +510,7 @@ func runValidateWithIngressChangeTest() error {
 		Spec: VerrazzanoSpec{
 			Profile: Dev,
 			Components: ComponentSpec{
-				Ingress: &IngressNginxComponent{
+				IngressNGINX: &IngressNginxComponent{
 					Type: "sometype",
 					NGINXInstallArgs: []InstallArgs{
 						{
@@ -538,7 +538,7 @@ func runValidateWithIngressChangeTest() error {
 			Version: v0170,
 			Profile: Dev,
 			Components: ComponentSpec{
-				Ingress: &IngressNginxComponent{
+				IngressNGINX: &IngressNginxComponent{
 					Type: "sometype",
 					NGINXInstallArgs: []InstallArgs{
 						{

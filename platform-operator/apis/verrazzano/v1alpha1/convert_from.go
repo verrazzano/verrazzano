@@ -20,6 +20,7 @@ func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	in.Spec.Components = convertComponentsFromV1Beta1(src.Spec.Components)
 	in.Spec.Profile = ProfileType(src.Spec.Profile)
 	in.Spec.EnvironmentName = src.Spec.EnvironmentName
+	in.Spec.Components.DNS.SubDomain = src.Spec.Components.DNS.SubDomain
 	in.Spec.Version = src.Spec.Version
 	in.Spec.DefaultVolumeSource = src.Spec.DefaultVolumeSource
 	in.Spec.VolumeClaimSpecTemplates = convertVoumeClaimTemplatesFromV1Beta1(src.Spec.VolumeClaimSpecTemplates)
@@ -114,7 +115,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		Elasticsearch:          convertOpenSearchFromV1Beta1(in.OpenSearch),
 		Fluentd:                convertFluentdFromV1Beta1(in.Fluentd),
 		Grafana:                convertGrafanaFromV1Beta1(in.Grafana),
-		Ingress:                convertIngressNGINXFromV1Beta1(in.Ingress),
+		IngressNGINX:           convertIngressNGINXFromV1Beta1(in.IngressNGINX),
 		Istio:                  convertIstioFromV1Beta1(in.Istio),
 		JaegerOperator:         convertJaegerOperatorFromV1Beta1(in.JaegerOperator),
 		Kiali:                  convertKialiFromV1Beta1(in.Kiali),

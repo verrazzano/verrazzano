@@ -95,7 +95,7 @@ type istioTemplateData struct {
 
 func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, error) {
 	// no v1alpha1 istio definition was supplied, can skip conversion
-	if len(comp.IstioInstallArgs) == 0 && comp.Ingress == nil && comp.Egress == nil {
+	if len(comp.IstioInstallArgs) == 0 && comp.IngressNGINX == nil && comp.Egress == nil {
 		return &v1beta1.Overrides{}, nil
 	}
 	var externalIPYAMLTemplateValue = ""
@@ -213,15 +213,15 @@ func configureGateways(istioComponent *IstioComponent, externalIP string) (strin
 }
 
 func configureIngressGateway(istioComponent *IstioComponent, data *istioTemplateData) error {
-	if istioComponent.Ingress == nil {
+	if istioComponent.IngressNGINX == nil {
 		return nil
 	}
-	ingress := istioComponent.Ingress
+	ingress := istioComponent.IngressNGINX
 	if ingress.Kubernetes != nil {
 		data.IngressKubernetes = true
 		data.IngressReplicaCount = ingress.Kubernetes.Replicas
 		if ingress.Kubernetes.Affinity != nil {
-			yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Affinity)
+			yml, err := yaml.Marshal(istioComponent.IngressNGINX.Kubernetes.Affinity)
 			if err != nil {
 				return err
 			}

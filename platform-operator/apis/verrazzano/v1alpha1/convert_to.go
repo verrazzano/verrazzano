@@ -59,6 +59,7 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	// Convert Spec
 	out.Spec.Profile = v1beta1.ProfileType(in.Spec.Profile)
 	out.Spec.EnvironmentName = in.Spec.EnvironmentName
+	out.Spec.Components.DNS.SubDomain = in.Spec.Components.DNS.SubDomain
 	out.Spec.Version = in.Spec.Version
 	out.Spec.DefaultVolumeSource = in.Spec.DefaultVolumeSource
 	out.Spec.VolumeClaimSpecTemplates = convertVolumeClaimTemplateTo(in.Spec.VolumeClaimSpecTemplates)
@@ -94,7 +95,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	if err != nil {
 		return v1beta1.ComponentSpec{}, err
 	}
-	ingressComponent, err := convertIngressNGINXToV1Beta1(src.Ingress)
+	ingressNGINXComponent, err := convertIngressNGINXToV1Beta1(src.IngressNGINX)
 	if err != nil {
 		return v1beta1.ComponentSpec{}, err
 	}
@@ -121,7 +122,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		OpenSearch:             opensearchComponent,
 		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
 		Grafana:                convertGrafanaToV1Beta1(src.Grafana),
-		Ingress:                ingressComponent,
+		IngressNGINX:           ingressNGINXComponent,
 		Istio:                  istioComponent,
 		JaegerOperator:         convertJaegerOperatorToV1Beta1(src.JaegerOperator),
 		Kiali:                  convertKialiToV1Beta1(src.Kiali),
