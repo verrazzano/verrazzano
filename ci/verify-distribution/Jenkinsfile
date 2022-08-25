@@ -11,6 +11,8 @@ def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+def commercialBundleLocation=""
+def openSourceBundleLocation=""
 
 pipeline {
     options {
@@ -34,7 +36,7 @@ pipeline {
                 choices: [ "1.22", "1.23", "1.21", "1.20" ])
         choice (name: 'DISTRIBUTION_VARIANT',
                 description: 'Verrazzano Distribution Variant to use for testing',
-                choices: ["Commercial", "Open Source"])
+                choices: ["Commercial", "OpenSource"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -44,7 +46,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         string (name: 'ZIPFILE_LOCATION',
-                        defaultValue: 'master-last-clean-periodic-test/verrazzano_periodic.zip',
+                        defaultValue: 'NONE',
                         description: 'The bucket location to use for the Zip file download',
                         trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
@@ -248,13 +250,28 @@ pipeline {
         stage('Download and extract Tarball') {
             steps {
                 script {
-                    downloadLocation = "${WORKSPACE}/${params.ZIPFILE_LOCATION}"
+                    def ziFileLoc = params.ZIPFILE_LOCATION
+                    if (zipFileLoc == "NONE") {
+                        if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                            zipFileLoc = sh (
+                                script: "echo $openSourceBundleLocation"
+                                returnStdout: true
+                            ).trim()
+                        } else {
+                            zipFileLoc = sh (
+                                script: "echo $commercialBundleLocation"
+                                returnStdout: true
+                            ).trim()
+                        }
+                    }
+                    downloadLocation = "${WORKSPACE}/${zipFileLoc}"
                     baseFilename = sh (
-                        script: "basename ${params.ZIPFILE_LOCATION} .zip",
+                        script: "basename ${zipFileLoc} .zip",
                         returnStdout: true
                         ).trim()
-                    tarfileName = "${baseFilename}.tar.gz"
-                    checksumFile = "${tarfileName}.sha256"
+                    // Commercial bundle doesn't have a tarfile and CheckSum, add logic based on distribution variant
+                    tarfileName = ""
+                    checksumFile = ""
                     echo "base name: $baseFilename, tar name: $tarfileName"
 
                     zipDir = sh (
@@ -269,9 +286,11 @@ pipeline {
 
                     dir(env.TARBALL_DIR) {
                         unzip zipFile: downloadLocation
-                        sh "sha256sum -c $checksumFile"
-                        sh "tar xvf $tarfileName"
+                        if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                            sh "sha256sum -c $checksumFile"
+                            sh "tar xvf $tarfileName"
                         }
+                    }
                 }
             }
         }
