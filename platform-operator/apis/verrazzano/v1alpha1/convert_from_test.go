@@ -51,9 +51,6 @@ func TestConvertFromV1Beta1(t *testing.T) {
 				assert.EqualValues(t, v1alpha1Expected.ObjectMeta, v1alpha1Actual.ObjectMeta)
 				assert.EqualValues(t, v1alpha1Expected.Spec, v1alpha1Actual.Spec)
 				assert.EqualValues(t, v1alpha1Expected.Status, v1alpha1Actual.Status)
-				if v1alpha1Expected.Spec.Components.Grafana != nil {
-					assert.EqualValues(t, v1alpha1Expected.Spec.Components.Grafana.Enabled, v1alpha1Actual.Spec.Components.Grafana.Enabled)
-				}
 			}
 		})
 	}
