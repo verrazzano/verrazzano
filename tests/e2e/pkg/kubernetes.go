@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
 	"strings"
@@ -1408,37 +1409,26 @@ func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
-	// API token secret is populated asynchronously.
-	// https://github.com/kubernetes/kubernetes/issues/67882#issuecomment-422026204
-	// as a work-around, wait for up to 5 seconds for the secret to be populated.
-	timeout := time.After(5 * time.Second)
-	wait := true
-	for wait {
-		select {
-		case <-timeout:
-			return nil, errors.New("unable to find secret token associated to service account (timeout)")
-		default:
-			secret, err = clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
-			if err != nil {
-				return nil, err
-			}
-			if len(secret.Data) > 0 {
-				wait = false
-				break
-			}
-			time.Sleep(1 * time.Second)
+	// API token secret is populated asynchronously. As a work-around, wait for up to 10 seconds for the secret to be
+	// populated.
+	// https://github.com/kubernetes/kubernetes/pull/108309/files#diff-9037e55a81aefc2c9dc448fa4329772381d50ed1f270575be0ff48e0a949e12eR475
+	err = wait.Poll(time.Second, 10*time.Second, func() (bool, error) {
+		if len(secret.Data["token"]) != 0 {
+			return true, nil
 		}
-	}
-
-	token, ok := secret.Data["token"]
-
-	if !ok {
+		secret, err = clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+		if err != nil {
+			return false, fmt.Errorf("failed to get secret %s for service account %s in namespace %s: %v", secretName,
+				sa, namespace, err)
+		}
+		return false, nil
+	})
+	if err != nil {
 		msg := fmt.Sprintf("unable to find token in secret %s for service account %s in namespace %s: %v", secretName, sa, namespace, err)
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
-
-	return token, nil
+	return secret.Data["token"], nil
 }
 
 func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
