@@ -5,6 +5,7 @@ package capi
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
 
 	kindcluster "sigs.k8s.io/kind/pkg/cluster"
 	kind "sigs.k8s.io/kind/pkg/cmd"
@@ -66,6 +67,9 @@ func (k *kindBootstrapProviderImpl) DestroyCluster(clusterName string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		os.Remove(kubePath)
+	}()
 	return provider.Delete(clusterName, kubePath)
 }
 
