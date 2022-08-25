@@ -119,7 +119,7 @@
     },
     {
       "name": "rancher",
-      "version": "v2.6.6",
+      "version": "v2.6.7",
       "subcomponents": [
         {
           "repository": "verrazzano",
