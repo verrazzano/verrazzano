@@ -20,11 +20,6 @@ if [ -f "$3" ]; then
   exit 1
 fi
 
-if [ -d "$3" ]; then
-  echo "Please specify a new filename not a directory"
-  exit 1
-fi
-
 bomFile=$1
 tmpDir=$2
 outputFile=$3
