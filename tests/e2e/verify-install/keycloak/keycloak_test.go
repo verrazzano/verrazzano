@@ -135,7 +135,7 @@ var _ = t.Describe("Test Keycloak configuration.", Label("f:platform-lcm.install
 var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 	var _ = t.Context("MySQL Persistent Volumes in namespace keycloak based on", func() {
 
-		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
+		size := "2Gi" // based on values set in platform-operator/thirdparty/charts/mysql
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 		override, _ := pkg.GetEffectiveKeyCloakPersistenceOverride(kubeconfigPath)
 		if override != nil {
