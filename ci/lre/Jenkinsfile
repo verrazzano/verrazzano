@@ -46,6 +46,7 @@ pipeline {
         DEV_LRE_COMPARTMENT_ID = credentials('dev-lre-compartment-id')
         DEV_LRE_CLUSTER_ID = credentials('dev-lre-cluster-id')
         DEV_LRE_CLUSTER_IP = credentials('dev-lre-cluster-ip')
+        DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
 
         ssh_public_key_path = "${WORKSPACE}/.ssh/id_rsa.pub"
         ssh_private_key_path = "${WORKSPACE}/.ssh/id_rsa"
@@ -60,8 +61,6 @@ pipeline {
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
 
-        DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
-        DEV_LRE_KUBECONFIG = credentials('dev-lre-kubeconfig')
         KUBECONFIG = "${WORKSPACE}/.kube/config"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
     }
@@ -159,11 +158,6 @@ pipeline {
                             ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
                             # convert SSH2 public key into an OpenSSH format
                             ssh-keygen -i -f /tmp/opc_ssh2.pub > ${ssh_public_key_path}
-                            # export the ssh public key value for LRE cluster
-                            # export ssh_public_key_path=${WORKSPACE}/.ssh/id_rsa.pub
-                            # ls -ls ${WORKSPACE}/.ssh
-                            # echo "cat the private key file"
-                            # cat ${OPC_USER_KEY_FILE}
                             echo "create ssh tunnel"
                             cd ${GO_REPO_PATH}/verrazzano/
                             ci/scripts/lre_setup_ssh_tunnel.sh
@@ -176,21 +170,6 @@ pipeline {
                 }
             }
         }
-
-/*
-        stage('Set kubeconfig') {
-            steps {
-                script {
-                    sh """
-                        mkdir -p ${WORKSPACE}/.kube
-                        rm -rf ${KUBECONFIG}
-                        cp ${DEV_LRE_KUBECONFIG} ${KUBECONFIG}
-                        cat ${KUBECONFIG}
-                    """
-                }
-            }
-        }
-*/
 
         stage ("Run kubectl commands") {
             steps {
