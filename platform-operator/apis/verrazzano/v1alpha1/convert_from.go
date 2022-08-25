@@ -315,11 +315,13 @@ func convertGrafanaFromV1Beta1(in *v1beta1.GrafanaComponent) *GrafanaComponent {
 	}
 	var info *DatabaseInfo
 	if in.Database != nil {
-		info.Host = in.Database.Host
-		info.Name = in.Database.Name
+		info = &DatabaseInfo{
+			Host: in.Database.Host,
+			Name: in.Database.Name,
+		}
 	}
 	return &GrafanaComponent{
-		Enabled: in.Enabled,
+		Enabled:  in.Enabled,
 		Replicas: in.Replicas,
 		Database: info,
 	}
