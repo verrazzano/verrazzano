@@ -196,6 +196,7 @@ func TestHelidonStopStart(t *testing.T) {
 				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
+		// Test restarting Helidon workload when namespace doesn't have an istio injection label
 		{
 			name:                "DoNotRestartHelidonWithoutIstioNSLabel",
 			expectGetAndUpdate:  false,
