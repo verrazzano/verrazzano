@@ -1,9 +1,13 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package coherence
 
 import (
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
@@ -47,12 +51,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled Coherence-specific enabled check for installation
-func (c coherenceComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.CoherenceOperator
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c coherenceComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsCoherenceOperatorEnabled(effectiveCR)
 }
 
 // IsReady checks if the Coherence deployment is ready
@@ -70,6 +70,11 @@ func (c coherenceComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ver
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c coherenceComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

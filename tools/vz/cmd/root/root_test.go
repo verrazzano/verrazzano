@@ -6,11 +6,13 @@ package root
 import (
 	"bytes"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/cluster"
 
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/uninstall"
@@ -33,7 +35,7 @@ func TestNewRootCmd(t *testing.T) {
 	assert.NotNil(t, rootCmd)
 
 	// Verify the expected commands are defined
-	assert.Len(t, rootCmd.Commands(), 7)
+	assert.Len(t, rootCmd.Commands(), 8)
 	foundCount := 0
 	for _, cmd := range rootCmd.Commands() {
 		switch cmd.Name() {
@@ -51,9 +53,11 @@ func TestNewRootCmd(t *testing.T) {
 			foundCount++
 		case bugreport.CommandName:
 			foundCount++
+		case cluster.CommandName:
+			foundCount++
 		}
 	}
-	assert.Equal(t, 7, foundCount)
+	assert.Equal(t, 8, foundCount)
 
 	// Verify the expected global flags are defined
 	assert.NotNil(t, rootCmd.PersistentFlags().Lookup(constants.GlobalFlagKubeConfig))
@@ -66,4 +70,20 @@ func TestNewRootCmd(t *testing.T) {
 	assert.True(t, strings.Contains(buf.String(), "Usage:"))
 	assert.True(t, strings.Contains(buf.String(), "Available Commands:"))
 	assert.True(t, strings.Contains(buf.String(), "Flags:"))
+}
+
+func TestClusterCommandIsHiddenInHelp(t *testing.T) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rootCmd := NewRootCmd(rc)
+	assert.NotNil(t, rootCmd)
+	args := []string{"-h"}
+	rootCmd.SetArgs(args)
+	err := rootCmd.Execute()
+	assert.Nil(t, err)
+	output := buf.String()
+
+	// The create command should be hidden in VZ CLI help
+	assert.NotContains(t, output, cluster.HelpShort)
 }

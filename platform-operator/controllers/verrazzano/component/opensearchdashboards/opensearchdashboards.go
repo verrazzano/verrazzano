@@ -20,7 +20,7 @@ func isOSDReady(ctx spi.ComponentContext) bool {
 
 	var deployments []types.NamespacedName
 
-	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
 			types.NamespacedName{
 				Name:      kibanaDeployment,

@@ -6,7 +6,10 @@ package fluentd
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -90,6 +93,16 @@ func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 		return err
 	}
 	return f.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (f fluentdComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (f fluentdComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 func (f fluentdComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
@@ -203,12 +216,8 @@ func (f fluentdComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 }
 
 // IsEnabled fluentd-specific enabled check for installation
-func (f fluentdComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Fluentd
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (f fluentdComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsFluentdEnabled(effectiveCR)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

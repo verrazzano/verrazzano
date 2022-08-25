@@ -6,6 +6,8 @@ package certmanager
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -60,8 +62,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
-func (c certManagerComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	return vzconfig.IsCertManagerEnabled(effectiveCR)
+func (c certManagerComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsCertManagerEnabled(effectiveCR.(*vzapi.Verrazzano))
 }
 
 // IsReady component check
@@ -92,6 +94,16 @@ func (c certManagerComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 		return err
 	}
 	return c.HelmComponent.ValidateInstall(vz)
+}
+
+// ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
+func (c certManagerComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c certManagerComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // PreInstall runs before cert-manager components are installed

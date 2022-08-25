@@ -270,8 +270,7 @@ pipeline {
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [],
                         submoduleCfg: [],
-                        // TODO: Update the credentials used to clone terraform-oci-olcne repository
-                        userRemoteConfigs: [[url: env.OCNE_TERRAFORM_GIT_URL, credentialsId: 'sk_gitlab_rw']]])
+                        userRemoteConfigs: [[url: env.OLCNE_TERRAFORM_GIT_URL, credentialsId: 'gitlab_ocne_tf_rw']]])
                     env.TF_GIT_COMMIT=scmInfo.GIT_COMMIT
                     env.TF_GIT_BRANCH=scmInfo.GIT_BRANCH
                     // If the commit we were handed is not what the SCM says we are using, fail
