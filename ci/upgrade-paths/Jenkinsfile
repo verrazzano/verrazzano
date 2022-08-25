@@ -170,12 +170,10 @@ pipeline {
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
 
         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-
         // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
         CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
-
         // Environment variable for Verrazzano CLI executable
         VZ_COMMAND="${GO_REPO_PATH}/vz"
 
@@ -183,7 +181,6 @@ pipeline {
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
 
         EXTERNAL_ELASTICSEARCH = "${params.EXTERNAL_ELASTICSEARCH}"
-
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
         OCI_CLI_AUTH="instance_principal"
