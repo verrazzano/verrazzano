@@ -149,6 +149,10 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 
 		if pkg.IsDevProfile() {
 			expectedKeyCloakPVCs := 0
+			is14, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+			if is14 {
+				expectedKeyCloakPVCs = 1
+			}
 			if override != nil {
 				expectedKeyCloakPVCs = 1
 			}
