@@ -203,8 +203,8 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 			return log.ErrorfNewErr("Failed to list pods for AppConfig %s/%s: %v", appConfig.Namespace, appConfig.Name, err)
 		}
 
-		//Check if any pods that contain no istio proxy container with istio injection labeled namespace
-		foundOAMPodWithoutIstioProxy, _ := DoesAppPodNeedIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
+		//Check if any pods that contain no or old istio proxy container with istio injection labeled namespace
+		foundOAMPodWithoutIstioProxy, _ := DoesAppPodNeedRestart(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
 
 		if foundOAMPodWithoutIstioProxy {
 			err := restartOAMApp(log, appConfig, client, restartVersion)
@@ -216,8 +216,9 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 	return nil
 }
 
-// DoesAppPodNeedIstioSidecar returns true if any OAM pods with istio injected don't have an Istio proxy sidecar
-func DoesAppPodNeedIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) (bool, error) {
+// DoesAppPodNeedRestart returns true if any OAM pods with istio injected don't have or have an old Istio proxy sidecar
+func DoesAppPodNeedRestart(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) (bool, error) {
+	// Return true if the pod has an old Istio proxy container
 	for _, pod := range podList.Items {
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, "proxyv2") {
