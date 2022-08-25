@@ -175,7 +175,7 @@ func helidonConfigPodsRunning() bool {
 }
 
 func serviceMonitorExists() bool {
-	smName := pkg.GetAppServiceMonitorName(namespace, "hello-helidon")
+	smName := pkg.GetAppServiceMonitorName(namespace, "hello-helidon", "")
 	sm, err := pkg.GetServiceMonitor(namespace, smName)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get the Service Monitor from the cluster: %v", err))

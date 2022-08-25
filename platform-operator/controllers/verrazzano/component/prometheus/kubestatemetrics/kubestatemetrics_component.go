@@ -4,10 +4,10 @@
 package kubestatemetrics
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
@@ -53,12 +53,8 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if kube-state-metrics is enabled or if the component is not specified
 // in the Verrazzano CR.
-func (c kubeStateMetricsComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.KubeStateMetrics
-	if comp == nil || comp.Enabled == nil {
-		return false
-	}
-	return *comp.Enabled
+func (c kubeStateMetricsComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsKubeStateMetricsEnabled(effectiveCR)
 }
 
 // IsReady checks if the kube-state-metrics deployment is ready

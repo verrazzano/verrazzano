@@ -6,6 +6,8 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -53,12 +55,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled returns true if the component is enabled for install
-func (c mysqlOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.MySQLOperator
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c mysqlOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsMySQLOperatorEnabled(effectiveCR)
 }
 
 // IsReady - component specific ready-check

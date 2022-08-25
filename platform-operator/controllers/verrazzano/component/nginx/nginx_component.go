@@ -6,6 +6,7 @@ package nginx
 import (
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -64,12 +65,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled nginx-specific enabled check for installation
-func (c nginxComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Ingress
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c nginxComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsNGINXEnabled(effectiveCR)
 }
 
 // IsReady component check

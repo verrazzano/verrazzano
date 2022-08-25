@@ -5,10 +5,10 @@ package vmo
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -57,7 +57,7 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled VMO enabled check for installation
-func (c vmoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (c vmoComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsVMOEnabled(effectiveCR)
 }
 

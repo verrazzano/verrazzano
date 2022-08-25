@@ -988,18 +988,23 @@ def createImagePullSecrets() {
 
 def installVerrazzanoPlatformOperator() {
     sh """
-        # oci --region us-phoenix-1 os object get \
-        # --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
-        # --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
-        # --file $WORKSPACE/downloaded-operator.yaml
-
-        # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands instead of "wget"
-        wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
+        oci --region us-phoenix-1 os object get \
+        --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
+        --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
+        --file $WORKSPACE/downloaded-operator.yaml
 
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
         # Install the verrazzano-platform-operator
         kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
+
+        # make sure ns exists
+        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+
+        # create secret in verrazzano-install ns
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
+
         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
         # make sure ns exists
         chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh

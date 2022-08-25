@@ -7,7 +7,9 @@ import (
 	"context"
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -214,12 +216,8 @@ func (f fluentdComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 }
 
 // IsEnabled fluentd-specific enabled check for installation
-func (f fluentdComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Fluentd
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (f fluentdComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsFluentdEnabled(effectiveCR)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
