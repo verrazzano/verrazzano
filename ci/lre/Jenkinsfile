@@ -158,23 +158,19 @@ pipeline {
                             # get the ssh public key
                             ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
                             # convert SSH2 public key into an OpenSSH format
-                            ssh-keygen -i -f /tmp/opc_ssh2.pub > ${WORKSPACE}/.ssh/id_rsa.pub
+                            ssh-keygen -i -f /tmp/opc_ssh2.pub > ${ssh_public_key_path}
                             # export the ssh public key value for LRE cluster
-                            export ssh_public_key_path=${WORKSPACE}/.ssh/id_rsa.pub
-                            ls -ls ${WORKSPACE}/.ssh
-                            echo "cat the private key file"
-                            cat ${OPC_USER_KEY_FILE}
+                            # export ssh_public_key_path=${WORKSPACE}/.ssh/id_rsa.pub
+                            # ls -ls ${WORKSPACE}/.ssh
+                            # echo "cat the private key file"
+                            # cat ${OPC_USER_KEY_FILE}
                             echo "create ssh tunnel"
                             cd ${GO_REPO_PATH}/verrazzano/
                             ci/scripts/lre_setup_ssh_tunnel.sh
-                            #wait a bit for the tunnel to be setup
+                            # wait a bit for the tunnel to be setup
                             sleep 60
-                            ls -ls ${KUBECONFIG}
                             sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
                             cat ${KUBECONFIG}
-                            # updating kubeconfig with sa
-                            # cd ${GO_REPO_PATH}/verrazzano/
-                            # ci/scripts/update_lre_kubeconfig.sh
                         '''
                     }
                 }
