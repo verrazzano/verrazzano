@@ -164,7 +164,7 @@ func TestHelidonStopStart(t *testing.T) {
 				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
-		// Test restarting Helidon workload because it doesn't have an Istio image
+		// Test restarting Helidon workload because it doesn't have an old Istio image
 		{
 			name:               "DoNotRestartHelidon",
 			expectGetAndUpdate: false,
