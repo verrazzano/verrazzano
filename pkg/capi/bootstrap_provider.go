@@ -3,6 +3,9 @@
 package capi
 
 import (
+	"bytes"
+	"io/ioutil"
+
 	kindcluster "sigs.k8s.io/kind/pkg/cluster"
 	kind "sigs.k8s.io/kind/pkg/cmd"
 )
@@ -59,7 +62,23 @@ func (k *kindBootstrapProviderImpl) DestroyCluster(clusterName string) error {
 	if err != nil {
 		return err
 	}
-	return provider.Delete(clusterName, kubeconfig)
+	kubePath, err := saveKubeconfigToFile(kubeconfig)
+	if err != nil {
+		return err
+	}
+	return provider.Delete(clusterName, kubePath)
+}
+
+func saveKubeconfigToFile(kubeconfigContents string) (string, error) {
+	// Create a temp file that contains the kubeconfig
+	tmpFile, err := ioutil.TempFile("", "kubeconfig")
+	if err != nil {
+		return "", err
+	}
+	kubeConfigBytes := bytes.Buffer{}
+	kubeConfigBytes.WriteString(kubeconfigContents)
+	err = ioutil.WriteFile(tmpFile.Name(), kubeConfigBytes.Bytes(), 0600)
+	return tmpFile.Name(), err
 }
 
 func (k *kindBootstrapProviderImpl) GetKubeconfig(clusterName string) (string, error) {
