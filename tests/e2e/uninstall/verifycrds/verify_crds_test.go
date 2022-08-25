@@ -153,6 +153,8 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 				strings.HasSuffix(crd.Name, "cert-manager.io") ||
 				strings.HasSuffix(crd.Name, "cluster.x-k8s.io") ||
 				strings.HasSuffix(crd.Name, "cattle.io") ||
+				strings.HasSuffix(crd.Name, "mysql.oracle.com") ||
+				strings.HasSuffix(crd.Name, "zalando.org") ||
 				crd.Name == "monitoringdashboards.monitoring.kiali.io" ||
 				crd.Name == "domains.weblogic.oracle" ||
 				crd.Name == "coherence.coherence.oracle.com" {
