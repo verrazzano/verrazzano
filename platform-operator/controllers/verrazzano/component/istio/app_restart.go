@@ -7,6 +7,7 @@ import (
 	"context"
 	v1 "k8s.io/api/core/v1"
 	"strconv"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -202,13 +203,10 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 			return log.ErrorfNewErr("Failed to list pods for AppConfig %s/%s: %v", appConfig.Namespace, appConfig.Name, err)
 		}
 
-		// Check if any pods contain the old Istio proxy image
-		foundOldIstioProxyImage := DoesPodContainOldIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
-
 		//Check if any pods that contain no istio proxy container with istio injection labeled namespace
-		foundOAMPodWithoutIstioProxy, _ := DoesAppPodNeedIstioSidecar(log, podList, "OAM Application", appConfig.Name)
+		foundOAMPodWithoutIstioProxy, _ := DoesAppPodNeedIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
 
-		if foundOldIstioProxyImage || foundOAMPodWithoutIstioProxy {
+		if foundOAMPodWithoutIstioProxy {
 			err := restartOAMApp(log, appConfig, client, restartVersion)
 			if err != nil {
 				return err
@@ -219,16 +217,27 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 }
 
 // DoesAppPodNeedIstioSidecar returns true if any OAM pods with istio injected don't have an Istio proxy sidecar
-func DoesAppPodNeedIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string) (bool, error) {
+func DoesAppPodNeedIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) (bool, error) {
 	for _, pod := range podList.Items {
-		// Ignore OAM pods that do not have Istio injected
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, "proxyv2") {
+				// Container contains the proxy2 image (Envoy Proxy).  Return true if it
+				// doesn't match the Istio proxy in the BOM
+				if 0 != strings.Compare(container.Image, istioProxyImageName) {
+					log.Oncef("Restarting %s %s which has a pod with an old Istio proxy %s", workloadType, workloadName, container.Image)
+					return true, nil
+				}
+			}
+		}
 		goClient, err := k8sutil.GetGoClient(log)
 		if err != nil {
-			return false, log.ErrorfNewErr("Failed to get namespace for AppConfig %s/%s: %v", workloadType, workloadName, err)
+			return false, log.ErrorfNewErr("Failed to get kubernetes client for AppConfig %s/%s: %v", workloadType, workloadName, err)
 		}
 		podNamespace, _ := goClient.CoreV1().Namespaces().Get(context.TODO(), pod.GetNamespace(), metav1.GetOptions{})
 		namespaceLabels := podNamespace.GetLabels()
 		value, ok := namespaceLabels["istio-injection"]
+
+		// Ignore OAM pods that do not have Istio injected
 		if ok && value != "enabled" {
 			continue
 		}
