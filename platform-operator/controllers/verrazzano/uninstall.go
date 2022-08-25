@@ -98,7 +98,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 				tracker.vzState = vzStateUninstallMC
 				continue
 			}
-			spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+			spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}
@@ -115,7 +115,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallMC
 
 		case vzStateUninstallMC:
-			spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+			spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -133,7 +133,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 			tracker.vzState = vzStateUninstallCleanup
 
 		case vzStateUninstallCleanup:
-			spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+			spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
 			if err != nil {
 				return ctrl.Result{}, err
 			}

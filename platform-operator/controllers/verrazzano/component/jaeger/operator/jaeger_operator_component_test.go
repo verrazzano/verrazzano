@@ -102,7 +102,7 @@ func TestIsEnabled(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false, profilesRelativePath)
 			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
 		})
 	}
@@ -275,7 +275,7 @@ func TestIsReady(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.cr, tt.dryRun)
+			ctx := spi.NewFakeContext(tt.client, tt.cr, nil, tt.dryRun)
 			assert.Equal(t, tt.expectTrue, NewComponent().IsReady(ctx))
 		})
 	}
@@ -285,7 +285,7 @@ func TestIsReady(t *testing.T) {
 func TestPreInstall(t *testing.T) {
 	for _, tt := range getPreInstallTests() {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, nil, false)
 			err := NewComponent().PreInstall(ctx)
 			if tt.err != nil {
 				assert.Error(t, err)
@@ -310,7 +310,7 @@ func TestPostInstall(t *testing.T) {
 
 	for _, tt := range getIngressTests(false) {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, nil, false, profilesRelativePath)
 			err := NewComponent().PostInstall(ctx)
 			if tt.err != nil {
 				assert.Equal(t, tt.err, err)
@@ -397,7 +397,7 @@ func TestGetIngressAndCertificateNames(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false)
 			assert.Equal(t, tt.ingresses, NewComponent().GetIngressNames(ctx))
 			assert.Equal(t, tt.certs, NewComponent().GetCertificateNames(ctx))
 		})
@@ -667,7 +667,7 @@ func TestPostUpgrade(t *testing.T) {
 
 	for _, tt := range getIngressTests(true) {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, nil, false, profilesRelativePath)
 			err := NewComponent().PostUpgrade(ctx)
 			if tt.err != nil {
 				assert.Equal(t, tt.err, err)
@@ -749,7 +749,7 @@ func TestMonitorOverrides(t *testing.T) {
 	client := createFakeClient()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(client, tt.actualCR, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(client, tt.actualCR, nil, false, profilesRelativePath)
 			if tt.expectTrue {
 				assert.True(t, NewComponent().MonitorOverrides(ctx), tt.name)
 			} else {

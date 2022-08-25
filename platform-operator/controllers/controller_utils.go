@@ -6,6 +6,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
@@ -68,7 +69,7 @@ func ProcDeletedOverride(c client.Client, vz *installv1alpha1.Verrazzano, object
 
 	// DefaultLogger is used since we only need to create a component context and any actual logging isn't being performed
 	log := vzlog.DefaultLogger()
-	ctx, err := spi.NewContext(log, c, vz, false)
+	ctx, err := spi.NewContext(log, c, vz, nil, false)
 	if err != nil {
 		return err
 	}

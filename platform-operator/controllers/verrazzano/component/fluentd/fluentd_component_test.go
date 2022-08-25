@@ -304,7 +304,7 @@ func TestPreInstall(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, nil, false)
 			err := NewComponent().PreInstall(ctx)
 			if tt.err != nil {
 				assert.Error(t, err)
@@ -335,7 +335,7 @@ func TestInstall(t *testing.T) {
 				Fluentd: &vzapi.FluentdComponent{ElasticsearchSecret: vzapi.OciConfigSecretFile},
 			},
 		},
-	}, false)
+	}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetUpgradeFunc(fakeUpgrade)
 	defer helm.SetDefaultUpgradeFunc()
@@ -389,7 +389,7 @@ func TestPreUpgrade(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, nil, false)
 			err := NewComponent().PreUpgrade(ctx)
 			if tt.err != nil {
 				assert.Error(t, err)
@@ -452,7 +452,7 @@ func TestIsInstalled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, fluentdEnabledCR, false)
+			ctx := spi.NewFakeContext(tt.client, fluentdEnabledCR, nil, false)
 			installed, err := NewComponent().IsInstalled(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.isInstalled, installed)
@@ -472,7 +472,7 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 	})
 	defer helmcli.SetDefaultRunner()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -488,7 +488,7 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	})
 	defer helmcli.SetDefaultRunner()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -524,7 +524,7 @@ func TestUninstallResources(t *testing.T) {
 		serviceAccount,
 	).Build()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 
 	// Assert that the resources have been deleted
@@ -555,6 +555,6 @@ func getFakeComponentContext(c client.WithWatch) spi.ComponentContext {
 			},
 		},
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
-	}, false)
+	}, nil, false)
 	return ctx
 }

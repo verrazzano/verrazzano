@@ -28,7 +28,7 @@ func TestPreHook(t *testing.T) {
 			},
 		}).
 		Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	assert.NoError(t, preHook(ctx))
 }
 
@@ -51,7 +51,7 @@ func TestAppendOverrides(t *testing.T) {
 			},
 		}).
 		Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	overrides, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, overrides, 4)
