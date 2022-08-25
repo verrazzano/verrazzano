@@ -33,9 +33,10 @@ pipeline {
         LRE_CLUSTER_ENV = "${params.LRE_CLUSTER}"
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_OS_BUCKET = "verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET = "verrazzano-builds-by-commit"
 
+        OCI_CLI_AUTH = "api_key"
         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
         OCI_CLI_USER = credentials('oci-dev-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
