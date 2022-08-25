@@ -41,7 +41,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         string (name: 'ZIPFILE_LOCATION',
-                        defaultValue: 'pabhat%2Fvz-6801-2-last-clean-periodic-test/verrazzano-1.4.0-open-source.zip',
+                        defaultValue: 'pabhat%2Fvz-commercial-bundle-last-clean-periodic-test/verrazzano-1.4.0-open-source.zip',
                         description: 'The bucket location to use for the Zip file download',
                         trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
