@@ -95,7 +95,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	if err != nil {
 		return v1beta1.ComponentSpec{}, err
 	}
-	ingressNGINXComponent, err := convertIngressNGINXToV1Beta1(src.IngressNGINX)
+	ingressComponent, err := convertIngressNGINXToV1Beta1(src.Ingress)
 	if err != nil {
 		return v1beta1.ComponentSpec{}, err
 	}
@@ -122,7 +122,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		OpenSearch:             opensearchComponent,
 		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
 		Grafana:                convertGrafanaToV1Beta1(src.Grafana),
-		IngressNGINX:           ingressNGINXComponent,
+		IngressNGINX:           ingressComponent,
 		Istio:                  istioComponent,
 		JaegerOperator:         convertJaegerOperatorToV1Beta1(src.JaegerOperator),
 		Kiali:                  convertKialiToV1Beta1(src.Kiali),

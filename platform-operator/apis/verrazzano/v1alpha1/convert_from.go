@@ -115,7 +115,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		Elasticsearch:          convertOpenSearchFromV1Beta1(in.OpenSearch),
 		Fluentd:                convertFluentdFromV1Beta1(in.Fluentd),
 		Grafana:                convertGrafanaFromV1Beta1(in.Grafana),
-		IngressNGINX:           convertIngressNGINXFromV1Beta1(in.IngressNGINX),
+		Ingress:                convertIngressNGINXFromV1Beta1(in.IngressNGINX),
 		Istio:                  convertIstioFromV1Beta1(in.Istio),
 		JaegerOperator:         convertJaegerOperatorFromV1Beta1(in.JaegerOperator),
 		Kiali:                  convertKialiFromV1Beta1(in.Kiali),
