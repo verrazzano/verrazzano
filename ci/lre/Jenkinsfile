@@ -35,6 +35,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+
         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
         OCI_CLI_USER = credentials('oci-dev-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
@@ -91,6 +92,30 @@ pipeline {
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
                 """
+            }
+        }
+
+        stage("Create OCI config file") {
+            steps {
+                script{
+                    sh """
+                        mkdir -p ~/.oci
+                        cp ${OCI_CLI_KEY_FILE} ~/.oci
+                        ls -ls ~/.oci
+                        cat ~/.oci/alm.pem
+                        rm -rf ~/.oci/config
+                        {
+                          echo '[DEFAULT]'
+                          echo 'user=${OCI_CLI_USER}'
+                          echo 'fingerprint=${OCI_CLI_FINGERPRINT}'
+                          echo 'tenancy=${OCI_CLI_TENANCY}'
+                          echo 'region=${OCI_CLI_REGION}'
+                          echo 'key_file=~/.oci/alm.pem'
+                        } >> ~/.oci/config
+                        oci setup repair-file-permissions --file /home/opc/.oci/config
+                        cat ~/.oci/config
+                    """
+                }
             }
         }
 
