@@ -51,6 +51,7 @@ pipeline {
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
 
+        DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
         DEV_LRE_KUBECONFIG = credentials('dev-lre-kubeconfig')
         KUBECONFIG = "${WORKSPACE}/.kube/config"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
@@ -183,11 +184,11 @@ pipeline {
 
     }
     post {
+        // TODO: change this to failure
         always {
             script {
-                // TODO: where to get the suspect list from secret text global credential
                 if (env.GIT_BRANCH == "master" || env.GIT_BRANCH.contains('rdonat')) {
-                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:@rdonat\n" )
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${DEV_LRE_SUSPECT_LIST}\n" )
                 }
             }
         }
