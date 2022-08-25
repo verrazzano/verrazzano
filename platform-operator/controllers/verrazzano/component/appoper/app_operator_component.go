@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 	"strings"
 
@@ -111,12 +113,8 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 }
 
 // IsEnabled applicationOperator-specific enabled check for installation
-func (c applicationOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.ApplicationOperator
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c applicationOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsApplicationOperatorEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
