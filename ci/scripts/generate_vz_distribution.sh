@@ -127,7 +127,7 @@ captureBundleContents() {
     echo "Sorting file ${generatedDir}/${textFile}"
     sort -u -o "${generatedDir}/${textFile}" "${generatedDir}/${textFile}"
   fi
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${OS_LINUX_AMD64_BUNDLE_CONTENTS} --file ${generatedDir}/${textFile}
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${textFile} --file ${generatedDir}/${textFile}
   rm ${generatedDir}/${textFile}
 }
 
