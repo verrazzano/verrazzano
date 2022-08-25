@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022 Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package validators
@@ -30,38 +30,38 @@ import (
 
 const (
 	validateTempFilePattern     = "validate-"
-	fluentdOCISecretConfigEntry = "config"
+	FluentdOCISecretConfigEntry = "config"
 	fluentdOCIKeyFileEntry      = "key_file=/root/.oci/key"
 	fluentdExpectedKeyPath      = "/root/.oci/key"
 	// UserPrincipal is default auth type
-	userPrincipal authenticationType = "user_principal"
+	UserPrincipal AuthenticationType = "user_principal"
 	// InstancePrincipal is used for instance principle auth type
-	instancePrincipal       authenticationType = "instance_principal"
+	InstancePrincipal       AuthenticationType = "instance_principal"
 	ValidateInProgressError                    = "Updates to resource not allowed while uninstall or upgrade is in progress"
 
-	fluentdOCISecretPrivateKeyEntry = "key"
+	FluentdOCISecretPrivateKeyEntry = "key"
 	OciDNSSecretFileName            = "oci.yaml"
 	// InstancePrincipalDelegationToken is used for instance principle delegation token auth type
-	InstancePrincipalDelegationToken authenticationType = "instance_principle_delegation_token"
+	InstancePrincipalDelegationToken AuthenticationType = "instance_principle_delegation_token"
 	// UnknownAuthenticationType is used for none meaningful auth type
-	UnknownAuthenticationType authenticationType = "unknown_auth_type"
+	UnknownAuthenticationType AuthenticationType = "unknown_auth_type"
 )
 
-type authenticationType string
+type AuthenticationType string
 
 // OCI DNS Secret Auth
-type authData struct {
+type AuthData struct {
 	Region      string             `json:"region"`
 	Tenancy     string             `json:"tenancy"`
 	User        string             `json:"user"`
 	Key         string             `json:"key"`
 	Fingerprint string             `json:"fingerprint"`
-	AuthType    authenticationType `json:"authtype"`
+	AuthType    AuthenticationType `json:"authtype"`
 }
 
 // OCI DNS Secret Auth Wrapper
-type ociAuth struct {
-	Auth authData `json:"auth"`
+type OciAuth struct {
+	Auth AuthData `json:"auth"`
 }
 
 func CleanTempFiles(log *zap.SugaredLogger) error {
@@ -207,7 +207,7 @@ func getInstallSecret(client client.Client, secretName string, secret *corev1.Se
 	return nil
 }
 
-func validateSecretContents(secretName string, bytes []byte, target interface{}) error {
+func ValidateSecretContents(secretName string, bytes []byte, target interface{}) error {
 	if len(bytes) == 0 {
 		return fmt.Errorf("Secret \"%s\" data is empty", secretName)
 	}
@@ -228,7 +228,7 @@ func validatePrivateKey(secretName string, pemData []byte) error {
 //validateFluentdConfigData - Validate the OCI config contents in the Fluentd secret
 func validateFluentdConfigData(secret *corev1.Secret) error {
 	secretName := secret.Name
-	configData, ok := secret.Data[fluentdOCISecretConfigEntry]
+	configData, ok := secret.Data[FluentdOCISecretConfigEntry]
 	if !ok {
 		return fmt.Errorf("Did not find OCI configuration in secret \"%s\"", secretName)
 	}
@@ -293,7 +293,7 @@ func validateSecretKey(secret *corev1.Secret, dataKey string, target interface{}
 	if target == nil {
 		return secretBytes, nil
 	}
-	if err := validateSecretContents(secret.Name, secretBytes, target); err != nil {
+	if err := ValidateSecretContents(secret.Name, secretBytes, target); err != nil {
 		return secretBytes, nil
 	}
 	return secretBytes, nil
@@ -310,7 +310,7 @@ func ValidateFluentdOCIAuthSecret(client client.Client, apiSecretName string) er
 			return err
 		}
 		// Validate key data exists and is a valid pem format
-		pemData, err := validateSecretKey(secret, fluentdOCISecretPrivateKeyEntry, nil)
+		pemData, err := validateSecretKey(secret, FluentdOCISecretPrivateKeyEntry, nil)
 		if err != nil {
 			return err
 		}
@@ -331,14 +331,14 @@ func ValidateOCIDNSSecret(client client.Client, secret *corev1.Secret, ociDNSCon
 	}
 	for key := range secret.Data {
 		// validate auth_type
-		var authProp ociAuth
-		if err := validateSecretContents(secret.Name, secret.Data[key], &authProp); err != nil {
+		var authProp OciAuth
+		if err := ValidateSecretContents(secret.Name, secret.Data[key], &authProp); err != nil {
 			return err
 		}
-		if authProp.Auth.AuthType != instancePrincipal && authProp.Auth.AuthType != userPrincipal && authProp.Auth.AuthType != "" {
-			return fmt.Errorf("Authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.Auth.AuthType, userPrincipal, instancePrincipal)
+		if authProp.Auth.AuthType != InstancePrincipal && authProp.Auth.AuthType != UserPrincipal && authProp.Auth.AuthType != "" {
+			return fmt.Errorf("Authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.Auth.AuthType, UserPrincipal, InstancePrincipal)
 		}
-		if authProp.Auth.AuthType == userPrincipal {
+		if authProp.Auth.AuthType == UserPrincipal {
 			if err := validatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
 				return err
 			}
@@ -372,4 +372,34 @@ func ValidateUpgradeRequest(newSpecVerString string, currStatusVerString string,
 		return err
 	}
 	return nil
+}
+
+//ValidateVersionHigherOrEqual checks that currentVersion matches requestedVersion or is a higher version
+func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string) bool {
+	log := zap.S().With("validate", "version")
+	log.Info("Validate version")
+	if len(requestedVersion) == 0 {
+		log.Error("Invalid requestedVersion of length 0.")
+		return false
+	}
+
+	if len(currentVersion) == 0 {
+		log.Error("Invalid currentVersion of length 0.")
+		return false
+	}
+
+	requestedSemVer, err := semver.NewSemVersion(requestedVersion)
+	if err != nil {
+		log.Error(fmt.Sprintf("Invalid requestedVersion : %s, error: %v.", requestedVersion, err))
+		return false
+	}
+
+	currentSemVer, err := semver.NewSemVersion(currentVersion)
+	if err != nil {
+		log.Error(fmt.Sprintf("Invalid currentVersion : %s, error: %v.", currentVersion, err))
+		return false
+	}
+
+	return currentSemVer.IsEqualTo(requestedSemVer) || currentSemVer.IsGreatherThan(requestedSemVer)
+
 }

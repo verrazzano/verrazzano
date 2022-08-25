@@ -127,6 +127,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	}
 
 	//ASK DEVA ABOUT CLIENT, ERR GET CONTROLLER RUNTIME. needs to happen before platformoperatorsingleton
+
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
 	newSpecVerString := strings.TrimSpace(v.Spec.Version)
 	currStatusVerString := strings.TrimSpace(oldResource.Status.Version)

@@ -6,9 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -72,36 +70,6 @@ func validateOCISecrets(client client.Client, spec *VerrazzanoSpec) error {
 		}
 	}
 	return nil
-}
-
-//ValidateVersionHigherOrEqual checks that currentVersion matches requestedVersion or is a higher version
-func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string) bool {
-	log := zap.S().With("validate", "version")
-	log.Info("Validate version")
-	if len(requestedVersion) == 0 {
-		log.Error("Invalid requestedVersion of length 0.")
-		return false
-	}
-
-	if len(currentVersion) == 0 {
-		log.Error("Invalid currentVersion of length 0.")
-		return false
-	}
-
-	requestedSemVer, err := semver.NewSemVersion(requestedVersion)
-	if err != nil {
-		log.Error(fmt.Sprintf("Invalid requestedVersion : %s, error: %v.", requestedVersion, err))
-		return false
-	}
-
-	currentSemVer, err := semver.NewSemVersion(currentVersion)
-	if err != nil {
-		log.Error(fmt.Sprintf("Invalid currentVersion : %s, error: %v.", currentVersion, err))
-		return false
-	}
-
-	return currentSemVer.IsEqualTo(requestedSemVer) || currentSemVer.IsGreatherThan(requestedSemVer)
-
 }
 
 // ValidateInstallOverrides checks that the overrides slice has only one override type per slice item
