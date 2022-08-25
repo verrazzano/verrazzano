@@ -49,7 +49,7 @@ var mySQLSecret = v1.Secret{
 		Kind: vzconst.SecretKind,
 	},
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      rootSecretName,
+		Name:      rootSec,
 		Namespace: ComponentNamespace,
 	},
 	Immutable:  nil,
@@ -61,7 +61,7 @@ var mySQLSecret = v1.Secret{
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 3
+	minExpectedHelmOverridesCount = 2
 	testBomFilePath               = "../../testdata/test_bom.json"
 )
 
@@ -133,7 +133,6 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesDev tests the appendMySQLOverrides function
@@ -158,8 +157,7 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	ctx := spi.NewFakeContext(fakeClient, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
-	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
+	assert.Len(t, kvs, minExpectedHelmOverridesCount)
 }
 
 // TestAppendMySQLOverridesDevWithPersistence tests the appendMySQLOverrides function
@@ -202,7 +200,6 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "datadirVolumeClaimTemplate.resources.requests.storage"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesProd tests the appendMySQLOverrides function
@@ -225,7 +222,6 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, minExpectedHelmOverridesCount)
-	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesProdWithOverrides tests the appendMySQLOverrides function
@@ -264,7 +260,6 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "datadirVolumeClaimTemplate.resources.requests.storage"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestPreUpgradeProdProfile tests the preUpgrade function
@@ -581,20 +576,13 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Profile: vzapi.ProfileType("dev"),
-			DefaultVolumeSource: &v1.VolumeSource{
-				EmptyDir: &v1.EmptyDirVolumeSource{},
-			},
-		},
-	}
+	vz := &vzapi.Verrazzano{}
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: rootSecretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: rootSec}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			secret.Name = rootSecretName
+			secret.Name = rootSec
 			secret.Data = map[string][]byte{}
 			secret.Data[mySQLRootKey] = []byte("test-root-key")
 			return nil
@@ -607,9 +595,8 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
-	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestAppendMySQLOverridesUpgradeProdProfile tests the appendMySQLOverrides function
@@ -649,9 +636,9 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: rootSecretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: rootSec}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			secret.Name = rootSecretName
+			secret.Name = rootSec
 			secret.Data = map[string][]byte{}
 			secret.Data[mySQLRootKey] = []byte("test-root-key")
 			return nil
@@ -666,7 +653,6 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
-	assert.NotEmpty(t, bom.FindKV(kvs, "image"))
 }
 
 // TestIsMySQLReady tests the isMySQLReady function
@@ -964,6 +950,36 @@ func TestIsEnabledDevProfile(t *testing.T) {
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.Dev
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+}
+
+// TestConvertOldInstallArgs tests the convertOldInstallArgs function
+// GIVEN a call to convertOldInstallArgs
+//  WHEN The old persistence values are passed in
+//  THEN the new values are returned
+func TestConvertOldInstallArgs(t *testing.T) {
+	persistenceVals := []bom.KeyValue{
+		{
+			Key:   "persistence.enabled",
+			Value: "true",
+		},
+		{
+			Key:   "persistence.storageClass",
+			Value: "standard",
+		},
+		{
+			Key:   "persistence.size",
+			Value: "10Gi",
+		},
+		{
+			Key:   "persistence.accessModes",
+			Value: "ReadWriteOnce",
+		},
+	}
+	newPersistenceVals := convertOldInstallArgs(persistenceVals)
+	assert.Contains(t, newPersistenceVals, bom.KeyValue{Key: "persistence.enabled", Value: "true"})
+	assert.Contains(t, newPersistenceVals, bom.KeyValue{Key: "datadirVolumeClaimTemplate.storageClassName", Value: "standard"})
+	assert.Contains(t, newPersistenceVals, bom.KeyValue{Key: "datadirVolumeClaimTemplate.resources.requests.storage", Value: "10Gi"})
+	assert.Contains(t, newPersistenceVals, bom.KeyValue{Key: "datadirVolumeClaimTemplate.accessModes", Value: "ReadWriteOnce"})
 }
 
 func getBoolPtr(b bool) *bool {

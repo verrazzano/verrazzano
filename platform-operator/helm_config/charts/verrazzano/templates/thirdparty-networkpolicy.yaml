@@ -200,7 +200,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: mysql
+      tier: mysql
   policyTypes:
     - Ingress
   ingress:
@@ -526,7 +526,7 @@ spec:
               verrazzano.io/namespace: keycloak
           podSelector:
             matchLabels:
-              app: mysql
+              tier: mysql
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: ingress-nginx

@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"strconv"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -18,7 +18,6 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
@@ -28,29 +27,19 @@ import (
 )
 
 const (
-	rootSecretName       = "mysql-cluster-secret"
+	rootSec              = "mysql-cluster-secret"
 	helmRootPwd          = "credentials.root.password" //nolint:gosec //#gosec G101
 	mySQLRootKey         = "rootPassword"
 	statefulsetClaimName = "data-mysql-0"
-	podSpecKey           = "podSpec"
-	affinity             = `
-affinity:
-  podAntiAffinity:
-	preferredDuringSchedulingIgnoredDuringExecution:
-	  - weight: 100
-		podAffinityTerm:
-		  labelSelector:
-			matchLabels:
-			  app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
-			  app.kubernetes.io/name: mysql-innodbcluster-mysql-server
-		  topologyKey: kubernetes.io/hostname
-`
-	emptyDirPodSpec = `
-volumeSpec:
-  emptyDir: {}
-%s
-`
 )
+
+// map of MySQL helm persistence values from previous version to existing version.  Other values will be ignored since
+// they have no equivalents in the current charts
+var helmValuesMap = map[string]string{
+	"persistence.accessModes":  "datadirVolumeClaimTemplate.accessModes",
+	"persistence.size":         "datadirVolumeClaimTemplate.resources.requests.storage",
+	"persistence.storageClass": "datadirVolumeClaimTemplate.storageClassName",
+}
 
 // isMySQLReady checks to see if the MySQL component is in ready state
 func isMySQLReady(context spi.ComponentContext) bool {
@@ -79,14 +68,14 @@ func isMySQLReady(context spi.ComponentContext) bool {
 			if err != nil {
 				return false
 			}
-			serverReplicas, _ = strconv.Atoi(fmt.Sprintf("%.0f", value.(float64)))
+			serverReplicas = int(value.(float64))
 		}
 		if strings.Contains(overrideYaml, "routerInstances:") {
 			value, err := common.ExtractValueFromOverrideString(overrideYaml, "routerInstances")
 			if err != nil {
 				return false
 			}
-			routerReplicas, _ = strconv.Atoi(fmt.Sprintf("%.0f", value.(float64)))
+			routerReplicas = int(value.(float64))
 		}
 	}
 	ready := status.StatefulSetsAreReady(context.Log(), context.Client(), statefulset, int32(serverReplicas), prefix)
@@ -98,9 +87,10 @@ func isMySQLReady(context spi.ComponentContext) bool {
 
 // appendMySQLOverrides appends the MySQL helm overrides
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	//cr := compContext.EffectiveCR()
+	cr := compContext.EffectiveCR()
 
-	//// TODO:  talk to mike cico
+	// Pending private regsitry testing as to how to handle the mysql-server and mysql-router images managed
+	// by the operator
 	//kvs, err := appendCustomImageOverrides(kvs)
 	//if err != nil {
 	//	return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -119,7 +109,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	// Convert MySQL install-args to helm overrides
-	//kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
+	kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
 
 	return kvs, nil
 }
@@ -160,9 +150,21 @@ func postInstall(ctx spi.ComponentContext) error {
 
 // generateVolumeSourceOverrides generates the appropriate persistence overrides given the component context
 func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	kvs, err := doGenerateVolumeSourceOverrides(compContext.EffectiveCR(), kvs)
-	if err != nil {
-		return kvs, err
+	mySQLVolumeSource := getMySQLVolumeSource(compContext.EffectiveCR())
+	// No volumes to process, return what we have
+	if mySQLVolumeSource == nil {
+		return kvs, nil
+	}
+
+	if mySQLVolumeSource.EmptyDir != nil {
+		// EmptyDir currently not support with mysql operator
+		compContext.Log().Info("EmptyDir currently not supported for MySQL server.  A default persistent volume will be used.")
+	} else {
+		var err error
+		kvs, err = doGenerateVolumeSourceOverrides(compContext.EffectiveCR(), kvs)
+		if err != nil {
+			return kvs, err
+		}
 	}
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
@@ -181,29 +183,27 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 		}
 	}
 
-	return kvs, err
+	return kvs, nil
 }
 
 // doGenerateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
 func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	mySQLVolumeSource := getMySQLVolumeSource(effectiveCR)
-	// No volumes to process, return what we have
-	if mySQLVolumeSource == nil {
-		return kvs, nil
-	}
 
-	if mySQLVolumeSource.EmptyDir != nil {
-		// EmptyDir, disable persistence
-		kvs = append(kvs, bom.KeyValue{
-			Key:   podSpecKey,
-			Value: fmt.Sprintf(emptyDirPodSpec, affinity),
-		})
-	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
+	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
 		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
 		if !found {
 			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+		}
+		storageClass := storageSpec.StorageClassName
+		if storageClass != nil && len(*storageClass) > 0 {
+			kvs = append(kvs, bom.KeyValue{
+				Key:       "datadirVolumeClaimTemplate.storageClassName",
+				Value:     *storageClass,
+				SetString: true,
+			})
 		}
 		storage := storageSpec.Resources.Requests.Storage()
 		if storageSpec.Resources.Requests != nil && !storage.IsZero() {
@@ -222,10 +222,6 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 				SetString: true,
 			})
 		}
-		kvs = append(kvs, bom.KeyValue{
-			Key:   podSpecKey,
-			Value: affinity,
-		})
 	}
 	return kvs, nil
 }
@@ -241,21 +237,21 @@ func getMySQLVolumeSource(effectiveCR *vzapi.Verrazzano) *v1.VolumeSource {
 	return mySQLVolumeSource
 }
 
-//appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
-func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-	}
-
-	imageOverrides, err := bomFile.BuildImageOverrides("mysql")
-	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-	}
-
-	kvs = append(kvs, imageOverrides...)
-	return kvs, nil
-}
+////appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
+//func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+//	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+//	if err != nil {
+//		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+//	}
+//
+//	imageOverrides, err := bomFile.BuildImageOverrides("mysql")
+//	if err != nil {
+//		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+//	}
+//
+//	kvs = append(kvs, imageOverrides...)
+//	return kvs, nil
+//}
 
 // getInstallArgs get the install args for MySQL
 func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
@@ -277,7 +273,7 @@ func appendMySQLSecret(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]
 	rootSecret := &v1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: ComponentNamespace,
-		Name:      rootSecretName,
+		Name:      rootSec,
 	}
 	// use self signed
 	kvs = append(kvs, bom.KeyValue{
@@ -376,11 +372,11 @@ func postUpgrade(ctx spi.ComponentContext) error {
 }
 
 // convertOldInstallArgs changes persistence.* install args to primary.persistence.* to keep compatibility with the new chart
-// TODO:  adapt to new chart
 func convertOldInstallArgs(kvs []bom.KeyValue) []bom.KeyValue {
 	for i, kv := range kvs {
-		if strings.HasPrefix(kv.Key, "persistence") {
-			kvs[i].Key = strings.Replace(kv.Key, "persistence", "primary.persistence", 1)
+		newValueKey, ok := helmValuesMap[kv.Key]
+		if ok {
+			kvs[i].Key = newValueKey
 		}
 	}
 	return kvs

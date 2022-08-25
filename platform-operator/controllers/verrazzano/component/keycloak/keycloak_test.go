@@ -610,7 +610,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(c, vz, false), "", "", "", nil)
 
 	a.NoError(err, "AppendKeycloakOverrides returned an error")
-	a.Len(kvs, 6, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")
+	a.Len(kvs, 7, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")
 
 	a.Contains(kvs, bom.KeyValue{
 		Key:       dnsTarget,
@@ -632,6 +632,10 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	a.Contains(kvs, bom.KeyValue{
 		Key:   kcIngressClassKey,
 		Value: "verrazzano-nginx",
+	})
+	a.Contains(kvs, bom.KeyValue{
+		Key:   dbHostKey,
+		Value: "mysql-instances",
 	})
 }
 

@@ -113,14 +113,14 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return err
 	}
 	// Reject any persistence-specific changes via the mysqlInstallArgs settings
-	if bom.FindKV(oldSetting, "primary.persistence.enabled") != bom.FindKV(newSetting, "primary.persistence.enabled") {
-		return fmt.Errorf("Can not change persistence enabled setting in component: %s", ComponentJSONName)
-	}
-	if bom.FindKV(oldSetting, "primary.persistence.size") != bom.FindKV(newSetting, "primary.persistence.size") {
+	if bom.FindKV(oldSetting, "datadirVolumeClaimTemplate.resources.requests.storage") != bom.FindKV(newSetting, "datadirVolumeClaimTemplate.resources.requests.storage") {
 		return fmt.Errorf("Can not change persistence volume size in component: %s", ComponentJSONName)
 	}
-	if bom.FindKV(oldSetting, "primary.persistence.storageClass") != bom.FindKV(newSetting, "primary.persistence.storageClass") {
-		return fmt.Errorf("Can not change persistence storage class in component: %s", ComponentJSONName)
+	if bom.FindKV(oldSetting, "datadirVolumeClaimTemplate.accessModes") != bom.FindKV(newSetting, "datadirVolumeClaimTemplate.accessModes") {
+		return fmt.Errorf("Can not change persistence access modes in component: %s", ComponentJSONName)
+	}
+	if bom.FindKV(oldSetting, "datadirVolumeClaimTemplate.storageClassName") != bom.FindKV(newSetting, "datadirVolumeClaimTemplate.storageClassName") {
+		return fmt.Errorf("Can not change storage class in component: %s", ComponentJSONName)
 	}
 	// Reject any installArgs changes for now
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {

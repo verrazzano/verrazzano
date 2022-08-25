@@ -57,22 +57,22 @@ const (
 	vzInternalPromUser      = "verrazzano-prom-internal"
 	vzInternalEsUser        = "verrazzano-es-internal"
 	keycloakPodName         = "keycloak-0"
-	secretName				= "mysql"
-	secretKey				= "mysql-password"
-	rootSecretName			= "mysql-cluster-secret"
+	secretName              = "mysql"
+	secretKey               = "mysql-password"
+	rootSec                 = "mysql-cluster-secret"
 	rootPasswordKey         = "rootPassword"
-	noRouterAddr 		    = "mysql-instances"
+	noRouterAddr            = "mysql-instances"
 	routerAddr              = "mysql"
-    dbHostKey               = "mysql.dbHost"
+	dbHostKey               = "mysql.dbHost"
 )
 
 // Keycloak DB initialization
-const mySqlDbCommands = `mysql -uroot -p%s -e "CREATE USER keycloak IDENTIFIED BY '%s';
+const mySQLDbCommands = `mysql -uroot -p%s -e "CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 USE keycloak;
 GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO 'keycloak'@'%%';
 FLUSH PRIVILEGES;
-CREATE TABLE DATABASECHANGELOG (
+CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   ID varchar(255) NOT NULL,
   AUTHOR varchar(255) NOT NULL,
   FILENAME varchar(255) NOT NULL,
@@ -587,7 +587,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		mysqlAddr = routerAddr
 	}
 	kvs = append(kvs, bom.KeyValue{
-		Key:  dbHostKey,
+		Key:   dbHostKey,
 		Value: mysqlAddr,
 	})
 
@@ -597,11 +597,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 func isMySQLRouterDeployed(compContext spi.ComponentContext, err error) bool {
 	deployment := appv1.Deployment{}
 	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: "mysql-router"}, &deployment)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // getEnvironmentName returns the name of the Verrazzano install environment
@@ -907,7 +903,7 @@ func createKeycloakDBSecret(ctx spi.ComponentContext) error {
 	}
 	_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &keycloakSecret, func() error {
 		keycloakSecret.Data = map[string][]byte{
-			secretKey:     []byte(password),
+			secretKey: []byte(password),
 		}
 		return nil
 	})
@@ -1645,10 +1641,9 @@ func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, err
 
 // setupDatabase creates the user and database for keycloak
 func setupDatabase(ctx spi.ComponentContext) error {
-	// TODO:  skip this if keycloak user exists?
 	// retrieve root password for mysql
 	rootSecret := corev1.Secret{}
-	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: rootSecretName }, &rootSecret); err != nil {
+	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: rootSec}, &rootSecret); err != nil {
 		return err
 	}
 	rootPwd := rootSecret.Data[rootPasswordKey]
@@ -1658,9 +1653,8 @@ func setupDatabase(ctx spi.ComponentContext) error {
 		return err
 	}
 	userPwd := userSecret.Data[secretKey]
-	sqlCmd := fmt.Sprintf(mySqlDbCommands, rootPwd, userPwd)
-	execCmd := []string{"bash","-c",sqlCmd}
-	ctx.Log().Infof("Executing following command to setup keycloak DB: %v", execCmd)
+	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd, userPwd)
+	execCmd := []string{"bash", "-c", sqlCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err

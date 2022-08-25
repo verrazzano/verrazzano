@@ -207,7 +207,20 @@ spec:
                 pullPolicy: IfNotPresent
                 pullSecrets:
                   enabled: false
-                  secretName:
+              podSpec:
+                metadata:
+                  labels:
+                    app: mysql
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - weight: 100
+                        podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
+                              app.kubernetes.io/name: mysql-innodbcluster-mysql-server
+                          topologyKey: kubernetes.io/hostname
     mySQLOperator:
       enabled: true
     kibana:
