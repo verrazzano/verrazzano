@@ -996,7 +996,7 @@ def installVerrazzano() {
 }
 
 def updateLoadBalancerHealthCheck() {
-    // TODO: This function will not be required if OCI CCM supports configuring health check protocol and port
+    // TODO: This function will not be required if OCI CCM module installation supports configuring health check protocol and port
     sh '''
         LB_MGMT_IP=$(kubectl get service ingress-controller-ingress-nginx-controller -n ingress-nginx -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
         LB_APP_IP=$(kubectl get service  istio-ingressgateway  -n  istio-system -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
