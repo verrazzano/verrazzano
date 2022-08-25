@@ -5,6 +5,7 @@ package istio
 
 import (
 	"context"
+	v1 "k8s.io/api/core/v1"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -205,19 +206,42 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 		foundOldIstioProxyImage := DoesPodContainOldIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
 
 		//Check if any pods that contain no istio proxy container with istio injection labeled namespace
-		foundOAMPodWithoutIstioProxy, _ := DoesAppPodNeedIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
+		foundOAMPodWithoutIstioProxy, _ := DoesAppPodNeedIstioSidecar(log, podList, "OAM Application", appConfig.Name)
 
 		if foundOldIstioProxyImage || foundOAMPodWithoutIstioProxy {
-
-			restartOAMApp(log, appConfig, client, restartVersion)
+			err := restartOAMApp(log, appConfig, client, restartVersion)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
+// DoesAppPodNeedIstioSidecar returns true if any OAM pods with istio injected don't have an Istio proxy sidecar
+func DoesAppPodNeedIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string) (bool, error) {
+	for _, pod := range podList.Items {
+		// Ignore OAM pods that do not have Istio injected
+		goClient, err := k8sutil.GetGoClient(log)
+		if err != nil {
+			return false, log.ErrorfNewErr("Failed to get namespace for AppConfig %s/%s: %v", workloadType, workloadName, err)
+		}
+		podNamespace, _ := goClient.CoreV1().Namespaces().Get(context.TODO(), pod.GetNamespace(), metav1.GetOptions{})
+		namespaceLabels := podNamespace.GetLabels()
+		value, ok := namespaceLabels["istio-injection"]
+		if ok && value != "enabled" {
+			continue
+		}
+		log.Oncef("Restarting %s %s which has a pod with istio injected namespace", workloadType, workloadName)
+		return true, nil
+	}
+	return false, nil
+}
+
+// restartOAMApp sets the restart version for appconfig to recycle the pod
 func restartOAMApp(log vzlog.VerrazzanoLogger, appConfig oam.ApplicationConfiguration, client clipkg.Client, restartVersion string) error {
 
-	// Set the update the restart version
+	// Set the update restart version
 	var ac oam.ApplicationConfiguration
 	ac.Namespace = appConfig.Namespace
 	ac.Name = appConfig.Name

@@ -216,28 +216,6 @@ func DoesPodContainNoIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodLis
 	return false
 }
 
-// DoesOAMPodContainNoIstioSidecar returns true if any OAM pods with istio injected don't have an Istio proxy sidecar
-func DoesAppPodNeedIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, _ string) (bool, error) {
-	for _, pod := range podList.Items {
-		// Ignore OAM pods that do not have Istio injected
-		goClient, err := k8sutil.GetGoClient(log)
-		if err != nil {
-			return false, log.ErrorfNewErr("Failed to get namespace for AppConfig %s/%s: %v", workloadType, workloadName, err)
-		}
-		podNamespace, _ := goClient.CoreV1().Namespaces().Get(context.TODO(), pod.GetNamespace(), metav1.GetOptions{})
-		namespaceLabels := podNamespace.GetLabels()
-		value, ok := namespaceLabels["istio-injection"]
-		if ok && value != "enabled" {
-			continue
-		}
-
-		log.Oncef("Restarting %s %s which has a pod with istio injected namespace", workloadType, workloadName)
-		return true, nil
-	}
-
-	return false, nil
-}
-
 // Get the matching pods in namespace given a selector
 func getMatchingPods(log vzlog.VerrazzanoLogger, client kubernetes.Interface, ns string, labelSelector *metav1.LabelSelector) (*v1.PodList, error) {
 	// Conver the resource labelselector to a go-client label selector

@@ -60,6 +60,7 @@ basic_auth:
 // entry for the cluster's CA cert added to the prometheus config map to allow for lookup of the CA cert by the scraper's HTTP client.
 func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	var secret corev1.Secret
+
 	// read the configuration secret specified if it exists
 	if len(vmc.Spec.CASecret) > 0 {
 		secretNsn := types.NamespacedName{
@@ -93,8 +94,8 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 	if cacrtSecret == nil || vmc.Status.PrometheusHost == "" {
 		return newScrapeConfig, nil
 	}
-	vzPromSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoPromInternal, true)
 
+	vzPromSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoPromInternal, true)
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +109,8 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 	for key, value := range newScrapeConfigMappings {
 		configTemplate = strings.ReplaceAll(configTemplate, key, value)
 	}
-	newScrapeConfig, err = metricsutils.ParseScrapeConfig(configTemplate)
 
+	newScrapeConfig, err = metricsutils.ParseScrapeConfig(configTemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -171,9 +172,9 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	if err != nil {
 		return err
 	}
-
 	// TODO: Set this in the newScrapeConfig function when we remove the "old" Prometheus code
 	newScrapeConfig.Set(managedCertsBasePath+getCAKey(vmc), "tls_config", "ca_file")
+
 	editScrapeJobName := vmc.Name
 
 	// parse the scrape config so we can manipulate it
@@ -181,7 +182,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	if err != nil {
 		return err
 	}
-
 	scrapeConfigs, err := metricsutils.EditScrapeJob(jobs, editScrapeJobName, newScrapeConfig)
 	if err != nil {
 		return err
@@ -200,7 +200,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 		},
 		Data: map[string][]byte{},
 	}
-
 	if _, err := controllerruntime.CreateOrUpdate(ctx, r.Client, &secret, func() error {
 		secret.Data[constants.PromAdditionalScrapeConfigsSecretKey] = bytes
 		return nil
