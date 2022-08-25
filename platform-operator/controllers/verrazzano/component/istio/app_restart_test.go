@@ -166,7 +166,7 @@ func TestHelidonStopStart(t *testing.T) {
 		},
 		// Test restarting Helidon workload because it doesn't have an Istio image
 		{
-			name:               "SkipRestartHelidon",
+			name:               "DoNotRestartHelidon",
 			expectGetAndUpdate: false,
 			image:              "randomImage",
 			f: func(mock *mocks.MockClient) error {
@@ -185,7 +185,7 @@ func TestHelidonStopStart(t *testing.T) {
 		},
 		// Test restarting Helidon workload without old istio sidecar and without istio injected namespace
 		{
-			name:               "RestartHelidonWithoutIstioNS",
+			name:               "DoNotRestartHelidonWithoutIstioNS",
 			expectGetAndUpdate: false,
 			image:              "randomImage",
 			isNSIstioEnabled:   false,
