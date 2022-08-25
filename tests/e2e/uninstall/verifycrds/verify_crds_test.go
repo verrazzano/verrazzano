@@ -95,8 +95,10 @@ var monitoringcoreoscomcrds = map[string]bool{
 var mysqloperatorcrds = map[string]bool{
 	"innodbclusters.mysql.oracle.com ": false,
 	"mysqlbackups.mysql.oracle.com":    false,
-	"clusterkopfpeerings.zalando.org":  false,
-	"kopfpeerings.zalando.org":         false,
+}
+var zalaongocrds = map[string]bool{
+	"clusterkopfpeerings.zalando.org": false,
+	"kopfpeerings.zalando.org":        false,
 }
 
 var t = framework.NewTestFramework("uninstall verify crds")
@@ -138,7 +140,7 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 
 	t.It("Check for expected MySQL Operator CRDs", func() {
 		checkCrds(crds, mysqloperatorcrds, "mysql.oracle.com")
-		checkCrds(crds, mysqloperatorcrds, "zalando.org")
+		checkCrds(crds, zalaongocrds, "zalando.org")
 	})
 
 	t.It("Check for unexpected CRDs", func() {
