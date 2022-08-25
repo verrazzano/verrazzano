@@ -46,6 +46,9 @@ pipeline {
         DEV_LRE_CLUSTER_ID = credentials('dev-lre-cluster-id')
         DEV_LRE_CLUSTER_IP = credentials('dev-lre-cluster-ip')
 
+        ssh_public_key_path = "${WORKSPACE}/.ssh/id_rsa.pub"
+        ssh_private_key_path = "${WORKSPACE}/.ssh/id_rsa"
+
         STABLE_COMMIT_OS_LOCATION = "master/last-stable-commit.txt"
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
         OPERATOR_YAML_LOCATION = "${WORKSPACE}/operator.yaml"
