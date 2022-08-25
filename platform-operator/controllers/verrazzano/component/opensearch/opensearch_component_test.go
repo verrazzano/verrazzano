@@ -48,7 +48,7 @@ func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../helm_config"
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, false))
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -58,7 +58,7 @@ func TestPreUpgrade(t *testing.T) {
 //  THEN no error is returned
 func TestPreInstall(t *testing.T) {
 	c := createPreInstallTestClient()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	err := NewComponent().PreInstall(ctx)
 	assert.NoError(t, err)
 }
@@ -73,7 +73,7 @@ func TestInstall(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
 		},
-	}, false)
+	}, nil, false)
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
 }
@@ -88,7 +88,7 @@ func TestPostInstall(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
 		},
-	}, false)
+	}, nil, false)
 	vzComp := NewComponent()
 
 	// PostInstall will fail because the expected VZ ingresses are not present in cluster
@@ -128,7 +128,7 @@ func TestPostInstallCertsNotReady(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
 		},
-	}, false)
+	}, nil, false)
 	vzComp := NewComponent()
 
 	// PostInstall will fail because the expected VZ ingresses are not present in cluster
@@ -182,7 +182,7 @@ func TestGetCertificateNames(t *testing.T) {
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c, &vz, false)
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
 	vzComp := NewComponent()
 
 	certNames := vzComp.GetCertificateNames(ctx)
@@ -201,7 +201,7 @@ func TestUpgrade(t *testing.T) {
 			Components: dnsComponents,
 		},
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
-	}, false)
+	}, nil, false)
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }
@@ -219,7 +219,7 @@ func TestPostUpgrade(t *testing.T) {
 		Status: vzapi.VerrazzanoStatus{
 			Version: "v1.1.0",
 		},
-	}, false)
+	}, nil, false)
 	comp := NewComponent()
 
 	// PostUpgrade will fail because the expected VZ ingresses are not present in cluster
@@ -263,7 +263,7 @@ func createPreInstallTestClient(extraObjs ...client.Object) client.Client {
 func TestIsEnabledNilOpenSearch(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Elasticsearch = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilComponent tests the IsEnabled function
@@ -271,7 +271,7 @@ func TestIsEnabledNilOpenSearch(t *testing.T) {
 //  WHEN The OpenSearch component is nil
 //  THEN true is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -281,7 +281,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Elasticsearch.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -291,7 +291,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Elasticsearch.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -301,7 +301,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Elasticsearch.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 func getBoolPtr(b bool) *bool {

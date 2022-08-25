@@ -28,7 +28,7 @@ func TestMutateVerrazzanoMonitoringNamespace(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false)
+	ctx := spi.NewFakeContext(nil, vz, nil, false)
 
 	ns := GetVerrazzanoMonitoringNamespace()
 	MutateVerrazzanoMonitoringNamespace(ctx, ns)
@@ -49,7 +49,7 @@ func TestMutateVerrazzanoMonitoringNamespace(t *testing.T) {
 			},
 		},
 	}
-	ctx = spi.NewFakeContext(nil, vz, false)
+	ctx = spi.NewFakeContext(nil, vz, nil, false)
 
 	ns = GetVerrazzanoMonitoringNamespace()
 	MutateVerrazzanoMonitoringNamespace(ctx, ns)
