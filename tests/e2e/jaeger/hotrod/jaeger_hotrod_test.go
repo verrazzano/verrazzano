@@ -46,7 +46,7 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	err = pkg.GenerateTrafficForTraces(namespace, "", "dispatch?customer=123", kubeconfigPath)
 	if err != nil {
-		AbortSuite("Unable to send traffic requests to generate traces")
+		pkg.Log(pkg.Error, "Unable to send traffic requests to generate traces")
 	}
 	beforeSuitePassed = true
 })

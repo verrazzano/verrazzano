@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -142,12 +143,8 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Kiali-specific enabled check for installation
-func (c kialiComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Kiali
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c kialiComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsKialiEnabled(effectiveCR)
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources

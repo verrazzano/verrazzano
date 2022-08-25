@@ -43,6 +43,7 @@
     },
     {
       "name": "cert-manager",
+      "version": "v1.7.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -118,6 +119,7 @@
     },
     {
       "name": "rancher",
+      "version": "v2.6.6",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -125,13 +127,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.6-20220811150824-032ff3ebc",
+              "tag": "v2.6.6-20220824100616-736a6ef97",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.6-20220811150824-032ff3ebc"
+              "tag": "v2.6.6-20220824100616-736a6ef97"
             }
           ]
         },
@@ -174,6 +176,7 @@
     },
     {
       "name": "verrazzano",
+      "version": "1.4.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -213,6 +216,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
+      "version": "1.3.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -220,7 +224,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.4.0-20220817103906-703911c",
+              "tag": "v1.4.0-20220824125256-dfc917d",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -281,6 +285,7 @@
     },
     {
       "name": "oam-kubernetes-runtime",
+      "version": "0.3.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -298,6 +303,7 @@
     },
     {
       "name": "verrazzano-application-operator",
+      "version": "1.4.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -314,6 +320,7 @@
     },
     {
       "name": "weblogic-operator",
+      "version": "3.4.0",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -335,6 +342,7 @@
     },
     {
       "name": "coherence-operator",
+      "version": "3.2.6",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -351,6 +359,7 @@
     },
     {
       "name": "kiali-server",
+      "version": "0.0.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -368,6 +377,7 @@
     },
     {
       "name": "mysql",
+      "version": "8.0.29",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -410,6 +420,7 @@
     },
     {
       "name": "keycloak",
+      "version": "15.0.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -437,6 +448,7 @@
     },
     {
       "name": "prometheus-operator",
+      "version": "0.55.0",
       "subcomponents": [
         {
           "repository": "verrazzano",

@@ -80,6 +80,10 @@ pipeline {
 
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
         CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
+
+        // Directory containing the Verrazzano image tar files
+        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-commercial/images"
+        OCI_OS_REGION="us-phoenix-1"
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -567,7 +571,7 @@ pipeline {
                 stage("Upload Periodic Run Artifacts") {
                     steps {
                         sh """
-                            ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix}
+                            ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix} ${VERRAZZANO_DEV_VERSION}
                         """
                     }
                 }
