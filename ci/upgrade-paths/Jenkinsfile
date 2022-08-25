@@ -171,7 +171,7 @@ pipeline {
         // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
-        CAPTURE_FULL_CLUSTER="true"
+        CAPTURE_FULL_CLUSTER="false"
 
         // Environment variable for Verrazzano CLI executable
         VZ_COMMAND="${GO_REPO_PATH}/vz"
