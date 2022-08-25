@@ -503,9 +503,6 @@ pipeline {
             }
        }
        cleanup {
-            metricBuildDuration()
-            emitJobMetrics()
-            deleteDir()
             script {
                 if (params.KEEP_RESOURCES_AFTER_RUN == false) {
                     if (env.installedVZ && env.installedVZ == "true") {
@@ -518,6 +515,9 @@ pipeline {
                     }
                 }
             }
+            metricBuildDuration()
+            emitJobMetrics()
+            deleteDir()
         }
     }
 }
