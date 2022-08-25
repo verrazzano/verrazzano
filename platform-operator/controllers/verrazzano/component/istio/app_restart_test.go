@@ -149,11 +149,12 @@ func TestHelidonStopStart(t *testing.T) {
 	config.SetDefaultBomFilePath(unitTestBomFile)
 
 	tests := []struct {
-		name               string
-		expectGetAndUpdate bool
-		image              string
-		isNSIstioEnabled   bool
-		f                  func(mock *mocks.MockClient) error
+		name                string
+		expectGetAndUpdate  bool
+		image               string
+		isNSIstioEnabled    bool
+		isIstioLabelPresent bool
+		f                   func(mock *mocks.MockClient) error
 	}{
 		// Test restarting Helidon workload because it has an old Istio image
 		{
@@ -175,20 +176,31 @@ func TestHelidonStopStart(t *testing.T) {
 		},
 		// Test restarting Helidon workload without old istio sidecar but with istio injected namespace
 		{
-			name:               "RestartHelidonWithIsioNS",
-			expectGetAndUpdate: true,
-			image:              "randomImage",
-			isNSIstioEnabled:   true,
+			name:                "RestartHelidonWithIsioInjection",
+			expectGetAndUpdate:  true,
+			image:               "randomImage",
+			isIstioLabelPresent: true,
+			isNSIstioEnabled:    true,
 			f: func(mock *mocks.MockClient) error {
 				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 		// Test restarting Helidon workload without old istio sidecar and without istio injected namespace
 		{
-			name:               "DoNotRestartHelidonWithoutIstioNS",
-			expectGetAndUpdate: false,
-			image:              "randomImage",
-			isNSIstioEnabled:   false,
+			name:                "DoNotRestartHelidonWithoutIstioInjection",
+			expectGetAndUpdate:  false,
+			image:               "randomImage",
+			isIstioLabelPresent: true,
+			isNSIstioEnabled:    false,
+			f: func(mock *mocks.MockClient) error {
+				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
+		{
+			name:                "DoNotRestartHelidonWithoutIstioNSLabel",
+			expectGetAndUpdate:  false,
+			image:               "randomImage",
+			isIstioLabelPresent: false,
 			f: func(mock *mocks.MockClient) error {
 				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
 			},
@@ -212,7 +224,9 @@ func TestHelidonStopStart(t *testing.T) {
 				Labels: map[string]string{"istio-injection": "enabled"},
 			}}
 
-			if test.isNSIstioEnabled == false {
+			if test.isIstioLabelPresent == false {
+				delete(podNamespace.Labels, "istio-injection")
+			} else if test.isIstioLabelPresent == true && test.isNSIstioEnabled == false {
 				podNamespace.Labels["istio-injection"] = "disabled"
 			}
 

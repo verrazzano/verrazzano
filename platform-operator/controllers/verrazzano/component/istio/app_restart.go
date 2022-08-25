@@ -239,7 +239,7 @@ func DoesAppPodNeedRestart(log vzlog.VerrazzanoLogger, podList *v1.PodList, work
 		value, ok := namespaceLabels["istio-injection"]
 
 		// Ignore OAM pods that do not have Istio injected
-		if ok && value != "enabled" {
+		if !ok || value != "enabled" {
 			continue
 		}
 		log.Oncef("Restarting %s %s which has a pod with istio injected namespace", workloadType, workloadName)
