@@ -7,6 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -50,7 +51,7 @@ type ComponentInfo interface {
 	// IsReady Indicates whether or not a component is available and ready
 	IsReady(context ComponentContext) bool
 	// IsEnabled Indicates whether or a component is enabled for installation
-	IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool
+	IsEnabled(effectiveCR runtime.Object) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 	GetMinVerrazzanoVersion() string
 	// GetIngressNames returns a list of names of the ingresses associated with the component

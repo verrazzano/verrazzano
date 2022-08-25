@@ -9,6 +9,8 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -73,12 +75,8 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled mysql-specific enabled check for installation
 // If keycloak is enabled, mysql is enabled; disabled otherwise
-func (c mysqlComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Keycloak
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c mysqlComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsKeycloakEnabled(effectiveCR)
 }
 
 // PreInstall calls MySQL preInstall function

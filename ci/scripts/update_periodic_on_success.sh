@@ -72,6 +72,10 @@ oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OC
 echo "Creating Zip for commit ${GIT_COMMIT_USED}, short hash ${SHORT_COMMIT_HASH_ENV}, file prefix ${ZIPFILE_PREFIX}, BOM file ${local_bom}"
 ci/scripts/generate_product_zip.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} ${CLEAN_BRANCH_NAME}-last-clean-periodic-test ${ZIPFILE_PREFIX} ${local_bom}
 
+# Note: We have Verrazzano images tar files locally under ${WORKSPACE}/tar-files
+# Move them to a new directory (rather than changing the vz-registry-image-helper.sh) and use the new directory from here onwards in the periodic job
+# The new directory is defined in the Jenkins script as an environment variable VERRAZZANO_IMAGES_DIRECTORY
+#
 echo "Creating Verrazzano Release Distribution bundles"
 cd ${WORKSPACE}
-ci/scripts/generate_vz_distribution.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} ${CLEAN_BRANCH_NAME}-last-clean-periodic-test ${WORKSPACE} ${local_bom} ${DEVELOPENT_VERSION}
+ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${local_bom} ${DEVELOPENT_VERSION}
