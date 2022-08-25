@@ -5,12 +5,17 @@ spec:
     emptyDir: { }
   components:
     opensearch:
-      installArgs:
-        - name: nodes.master.replicas
-          value: "1"
-        - name: nodes.master.requests.memory
-          value: "1G"
-        - name: nodes.ingest.replicas
-          value: "0"
-        - name: nodes.data.replicas
-          value: "0"
+      nodes:
+        - name: es-data
+          roles:
+            - data
+        - name: es-ingest
+          roles:
+            - ingest
+        - name: es-master
+          replicas: 1
+          resources:
+            requests:
+              memory: 1G
+          roles:
+            - master
