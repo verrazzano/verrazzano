@@ -21,12 +21,12 @@ usage() {
   The script expects the OCI CLI is installed. It also expects the following environment variables -
     OCI_REGION - OCI region
     OBJECT_STORAGE_NS - top-level namespace used for the request
-    OBJECT_STORAGE_BUCKET - object storage bucket where the artifacts are stored
+    OCI_OS_COMMIT_BUCKET - object storage bucket where the artifacts are stored
 EOM
     exit 0
 }
 
-[ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OBJECT_STORAGE_BUCKET" ] || [ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] && { usage; }
 
 BRANCH=$1
 RELEASE_COMMIT_SHORT=$2
@@ -42,7 +42,7 @@ function get_file_from_build_bucket() {
     cd $RELEASE_BINARIES_DIR
     oci --region ${OCI_REGION} os object get \
             --namespace ${OBJECT_STORAGE_NS} \
-            --bucket-name ${OBJECT_STORAGE_BUCKET} \
+            --bucket-name ${OCI_OS_COMMIT_BUCKET} \
             --name "${_folder}/${_file}" \
             --file "${_file}"
 }
@@ -60,4 +60,4 @@ validate_oci_cli || exit 1
 mkdir -p $RELEASE_BINARIES_DIR
 
 # Download the release artifacts
-get_vz_release_artifacts $BRANCH/$RELEASE_COMMIT_SHORT || exit 1
+get_vz_release_artifacts ephemeral/$BRANCH/$RELEASE_COMMIT_SHORT || exit 1
