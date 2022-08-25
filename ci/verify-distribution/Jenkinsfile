@@ -32,7 +32,7 @@ pipeline {
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
                 choices: [ "1.22", "1.23", "1.21", "1.20" ])
-        choice (name: 'DISTRIBUTION VARIANT',
+        choice (name: 'DISTRIBUTION_VARIANT',
                 description: 'Verrazzano Distribution Variant to use for testing',
                 choices: ["Commercial", "Open Source"])
         string (name: 'GIT_COMMIT_TO_USE',
