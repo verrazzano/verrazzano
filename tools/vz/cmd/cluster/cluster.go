@@ -27,4 +27,5 @@ func NewCmdCluster(vzHelper helpers.VZHelper) *cobra.Command {
 
 func addSubCommandsCluster(vzHelper helpers.VZHelper, parentCmd *cobra.Command) {
 	parentCmd.AddCommand(newSubcmdCreate(vzHelper))
+	parentCmd.AddCommand(newSubcmdDelete(vzHelper))
 }
