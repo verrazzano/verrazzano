@@ -46,7 +46,7 @@ func TestCreateOrUpdateSystemComponentIngress(t *testing.T) {
 		},
 	}
 
-	ctx := spi.NewFakeContext(client, vz, false)
+	ctx := spi.NewFakeContext(client, vz, nil, false)
 	err := CreateOrUpdateSystemComponentIngress(ctx, IngressProperties{
 		IngressName:   testIngressName,
 		HostName:      "host",
@@ -75,7 +75,7 @@ func TestCreateOrUpdateSystemComponentIngress(t *testing.T) {
 	}
 	client = fake.NewClientBuilder().WithScheme(scheme).WithObjects(service).Build()
 
-	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 	err = CreateOrUpdateSystemComponentIngress(ctx, IngressProperties{
 		IngressName:   testIngressName,
 		HostName:      "host",

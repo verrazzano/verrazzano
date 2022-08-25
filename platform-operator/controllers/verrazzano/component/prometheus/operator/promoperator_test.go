@@ -144,7 +144,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
+			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
 			assert.Equal(t, tt.expectTrue, isPrometheusOperatorReady(ctx))
 		})
 	}
@@ -176,7 +176,7 @@ func TestAppendOverrides(t *testing.T) {
 		},
 	}
 
-	ctx := spi.NewFakeContext(client, vz, false)
+	ctx := spi.NewFakeContext(client, vz, nil, false)
 
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
@@ -211,7 +211,7 @@ func TestAppendOverrides(t *testing.T) {
 		},
 	}
 
-	ctx = spi.NewFakeContext(client, vz, false)
+	ctx = spi.NewFakeContext(client, vz, nil, false)
 	kvs = make([]bom.KeyValue, 0)
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
@@ -233,7 +233,7 @@ func TestAppendOverrides(t *testing.T) {
 		},
 	}
 
-	ctx = spi.NewFakeContext(client, vz, false)
+	ctx = spi.NewFakeContext(client, vz, nil, false)
 	kvs = make([]bom.KeyValue, 0)
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
@@ -249,7 +249,7 @@ func TestPreInstallUpgrade(t *testing.T) {
 	// WHEN the preInstallUpgrade function is called
 	// THEN the component namespace is created in the cluster
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err := preInstallUpgrade(ctx)
 	assert.NoError(t, err)
@@ -297,7 +297,7 @@ func TestPostInstallUpgrade(t *testing.T) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress, cert).Build()
-	ctx := spi.NewFakeContext(client, vz, false)
+	ctx := spi.NewFakeContext(client, vz, nil, false)
 
 	err := postInstallUpgrade(ctx)
 	assert.NoError(t, err)
@@ -465,7 +465,7 @@ func TestApplySystemMonitors(t *testing.T) {
 	})
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err := applySystemMonitors(ctx)
 	assert.NoError(t, err)
@@ -736,7 +736,7 @@ func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fakes := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objects...).Build()
-			ctx := spi.NewFakeContext(fakes, &vzapi.Verrazzano{}, false)
+			ctx := spi.NewFakeContext(fakes, &vzapi.Verrazzano{}, nil, false)
 			err := updateApplicationAuthorizationPolicies(ctx)
 			assert.NoError(err)
 			if tt.expectedPrincipals != nil {
@@ -769,7 +769,7 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	// WHEN  we call the createOrUpdatePrometheusAuthPolicy function
 	// THEN  the expected Istio authorization policy is created
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err := createOrUpdatePrometheusAuthPolicy(ctx)
 	assert.NoError(err)
@@ -799,7 +799,7 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 			},
 		},
 	}
-	ctx = spi.NewFakeContext(client, vz, false)
+	ctx = spi.NewFakeContext(client, vz, nil, false)
 
 	err = createOrUpdatePrometheusAuthPolicy(ctx)
 	assert.NoError(err)
@@ -815,7 +815,7 @@ func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
 	// WHEN  the createOrUpdateNetworkPolicies function is called
 	// THEN  no error is returned and the expected network policies have been created
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err := createOrUpdateNetworkPolicies(ctx)
 	assert.NoError(t, err)
@@ -868,7 +868,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 				Phase: corev1.VolumeReleased,
 			},
 		}).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err := updateExistingVolumeClaims(ctx)
 	assert.NoError(t, err)
@@ -888,7 +888,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 				Name: volumeName,
 			},
 		}).Build()
-	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err = updateExistingVolumeClaims(ctx)
 	assert.NoError(t, err)
@@ -914,7 +914,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 				Phase: corev1.VolumeBound,
 			},
 		}).Build()
-	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err = updateExistingVolumeClaims(ctx)
 	assert.NoError(t, err)
@@ -947,7 +947,7 @@ func TestRemoveOldClaimFromPrometheusVolume(t *testing.T) {
 			},
 		}).Build()
 	erroringClient := &erroringFakeClient{Client: client}
-	ctx = spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, false)
+	ctx = spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, nil, false)
 
 	// validate that the expected error is returned
 	err = updateExistingVolumeClaims(ctx)
@@ -978,7 +978,7 @@ func TestResetVolumeReclaimPolicy(t *testing.T) {
 				Phase: corev1.VolumeBound,
 			},
 		}).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err := resetVolumeReclaimPolicy(ctx)
 	assert.NoError(t, err)
@@ -1009,7 +1009,7 @@ func TestResetVolumeReclaimPolicy(t *testing.T) {
 				Phase: corev1.VolumeAvailable,
 			},
 		}).Build()
-	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err = resetVolumeReclaimPolicy(ctx)
 	assert.NoError(t, err)
@@ -1041,7 +1041,7 @@ func TestResetVolumeReclaimPolicy(t *testing.T) {
 			},
 		}).Build()
 	erroringClient := &erroringFakeClient{Client: client}
-	ctx = spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, false)
+	ctx = spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, nil, false)
 
 	// validate that the expected error is returned
 	err = resetVolumeReclaimPolicy(ctx)
@@ -1197,7 +1197,7 @@ func TestAppendResourceRequestOverrides(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
+			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
 
 			kvs, err := appendResourceRequestOverrides(ctx, &tt.request, []bom.KeyValue{})
 

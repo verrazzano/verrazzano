@@ -91,7 +91,7 @@ func TestIsEnabled(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false, profilesRelativePath)
 			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
 		})
 	}
@@ -126,7 +126,7 @@ func TestIsInstalled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, rancherBackupEnabledCR, false)
+			ctx := spi.NewFakeContext(tt.client, rancherBackupEnabledCR, nil, false)
 			installed, err := NewComponent().IsInstalled(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.isInstalled, installed)
@@ -152,7 +152,7 @@ func TestInstallUpgrade(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(rancherBackupEnabledCR).Build()
-	ctx := spi.NewFakeContext(client, rancherBackupEnabledCR, false)
+	ctx := spi.NewFakeContext(client, rancherBackupEnabledCR, nil, false)
 	err := v.Install(ctx)
 	assert.NoError(t, err)
 	err = v.Upgrade(ctx)
@@ -182,7 +182,7 @@ func TestPostUninstall(t *testing.T) {
 	).Build()
 
 	var iComp rancherBackupHelmComponent
-	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
+	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
 	assert.NoError(t, iComp.PostUninstall(compContext))
 
 	// Validate that the namespace does not exist

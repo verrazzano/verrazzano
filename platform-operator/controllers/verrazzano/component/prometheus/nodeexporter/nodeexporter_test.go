@@ -106,7 +106,7 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
+			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
 			assert.Equal(t, tt.expectTrue, isPrometheusNodeExporterReady(ctx))
 		})
 	}
@@ -118,7 +118,7 @@ func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
 	// WHEN  the createOrUpdateNetworkPolicies function is called
 	// THEN  no error is returned and the expected network policies have been created
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err := createOrUpdateNetworkPolicies(ctx)
 	assert.NoError(t, err)
