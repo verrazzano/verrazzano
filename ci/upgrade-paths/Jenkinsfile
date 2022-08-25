@@ -104,7 +104,6 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
-        booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
     environment {
