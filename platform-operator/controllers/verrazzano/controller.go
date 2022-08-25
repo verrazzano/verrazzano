@@ -229,7 +229,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		}
 
 		// Keep retrying to reconcile components until it completes
-		if result, err := r.reconcileComponents(vzctx); err != nil {
+		if result, err := r.reconcileComponents(vzctx, false); err != nil {
 			return newRequeueWithDelay(), err
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
@@ -284,7 +284,7 @@ func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctr
 	log := vzctx.Log
 	log.Debug("Entering ProcInstallingState")
 
-	if result, err := r.reconcileComponents(vzctx); err != nil {
+	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
@@ -316,6 +316,13 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return newRequeueWithDelay(), err
 	}
 
+	// Install any new components and do any updates to existing components
+	if result, err := r.reconcileComponents(vzctx, true); err != nil {
+		return newRequeueWithDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
+		return result, nil
+	}
+
 	// Only upgrade if Version has changed.  When upgrade completes, it will update the status version, see upgrade.go
 	if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
 		if result, err := r.reconcileUpgrade(log, actualCR); err != nil {
@@ -325,8 +332,8 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		}
 	}
 
-	// Install any new components and do any updates to existing components
-	if result, err := r.reconcileComponents(vzctx); err != nil {
+	// Install components that should be installed before upgrade
+	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
@@ -766,7 +773,7 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 	cr := vzctx.ActualCR
 	if unitTesting {
 		for _, compStatus := range cr.Status.Components {
-			if compStatus.State != installv1alpha1.CompStateDisabled && compStatus.State != installv1alpha1.CompStateReady {
+			if compStatus.State != installv1alpha1.CompStateNotInstalled && compStatus.State != installv1alpha1.CompStateReady {
 				return false, nil
 			}
 		}
@@ -813,7 +820,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 			// If the component is installed then mark it as ready
 			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
 			lastReconciled := int64(0)
-			state := installv1alpha1.CompStateDisabled
+			state := installv1alpha1.CompStateNotInstalled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {

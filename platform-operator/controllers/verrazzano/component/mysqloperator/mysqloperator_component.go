@@ -50,6 +50,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
 			Dependencies:              []string{},
 			GetInstallOverridesFunc:   getOverrides,
+			InstallBeforeUpgrade:      true,
 		},
 	}
 }

@@ -521,7 +521,7 @@ func TestComponentDependenciesMetStateCheckNotReady(t *testing.T) {
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN returns false if a dependency is disabled and the component status is disabled
 func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
-	runDepenencyStateCheckTest(t, v1alpha1.CompStateDisabled, false)
+	runDepenencyStateCheckTest(t, v1alpha1.CompStateNotInstalled, false)
 }
 
 func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enabled bool) {
@@ -630,6 +630,11 @@ func (f fakeComponent) Name() string {
 
 func (f fakeComponent) Namespace() string {
 	return f.namespace
+}
+
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (f fakeComponent) ShouldInstallBeforeUpgrade() bool {
+	return false
 }
 
 func (f fakeComponent) GetJSONName() string {

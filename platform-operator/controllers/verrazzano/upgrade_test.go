@@ -112,8 +112,8 @@ func TestUpgradeNoVersion(t *testing.T) {
 				},
 				Components: func() vzapi.ComponentStatusMap {
 					statusMap := makeVerrazzanoComponentStatusMap()
-					statusMap[keycloak.ComponentName].State = vzapi.CompStateDisabled
-					statusMap[istio.ComponentName].State = vzapi.CompStateDisabled
+					statusMap[keycloak.ComponentName].State = vzapi.CompStateNotInstalled
+					statusMap[istio.ComponentName].State = vzapi.CompStateNotInstalled
 					return statusMap
 				}(),
 			},
@@ -212,8 +212,8 @@ func TestUpgradeSameVersion(t *testing.T) {
 				},
 				Components: func() vzapi.ComponentStatusMap {
 					statusMap := makeVerrazzanoComponentStatusMap()
-					statusMap[keycloak.ComponentName].State = vzapi.CompStateDisabled
-					statusMap[istio.ComponentName].State = vzapi.CompStateDisabled
+					statusMap[keycloak.ComponentName].State = vzapi.CompStateNotInstalled
+					statusMap[istio.ComponentName].State = vzapi.CompStateNotInstalled
 					return statusMap
 				}(),
 			},
@@ -1590,8 +1590,8 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			Components: makeVerrazzanoComponentStatusMap(),
 		},
 	}
-	verrazzanoToUse.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
-	verrazzanoToUse.Status.Components[istio.ComponentName].State = vzapi.CompStateDisabled
+	verrazzanoToUse.Status.Components[keycloak.ComponentName].State = vzapi.CompStateNotInstalled
+	verrazzanoToUse.Status.Components[istio.ComponentName].State = vzapi.CompStateNotInstalled
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&verrazzanoToUse,
@@ -1776,8 +1776,8 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 				},
 				Components: func() v1alpha1.ComponentStatusMap {
 					statusMap := makeVerrazzanoComponentStatusMap()
-					statusMap[keycloak.ComponentName].State = vzapi.CompStateDisabled
-					statusMap[istio.ComponentName].State = vzapi.CompStateDisabled
+					statusMap[keycloak.ComponentName].State = vzapi.CompStateNotInstalled
+					statusMap[istio.ComponentName].State = vzapi.CompStateNotInstalled
 					return statusMap
 				}(),
 			},

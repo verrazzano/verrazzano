@@ -21,7 +21,7 @@ import (
 // 3. Loop through all components before returning, except for the case
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
-func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
+func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preUpgrade bool) (ctrl.Result, error) {
 	spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, r.DryRun)
 	if err != nil {
 		spiCtx.Log().Errorf("Failed to create component context: %v", err)
@@ -45,6 +45,12 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			compLog.Debugf("Component based install not supported for %s", compName)
 			continue
 		}
+
+		// Some components, like MySQL Operator, need to be installed before upgrade
+		if preUpgrade && !comp.ShouldInstallBeforeUpgrade() {
+			continue
+		}
+
 		componentStatus, ok := cr.Status.Components[comp.Name()]
 		if !ok {
 			compLog.Debugf("Did not find status details in map for component %s", comp.Name())
@@ -94,7 +100,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			}
 			r.ClearWatch(comp.GetJSONName())
 			continue
-		case vzapi.CompStateDisabled:
+		case vzapi.CompStateNotInstalled:
 			if !comp.IsEnabled(compContext.EffectiveCR()) {
 				compLog.Oncef("Component %s is disabled, skipping install", compName)
 				// User has disabled component in Verrazzano CR, don't install

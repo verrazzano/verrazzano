@@ -46,6 +46,8 @@ type ComponentInfo interface {
 	Name() string
 	// Namespace returns the namespace of the Verrazzano component
 	Namespace() string
+	// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done, default false
+	ShouldInstallBeforeUpgrade() bool
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 	// IsReady Indicates whether or not a component is available and ready
