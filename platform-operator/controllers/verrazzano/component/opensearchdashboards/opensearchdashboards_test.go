@@ -4,6 +4,8 @@
 package opensearchdashboards
 
 import (
+	"testing"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -19,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
@@ -68,7 +69,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.False(t, isOSDReady(ctx))
 }
 
@@ -78,7 +79,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 //  THEN false is returned
 func TestIsReadyNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	assert.False(t, isOSDReady(ctx))
 }
 
@@ -127,7 +128,7 @@ func TestIsReady(t *testing.T) {
 	).Build()
 
 	vz := &vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.True(t, isOSDReady(ctx))
 }
 
@@ -153,7 +154,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			Namespace: ComponentNamespace}},
 	).Build()
 
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	assert.False(t, isOSDReady(ctx))
 }
 
@@ -179,6 +180,6 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
 		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.True(t, isOSDReady(ctx))
 }

@@ -74,7 +74,7 @@ func TestPostInstallCA(t *testing.T) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, false))
+	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -127,7 +127,7 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz).Build()
-	ctx := spi.NewFakeContext(client, updatedVZ, false)
+	ctx := spi.NewFakeContext(client, updatedVZ, nil, false)
 
 	var err error
 	if upgrade {
@@ -163,7 +163,7 @@ func TestPostInstallAcme(t *testing.T) {
 			Namespace: ComponentNamespace,
 		},
 	})
-	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, false))
+	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -240,7 +240,7 @@ func runAcmeUpdateTest(t *testing.T, upgrade bool) {
 	})
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz, oldSecret, newSecret, existingIssuer).Build()
-	ctx := spi.NewFakeContext(client, updatedVz, false)
+	ctx := spi.NewFakeContext(client, updatedVz, nil, false)
 
 	var err error
 	if upgrade {
@@ -360,7 +360,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 
 	// Fake controllerruntime client and ComponentContext for the call
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(existingClusterIssuer, certificate, ociSecret).Build()
-	ctx := spi.NewFakeContext(client, localvz, false)
+	ctx := spi.NewFakeContext(client, localvz, nil, false)
 
 	// Fake Go client for the CertManager clientset
 	cmClient := certv1fake.NewSimpleClientset(certificate, certificateRequest1, certificateRequest2, otherCertRequest)
@@ -430,7 +430,7 @@ func TestClusterIssuerUpdated(t *testing.T) {
 //  THEN no error is returned
 func TestDryRun(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, defaultVZConfig, true)
+	ctx := spi.NewFakeContext(client, defaultVZConfig, nil, true)
 
 	assert.NoError(t, fakeComponent.PreInstall(ctx))
 	assert.NoError(t, fakeComponent.PostInstall(ctx))

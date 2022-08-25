@@ -43,7 +43,7 @@ func TestNewGrafana(t *testing.T) {
 		Storage: "50Gi",
 	}
 
-	ctx := spi.NewFakeContext(nil, &grafanaEnabledCR, false)
+	ctx := spi.NewFakeContext(nil, &grafanaEnabledCR, nil, false)
 	updateFunc(ctx, r, &vmi, nil)
 	assert.True(t, vmi.Spec.Grafana.Enabled)
 	assert.Equal(t, "48Mi", vmi.Spec.Grafana.Resources.RequestMemory)
@@ -75,7 +75,7 @@ func TestNewGrafanaWithExistingVMI(t *testing.T) {
 		},
 	}
 
-	ctx := spi.NewFakeContext(nil, &grafanaEnabledCR, false)
+	ctx := spi.NewFakeContext(nil, &grafanaEnabledCR, nil, false)
 	updateFunc(ctx, nil, &vmi, &existingVmi)
 	assert.True(t, vmi.Spec.Grafana.Enabled)
 	assert.Equal(t, "50Gi", vmi.Spec.Grafana.Storage.Size)

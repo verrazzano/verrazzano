@@ -337,31 +337,22 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name: "testUpdateKeycloakURIs",
-			ctx: spi.NewFakeContext(
-				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
-				testVZ,
-				false),
+			name:        "testUpdateKeycloakURIs",
+			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(), testVZ, nil, false),
 			clientID:    clientID,
 			uriTemplate: uriTemplate,
 			wantErr:     false,
 		},
 		{
-			name: "testFailForInvalidUriTemplate",
-			ctx: spi.NewFakeContext(
-				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(),
-				testVZ,
-				false),
+			name:        "testFailForInvalidUriTemplate",
+			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(), testVZ, nil, false),
 			clientID:    clientID,
 			uriTemplate: "test.{{{.DNSSubDomain}}",
 			wantErr:     true,
 		},
 		{
-			name: "testFailForNoIngress",
-			ctx: spi.NewFakeContext(
-				fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret()).Build(),
-				testVZ,
-				false),
+			name:        "testFailForNoIngress",
+			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret()).Build(), testVZ, nil, false),
 			wantErr:     true,
 			clientID:    clientID,
 			uriTemplate: uriTemplate,
@@ -576,7 +567,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.c, testVZ, false)
+			ctx := spi.NewFakeContext(tt.c, testVZ, nil, false)
 			k8sutilfake.PodExecResult = tt.execFunc
 			defer func() { k8sutilfake.PodExecResult = podExecFunc }()
 			err := configureKeycloakRealms(ctx)
@@ -607,7 +598,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestNginxService()).Build()
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(c, vz, false), "", "", "", nil)
+	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(c, vz, nil, false), "", "", "", nil)
 
 	a.NoError(err, "AppendKeycloakOverrides returned an error")
 	a.Len(kvs, 6, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")
@@ -651,7 +642,7 @@ func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestNginxService()).Build()
 	config.SetDefaultBomFilePath(testBomFilePath)
-	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(c, vz, false), "", "", "", nil)
+	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(c, vz, nil, false), "", "", "", nil)
 
 	a.NoError(err, "AppendKeycloakOverrides returned an error")
 
@@ -716,7 +707,7 @@ func TestLoginKeycloak(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := loginKeycloak(spi.NewFakeContext(tt.c, testVZ, false), cfg, restclient)
+			err := loginKeycloak(spi.NewFakeContext(tt.c, testVZ, nil, false), cfg, restclient)
 			if tt.isErr {
 				assert.Error(t, err)
 			} else {
@@ -732,7 +723,7 @@ func TestLoginKeycloak(t *testing.T) {
 // THEN create the auth secret
 func TestCreateOrUpdateAuthSecret(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	ctx := spi.NewFakeContext(c, testVZ, false)
+	ctx := spi.NewFakeContext(c, testVZ, nil, false)
 	err := createAuthSecret(ctx, "ns", "secret", "user")
 	assert.NoError(t, err)
 }
@@ -742,7 +733,7 @@ func TestCreateOrUpdateAuthSecret(t *testing.T) {
 //  WHEN The Keycloak component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilKeycloak tests the IsEnabled function
@@ -752,7 +743,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilKeycloak(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -762,7 +753,7 @@ func TestIsEnabledNilKeycloak(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -772,7 +763,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -782,7 +773,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
@@ -793,7 +784,7 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.ManagedCluster
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledProdProfile tests the IsEnabled function
@@ -804,7 +795,7 @@ func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.Prod
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledDevProfile tests the IsEnabled function
@@ -815,7 +806,7 @@ func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.Dev
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 func getBoolPtr(b bool) *bool {
@@ -1194,7 +1185,7 @@ func TestUpdateKeycloakIngress(t *testing.T) {
 	annotations["bar"] = "baz"
 	ingress.SetAnnotations(annotations)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(ingress, createTestNginxService()).Build()
-	ctx := spi.NewFakeContext(c, testVZ, false)
+	ctx := spi.NewFakeContext(c, testVZ, nil, false)
 	err := updateKeycloakIngress(ctx)
 	assert.NoError(t, err)
 }
@@ -1281,7 +1272,7 @@ func TestIsKeycloakReady(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.c, testVZ, false)
+			ctx := spi.NewFakeContext(tt.c, testVZ, nil, false)
 			assert.Equal(t, tt.isReady, isKeycloakReady(ctx))
 		})
 	}
@@ -1394,9 +1385,9 @@ func TestUpgradeStatefulSet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var ctx spi.ComponentContext
 			if len(tt.profilesDir) > 0 {
-				ctx = spi.NewFakeContext(tt.c, tt.vz, false, tt.profilesDir)
+				ctx = spi.NewFakeContext(tt.c, tt.vz, nil, false, tt.profilesDir)
 			} else {
-				ctx = spi.NewFakeContext(tt.c, tt.vz, false)
+				ctx = spi.NewFakeContext(tt.c, tt.vz, nil, false)
 			}
 			err := upgradeStatefulSet(ctx)
 			assert.NoError(t, err)
@@ -1494,7 +1485,7 @@ func TestGetRancherClientSecretFromKeycloak(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.c, testVZ, false)
+			ctx := spi.NewFakeContext(tt.c, testVZ, nil, false)
 			k8sutilfake.PodExecResult = tt.execFunc
 			defer func() { k8sutilfake.PodExecResult = podExecFunc }()
 			_, err := GetRancherClientSecretFromKeycloak(ctx)
@@ -1579,7 +1570,7 @@ func TestGetVerrazzanoUserFromKeycloak(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.c, testVZ, false)
+			ctx := spi.NewFakeContext(tt.c, testVZ, nil, false)
 			k8sutilfake.PodExecResult = tt.execFunc
 			defer func() { k8sutilfake.PodExecResult = podExecFunc }()
 			_, err := GetVerrazzanoUserFromKeycloak(ctx)
