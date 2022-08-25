@@ -6,6 +6,7 @@ package opensearch
 import (
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -157,12 +158,8 @@ func (o opensearchComponent) updateElasticsearchResources(ctx spi.ComponentConte
 }
 
 // IsEnabled opensearch-specific enabled check for installation
-func (o opensearchComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Elasticsearch
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (o opensearchComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsOpenSearchEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -202,7 +199,7 @@ func (o opensearchComponent) Name() string {
 
 func (o opensearchComponent) isOpenSearchEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
-	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
+	if vzconfig.IsOpenSearchEnabled(old) && !vzconfig.IsOpenSearchEnabled(new) {
 		return fmt.Errorf("Disabling component OpenSearch not allowed")
 	}
 	return nil

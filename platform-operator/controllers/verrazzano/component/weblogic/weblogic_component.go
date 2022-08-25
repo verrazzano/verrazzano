@@ -6,6 +6,8 @@ package weblogic
 import (
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	corev1 "k8s.io/api/core/v1"
@@ -55,12 +57,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled WebLogic-specific enabled check for installation
-func (c weblogicComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.WebLogicOperator
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c weblogicComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsWebLogicOperatorEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

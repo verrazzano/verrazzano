@@ -170,10 +170,10 @@ func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom
 }
 
 func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *common.ResourceRequestValues, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	overrides.Kibana = &kibanaValues{Enabled: vzconfig.IsKibanaEnabled(effectiveCR)}
+	overrides.Kibana = &kibanaValues{Enabled: vzconfig.IsOpenSearchDashboardsEnabled(effectiveCR)}
 
 	overrides.ElasticSearch = &elasticsearchValues{
-		Enabled: vzconfig.IsElasticsearchEnabled(effectiveCR),
+		Enabled: vzconfig.IsOpenSearchEnabled(effectiveCR),
 	}
 	multiNodeCluster, err := common.IsMultiNodeOpenSearch(effectiveCR)
 	if err != nil {

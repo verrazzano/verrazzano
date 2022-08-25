@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 )
 
@@ -51,7 +52,7 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled console-specific enabled check for installation
-func (c consoleComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (c consoleComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsConsoleEnabled(effectiveCR)
 }
 

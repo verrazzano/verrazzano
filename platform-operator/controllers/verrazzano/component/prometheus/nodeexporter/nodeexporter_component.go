@@ -5,10 +5,10 @@ package nodeexporter
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
@@ -56,12 +56,8 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the Prometheus Node-Exporter is explicitly enabled in the Verrazzano CR, otherwise
 // it returns true if the Prometheus component is enabled.
-func (c prometheusNodeExporterComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.PrometheusNodeExporter
-	if comp == nil || comp.Enabled == nil {
-		return vzconfig.IsPrometheusEnabled(effectiveCR)
-	}
-	return *comp.Enabled
+func (c prometheusNodeExporterComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsNodeExporterEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus Node-Exporter deployment is ready

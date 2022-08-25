@@ -10,11 +10,13 @@ package mocks
 
 import (
 	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	spi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	types "k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -318,7 +320,7 @@ func (mr *MockComponentInfoMockRecorder) GetOverrides(arg0 interface{}) *gomock.
 }
 
 // IsEnabled mocks base method.
-func (m *MockComponentInfo) IsEnabled(arg0 *v1alpha1.Verrazzano) bool {
+func (m *MockComponentInfo) IsEnabled(arg0 runtime.Object) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsEnabled", arg0)
 	ret0, _ := ret[0].(bool)
@@ -552,14 +554,6 @@ type MockComponent struct {
 	recorder *MockComponentMockRecorder
 }
 
-func (m *MockComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
-	return nil
-}
-
-func (m *MockComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
-	return nil
-}
-
 // MockComponentMockRecorder is the mock recorder for MockComponent.
 type MockComponentMockRecorder struct {
 	mock *MockComponent
@@ -676,7 +670,7 @@ func (mr *MockComponentMockRecorder) Install(arg0 interface{}) *gomock.Call {
 }
 
 // IsEnabled mocks base method.
-func (m *MockComponent) IsEnabled(arg0 *v1alpha1.Verrazzano) bool {
+func (m *MockComponent) IsEnabled(arg0 runtime.Object) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsEnabled", arg0)
 	ret0, _ := ret[0].(bool)
@@ -928,6 +922,20 @@ func (mr *MockComponentMockRecorder) ValidateInstall(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateInstall", reflect.TypeOf((*MockComponent)(nil).ValidateInstall), arg0)
 }
 
+// ValidateInstallV1Beta1 mocks base method.
+func (m *MockComponent) ValidateInstallV1Beta1(arg0 *v1beta1.Verrazzano) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateInstallV1Beta1", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateInstallV1Beta1 indicates an expected call of ValidateInstallV1Beta1.
+func (mr *MockComponentMockRecorder) ValidateInstallV1Beta1(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateInstallV1Beta1", reflect.TypeOf((*MockComponent)(nil).ValidateInstallV1Beta1), arg0)
+}
+
 // ValidateUpdate mocks base method.
 func (m *MockComponent) ValidateUpdate(arg0, arg1 *v1alpha1.Verrazzano) error {
 	m.ctrl.T.Helper()
@@ -940,4 +948,18 @@ func (m *MockComponent) ValidateUpdate(arg0, arg1 *v1alpha1.Verrazzano) error {
 func (mr *MockComponentMockRecorder) ValidateUpdate(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateUpdate", reflect.TypeOf((*MockComponent)(nil).ValidateUpdate), arg0, arg1)
+}
+
+// ValidateUpdateV1Beta1 mocks base method.
+func (m *MockComponent) ValidateUpdateV1Beta1(arg0, arg1 *v1beta1.Verrazzano) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateUpdateV1Beta1", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateUpdateV1Beta1 indicates an expected call of ValidateUpdateV1Beta1.
+func (mr *MockComponentMockRecorder) ValidateUpdateV1Beta1(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateUpdateV1Beta1", reflect.TypeOf((*MockComponent)(nil).ValidateUpdateV1Beta1), arg0, arg1)
 }

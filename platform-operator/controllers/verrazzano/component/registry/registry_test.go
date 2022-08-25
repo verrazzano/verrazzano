@@ -4,6 +4,7 @@
 package registry
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -651,7 +652,7 @@ func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return f.ready
 }
 
-func (f fakeComponent) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
+func (f fakeComponent) IsEnabled(_ runtime.Object) bool {
 	return f.enabled
 }
 
