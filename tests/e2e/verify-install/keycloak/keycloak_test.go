@@ -144,7 +144,7 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 
 		claimName := "mysql"
 		if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath); ok {
-			claimName = "data-mysql-0"
+			claimName = "datadir-mysql-0"
 		}
 
 		if pkg.IsDevProfile() {
