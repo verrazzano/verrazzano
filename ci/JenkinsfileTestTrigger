@@ -94,6 +94,7 @@ pipeline {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout([
                             $class: 'GitSCM',
+                            branches: [[name: env.BRANCH_NAME]],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             submoduleCfg: [],
