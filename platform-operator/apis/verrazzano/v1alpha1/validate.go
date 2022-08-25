@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/semver"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -106,16 +105,6 @@ func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string
 
 	return currentSemVer.IsEqualTo(requestedSemVer) || currentSemVer.IsGreatherThan(requestedSemVer)
 
-}
-
-//ValidateInstallOverridesV1Beta1 checks that the overrides slice has only one override type per slice item for v1beta1
-func ValidateInstallOverridesV1Beta1(overrides []v1beta1.Overrides) error {
-	for _, override := range overrides {
-		if err := isValidOverrideItems(override.ConfigMapRef, override.SecretRef, override.Values); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // ValidateInstallOverrides checks that the overrides slice has only one override type per slice item
