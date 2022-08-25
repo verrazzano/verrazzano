@@ -173,7 +173,7 @@ const (
 	CoherenceOperator             = "coherence-operator"
 	IngressController             = "ingress-controller"
 	IngressDefaultBackend         = "ingress-controller-ingress-nginx-defaultbackend"
-	Mysql                         = "mysql"
+	MySQL                         = "mysql"
 	CertManager                   = "cert-manager"
 	Rancher                       = "rancher"
 	PrometheusPushgateway         = "prometheus-pushgateway"
@@ -192,6 +192,7 @@ const (
 	Verrazzano                    = "verrazzano"
 	Fluentd                       = "fluentd"
 	RancherBackup                 = "rancher-backup"
+	MySQLOperator                 = "mysql-operator"
 )
 
 const (
@@ -209,7 +210,7 @@ var ComponentNameToNamespacesMap = map[string][]string{
 	VerrazzanoApplicationOperator: {VerrazzanoSystemNamespace},
 	CoherenceOperator:             {VerrazzanoSystemNamespace},
 	IngressController:             {platformOperatorConstants.IngressNginxNamespace},
-	Mysql:                         {KeycloakNamespace},
+	MySQL:                         {KeycloakNamespace},
 	CertManager:                   {CertManagerNamespace},
 	Rancher:                       {RancherSystemNamespace, RancherFleetSystemNamespace, RancherFleetLocalSystemNamespace},
 	PrometheusPushgateway:         {platformOperatorConstants.VerrazzanoMonitoringNamespace},
@@ -228,4 +229,5 @@ var ComponentNameToNamespacesMap = map[string][]string{
 	Verrazzano:                    {VerrazzanoSystemNamespace},
 	Fluentd:                       {VerrazzanoSystemNamespace},
 	RancherBackup:                 {platformOperatorConstants.RancherBackupNamesSpace},
+	MySQLOperator:                 {MySQLOperatorNamespace},
 }
