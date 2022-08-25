@@ -84,7 +84,7 @@ func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../thirdparty"
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), nil, false))
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), nil, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -94,7 +94,7 @@ func TestPreUpgrade(t *testing.T) {
 // THEN no error is returned and the expected cluster roles exists
 func TestPostInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	err := NewComponent().PostInstall(spi.NewFakeContext(client, nil, false))
+	err := NewComponent().PostInstall(spi.NewFakeContext(client, nil, nil, false))
 	assert.NoError(t, err)
 
 	var clusterRole rbacv1.ClusterRole
@@ -108,7 +108,7 @@ func TestPostInstall(t *testing.T) {
 // THEN no error is returned and the expected cluster roles exists
 func TestPostUpgrade(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	err := NewComponent().PostUpgrade(spi.NewFakeContext(client, nil, false))
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(client, nil, nil, false))
 	assert.NoError(t, err)
 
 	var clusterRole rbacv1.ClusterRole

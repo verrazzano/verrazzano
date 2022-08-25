@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 	"strings"
 
@@ -226,12 +227,8 @@ func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
 }
 
 // IsEnabled istio-specific enabled check for installation
-func (i istioComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Istio
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (i istioComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsIstioEnabled(effectiveCR)
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component

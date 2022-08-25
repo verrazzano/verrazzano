@@ -139,12 +139,12 @@ func TestUpdateKeycloakOIDCAuthConfig(t *testing.T) {
 	}{
 		{
 			"should update the auth config when it exists",
-			spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&authConfig).Build(), nil, false),
+			spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&authConfig).Build(), nil, nil, false),
 			false,
 		},
 		{
 			"should throw an error when the auth config is not present",
-			spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), nil, false),
+			spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), nil, nil, false),
 			true,
 		},
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -106,7 +107,7 @@ func (g grafanaComponent) IsOperatorInstallSupported() bool {
 }
 
 // IsEnabled returns true if the Grafana component is enabled
-func (g grafanaComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (g grafanaComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsGrafanaEnabled(effectiveCR)
 }
 
