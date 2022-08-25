@@ -204,9 +204,9 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 		}
 
 		//Check if any pods that contain no or old istio proxy container with istio injection labeled namespace
-		foundOAMPodWithoutIstioProxy, _ := DoesAppPodNeedRestart(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
+		foundOAMPodRequireRestart, _ := DoesAppPodNeedRestart(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
 
-		if foundOAMPodWithoutIstioProxy {
+		if foundOAMPodRequireRestart {
 			err := restartOAMApp(log, appConfig, client, restartVersion)
 			if err != nil {
 				return err
