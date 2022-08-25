@@ -173,8 +173,8 @@ pipeline {
                             sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
                             cat ${KUBECONFIG}
                             # updating kubeconfig with sa
-//                            cd ${GO_REPO_PATH}/verrazzano/
-//                            ci/scripts/update_lre_kubeconfig.sh
+                            # cd ${GO_REPO_PATH}/verrazzano/
+                            # ci/scripts/update_lre_kubeconfig.sh
                         '''
                     }
                 }
