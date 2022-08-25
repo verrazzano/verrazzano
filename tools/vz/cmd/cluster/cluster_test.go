@@ -5,7 +5,6 @@ package cluster
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"testing"
 
@@ -16,6 +15,9 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
+const nameFlag = "--" + constants.ClusterNameFlagName
+const typeFlag = "--" + constants.ClusterTypeFlagName
+
 func TestClusterArgs(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -23,26 +25,20 @@ func TestClusterArgs(t *testing.T) {
 		args       []string
 		expectErr  bool
 	}{
-		{"cluster create with default name", createSubCommandName, []string{"--type", capi.NoClusterType}, false},
-		{"cluster create with custom name and type", createSubCommandName, []string{"--name", "mycluster", "--type", capi.NoClusterType}, false},
-		{"cluster create with custom name, type and image", createSubCommandName, []string{"--name", "mycluster", "--type", capi.NoClusterType, "--image", "somerepo.io/someimage"}, false},
-		{"cluster create with unsupported type", createSubCommandName, []string{"--type", "unknown"}, true},
+		// capi.NoClusterType is used in all testing so that we don't trigger an actual cluster create/delete
+		{"cluster create with default name", createSubCommandName, []string{typeFlag, capi.NoClusterType}, false},
+		{"cluster create with custom name and type", createSubCommandName, []string{nameFlag, "mycluster", typeFlag, capi.NoClusterType}, false},
+		{"cluster create with custom name, type and image", createSubCommandName, []string{nameFlag, "mycluster", typeFlag, capi.NoClusterType, "--image", "somerepo.io/someimage"}, false},
+		{"cluster create with unsupported type", createSubCommandName, []string{typeFlag, "unknown"}, true},
 		{"cluster create with unknown flag", createSubCommandName, []string{"--unknown", "value"}, true},
+		{"cluster delete with default name", deleteSubCommandName, []string{typeFlag, capi.NoClusterType}, false},
+		{"cluster delete with custom name", deleteSubCommandName, []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, false},
+		{"cluster delete with unknown flag", deleteSubCommandName, []string{"--someflag", "randomcluster"}, true},
 		{"cluster with nonexistent subcommand", "nonexistent", []string{}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Send stdout stderr to a byte buffer
-			buf := new(bytes.Buffer)
-			errBuf := new(bytes.Buffer)
-			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-			cmd := NewCmdCluster(rc)
-			args := []string{
-				tt.subcommand,
-			}
-			args = append(args, tt.args...)
-			cmd.SetArgs(args)
-			err := cmd.Execute()
+			_, _, err := runCommand(tt.subcommand, tt.args)
 			if tt.expectErr {
 				asserts.Error(t, err)
 				return
@@ -53,15 +49,8 @@ func TestClusterArgs(t *testing.T) {
 }
 
 func TestClusterCreateHelp(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	cmd := NewCmdCluster(rc)
-	args := []string{createSubCommandName, "-h"}
-	cmd.SetArgs(args)
-	err := cmd.Execute()
+	output, _, err := runCommand(createSubCommandName, []string{"-h"})
 	asserts.Nil(t, err)
-	output := buf.String()
 	// The image flag should be hidden in help
 	asserts.NotContains(t, output, constants.ClusterImageFlagName)
 	asserts.NotContains(t, output, constants.ClusterImageFlagHelp)
@@ -71,5 +60,27 @@ func TestClusterCreateHelp(t *testing.T) {
 
 	asserts.Contains(t, output, constants.ClusterTypeFlagName)
 	asserts.Contains(t, output, constants.ClusterTypeFlagHelp)
-	fmt.Println(output)
+}
+
+func TestClusterDeleteHelp(t *testing.T) {
+	output, _, err := runCommand(deleteSubCommandName, []string{"-h"})
+	asserts.Nil(t, err)
+	asserts.Contains(t, output, constants.ClusterNameFlagName)
+	asserts.Contains(t, output, constants.ClusterNameFlagHelp)
+
+	// The type flag should be hidden in delete help
+	asserts.NotContains(t, output, constants.ClusterTypeFlagName)
+	asserts.NotContains(t, output, constants.ClusterTypeFlagHelp)
+}
+
+func runCommand(subCommand string, args []string) (string, string, error) {
+	// Send stdout and stderr to byte buffers
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	cmd := NewCmdCluster(rc)
+	subCommandArr := []string{subCommand}
+	cmd.SetArgs(append(subCommandArr, args...))
+	err := cmd.Execute()
+	return buf.String(), errBuf.String(), err
 }
