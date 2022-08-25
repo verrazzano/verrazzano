@@ -10,6 +10,9 @@ import (
 
 const capiDockerProvider = "docker"
 
+// compile time checking for interface implementation
+var _ ClusterLifeCycleManager = &kindClusterManager{}
+
 var defaultCAPIProviders = []string{capiDockerProvider}
 
 var _ ClusterLifeCycleManager = &kindClusterManager{}

@@ -181,4 +181,8 @@ const (
 	ClusterImageFlagName    = "image"
 	ClusterImageFlagDefault = ""
 	ClusterImageFlagHelp    = "DEVELOPMENT ONLY - the image to use for the cluster"
+
+	KubeconfigPathFlagName    = "path"
+	KubeconfigPathFlagDefault = ""
+	KubeconfigPathFlagHelp    = "Path to the file where the kubeconfig should be saved - defaults to your KUBECONFIG env var if set, otherwise to <home dir>/.kube/config"
 )

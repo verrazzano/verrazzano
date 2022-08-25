@@ -7,12 +7,16 @@ import (
 	"os"
 )
 
+// compile time checking for interface implementation
+var _ ClusterLifeCycleManager = &noClusterManager{}
+
 // noClusterManager ClusterLifecycleManager impl for testing - does not perform any cluster operations
 type noClusterManager struct {
 	config ClusterConfig
 }
 
 func (r *noClusterManager) GetKubeConfig() (string, error) {
+	fmt.Println("get kubeconfig for noCluster")
 	return "", nil
 }
 
