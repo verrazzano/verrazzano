@@ -186,8 +186,8 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 	if err != nil {
 		return err
 	}
-	bytes, err := yaml.JSONToYAML(scrapeConfigs.Bytes())
 
+	bytes, err := yaml.JSONToYAML(scrapeConfigs.Bytes())
 	if err != nil {
 		return err
 	}
