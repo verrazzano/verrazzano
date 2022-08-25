@@ -1,0 +1,16 @@
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+spec:
+  defaultVolumeSource:
+    emptyDir: { }
+  components:
+    elasticsearch:
+      installArgs:
+        - name: nodes.master.replicas
+          value: "1"
+        - name: nodes.master.requests.memory
+          value: "1G"
+        - name: nodes.ingest.replicas
+          value: "0"
+        - name: nodes.data.replicas
+          value: "0"
