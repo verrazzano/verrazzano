@@ -41,7 +41,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         string (name: 'ZIPFILE_LOCATION',
-                        defaultValue: 'pabhat%2Fvz-commercial-bundle-last-clean-periodic-test/verrazzano-1.4.0-open-source.zip',
+                        defaultValue: 'pabhat%2Fvz-6801-2-last-clean-periodic-test/verrazzano-1.4.0-open-source.zip',
                         description: 'The bucket location to use for the Zip file download',
                         trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
@@ -116,6 +116,7 @@ pipeline {
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
+        BOM_DOWNLOADED_FILE_NAME = "downloaded-from-bom.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -262,6 +263,12 @@ pipeline {
                             tar xvf $tarfileName
                         """
                         }
+                    
+                    sh """
+                        # Installing VZ CLI
+                        cp ${TARBALL_DIR}/bin/vz ${GO_REPO_PATH}
+                        ${GO_REPO_PATH}/vz version
+                    """
                 }
             }
         }
@@ -269,14 +276,18 @@ pipeline {
             steps {
                 sh """
                     # Create OCIR repos for the images in the tarballs in the test compartment
-                    # sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                    cd ${TARBALL_DIR}
+                    sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -f ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
+                    tar xvf ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
+                    cd ${TEST_SCRIPTS_DIR}
+                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
                     echo "Upload OCIR region: $ocirRegion"
                     echo "Upload OCIR Repository: ${ocirRegistry}"
                     # Run the image-helper to load the images into the OCIR registry in the runner's region
                     cd ${TARBALL_DIR}
                     pwd
                     ls
-                    ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo} -b manifests/verrazzano-bom.json
+                    ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
                 """
             }
         }

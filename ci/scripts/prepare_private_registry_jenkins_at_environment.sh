@@ -23,8 +23,8 @@ INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"nip.io"}
 KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
 
-BOM_FILE=${TARBALL_DIR}/verrazzano-bom.json
-CHART_LOCATION=${TARBALL_DIR}/charts
+BOM_FILE=${TARBALL_DIR}/manifests/verrazzano-bom.json
+CHART_LOCATION=${TARBALL_DIR}/manifests/charts
 
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -57,6 +57,7 @@ cd ${GO_REPO_PATH}/verrazzano
 
 echo "Install Platform Operator"
 VPO_IMAGE=$(cat ${BOM_FILE} | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
+echo "$VPO_IMAGE"
 
 helm upgrade --install myv8o ${CHART_LOCATION}/verrazzano-platform-operator \
     --set global.imagePullSecrets[0]=${IMAGE_PULL_SECRET} \
