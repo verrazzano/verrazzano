@@ -54,7 +54,12 @@ func (o opensearchComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the Helm override sources for a component
-func (o opensearchComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
+func (o opensearchComponent) GetOverrides(object runtime.Object) interface{} {
+	if _, ok := object.(*vzapi.Verrazzano); ok {
+		return []vzapi.Overrides{}
+	} else if _, ok := object.(*installv1beta1.Verrazzano); ok {
+		return []installv1beta1.Overrides{}
+	}
 	return []vzapi.Overrides{}
 }
 

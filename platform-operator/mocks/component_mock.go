@@ -306,10 +306,10 @@ func (mr *MockComponentInfoMockRecorder) GetMinVerrazzanoVersion() *gomock.Call 
 }
 
 // GetOverrides mocks base method.
-func (m *MockComponentInfo) GetOverrides(arg0 *v1alpha1.Verrazzano) []v1alpha1.Overrides {
+func (m *MockComponentInfo) GetOverrides(arg0 runtime.Object) interface{} {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOverrides", arg0)
-	ret0, _ := ret[0].([]v1alpha1.Overrides)
+	ret0, _ := ret[0].(interface{})
 	return ret0
 }
 
@@ -642,10 +642,10 @@ func (mr *MockComponentMockRecorder) GetMinVerrazzanoVersion() *gomock.Call {
 }
 
 // GetOverrides mocks base method.
-func (m *MockComponent) GetOverrides(arg0 *v1alpha1.Verrazzano) []v1alpha1.Overrides {
+func (m *MockComponent) GetOverrides(arg0 runtime.Object) interface{} {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOverrides", arg0)
-	ret0, _ := ret[0].([]v1alpha1.Overrides)
+	ret0, _ := ret[0].(interface{})
 	return ret0
 }
 

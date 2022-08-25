@@ -89,10 +89,19 @@ func (c consoleComponent) PreUpgrade(ctx spi.ComponentContext) error {
 }
 
 // GetOverrides gets the install overrides for the console
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.Console != nil {
-		return effectiveCR.Spec.Components.Console.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Console != nil {
+			return effectiveCR.Spec.Components.Console.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Console != nil {
+			return effectiveCR.Spec.Components.Console.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 

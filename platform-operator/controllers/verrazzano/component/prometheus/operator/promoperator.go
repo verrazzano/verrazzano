@@ -6,6 +6,8 @@ package operator
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path"
 	"strconv"
 
@@ -464,10 +466,19 @@ func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 }
 
 // GetOverrides appends Helm value overrides for the Prometheus Operator Helm chart
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		return effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.PrometheusOperator != nil {
+			return effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.PrometheusOperator != nil {
+			return effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 

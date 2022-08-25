@@ -87,7 +87,12 @@ func (g grafanaComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the Helm overrides for a component
-func (g grafanaComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
+func (g grafanaComponent) GetOverrides(object runtime.Object) interface{} {
+	if _, ok := object.(*vzapi.Verrazzano); ok {
+		return []vzapi.Overrides{}
+	} else if _, ok := object.(*installv1beta1.Verrazzano); ok {
+		return []installv1beta1.Overrides{}
+	}
 	return []vzapi.Overrides{}
 }
 

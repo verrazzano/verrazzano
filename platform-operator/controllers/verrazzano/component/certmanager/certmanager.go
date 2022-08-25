@@ -11,7 +11,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/mail"
 	"os"
 	"path/filepath"
@@ -930,9 +932,18 @@ func deleteObject(client crtclient.Client, name string, namespace string, object
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.CertManager != nil {
-		return effectiveCR.Spec.Components.CertManager.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.CertManager != nil {
+			return effectiveCR.Spec.Components.CertManager.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.CertManager != nil {
+			return effectiveCR.Spec.Components.CertManager.ValueOverrides
+		}
+		return []v1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }

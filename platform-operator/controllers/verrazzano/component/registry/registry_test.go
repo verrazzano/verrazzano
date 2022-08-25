@@ -634,7 +634,7 @@ func (f fakeComponent) GetJSONName() string {
 	return f.name
 }
 
-func (f fakeComponent) GetOverrides(_ *v1alpha1.Verrazzano) []v1alpha1.Overrides {
+func (f fakeComponent) GetOverrides(_ runtime.Object) interface{} {
 	return []v1alpha1.Overrides{}
 }
 
