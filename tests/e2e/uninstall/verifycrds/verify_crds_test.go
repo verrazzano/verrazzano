@@ -93,14 +93,11 @@ var monitoringcoreoscomcrds = map[string]bool{
 
 // Expected MySQL Operator CRDs after uninstall
 var mysqloperatorcrds = map[string]bool{
-	"innodbclusters.mysql.oracle.com ": false,
-	"mysqlbackups.mysql.oracle.com":    false,
-}
-var zalaongocrds = map[string]bool{
+	"innodbclusters.mysql.oracle.com": false,
+	"mysqlbackups.mysql.oracle.com":   false,
 	"clusterkopfpeerings.zalando.org": false,
 	"kopfpeerings.zalando.org":        false,
 }
-
 var t = framework.NewTestFramework("uninstall verify crds")
 
 // This test verifies the CRDs found after an uninstall of Verrazzano are what is expected
@@ -140,7 +137,7 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 
 	t.It("Check for expected MySQL Operator CRDs", func() {
 		checkCrds(crds, mysqloperatorcrds, "mysql.oracle.com")
-		checkCrds(crds, zalaongocrds, "zalando.org")
+		checkCrds(crds, mysqloperatorcrds, "zalando.org")
 	})
 
 	t.It("Check for unexpected CRDs", func() {
