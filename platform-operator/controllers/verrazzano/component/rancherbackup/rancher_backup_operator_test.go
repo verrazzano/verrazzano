@@ -111,7 +111,7 @@ func TestIsRancherBackupOperatorReady(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
+			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
 			assert.Equal(t, tt.expectTrue, isRancherBackupOperatorReady(ctx))
 		})
 	}
@@ -120,7 +120,7 @@ func TestIsRancherBackupOperatorReady(t *testing.T) {
 // TestisRancherBackupOperatorReady tests the isRancherBackupOperatorReady function for the Rancher Backup Operator
 func TestAppendOverrides(t *testing.T) {
 	cli := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
 
 	defBOMPath := config.GetDefaultBOMFilePath()
 	config.SetDefaultBomFilePath("testdata/test-bom.json")

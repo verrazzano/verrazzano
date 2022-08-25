@@ -46,7 +46,7 @@ type componentUninstallContext struct {
 
 // UninstallComponents will Uninstall the components as required
 func (r *Reconciler) uninstallComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, tracker *UninstallTracker) (ctrl.Result, error) {
-	spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+	spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}

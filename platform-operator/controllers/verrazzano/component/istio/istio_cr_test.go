@@ -686,7 +686,7 @@ spec:
 // WHEN BuildIstioOperatorYaml is called
 // THEN ensure that the result is correct.
 func TestBuildIstioOperatorYaml(t *testing.T) {
-	fakeCtx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, false)
+	fakeCtx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, nil, false)
 	collectorLabels := map[string]string{
 		constants.KubernetesAppLabel: constants.JaegerCollectorService,
 	}
@@ -727,13 +727,13 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 			testName: "When Jaeger Operator is enabled, without install args override default tracing URL is used",
 			value:    cr4,
 			expected: cr4Yaml,
-			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, false),
+			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, nil, false),
 		},
 		{
 			testName: "When Jaeger Operator is enabled, with install args override, user provided tracing URL is used",
 			value:    cr5,
 			expected: cr5Yaml,
-			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, false),
+			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, nil, false),
 		},
 	}
 	for _, test := range tests {

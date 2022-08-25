@@ -8,9 +8,11 @@ package v1alpha1
 import (
 	"bytes"
 	"fmt"
+
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"sigs.k8s.io/yaml"
+
 	"strings"
 	"text/template"
 )
@@ -58,14 +60,14 @@ spec:
 {{- end }}
           service:
             type: {{.IngressServiceType}}
-            {{- if .IngressServicePorts }}
+{{- if .IngressServicePorts }}
             ports:
 {{ multiLineIndent 12 .IngressServicePorts }}
             {{- end}}
-          {{- if .ExternalIps }}
+{{- if .ExternalIps }}
             externalIPs:
 {{.ExternalIps}}
-          {{- end}}
+{{- end}}
 {{- if .IngressAffinity }}
           affinity:
 {{ multiLineIndent 12 .IngressAffinity }}

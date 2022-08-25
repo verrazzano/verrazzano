@@ -172,7 +172,7 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 // WHEN I create a new VMI resource
 //  THEN the configuration in the CR is respected
 func TestCreateOrUpdateVMI(t *testing.T) {
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, nil, false)
 	err := common.CreateOrUpdateVMI(ctx, updateFunc)
 	assert.NoError(t, err)
 	vmi := &vmov1.VerrazzanoMonitoringInstance{}
@@ -193,7 +193,7 @@ func TestCreateOrUpdateVMI(t *testing.T) {
 //  THEN the configuration in the CR is respected
 func TestCreateOrUpdateVMINoNGINX(t *testing.T) {
 	vmiEnabledCR.Spec.Components.Ingress.Enabled = getBoolPtr(false)
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, nil, false)
 	err := common.CreateOrUpdateVMI(ctx, updateFunc)
 	assert.NoError(t, err)
 	vmi := &vmov1.VerrazzanoMonitoringInstance{}

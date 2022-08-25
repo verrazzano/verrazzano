@@ -67,7 +67,7 @@ func TestIsEnabled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(), tt.vz, false)
+			ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(), tt.vz, nil, false)
 			assert.Equal(t, tt.isEnabled, kcComponent.IsEnabled(ctx.EffectiveCR()))
 		})
 	}
@@ -122,7 +122,7 @@ func TestPreinstall(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, testVZ, false)
+			ctx := spi.NewFakeContext(tt.client, testVZ, nil, false)
 			err := NewComponent().PreInstall(ctx)
 			if tt.isErr {
 				assert.Error(t, err)
@@ -222,7 +222,7 @@ func TestKeycloakComponent_GetCertificateNames(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	names := NewComponent().GetCertificateNames(ctx)
 	assert.Len(t, names, 1)
 	assert.Equal(t, types.NamespacedName{Name: keycloakCertificateName, Namespace: ComponentNamespace}, names[0])

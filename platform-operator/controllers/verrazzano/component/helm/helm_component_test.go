@@ -105,7 +105,7 @@ func TestUpgrade(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 }
 
@@ -137,7 +137,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 	})
 	defer helm.SetDefaultRunner()
 
-	err := comp.Upgrade(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Upgrade(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.Error(err)
 }
 
@@ -158,7 +158,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
 
-	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err)
 }
 
@@ -209,7 +209,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 }
 
@@ -250,7 +250,7 @@ func TestInstall(t *testing.T) {
 		return helm.ChartNotFound, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 }
 
@@ -302,7 +302,7 @@ func TestInstallWithAllOverride(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStateFunction()
 
-	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.Error(err, "Install did not return an open file error")
 	a.Equal(err.Error(), "Could not open file setFileValue: open setFileValue: no such file or directory")
 }
@@ -344,7 +344,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 		return helm.ChartStatusFailed, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 }
 
@@ -387,7 +387,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		return helm.ChartNotFound, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 }
 
@@ -438,13 +438,13 @@ func TestIsInstalled(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
-	a.True(comp.IsInstalled(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)))
+	a.True(comp.IsInstalled(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false)))
 	helm.SetCmdRunner(genericHelmTestRunner{
 		stdOut: []byte(""),
 		stdErr: []byte(""),
 		err:    fmt.Errorf("Not installed"),
 	})
-	a.False(comp.IsInstalled(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)))
+	a.False(comp.IsInstalled(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false)))
 }
 
 // TestReady tests IsReady
@@ -542,7 +542,7 @@ func TestReady(t *testing.T) {
 
 	a := assert.New(t)
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -739,7 +739,7 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 				},
 			}
 
-			ctx := spi.NewFakeContext(client, verrazzano, false)
+			ctx := spi.NewFakeContext(client, verrazzano, nil, false)
 
 			kvs, err := tt.component.filesFromVerrazzanoHelm(ctx, verrazzano.Namespace, tt.additionalValues)
 			a.Equal(tt.kvsLen, len(kvs))

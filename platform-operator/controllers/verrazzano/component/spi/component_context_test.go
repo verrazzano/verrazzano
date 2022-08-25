@@ -3,15 +3,15 @@
 package spi
 
 import (
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -26,7 +26,7 @@ var testScheme = runtime.NewScheme()
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
 
-	_ = vzapi.AddToScheme(testScheme)
+	_ = v1alpha1.AddToScheme(testScheme)
 	_ = clustersv1alpha1.AddToScheme(testScheme)
 
 	_ = istioclinet.AddToScheme(testScheme)
@@ -47,7 +47,7 @@ func TestContextProfilesMerge(t *testing.T) {
 		name         string
 		description  string
 		expectedYAML string
-		actualCR     vzapi.Verrazzano
+		actualCR     v1alpha1.Verrazzano
 		expectedErr  bool
 	}{
 		{
@@ -148,7 +148,7 @@ func TestContextProfilesMerge(t *testing.T) {
 
 			// Create the context with the effective CR
 			log := vzlog.DefaultLogger()
-			context, err := NewContext(log, fake.NewClientBuilder().WithScheme(testScheme).Build(), &test.actualCR, false)
+			context, err := NewContext(log, fake.NewClientBuilder().WithScheme(testScheme).Build(), &test.actualCR, nil, false)
 			// Assert the error expectations
 			if test.expectedErr {
 				a.Error(err)
@@ -160,18 +160,18 @@ func TestContextProfilesMerge(t *testing.T) {
 			a.NotNil(context.ActualCR(), "Actual CR was nil")
 			a.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
-			a.Equal(vzapi.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
+			a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
 			a.Equal(expectedVZ, context.EffectiveCR(), "Effective CR did not match expected results")
 		})
 	}
 }
 
-func loadExpectedMergeResult(expectedYamlFile string) (*vzapi.Verrazzano, error) {
+func loadExpectedMergeResult(expectedYamlFile string) (*v1alpha1.Verrazzano, error) {
 	bYaml, err := ioutil.ReadFile(filepath.Join(expectedYamlFile))
 	if err != nil {
 		return nil, err
 	}
-	vz := vzapi.Verrazzano{}
+	vz := v1alpha1.Verrazzano{}
 	err = yaml.Unmarshal(bYaml, &vz)
 	return &vz, err
 }
