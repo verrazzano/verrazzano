@@ -22,7 +22,7 @@ if [ -z "$3" ]; then
 fi
 VZ_DEVELOPENT_VERSION="$3"
 
-if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]; then
+if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]  || [ -z "$OCI_OS_REGION" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
@@ -59,23 +59,23 @@ downloadCommonFiles() {
   mkdir -p ${VZ_DISTRIBUTION_COMMON}
 
   # operator.yaml
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/operator.yaml --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/operator.yaml --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml
 
   # CLI for Linux AMD64
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ}
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
 
   # CLI for Linux ARM64
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ}
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ_SHA256}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ_SHA256}
 
   # CLI for Darwin AMD64
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ}
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256}
 
   # CLI for Darwin ARM64
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ}
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256}
 }
 
 # Copy the common files to directory from where the script builds Verrazzano release distribution
@@ -92,6 +92,7 @@ includeCommonFiles() {
   # Copy operator.yaml and charts
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${distributionDirectory}/manifests/k8s/verrazzano-platform-operator.yaml
   cp -r ${VZ_REPO_ROOT}/platform-operator/helm_config/charts/verrazzano-platform-operator ${distributionDirectory}/manifests/charts
+  rm -f ${distributionDirectory}/manifests/charts/verrazzano-platform-operator/.helmignore || true
 
   # Copy profiles
   copyProfiles ${distributionDirectory}/manifests/profiles
@@ -113,6 +114,23 @@ copyProfiles() {
   cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-ocne.yaml ${profileDirectory}/ocne.yaml
 }
 
+# Create a text file containing the contents of the bundle
+captureBundleContents() {
+  local rootDir=$1
+  local generatedDir=$2
+  local textFile=$3
+
+  cd ${rootDir}
+  find * -type f > "${generatedDir}/${textFile}"
+  if [ -f "${generatedDir}/${textFile}" ];
+  then
+    echo "Sorting file ${generatedDir}/${textFile}"
+    sort -u -o "${generatedDir}/${textFile}" "${generatedDir}/${textFile}"
+  fi
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${OS_LINUX_AMD64_BUNDLE_CONTENTS} --file ${generatedDir}/${textFile}
+  rm ${generatedDir}/${textFile}
+}
+
 # Generate the open-source Verrazzano release distribution
 generateOpenSourceDistribution() {
   echo "Generate open-source distribution ..."
@@ -129,6 +147,8 @@ generateOpenSourceDistribution() {
   echo "Build distribution for Linux AMD64 architecture ..."
   tar -czf ${generatedDir}/${VZ_LINUX_AMD64_TARGZ} -C ${rootDir} .
 
+  captureBundleContents ${rootDir} ${generatedDir} ${OS_LINUX_AMD64_BUNDLE_CONTENTS}
+
   # Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture
   echo "Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture ..."
   rm -f ${rootDir}/bin/vz
@@ -137,6 +157,8 @@ generateOpenSourceDistribution() {
   # Build distribution for Darwin AMD64 architecture
   tar -czf ${generatedDir}/${VZ_DARWIN_AMD64_TARGZ} -C ${rootDir} .
 
+  captureBundleContents ${rootDir} ${generatedDir} ${OS_DARWIN_AMD64_BUNDLE_CONTENTS}
+
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${generatedDir}/operator.yaml
 
   cd ${generatedDir}
@@ -144,14 +166,17 @@ generateOpenSourceDistribution() {
   sha256sum ${VZ_DARWIN_AMD64_TARGZ} > ${VZ_DARWIN_AMD64_TARGZ_SHA256}
   sha256sum operator.yaml > operator.yaml.sha256
 
+  captureBundleContents ${generatedDir} ${generatedDir} ${OS_BUNDLE_CONTENTS}
+
   # Create and upload the final distribution zip file and upload
   echo "Build open-source distribution ${generatedDir}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
+
   zip ${VZ_OPENSOURCE_RELEASE_BUNDLE} ${VZ_LINUX_AMD64_TARGZ} ${VZ_LINUX_AMD64_TARGZ_SHA256} ${VZ_DARWIN_AMD64_TARGZ} ${VZ_DARWIN_AMD64_TARGZ_SHA256} operator.yaml operator.yaml.sha256
   sha256sum ${VZ_OPENSOURCE_RELEASE_BUNDLE} > ${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256}
 
   echo "Upload open-source distribution ${generatedDir}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE} --file ${VZ_OPENSOURCE_RELEASE_BUNDLE}
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256} --file ${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256}
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE} --file ${VZ_OPENSOURCE_RELEASE_BUNDLE}
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256} --file ${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256}
   echo "Successfully uploaded ${generatedDir}/${VZ_OPENSOURCE_RELEASE_BUNDLE}"
 }
 
@@ -174,15 +199,17 @@ generateCommercialDistribution() {
   # Move the tar files to images directory
   mv ${WORKSPACE}/tar-files/*.tar ${rootDir}/images/
 
+  captureBundleContents ${rootDir} ${generatedDir} ${COMM_BUNDLE_CONTENTS}
+
   # Create and upload the final distribution zip file and upload
-  cd ${rootDir}
   echo "Create ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE} and upload ..."
+
   zip -r ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE} *
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE}
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE}
 
   cd ${generatedDir}
   sha256sum ${VZ_COMMERCIAL_RELEASE_BUNDLE} > ${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256}
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256} --file ${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256}
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256} --file ${VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256}
   echo "Successfully uploaded ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE}"
 }
 
@@ -211,10 +238,10 @@ VZ_CLI_DARWIN_ARM64_TARGZ_SHA256="vz-darwin-arm64.tar.gz.sha256"
 DISTRIBUTION_PREFIX="verrazzano-${VZ_DEVELOPENT_VERSION}"
 
 # Release bundles and SHA256 of the bundles
-VZ_OPENSOURCE_RELEASE_BUNDLE="verrazzano-${VZ_DEVELOPENT_VERSION}-open-source.zip"
+VZ_OPENSOURCE_RELEASE_BUNDLE="${DISTRIBUTION_PREFIX}-open-source.zip"
 VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256="${VZ_OPENSOURCE_RELEASE_BUNDLE}.sha256"
 
-VZ_COMMERCIAL_RELEASE_BUNDLE="verrazzano-${VZ_DEVELOPENT_VERSION}-commercial.zip"
+VZ_COMMERCIAL_RELEASE_BUNDLE="${DISTRIBUTION_PREFIX}-commercial.zip"
 VZ_COMMERCIAL_RELEASE_BUNDLE_SHA256="${VZ_COMMERCIAL_RELEASE_BUNDLE}.sha256"
 
 # Linux AMD64 and Darwin AMD64 bundles for the open-source distribution
@@ -234,6 +261,11 @@ VZ_OPENSOURCE_GENERATED="${WORKSPACE}/vz-open-source-generated"
 # Directory containing the layout and required files for the commercial distribution
 VZ_COMMERCIAL_ROOT="${WORKSPACE}/vz-commercial"
 VZ_COMMERCIAL_GENERATED="${WORKSPACE}/vz-commercial-generated"
+
+OS_LINUX_AMD64_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-open-source-linux-amd64.txt"
+OS_DARWIN_AMD64_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-open-source-darwin-amd64.txt"
+OS_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-open-source.txt"
+COMM_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-commercial.txt"
 
 # Call the function to download the artifacts common to both types of distribution bundles
 downloadCommonFiles
