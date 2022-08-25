@@ -22,15 +22,16 @@ import (
 )
 
 const (
-	longWaitTimeout          = 20 * time.Minute
-	longPollingInterval      = 20 * time.Second
-	shortPollingInterval     = 10 * time.Second
-	shortWaitTimeout         = 5 * time.Minute
-	imagePullWaitTimeout     = 40 * time.Minute
-	imagePullPollingInterval = 30 * time.Second
-	skipVerifications        = "Skip Verifications"
-	helloHelidon             = "hello-helidon"
-	nodeExporterJobName      = "node-exporter"
+	longWaitTimeout            = 20 * time.Minute
+	longPollingInterval        = 20 * time.Second
+	shortPollingInterval       = 10 * time.Second
+	shortWaitTimeout           = 5 * time.Minute
+	imagePullWaitTimeout       = 40 * time.Minute
+	imagePullPollingInterval   = 30 * time.Second
+	skipVerifications          = "Skip Verifications"
+	helloHelidon               = "hello-helidon"
+	nodeExporterJobName        = "node-exporter"
+	helloHelidonDeploymentName = "hello-helidon-deployment"
 )
 
 var (
@@ -43,7 +44,7 @@ var (
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection)
+		pkg.DeployHelloHelidonApplication(namespace, "", istioInjection, helloHelidonAppConfig)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 		Eventually(func() bool {
@@ -70,11 +71,11 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace)
+		pkg.UndeployHelloHelidonApplication(namespace, helloHelidonAppConfig)
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -110,6 +111,23 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 
+	t.Describe("supports Selector", Label("f:selector.labels"), func() {
+		t.It("Matchlabels and Matchexpressions", func() {
+			if skipVerify {
+				Skip(skipVerifications)
+			}
+			kubeConfig, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				Skip(skipVerifications)
+			}
+			if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeConfig); !ok {
+				Skip(skipVerifications)
+			}
+			Eventually(func() bool {
+				return isDeploymentLabelSelectorValuesMatched()
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		})
+	})
 	// Verify Prometheus scraped metrics
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
@@ -179,6 +197,30 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	})
 
 })
+
+// isDeploymentLabelSelectorValuesMatched tests labelselector must exists into deployment
+// also must have values into matchlabels & matchexpressions
+
+func isDeploymentLabelSelectorValuesMatched() bool {
+	// fetch labelselector from hello helidon deployment
+	labelSelector, err := pkg.GetDeploymentLabelSelector(namespace, helloHelidonDeploymentName)
+	if err != nil {
+		return false
+	}
+
+	/*
+		// Putting the exact value match on hold, reconciling during vz upgrade is wip
+		// check labelselector matchlabels must have at least 1 pair of matchlabels arg
+		if val, ok := labelSelector.MatchLabels["app"]; !ok || val != helloHelidon {
+			return false
+		}
+		// check labelselector matchexpressions must not be empty
+		if len(labelSelector.MatchExpressions) == 0 {
+			return false
+		}
+	*/
+	return labelSelector != nil
+}
 
 func helloHelidonPodsRunning() bool {
 	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)

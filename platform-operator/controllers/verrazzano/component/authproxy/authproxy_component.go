@@ -5,6 +5,9 @@ package authproxy
 
 import (
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -66,12 +69,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled authProxyComponent-specific enabled check for installation
-func (c authProxyComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.AuthProxy
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c authProxyComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsAuthProxyEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -81,6 +80,11 @@ func (c authProxyComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ver
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c authProxyComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // IsReady component check

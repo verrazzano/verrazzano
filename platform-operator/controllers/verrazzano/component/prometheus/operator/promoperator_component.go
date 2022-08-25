@@ -5,6 +5,8 @@ package operator
 
 import (
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -64,12 +66,8 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the Prometheus Operator is enabled or if the component is not specified
 // in the Verrazzano CR.
-func (c prometheusComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.PrometheusOperator
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c prometheusComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsPrometheusOperatorEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus Operator deployment is ready
@@ -134,6 +132,16 @@ func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.validatePrometheusOperator(new)
+}
+
+// ValidateInstall verifies the installation of the Verrazzano object
+func (c prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // getIngressNames - gets the names of the ingresses associated with this component

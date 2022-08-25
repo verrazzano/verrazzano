@@ -6,6 +6,8 @@ package kiali
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -141,12 +143,8 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Kiali-specific enabled check for installation
-func (c kialiComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Kiali
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c kialiComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsKialiEnabled(effectiveCR)
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources
@@ -169,6 +167,11 @@ func (c kialiComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c kialiComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

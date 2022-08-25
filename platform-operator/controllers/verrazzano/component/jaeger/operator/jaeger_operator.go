@@ -60,7 +60,6 @@ const (
 	tmpFilePrefix         = "jaeger-operator-overrides-"
 	tmpSuffix             = "yaml"
 	tmpFileCreatePattern  = tmpFilePrefix + "*." + tmpSuffix
-	tmpFileCleanPattern   = tmpFilePrefix + ".*\\." + tmpSuffix
 	jaegerCreateField     = "jaeger.create"
 	jaegerSecNameField    = "jaeger.spec.storage.secretName"
 	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"
@@ -498,7 +497,7 @@ func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
 // As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
 func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		return true
 	}
 	return false

@@ -150,11 +150,7 @@ func getIngressReplicaCount(vz *vzapi.Verrazzano) uint32 {
 		if !isIstioEnabled(istio) {
 			return 0
 		}
-		if istio.Ingress != nil {
-			if istio.Ingress.Kubernetes != nil {
-				return istio.Ingress.Kubernetes.Replicas
-			}
-		}
+		return extractIstioSubComponentReplicas(istio.ValueOverrides, "spec.components.egressGateways.0.k8s.replicaCount")
 	}
 	return 1
 }
@@ -165,9 +161,7 @@ func getEgressReplicaCount(vz *vzapi.Verrazzano) uint32 {
 		if !isIstioEnabled(istio) {
 			return 0
 		}
-		if istio.Egress != nil && istio.Egress.Kubernetes != nil {
-			return istio.Egress.Kubernetes.Replicas
-		}
+		return extractIstioSubComponentReplicas(istio.ValueOverrides, "spec.components.ingressGateways.0.k8s.replicaCount")
 	}
 	return 1
 }
@@ -178,17 +172,21 @@ func getPilotReplicaCount(vz *vzapi.Verrazzano) uint32 {
 		if !isIstioEnabled(istio) {
 			return 0
 		}
+		return extractIstioSubComponentReplicas(istio.ValueOverrides, "spec.components.pilot.k8s.replicaCount")
+	}
+	return 1
+}
 
-		for _, override := range istio.ValueOverrides {
-			if override.Values != nil {
-				jsonString, err := gabs.ParseJSON(override.Values.Raw)
-				if err != nil {
-					return 1
-				}
-				if container := jsonString.Path("spec.components.pilot.k8s.replicaCount"); container != nil {
-					if val, ok := container.Data().(float64); ok {
-						return uint32(val)
-					}
+func extractIstioSubComponentReplicas(overrides []vzapi.Overrides, jsonPath string) uint32 {
+	for _, override := range overrides {
+		if override.Values != nil {
+			jsonString, err := gabs.ParseJSON(override.Values.Raw)
+			if err != nil {
+				return 1
+			}
+			if container := jsonString.Path(jsonPath); container != nil {
+				if val, ok := container.Data().(float64); ok {
+					return uint32(val)
 				}
 			}
 		}

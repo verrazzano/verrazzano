@@ -98,6 +98,7 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
     environment {
@@ -163,8 +164,12 @@ pipeline {
 
         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
 
+        // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+        CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
+
+        // Environment variable for Verrazzano CLI executable
         VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
@@ -636,7 +641,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: "**/multicluster-uninstall-dump/**,**/*cluster-snapshot*/**,**/*bug-report*/**,**/test-cluster-snapshots/**", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "**/multicluster-uninstall-dump/**,**/*full-cluster*/**,**/*bug-report*/**,**/test-cluster-snapshots/**", allowEmptyArchive: true
                 }
             }
         }
@@ -672,7 +677,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/*bug-report*/**,**/test-cluster-snapshots/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/*bug-report*/**,**/test-cluster-snapshots/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -1243,14 +1248,9 @@ def dumpK8sCluster(dumpDirectory) {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for (int count = 1; count <= clusterCount; count++) {
                 sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                mkdir -p ${dumpDirectory}/cluster-snapshot
-                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot-${count} -r ${dumpDirectory}/cluster-snapshot-${count}/cluster-snapshot/analysis.report
-
-                mkdir -p ${dumpDirectory}/bug-report-${count}/bug-report
-                ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report-${count}/bug-report.tar.gz
-                tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report-${count}/bug-report
-            """
+                  export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                  ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}/cluster-snapshot-${count}
+                """
             }
         }
     }

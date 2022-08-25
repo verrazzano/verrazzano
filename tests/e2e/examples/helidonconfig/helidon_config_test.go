@@ -73,7 +73,7 @@ var _ = t.AfterEach(func() {
 var _ = t.AfterSuite(func() {
 
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		start := time.Now()

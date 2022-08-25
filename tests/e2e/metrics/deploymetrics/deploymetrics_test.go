@@ -51,7 +51,7 @@ var (
 	t = framework.NewTestFramework("deploymetrics")
 )
 
-var clusterDump = pkg.NewClusterDumpWrapper()
+var clusterDump = pkg.NewClusterDumpWrapper(generatedNamespace)
 var kubeconfig string
 var _ = clusterDump.BeforeSuite(func() {
 	if !skipDeploy {
@@ -295,7 +295,7 @@ func getPromJobName() (string, error) {
 		return kubeconfig, err
 	}
 	if usesServiceMonitor {
-		return testpkg.GetAppServiceMonitorName(namespace, deploymetricsAppName), nil
+		return testpkg.GetAppServiceMonitorName(namespace, deploymetricsAppName, "deploymetrics-deployment"), nil
 	}
 	// For VZ versions prior to 1.4.0, the job name in prometheus scrape config was of the old format
 	// <app_name>_default_<app_namespace>_<app_component_name>

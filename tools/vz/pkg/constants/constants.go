@@ -47,7 +47,7 @@ const (
 	VerboseFlag          = "verbose"
 	VerboseFlagShorthand = "v"
 	VerboseFlagDefault   = false
-	VerboseFlagUsage     = "Enable verbose output"
+	VerboseFlagUsage     = "Enable verbose output."
 )
 
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
@@ -94,11 +94,11 @@ const LineSeparator = "-"
 const (
 	DirectoryFlagName  = "capture-dir"
 	DirectoryFlagValue = ""
-	DirectoryFlagUsage = "Directory holding the captured data"
+	DirectoryFlagUsage = "Directory holding the captured data."
 
 	ReportFileFlagName  = "report-file"
 	ReportFileFlagValue = ""
-	ReportFileFlagUsage = "Name of report output file. (default stdout)"
+	ReportFileFlagUsage = "Name of the report output file. (default stdout)"
 
 	ReportFormatFlagName  = "report-format"
 	ReportFormatFlagUsage = "The format of the report output. Valid report formats are \"summary\" and \"detailed\"."
@@ -112,12 +112,12 @@ const (
 	BugReportFileFlagName     = "report-file"
 	BugReportFileFlagValue    = ""
 	BugReportFileFlagShort    = "r"
-	BugReportFileFlagUsage    = "The report file to be created by bug-report command, as a .tar.gz file. Defaults to bug-report.tar.gz in the current directory."
+	BugReportFileFlagUsage    = "The report file created by the vz bug-report command, as a *.tar.gz file. Defaults to bug-report.tar.gz in the current directory."
 	BugReportFileDefaultValue = "bug-report.tar.gz"
 
 	BugReportIncludeNSFlagName  = "include-namespaces"
 	BugReportIncludeNSFlagShort = "i"
-	BugReportIncludeNSFlagUsage = "A comma separated list of additional namespaces to collect information from the cluster. This flag can be specified multiple times like --include-namespaces ns1 --include-namespaces ns..."
+	BugReportIncludeNSFlagUsage = "A comma-separated list of additional namespaces for collecting cluster information. This flag can be specified multiple times, such as --include-namespaces ns1 --include-namespaces ns..."
 
 	BugReportDir = "bug-report"
 
@@ -166,4 +166,19 @@ const (
 	// Message prefix for bug-report and live cluster analysis
 	BugReportMsgPrefix = "Capturing "
 	AnalysisMsgPrefix  = "Analyzing "
+)
+
+// Constants for cluster operations
+const (
+	ClusterNameFlagName    = "name"
+	ClusterNameFlagDefault = "vz-capi"
+	ClusterNameFlagHelp    = "The name of the cluster - defaults to " + ClusterNameFlagDefault
+
+	ClusterTypeFlagName    = "type"
+	ClusterTypeFlagDefault = "kind"
+	ClusterTypeFlagHelp    = "The type of the cluster - defaults to " + ClusterTypeFlagDefault
+
+	ClusterImageFlagName    = "image"
+	ClusterImageFlagDefault = ""
+	ClusterImageFlagHelp    = "DEVELOPMENT ONLY - the image to use for the cluster"
 )

@@ -84,8 +84,8 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
-		pkg.DumpContainerLogs(namespace, wlsAdminServer, "weblogic-server", "/scratch/logs/hello-domain")
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.CaptureContainerLogs(namespace, wlsAdminServer, "weblogic-server", "/scratch/logs/hello-domain")
+		pkg.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		undeployWebLogicApp()
