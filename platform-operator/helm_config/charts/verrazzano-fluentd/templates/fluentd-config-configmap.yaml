@@ -435,6 +435,31 @@ data:
       </parse>
     </filter>
 
+    # filter to parse MySQLOperator container log files
+    <filter kubernetes.**mysql-operator**mysql-operator_mysql-operator**>
+      @type parser
+      @id mysql-operator
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        @type multi_format
+        <pattern>
+          format /^\[(?<logtime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\]\s(?<component>.*?)\s\[(?<level>.*?)\]\s(?<message>.*?)$/
+          time_key logtime
+          time_format %Y-%m-%d %H:%M:%S,%N
+        </pattern>
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}):\s(?<level>.*?):\s(?<message>.*?)$/
+          time_key logtime
+          time_format %Y-%m-%d %H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
     # filter to parse Grafana container log files
     <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
       @type parser
@@ -848,7 +873,7 @@ data:
 
   es-output.conf: |
     # Matches anything that Verrazzano installs
-    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.**>
+    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**mysql-operator** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.**>
       @type opensearch_data_stream
       @id out_systemd
       @log_level info
@@ -933,7 +958,7 @@ data:
 {{- if .Values.fluentd.oci }}
   oci-logging-system.conf: |
     # Match all "system" namespaces so system log records are sent to a separate OCI Log object
-    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.**>
+    <match kubernetes.**_kube-** kubernetes.**_verrazzano-** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**mysql-operator** kubernetes.**cert-manager**  kubernetes.**_monitoring_** kubernetes.**_metallb-** kubernetes.**_local-path-storage_** kubernetes.**_local_** systemd.**>
       @type oci_logging
       log_object_id {{ .Values.fluentd.oci.systemLogId }}
       <buffer>

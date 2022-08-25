@@ -54,8 +54,6 @@ var (
 	// services that are common plus the ones unique to admin cluster
 	adminClusterSystemServiceNames = append(managedClusterSystemServiceNames,
 		"jaeger-operator-jaeger.verrazzano-monitoring",
-		"verrazzano-monitoring-operator.verrazzano-system",
-		"ingress-controller-ingress-nginx-controller.ingress-nginx",
 		"system-es-master.verrazzano-system")
 )
 
@@ -539,7 +537,6 @@ func GenerateTrafficForTraces(namespace, appConfigName, urlPath, kubeconfigPath 
 		} else {
 			err = fmt.Errorf("got error response code %v", resp.StatusCode)
 			Log(Error, err.Error())
-			return err
 		}
 	}
 	return nil

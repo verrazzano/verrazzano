@@ -25,6 +25,12 @@ if [ -z "$3" ]; then
 fi
 ZIPFILE_PREFIX="$3"
 
+if [ -z "$4" ]; then
+  echo "The Verrazzano development version must be specified"
+  exit 1
+fi
+DEVELOPENT_VERSION="$4"
+
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ] || [ -z "$BRANCH_NAME" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
@@ -65,3 +71,11 @@ oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OC
 # Call the script to generate and publish the BOM
 echo "Creating Zip for commit ${GIT_COMMIT_USED}, short hash ${SHORT_COMMIT_HASH_ENV}, file prefix ${ZIPFILE_PREFIX}, BOM file ${local_bom}"
 ci/scripts/generate_product_zip.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} ${CLEAN_BRANCH_NAME}-last-clean-periodic-test ${ZIPFILE_PREFIX} ${local_bom}
+
+# Note: We have Verrazzano images tar files locally under ${WORKSPACE}/tar-files
+# Move them to a new directory (rather than changing the vz-registry-image-helper.sh) and use the new directory from here onwards in the periodic job
+# The new directory is defined in the Jenkins script as an environment variable VERRAZZANO_IMAGES_DIRECTORY
+#
+echo "Creating Verrazzano Release Distribution bundles"
+cd ${WORKSPACE}
+ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${local_bom} ${DEVELOPENT_VERSION}
