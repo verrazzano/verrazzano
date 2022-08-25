@@ -120,7 +120,7 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	// Agent secret sync checks depend on whether Rancher is enabled
-	expectSyncAgent(t, mock, testManagedCluster, rancherEnabled)
+	expectSyncAgent(t, mock, testManagedCluster, rancherEnabled, false)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
@@ -190,7 +190,7 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	expectVmcGetAndUpdate(t, mock, testManagedCluster, true, false)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
-	expectSyncAgent(t, mock, testManagedCluster, false)
+	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
@@ -260,7 +260,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectVmcGetAndUpdate(t, mock, testManagedCluster, true, false)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
-	expectSyncAgent(t, mock, testManagedCluster, false)
+	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
@@ -330,7 +330,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectVmcGetAndUpdate(t, mock, testManagedCluster, false, false)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
-	expectSyncAgent(t, mock, testManagedCluster, false)
+	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock)
@@ -402,7 +402,7 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	expectVmcGetAndUpdate(t, mock, testManagedCluster, false, false)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
-	expectSyncAgent(t, mock, testManagedCluster, true)
+	expectSyncAgent(t, mock, testManagedCluster, true, false)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, `{"data":{"ca.crt":"base64-ca-cert"}}`)
@@ -482,7 +482,7 @@ scrape_configs:
 	expectVmcGetAndUpdate(t, mock, testManagedCluster, true, false)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
-	expectSyncAgent(t, mock, testManagedCluster, false)
+	expectSyncAgent(t, mock, testManagedCluster, false, false)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
@@ -564,7 +564,7 @@ scrape_configs:
 	expectVmcGetAndUpdate(t, mock, testManagedCluster, true, false)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
-	expectSyncAgent(t, mock, testManagedCluster, false)
+	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
@@ -636,7 +636,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectVmcGetAndUpdate(t, mock, testManagedCluster, true, true)
 	expectSyncServiceAccount(t, mock, testManagedCluster, true)
 	expectSyncRoleBinding(t, mock, testManagedCluster, true)
-	expectSyncAgent(t, mock, testManagedCluster, false)
+	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
@@ -1390,20 +1390,33 @@ func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string,
 }
 
 // Expect syncAgent related calls
-func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherEnabled bool) {
+func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherEnabled bool, noSASecret bool) {
 	saSecretName := "saSecret"
 	rancherURL := "http://rancher-url"
 	rancherCAData := "rancherCAData"
 	userAPIServerURL := "https://testurl"
-	// Expect a call to get the ServiceAccount, return one with the secret testManagedCluster set
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount) error {
-			sa.Secrets = []corev1.ObjectReference{{
-				Name: saSecretName,
-			}}
-			return nil
-		})
+	if noSASecret {
+		// Expect a call to get the ServiceAccount, return without the secret set
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount) error {
+				sa.Name = name.Name
+				return nil
+			})
+		// Set the secret name to the service account token created by the VMC controller
+		saSecretName = generateManagedResourceName(name) + "-token"
+
+	} else {
+		// Expect a call to get the ServiceAccount, return one with the secret testManagedCluster set
+		mock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount) error {
+				sa.Secrets = []corev1.ObjectReference{{
+					Name: saSecretName,
+				}}
+				return nil
+			})
+	}
 
 	// ONLY if the rancherBasedKubeconfig feature flag is enabled - Expect a call to list Verrazzanos
 	// and return a Verrazzano that has Rancher URL in status only if rancherEnabled is true

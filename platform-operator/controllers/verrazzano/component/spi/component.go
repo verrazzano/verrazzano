@@ -7,6 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -50,7 +51,7 @@ type ComponentInfo interface {
 	// IsReady Indicates whether or not a component is available and ready
 	IsReady(context ComponentContext) bool
 	// IsEnabled Indicates whether or a component is enabled for installation
-	IsEnabled(effectiveCR *vzapi.Verrazzano) bool
+	IsEnabled(effectiveCR runtime.Object) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 	GetMinVerrazzanoVersion() string
 	// GetIngressNames returns a list of names of the ingresses associated with the component
@@ -109,6 +110,10 @@ type ComponentValidator interface {
 	ValidateInstall(vz *vzapi.Verrazzano) error
 	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 	ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
+	// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+	ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error
+	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+	ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error
 }
 
 // Generate mocs for the spi.Component interface for use in tests.

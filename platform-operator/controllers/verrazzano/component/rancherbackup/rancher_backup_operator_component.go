@@ -7,13 +7,16 @@ import (
 	"context"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 )
@@ -66,12 +69,8 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true only if Rancher Backup component is explicitly enabled
 // in the Verrazzano CR.
-func (rb rancherBackupHelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.RancherBackup
-	if comp == nil || comp.Enabled == nil {
-		return false
-	}
-	return *comp.Enabled
+func (rb rancherBackupHelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsRancherBackupEnabled(effectiveCR)
 }
 
 // IsInstalled returns true only if Rancher Backup is installed on the system
@@ -123,6 +122,11 @@ func (rb rancherBackupHelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error 
 	return nil
 }
 
+// ValidateUpgrade verifies the install of the Verrazzano object
+func (rb rancherBackupHelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
 func (rb rancherBackupHelmComponent) IsOperatorUninstallSupported() bool {
 	return true
 }
@@ -133,6 +137,11 @@ func (rb rancherBackupHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
 	return rb.validateRancherBackup(new)
+}
+
+// ValidateUpgrade verifies the upgrade of the Verrazzano object
+func (rb rancherBackupHelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // postUninstall processing for RancherBackup

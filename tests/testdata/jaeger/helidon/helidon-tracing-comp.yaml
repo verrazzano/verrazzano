@@ -10,8 +10,6 @@ spec:
     kind: VerrazzanoHelidonWorkload
     metadata:
       name: hello-helidon-workload
-      annotations:
-        "sidecar.jaegertracing.io/inject": "true"
       labels:
         app: hello-helidon
         version: v1
@@ -19,8 +17,6 @@ spec:
       deploymentTemplate:
         metadata:
           name: hello-helidon-deployment
-          annotations:
-            "sidecar.jaegertracing.io/inject": "true"
         podSpec:
           containers:
             - name: hello-helidon-container

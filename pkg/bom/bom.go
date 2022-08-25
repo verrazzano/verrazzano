@@ -48,7 +48,8 @@ type BomDoc struct {
 type BomComponent struct {
 	// The name of the component, for example: Istio
 	Name string `json:"name"`
-
+	// Version of the component
+	Version string `json:"version,omitempty"`
 	// SubComponents is the array of subcomponents in the component
 	SubComponents []BomSubComponent `json:"subcomponents"`
 }
@@ -93,7 +94,6 @@ type BomImage struct {
 	HelmRegistryKey string `json:"helmRegKey"`
 
 	// HelmRepoKey is the helm template Key which stores the value of the repository for an image.
-	// Note, does not seem to be used at present in the BOM.
 	HelmRepoKey string `json:"helmRepoKey"`
 
 	// HelmImageKey is the helm template Key which identifies the base image name, without the registry or parent repo
@@ -171,6 +171,16 @@ func (b *Bom) GetRegistry() string {
 // GetVersion gets the BOM product version
 func (b *Bom) GetVersion() string {
 	return b.bomDoc.Version
+}
+
+// GetComponent gets the BOM component
+func (b *Bom) GetComponent(componentName string) (*BomComponent, error) {
+	for _, comp := range b.bomDoc.Components {
+		if comp.Name == componentName {
+			return &comp, nil
+		}
+	}
+	return nil, errors.New("unknown component " + componentName)
 }
 
 // GetSubcomponent gets the bom subcomponent
