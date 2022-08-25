@@ -15,6 +15,9 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
+const nameFlag = "--" + constants.ClusterNameFlagName
+const typeFlag = "--" + constants.ClusterTypeFlagName
+
 func TestClusterArgs(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -23,13 +26,13 @@ func TestClusterArgs(t *testing.T) {
 		expectErr  bool
 	}{
 		// capi.NoClusterType is used in all testing so that we don't trigger an actual cluster create/delete
-		{"cluster create with default name", createSubCommandName, []string{"--type", capi.NoClusterType}, false},
-		{"cluster create with custom name and type", createSubCommandName, []string{"--name", "mycluster", "--type", capi.NoClusterType}, false},
-		{"cluster create with custom name, type and image", createSubCommandName, []string{"--name", "mycluster", "--type", capi.NoClusterType, "--image", "somerepo.io/someimage"}, false},
-		{"cluster create with unsupported type", createSubCommandName, []string{"--type", "unknown"}, true},
+		{"cluster create with default name", createSubCommandName, []string{typeFlag, capi.NoClusterType}, false},
+		{"cluster create with custom name and type", createSubCommandName, []string{nameFlag, "mycluster", typeFlag, capi.NoClusterType}, false},
+		{"cluster create with custom name, type and image", createSubCommandName, []string{nameFlag, "mycluster", typeFlag, capi.NoClusterType, "--image", "somerepo.io/someimage"}, false},
+		{"cluster create with unsupported type", createSubCommandName, []string{typeFlag, "unknown"}, true},
 		{"cluster create with unknown flag", createSubCommandName, []string{"--unknown", "value"}, true},
-		{"cluster delete with default name", deleteSubCommandName, []string{"--type", capi.NoClusterType}, false},
-		{"cluster delete with custom name", deleteSubCommandName, []string{"--name", "randomcluster", "--type", capi.NoClusterType}, false},
+		{"cluster delete with default name", deleteSubCommandName, []string{typeFlag, capi.NoClusterType}, false},
+		{"cluster delete with custom name", deleteSubCommandName, []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, false},
 		{"cluster delete with unknown flag", deleteSubCommandName, []string{"--someflag", "randomcluster"}, true},
 		{"cluster with nonexistent subcommand", "nonexistent", []string{}, true},
 	}
