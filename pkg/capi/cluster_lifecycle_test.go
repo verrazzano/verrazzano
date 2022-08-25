@@ -6,17 +6,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/capi/fake"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
-var testBootstrapCfg = bootstrapClusterConfig{}
+var testBootstrapCfg = &bootstrapClusterConfig{}
 
 func TestCreateDefaultBootstrapCluster(t *testing.T) {
 	asserts := assert.New(t)
-	SetKindBootstrapProvider(&fake.TestBootstrapProvider{})
+	SetKindBootstrapProvider(&TestBootstrapProvider{})
 	SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
-		return &fake.FakeCAPIClient{}, nil
+		return &FakeCAPIClient{}, nil
 	})
 	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
@@ -28,22 +27,22 @@ func TestCreateDefaultBootstrapCluster(t *testing.T) {
 
 func TestInitDefaultBoostrapCluster(t *testing.T) {
 	asserts := assert.New(t)
-	SetKindBootstrapProvider(&fake.TestBootstrapProvider{})
+	SetKindBootstrapProvider(&TestBootstrapProvider{})
 	SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
-		return &fake.FakeCAPIClient{}, nil
+		return &FakeCAPIClient{}, nil
 	})
 	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
 
 	bootstrapCluster := NewDefaultBoostrapCluster()
-	asserts.NoError(bootstrapCluster.Init())
+	asserts.NotNil(bootstrapCluster)
 }
 
 func TestDeleteDefaultBootstrapCluster(t *testing.T) {
 	asserts := assert.New(t)
-	SetKindBootstrapProvider(&fake.TestBootstrapProvider{})
+	SetKindBootstrapProvider(&TestBootstrapProvider{})
 	SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
-		return &fake.FakeCAPIClient{}, nil
+		return &FakeCAPIClient{}, nil
 	})
 	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
@@ -64,16 +63,16 @@ func TestCreateBootstrapClusterConfigValidations(t *testing.T) {
 		expectedContainerImage string
 	}{
 		{clusterName: "some-cluster", clusterType: "sometype", containerImage: "someimage", errExpected: true},
-		{clusterName: "", clusterType: "", containerImage: "", errExpected: false, expectedClusterName: testBootstrapCfg.GetClusterName(), expectedClusterType: testBootstrapCfg.GetType(), expectedContainerImage: testBootstrapCfg.GetContainerImage()},
+		{clusterName: "", clusterType: "", containerImage: "", errExpected: false, expectedClusterName: testBootstrapCfg.GetClusterName(), expectedClusterType: testBootstrapCfg.GetType(), expectedContainerImage: defaultKindBootstrapNodeImage},
 		{clusterName: "some-cluster", clusterType: "", containerImage: "someimage", errExpected: false, expectedClusterType: testBootstrapCfg.GetType()},
 		{clusterName: "some-cluster", clusterType: KindClusterType, containerImage: "someimage", errExpected: false, expectedClusterType: testBootstrapCfg.GetType()},
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
 			asserts := assert.New(t)
-			SetKindBootstrapProvider(&fake.TestBootstrapProvider{})
+			SetKindBootstrapProvider(&TestBootstrapProvider{})
 			SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
-				return &fake.FakeCAPIClient{}, nil
+				return &FakeCAPIClient{}, nil
 			})
 			defer ResetKindBootstrapProvider()
 			defer ResetCAPIInitFunc()
