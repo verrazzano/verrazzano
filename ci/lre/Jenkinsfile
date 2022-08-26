@@ -171,8 +171,6 @@ pipeline {
                             sleep 60
                             sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
                             cat ${KUBECONFIG}
-                            # updating kubeconfig with sa
-                            ci/scripts/update_lre_kubeconfig.sh
                         '''
                     }
                 }
@@ -308,8 +306,7 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
             if [ ! -z "${dumpDir}" ]; then
                 export DUMP_DIRECTORY=${dumpDir}
             fi
-            echo "in runGinkgoAppTest"
-            cd $GO_REPO_PATH/verrazzano/tests/e2e
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
         """
     }
