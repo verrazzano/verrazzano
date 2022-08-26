@@ -72,8 +72,8 @@ You can install Verrazzano using a private Docker-compliant container registry. 
 
 ## Support
 
-*    If you have any questions about Verrazzano Commercial Edition, please join our [Slack channel](https://bit.ly/3gOeRJn).
-*    For instructions on using Verrazzano, see the [Verrazzano documentation](https://verrazzano.io/latest/docs/).
-*    For detailed installation instructions, see the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).
-*    More information about troubleshooting is available [here](https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/).
-*    Please submit [bugs or enhancements requests](https://github.com/verrazzano/verrazzano/issues/new/choose) in GitHub.
+*    If you have any questions about Verrazzano Commercial Edition, contact us through our [Slack channel](https://bit.ly/3gOeRJn).
+*    For instructions about using Verrazzano, see the [Verrazzano documentation](https://verrazzano.io/latest/docs/).
+*    For detailed installation instructions, see [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/) in the Verrazzano documentation.
+*    For troubleshooting information, see [Diagnostic Tools](https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/) in the Verrazzano documentation.
+*    To report a bug or request for an enhancement, submit them through [bugs or enhancements requests](https://github.com/verrazzano/verrazzano/issues/new/choose) in GitHub.
