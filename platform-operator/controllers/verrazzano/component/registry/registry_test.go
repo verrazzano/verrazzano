@@ -4,6 +4,7 @@
 package registry
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
@@ -26,7 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -83,20 +83,20 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[12].Name(), grafana.ComponentName)
 	a.Equal(comps[13].Name(), authproxy.ComponentName)
 	a.Equal(comps[14].Name(), coherence.ComponentName)
-	a.Equal(comps[15].Name(), mysql.ComponentName)
-	a.Equal(comps[16].Name(), keycloak.ComponentName)
-	a.Equal(comps[17].Name(), kiali.ComponentName)
-	a.Equal(comps[18].Name(), promoperator.ComponentName)
-	a.Equal(comps[19].Name(), promadapter.ComponentName)
-	a.Equal(comps[20].Name(), kubestatemetrics.ComponentName)
-	a.Equal(comps[21].Name(), pushgateway.ComponentName)
-	a.Equal(comps[22].Name(), promnodeexporter.ComponentName)
-	a.Equal(comps[23].Name(), jaegeroperator.ComponentName)
-	a.Equal(comps[24].Name(), console.ComponentName)
-	a.Equal(comps[25].Name(), fluentd.ComponentName)
-	a.Equal(comps[26].Name(), velero.ComponentName)
-	a.Equal(comps[27].Name(), rancherbackup.ComponentName)
-	a.Equal(comps[28].Name(), mysqloperator.ComponentName)
+	a.Equal(comps[15].Name(), mysqloperator.ComponentName)
+	a.Equal(comps[16].Name(), mysql.ComponentName)
+	a.Equal(comps[17].Name(), keycloak.ComponentName)
+	a.Equal(comps[18].Name(), kiali.ComponentName)
+	a.Equal(comps[19].Name(), promoperator.ComponentName)
+	a.Equal(comps[20].Name(), promadapter.ComponentName)
+	a.Equal(comps[21].Name(), kubestatemetrics.ComponentName)
+	a.Equal(comps[22].Name(), pushgateway.ComponentName)
+	a.Equal(comps[23].Name(), promnodeexporter.ComponentName)
+	a.Equal(comps[24].Name(), jaegeroperator.ComponentName)
+	a.Equal(comps[25].Name(), console.ComponentName)
+	a.Equal(comps[26].Name(), fluentd.ComponentName)
+	a.Equal(comps[27].Name(), velero.ComponentName)
+	a.Equal(comps[28].Name(), rancherbackup.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
