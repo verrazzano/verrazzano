@@ -13,6 +13,7 @@ def baseImageRepo=""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def commercialBundleLocation="pabhat%2Fvz-commercial-bundle-last-clean-periodic-test/verrazzano-1.4.0-commercial.zip"
 def openSourceBundleLocation=""
+def zipFileLoc=""
 
 pipeline {
     options {
@@ -236,20 +237,22 @@ pipeline {
                     setDisplayName()
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
+                script {
+                    zipFileLoc = params.ZIPFILE_LOCATION
+                    if (params.ZIPFILE_LOCATION == "NONE") {
+                        if (params.DISTRIBUTION_VARIANT == "Commercial") {
+                            zipFileLoc = "${commercialBundleLocation}".trim()
+                        } else {
+                            zipFileLoc = "${openSourceBundleLocation}".trim()
+                        }
+                    }
+                }
             }
         }
 
         stage('Download and extract Tarball') {
             steps {
                 script {
-                    def ziFileLoc = params.ZIPFILE_LOCATION
-                    if (zipFileLoc == "NONE") {
-                        if (params.DISTRIBUTION_VARIANT == "OpenSource") {
-                            zipFileLoc = "${openSourceBundleLocation}".trim()
-                        } else {
-                            zipFileLoc = "${commercialBundleLocation}".trim()
-                        }
-                    }
                     downloadLocation = "${WORKSPACE}/${zipFileLoc}"
                     baseFilename = sh (
                         script: "basename ${zipFileLoc} .zip",
@@ -267,7 +270,7 @@ pipeline {
 
                     sh """
                         mkdir -p $zipDir || true
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.ZIPFILE_LOCATION} --file ${downloadLocation}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
                     """
 
                     dir(env.TARBALL_DIR) {
