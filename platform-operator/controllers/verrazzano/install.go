@@ -32,7 +32,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
 
 	var requeue bool
-
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
