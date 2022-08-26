@@ -65,6 +65,7 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
 
         KUBECONFIG = "${WORKSPACE}/.kube/config"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
@@ -246,7 +247,7 @@ pipeline {
             }
             steps {
                 script {
-                    runGinkgoAppTest('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", 'true', 'true')
+                    runGinkgoAppTest('examples/helidon', "hello-helidon", "${TEST_DUMP_ROOT}/examples-helidon", 'true', 'true')
                 }
             }
             post {
@@ -307,8 +308,9 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
             if [ ! -z "${dumpDir}" ]; then
                 export DUMP_DIRECTORY=${dumpDir}
             fi
+            echo "in runGinkgoAppTest"
             cd $GO_REPO_PATH/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
+            ginkgo -v --keep-going --no-color ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
         """
     }
 }
