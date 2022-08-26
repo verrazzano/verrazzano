@@ -256,7 +256,7 @@ pipeline {
             }
         }
 */
-
+/*
         stage('Run Acceptance Tests Infra') {
             when {
                expression {
@@ -317,7 +317,7 @@ pipeline {
                 }
             }
         }
-
+*/
         stage('Hello Helidon Application Test') {
             when {
                expression {
