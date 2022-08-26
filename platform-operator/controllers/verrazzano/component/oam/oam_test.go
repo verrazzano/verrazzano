@@ -70,7 +70,7 @@ func TestIsOAMOperatorReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.True(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsOAMOperatorNotReady tests the isOAMReady function
@@ -90,7 +90,7 @@ func TestIsOAMOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.False(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsEnabledNilOAM tests the IsEnabled function
@@ -151,7 +151,7 @@ func TestEnsureClusterRoles(t *testing.T) {
 	// WHEN the cluster roles do not exist
 	// THEN the cluster roles are created
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, nil, false)
+	ctx := spi.NewFakeContext(client, nil, nil, false)
 	ensureClusterRoles(ctx)
 
 	var clusterRole rbacv1.ClusterRole
@@ -174,7 +174,7 @@ func TestEnsureClusterRoles(t *testing.T) {
 			},
 		},
 	).Build()
-	ctx = spi.NewFakeContext(client, nil, false)
+	ctx = spi.NewFakeContext(client, nil, nil, false)
 	ensureClusterRoles(ctx)
 
 	err = client.Get(context.TODO(), types.NamespacedName{Name: pvcClusterRoleName}, &clusterRole)

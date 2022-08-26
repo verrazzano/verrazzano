@@ -92,10 +92,9 @@ pipeline {
                 script {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
-                            scmInfo = checkout([
+                        def scmInfo = checkout([
                             $class: 'GitSCM',
-                            branches: [[name: scmInfo.GIT_COMMIT]],
+                            branches: [[name: env.BRANCH_NAME]],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             submoduleCfg: [],

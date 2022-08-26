@@ -237,7 +237,7 @@ func TestUpgrade(t *testing.T) {
 	SetIstioUpgradeFunction(fakeUpgrade)
 	defer SetDefaultIstioUpgradeFunction()
 
-	err := comp.Upgrade(spi.NewFakeContext(getMock(t), crInstall, false))
+	err := comp.Upgrade(spi.NewFakeContext(getMock(t), crInstall, nil, false))
 	a.NoError(err, "Upgrade returned an error")
 }
 
@@ -276,7 +276,7 @@ func TestPostUpgrade(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
-	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, false))
+	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, nil, false))
 	a.NoError(err, "PostUpgrade returned an error")
 }
 
@@ -470,7 +470,7 @@ func TestIsReady(t *testing.T) {
 	defer func() { isInstalledFunc = istio.IsInstalled }()
 
 	var iComp istioComponent
-	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
+	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
 	assert.True(t, iComp.IsReady(compContext))
 }
 
@@ -481,7 +481,7 @@ func TestIsReady(t *testing.T) {
 func TestIsEnabledNilIstio(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Istio = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilComponent tests the IsEnabled function
@@ -489,7 +489,7 @@ func TestIsEnabledNilIstio(t *testing.T) {
 //  WHEN The Istio component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -499,7 +499,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Istio.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -509,7 +509,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Istio.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -519,7 +519,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Istio.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 func getBoolPtr(b bool) *bool {
@@ -948,7 +948,7 @@ func TestPostUninstall(t *testing.T) {
 	).Build()
 
 	var iComp istioComponent
-	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)
+	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
 	assert.NoError(t, iComp.PostUninstall(compContext))
 
 	// Validate that the namespace does not exist
@@ -988,6 +988,6 @@ func TestUninstall(t *testing.T) {
 	defer SetDefaultIstioUninstallFunction()
 
 	var iComp istioComponent
-	compContext := spi.NewFakeContext(nil, nil, false)
+	compContext := spi.NewFakeContext(nil, nil, nil, false)
 	assert.NoError(t, iComp.Uninstall(compContext))
 }
