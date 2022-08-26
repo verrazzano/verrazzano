@@ -39,7 +39,7 @@ func TestExternalDNSPostUninstall(t *testing.T) {
 	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRoleBinding{}))
 
 	ednsComp := NewComponent()
-	err := ednsComp.PostUninstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
+	err := ednsComp.PostUninstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 
 	// Verify they're gone after PostInstall

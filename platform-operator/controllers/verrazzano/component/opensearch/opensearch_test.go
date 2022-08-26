@@ -250,7 +250,7 @@ status:
 		return nil, err
 	}
 
-	return spi.NewFakeContext(c, &vzObject, false), nil
+	return spi.NewFakeContext(c, &vzObject, nil, false), nil
 }
 
 // createPod creates a k8s pod
@@ -470,7 +470,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.False(t, isOSReady(ctx))
 }
 
@@ -480,7 +480,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 //  THEN false is returned
 func TestIsReadyNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	assert.False(t, isOSReady(ctx))
 }
 
@@ -671,7 +671,7 @@ func TestIsReady(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.True(t, isOSReady(ctx))
 }
 
@@ -752,7 +752,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.False(t, isOSReady(ctx))
 }
 
@@ -778,7 +778,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
 		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.True(t, isOSReady(ctx))
 }
 
@@ -798,6 +798,6 @@ func TestIsinstalled(t *testing.T) {
 	).Build()
 
 	vz := &vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.True(t, doesOSExist(ctx))
 }

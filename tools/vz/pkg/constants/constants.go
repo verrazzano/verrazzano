@@ -167,3 +167,18 @@ const (
 	BugReportMsgPrefix = "Capturing "
 	AnalysisMsgPrefix  = "Analyzing "
 )
+
+// Constants for cluster operations
+const (
+	ClusterNameFlagName    = "name"
+	ClusterNameFlagDefault = "vz-capi"
+	ClusterNameFlagHelp    = "The name of the cluster - defaults to " + ClusterNameFlagDefault
+
+	ClusterTypeFlagName    = "type"
+	ClusterTypeFlagDefault = "kind"
+	ClusterTypeFlagHelp    = "The type of the cluster - defaults to " + ClusterTypeFlagDefault
+
+	ClusterImageFlagName    = "image"
+	ClusterImageFlagDefault = ""
+	ClusterImageFlagHelp    = "DEVELOPMENT ONLY - the image to use for the cluster"
+)

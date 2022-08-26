@@ -38,14 +38,11 @@ var testZipkinService = corev1.Service{
 }
 
 func TestConfigureJaeger(t *testing.T) {
-	ctxNoService := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
+	ctxNoService := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, nil, false)
 	ctxWithServiceAndUnmanagedNamespace := spi.NewFakeContext(fake.NewClientBuilder().
 		WithObjects(&testZipkinService).
 		WithScheme(testScheme).
-		Build(),
-		jaegerEnabledCR,
-		false,
-	)
+		Build(), jaegerEnabledCR, nil, false)
 
 	var tests = []struct {
 		name    string
@@ -54,7 +51,7 @@ func TestConfigureJaeger(t *testing.T) {
 	}{
 		{
 			"2 args (tls mode and zipkin address) returned when Jaeger operator is disabled",
-			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false),
+			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
 			2,
 		},
 		{

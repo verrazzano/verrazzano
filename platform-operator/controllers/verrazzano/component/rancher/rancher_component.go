@@ -5,11 +5,12 @@ package rancher
 
 import (
 	"fmt"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -344,28 +345,30 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 // +enables or disables Keycloak Auth provider.
 func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 	log := ctx.Log()
-	if err := configureKeycloakOIDC(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
-	}
+	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) {
+		if err := configureKeycloakOIDC(ctx); err != nil {
+			return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
+		}
 
-	if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
-		return err
-	}
+		if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
+			return err
+		}
 
-	if err := createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx); err != nil {
-		return err
-	}
+		if err := createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx); err != nil {
+			return err
+		}
 
-	if err := createOrUpdateRoleTemplates(ctx); err != nil {
-		return err
-	}
+		if err := createOrUpdateRoleTemplates(ctx); err != nil {
+			return err
+		}
 
-	if err := createOrUpdateClusterRoleTemplateBindings(ctx); err != nil {
-		return err
-	}
+		if err := createOrUpdateClusterRoleTemplateBindings(ctx); err != nil {
+			return err
+		}
 
-	if err := disableFirstLogin(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
+		if err := disableFirstLogin(ctx); err != nil {
+			return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
+		}
 	}
 
 	if err := toggleKeycloakAuthProvider(ctx, isUpgrade); err != nil {

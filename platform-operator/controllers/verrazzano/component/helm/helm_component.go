@@ -5,8 +5,9 @@ package helm
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
 	"os"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
