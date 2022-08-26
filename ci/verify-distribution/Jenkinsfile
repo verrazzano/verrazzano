@@ -323,6 +323,7 @@ pipeline {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
+                            chmod +x ci/scripts/prepare_distribution_test_jenkins_at_environment.sh
                             ci/scripts/prepare_distribution_test_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
                     }
