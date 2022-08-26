@@ -1,10 +1,10 @@
 # Verrazzano Commercial Edition
 
-Verrazzano Commercial Edition is a fully featured enterprise container platform for deploying cloud-native and traditional applications in multicloud 
+Verrazzano Commercial Edition is a fully-featured enterprise container platform for deploying cloud native and traditional applications in multicloud
 and hybrid environments, packaged for the enterprise.
 
 # Overview
-It includes the following capabilities:
+Verrazzano Commercial Edition includes the following capabilities:
 
 - Hybrid and multicluster workload management
 - Special handling for WebLogic, Coherence, and Helidon applications
@@ -43,37 +43,36 @@ and some that were written specifically to pull together all the pieces to make 
 | Rancher                      | 2.6.7   | Manages multiple Kubernetes clusters.                                                    |
 | WebLogic Kubernetes Operator | 3.4.0   | Assists with deploying and managing WebLogic domains.                                    |
 
-## Distribution Layout
+## Distribution layout
 
-Verrazzano Commercial Edition distribution includes the following artifacts:
+The Verrazzano Commercial Edition distribution includes the following artifacts:
 
 * `verrazzano-<major>.<minor>.<patch>/`
   * `README.md`
   * `README.html` 
-  * `LICENSE`: The Universal Permissive License (UPL)
+  * `LICENSE`: The Universal Permissive License (UPL).
   * `bin/`    
-     * `linux-amd64/vz`: Verrazzano command line interface for Linux AMD64 architecture       
-     * `linux-arm64/vz`: Verrazzano command line interface for Linux ARM64 architecture    
-     * `darwin-amd64/vz`: Verrazzano command line interface for Darwin AMD64 architecture       
-     * `darwin-arm64/vz`: Verrazzano command line interface for Darwin ARM64 architecture                   
-     * `vz-registry-image-helper.sh, bom_utils.sh`:  Helper scripts to download the images from the bill of materials (BOM)
+     * `linux-amd64/vz`: Verrazzano command-line interface for Linux AMD64 architecture.
+     * `linux-arm64/vz`: Verrazzano command-line interface for Linux ARM64 architecture.
+     * `darwin-amd64/vz`: Verrazzano command-line interface for Darwin AMD64 architecture.
+     * `darwin-arm64/vz`: Verrazzano command-line interface for Darwin ARM64 architecture.
+     * `vz-registry-image-helper.sh, bom_utils.sh`:  Helper scripts to download the images from the bill of materials (BOM).
   * `manifests/`     
-     * `k8s/verrazzano-platform-operator.yaml`: Kubernetes manifests to deploy the Verrazzano platform operator   
-     * `charts/verrazzano-platform-operator/`: Helm chart for Verrazzano Platform Operator       
-     * `profiles/<default.yaml, dev.yaml, managed-cluster.yaml, oci.yaml, ocne.yaml>`: Sample built-in configuration profiles to simplify a Verrazzano installation        
-     * `verrazzano-bom.json`: Bill of materials (BOM) containing the list of docker images for Verrazzano and the components installed by Verrazzano       
-  * `images/`:  Verrazzano Enterprise Container Platform archives for private registry install    
+     * `k8s/verrazzano-platform-operator.yaml`: Kubernetes manifests to deploy the Verrazzano platform operator.
+     * `charts/verrazzano-platform-operator/`: Helm chart for the Verrazzano Platform Operator.
+     * `verrazzano-bom.json`: Bill of materials (BOM) containing the list of Docker images for Verrazzano and the components installed by Verrazzano.
+  * `images/`:  Verrazzano Enterprise Container Platform archives for private registry install.
 
 ## Install Verrazzano using a private container registry
 
 You can install Verrazzano using a private Docker-compliant container registry. This requires the following:
 
-*    Load the product images from `/images` into your private registry Loading all required Verrazzano container images from `/images` into your own registry and repository.
-*    Install Verrazzano using the installation instructions, see the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).     
+*    Load the product images into your private registry. This includes loading all the required Verrazzano container images from `/images` into your own registry and repository.
+*    Install Verrazzano using the instructions in the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).
 
 ## Support
 
-*    If you have any questions about Verrazzano Commercial Edition, please join our [slack channel](https://bit.ly/3gOeRJn).
+*    If you have any questions about Verrazzano Commercial Edition, please join our [Slack channel](https://bit.ly/3gOeRJn).
 *    For instructions on using Verrazzano, see the [Verrazzano documentation](https://verrazzano.io/latest/docs/).
 *    For detailed installation instructions, see the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).
 *    More information about troubleshooting is available [here](https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/).
