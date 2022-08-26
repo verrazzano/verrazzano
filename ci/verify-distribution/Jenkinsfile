@@ -302,6 +302,7 @@ pipeline {
                     if (params.DISTRIBUTION_VARIANT == "Commercial") {
                         sh """
                             cd ${TARBALL_DIR}
+                            chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
                             ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
                         """
                     }
