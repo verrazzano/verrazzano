@@ -106,7 +106,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				// User has disabled component in Verrazzano CR, don't install
 				continue
 			}
-			if !isVersionOk(compLog, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
+			// Only check for min VPO version if this is not the preupgrade case
+			if !preUpgrade && !isVersionOk(compLog, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
 				// User needs to do upgrade before this component can be installed
 				compLog.Progressf("Component %s cannot be installed until Verrazzano is upgraded to at least version %s",
 					comp.Name(), comp.GetMinVerrazzanoVersion())
