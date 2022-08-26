@@ -139,9 +139,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return newRequeueWithDelay(), nil
 	}
 	// The Verrazzano resource has been reconciled.
-
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
-
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
 	return ctrl.Result{}, nil
