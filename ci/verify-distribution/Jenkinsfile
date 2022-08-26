@@ -565,7 +565,8 @@ pipeline {
                 echo "OCIR Repository: ${ocirRegistry}"
                 echo "Image repo subpath: ${imageRepoSubPath}"
                 echo "Base image repo: ${baseImageRepo}"
-                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
+                # TODO: enable back deleting OCIR repositories
+                # sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
 
                 # Copy the generated test reports to WORKSPACE to archive them
                 mkdir -p ${TEST_REPORT_DIR}
