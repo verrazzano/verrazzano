@@ -63,11 +63,13 @@ Verrazzano Commercial Edition distribution includes the following artifacts:
      * `profiles/<default.yaml, dev.yaml, managed-cluster.yaml, oci.yaml, ocne.yaml>`: Sample built-in configuration profiles to simplify a Verrazzano installation        
      * `verrazzano-bom.json`: Bill of materials (BOM) containing the list of docker images for Verrazzano and the components installed by Verrazzano       
   * `images/`:  Verrazzano Enterprise Container Platform archives for private registry install    
- 
+
 ## Install Verrazzano using a private container registry
- 
- *    Load the archives from `images` to your private registry     
- *    Install Verrazzano using the installation instructions, see the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).    
+
+You can install Verrazzano using a private Docker-compliant container registry. This requires the following:
+
+*    Load the product images from `/images` into your private registry Loading all required Verrazzano container images from `/images` into your own registry and repository.
+*    Install Verrazzano using the installation instructions, see the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).     
 
 ## Support
 
