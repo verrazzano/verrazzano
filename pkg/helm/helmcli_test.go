@@ -328,8 +328,8 @@ func Test_getReleaseStateDeployed(t *testing.T) {
     "revision": "1",
     "updated": "2021-09-08 17:15:01.516374225 +0000 UTC",
     "status": "deployed",
-    "chart": "weblogic-operator-3.3.0",
-    "app_version": "3.3.0"
+    "chart": "weblogic-operator-3.4.3",
+    "app_version": "3.4.3"
   }
 ]
 `)
@@ -358,8 +358,8 @@ func Test_getReleaseStatePendingInstall(t *testing.T) {
     "revision": "1",
     "updated": "2021-09-08 17:15:01.516374225 +0000 UTC",
     "status": "pending-install",
-    "chart": "weblogic-operator-3.3.0",
-    "app_version": "3.3.0"
+    "chart": "weblogic-operator-3.4.3",
+    "app_version": "3.4.3"
   }
 ]
 `)
@@ -415,7 +415,7 @@ func Test_getChartStatusDeployed(t *testing.T) {
     "domainNamespaceLabelSelector": "verrazzano-managed",
     "domainNamespaceSelectionStrategy": "LabelSelector",
     "enableClusterRoleBinding": true,
-    "image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.3.0",
+    "image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.4.3",
     "imagePullSecrets": [
       {
         "name": "verrazzano-container-registry"
@@ -461,7 +461,7 @@ func Test_getChartStatusNotFound(t *testing.T) {
     "domainNamespaceLabelSelector": "verrazzano-managed",
     "domainNamespaceSelectionStrategy": "LabelSelector",
     "enableClusterRoleBinding": true,
-    "image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.3.0",
+    "image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.4.3",
     "imagePullSecrets": [
       {
         "name": "verrazzano-container-registry"
@@ -539,7 +539,7 @@ func Test_getChartInfoNotFound(t *testing.T) {
     "domainNamespaceLabelSelector": "verrazzano-managed",
     "domainNamespaceSelectionStrategy": "LabelSelector",
     "enableClusterRoleBinding": true,
-    "image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.3.0",
+    "image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.4.3",
     "imagePullSecrets": [
       {
         "name": "verrazzano-container-registry"

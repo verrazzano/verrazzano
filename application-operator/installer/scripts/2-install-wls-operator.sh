@@ -17,7 +17,7 @@ function install_wls_operator {
   fi
 
   log "Checkout WebLogic Kubernetes operator"
-  git --git-dir=$TMP_DIR/weblogic-kubernetes-operator/.git --work-tree=$TMP_DIR/weblogic-kubernetes-operator checkout v3.3.0
+  git --git-dir=$TMP_DIR/weblogic-kubernetes-operator/.git --work-tree=$TMP_DIR/weblogic-kubernetes-operator checkout v3.4.3
   if [ $? -ne 0 ]; then
     error "Failed to checkout WebLogic Kubernetes operator."
     return 1
@@ -31,7 +31,7 @@ function install_wls_operator {
   fi
 
   log "Install WebLogic Kubernetes operator"
-  helm install weblogic-operator $TMP_DIR/weblogic-kubernetes-operator/kubernetes/charts/weblogic-operator --namespace verrazzano-system --set image=ghcr.io/oracle/weblogic-kubernetes-operator:3.3.0 --set serviceAccount=weblogic-operator-sa --set domainNamespaceSelectionStrategy=LabelSelector --set domainNamespaceLabelSelector=verrazzano-managed --set enableClusterRoleBinding=true --wait
+  helm install weblogic-operator $TMP_DIR/weblogic-kubernetes-operator/kubernetes/charts/weblogic-operator --namespace verrazzano-system --set image=ghcr.io/oracle/weblogic-kubernetes-operator:3.4.3 --set serviceAccount=weblogic-operator-sa --set domainNamespaceSelectionStrategy=LabelSelector --set domainNamespaceLabelSelector=verrazzano-managed --set enableClusterRoleBinding=true --wait
   if [ $? -ne 0 ]; then
     error "Failed to install WebLogic Kubernetes operator."
     return 1
