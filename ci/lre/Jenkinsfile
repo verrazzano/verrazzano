@@ -245,7 +245,9 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
             }
             steps {
-                runGinkgoAppTest('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", 'true', 'true')
+                script {
+                    runGinkgoAppTest('examples/helidon', "hello-helidon", "${dumpRoot}/examples-helidon", 'true', 'true')
+                }
             }
             post {
                 always {
