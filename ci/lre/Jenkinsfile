@@ -235,6 +235,7 @@ pipeline {
             }
         }
 
+/*
         stage('Verify Install') {
             when {
                expression {
@@ -254,6 +255,7 @@ pipeline {
                 }
             }
         }
+*/
 
         stage('Run Acceptance Tests Infra') {
             when {
