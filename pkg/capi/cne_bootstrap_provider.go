@@ -6,7 +6,6 @@ import (
 	"os"
 
 	kindcluster "sigs.k8s.io/kind/pkg/cluster"
-	kind "sigs.k8s.io/kind/pkg/cmd"
 )
 
 // TODO: fill this in with real image when ready
@@ -54,27 +53,23 @@ nodes:
 type cneBootstrapProviderImpl struct{}
 
 func (k *cneBootstrapProviderImpl) CreateCluster(config ClusterConfig) error {
-	var po kindcluster.ProviderOption
-	po, err := kindcluster.DetectNodeProvider()
-	if err != nil {
-		return err
-	}
-	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
 	bootstrapConfig, err := parseKindBoostrapConfig(config, defaultCNEBootstrapConfig)
 	if err != nil {
 		return err
 	}
 	//fmt.Println(fmt.Sprintf("%s", bootstrapConfig))
+	provider, err := getKindProviderFunc()
+	if err != nil {
+		return err
+	}
 	return provider.Create(config.GetClusterName(), kindcluster.CreateWithRawConfig(bootstrapConfig))
 }
 
 func (k *cneBootstrapProviderImpl) DestroyCluster(config ClusterConfig) error {
-	var po kindcluster.ProviderOption
-	po, err := kindcluster.DetectNodeProvider()
+	provider, err := getKindProviderFunc()
 	if err != nil {
 		return err
 	}
-	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
 	kubeconfig, err := k.GetKubeconfig(nil)
 	if err != nil {
 		return err
@@ -90,10 +85,9 @@ func (k *cneBootstrapProviderImpl) DestroyCluster(config ClusterConfig) error {
 }
 
 func (k *cneBootstrapProviderImpl) GetKubeconfig(config ClusterConfig) (string, error) {
-	po, err := kindcluster.DetectNodeProvider()
+	provider, err := getKindProviderFunc()
 	if err != nil {
-		return "", nil
+		return "", err
 	}
-	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
 	return provider.KubeConfig(config.GetClusterName(), false)
 }

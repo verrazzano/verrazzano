@@ -24,6 +24,18 @@ nodes:
 
 const defaultKindBootstrapNodeImage = "kindest/node:v1.24.0"
 
+var getKindProviderFunc = getKindProvider
+
+func getKindProvider() (*kindcluster.Provider, error) {
+	var po kindcluster.ProviderOption
+	po, err := kindcluster.DetectNodeProvider()
+	if err != nil {
+		return nil, err
+	}
+	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
+	return provider, nil
+}
+
 type kindBootstrapProviderImpl struct{}
 
 func (k *kindBootstrapProviderImpl) CreateCluster(config ClusterConfig) error {

@@ -11,12 +11,14 @@ import (
 
 var testBootstrapCfg = &bootstrapClusterConfig{}
 
+func fakeCAPINew(path string, options ...client.Option) (client.Client, error) {
+	return &FakeCAPIClient{}, nil
+}
+
 func TestCreateDefaultBootstrapCluster(t *testing.T) {
 	asserts := assert.New(t)
 	SetKindBootstrapProvider(&TestBootstrapProvider{})
-	SetCAPIInitFunc(func(path string, options ...client.Option) (client.Client, error) {
-		return &FakeCAPIClient{}, nil
-	})
+	SetCAPIInitFunc(fakeCAPINew)
 	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
 
