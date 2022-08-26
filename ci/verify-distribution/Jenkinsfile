@@ -11,7 +11,7 @@ def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def commercialBundleLocation=""
+def commercialBundleLocation="pabhat%2Fvz-commercial-bundle-last-clean-periodic-test/verrazzano-1.4.0-commercial.zip"
 def openSourceBundleLocation=""
 
 pipeline {
@@ -272,7 +272,7 @@ pipeline {
                     // Commercial bundle doesn't have a tarfile and CheckSum, add logic based on distribution variant
                     tarfileName = ""
                     checksumFile = ""
-                    echo "base name: $baseFilename, tar name: $tarfileName"
+                    // echo "base name: $baseFilename, tar name: $tarfileName"
 
                     zipDir = sh (
                         script: "dirname $downloadLocation",
@@ -286,6 +286,13 @@ pipeline {
 
                     dir(env.TARBALL_DIR) {
                         unzip zipFile: downloadLocation
+                        if (params.DISTRIBUTION_VARIANT == "Commercial") {
+                            sh """
+                                mv ${TARBALL_DIR}/bin/linux-amd64/vz ${GO_REPO_PATH}/vz
+                                chmod +x ${GO_REPO_PATH}/vz
+                                ${GO_REPO_PATH}/vz version
+                            """
+                        }
                         if (params.DISTRIBUTION_VARIANT == "OpenSource") {
                             sh "sha256sum -c $checksumFile"
                             sh "tar xvf $tarfileName"
@@ -296,15 +303,20 @@ pipeline {
         }
         stage('Upload Verrazzano Images') {
             steps {
-                sh """
-                    # Create OCIR repos for the images in the tarballs in the test compartment
-                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
-                    echo "Upload OCIR region: $ocirRegion"
-                    echo "Upload OCIR Repository: ${ocirRegistry}"
-                    # Run the image-helper to load the images into the OCIR registry in the runner's region
-                    cd ${TARBALL_DIR}
-                    ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
-                """
+                script {
+                    sh """
+                        # Create OCIR repos for the images in the tarballs in the test compartment
+                        sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                        echo "Upload OCIR region: $ocirRegion"
+                        echo "Upload OCIR Repository: ${ocirRegistry}"
+                    """
+                    if (params.DISTRIBUTION_VARIANT == "Commercial") {
+                        sh """
+                            cd ${TARBALL_DIR}
+                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
+                        """
+                    }
+                }
             }
         }
         stage('Acceptance Tests') {
