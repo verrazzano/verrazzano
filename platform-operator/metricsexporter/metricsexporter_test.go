@@ -65,7 +65,7 @@ func TestAnalyzeVerrazzanoResourceMetrics(t *testing.T) {
 		Status: installv1alpha1.VerrazzanoStatus{
 			Components: installv1alpha1.ComponentStatusMap{
 				"grafana": &installv1alpha1.ComponentStatusDetails{
-					State: installv1alpha1.CompStateDisabled,
+					State: installv1alpha1.CompStateNotInstalled,
 				},
 			},
 		},

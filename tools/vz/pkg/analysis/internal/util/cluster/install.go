@@ -294,7 +294,7 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 			// Verrazzano installation is not complete, find out the list of components which are not ready
 			for _, compStatusDetail := range vzRes.Status.Components {
 				if compStatusDetail.State != installv1alpha1.CompStateReady {
-					if compStatusDetail.State == installv1alpha1.CompStateDisabled {
+					if compStatusDetail.State == installv1alpha1.CompStateNotInstalled {
 						continue
 					}
 					log.Debugf("Component %s is not in ready state, state is %s", compStatusDetail.Name, vzRes.Status.State)

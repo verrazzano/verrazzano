@@ -327,7 +327,7 @@ var _ = t.Describe("Verify prometheus configmap reconciliation,", Label("f:platf
 func isDisabled(componentName string) bool {
 	comp, ok := vzcr.Status.Components[componentName]
 	if ok {
-		return comp.State == vzapi.CompStateDisabled
+		return comp.State == vzapi.CompStateNotInstalled
 	}
 	return true
 }
