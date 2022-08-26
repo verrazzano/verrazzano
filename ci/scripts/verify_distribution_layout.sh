@@ -3,7 +3,6 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-export SAVEDIR=$(pwd)
 export DIRECTORY="/Users/sdosapat/Downloads/pabhat%2Fvz-6801-last-clean-periodic-test_verrazzano-1.4.0-open-source/verrazzano-1.4.0-linux-amd64"
 cd ${DIRECTORY}
 
@@ -74,8 +73,3 @@ else
   echo 'ERROR: Missing files for manifests/charts/verrazzano-platform-operator/bin'
   exit 1
 fi
-
-# Chanding back to original directory
-cd ${SAVEDIR}
-
-
