@@ -161,7 +161,7 @@ func TestIsReady(t *testing.T) {
 					WithObjects(tt.deployment).
 					Build()
 			}
-			ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, true)
+			ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)
 			assert.Equal(t, tt.ready, comp.IsReady(ctx))
 		})
 	}

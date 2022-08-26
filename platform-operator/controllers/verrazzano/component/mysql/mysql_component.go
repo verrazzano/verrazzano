@@ -6,8 +6,11 @@ package mysql
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -72,12 +75,8 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled mysql-specific enabled check for installation
 // If keycloak is enabled, mysql is enabled; disabled otherwise
-func (c mysqlComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Keycloak
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c mysqlComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsKeycloakEnabled(effectiveCR)
 }
 
 // PreInstall calls MySQL preInstall function
@@ -128,6 +127,11 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c mysqlComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {

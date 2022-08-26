@@ -110,7 +110,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 		case vzStateWaitPostUpgradeDone:
 			log.Progress("Post-upgrade is waiting for all components to be ready")
-			spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+			spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}

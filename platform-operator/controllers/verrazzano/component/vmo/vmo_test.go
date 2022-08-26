@@ -68,7 +68,7 @@ func TestIsVMOReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.True(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsVMONotReady tests the isVMOReady function
@@ -88,7 +88,7 @@ func TestIsVMONotReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	assert.False(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.False(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestAppendVMOOverrides tests the appendVMOOverrides function
@@ -114,7 +114,7 @@ func TestAppendVMOOverrides(t *testing.T) {
 		},
 	}).Build()
 
-	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), "", "", "", []bom.KeyValue{})
+	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false), "", "", "", []bom.KeyValue{})
 
 	a.NoError(err)
 	a.Len(kvs, 4)
@@ -150,17 +150,15 @@ func TestAppendVmoOverridesNoNGINX(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	enabled := false
-	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Ingress: &vzapi.IngressNginxComponent{
-						Enabled: &enabled,
-					},
+	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Ingress: &vzapi.IngressNginxComponent{
+					Enabled: &enabled,
 				},
 			},
 		},
-		false), "", "", "", []bom.KeyValue{})
+	}, nil, false), "", "", "", []bom.KeyValue{})
 
 	a.NoError(err)
 	a.Len(kvs, 2)
@@ -207,7 +205,7 @@ func TestAppendVmoOverridesOidcAuthDisabled(t *testing.T) {
 			},
 		},
 	}
-	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, vz, false), "", "", "", []bom.KeyValue{})
+	kvs, err := appendVMOOverrides(spi.NewFakeContext(fakeClient, vz, nil, false), "", "", "", []bom.KeyValue{})
 
 	a.NoError(err)
 	a.Contains(kvs, bom.KeyValue{
@@ -258,7 +256,7 @@ func TestRetainPrometheusPersistentVolume(t *testing.T) {
 			},
 		}).Build()
 
-	err := retainPrometheusPersistentVolume(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false))
+	err := retainPrometheusPersistentVolume(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
 	a.NoError(err)
 
 	pv := &corev1.PersistentVolume{}
@@ -274,7 +272,7 @@ func TestRetainPrometheusPersistentVolume(t *testing.T) {
 	//  WHEN we call retainPrometheusPersistentVolume
 	//  THEN no resources are changed and no error occurs
 	fakeClient = fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	err = retainPrometheusPersistentVolume(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false))
+	err = retainPrometheusPersistentVolume(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
 	a.NoError(err)
 
 	// GIVEN a vmi-system-prometheus pvc and no associated persistent volume
@@ -291,7 +289,7 @@ func TestRetainPrometheusPersistentVolume(t *testing.T) {
 			},
 		}).Build()
 
-	err = retainPrometheusPersistentVolume(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false))
+	err = retainPrometheusPersistentVolume(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false))
 	a.ErrorContains(err, "Failed fetching persistent volume")
 
 	// GIVEN a vmi-system-prometheus pvc and associated persistent volume
@@ -317,6 +315,6 @@ func TestRetainPrometheusPersistentVolume(t *testing.T) {
 		}).Build()
 
 	erroringClient := &erroringFakeClient{Client: fakeClient}
-	err = retainPrometheusPersistentVolume(spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, false))
+	err = retainPrometheusPersistentVolume(spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, nil, false))
 	a.ErrorContains(err, "Failed updating persistent volume")
 }

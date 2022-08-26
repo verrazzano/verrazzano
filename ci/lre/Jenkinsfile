@@ -39,13 +39,22 @@ pipeline {
         LRE_CLUSTER_ENV = "${params.LRE_CLUSTER}"
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_OS_BUCKET = "verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET = "verrazzano-builds-by-commit"
+
         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
         OCI_CLI_USER = credentials('oci-dev-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
         OCI_CLI_REGION = "us-ashburn-1"
+
+        DEV_LRE_COMPARTMENT_ID = credentials('dev-lre-compartment-id')
+        DEV_LRE_CLUSTER_ID = credentials('dev-lre-cluster-id')
+        DEV_LRE_CLUSTER_IP = credentials('dev-lre-cluster-ip')
+        DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
+
+        ssh_public_key_path = "${WORKSPACE}/.ssh/id_rsa.pub"
+        ssh_private_key_path = "${WORKSPACE}/.ssh/id_rsa"
 
         STABLE_COMMIT_OS_LOCATION = "master/last-stable-commit.txt"
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
@@ -57,7 +66,6 @@ pipeline {
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
 
-        DEV_LRE_KUBECONFIG = credentials('dev-lre-kubeconfig')
         KUBECONFIG = "${WORKSPACE}/.kube/config"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
     }
@@ -70,7 +78,8 @@ pipeline {
                 """
 
                 script {
-                    checkout scm
+                    def scmInfo = checkout scm
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
                 }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -100,31 +109,6 @@ pipeline {
             }
         }
 
-        stage('Set kubeconfig') {
-            steps {
-                script {
-                    sh """
-                        mkdir -p ${WORKSPACE}/.kube
-                        rm -rf ${KUBECONFIG}
-                        cp ${DEV_LRE_KUBECONFIG} ${KUBECONFIG}
-                        cat ${KUBECONFIG}
-                    """
-                }
-            }
-        }
-
-        stage ("Run kubectl commands") {
-            steps {
-                script {
-                    sh """
-                        kubectl get nodes
-                        kubectl get pods -A
-                        kubectl get vz -A
-                    """
-                }
-            }
-        }
-
         stage("Create OCI config file") {
             steps {
                 script{
@@ -144,7 +128,65 @@ pipeline {
                     """
                 }
             }
-       }
+        }
+
+        stage('Download kubeconfig') {
+            steps {
+                script {
+                    sh """
+                        mkdir -p ${WORKSPACE}/.kube
+                        rm -rf ${KUBECONFIG}
+                        # get kubeconfig from OCI
+                        oci ce cluster create-kubeconfig \
+                        --cluster-id ${DEV_LRE_CLUSTER_ID} \
+                        --file ${KUBECONFIG} \
+                        --region ${OCI_CLI_REGION} \
+                        --token-version 2.0.0  \
+                        --kube-endpoint PRIVATE_ENDPOINT
+                        cat ${KUBECONFIG}
+                    """
+                }
+            }
+        }
+
+        stage('Setup SSH tunnel') {
+            steps {
+                script {
+                    env.COMPARTMENT_ID = "${DEV_LRE_COMPARTMENT_ID}"
+                    env.CLUSTER_IP = "${DEV_LRE_CLUSTER_IP}"
+                    env.SESSION_NAME = "lre-dev-pf-session"
+                    withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
+                        sh '''
+                            rm -f ${WORKSPACE}/.ssh/id_rsa*
+                            mkdir -p ${WORKSPACE}/.ssh
+                            # get the ssh public key
+                            ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
+                            # convert SSH2 public key into an OpenSSH format
+                            ssh-keygen -i -f /tmp/opc_ssh2.pub > ${ssh_public_key_path}
+                            echo "create ssh tunnel"
+                            cd ${GO_REPO_PATH}/verrazzano/
+                            ci/scripts/lre_setup_ssh_tunnel.sh
+                            # wait a bit for the tunnel to be setup
+                            sleep 60
+                            sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
+                            cat ${KUBECONFIG}
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage ("Run kubectl commands") {
+            steps {
+                script {
+                    sh """
+                        kubectl get nodes
+                        kubectl get pods -A
+                        kubectl get vz -A
+                    """
+                }
+            }
+        }
 
         stage('Upgrade to stable commit') {
             when {
@@ -294,6 +336,13 @@ pipeline {
 
     }
     post {
+        failure {
+            script {
+                if (env.GIT_BRANCH == "master") {
+                    slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${DEV_LRE_SUSPECT_LIST}\n" )
+                }
+            }
+        }
         cleanup {
             emitJobMetrics()
         }

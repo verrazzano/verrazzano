@@ -731,10 +731,19 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Creating rancher client
-	err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
-	if err != nil {
-		return err
+	if vzconfig.IsRancherEnabled(ctx.ActualCR()) {
+		// Creating rancher client
+		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
+		if err != nil {
+			return err
+		}
+
+		// Update Keycloak AuthConfig for Rancher with client secret
+		err = updateRancherClientSecretForKeycloakAuthConfig(ctx)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	// Setting password policy for master
@@ -1517,4 +1526,16 @@ func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, err
 	}
 
 	return &vzUser, nil
+}
+
+func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	clientSecret, err := GetRancherClientSecretFromKeycloak(ctx)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed updating client secret in keycloak auth config, unable to fetch rancher client secret: %s", err.Error())
+	}
+
+	authConfig := make(map[string]interface{})
+	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
+	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }

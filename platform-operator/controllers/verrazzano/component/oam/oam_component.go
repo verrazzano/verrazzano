@@ -5,9 +5,12 @@ package oam
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -48,12 +51,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled OAM-specific enabled check for installation
-func (c oamComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.OAM
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c oamComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsOAMEnabled(effectiveCR)
 }
 
 // IsReady component check
@@ -71,6 +70,11 @@ func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzan
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c oamComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 // PreUpgrade OAM-pre-upgrade processing
