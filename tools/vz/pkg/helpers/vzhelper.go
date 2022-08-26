@@ -121,7 +121,7 @@ func getAllComponents(vzRes vzapi.Verrazzano) []string {
 	var compSlice = make([]string, 0)
 
 	for _, compStatusDetail := range vzRes.Status.Components {
-		if compStatusDetail.State == vzapi.CompStateNotInstalled {
+		if compStatusDetail.State == vzapi.CompStateDisabled {
 			continue
 		}
 		compSlice = append(compSlice, compStatusDetail.Name)

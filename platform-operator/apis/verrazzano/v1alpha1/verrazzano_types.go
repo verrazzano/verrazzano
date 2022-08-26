@@ -252,8 +252,8 @@ const (
 type CompStateType string
 
 const (
-	// CompStateNotInstalled is the state for when a component is not currently installed
-	CompStateNotInstalled CompStateType = "NotInstalled"
+	// CompStateDisabled is the state for when a component is not currently installed
+	CompStateDisabled CompStateType = "Disabled"
 
 	// CompStatePreInstalling is the state when an install is about to be started
 	CompStatePreInstalling CompStateType = "PreInstalling"

@@ -100,7 +100,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			}
 			r.ClearWatch(comp.GetJSONName())
 			continue
-		case vzapi.CompStateNotInstalled:
+		case vzapi.CompStateDisabled:
 			if !comp.IsEnabled(compContext.EffectiveCR()) {
 				compLog.Oncef("Component %s is disabled, skipping install", compName)
 				// User has disabled component in Verrazzano CR, don't install

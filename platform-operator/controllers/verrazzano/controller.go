@@ -773,7 +773,7 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 	cr := vzctx.ActualCR
 	if unitTesting {
 		for _, compStatus := range cr.Status.Components {
-			if compStatus.State != installv1alpha1.CompStateNotInstalled && compStatus.State != installv1alpha1.CompStateReady {
+			if compStatus.State != installv1alpha1.CompStateDisabled && compStatus.State != installv1alpha1.CompStateReady {
 				return false, nil
 			}
 		}
@@ -820,7 +820,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 			// If the component is installed then mark it as ready
 			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
 			lastReconciled := int64(0)
-			state := installv1alpha1.CompStateNotInstalled
+			state := installv1alpha1.CompStateDisabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {

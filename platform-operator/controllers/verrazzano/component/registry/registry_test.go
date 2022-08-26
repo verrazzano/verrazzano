@@ -519,7 +519,7 @@ func TestComponentDependenciesMetStateCheckNotReady(t *testing.T) {
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN returns false if a dependency is disabled and the component status is disabled
 func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
-	runDepenencyStateCheckTest(t, v1alpha1.CompStateNotInstalled, false)
+	runDepenencyStateCheckTest(t, v1alpha1.CompStateDisabled, false)
 }
 
 func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enabled bool) {
