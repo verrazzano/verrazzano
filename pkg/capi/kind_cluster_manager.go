@@ -3,10 +3,11 @@
 package capi
 
 import (
-	os2 "github.com/verrazzano/verrazzano/pkg/os"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
+
+	os2 "github.com/verrazzano/verrazzano/pkg/os"
+	"go.uber.org/zap"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
@@ -20,7 +21,7 @@ type kindClusterManager struct {
 }
 
 func (r *kindClusterManager) GetKubeConfig() (string, error) {
-	return bootstrapProviderImpl.GetKubeconfig(r.config.ClusterName())
+	return bootstrapProviderImpl.GetKubeconfig(r.config.GetClusterName())
 }
 
 func (r *kindClusterManager) Init() error {
@@ -47,15 +48,15 @@ func (r *kindClusterManager) GetConfig() ClusterConfig {
 }
 
 func (r *kindClusterManager) Create() error {
-	return bootstrapProviderImpl.CreateCluster(r.config.ClusterName())
+	return bootstrapProviderImpl.CreateCluster(r.config.GetClusterName())
 }
 
 func (r *kindClusterManager) Destroy() error {
-	return bootstrapProviderImpl.DestroyCluster(r.config.ClusterName())
+	return bootstrapProviderImpl.DestroyCluster(r.config.GetClusterName())
 }
 
 func (r *kindClusterManager) createKubeConfigFile() (*os.File, error) {
-	kcFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-"+r.config.ClusterName())
+	kcFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-"+r.config.GetClusterName())
 	if err != nil {
 		return nil, err
 	}

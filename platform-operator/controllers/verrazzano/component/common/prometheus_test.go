@@ -44,7 +44,7 @@ func TestUpdatePrometheusAnnotations(t *testing.T) {
 	// create the k8s mock populated with resources
 	k8sMock := createK8sMock()
 
-	ctx := spi.NewFakeContext(k8sMock, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(k8sMock, &vzapi.Verrazzano{}, nil, false)
 	err := UpdatePrometheusAnnotations(ctx, constants.VerrazzanoMonitoringNamespace, promOperComponentName)
 	asserts.NoError(err)
 
@@ -68,7 +68,7 @@ func TestUpdatePrometheusAnnotationsErrorConditions(t *testing.T) {
 
 	k8sMock := fake.NewClientBuilder().WithScheme(schemeMissingPromTypes).Build()
 
-	ctx := spi.NewFakeContext(k8sMock, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(k8sMock, &vzapi.Verrazzano{}, nil, false)
 	err := UpdatePrometheusAnnotations(ctx, constants.VerrazzanoMonitoringNamespace, promOperComponentName)
 	asserts.NoError(err)
 
@@ -79,7 +79,7 @@ func TestUpdatePrometheusAnnotationsErrorConditions(t *testing.T) {
 	// create the k8s mock without the keycloak-http service
 	k8sMock = fake.NewClientBuilder().WithScheme(promTestScheme).Build()
 
-	ctx = spi.NewFakeContext(k8sMock, &vzapi.Verrazzano{}, false)
+	ctx = spi.NewFakeContext(k8sMock, &vzapi.Verrazzano{}, nil, false)
 	err = UpdatePrometheusAnnotations(ctx, constants.VerrazzanoMonitoringNamespace, promOperComponentName)
 	asserts.NoError(err)
 }

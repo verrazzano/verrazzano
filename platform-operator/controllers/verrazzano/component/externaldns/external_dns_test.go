@@ -96,7 +96,7 @@ func (r genericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err e
 func TestIsExternalDNSEnabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = &vzapi.OCI{}
-	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false).EffectiveCR()))
+	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, nil, false).EffectiveCR()))
 }
 
 // TestIsExternalDNSDisabled tests the IsEnabled fn
@@ -104,7 +104,7 @@ func TestIsExternalDNSEnabled(t *testing.T) {
 // WHEN OCI DNS is disabled
 // THEN the function returns true
 func TestIsExternalDNSDisabled(t *testing.T) {
-	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, vz, false).EffectiveCR()))
+	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, vz, nil, false).EffectiveCR()))
 }
 
 // TestIsExternalDNSReady tests the isExternalDNSReady fn
@@ -115,7 +115,7 @@ func TestIsExternalDNSReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		newDeployment(ComponentName, true), newPod(ComponentName), newReplicaSet(ComponentName),
 	).Build()
-	assert.True(t, isExternalDNSReady(spi.NewFakeContext(client, nil, false)))
+	assert.True(t, isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
 // TestIsExternalDNSNotReady tests the isExternalDNSReady fn
@@ -126,7 +126,7 @@ func TestIsExternalDNSNotReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		newDeployment(ComponentName, false),
 	).Build()
-	assert.False(t, isExternalDNSReady(spi.NewFakeContext(client, nil, false)))
+	assert.False(t, isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
 // TestAppendExternalDNSOverrides tests the AppendOverrides fn
@@ -149,7 +149,7 @@ func TestAppendExternalDNSOverrides(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, nil, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 9)
 }
@@ -160,7 +160,7 @@ func TestAppendExternalDNSOverrides(t *testing.T) {
 // THEN no errors are returned
 func TestExternalDNSPreInstallDryRun(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, true))
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, true))
 	assert.NoError(t, err)
 }
 
@@ -179,7 +179,7 @@ func TestExternalDNSPreInstall(t *testing.T) {
 		}).Build()
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = oci
-	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -194,7 +194,7 @@ func TestExternalDNSPreInstallGlobalScope(t *testing.T) {
 		}).Build()
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = ociGlobalScope
-	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -209,7 +209,7 @@ func TestExternalDNSPreInstallPrivateScope(t *testing.T) {
 		}).Build()
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = ociPrivateScope
-	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -224,7 +224,7 @@ func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 		}).Build()
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = ociInvalidScope
-	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, nil, false))
 	assert.Error(t, err)
 }
 
@@ -264,7 +264,7 @@ func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 	localvz.Spec.Components.DNS.OCI = oci
 
 	client := fake.NewFakeClientWithScheme(testScheme, localvz)
-	compContext := spi.NewFakeContext(client, vz, false)
+	compContext := spi.NewFakeContext(client, vz, nil, false)
 
 	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
@@ -298,7 +298,7 @@ func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
 	schemeGroupVersion := schema.GroupVersion{Group: "install.verrazzano.io", Version: "v1alpha1"}
 	testScheme.AddKnownTypes(schemeGroupVersion, &vzapi.Verrazzano{})
 	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz).Build()
-	compContext := spi.NewFakeContext(client, vz, false)
+	compContext := spi.NewFakeContext(client, vz, nil, false)
 
 	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)
 	assert.NoError(t, err)

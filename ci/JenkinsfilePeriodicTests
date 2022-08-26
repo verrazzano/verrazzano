@@ -83,6 +83,7 @@ pipeline {
 
         // Directory containing the Verrazzano image tar files
         VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-commercial/images"
+        OCI_OS_REGION="us-phoenix-1"
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
