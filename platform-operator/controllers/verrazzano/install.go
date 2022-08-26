@@ -39,7 +39,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 		compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
 		compLog := compContext.Log()
 
-		compLog.Oncef("Component %s is being reconciled", compName)
+		compLog.Debugf("Component %s is being reconciled", compName)
 
 		if !comp.IsOperatorInstallSupported() {
 			compLog.Debugf("Component based install not supported for %s", compName)
