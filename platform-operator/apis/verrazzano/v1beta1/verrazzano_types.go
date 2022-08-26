@@ -425,10 +425,18 @@ type KubeStateMetricsComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
+// DatabaseInfo specifies the database host, name, and username/password secret for Grafana DB instance
+type DatabaseInfo struct {
+	Host string `json:"host,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
 // GrafanaComponent specifies the Grafana configuration.
 type GrafanaComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled  *bool         `json:"enabled,omitempty"`
+	Replicas *int32        `json:"replicas,omitempty"`
+	Database *DatabaseInfo `json:"database,omitempty"`
 }
 
 // PrometheusComponent specifies the Prometheus configuration.
