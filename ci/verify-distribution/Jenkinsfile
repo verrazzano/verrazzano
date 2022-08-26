@@ -253,15 +253,9 @@ pipeline {
                     def ziFileLoc = params.ZIPFILE_LOCATION
                     if (zipFileLoc == "NONE") {
                         if (params.DISTRIBUTION_VARIANT == "OpenSource") {
-                            zipFileLoc = sh (
-                                script: "echo $openSourceBundleLocation"
-                                returnStdout: true
-                            ).trim()
+                            zipFileLoc = "${openSourceBundleLocation}".trim()
                         } else {
-                            zipFileLoc = sh (
-                                script: "echo $commercialBundleLocation"
-                                returnStdout: true
-                            ).trim()
+                            zipFileLoc = "${commercialBundleLocation}".trim()
                         }
                     }
                     downloadLocation = "${WORKSPACE}/${zipFileLoc}"
