@@ -87,7 +87,7 @@ func TestIsFluentdReady(t *testing.T) {
 		}, getFakeClient(0), false},
 	}
 	for _, test := range tests {
-		ctx := spi.NewFakeContext(test.client, &test.spec, false)
+		ctx := spi.NewFakeContext(test.client, &test.spec, nil, false)
 		if actual := isFluentdReady(ctx); actual != test.expected {
 			t.Errorf("test name %s: got fluent ready = %v, want %v", test.testName, actual, test.expected)
 		}
@@ -225,19 +225,17 @@ func TestLoggingPreInstall(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
 	}).Build()
 
-	ctx := spi.NewFakeContext(c,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled:             &trueValue,
-						ElasticsearchURL:    "https://myes.mydomain.com:9200",
-						ElasticsearchSecret: secretName,
-					},
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Fluentd: &vzapi.FluentdComponent{
+					Enabled:             &trueValue,
+					ElasticsearchURL:    "https://myes.mydomain.com:9200",
+					ElasticsearchSecret: secretName,
 				},
 			},
 		},
-		false)
+	}, nil, false)
 	err := loggingPreInstall(ctx)
 	assert.NoError(t, err)
 
@@ -254,20 +252,18 @@ func TestLoggingPreInstall(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
 		},
 	).Build()
-	ctx = spi.NewFakeContext(cs,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled: &trueValue,
-						OCI: &vzapi.OciLoggingConfiguration{
-							APISecret: secretName,
-						},
+	ctx = spi.NewFakeContext(cs, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Fluentd: &vzapi.FluentdComponent{
+					Enabled: &trueValue,
+					OCI: &vzapi.OciLoggingConfiguration{
+						APISecret: secretName,
 					},
 				},
 			},
 		},
-		false)
+	}, nil, false)
 	err = loggingPreInstall(ctx)
 	assert.NoError(t, err)
 
@@ -282,19 +278,17 @@ func TestLoggingPreInstall(t *testing.T) {
 func TestLoggingPreInstallSecretNotFound(t *testing.T) {
 	trueValue := true
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled:             &trueValue,
-						ElasticsearchURL:    "https://myes.mydomain.com:9200",
-						ElasticsearchSecret: "my-es-secret",
-					},
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Fluentd: &vzapi.FluentdComponent{
+					Enabled:             &trueValue,
+					ElasticsearchURL:    "https://myes.mydomain.com:9200",
+					ElasticsearchSecret: "my-es-secret",
 				},
 			},
 		},
-		false)
+	}, nil, false)
 	err := loggingPreInstall(ctx)
 	assert.Error(t, err)
 }
@@ -306,17 +300,15 @@ func TestLoggingPreInstallSecretNotFound(t *testing.T) {
 func TestLoggingPreInstallFluentdNotEnabled(t *testing.T) {
 	falseValue := false
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c,
-		&vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						Enabled: &falseValue,
-					},
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Fluentd: &vzapi.FluentdComponent{
+					Enabled: &falseValue,
 				},
 			},
 		},
-		false)
+	}, nil, false)
 	err := loggingPreInstall(ctx)
 	assert.NoError(t, err)
 }
@@ -351,7 +343,7 @@ func TestCheckSecretExists(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, nil, false)
 			err := checkSecretExists(ctx)
 			if tt.err != nil {
 				assert.Error(t, err)

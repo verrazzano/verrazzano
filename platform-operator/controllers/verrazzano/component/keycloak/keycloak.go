@@ -731,16 +731,19 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Creating rancher client
-	err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
-	if err != nil {
-		return err
-	}
+	if vzconfig.IsRancherEnabled(ctx.ActualCR()) {
+		// Creating rancher client
+		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
+		if err != nil {
+			return err
+		}
 
-	// Update Keycloak AuthConfig for Rancher with client secret
-	err = updateRancherClientSecretForKeycloakAuthConfig(ctx)
-	if err != nil {
-		return err
+		// Update Keycloak AuthConfig for Rancher with client secret
+		err = updateRancherClientSecretForKeycloakAuthConfig(ctx)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	// Setting password policy for master

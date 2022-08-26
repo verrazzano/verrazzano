@@ -45,7 +45,7 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 //  WHEN AppendOverrides is called
 //  THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev, nil, false)
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
@@ -70,7 +70,7 @@ func TestAppendRegistryOverrides(t *testing.T) {
 //  WHEN AppendOverrides is called
 //  THEN AppendOverrides should add private CA overrides
 func TestAppendCAOverrides(t *testing.T) {
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, nil, false)
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Nil(t, err)
 	v, ok := getValue(kvs, ingressTLSSourceKey)
@@ -114,12 +114,12 @@ func TestIsEnabled(t *testing.T) {
 	}{
 		{
 			"should be enabled",
-			spi.NewFakeContext(c, &vzWithRancher, false),
+			spi.NewFakeContext(c, &vzWithRancher, nil, false),
 			true,
 		},
 		{
 			"should not be enabled",
-			spi.NewFakeContext(c, &vzNoRancher, false),
+			spi.NewFakeContext(c, &vzNoRancher, nil, false),
 			false,
 		},
 	}
@@ -135,7 +135,7 @@ func TestIsEnabled(t *testing.T) {
 func TestPreInstall(t *testing.T) {
 	caSecret := createCASecret()
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret).Build()
-	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
+	ctx := spi.NewFakeContext(c, &vzDefaultCA, nil, false)
 	assert.Nil(t, NewComponent().PreInstall(ctx))
 }
 
@@ -223,12 +223,12 @@ func TestIsReady(t *testing.T) {
 	}{
 		{
 			"should be ready",
-			spi.NewFakeContext(readyClient, &vzDefaultCA, true),
+			spi.NewFakeContext(readyClient, &vzDefaultCA, nil, true),
 			true,
 		},
 		{
 			"should not be ready due to deployment",
-			spi.NewFakeContext(unreadyDeployClient, &vzDefaultCA, true),
+			spi.NewFakeContext(unreadyDeployClient, &vzDefaultCA, nil, true),
 			false,
 		},
 	}
@@ -368,10 +368,10 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	firstLoginSetting := createFirstLoginSetting()
 
 	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole).Build()
-	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
+	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, nil, false)
 
 	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole).Build()
-	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
+	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, nil, false)
 	// mock the pod executor when resetting the Rancher admin password
 	scheme.Scheme.AddKnownTypes(schema.GroupVersion{Group: "", Version: "v1"}, &corev1.PodExecOptions{})
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor

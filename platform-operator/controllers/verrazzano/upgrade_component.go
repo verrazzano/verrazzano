@@ -48,7 +48,7 @@ type componentUpgradeContext struct {
 
 // upgradeComponents will upgrade the components as required
 func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, tracker *upgradeTracker) (ctrl.Result, error) {
-	spiCtx, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+	spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}

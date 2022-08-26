@@ -155,7 +155,7 @@ func Test_FindStorageOverride(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			fakeContext := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &test.actualCR, false, profileDir)
+			fakeContext := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &test.actualCR, nil, false, profileDir)
 
 			override, err := FindStorageOverride(fakeContext.EffectiveCR())
 			if test.expectedErr {
@@ -191,9 +191,9 @@ func TestReassociateResources(t *testing.T) {
 			Name:      vmoComponentName,
 		},
 	}).Build()
-	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
+	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.NoError(t, err)
-	err = ReassociateVMOResources(spi.NewFakeContext(fakeClient, nil, false))
+	err = ReassociateVMOResources(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.NoError(t, err)
 	service := corev1.Service{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: vmoComponentNamespace, Name: vmoComponentName}, &service)
@@ -220,7 +220,7 @@ func TestExportVmoHelmChart(t *testing.T) {
 			Name:      vmoComponentName,
 		},
 	}).Build()
-	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, false))
+	err := ExportVMOHelmChart(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.NoError(t, err)
 	service := corev1.Service{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: vmoComponentNamespace, Name: vmoComponentName}, &service)

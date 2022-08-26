@@ -40,7 +40,7 @@ func TestCopySecret(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(secret).Build()
-	ctx := spi.NewFakeContext(fakeClient, nil, false)
+	ctx := spi.NewFakeContext(fakeClient, nil, nil, false)
 	err := CopySecret(ctx, secretName, constants.VerrazzanoSystemNamespace, "test secret")
 	assert.NoError(t, err)
 	destSecret := &corev1.Secret{}
