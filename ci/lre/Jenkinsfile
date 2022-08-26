@@ -170,6 +170,8 @@ pipeline {
                             sleep 60
                             sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
                             cat ${KUBECONFIG}
+                            # updating kubeconfig with sa
+                            ci/scripts/update_lre_kubeconfig.sh
                         '''
                     }
                 }
