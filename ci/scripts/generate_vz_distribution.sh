@@ -83,7 +83,13 @@ includeCommonFiles() {
   local distributionDirectory=$1
   cp ${VZ_REPO_ROOT}/LICENSE.txt ${distributionDirectory}/LICENSE
 
-  # Include README.md and README.html
+  # Include README.md
+  if [ "${distributionDirectory}" == "${VZ_COMMERCIAL_ROOT}" ]
+  then
+    cp ${VZ_REPO_ROOT}/release/docs/README_COMMERCIAL.md ${distributionDirectory}/README.md
+  else
+    cp ${VZ_REPO_ROOT}/release/docs/README_OPEN_SOURCE.md ${distributionDirectory}/README.md
+  fi
 
   # vz-registry-image-helper.sh has a dependency on bom_utils.sh, so copy both the files
   cp ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh ${distributionDirectory}/bin/vz-registry-image-helper.sh
@@ -95,7 +101,7 @@ includeCommonFiles() {
   rm -f ${distributionDirectory}/manifests/charts/verrazzano-platform-operator/.helmignore || true
 
   # Copy profiles
-  copyProfiles ${distributionDirectory}/manifests/profiles
+  # copyProfiles ${distributionDirectory}/manifests/profiles
 
   # Copy Bill Of Materials, containing the list of images
   cp ${GENERATED_BOM_FILE} ${distributionDirectory}/manifests/verrazzano-bom.json
@@ -106,12 +112,7 @@ copyProfiles() {
   local profileDirectory=$1
   echo "Copying profiles to ${profileDirectory} ..."
 
-  # Copy samples profiles from the source repository
-  cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-default.yaml ${profileDirectory}/default.yaml
-  cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-dev.yaml ${profileDirectory}/dev.yaml
-  cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-managed-cluster.yaml ${profileDirectory}/managed-cluster.yaml
-  cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-oci.yaml ${profileDirectory}/oci.yaml
-  cp ${VZ_REPO_ROOT}/platform-operator/config/samples/install-ocne.yaml ${profileDirectory}/ocne.yaml
+  # Placeholder to copy profiles
 }
 
 # Create a text file containing the contents of the bundle
