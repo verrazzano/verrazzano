@@ -84,6 +84,12 @@ pipeline {
         // Directory containing the Verrazzano image tar files
         VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-commercial/images"
         OCI_OS_REGION="us-phoenix-1"
+        IMAGE_PULL_SECRET = 'verrazzano-container-registry'
+        DOCKER_REPO = 'ghcr.io'
+        OCR_REPO = 'container-registry.oracle.com'
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_EMAIL = credentials('github-packages-email')
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -187,6 +193,20 @@ pipeline {
                             """
                         }
                     }
+                    try {
+                    sh """
+                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                    """
+                    } catch(error) {
+                        echo "docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        }
+                    }
+
                 }
 
                 script {
@@ -571,6 +591,10 @@ pipeline {
                 stage("Upload Periodic Run Artifacts") {
                     steps {
                         sh """
+                           ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                           ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                           ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+
                             ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix} ${VERRAZZANO_DEV_VERSION}
                         """
                     }
