@@ -83,14 +83,6 @@ includeCommonFiles() {
   local distributionDirectory=$1
   cp ${VZ_REPO_ROOT}/LICENSE.txt ${distributionDirectory}/LICENSE
 
-  # Include README.md
-  if [ "${distributionDirectory}" == "${VZ_COMMERCIAL_ROOT}" ]
-  then
-    cp ${VZ_REPO_ROOT}/release/docs/README_COMMERCIAL.md ${distributionDirectory}/README.md
-  else
-    cp ${VZ_REPO_ROOT}/release/docs/README_OPEN_SOURCE.md ${distributionDirectory}/README.md
-  fi
-
   # vz-registry-image-helper.sh has a dependency on bom_utils.sh, so copy both the files
   cp ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh ${distributionDirectory}/bin/vz-registry-image-helper.sh
   cp ${VZ_REPO_ROOT}/tools/scripts/bom_utils.sh ${distributionDirectory}/bin/bom_utils.sh
@@ -171,8 +163,8 @@ generateOpenSourceDistribution() {
 
   # Create and upload the final distribution zip file and upload
   echo "Build open-source distribution ${generatedDir}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
-
-  zip ${VZ_OPENSOURCE_RELEASE_BUNDLE} ${VZ_LINUX_AMD64_TARGZ} ${VZ_LINUX_AMD64_TARGZ_SHA256} ${VZ_DARWIN_AMD64_TARGZ} ${VZ_DARWIN_AMD64_TARGZ_SHA256} operator.yaml operator.yaml.sha256
+  cp ${VZ_REPO_ROOT}/release/docs/README_OPEN_SOURCE.md README.md
+  zip ${VZ_OPENSOURCE_RELEASE_BUNDLE} ${VZ_LINUX_AMD64_TARGZ} ${VZ_LINUX_AMD64_TARGZ_SHA256} ${VZ_DARWIN_AMD64_TARGZ} ${VZ_DARWIN_AMD64_TARGZ_SHA256} operator.yaml operator.yaml.sha256 README.md
   sha256sum ${VZ_OPENSOURCE_RELEASE_BUNDLE} > ${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256}
 
   echo "Upload open-source distribution ${generatedDir}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
@@ -204,7 +196,7 @@ generateCommercialDistribution() {
 
   # Create and upload the final distribution zip file and upload
   echo "Create ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE} and upload ..."
-
+  cp ${VZ_REPO_ROOT}/release/docs/README_COMMERCIAL.md README.md
   zip -r ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE} *
   oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE}
 
