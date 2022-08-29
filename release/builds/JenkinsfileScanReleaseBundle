@@ -50,35 +50,15 @@ pipeline {
     }
 
     stages {
-        // Validate parameters, for example, RELEASE_BRANCH must start with release*
         stage('Clean workspace and checkout') {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
                 """
                 script {
-                    if (params.GIT_COMMIT_TO_USE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                    } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
-                        def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_TO_USE]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
-                    }
+                    def scmInfo = checkout scm
+                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
                 sh """
@@ -107,7 +87,13 @@ pipeline {
                     timeout(time: 240, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            ./scan_release_binaries.sh ${params.RELEASE_BRANCH} ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                            REL_BRANCH=""
+                            if [ "${params.RELEASE_BRANCH}" === "NONE" ];then
+                              REL_BRANCH="${env.BRANCH_NAME}"
+                            fi
+                            REL_BRANCH="${env.BRANCH_NAME.replace("/", "%2F")}"
+                            echo "Release Branch ${REL_BRANCH}"
+                            ./scan_release_binaries.sh ${REL_BRANCH} ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
                         """
                    }
                 }
