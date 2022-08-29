@@ -56,14 +56,11 @@ RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
 function download_release_tarball() {
   cd $WORK_DIR
   mkdir -p $RELEASE_BUNDLE_DIR
-  echo "Downloading release bundle to $RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL} ..."
   oci --region ${OCI_REGION} os object get \
         --namespace ${OBJECT_STORAGE_NS} \
         -bn ${OBJECT_STORAGE_BUCKET} \
         --name "${BRANCH}/${RELEASE_TAR_BALL}" \
         --file "$RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL}"
-  echo "Successfully downloaded the release bundle"
-  ls -ltr $RELEASE_BUNDLE_DIR
 }
 
 function install_scanner() {
