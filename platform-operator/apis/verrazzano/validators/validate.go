@@ -181,7 +181,7 @@ func CheckUpgradeRequired(statusVersion string, bomVersion *semver.SemVersion) e
 	return nil
 }
 
-func getInstallSecret(client client.Client, secretName string, secret *corev1.Secret) error {
+func GetInstallSecret(client client.Client, secretName string, secret *corev1.Secret) error {
 	err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: constants.VerrazzanoInstallNamespace}, secret)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -202,7 +202,7 @@ func ValidateSecretContents(secretName string, bytes []byte, target interface{})
 	return nil
 }
 
-func validatePrivateKey(secretName string, pemData []byte) error {
+func ValidatePrivateKey(secretName string, pemData []byte) error {
 	block, _ := pem.Decode(pemData)
 	if block == nil {
 		return fmt.Errorf("Private key in secret \"%s\" is either empty or not a valid key in PEM format", secretName)
@@ -211,7 +211,7 @@ func validatePrivateKey(secretName string, pemData []byte) error {
 }
 
 //validateFluentdConfigData - Validate the OCI config contents in the Fluentd secret
-func validateFluentdConfigData(secret *corev1.Secret) error {
+func ValidateFluentdConfigData(secret *corev1.Secret) error {
 	secretName := secret.Name
 	configData, ok := secret.Data[FluentdOCISecretConfigEntry]
 	if !ok {
@@ -269,7 +269,7 @@ func validateFluentdConfigData(secret *corev1.Secret) error {
 	return nil
 }
 
-func validateSecretKey(secret *corev1.Secret, dataKey string, target interface{}) ([]byte, error) {
+func ValidateSecretKey(secret *corev1.Secret, dataKey string, target interface{}) ([]byte, error) {
 	var secretBytes []byte
 	var ok bool
 	if secretBytes, ok = secret.Data[dataKey]; !ok {
@@ -282,54 +282,6 @@ func validateSecretKey(secret *corev1.Secret, dataKey string, target interface{}
 		return secretBytes, nil
 	}
 	return secretBytes, nil
-}
-
-func ValidateFluentdOCIAuthSecret(client client.Client, apiSecretName string) error {
-	if len(apiSecretName) > 0 {
-		secret := &corev1.Secret{}
-		if err := getInstallSecret(client, apiSecretName, secret); err != nil {
-			return err
-		}
-		// validate config secret
-		if err := validateFluentdConfigData(secret); err != nil {
-			return err
-		}
-		// Validate key data exists and is a valid pem format
-		pemData, err := validateSecretKey(secret, FluentdOCISecretPrivateKeyEntry, nil)
-		if err != nil {
-			return err
-		}
-		if err := validatePrivateKey(secret.Name, pemData); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func ValidateOCIDNSSecret(client client.Client, secret *corev1.Secret, ociDNSConfigSecret string) error {
-	if err := getInstallSecret(client, ociDNSConfigSecret, secret); err != nil {
-		return err
-	}
-	// Verify that the oci secret has one value
-	if len(secret.Data) != 1 {
-		return fmt.Errorf("Secret \"%s\" for OCI DNS should have one data key, found %v", ociDNSConfigSecret, len(secret.Data))
-	}
-	for key := range secret.Data {
-		// validate auth_type
-		var authProp OciAuth
-		if err := ValidateSecretContents(secret.Name, secret.Data[key], &authProp); err != nil {
-			return err
-		}
-		if authProp.Auth.AuthType != InstancePrincipal && authProp.Auth.AuthType != UserPrincipal && authProp.Auth.AuthType != "" {
-			return fmt.Errorf("Authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.Auth.AuthType, UserPrincipal, InstancePrincipal)
-		}
-		if authProp.Auth.AuthType == UserPrincipal {
-			if err := validatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // ValidateUpgradeRequest Ensures hat an upgrade is requested as part of an update if necessary,
