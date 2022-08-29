@@ -80,7 +80,6 @@ function scan_release_binaries() {
   cd $RELEASE_BUNDLE_DIR
   unzip $RELEASE_TAR_BALL
   rm $RELEASE_TAR_BALL
-  gunzip $VERRAZZANO_TAR_GZ_FILE
 
   count_files=$(ls -1q *.* | wc -l)
   ls $RELEASE_BUNDLE_DIR
