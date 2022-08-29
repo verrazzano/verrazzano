@@ -62,6 +62,8 @@ function download_release_tarball() {
         -bn ${OBJECT_STORAGE_BUCKET} \
         --name "${BRANCH}/${RELEASE_TAR_BALL}" \
         --file "$RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL}"
+  echo "Successfully downloaded the release bundle"
+  ls $RELEASE_BUNDLE_DIR
 }
 
 function install_scanner() {
