@@ -489,9 +489,8 @@ def kill_vpo_loop(vpoLogsDir) {
                 mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
                 kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator >> ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-\${RESTARTS}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 kubectl -n verrazzano-install delete po \$POD
-                POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
-                kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
-                echo "VPO \$POD successfully restarted"
+                kubectl wait pods -n verrazzano-install -l app=verrazzano-platform-operator --for condition=Ready --timeout=600s
+                echo "VPO pod successfully restarted"
 
                 # Sleep a random interval between 15 and 60 seconds
                 SLEEP_SEC=\$[ \$RANDOM % 45 + 15 ]
