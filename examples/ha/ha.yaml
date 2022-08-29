@@ -1,7 +1,7 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-apiVersion: install.verrazzano.io/v1alpha1
+apiVersion: install.verrazzano.io/v1beta1
 kind: Verrazzano
 metadata:
   name: verrazzano
@@ -52,7 +52,7 @@ spec:
       overrides:
         - values:
             replicas: 2
-    kibana:
+    openearchDashboards:
       replicas: 2
     kiali:
       overrides:
@@ -65,7 +65,7 @@ spec:
             prometheus:
               prometheusSpec:
                 replicas: 2
-    elasticsearch:
-      installArgs:
-        - name: nodes.ingest.replicas
-          value: "2"
+    opensearch:
+       nodes:
+         - name: es-ingest
+           replicas: 2
