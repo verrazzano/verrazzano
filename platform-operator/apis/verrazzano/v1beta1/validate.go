@@ -51,26 +51,69 @@ func ValidateInProgress(old *Verrazzano) error {
 
 // validateOCISecrets - Validate that the OCI DNS and Fluentd OCI secrets required by install exists, if configured
 func validateOCISecrets(client client.Client, spec *VerrazzanoSpec) error {
-	//figure out which is which, pass in secret
+	if err := validateOCIDNSSecret(client, spec); err != nil {
+		return err
+	}
+	if err := validateFluentdOCIAuthSecret(client, spec); err != nil {
+		return err
+	}
+	return nil
+}
 
-	//if OCIDNS Secret
-	if spec.Components.DNS != nil || spec.Components.DNS.OCI != nil {
+func validateFluentdOCIAuthSecret(client client.Client, spec *VerrazzanoSpec) error {
+	if spec.Components.Fluentd == nil || spec.Components.Fluentd.OCI == nil {
+		return nil
+	}
+	apiSecretName := spec.Components.Fluentd.OCI.APISecret
+	if len(apiSecretName) > 0 {
 		secret := &corev1.Secret{}
-		ociDNSConfigSecret := spec.Components.DNS.OCI.OCIConfigSecret
-		if err := validators.ValidateOCIDNSSecret(client, secret, ociDNSConfigSecret); err != nil {
+		if err := validators.GetInstallSecret(client, apiSecretName, secret); err != nil {
+			return err
+		}
+		// validate config secret
+		if err := validators.ValidateFluentdConfigData(secret); err != nil {
+			return err
+		}
+		// Validate key data exists and is a valid pem format
+		pemData, err := validators.ValidateSecretKey(secret, validators.FluentdOCISecretPrivateKeyEntry, nil)
+		if err != nil {
+			return err
+		}
+		if err := validators.ValidatePrivateKey(secret.Name, pemData); err != nil {
 			return err
 		}
 	}
+	return nil
+}
 
-	//if fluentd OCI Auth secret
-	if spec.Components.Fluentd != nil || spec.Components.Fluentd.OCI != nil {
-		apiSecretName := spec.Components.Fluentd.OCI.APISecret
-		if err := validators.ValidateFluentdOCIAuthSecret(client, apiSecretName); err != nil {
+func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
+	if spec.Components.DNS == nil || spec.Components.DNS.OCI == nil {
+		return nil
+	}
+	secret := &corev1.Secret{}
+	ociDNSConfigSecret := spec.Components.DNS.OCI.OCIConfigSecret
+	if err := validators.GetInstallSecret(client, ociDNSConfigSecret, secret); err != nil {
+		return err
+	}
+	// Verify that the oci secret has one value
+	if len(secret.Data) != 1 {
+		return fmt.Errorf("Secret \"%s\" for OCI DNS should have one data key, found %v", ociDNSConfigSecret, len(secret.Data))
+	}
+	for key := range secret.Data {
+		// validate auth_type
+		var authProp validators.OciAuth
+		if err := validators.ValidateSecretContents(secret.Name, secret.Data[key], &authProp); err != nil {
 			return err
 		}
+		if authProp.Auth.AuthType != validators.InstancePrincipal && authProp.Auth.AuthType != validators.UserPrincipal && authProp.Auth.AuthType != "" {
+			return fmt.Errorf("Authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.Auth.AuthType, validators.UserPrincipal, validators.InstancePrincipal)
+		}
+		if authProp.Auth.AuthType == validators.UserPrincipal {
+			if err := validators.ValidatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
+				return err
+			}
+		}
 	}
-
-	//spec does not have ocidns secret nor fluentd oci auth secret
 	return nil
 }
 
