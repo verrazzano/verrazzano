@@ -17,16 +17,11 @@ import (
 const (
 	actualBomFilePath          = "../../../verrazzano-bom.json"
 	testBomFilePath            = "testdata/test_bom.json"
-	testRollbackBomFilePath    = "testdata/rollback_bom.json"
 	invalidTestBomFilePath     = "testdata/invalid_test_bom.json"
 	invalidPathTestBomFilePath = "testdata/invalid_test_bom_path.json"
 
-	v0160 = "v0.16.0"
 	v0170 = "v0.17.0"
-	v0180 = "v0.18.0"
-	v100  = "v1.0.0"
 	v110  = "v1.1.0"
-	v120  = "v1.2.0"
 )
 
 // TestGetCurrentBomVersion Tests basic getBomVersion() happy path
