@@ -88,7 +88,7 @@ pipeline {
                     timeout(time: 240, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            ./scan_release_binaries.sh ${CLEAN_BRANCH_NAME} ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                            ./scan_release_binaries.sh "${CLEAN_BRANCH_NAME}-last-clean-periodic-test" ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
                         """
                    }
                 }
