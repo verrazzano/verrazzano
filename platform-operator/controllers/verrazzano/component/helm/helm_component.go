@@ -18,8 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -70,6 +70,8 @@ type HelmComponent struct {
 	// GetInstallOverridesFunc is an optional function get install override sources
 	GetInstallOverridesFunc getInstallOverridesSig
 
+	GetV1beta1InstallOverridesFunc getV1beta1InstallOverridesSig
+
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
@@ -118,7 +120,10 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
 // getInstallOverridesSig is an optional function called to generate additional overrides.
-type getInstallOverridesSig func(vz *vzapi.Verrazzano) []vzapi.Overrides
+type getInstallOverridesSig func(vz *v1alpha1.Verrazzano) []v1alpha1.Overrides
+
+// getV1beta1InstallOverridesSig is an optional function called to generate additional overrides.
+type getV1beta1InstallOverridesSig func(vz *v1beta1.Verrazzano) []v1beta1.Overrides
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
@@ -156,11 +161,19 @@ func (h HelmComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the list of install overrides for a component
-func (h HelmComponent) GetOverrides(cr *vzapi.Verrazzano) []vzapi.Overrides {
+func (h HelmComponent) GetOverrides(cr *v1alpha1.Verrazzano) []v1alpha1.Overrides {
 	if h.GetInstallOverridesFunc != nil {
 		return h.GetInstallOverridesFunc(cr)
 	}
-	return []vzapi.Overrides{}
+	return []v1alpha1.Overrides{}
+}
+
+// GetV1beta1Overrides returns the list of install overrides (v1beta1) for a component
+func (h HelmComponent) GetV1beta1Overrides(cr *v1beta1.Verrazzano) []v1beta1.Overrides {
+	if h.GetInstallOverridesFunc != nil {
+		return h.GetV1beta1InstallOverridesFunc(cr)
+	}
+	return []v1beta1.Overrides{}
 }
 
 // GetDependencies returns the Dependencies of this component
@@ -234,28 +247,34 @@ func (h HelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(vz)); err != nil {
+func (h HelmComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	if err := v1alpha1.ValidateInstallOverrides(h.GetOverrides(vz)); err != nil {
 		return err
 	}
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(new)); err != nil {
+func (h HelmComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	if err := v1alpha1.ValidateInstallOverrides(h.GetOverrides(new)); err != nil {
 		return err
 	}
 	return nil
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
+func (h HelmComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	if err := v1beta1.ValidateInstallOverrides(h.GetV1beta1Overrides(vz)); err != nil {
+		return err
+	}
 	return nil
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
+func (h HelmComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	if err := v1beta1.ValidateInstallOverrides(h.GetV1beta1Overrides(new)); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -598,7 +617,7 @@ func (h HelmComponent) GetIngressNames(context spi.ComponentContext) []types.Nam
 }
 
 // GetInstallArgs returns the list of install args as Helm value pairs
-func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
+func GetInstallArgs(args []v1alpha1.InstallArgs) []bom.KeyValue {
 	installArgs := []bom.KeyValue{}
 	for _, arg := range args {
 		installArg := bom.KeyValue{}
