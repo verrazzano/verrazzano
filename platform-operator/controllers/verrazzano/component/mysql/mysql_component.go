@@ -110,6 +110,9 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return err
 	}
 	newSetting, err := doGenerateVolumeSourceOverrides(new, []bom.KeyValue{})
+	if err != nil {
+		return err
+	}
 	// Reject any persistence-specific changes via the mysqlInstallArgs settings
 	if err := validatePersistenceSpecificChanges(oldSetting, newSetting); err != nil {
 		return err
@@ -129,6 +132,9 @@ func (c mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1be
 		return err
 	}
 	newSetting, err := doGenerateVolumeSourceOverridesV1beta1(new, []bom.KeyValue{})
+	if err != nil {
+		return err
+	}
 	// Reject any persistence-specific changes via the mysqlInstallArgs settings
 	if err := validatePersistenceSpecificChanges(oldSetting, newSetting); err != nil {
 		return err
