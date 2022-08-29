@@ -85,7 +85,7 @@ pipeline {
                         sh """
                             cd ${WORKSPACE}/release/scripts
 
-                            if [ ${params.RELEASE_BRANCH} == "None" ]; then
+                            if [ ${params.RELEASE_BRANCH} == "NONE" ]; then
                               ./scan_release_binaries.sh ${env.BRANCH_NAME.replace("/", "%2F")}-last-clean-periodic-test ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
                             else
                               ./scan_release_binaries.sh "${params.RELEASE_BRANCH}-last-clean-periodic-test" ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
