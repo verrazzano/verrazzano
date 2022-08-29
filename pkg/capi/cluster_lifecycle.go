@@ -67,13 +67,11 @@ func NewBoostrapCluster(clusterConfig ClusterConfig) (ClusterLifeCycleManager, e
 		return &kindClusterManager{
 			config:            actualConfig,
 			bootstrapProvider: defaultKindBootstrapProviderImpl,
-			defaultKindConfig: defaultKindBootstrapConfig,
 		}, nil
 	case CNEClusterType:
 		return &kindClusterManager{
 			config:            actualConfig,
-			bootstrapProvider: defaultKindBootstrapProviderImpl,
-			defaultKindConfig: defaultCNEBootstrapConfig,
+			bootstrapProvider: defaultCNEBootstrapProviderImpl,
 		}, nil
 	case NoClusterType:
 		return &noClusterManager{
