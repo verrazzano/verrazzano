@@ -1312,8 +1312,8 @@ github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/X
 github.com/valyala/fastjson v1.6.3 h1:tAKFnnwmeMGPbwJ7IwxcTPCNr3uIzoIj3/Fh90ra4xc=
 github.com/valyala/fastjson v1.6.3/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv3vaXspKw=
-github.com/verrazzano/kind v0.14.1-0.20220829193750-35132e97913c h1:mC5EmjglqooUtGg6dN2PONS9IegM/W04UXUJ3qy0W2A=
-github.com/verrazzano/kind v0.14.1-0.20220829193750-35132e97913c/go.mod h1:3jskod4NY426Yhk3PjatHDnKwDuIfHF28VZLAZnSzEE=
+github.com/verrazzano/kind v0.14.0-oracle h1:7MQavH9GUELCesAN4BIfLqkNl0IEyMOpF2RzGp3cwt0=
+github.com/verrazzano/kind v0.14.0-oracle/go.mod h1:cKTqagdRyUQmihhBOd+7p43DpOPRn9rHsUC08K1Jbsk=
 github.com/verrazzano/pkg v0.0.2/go.mod h1:l9utTv9KBQZlJI/HYnw2NQwisYTeHeHl82XOlCiZygM=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220810134448-c6e8df57abb2 h1:eBRnz7U/thF3u7jlUztyapqNaOT5023CISdOO9nOfys=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220810134448-c6e8df57abb2/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
