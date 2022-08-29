@@ -995,7 +995,7 @@ func TestUninstall(t *testing.T) {
 }
 
 func TestGetOverrides(t *testing.T) {
-	ref := &corev1.ConfigMapKeySelector{
+	ref := &v1.ConfigMapKeySelector{
 		Key: "foo",
 	}
 	o := v1beta1.InstallOverrides{
@@ -1052,7 +1052,7 @@ func TestGetOverrides(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			override := GetOverrides(tt.cr)
+			override := NewComponent().GetOverrides(tt.cr)
 			assert.EqualValues(t, tt.res, override)
 		})
 	}

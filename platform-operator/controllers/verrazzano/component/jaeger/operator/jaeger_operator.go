@@ -344,14 +344,12 @@ func GetOverrides(object runtime.Object) interface{} {
 			return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
 		}
 		return []vzapi.Overrides{}
-	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.JaegerOperator != nil {
-			return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
-		}
-		return []installv1beta1.Overrides{}
 	}
-
-	return []vzapi.Overrides{}
+	effectiveCR := object.(*installv1beta1.Verrazzano)
+	if effectiveCR.Spec.Components.JaegerOperator != nil {
+		return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
+	}
+	return []installv1beta1.Overrides{}
 }
 
 func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
