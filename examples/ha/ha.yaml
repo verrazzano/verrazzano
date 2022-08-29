@@ -66,6 +66,6 @@ spec:
               prometheusSpec:
                 replicas: 2
     opensearch:
-       nodes:
-         - name: es-ingest
-           replicas: 2
+      nodes:
+        - name: es-ingest
+          replicas: 2
