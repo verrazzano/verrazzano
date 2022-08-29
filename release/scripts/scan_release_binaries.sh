@@ -146,6 +146,6 @@ function scan_release_binaries() {
 mkdir -p $SCANNER_HOME
 validate_oci_cli || exit 1
 download_release_tarball || exit 1
-install_scanner || exit 1
-update_virus_definition || exit 1
-scan_release_binaries || exit 1
+#install_scanner || exit 1
+#update_virus_definition || exit 1
+#scan_release_binaries || exit 1
