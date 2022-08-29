@@ -133,7 +133,7 @@ pipeline {
         INSTALL_PROFILE="${params.INSTALL_PROFILE}"
         GOPATH="$HOME/go"
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
-        TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-olcne"
+        TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-ocne"
         KUBECONFIG="$WORKSPACE/kubeconfig"
         VZ_COMMAND="$GO_REPO_PATH/vz"
         OCNE_DUMP_DIR="$WORKSPACE/$VZ_ENVIRONMENT_NAME"
@@ -268,7 +268,7 @@ pipeline {
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [],
                         submoduleCfg: [],
-                        userRemoteConfigs: [[url: env.OLCNE_TERRAFORM_GIT_URL, credentialsId: 'gitlab_ocne_tf_rw']]])
+                        userRemoteConfigs: [[url: env.OCNE_TERRAFORM_GIT_URL, credentialsId: 'gitlab_ocne_tf_rw']]])
                     env.TF_GIT_COMMIT=scmInfo.GIT_COMMIT
                     env.TF_GIT_BRANCH=scmInfo.GIT_BRANCH
                     // If the commit we were handed is not what the SCM says we are using, fail
