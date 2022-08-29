@@ -6,9 +6,13 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -50,6 +54,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
 			Dependencies:              []string{},
 			GetInstallOverridesFunc:   getOverrides,
+			InstallBeforeUpgrade:      true,
 		},
 	}
 }
@@ -85,6 +90,27 @@ func (c mysqlOperatorComponent) PreInstall(compContext spi.ComponentContext) err
 		return log.ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 
+	return nil
+}
+
+// PreUpgrade recycles the MySql operator pods to make sure the latest Istio sidecar exists.
+// This needs to be done since MySQL operator is installed before upgrade
+func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) error {
+	compContext.Log().Oncef("Restarting MySQL operator so that it picks up Istio proxy sidecar")
+	// Annotate the deployment to cause the restart
+	var deployment appsv1.Deployment
+	deployment.Namespace = ComponentNamespace
+	deployment.Name = ComponentName
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &deployment, func() error {
+		if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+			deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		// Annotate using the generation so we don't restart twice
+		deployment.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = strconv.Itoa(int(deployment.Generation))
+		return nil
+	}); err != nil {
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
 	return nil
 }
 
