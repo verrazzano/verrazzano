@@ -119,7 +119,7 @@
     },
     {
       "name": "rancher",
-      "version": "v2.6.6",
+      "version": "v2.6.7",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -127,13 +127,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.6-20220824100616-736a6ef97",
+              "tag": "v2.6.7-20220824100716-ffe385103",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.6-20220824100616-736a6ef97"
+              "tag": "v2.6.7-20220824100716-ffe385103"
             }
           ]
         },
@@ -144,7 +144,7 @@
           "images": [
             {
               "image": "shell",
-              "tag": "v0.1.16"
+              "tag": "v0.1.18"
             },
             {
               "image": "kubectl",
@@ -152,19 +152,19 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.2.5"
+              "tag": "v0.2.6"
             },
             {
               "image": "fleet-agent",
-              "tag": "v0.3.9"
+              "tag": "v0.3.10"
             },
             {
               "image": "fleet",
-              "tag": "v0.3.9"
+              "tag": "v0.3.10"
             },
             {
               "image": "gitjob",
-              "tag": "v0.1.26"
+              "tag": "v0.1.30"
             },
             {
               "image": "local-path-provisioner",
@@ -704,7 +704,7 @@
           "images": [
             {
               "image": "backup-restore-operator",
-              "tag": "v2.1.0-20220808171934-bbeff72",
+              "tag": "v2.1.3-20220827005326-bc2c3c4",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
