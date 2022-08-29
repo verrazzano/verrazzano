@@ -501,10 +501,6 @@ pipeline {
        cleanup {
             script {
                 if (params.KEEP_RESOURCES_AFTER_RUN == false) {
-                    if (env.installedVZ && env.installedVZ == "true") {
-                        echo "[INFO] Deleting Verrazzano"
-                        deleteVerrazzano()
-                    }
                     if (env.createdOCNECluster && env.createdOCNECluster == "true") {
                         echo "[INFO] Deleting OCNE Cluster"
                         deleteOCNECluster()
@@ -970,7 +966,6 @@ def downloadVerrazzanoPlatformOperator() {
 }
 
 def installVerrazzano() {
-    env.installedVZ="true"
     sh """
         # Install Verrazzano
         $VZ_COMMAND install -f $INSTALL_CONFIG_FILE_OCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME" --operator-file="$VZ_PLATFORM_OPERTOR_YAML"
@@ -996,12 +991,6 @@ def updateLoadBalancerHealthCheck() {
         LB_APP_IP=$(kubectl get service  istio-ingressgateway  -n  istio-system -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
         $GO_REPO_PATH/verrazzano/ci/scripts/update_lb_health_check.sh "$LB_MGMT_IP $LB_APP_IP"
     '''
-}
-
-def deleteVerrazzano() {
-    sh """
-        $VZ_COMMAND uninstall --wait
-    """
 }
 
 def deleteOCNECluster() {
