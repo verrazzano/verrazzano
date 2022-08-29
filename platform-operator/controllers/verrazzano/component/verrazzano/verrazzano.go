@@ -387,6 +387,7 @@ func removeNodeExporterService(ctx spi.ComponentContext) {
 	}
 }
 
+// ensureVerrazzanoMonitoringNamespace ensures that the verrazzano-monitoring namespace is created with the right labels.
 func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
 	// Create the verrazzano-monitoring namespace
 	ctx.Log().Debugf("Creating namespace %s for the Verrazzano Operator", constants.VerrazzanoMonitoringNamespace)
