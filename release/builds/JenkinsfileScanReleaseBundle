@@ -86,8 +86,7 @@ pipeline {
                             cd ${WORKSPACE}/release/scripts
 
                             if [ ${params.RELEASE_BRANCH} == "None" ]; then
-                              CLEAN_BRANCH_NAME="${env.BRANCH_NAME.replace("/", "%2F")}"
-                              ./scan_release_binaries.sh "${CLEAN_BRANCH_NAME}-last-clean-periodic-test" ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                              ./scan_release_binaries.sh ${env.BRANCH_NAME.replace("/", "%2F")}-last-clean-periodic-test ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
                             else
                               ./scan_release_binaries.sh "${params.RELEASE_BRANCH}-last-clean-periodic-test" ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
                             fi
