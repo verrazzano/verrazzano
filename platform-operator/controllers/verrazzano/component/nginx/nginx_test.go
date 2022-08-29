@@ -35,7 +35,7 @@ var crEnabled = vzapi.Verrazzano{
 //  THEN the values created properly
 func TestAppendNGINXOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 }
@@ -58,7 +58,7 @@ func TestAppendNGINXOverridesWithInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 }
@@ -87,7 +87,7 @@ func TestAppendNGINXOverridesWithExternalDNS(t *testing.T) {
 			},
 		},
 	}
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 6)
 }
@@ -105,7 +105,7 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 	kvs := []bom.KeyValue{
 		{Key: "Key", Value: "Value"},
 	}
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, false), ComponentName, ComponentNamespace, "", kvs)
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, ComponentNamespace, "", kvs)
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
 }
@@ -116,7 +116,7 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 //  THEN no errors are returned
 func TestNGINXPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace, "")
+	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false), ComponentName, ComponentNamespace, "")
 	assert.NoError(t, err)
 }
 
@@ -215,7 +215,7 @@ func TestIsNGINXReady(t *testing.T) {
 			},
 		},
 	}
-	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, false)))
+	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 //  TestIsNGINXNotReadyWithoutIP tests the IsReady function
@@ -310,7 +310,7 @@ func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, false)))
+	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 // TestIsNGINXNotReady tests the IsReady function
@@ -351,7 +351,7 @@ func TestIsNGINXNotReady(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, false)))
+	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 // TestPostInstallWithPorts tests the PostInstall function
@@ -415,7 +415,7 @@ func TestPostInstallWithPorts(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
-	err := PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace)
+	err := PostInstall(spi.NewFakeContext(fakeClient, vz, nil, false), ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
 }
 
@@ -435,7 +435,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace))
+	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, vz, nil, false), ComponentName, ComponentNamespace))
 }
 
 // TestPostInstallDryRun tests the PostInstall function
@@ -444,7 +444,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 //  THEN no error is returned
 func TestPostInstallDryRun(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace))
+	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false), ComponentName, ComponentNamespace))
 }
 
 // TestNewComponent tests the NewComponent function

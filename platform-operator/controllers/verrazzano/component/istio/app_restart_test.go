@@ -5,6 +5,7 @@ package istio
 
 import (
 	"context"
+	v1 "k8s.io/api/core/v1"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -139,15 +140,21 @@ func TestWebLogicStopStart(t *testing.T) {
 // THEN the pods should be restarted
 // WHEN the Helidon pods do NOT have old Istio envoy sidecar
 // THEN the pods should NOT be restarted
+// WHEN the Helidon pods do NOT have an old istio sidecar but with istio injected namespace
+// THEN the pods should be restarted
+// WHEN the Helidon pods do NOT have an old istio sidecar and without istio injected namespace
+// THEN the pods should not be restarted
 func TestHelidonStopStart(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
 
 	tests := []struct {
-		name               string
-		expectGetAndUpdate bool
-		image              string
-		f                  func(mock *mocks.MockClient) error
+		name                string
+		expectGetAndUpdate  bool
+		image               string
+		isNSIstioEnabled    bool
+		isIstioLabelPresent bool
+		f                   func(mock *mocks.MockClient) error
 	}{
 		// Test restarting Helidon workload because it has an old Istio image
 		{
@@ -167,7 +174,40 @@ func TestHelidonStopStart(t *testing.T) {
 				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
+		// Test restarting Helidon workload without old istio sidecar but with istio injected namespace
+		{
+			name:                "RestartHelidonWithIsioInjection",
+			expectGetAndUpdate:  true,
+			image:               "randomImage",
+			isIstioLabelPresent: true,
+			isNSIstioEnabled:    true,
+			f: func(mock *mocks.MockClient) error {
+				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
+		// Test restarting Helidon workload without old istio sidecar and without istio injected namespace
+		{
+			name:                "DoNotRestartHelidonWithoutIstioInjection",
+			expectGetAndUpdate:  false,
+			image:               "randomImage",
+			isIstioLabelPresent: true,
+			isNSIstioEnabled:    false,
+			f: func(mock *mocks.MockClient) error {
+				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
+		// Test restarting Helidon workload when namespace doesn't have an istio injection label
+		{
+			name:                "DoNotRestartHelidonWithoutIstioNSLabel",
+			expectGetAndUpdate:  false,
+			image:               "randomImage",
+			isIstioLabelPresent: false,
+			f: func(mock *mocks.MockClient) error {
+				return restartAllApps(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			mocker := gomock.NewController(t)
@@ -180,8 +220,18 @@ func TestHelidonStopStart(t *testing.T) {
 			wlName := "test"
 			appConfigName := "myApp"
 			podLabels := map[string]string{"app.oam.dev/name": appConfigName}
+			podNamespace := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "verrazzano-system",
+				Labels: map[string]string{"istio-injection": "enabled"},
+			}}
 
-			clientSet := fake.NewSimpleClientset(initFakePodWithLabels(test.image, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+			if test.isIstioLabelPresent == false {
+				delete(podNamespace.Labels, "istio-injection")
+			} else if test.isIstioLabelPresent == true && test.isNSIstioEnabled == false {
+				podNamespace.Labels["istio-injection"] = "disabled"
+			}
+
+			clientSet := fake.NewSimpleClientset(initFakePodWithLabels(test.image, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet(), podNamespace)
 			k8sutil.SetFakeClient(clientSet)
 
 			conf := testAppConfigInfo{

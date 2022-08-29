@@ -412,6 +412,11 @@ func (i istioComponent) GetCertificateNames(_ spi.ComponentContext) []types.Name
 	return []types.NamespacedName{}
 }
 
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (i istioComponent) ShouldInstallBeforeUpgrade() bool {
+	return false
+}
+
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(IstioCoreDNSReleaseName, constants.IstioSystemNamespace)

@@ -118,7 +118,7 @@ func TestGetInstanceInfo(t *testing.T) {
 		},
 	}
 
-	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, vz, false))
+	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, vz, nil, false))
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
@@ -189,7 +189,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 			return nil
 		})
 
-	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, false))
+	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, nil, false))
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
@@ -219,7 +219,7 @@ func TestGetInstanceInfoGetError(t *testing.T) {
 			return fmt.Errorf("test error")
 		})
 
-	info := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, false))
+	info := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, nil, false))
 	mocker.Finish()
 	assert.Nil(t, info)
 }
@@ -254,7 +254,7 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 		},
 	}
 
-	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, vz, false))
+	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, vz, nil, false))
 	mocker.Finish()
 	assert.Nil(t, instanceInfo)
 }

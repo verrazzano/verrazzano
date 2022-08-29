@@ -8,20 +8,19 @@ import (
 
 const (
 	BootstrapImageEnvVar = "VZ_BOOTSTRAP_IMAGE"
-	KindClusterType      = "kind"
 	bootstrapClusterName = "vz-capi-bootstrap"
 )
 
 type bootstrapClusterConfig struct{}
 
-func (r bootstrapClusterConfig) ClusterName() string {
+func (r bootstrapClusterConfig) GetClusterName() string {
 	return bootstrapClusterName
 }
 
-func (r bootstrapClusterConfig) Type() string {
+func (r bootstrapClusterConfig) GetType() string {
 	return KindClusterType
 }
 
-func (r bootstrapClusterConfig) ContainerImage() string {
+func (r bootstrapClusterConfig) GetContainerImage() string {
 	return os.Getenv(BootstrapImageEnvVar)
 }

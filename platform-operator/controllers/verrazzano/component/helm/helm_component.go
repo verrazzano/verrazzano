@@ -5,8 +5,9 @@ package helm
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
 	"os"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
@@ -53,6 +54,9 @@ type HelmComponent struct {
 
 	// ValuesFile is the helm chart values override file
 	ValuesFile string
+
+	// InstallBeforeUpgrade if component can be installed before upgade is done, default false
+	InstallBeforeUpgrade bool
 
 	// PreInstallFunc is an optional function to run before installing
 	PreInstallFunc preInstallFuncSig
@@ -147,6 +151,11 @@ func (h HelmComponent) Name() string {
 // Namespace returns the component namespace
 func (h HelmComponent) Namespace() string {
 	return h.ChartNamespace
+}
+
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
+	return h.InstallBeforeUpgrade
 }
 
 // GetJsonName returns the josn name of the verrazzano component in CRD

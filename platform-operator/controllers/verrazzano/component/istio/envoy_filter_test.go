@@ -29,7 +29,7 @@ func TestCreateEnvoyFilter(t *testing.T) {
 	a := assert.New(t)
 	a.Equal("istio", comp.Name(), "Wrong component name")
 
-	ctx := spi.NewFakeContext(getIstioFilterMockCreate(t), nil, false)
+	ctx := spi.NewFakeContext(getIstioFilterMockCreate(t), nil, nil, false)
 	err := createEnvoyFilter(ctx.Log(), ctx.Client())
 	a.NoError(err, "Error %s calling createEnvoyFilter", err)
 }
@@ -62,7 +62,7 @@ func TestUpdateEnvoyFilter(t *testing.T) {
 	a := assert.New(t)
 	a.Equal("istio", comp.Name(), "Wrong component name")
 
-	ctx := spi.NewFakeContext(getIstioFilterMockUpdate(t), nil, false)
+	ctx := spi.NewFakeContext(getIstioFilterMockUpdate(t), nil, nil, false)
 	err := createEnvoyFilter(ctx.Log(), ctx.Client())
 	a.NoError(err, "Error %s calling createEnvoyFilter", err)
 }

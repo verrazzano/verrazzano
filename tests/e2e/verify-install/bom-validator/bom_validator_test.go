@@ -6,16 +6,17 @@ package bomvalidator
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"regexp"
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"log"
-	"os"
-	"regexp"
-	"strings"
 )
 
 const (
@@ -65,11 +66,11 @@ type knownIssues struct {
 // Mainly a workaround for Rancher additional images; Rancher does not always update to the latest version
 // in the BOM file, possible Rancher bug that we are pursuing with the Rancher team
 var knownImageIssues = map[string]knownIssues{
-	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4"}, message: rancherWarningMessage},
-	"fleet-agent":     {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
-	"fleet":           {alternateTags: []string{"v0.3.5"}, message: rancherWarningMessage},
-	"gitjob":          {alternateTags: []string{"v0.1.15"}, message: rancherWarningMessage},
-	"shell":           {alternateTags: []string{"v0.1.6"}, message: rancherWarningMessage},
+	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4", "v0.2.6"}, message: rancherWarningMessage},
+	"fleet-agent":     {alternateTags: []string{"v0.3.5", "v0.3.10"}, message: rancherWarningMessage},
+	"fleet":           {alternateTags: []string{"v0.3.5", "v0.3.10"}, message: rancherWarningMessage},
+	"gitjob":          {alternateTags: []string{"v0.1.15", "v0.1.30"}, message: rancherWarningMessage},
+	"shell":           {alternateTags: []string{"v0.1.6", "v0.1.16"}, message: rancherWarningMessage},
 }
 
 // BOM validations validates the images of below allowed namespaces only

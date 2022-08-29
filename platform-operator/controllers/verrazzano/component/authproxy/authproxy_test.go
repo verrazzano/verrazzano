@@ -128,7 +128,7 @@ func TestIsAuthProxyReady(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
+			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
 			if tt.expectTrue {
 				assert.True(t, isAuthProxyReady(ctx))
 			} else {
@@ -214,7 +214,7 @@ func TestAppendOverrides(t *testing.T) {
 			asserts.NoError(err)
 
 			fakeClient := createFakeClientWithIngress()
-			fakeContext := spi.NewFakeContext(fakeClient, &testCR, false, profileDir)
+			fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false, profileDir)
 
 			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
 				if test.expectedErr != nil {
@@ -333,7 +333,7 @@ func TestUninstallResources(t *testing.T) {
 		serviceAccount,
 	).Build()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 
 	// Assert that the resources have been deleted

@@ -35,7 +35,6 @@ func newMultiClusterComponentValidator() MultiClusterComponentValidator {
 // WHEN the MultiClusterComponent resource is missing Placement information
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterComponentCreationWithoutTargetClusters(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterComponentValidator()
 	p := v1alpha12.MultiClusterComponent{
@@ -63,7 +62,6 @@ func TestValidationFailureForMultiClusterComponentCreationWithoutTargetClusters(
 // WHEN the MultiClusterComponent resource references a VerrazzanoManagedCluster that does not exist
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterComponentCreationTargetingMissingManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterComponentValidator()
 	p := v1alpha12.MultiClusterComponent{
@@ -95,7 +93,6 @@ func TestValidationFailureForMultiClusterComponentCreationTargetingMissingManage
 // WHEN the MultiClusterComponent resource references a VerrazzanoManagedCluster that does exist
 // THEN the validation should pass.
 func TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterComponentValidator()
 	mc := v1alpha1.VerrazzanoManagedCluster{
@@ -157,7 +154,6 @@ func TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManag
 // AND the validation is being done on a managed cluster
 // THEN the validation should succeed.
 func TestValidationSuccessForMultiClusterComponentCreationWithoutTargetClustersOnManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterComponentValidator()
 	s := corev1.Secret{
@@ -212,7 +208,6 @@ func TestValidationSuccessForMultiClusterComponentCreationWithoutTargetClustersO
 // WHEN the MultiClusterComponent resource references a VerrazzanoManagedCluster that does not exist
 // THEN the validation should fail.
 func TestMultiClusterComponentHandleFailed(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
 	mcc := v1alpha12.MultiClusterComponent{
 		ObjectMeta: metav1.ObjectMeta{

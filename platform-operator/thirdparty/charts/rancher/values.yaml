@@ -59,8 +59,8 @@ ingress:
   enabled: true
   includeDefaultExtraAnnotations: true
   extraAnnotations: {}
-
   ingressClassName: nginx
+
   # configurationSnippet - Add additional Nginx configuration. This example statically sets a header on the ingress.
   # configurationSnippet: |
   #   more_set_input_headers "X-Forwarded-Host: {{ .Values.hostname }}";
@@ -144,7 +144,7 @@ postDelete:
   enabled: false
   image:
     repository: rancher/shell
-    tag: v0.1.16
+    tag: v0.1.18
   namespaceList:
     - cattle-fleet-system
     - cattle-system
