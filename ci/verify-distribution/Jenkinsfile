@@ -256,7 +256,7 @@ pipeline {
                         ).trim()
                     // Commercial bundle doesn't have a tarfile and CheckSum, add logic based on distribution variant
                     if (params.DISTRIBUTION_VARIANT == "OpenSource") {
-                        tarfileName = "verrazzano-1.4.0-linux-amd64.tar.gz" // TODO make it from a variable
+                        tarfileName = "verrazzano-${VERRAZZANO_DEV_VERSION}-linux-amd64.tar.gz" // TODO make it from a variable
                         checksumFile = "${tarfileName}.sha256"
                         echo "base name: $baseFilename, tar name: $tarfileName, checksum name: $checksumFile"
                     }
