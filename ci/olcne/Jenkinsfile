@@ -14,9 +14,10 @@ def testEnvironments=["OCNE"]
 def agentLabel=env.JOB_NAME.contains('-ocne') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions=["us-ashburn-1"]
-def availableDomains=["hXgQ:US-ASHBURN-AD-1"]
+def availableDomains=["hXgQ:US-ASHBURN-AD-1", "hXgQ:US-ASHBURN-AD-2", "hXgQ:US-ASHBURN-AD-3"]
+Collections.shuffle(availableDomains)
 def kubernetesVersions=[ "v1.22.5", "v1.21.5", "v1.20.8" ]
-def ocneVersions=[ "1.5", "1.4", "1.3"]
+def ocneVersions=[ "1.5"]
 def osVersions=['8', '7']
 def uniquePrefix=UUID.randomUUID().toString().substring(0,6).replace('-','')
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=false
@@ -137,11 +138,8 @@ pipeline {
         VZ_COMMAND="$GO_REPO_PATH/vz"
         OCNE_DUMP_DIR="$WORKSPACE/$VZ_ENVIRONMENT_NAME"
         INSTALL_CONFIG_FILE_OCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocne.yaml"
-        // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
-        OCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
-        // TODO: Update the default branch to be used for terraform-oci-olcne
-        // OCNE_BRANCH_TO_USE="origin/release/$OCNE_VERSION"
-        OCNE_BRANCH_TO_USE="origin/feature/OLCNE-4019"
+        OCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-ocne-url")
+        OCNE_BRANCH_TO_USE="origin/release/${params.OCNE_VERSION}"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
 
         // Terraform variables
@@ -529,8 +527,6 @@ def generateAllAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='
 
 def generateVerifyInstallStages(dumpRoot) {
     return [
-        // TODO: Update the list to include tests for subsequent VZ releases
-        // Currently supported Verrazzano version = 1.3
         "verify-install keycloak": {
             runGinkgoRandomize('verify-install/keycloak', "${dumpRoot}/verify-install-keycloak")
         },
@@ -943,9 +939,9 @@ def updateStorageClass() {
     env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
     echo CONTROL_PLANE_IP
     sh """
-        # TODO: This MIGHT not be required for OCNE > 1.5 releases
         # Add annotation to the storageclass created by OCNE oci-ccm module
         kubectl annotate storageclass oci-bv "storageclass.kubernetes.io/is-default-class"="true"
+        # Create a CSI Driver
         cat << EOF | kubectl apply -f -
             apiVersion: storage.k8s.io/v1
             kind: CSIDriver
