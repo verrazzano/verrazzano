@@ -16,9 +16,9 @@ import (
 // For unit testing
 const (
 	actualBomFilePath          = "../../../verrazzano-bom.json"
-	testBomFilePath            = "testdata/test_bom.json"
-	invalidTestBomFilePath     = "testdata/invalid_test_bom.json"
-	invalidPathTestBomFilePath = "testdata/invalid_test_bom_path.json"
+	testBomFilePath            = "../testdata/test_bom.json"
+	invalidTestBomFilePath     = "../testdata/invalid_test_bom.json"
+	invalidPathTestBomFilePath = "../testdata/invalid_test_bom_path.json"
 
 	v0170 = "v0.17.0"
 	v110  = "v1.1.0"

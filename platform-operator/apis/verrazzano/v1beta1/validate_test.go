@@ -25,8 +25,8 @@ import (
 
 // For unit testing
 const (
-	testBomFilePath         = "testdata/test_bom.json"
-	testRollbackBomFilePath = "testdata/rollback_bom.json"
+	testBomFilePath         = "../testdata/test_bom.json"
+	testRollbackBomFilePath = "../testdata/rollback_bom.json"
 
 	v0160 = "v0.16.0"
 	v0170 = "v0.17.0"
