@@ -47,6 +47,7 @@ pipeline {
         RELEASE_BINARIES_DIR = "${WORKSPACE}/release/scripts/release_work"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         BUNDLE_TO_SCAN = "${params.DISTRIBUTION_VARIANT}"
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
     }
 
     stages {
@@ -87,9 +88,7 @@ pipeline {
                     timeout(time: 240, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            REL_BRANCH="${env.BRANCH_NAME.replace("/", "%2F")}"
-                            echo "Release Branch ${REL_BRANCH}"
-                            ./scan_release_binaries.sh ${REL_BRANCH} ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                            ./scan_release_binaries.sh ${CLEAN_BRANCH_NAME} ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
                         """
                    }
                 }
