@@ -973,7 +973,7 @@ def installVerrazzano() {
     env.installedVZ="true"
     sh """
         # Install Verrazzano
-        $VZ_COMMAND install -f $INSTALL_CONFIG_FILE_OCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME" --operaotor-file="$VZ_PLATFORM_OPERTOR_YAML"
+        $VZ_COMMAND install -f $INSTALL_CONFIG_FILE_OCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME" --operator-file="$VZ_PLATFORM_OPERTOR_YAML"
         $VZ_COMMAND status
 
         # Print out the namespaces
