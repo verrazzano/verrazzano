@@ -119,7 +119,6 @@ pipeline {
                     timeout(time: 90, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            unset BUNDLE_TO_SCAN
                             ./scan_release_binaries.sh ${params.RELEASE_BRANCH} ${RELEASE_BINARIES_DIR}
                         """
                    }
