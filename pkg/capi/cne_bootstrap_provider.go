@@ -5,7 +5,8 @@ package capi
 import (
 	"os"
 
-	kindcluster "sigs.k8s.io/kind/pkg/cluster"
+	kindcluster "github.com/verrazzano/kind/pkg/cluster"
+	kind "github.com/verrazzano/kind/pkg/cmd"
 )
 
 // TODO: fill this in with real image when ready
@@ -58,7 +59,7 @@ func (k *cneBootstrapProviderImpl) CreateCluster(config ClusterConfig) error {
 		return err
 	}
 	//fmt.Println(fmt.Sprintf("%s", bootstrapConfig))
-	provider, err := getKindProviderFunc()
+	provider, err := getVZKindProvider()
 	if err != nil {
 		return err
 	}
@@ -66,7 +67,7 @@ func (k *cneBootstrapProviderImpl) CreateCluster(config ClusterConfig) error {
 }
 
 func (k *cneBootstrapProviderImpl) DestroyCluster(config ClusterConfig) error {
-	provider, err := getKindProviderFunc()
+	provider, err := getVZKindProvider()
 	if err != nil {
 		return err
 	}
@@ -85,9 +86,19 @@ func (k *cneBootstrapProviderImpl) DestroyCluster(config ClusterConfig) error {
 }
 
 func (k *cneBootstrapProviderImpl) GetKubeconfig(config ClusterConfig) (string, error) {
-	provider, err := getKindProviderFunc()
+	provider, err := getVZKindProvider()
 	if err != nil {
 		return "", err
 	}
 	return provider.KubeConfig(config.GetClusterName(), false)
+}
+
+func getVZKindProvider() (*kindcluster.Provider, error) {
+	var po kindcluster.ProviderOption
+	po, err := kindcluster.DetectNodeProvider()
+	if err != nil {
+		return nil, err
+	}
+	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
+	return provider, nil
 }

@@ -162,9 +162,9 @@ require (
 )
 
 require (
+	github.com/verrazzano/kind v0.14.1-0.20220829142452-2791a1eb08ce
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	sigs.k8s.io/kind v0.14.0
-
 )
 
 replace (
