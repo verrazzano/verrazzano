@@ -25,7 +25,12 @@ EOM
     exit 0
 }
 
-[ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] || [ -z "$RELEASE_VERSION" ] && { usage; }
+[ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] && { usage; }
+
+if [ -z "${RELEASE_VERSION}" ] ; then
+    echo "The script requires environment variable RELEASE_VERSION, in the format major.minor.patch (for example, 1.0.3)"
+    exit 1
+fi
 
 RELEASE_COMMIT=${1}
 RELEASE_BINARIES_DIR=${2}
