@@ -8,7 +8,6 @@
 set -e
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-. $SCRIPT_DIR/common.sh
 
 usage() {
     cat <<EOM
@@ -21,6 +20,7 @@ usage() {
     $(basename $0) release-1.0 . 1.0.2
 
   The script expects the OCI CLI is installed. It also expects the following environment variables -
+    RELEASE_VERSION - release version (major.minor.patch format, e.g. 1.0.1)
     OCI_REGION - OCI region
     OBJECT_STORAGE_NS - top-level namespace used for the request
     OBJECT_STORAGE_BUCKET - object storage bucket where the artifacts are stored
@@ -34,11 +34,12 @@ EOM
 
 [ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OBJECT_STORAGE_BUCKET" ] ||
 [ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] || [ -z "$NO_PROXY_SUFFIX" ] ||
-[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
+
+. $SCRIPT_DIR/common.sh
 
 BRANCH=${1}
 WORK_DIR=${2:-$SCRIPT_DIR}
-RELEASE_VERSION=${3}
 
 SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
 SCANNER_HOME="$WORK_DIR/scanner_home"
@@ -140,7 +141,15 @@ function scan_release_binaries() {
   fi
 }
 
+function list_array() {
+    for i in "${releaseArtifacts[@]}"
+    do
+      echo "File in the bundle $i"
+    done
+}
+
 mkdir -p $SCANNER_HOME
+list_array || exit 1
 validate_oci_cli || exit 1
 download_release_tarball || exit 1
 install_scanner || exit 1
