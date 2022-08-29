@@ -953,6 +953,7 @@ def createImagePullSecrets() {
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
+        kubectl create namespace verrazzano-install
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
     """
 }
