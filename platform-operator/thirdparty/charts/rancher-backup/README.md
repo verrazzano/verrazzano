@@ -42,6 +42,8 @@ The following table lists the configurable parameters of the rancher-backup char
 | persistence.storageClass |  StorageClass to use for dynamically provisioning the Persistent Volume, which will be used for storing backups | "" |
 | persistence.volumeName |  Persistent Volume to use for storing backups | "" |
 | persistence.size |  Requested size of the Persistent Volume (Applicable when using dynamic provisioning) | "" |
+| debug | Set debug flag for backup-restore deployment | false |
+| trace | Set trace flag for backup-restore deployment | false |
 | nodeSelector | https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector | {} |
 | tolerations | https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration | [] |
 | affinity | https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity | {} |

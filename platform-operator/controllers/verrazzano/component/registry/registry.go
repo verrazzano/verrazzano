@@ -79,6 +79,7 @@ func getComponents() []spi.Component {
 			grafana.NewComponent(),
 			authproxy.NewComponent(),
 			coherence.NewComponent(),
+			mysqloperator.NewComponent(), // mysqloperator needs to be upgraded before mysql
 			mysql.NewComponent(),
 			keycloak.NewComponent(),
 			kiali.NewComponent(),
@@ -92,7 +93,6 @@ func getComponents() []spi.Component {
 			fluentd.NewComponent(),
 			velero.NewComponent(),
 			rancherbackup.NewComponent(),
-			mysqloperator.NewComponent(),
 		}
 	}
 	return componentsRegistry
