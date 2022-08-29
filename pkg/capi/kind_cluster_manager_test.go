@@ -7,7 +7,8 @@ import (
 	"testing"
 )
 
-func TestKindClusterManager_Create(t *testing.T) {
+// TestKindClusterManagerCreate - mainly for code coverage right now
+func TestKindClusterManagerCreate(t *testing.T) {
 	asserts := assert.New(t)
 
 	kcm := kindClusterManager{
@@ -18,7 +19,8 @@ func TestKindClusterManager_Create(t *testing.T) {
 	asserts.NoError(kcm.Create())
 }
 
-func TestKindClusterManager_Destroy(t *testing.T) {
+// TestKindClusterManagerDestroy - mainly for code coverage right now
+func TestKindClusterManagerDestroy(t *testing.T) {
 	asserts := assert.New(t)
 
 	kcm := kindClusterManager{
@@ -29,7 +31,8 @@ func TestKindClusterManager_Destroy(t *testing.T) {
 	asserts.NoError(kcm.Destroy())
 }
 
-func TestKindClusterManager_Init(t *testing.T) {
+// TestKindClusterManagerInit - mainly for code coverage right now
+func TestKindClusterManagerInit(t *testing.T) {
 	asserts := assert.New(t)
 	SetCAPIInitFunc(fakeCAPINew)
 	defer ResetCAPIInitFunc()
