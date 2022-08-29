@@ -44,8 +44,6 @@ pipeline {
         RELEASE_BINARIES_DIR = "${WORKSPACE}/release/scripts/release_work"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         BUNDLE_TO_SCAN = "${params.DISTRIBUTION_VARIANT}"
-        INTERMEDIATE_BRANCH_NAME = "${params.RELEASE_BRANCH == 'NONE' ? "env.BRANCH_NAME" : "params.RELEASE_BRANCH"}"
-        CLEAN_BRANCH_NAME = "${env.INTERMEDIATE_BRANCH_NAME.replace("/", "%2F")}"
     }
 
     stages {
@@ -86,7 +84,13 @@ pipeline {
                     timeout(time: 240, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            ./scan_release_binaries.sh "${CLEAN_BRANCH_NAME}-last-clean-periodic-test" ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+
+                            if [ ${params.RELEASE_BRANCH} == "None" ]; then
+                              CLEAN_BRANCH_NAME="${env.BRANCH_NAME.replace("/", "%2F")}"
+                              ./scan_release_binaries.sh "${CLEAN_BRANCH_NAME}-last-clean-periodic-test" ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                            else
+                              ./scan_release_binaries.sh "${params.RELEASE_BRANCH}-last-clean-periodic-test" ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                            fi
                         """
                    }
                 }
