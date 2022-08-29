@@ -736,18 +736,18 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	vz.Spec.Components = vzapi.ComponentSpec{
 		Elasticsearch: &vzapi.ElasticsearchComponent{
-			ESInstallArgs: []vzapi.InstallArgs{
+			Nodes: []vzapi.OpenSearchNode{
 				{
-					Name:  "nodes.master.replicas",
-					Value: "2",
+					Name:     "es-master",
+					Replicas: 2,
 				},
 				{
-					Name:  "nodes.data.replicas",
-					Value: "2",
+					Name:     "es-data",
+					Replicas: 2,
 				},
 				{
-					Name:  "nodes.ingest.replicas",
-					Value: "2",
+					Name:     "es-ingest",
+					Replicas: 2,
 				},
 			},
 		},
