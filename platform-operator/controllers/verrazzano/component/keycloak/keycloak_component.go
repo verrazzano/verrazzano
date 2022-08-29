@@ -6,6 +6,9 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -187,12 +190,8 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // IsEnabled Keycloak-specific enabled check for installation
-func (c KeycloakComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Keycloak
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (c KeycloakComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsKeycloakEnabled(effectiveCR)
 }
 
 // IsReady component check
@@ -214,6 +213,11 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 		return fmt.Errorf("Updates to InstallArgs not allowed for %s", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c KeycloakComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
 }
 
 func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {

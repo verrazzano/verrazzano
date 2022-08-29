@@ -48,7 +48,8 @@ type BomDoc struct {
 type BomComponent struct {
 	// The name of the component, for example: Istio
 	Name string `json:"name"`
-
+	// Version of the component
+	Version string `json:"version,omitempty"`
 	// SubComponents is the array of subcomponents in the component
 	SubComponents []BomSubComponent `json:"subcomponents"`
 }
@@ -88,27 +89,30 @@ type BomImage struct {
 	// Repository is the image repository. It can be used to override the subcomponent repository
 	Repository string `json:"repository,omitempty"`
 
-	// HelmRegistryKey is the helm template Key which identifies the image registry.  This is not
-	// normally specified.  An example is `image.registry` in external-dns.  The default is empty string
+	// HelmRegistryKey is the helm template Key which identifies the registry for an image.  An example is
+	// `image.registry` in external-dns.  The default is empty string.
 	HelmRegistryKey string `json:"helmRegKey"`
 
-	// HelmRepoKey is the helm template Key which identifies the image repository.
+	// HelmRepoKey is the helm template Key which stores the value of the repository for an image.
 	HelmRepoKey string `json:"helmRepoKey"`
 
-	// HelmImageKey is the helm template Key which identifies the image name.  There are a variety
-	// of keys used by the different helm charts, such as `api.imageName`.  The default is `image`
+	// HelmImageKey is the helm template Key which identifies the base image name, without the registry or parent repo
+	// parts of the path.  For example, if the full image name is myreg.io/foo/bar/myimage:v1.0, the value of this key
+	// will be "myimage".  See the Istio proxyv2 entry in the BOM file for an example.
 	HelmImageKey string `json:"helmImageKey"`
 
-	// HelmTagKey is the helm template Key which identifies the image tag.  There are a variety
-	// of keys used by the different helm charts, such as `api.imageVersion`.
+	// HelmTagKey is the helm template Key which stores the value of the image tag.  For example,
+	// if the full image name is myreg.io/foo/bar/myimage:v1.0, the value of this key will be "v1.0"
 	HelmTagKey string `json:"helmTagKey"`
 
-	// HelmFullImageKey is the helm path Key which identifies the image name.  There are a variety
-	// of keys used by the different helm charts, such as `api.imageName`.
+	// HelmFullImageKey is the helm path Key which identifies the image name without the registry or tag.  For example,
+	// if the full image name is myreg.io/foo/bar/myimage:v1.0, the value of this key will be
+	// "foo/bar/myimage".
 	HelmFullImageKey string `json:"helmFullImageKey"`
 
-	// HelmRegistryAndRepoKey is the helm Key which identifies the registry/repo string,
-	// for example  global.hub = ghcr.io/verrazzano
+	// HelmRegistryAndRepoKey is a helm Key which stores the registry and repo parts of the image path.  For example,
+	// if the full image name is myreg.io/foo/bar/myimage:v1.0 the value of this key will be "myreg.io/foo/bar".
+	// See `image.repository` in the external-dns component
 	HelmRegistryAndRepoKey string `json:"helmRegistryAndRepoKey"`
 }
 
@@ -167,6 +171,16 @@ func (b *Bom) GetRegistry() string {
 // GetVersion gets the BOM product version
 func (b *Bom) GetVersion() string {
 	return b.bomDoc.Version
+}
+
+// GetComponent gets the BOM component
+func (b *Bom) GetComponent(componentName string) (*BomComponent, error) {
+	for _, comp := range b.bomDoc.Components {
+		if comp.Name == componentName {
+			return &comp, nil
+		}
+	}
+	return nil, errors.New("unknown component " + componentName)
 }
 
 // GetSubcomponent gets the bom subcomponent

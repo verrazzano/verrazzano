@@ -6,18 +6,23 @@ package operator
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"path/filepath"
+
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 const (
@@ -42,11 +47,9 @@ const (
 	// ComponentSecretName  is the name of the secret.
 	ComponentSecretName = "jaeger-operator-service-cert"
 	// JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
-	JaegerCollectorDeploymentName = "jaeger-operator-jaeger-collector"
+	JaegerCollectorDeploymentName = globalconst.JaegerInstanceName + "-" + globalconst.JaegerCollectorComponentName
 	// JaegerQueryDeploymentName is the name of the Jaeger instance query deployment.
-	JaegerQueryDeploymentName = "jaeger-operator-jaeger-query"
-	// JaegerInstanceName is the name of the jaeger instance
-	JaegerInstanceName = "jaeger-operator-jaeger"
+	JaegerQueryDeploymentName = globalconst.JaegerInstanceName + "-" + globalconst.JaegerQueryComponentName
 )
 
 type jaegerOperatorComponent struct {
@@ -81,7 +84,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:    "image.imagePullSecrets[0].name",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
-			Dependencies:              []string{certmanager.ComponentName},
+			Dependencies:              []string{certmanager.ComponentName, opensearch.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 		},
@@ -90,17 +93,17 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true only if the Jaeger Operator is explicitly enabled
 // in the Verrazzano CR.
-func (c jaegerOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.JaegerOperator
-	if comp == nil || comp.Enabled == nil {
-		return false
-	}
-	return *comp.Enabled
+func (c jaegerOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsJaegerOperatorEnabled(effectiveCR)
 }
 
 // IsReady checks if the Jaeger Operator deployment is ready
 func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
+		defaultJaegerEnabled, err := isJaegerCREnabled(ctx)
+		if err == nil && defaultJaegerEnabled {
+			return isJaegerOperatorReady(ctx) && isDefaultJaegerInstanceReady(ctx)
+		}
 		return isJaegerOperatorReady(ctx)
 	}
 	return false
@@ -154,6 +157,16 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 	return c.validateJaegerOperator(new)
 }
 
+// ValidateInstall validates the installation of the Verrazzano CR
+func (c jaegerOperatorComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
+func (c jaegerOperatorComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
+}
+
 // PreUpgrade Jaeger component pre-upgrade processing
 func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Jaeger pre-upgrade")
@@ -166,7 +179,7 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed searching for Jaeger release: %v", err)
 	}
 	if !installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
-		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! Either disable the Verrazzano's default Jaeger instance creation by overriding jaeger.create Helm value for Jaeger Operator component to false or delete and recreate the existing Jaeger deployment in a different namespace: %v", ComponentNamespace, JaegerInstanceName, err)
+		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! Either disable the Verrazzano's default Jaeger instance creation by overriding jaeger.create Helm value for Jaeger Operator component to false or delete and recreate the existing Jaeger deployment in a different namespace: %v", ComponentNamespace, globalconst.JaegerInstanceName, err)
 	}
 	err = removeOldJaegerResources(ctx)
 	if err != nil {

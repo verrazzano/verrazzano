@@ -12,8 +12,10 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -24,8 +26,10 @@ import (
 const testMCConfigMapName = "unit-mccm"
 const testMCConfigMapNamespace = "unit-mccm-namespace"
 
-var mcConfigMapTestLabels = map[string]string{"label1": "test1"}
-var mcConfigMapTestUpdatedLabels = map[string]string{"label1": "test1updated"}
+var mcConfigMapTestExpectedLabels = map[string]string{"label1": "test1",
+	vzconst.VerrazzanoManagedLabelKey: constants.LabelVerrazzanoManagedDefault}
+var mcConfigMapTestUpdatedLabels = map[string]string{"label1": "test1updated",
+	vzconst.VerrazzanoManagedLabelKey: constants.LabelVerrazzanoManagedDefault}
 
 // TestCreateMCConfigMap tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterConfigMap objects
@@ -70,7 +74,7 @@ func TestCreateMCConfigMap(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap, opts ...client.CreateOption) error {
 			assert.Equal(testMCConfigMapNamespace, mcConfigMap.Namespace, "mcConfigMap namespace did not match")
 			assert.Equal(testMCConfigMapName, mcConfigMap.Name, "mcConfigMap name did not match")
-			assert.Equal(mcConfigMapTestLabels, mcConfigMap.Labels, "mcConfigMap labels did not match")
+			assert.Equal(mcConfigMapTestExpectedLabels, mcConfigMap.Labels, "mcConfigMap labels did not match")
 			assert.Equal(testClusterName, mcConfigMap.Spec.Placement.Clusters[0].Name, "mcConfigMap does not contain expected placement")
 			assert.Equal("simplevalue", mcConfigMap.Spec.Template.Data["simple.key"])
 			return nil
@@ -112,7 +116,7 @@ func TestUpdateMCConfigMap(t *testing.T) {
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
 	mcMock := mocks.NewMockClient(mcMocker)
-	//mcMockStatusWriter := mocks.NewMockStatusWriter(mcMocker)
+	// mcMockStatusWriter := mocks.NewMockStatusWriter(mcMocker)
 
 	// Admin cluster mocks
 	adminMocker := gomock.NewController(t)

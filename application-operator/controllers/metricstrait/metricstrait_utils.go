@@ -72,17 +72,6 @@ func writeYAMLString(c *gabs.Container) (string, error) {
 	return string(bytes), nil
 }
 
-// getClusterNameFromObjectMetaOrDefault extracts the customer name from object metadata.
-// meta is the object metadata to extract the cluster from.
-// Returns the cluster name or "default" if the cluster name is the empty string.
-func getClusterNameFromObjectMetaOrDefault(meta metav1.ObjectMeta) string {
-	name := meta.ClusterName
-	if name == "" {
-		return "default"
-	}
-	return name
-}
-
 // getNamespaceFromObjectMetaOrDefault extracts the namespace name from object metadata.
 // meta is the object metadata to extract the namespace name from.
 // Returns the namespace name of "default" if the namespace is the empty string.
@@ -136,10 +125,9 @@ func GetSupportedWorkloadType(apiVerKind string) string {
 	return ""
 }
 
-// createServiceMonitorName creates a Prometheus scrape configmap job name from a trait.
+// createJobOrServiceMonitorName creates a Prometheus scrape configmap job name from a trait.
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
-func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
-	cluster := getClusterNameFromObjectMetaOrDefault(trait.ObjectMeta)
+func createJobOrServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
 	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
 	app, found := trait.Labels[appObjectMetaLabel]
 	if !found {
@@ -154,7 +142,7 @@ func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, e
 		portStr = fmt.Sprintf("_%d", portNum)
 	}
 
-	finalName := fmt.Sprintf("%s_%s_%s_%s%s", app, cluster, namespace, comp, portStr)
+	finalName := fmt.Sprintf("%s_%s_%s%s", app, namespace, comp, portStr)
 	// Check for Kubernetes name length requirement
 	if len(finalName) > 63 {
 		finalName = fmt.Sprintf("%s_%s%s", app, namespace, portStr)
@@ -163,6 +151,17 @@ func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, e
 		}
 	}
 	return finalName, nil
+}
+
+// createJobOrServiceMonitorName creates a valid Prometheus ServiceMonitor name from a trait,
+// replacing underscores with dashes in name to appease Kubernetes requirements
+// Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
+func createServiceMonitorName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
+	sname, err := createJobOrServiceMonitorName(trait, portNum)
+	if err != nil {
+		return "", err
+	}
+	return strings.Replace(sname, "_", "-", -1), nil
 }
 
 // getPortSpecs returns a complete set of port specs from the trait and the trait defaults

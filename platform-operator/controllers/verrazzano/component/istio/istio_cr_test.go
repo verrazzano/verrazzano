@@ -208,6 +208,13 @@ spec:
     global:
       defaultPodDisruptionBudget:
         enabled: false
+    meshConfig:
+      defaultConfig:
+        tracing:
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+          zipkin:
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
     pilot:
       resources:
         requests:
@@ -356,6 +363,13 @@ spec:
     global:
       defaultPodDisruptionBudget:
         enabled: false
+    meshConfig:
+      defaultConfig:
+        tracing:
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+          zipkin:
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
     pilot:
       resources:
         requests:
@@ -503,6 +517,14 @@ spec:
         service:
           type: LoadBalancer
       name: istio-ingressgateway
+  values:
+    meshConfig:
+      defaultConfig:
+        tracing:
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+          zipkin:
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
 `
 
 var cr4 = &vzapi.IstioComponent{
@@ -521,7 +543,86 @@ var cr4 = &vzapi.IstioComponent{
 	},
 }
 
+var cr5 = &vzapi.IstioComponent{
+	Enabled: &enabled,
+	Ingress: prodIstioIngress,
+	Egress:  prodIstioEgress,
+	IstioInstallArgs: []vzapi.InstallArgs{
+		{
+			Name:  "meshConfig.enableTracing",
+			Value: "true",
+		},
+		{
+			Name:  "meshConfig.defaultConfig.tracing.sampling",
+			Value: "100",
+		},
+		{
+			Name:  "meshConfig.defaultConfig.tracing.zipkin.address",
+			Value: "jaeger-collector.foo.svc.cluster.local:5555",
+		},
+	},
+}
+
 var cr4Yaml = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    egressGateways:
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - istio-egressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 2
+      name: istio-egressgateway
+    ingressGateways:
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - istio-ingressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 2
+        service:
+          ports:
+          - name: port1
+            nodePort: 32443
+            port: 8000
+            protocol: TCP
+            targetPort: 2000
+          type: NodePort
+      name: istio-ingressgateway
+  values:
+    meshConfig:
+      defaultConfig:
+        tracing:
+          sampling: 100
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+          zipkin:
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
+      enableTracing: true
+`
+
+var cr5Yaml = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
@@ -585,7 +686,7 @@ spec:
 // WHEN BuildIstioOperatorYaml is called
 // THEN ensure that the result is correct.
 func TestBuildIstioOperatorYaml(t *testing.T) {
-	fakeCtx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, false)
+	fakeCtx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, nil, false)
 	collectorLabels := map[string]string{
 		constants.KubernetesAppLabel: constants.JaegerCollectorService,
 	}
@@ -623,10 +724,16 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 			ctx:      fakeCtx,
 		},
 		{
-			testName: "Override Jaeger when enabled and present",
+			testName: "When Jaeger Operator is enabled, without install args override default tracing URL is used",
 			value:    cr4,
 			expected: cr4Yaml,
-			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, false),
+			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, nil, false),
+		},
+		{
+			testName: "When Jaeger Operator is enabled, with install args override, user provided tracing URL is used",
+			value:    cr5,
+			expected: cr5Yaml,
+			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, nil, false),
 		},
 	}
 	for _, test := range tests {

@@ -58,7 +58,7 @@ func init() {
 //  WHEN The Kiali component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilKiali tests the IsEnabled function
@@ -68,7 +68,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilKiali(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -78,7 +78,7 @@ func TestIsEnabledNilKiali(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -88,7 +88,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -98,7 +98,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
@@ -109,7 +109,7 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
 	cr.Spec.Profile = vzapi.ManagedCluster
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledProdProfile tests the IsEnabled function
@@ -120,7 +120,7 @@ func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
 	cr.Spec.Profile = vzapi.Prod
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledDevProfile tests the IsEnabled function
@@ -131,7 +131,7 @@ func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
 	cr.Spec.Profile = vzapi.Dev
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestRemoveDeploymentAndService tests the removeDeploymentAndService function
@@ -161,7 +161,7 @@ func TestRemoveDeploymentAndService(t *testing.T) {
 	}
 
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(deployment, service).Build()
-	err := removeDeploymentAndService(spi.NewFakeContext(fakeClient, nil, false))
+	err := removeDeploymentAndService(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.Nil(t, err)
 	deployment = &appv1.Deployment{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: kialiSystemName, Namespace: ComponentNamespace}, deployment)
@@ -201,7 +201,7 @@ func TestRemoveDeploymentAndServiceNoMatch(t *testing.T) {
 	}
 
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(deployment, service).Build()
-	err := removeDeploymentAndService(spi.NewFakeContext(fakeClient, nil, false))
+	err := removeDeploymentAndService(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.Nil(t, err)
 	deployment = &appv1.Deployment{}
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: kialiSystemName, Namespace: ComponentNamespace}, deployment)
@@ -244,7 +244,7 @@ func TestKialiPostInstallUpdateResources(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress, authPol, cert).Build()
-	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, false))
+	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, nil, false))
 	assert.Nil(t, err)
 }
 
@@ -275,7 +275,7 @@ func TestKialiPostInstallCreateResources(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(cert).Build()
-	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, false))
+	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, nil, false))
 	assert.Nil(t, err)
 }
 
@@ -302,7 +302,7 @@ func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(ingress, authPol).Build()
-	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, false))
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, nil, false))
 	assert.Nil(t, err)
 }
 
@@ -328,7 +328,7 @@ func TestPreUpgrade(t *testing.T) {
 	}
 
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(deployment, service).Build()
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fakeClient, nil, false))
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.NoError(t, err)
 }
 

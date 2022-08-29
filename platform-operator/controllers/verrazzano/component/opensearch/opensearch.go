@@ -49,6 +49,11 @@ func doesOSExist(ctx spi.ComponentContext) bool {
 	return status.DoStatefulSetsExist(ctx.Log(), ctx.Client(), sts, 1, prefix)
 }
 
+// IsSingleDataNodeCluster returns true if there is exactly 1 or 0 data nodes
+func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
+	return findESReplicas(ctx, "data") <= 1
+}
+
 // isOSReady checks if the OpenSearch resources are ready
 func isOSReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
@@ -92,7 +97,7 @@ func isOSReady(ctx spi.ComponentContext) bool {
 
 // findESReplicas searches the ES install args to find the correct resources to search for in isReady
 func findESReplicas(ctx spi.ComponentContext, nodeType string) int32 {
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 		esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
 		for _, args := range esInstallArgs {
 			if args.Name == fmt.Sprintf("nodes.%s.replicas", nodeType) {
@@ -107,7 +112,7 @@ func findESReplicas(ctx spi.ComponentContext, nodeType string) int32 {
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
 func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) error {
 	// Only apply this fix to clusters with Elasticsearch enabled.
-	if !vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+	if !vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) {
 		ctx.Log().Debug("Elasticsearch Post Upgrade: Replica count update unnecessary on managed cluster.")
 		return nil
 	}

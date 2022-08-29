@@ -174,7 +174,7 @@ func TestAppendOverrideFilesInOrder(t *testing.T) {
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c, cr, false)
+	ctx := spi.NewFakeContext(c, cr, nil, false)
 	files, err := appendOverrideFilesInOrder(ctx, []string{})
 
 	equalFoos := func(jsonFoo, yamlFoo []byte) {
@@ -215,7 +215,7 @@ func TestIsInstalled(t *testing.T) {
 	a := assert.New(t)
 
 	istio.SetCmdRunner(fakeIstioInstalledRunner{})
-	b, err := comp.IsInstalled(spi.NewFakeContext(getIsInstalledMock(t), installCR, false))
+	b, err := comp.IsInstalled(spi.NewFakeContext(getIsInstalledMock(t), installCR, nil, false))
 	a.NoError(err, "IsInstalled returned an error")
 	a.True(b, "IsInstalled returned false")
 }
@@ -239,7 +239,7 @@ func TestIsNotInstalled(t *testing.T) {
 	a := assert.New(t)
 
 	istio.SetCmdRunner(fakeIstioInstalledRunner{})
-	b, err := comp.IsInstalled(spi.NewFakeContext(getIsNotInstalledMock(t), installCR, false))
+	b, err := comp.IsInstalled(spi.NewFakeContext(getIsNotInstalledMock(t), installCR, nil, false))
 	a.NoError(err, "IsInstalled returned an error")
 	a.False(b, "IsInstalled returned true")
 }
@@ -278,7 +278,7 @@ func TestInstall(t *testing.T) {
 	setInstallFunc(fakeInstall)
 	setBashFunc(fakeBash)
 
-	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
+	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false))
 	a.Equal(expectedErr, err, "Upgrade returned an unexpected error")
 }
 
@@ -305,7 +305,7 @@ func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
 	setBashFunc(fakeBash)
 
 	comp.monitor = &fakeMonitor{result: true, running: true}
-	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
+	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false))
 	a.NoError(err)
 }
 
@@ -335,7 +335,7 @@ func TestBackgroundInstallRetryOnFailure(t *testing.T) {
 
 	comp.monitor = &fakeMonitor{result: false, running: true}
 
-	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
+	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false))
 	a.True(forkFuncCalled)
 	a.Equal(expectedErr, err)
 }
@@ -367,7 +367,7 @@ func Test_forkInstallSuccess(t *testing.T) {
 	setBashFunc(fakeBash)
 
 	var monitor installMonitor = &installMonitorType{}
-	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, false), monitor, expectedOverridesString, expectedOverridesFiles)
+	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false), monitor, expectedOverridesString, expectedOverridesFiles)
 	a.Equal(spi2.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
 		result, retryError := monitor.checkResult()
@@ -406,7 +406,7 @@ func Test_forkInstallFailure(t *testing.T) {
 	setBashFunc(fakeBash)
 
 	var monitor installMonitor = &installMonitorType{}
-	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, false), monitor, "myoverride=true", []string{comp.ValuesFile, "istio-overrides.yaml"})
+	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, nil, false), monitor, "myoverride=true", []string{comp.ValuesFile, "istio-overrides.yaml"})
 	a.Equal(spi2.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
 		result, retryError := monitor.checkResult()
@@ -433,7 +433,6 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName)).AnyTimes()
-
 	return mock
 }
 
@@ -445,7 +444,7 @@ func TestCreateCertSecret(t *testing.T) {
 	a := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := createCertSecret(spi.NewFakeContext(createCertSecretMock(t), installCR, false))
+	err := createCertSecret(spi.NewFakeContext(createCertSecretMock(t), installCR, nil, false))
 	a.NoError(err, "createCertSecret returned an error")
 }
 
@@ -472,7 +471,7 @@ func TestCreatePeerAuthentication(t *testing.T) {
 	a := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := createPeerAuthentication(spi.NewFakeContext(createPeerAuthenticationMock(t), installCR, false))
+	err := createPeerAuthentication(spi.NewFakeContext(createPeerAuthenticationMock(t), installCR, nil, false))
 	a.NoError(err, "createPeerAuthentication returned an error")
 }
 
@@ -505,7 +504,7 @@ func TestLabelNamespace(t *testing.T) {
 	a := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := labelNamespace(spi.NewFakeContext(labelNamespaceMock(t), installCR, false))
+	err := labelNamespace(spi.NewFakeContext(labelNamespaceMock(t), installCR, nil, false))
 	a.NoError(err, "labelNamespace returned an error")
 }
 

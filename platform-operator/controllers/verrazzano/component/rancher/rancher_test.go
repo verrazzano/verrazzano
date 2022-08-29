@@ -121,6 +121,10 @@ func createRancherPodListWithAllRunning() v1.PodList {
 	}
 }
 
+func createClusterRoles(roleName string) rbacv1.ClusterRole {
+	return rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: roleName}}
+}
+
 func createRancherPodListWithNoneRunning() v1.PodList {
 	return v1.PodList{
 		Items: []v1.Pod{
@@ -193,6 +197,15 @@ func createServerURLSetting() unstructured.Unstructured {
 	return serverURLSetting
 }
 
+func createFirstLoginSetting() unstructured.Unstructured {
+	firstLoginSetting := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	firstLoginSetting.SetGroupVersionKind(GVKSetting)
+	firstLoginSetting.SetName(SettingFirstLogin)
+	return firstLoginSetting
+}
+
 func createOciDriver() unstructured.Unstructured {
 	ociDriver := unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -217,6 +230,36 @@ func createOkeDriver() unstructured.Unstructured {
 	okeDriver.SetGroupVersionKind(GVKKontainerDriver)
 	okeDriver.SetName(KontainerDriverOKE)
 	return okeDriver
+}
+
+func createKeycloakAuthConfig() unstructured.Unstructured {
+	authConfig := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
+	authConfig.SetName(common.AuthConfigKeycloak)
+	return authConfig
+}
+
+func createLocalAuthConfig() unstructured.Unstructured {
+	authConfig := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
+	authConfig.SetName(AuthConfigLocal)
+	return authConfig
+}
+
+func createKeycloakSecret() v1.Secret {
+	return v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "keycloak",
+			Name:      "keycloak-http",
+		},
+		Data: map[string][]byte{
+			"password": []byte("blahblah"),
+		},
+	}
 }
 
 // TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR

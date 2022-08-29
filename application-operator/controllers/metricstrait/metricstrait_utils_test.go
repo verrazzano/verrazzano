@@ -92,26 +92,6 @@ func Test_copyStringMapEntries(t *testing.T) {
 	assert.Len(target, 2)
 }
 
-// Test_getClusterNameFromObjectMetaOrDefault tests metrics trait utility function getClusterNameFromObjectMetaOrDefault
-func Test_getClusterNameFromObjectMetaOrDefault(t *testing.T) {
-	assert := asserts.New(t)
-	var meta metav1.ObjectMeta
-	var name string
-
-	// GIVEN metadata with a blank cluster name
-	// WHEN the cluster name is retrieved
-	// THEN verify the "default" cluster name is returned
-	name = getClusterNameFromObjectMetaOrDefault(meta)
-	assert.Equal("default", name)
-
-	// GIVEN metadata with a non-blank cluster name
-	// WHEN the cluster name is retrieved
-	// THEN verify the correct cluster name is returned
-	meta = metav1.ObjectMeta{ClusterName: "test-cluster-name-1"}
-	name = getClusterNameFromObjectMetaOrDefault(meta)
-	assert.Equal("test-cluster-name-1", name)
-}
-
 // Test_getNamespaceFromObjectMetaOrDefault tests metrics trait utility function getNamespaceFromObjectMetaOrDefault
 func Test_getNamespaceFromObjectMetaOrDefault(t *testing.T) {
 	assert := asserts.New(t)
@@ -133,7 +113,7 @@ func Test_getNamespaceFromObjectMetaOrDefault(t *testing.T) {
 }
 
 // Test_parseYAMLString tests metrics trait utility function parseYAMLString
-//func parseYAMLString(s string) (*gabs.Container, error) {
+// func parseYAMLString(s string) (*gabs.Container, error) {
 func Test_parseYAMLString(t *testing.T) {
 	assert := asserts.New(t)
 	var cont *gabs.Container
@@ -261,21 +241,23 @@ func TestGetSupportedWorkloadType(t *testing.T) {
 	assert.Empty(workloadType)
 }
 
-// TestCreateServiceMonitorName test the creation of a service monitor name from relevant resources
+// TestCreateServiceMonitorName test the creation of a service monitor name from relevant resources,
+// as well as the creation of a legacy prometheus configmap job name
 func TestCreateServiceMonitorName(t *testing.T) {
 	tests := []struct {
-		name         string
-		trait        *vzapi.MetricsTrait
-		portNum      int
-		expectedName string
-		expectError  bool
+		name                       string
+		trait                      *vzapi.MetricsTrait
+		portNum                    int
+		expectedServiceMonitorName string
+		expectedLegacyJobName      string
+		expectError                bool
 	}{
 		{
-			name:         "test empty trait",
-			trait:        &vzapi.MetricsTrait{},
-			portNum:      0,
-			expectedName: "",
-			expectError:  true,
+			name:                       "test empty trait",
+			trait:                      &vzapi.MetricsTrait{},
+			portNum:                    0,
+			expectedServiceMonitorName: "",
+			expectError:                true,
 		},
 		{
 			name: "test empty trait",
@@ -289,9 +271,10 @@ func TestCreateServiceMonitorName(t *testing.T) {
 					},
 				},
 			},
-			portNum:      0,
-			expectedName: "test-app_default_test-namespace_test-comp",
-			expectError:  false,
+			portNum:                    0,
+			expectedServiceMonitorName: "test-app-test-namespace-test-comp",
+			expectedLegacyJobName:      "test-app_test-namespace_test-comp",
+			expectError:                false,
 		},
 		{
 			name: "test name too long",
@@ -300,24 +283,30 @@ func TestCreateServiceMonitorName(t *testing.T) {
 					Name:      "test-name",
 					Namespace: "test-namespace",
 					Labels: map[string]string{
-						appObjectMetaLabel:  "test-app-long-label",
+						appObjectMetaLabel:  "test-app-really-long-label",
 						compObjectMetaLabel: "test-comp-extra-long-label",
 					},
 				},
 			},
-			portNum:      1,
-			expectedName: "test-app-long-label_test-namespace_1",
-			expectError:  false,
+			portNum:                    1,
+			expectedServiceMonitorName: "test-app-really-long-label-test-namespace-1",
+			expectedLegacyJobName:      "test-app-really-long-label_test-namespace_1",
+			expectError:                false,
 		},
 	}
 	assert := asserts.New(t)
 	for _, tt := range tests {
-		name, err := createServiceMonitorName(tt.trait, tt.portNum)
+		smName, err1 := createServiceMonitorName(tt.trait, tt.portNum)
+		jobName, err2 := createPrometheusScrapeConfigMapJobName(tt.trait, tt.portNum)
 		if tt.expectError {
-			assert.Error(err)
+			assert.Error(err1)
+			assert.Error(err2)
 		} else {
-			assert.NoError(err)
+			assert.NoError(err1)
+			assert.NoError(err2)
+
 		}
-		asserts.Equal(t, tt.expectedName, name)
+		asserts.Equal(t, tt.expectedServiceMonitorName, smName)
+		asserts.Equal(t, tt.expectedLegacyJobName, jobName)
 	}
 }

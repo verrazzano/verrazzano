@@ -21,7 +21,7 @@ spec:
         checksum/pvc: {{ include (print $.Template.BasePath "/pvc.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "backupRestore.serviceAccountName" . }}
-    {{- if .Values.image.imagePullSecrets }}
+      {{- if .Values.image.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.image.imagePullSecrets }}
         - name: {{ . }}
@@ -34,6 +34,13 @@ spec:
       - name: {{ .Chart.Name }}
         image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
         imagePullPolicy: {{ default "Always" .Values.imagePullPolicy }}
+        args:
+{{- if .Values.debug }}
+        - "--debug"
+{{- end }}
+{{- if .Values.trace }}
+        - "--trace"
+{{- end }}
         env:
         - name: CHART_NAMESPACE
           value: {{ .Release.Namespace }}

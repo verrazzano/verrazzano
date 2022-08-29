@@ -44,6 +44,7 @@ pipeline {
                 choices: [ "nip.io", "sslip.io"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to use a database for Grafana persistence', name: 'USE_DB_FOR_GRAFANA', defaultValue: false)
         string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
@@ -63,6 +64,8 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to run JWT tests', name: 'ENABLE_JWT_TESTING', defaultValue: false)
+        booleanParam (description: 'Whether to run slow tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
         string (name: 'PIPELINE_TAG', defaultValue: 'none', description: 'Tag representing the pipeline for tracking. Developers triggering test runs SHOULD NOT SET THIS, other pipelines will explicitly set this')
         string (name: 'SCENARIO_TAG', defaultValue: 'ad-hoc', description: 'Tag representing the scenario for tracking. Pipelines will explicitly set this, developers can set this if the know the correct value (not described here) otherwise they should just leave it as the default')
     }
@@ -94,11 +97,14 @@ pipeline {
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
 
-        // Used for dumping cluster from inside tests
+        // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-        VZ_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/test-call-vz.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+        CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
+
+        // Environment variable for Verrazzano CLI executable
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
@@ -228,7 +234,7 @@ pipeline {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${params.USE_DB_FOR_GRAFANA}
                         """
                         script {
                             if (params.ENABLE_JWT_TESTING) {
@@ -417,6 +423,17 @@ pipeline {
                                 runGinkgo('logging/opensearch')
                             }
                         }
+                        stage ('Grafana with DB') {
+                            when {
+                                expression {params.USE_DB_FOR_GRAFANA == true}
+                            }
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/grafana-db"
+                            }
+                            steps {
+                                runGinkgo('grafana-db')
+                            }
+                        }
                         stage('examples logging helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
@@ -431,6 +448,30 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('examples/helidon')
+                            }
+                        }
+                        stage('jaeger helidon') {
+                            environment {
+                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-helidon"
+                            }
+                            steps {
+                               runGinkgo('jaeger/helidon')
+                            }
+                        }
+                        stage('jaeger system') {
+                            environment {
+                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-system"
+                            }
+                            steps {
+                               runGinkgo('jaeger/system')
+                            }
+                        }
+                        stage('jaeger hotrod') {
+                            environment {
+                               DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-hotrod"
+                            }
+                            steps {
+                               runGinkgo('jaeger/hotrod')
                             }
                         }
                         stage('JWT Workload Component') {
@@ -543,7 +584,6 @@ pipeline {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-snapshot')
-                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-snapshot')
                         }
                     }
                 }
@@ -552,7 +592,6 @@ pipeline {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('new-kind-acceptance-tests-cluster-snapshot')
-                            dumpK8sClusterFromBugReport('new-kind-acceptance-tests-cluster-snapshot')
                         }
                     }
                 }
@@ -580,7 +619,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -651,15 +690,7 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
-    """
-}
-
-def dumpK8sClusterFromBugReport(dumpDirectory) {
-    sh """
-            go run ${GO_REPO_PATH}/verrazzano/tools/vz/main.go bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
-            mkdir bug-report
-            tar -xvf ${dumpDirectory}/bug-report.tar.gz -C bug-report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

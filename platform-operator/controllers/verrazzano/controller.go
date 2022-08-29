@@ -6,11 +6,12 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -53,6 +54,7 @@ type Reconciler struct {
 	DryRun            bool
 	WatchedComponents map[string]bool
 	WatchMutex        *sync.RWMutex
+	Bom               *bom.Bom
 }
 
 // Name of finalizer
@@ -137,9 +139,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return newRequeueWithDelay(), nil
 	}
 	// The Verrazzano resource has been reconciled.
-
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
-
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
 	return ctrl.Result{}, nil
@@ -227,7 +227,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		}
 
 		// Keep retrying to reconcile components until it completes
-		if result, err := r.reconcileComponents(vzctx); err != nil {
+		if result, err := r.reconcileComponents(vzctx, false); err != nil {
 			return newRequeueWithDelay(), err
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
@@ -282,7 +282,7 @@ func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctr
 	log := vzctx.Log
 	log.Debug("Entering ProcInstallingState")
 
-	if result, err := r.reconcileComponents(vzctx); err != nil {
+	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
@@ -314,6 +314,13 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return newRequeueWithDelay(), err
 	}
 
+	// Install any new components and do any updates to existing components
+	if result, err := r.reconcileComponents(vzctx, true); err != nil {
+		return newRequeueWithDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
+		return result, nil
+	}
+
 	// Only upgrade if Version has changed.  When upgrade completes, it will update the status version, see upgrade.go
 	if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
 		if result, err := r.reconcileUpgrade(log, actualCR); err != nil {
@@ -323,19 +330,21 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		}
 	}
 
-	// Install any new components and do any updates to existing components
-	if result, err := r.reconcileComponents(vzctx); err != nil {
+	// Install components that should be installed before upgrade
+	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
 
+	if done, err := r.checkUpgradeComplete(vzctx); !done || err != nil {
+		log.Progressf("Upgrade is waiting for all components to enter a Ready state before completion")
+		return newRequeueWithDelay(), err
+	}
+
 	// Upgrade done along with any post-upgrade installations of new components that are enabled by default.
 	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", actualCR.Spec.Version)
 	log.Once(msg)
-	if err := r.updateStatus(log, actualCR, msg, installv1alpha1.CondUpgradeComplete); err != nil {
-		return newRequeueWithDelay(), err
-	}
 	return ctrl.Result{}, nil
 }
 
@@ -461,6 +470,29 @@ func (r *Reconciler) checkInstallComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete)
 }
 
+// checkUpgradeComplete checks to see if the upgrade is complete
+func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bool, error) {
+	if vzctx.ActualCR == nil {
+		return false, nil
+	}
+	if vzctx.ActualCR.Status.State != installv1alpha1.VzStateUpgrading {
+		return true, nil
+	}
+	log := vzctx.Log
+	actualCR := vzctx.ActualCR
+	ready, err := r.checkComponentReadyState(vzctx)
+	if err != nil {
+		return false, err
+	}
+	if !ready {
+		return false, nil
+	}
+	// Set upgrade complete IFF all subcomponent status' are "CompStateReady"
+	message := "Verrazzano upgrade completed successfully"
+	// Status and State update must be performed on the actual CR read from K8S
+	return true, r.updateVzStatusAndState(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
+}
+
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
 func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log vzlog.VerrazzanoLogger) error {
 	// Check if the job for running the uninstall scripts exist
@@ -582,6 +614,38 @@ func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alph
 	return r.updateVerrazzanoStatus(log, cr)
 }
 
+// updateVzState updates the status state in the Verrazzano CR
+func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, state installv1alpha1.VzStateType) error {
+	t := time.Now().UTC()
+	condition := installv1alpha1.Condition{
+		Type:    conditionType,
+		Status:  corev1.ConditionTrue,
+		Message: message,
+		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
+			t.Year(), t.Month(), t.Day(),
+			t.Hour(), t.Minute(), t.Second()),
+	}
+	cr.Status.Conditions = append(cr.Status.Conditions, condition)
+
+	// Set the state of resource
+	cr.Status.State = state
+	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
+
+	// Update the status
+	return r.updateVerrazzanoStatus(log, cr)
+}
+
+func (r *Reconciler) getBOM() (*bom.Bom, error) {
+	if r.Bom == nil {
+		bom, err := bom.NewBom(config.GetDefaultBOMFilePath())
+		if err != nil {
+			return nil, err
+		}
+		r.Bom = &bom
+	}
+	return r.Bom, nil
+}
+
 func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, message string, conditionType installv1alpha1.ConditionType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
@@ -624,6 +688,15 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 
 	// Set the state of resource
 	componentStatus.State = checkCondtitionType(conditionType)
+
+	// Set the version of component when install and upgrade complete
+	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
+		if bomFile, err := r.getBOM(); err == nil {
+			if component, er := bomFile.GetComponent(componentName); er == nil {
+				componentStatus.Version = component.Version
+			}
+		}
+	}
 
 	// Update the status
 	return r.updateVerrazzanoStatus(log, cr)
@@ -707,12 +780,13 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 
 	// Return false if any enabled component is not ready
 	for _, comp := range registry.GetComponents() {
-		spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, r.DryRun)
+		spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, nil, r.DryRun)
 		if err != nil {
 			spiCtx.Log().Errorf("Failed to create component context: %v", err)
 			return false, err
 		}
 		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
+			spiCtx.Log().Progressf("Waiting for component %s to be ready", comp.Name())
 			return false, nil
 		}
 	}
@@ -727,7 +801,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	}
 
-	newContext, err := spi.NewContext(log, r.Client, cr, r.DryRun)
+	newContext, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -972,24 +1046,6 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 		}))
 }
 
-func (r *Reconciler) watchJaegerService(namespace string, name string, log vzlog.VerrazzanoLogger) error {
-	// Watch services and trigger reconciles for Verrazzano resources when the Jaeger collector service is created
-	log.Debugf("Watching for services to activate reconcile for Verrazzano CR %s/%s", namespace, name)
-	return r.Controller.Watch(
-		&source.Kind{Type: &corev1.Service{}},
-		createReconcileEventHandler(namespace, name),
-		createPredicate(func(e event.CreateEvent) bool {
-			// Cast object to service
-			service := e.Object.(*corev1.Service)
-			if service.Labels[vzconst.KubernetesAppLabel] == vzconst.JaegerCollectorService {
-				log.Debugf("Jaeger service %s/%s created", service.Namespace, service.Name)
-				r.AddWatch(istio.ComponentJSONName)
-				return true
-			}
-			return false
-		}))
-}
-
 func createReconcileEventHandler(namespace, name string) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(a client.Object) []reconcile.Request {
@@ -1040,11 +1096,6 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 	// Watch pods in the keycloak namespace to handle recycle of the MySQL pod
 	if err := r.watchPods(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("Failed to set Pod watch for Verrazzano CR %s: %v", vz.Name, err)
-		return newRequeueWithDelay(), err
-	}
-
-	if err := r.watchJaegerService(vz.Namespace, vz.Name, log); err != nil {
-		log.Errorf("Failed to set Service watch for Jaeger Collector service: %v", err)
 		return newRequeueWithDelay(), err
 	}
 

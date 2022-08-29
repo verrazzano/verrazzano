@@ -7,8 +7,7 @@ platform-manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(CRD_PATH)
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
-	./hack/update-codegen.sh "verrazzano:v1beta1" "verrazzano" "boilerplate.go.txt"
-	./hack/update-codegen.sh "verrazzano:v1alpha1" "verrazzano" "boilerplate.go.txt"
+	./hack/update-codegen.sh "verrazzano:v1beta1,v1alpha1" "verrazzano" "boilerplate.go.txt"
 	./hack/update-codegen.sh "clusters:v1alpha1" "clusters" "boilerplate-clusters.go.txt"
 
 # Generate manifests e.g. CRD, RBAC etc.
@@ -45,7 +44,7 @@ generate: controller-gen
 .PHONY: controller-gen
 controller-gen:
 ifeq (, $(shell command -v controller-gen))
-	$(GO) get sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION}
+	$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_GEN_VERSION}
 	$(eval CONTROLLER_GEN=$(GOBIN)/controller-gen)
 else
 	$(eval CONTROLLER_GEN=$(shell command -v controller-gen))

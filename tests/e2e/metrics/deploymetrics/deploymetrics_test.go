@@ -51,7 +51,7 @@ var (
 	t = framework.NewTestFramework("deploymetrics")
 )
 
-var clusterDump = pkg.NewClusterDumpWrapper()
+var clusterDump = pkg.NewClusterDumpWrapper(generatedNamespace)
 var kubeconfig string
 var _ = clusterDump.BeforeSuite(func() {
 	if !skipDeploy {
@@ -74,14 +74,11 @@ var _ = clusterDump.BeforeSuite(func() {
 	isVzMinVer14, _ := testpkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
 	if isVzMinVer14 {
 		Eventually(func() error {
-			promJobName, err := getPromConfigJobName()
+			promJobName, err := getPromJobName()
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf(errGenerateSvcMonJobFmt, err))
 			}
 			serviceName := promJobName
-			if len(serviceName) > 63 {
-				serviceName = serviceName[:63]
-			}
 			err = createService(serviceName)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to create the Service for the Service Monitor: %v", err))
@@ -158,14 +155,10 @@ func undeployMetricsApplication() {
 	isVzMinVer14, _ := testpkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
 	if isVzMinVer14 {
 		Eventually(func() bool {
-			promJobName, err := getPromConfigJobName()
+			serviceName, err := getPromJobName()
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf(errGenerateSvcMonJobFmt, err))
 				return false
-			}
-			serviceName := promJobName
-			if len(serviceName) > 63 {
-				serviceName = serviceName[:63]
 			}
 			_, err = pkg.GetServiceMonitor(namespace, serviceName)
 			return err != nil
@@ -196,16 +189,12 @@ var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), fun
 			if skipVerify {
 				Skip(skipVerifications)
 			}
-			promJobName, err := getPromConfigJobName()
-			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf(errGenerateSvcMonJobFmt, err))
-			}
-			serviceName := promJobName
-			if len(serviceName) > 63 {
-				serviceName = serviceName[:63]
-			}
 			isVzMinVer14, _ := testpkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
 			if isVzMinVer14 {
+				serviceName, err := getPromJobName()
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf(errGenerateSvcMonJobFmt, err))
+				}
 				Eventually(func() (*promoperapi.ServiceMonitor, error) {
 					monitor, err := testpkg.GetServiceMonitor(namespace, serviceName)
 					if err != nil {
@@ -296,19 +285,17 @@ func getKubeConfigPath() (string, error) {
 	return adminKubeConfig, nil
 }
 
-func getPromConfigJobName() (string, error) {
+func getPromJobName() (string, error) {
 	kubeconfig, err := getKubeConfigPath()
 	if err != nil {
 		return kubeconfig, err
 	}
-	isPromJobNameInNewFmt, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+	usesServiceMonitor, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
 	if err != nil {
 		return kubeconfig, err
 	}
-	if isPromJobNameInNewFmt {
-		// For VZ versions starting from 1.4.0, the job name in prometheus scrape config is of the format
-		// <app_name>_<app_namespace>
-		return fmt.Sprintf("%s-%s", deploymetricsAppName, namespace), nil
+	if usesServiceMonitor {
+		return testpkg.GetAppServiceMonitorName(namespace, deploymetricsAppName, "deploymetrics-deployment"), nil
 	}
 	// For VZ versions prior to 1.4.0, the job name in prometheus scrape config was of the old format
 	// <app_name>_default_<app_namespace>_<app_component_name>

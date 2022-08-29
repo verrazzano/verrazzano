@@ -32,7 +32,7 @@ const (
 var (
 	t                  = framework.NewTestFramework("todo")
 	generatedNamespace = pkg.GenerateNamespace("todo-list")
-	clusterDump        = pkg.NewClusterDumpWrapper()
+	clusterDump        = pkg.NewClusterDumpWrapper(generatedNamespace)
 )
 
 var _ = clusterDump.BeforeSuite(func() {

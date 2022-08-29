@@ -5,9 +5,10 @@ package configmaps
 
 import (
 	"context"
+	"time"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -94,7 +95,7 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx c
 			return result, err
 		}
 
-		componentCtx, err := spi.NewContext(r.log, r.Client, vz, false)
+		componentCtx, err := spi.NewContext(r.log, r.Client, vz, nil, false)
 		if err != nil {
 			r.log.Errorf("Failed to construct component context: %v", err)
 			return newRequeueWithDelay(), err

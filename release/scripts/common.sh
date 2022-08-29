@@ -9,8 +9,6 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 # Release artifacts
 declare -a releaseArtifacts=("operator.yaml"
-                             "k8s-dump-cluster.sh"
-                             "k8s-dump-cluster.sh.sha256"
                              "vz-darwin-amd64.tar.gz"
                              "vz-darwin-amd64.tar.gz.sha256"
                              "vz-darwin-arm64.tar.gz"

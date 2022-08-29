@@ -3,7 +3,7 @@
 package spi
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,54 +34,54 @@ var trueValue = true
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 var pvc500Gi, _ = resource.ParseQuantity("2T")
 
-var basicDevWithStatus = vzapi.Verrazzano{
+var basicDevWithStatus = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "default-dev",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "dev",
 	},
-	Status: vzapi.VerrazzanoStatus{
+	Status: v1alpha1.VerrazzanoStatus{
 		Version:            "v1.0.1",
-		VerrazzanoInstance: &vzapi.InstanceInfo{},
+		VerrazzanoInstance: &v1alpha1.InstanceInfo{},
 	},
 }
 
-var basicProdWithStatus = vzapi.Verrazzano{
+var basicProdWithStatus = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "default-prod",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "prod",
 	},
-	Status: vzapi.VerrazzanoStatus{
+	Status: v1alpha1.VerrazzanoStatus{
 		Version:            "v1.0.1",
-		VerrazzanoInstance: &vzapi.InstanceInfo{},
+		VerrazzanoInstance: &v1alpha1.InstanceInfo{},
 	},
 }
 
-var basicMgdClusterWithStatus = vzapi.Verrazzano{
+var basicMgdClusterWithStatus = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "default-mgd",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "managed-cluster",
 	},
-	Status: vzapi.VerrazzanoStatus{
+	Status: v1alpha1.VerrazzanoStatus{
 		Version:            "v1.0.1",
-		VerrazzanoInstance: &vzapi.InstanceInfo{},
+		VerrazzanoInstance: &v1alpha1.InstanceInfo{},
 	},
 }
 
-var devOCIDNSOverride = vzapi.Verrazzano{
+var devOCIDNSOverride = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "dev-dns-override",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "dev",
-		Components: vzapi.ComponentSpec{
-			DNS: &vzapi.DNSComponent{
-				OCI: &vzapi.OCI{
+		Components: v1alpha1.ComponentSpec{
+			DNS: &v1alpha1.DNSComponent{
+				OCI: &v1alpha1.OCI{
 					OCIConfigSecret:        "mysecret",
 					DNSZoneCompartmentOCID: "compartment-ocid",
 					DNSZoneOCID:            "zone-ocid",
@@ -92,30 +92,30 @@ var devOCIDNSOverride = vzapi.Verrazzano{
 	},
 }
 
-var devCertManagerNoCert = vzapi.Verrazzano{
+var devCertManagerNoCert = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "default-dev",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "dev",
-		Components: vzapi.ComponentSpec{
-			CertManager: &vzapi.CertManagerComponent{
+		Components: v1alpha1.ComponentSpec{
+			CertManager: &v1alpha1.CertManagerComponent{
 				Enabled: &trueValue,
 			},
 		},
 	},
 }
 
-var devCertManagerOverride = vzapi.Verrazzano{
+var devCertManagerOverride = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "dev-cm-override",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "dev",
-		Components: vzapi.ComponentSpec{
-			CertManager: &vzapi.CertManagerComponent{
-				Certificate: vzapi.Certificate{
-					Acme: vzapi.Acme{
+		Components: v1alpha1.ComponentSpec{
+			CertManager: &v1alpha1.CertManagerComponent{
+				Certificate: v1alpha1.Certificate{
+					Acme: v1alpha1.Acme{
 						Provider:     "letsencrypt",
 						EmailAddress: "myemail",
 						Environment:  "production",
@@ -126,18 +126,18 @@ var devCertManagerOverride = vzapi.Verrazzano{
 	},
 }
 
-var devElasticSearchOverrides = vzapi.Verrazzano{
+var devElasticSearchOverrides = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "dev-es-override",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "dev",
 		DefaultVolumeSource: &corev1.VolumeSource{
 			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 				ClaimName: "vmi",
 			},
 		},
-		VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+		VolumeClaimSpecTemplates: []v1alpha1.VolumeClaimSpecTemplate{
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -149,9 +149,9 @@ var devElasticSearchOverrides = vzapi.Verrazzano{
 				},
 			},
 		},
-		Components: vzapi.ComponentSpec{
-			Elasticsearch: &vzapi.ElasticsearchComponent{
-				ESInstallArgs: []vzapi.InstallArgs{
+		Components: v1alpha1.ComponentSpec{
+			Elasticsearch: &v1alpha1.ElasticsearchComponent{
+				ESInstallArgs: []v1alpha1.InstallArgs{
 					{Name: "nodes.master.replicas", Value: "3"},
 					{Name: "nodes.master.requests.memory", Value: "3G"},
 				},
@@ -160,13 +160,13 @@ var devElasticSearchOverrides = vzapi.Verrazzano{
 	},
 }
 
-var devKeycloakOverrides = vzapi.Verrazzano{
+var devKeycloakOverrides = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "dev-keycloak-override",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "dev",
-		VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+		VolumeClaimSpecTemplates: []v1alpha1.VolumeClaimSpecTemplate{
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -178,14 +178,14 @@ var devKeycloakOverrides = vzapi.Verrazzano{
 				},
 			},
 		},
-		Components: vzapi.ComponentSpec{
-			Keycloak: &vzapi.KeycloakComponent{
-				KeycloakInstallArgs: []vzapi.InstallArgs{
+		Components: v1alpha1.ComponentSpec{
+			Keycloak: &v1alpha1.KeycloakComponent{
+				KeycloakInstallArgs: []v1alpha1.InstallArgs{
 					{Name: "some.keycloak.arg1", Value: "val1"},
 					{Name: "some.keycloak.arg2", Value: "val2"},
 				},
-				MySQL: vzapi.MySQLComponent{
-					MySQLInstallArgs: []vzapi.InstallArgs{
+				MySQL: v1alpha1.MySQLComponent{
+					MySQLInstallArgs: []v1alpha1.InstallArgs{
 						{Name: "some.mysql.arg1", Value: "val1"},
 						{Name: "some.mysql.arg2", Value: "val2"},
 					},
@@ -200,33 +200,34 @@ var devKeycloakOverrides = vzapi.Verrazzano{
 	},
 }
 
-var devAllDisabledOverride = vzapi.Verrazzano{
+var devAllDisabledOverride = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "dev-disable-all-override",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "dev",
-		Components: vzapi.ComponentSpec{
-			Console:           &vzapi.ConsoleComponent{Enabled: &falseValue},
-			CoherenceOperator: &vzapi.CoherenceOperatorComponent{Enabled: &falseValue},
-			Elasticsearch:     &vzapi.ElasticsearchComponent{Enabled: &falseValue},
-			Fluentd:           &vzapi.FluentdComponent{Enabled: &falseValue},
-			Grafana:           &vzapi.GrafanaComponent{Enabled: &falseValue},
-			Kiali:             &vzapi.KialiComponent{Enabled: &falseValue},
-			Keycloak:          &vzapi.KeycloakComponent{Enabled: &falseValue},
-			Kibana:            &vzapi.KibanaComponent{Enabled: &falseValue},
-			Prometheus:        &vzapi.PrometheusComponent{Enabled: &falseValue},
-			Rancher:           &vzapi.RancherComponent{Enabled: &falseValue},
-			WebLogicOperator:  &vzapi.WebLogicOperatorComponent{Enabled: &falseValue},
+		Components: v1alpha1.ComponentSpec{
+			Console:           &v1alpha1.ConsoleComponent{Enabled: &falseValue},
+			CoherenceOperator: &v1alpha1.CoherenceOperatorComponent{Enabled: &falseValue},
+			Elasticsearch:     &v1alpha1.ElasticsearchComponent{Enabled: &falseValue},
+			Fluentd:           &v1alpha1.FluentdComponent{Enabled: &falseValue},
+			Grafana:           &v1alpha1.GrafanaComponent{Enabled: &falseValue},
+			Kiali:             &v1alpha1.KialiComponent{Enabled: &falseValue},
+			Keycloak:          &v1alpha1.KeycloakComponent{Enabled: &falseValue},
+			MySQLOperator:     &v1alpha1.MySQLOperatorComponent{Enabled: &falseValue},
+			Kibana:            &v1alpha1.KibanaComponent{Enabled: &falseValue},
+			Prometheus:        &v1alpha1.PrometheusComponent{Enabled: &falseValue},
+			Rancher:           &v1alpha1.RancherComponent{Enabled: &falseValue},
+			WebLogicOperator:  &v1alpha1.WebLogicOperatorComponent{Enabled: &falseValue},
 		},
 	},
 }
 
-var prodElasticSearchOverrides = vzapi.Verrazzano{
+var prodElasticSearchOverrides = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "prod-es-override",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		EnvironmentName: "prodenv",
 		Profile:         "prod",
 		DefaultVolumeSource: &corev1.VolumeSource{
@@ -234,7 +235,7 @@ var prodElasticSearchOverrides = vzapi.Verrazzano{
 				ClaimName: "vmi",
 			},
 		},
-		VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+		VolumeClaimSpecTemplates: []v1alpha1.VolumeClaimSpecTemplate{
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -246,9 +247,9 @@ var prodElasticSearchOverrides = vzapi.Verrazzano{
 				},
 			},
 		},
-		Components: vzapi.ComponentSpec{
-			Elasticsearch: &vzapi.ElasticsearchComponent{
-				ESInstallArgs: []vzapi.InstallArgs{
+		Components: v1alpha1.ComponentSpec{
+			Elasticsearch: &v1alpha1.ElasticsearchComponent{
+				ESInstallArgs: []v1alpha1.InstallArgs{
 					{Name: "nodes.master.replicas", Value: "3"},
 					{Name: "nodes.master.requests.memory", Value: "3G"},
 					{Name: "nodes.ingest.replicas", Value: "6"},
@@ -261,16 +262,16 @@ var prodElasticSearchOverrides = vzapi.Verrazzano{
 	},
 }
 
-var prodElasticSearchStorageArgs = vzapi.Verrazzano{
+var prodElasticSearchStorageArgs = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "prod-es-override",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		EnvironmentName: "prodenv",
 		Profile:         "prod",
-		Components: vzapi.ComponentSpec{
-			Elasticsearch: &vzapi.ElasticsearchComponent{
-				ESInstallArgs: []vzapi.InstallArgs{
+		Components: v1alpha1.ComponentSpec{
+			Elasticsearch: &v1alpha1.ElasticsearchComponent{
+				ESInstallArgs: []v1alpha1.InstallArgs{
 					{Name: "nodes.master.replicas", Value: "3"},
 					{Name: "nodes.master.requests.memory", Value: "3G"},
 					{Name: "nodes.master.requests.storage", Value: "100Gi"},
@@ -285,16 +286,16 @@ var prodElasticSearchStorageArgs = vzapi.Verrazzano{
 	},
 }
 
-var prodIngressIstioOverrides = vzapi.Verrazzano{
+var prodIngressIstioOverrides = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "prod-ingress-istio-override",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		EnvironmentName: "prodenv",
 		Profile:         "prod",
-		Components: vzapi.ComponentSpec{
-			Ingress: &vzapi.IngressNginxComponent{
-				NGINXInstallArgs: []vzapi.InstallArgs{
+		Components: v1alpha1.ComponentSpec{
+			Ingress: &v1alpha1.IngressNginxComponent{
+				NGINXInstallArgs: []v1alpha1.InstallArgs{
 					{Name: "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"", Value: "10Mbps"},
 					{Name: "controller.service.externalTrafficPolicy", Value: "Local"},
 					{Name: "controller.service.externalIPs", ValueList: []string{"11.22.33.44"}},
@@ -304,8 +305,8 @@ var prodIngressIstioOverrides = vzapi.Verrazzano{
 					{Name: "https", NodePort: 30443, Port: 443, Protocol: corev1.ProtocolTCP, TargetPort: intstr.FromInt(0)},
 				},
 			},
-			Istio: &vzapi.IstioComponent{
-				IstioInstallArgs: []vzapi.InstallArgs{
+			Istio: &v1alpha1.IstioComponent{
+				IstioInstallArgs: []v1alpha1.InstallArgs{
 					{Name: "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"", Value: "10Mbps"},
 					{Name: "gateways.istio-ingressgateway.replicaCount", Value: "3"},
 					{Name: "gateways.istio-ingressgateway.externalIPs", ValueList: []string{"11.22.33.44"}},
@@ -315,16 +316,16 @@ var prodIngressIstioOverrides = vzapi.Verrazzano{
 	},
 }
 
-var prodFluentdOverrides = vzapi.Verrazzano{
+var prodFluentdOverrides = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "prod-fluentd-override",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		EnvironmentName: "prodenv",
 		Profile:         "prod",
-		Components: vzapi.ComponentSpec{
-			Fluentd: &vzapi.FluentdComponent{
-				ExtraVolumeMounts: []vzapi.VolumeMount{
+		Components: v1alpha1.ComponentSpec{
+			Fluentd: &v1alpha1.FluentdComponent{
+				ExtraVolumeMounts: []v1alpha1.VolumeMount{
 					{Source: "/u01/datarw", ReadOnly: &falseValue},
 					{Source: "/u01/dataro", ReadOnly: &trueValue},
 				},
@@ -335,21 +336,21 @@ var prodFluentdOverrides = vzapi.Verrazzano{
 	},
 }
 
-var managedClusterEnableAllOverride = vzapi.Verrazzano{
+var managedClusterEnableAllOverride = v1alpha1.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "managed-enable-all-override",
 	},
-	Spec: vzapi.VerrazzanoSpec{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "managed-cluster",
-		Components: vzapi.ComponentSpec{
-			Console:       &vzapi.ConsoleComponent{Enabled: &trueValue},
-			Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &trueValue},
-			Grafana:       &vzapi.GrafanaComponent{Enabled: &trueValue},
-			Kiali:         &vzapi.KialiComponent{Enabled: &trueValue},
-			Keycloak:      &vzapi.KeycloakComponent{Enabled: &trueValue},
-			Kibana:        &vzapi.KibanaComponent{Enabled: &trueValue},
-			Prometheus:    &vzapi.PrometheusComponent{Enabled: &trueValue},
-			Rancher:       &vzapi.RancherComponent{Enabled: &trueValue},
+		Components: v1alpha1.ComponentSpec{
+			Console:       &v1alpha1.ConsoleComponent{Enabled: &trueValue},
+			Elasticsearch: &v1alpha1.ElasticsearchComponent{Enabled: &trueValue},
+			Grafana:       &v1alpha1.GrafanaComponent{Enabled: &trueValue},
+			Kiali:         &v1alpha1.KialiComponent{Enabled: &trueValue},
+			Keycloak:      &v1alpha1.KeycloakComponent{Enabled: &trueValue},
+			Kibana:        &v1alpha1.KibanaComponent{Enabled: &trueValue},
+			Prometheus:    &v1alpha1.PrometheusComponent{Enabled: &trueValue},
+			Rancher:       &v1alpha1.RancherComponent{Enabled: &trueValue},
 		},
 	},
 }

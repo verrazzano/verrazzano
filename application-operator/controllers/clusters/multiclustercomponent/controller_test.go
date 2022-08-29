@@ -6,10 +6,12 @@ package multiclustercomponent
 import (
 	"context"
 	"encoding/json"
-	"github.com/go-logr/logr"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"path/filepath"
 	"testing"
+
+	"github.com/go-logr/logr"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
@@ -432,6 +434,10 @@ func assertComponentValid(assert *asserts.Assertions, c *v1alpha2.Component, mcC
 	assert.Equal(namespace, c.ObjectMeta.Namespace)
 	assert.Equal(crName, c.ObjectMeta.Name)
 	assert.Equal(mcComp.Spec.Template.Spec, c.Spec)
+
+	// assert that the component is labeled verrazzano-managed=true since it was created by Verrazzano
+	assert.NotNil(c.Labels)
+	assert.Equal(constants.LabelVerrazzanoManagedDefault, c.Labels[vzconst.VerrazzanoManagedLabelKey])
 
 	// assert some fields on the component spec (e.g. in the case of update, these fields should
 	// be different from the mock pre existing OAM component)

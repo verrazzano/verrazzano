@@ -14,7 +14,9 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	spi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	types "k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -54,6 +56,20 @@ func (m *MockComponentContext) ActualCR() *v1alpha1.Verrazzano {
 func (mr *MockComponentContextMockRecorder) ActualCR() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActualCR", reflect.TypeOf((*MockComponentContext)(nil).ActualCR))
+}
+
+// ActualCRV1Beta1 mocks base method.
+func (m *MockComponentContext) ActualCRV1Beta1() *v1beta1.Verrazzano {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ActualCRV1Beta1")
+	ret0, _ := ret[0].(*v1beta1.Verrazzano)
+	return ret0
+}
+
+// ActualCRV1Beta1 indicates an expected call of ActualCRV1Beta1.
+func (mr *MockComponentContextMockRecorder) ActualCRV1Beta1() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActualCRV1Beta1", reflect.TypeOf((*MockComponentContext)(nil).ActualCRV1Beta1))
 }
 
 // Client mocks base method.
@@ -96,6 +112,20 @@ func (m *MockComponentContext) EffectiveCR() *v1alpha1.Verrazzano {
 func (mr *MockComponentContextMockRecorder) EffectiveCR() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EffectiveCR", reflect.TypeOf((*MockComponentContext)(nil).EffectiveCR))
+}
+
+// EffectiveCRV1Beta1 mocks base method.
+func (m *MockComponentContext) EffectiveCRV1Beta1() *v1beta1.Verrazzano {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EffectiveCRV1Beta1")
+	ret0, _ := ret[0].(*v1beta1.Verrazzano)
+	return ret0
+}
+
+// EffectiveCRV1Beta1 indicates an expected call of EffectiveCRV1Beta1.
+func (mr *MockComponentContextMockRecorder) EffectiveCRV1Beta1() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EffectiveCRV1Beta1", reflect.TypeOf((*MockComponentContext)(nil).EffectiveCRV1Beta1))
 }
 
 // GetComponent mocks base method.
@@ -290,7 +320,7 @@ func (mr *MockComponentInfoMockRecorder) GetOverrides(arg0 interface{}) *gomock.
 }
 
 // IsEnabled mocks base method.
-func (m *MockComponentInfo) IsEnabled(arg0 *v1alpha1.Verrazzano) bool {
+func (m *MockComponentInfo) IsEnabled(arg0 runtime.Object) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsEnabled", arg0)
 	ret0, _ := ret[0].(bool)
@@ -343,6 +373,20 @@ func (m *MockComponentInfo) Name() string {
 func (mr *MockComponentInfoMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockComponentInfo)(nil).Name))
+}
+
+// Namespace mocks base method.
+func (m *MockComponentInfo) Namespace() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Namespace")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Namespace indicates an expected call of Namespace.
+func (mr *MockComponentInfoMockRecorder) Namespace() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Namespace", reflect.TypeOf((*MockComponentInfo)(nil).Namespace))
 }
 
 // MockComponentInstaller is a mock of ComponentInstaller interface.
@@ -527,6 +571,20 @@ func (m *MockComponent) EXPECT() *MockComponentMockRecorder {
 	return m.recorder
 }
 
+// ShouldInstallBeforeUpgrade mocks base method.
+func (m *MockComponent) ShouldInstallBeforeUpgrade() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ShouldInstallBeforeUpgrade")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (mr *MockComponentMockRecorder) ShouldInstallBeforeUpgrade() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldInstallBeforeUpgrade", reflect.TypeOf((*MockComponent)(nil).ShouldInstallBeforeUpgrade))
+}
+
 // GetCertificateNames mocks base method.
 func (m *MockComponent) GetCertificateNames(arg0 spi.ComponentContext) []types.NamespacedName {
 	m.ctrl.T.Helper()
@@ -625,22 +683,8 @@ func (mr *MockComponentMockRecorder) Install(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockComponent)(nil).Install), arg0)
 }
 
-// Uninstall mocks base method.
-func (m *MockComponent) Uninstall(arg0 spi.ComponentContext) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Uninstall", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Uninstall indicates an expected call of Uninstall.
-func (mr *MockComponentMockRecorder) Uninstall(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Uninstall", reflect.TypeOf((*MockComponent)(nil).Uninstall), arg0)
-}
-
 // IsEnabled mocks base method.
-func (m *MockComponent) IsEnabled(arg0 *v1alpha1.Verrazzano) bool {
+func (m *MockComponent) IsEnabled(arg0 runtime.Object) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsEnabled", arg0)
 	ret0, _ := ret[0].(bool)
@@ -680,6 +724,20 @@ func (m *MockComponent) IsOperatorInstallSupported() bool {
 func (mr *MockComponentMockRecorder) IsOperatorInstallSupported() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOperatorInstallSupported", reflect.TypeOf((*MockComponent)(nil).IsOperatorInstallSupported))
+}
+
+// IsOperatorUninstallSupported mocks base method.
+func (m *MockComponent) IsOperatorUninstallSupported() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsOperatorUninstallSupported")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsOperatorUninstallSupported indicates an expected call of IsOperatorUninstallSupported.
+func (mr *MockComponentMockRecorder) IsOperatorUninstallSupported() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOperatorUninstallSupported", reflect.TypeOf((*MockComponent)(nil).IsOperatorUninstallSupported))
 }
 
 // IsReady mocks base method.
@@ -755,7 +813,7 @@ func (mr *MockComponentMockRecorder) PostInstall(arg0 interface{}) *gomock.Call 
 // PostUninstall mocks base method.
 func (m *MockComponent) PostUninstall(arg0 spi.ComponentContext) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PostInstall", arg0)
+	ret := m.ctrl.Call(m, "PostUninstall", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -794,10 +852,6 @@ func (mr *MockComponentMockRecorder) PreInstall(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreInstall", reflect.TypeOf((*MockComponent)(nil).PreInstall), arg0)
 }
 
-func (m *MockComponent) IsOperatorUninstallSupported() bool {
-	return true
-}
-
 // PreUninstall mocks base method.
 func (m *MockComponent) PreUninstall(arg0 spi.ComponentContext) error {
 	m.ctrl.T.Helper()
@@ -809,7 +863,7 @@ func (m *MockComponent) PreUninstall(arg0 spi.ComponentContext) error {
 // PreUninstall indicates an expected call of PreUninstall.
 func (mr *MockComponentMockRecorder) PreUninstall(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreUninstall}", reflect.TypeOf((*MockComponent)(nil).PreUninstall), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreUninstall", reflect.TypeOf((*MockComponent)(nil).PreUninstall), arg0)
 }
 
 // PreUpgrade mocks base method.
@@ -840,6 +894,20 @@ func (mr *MockComponentMockRecorder) Reconcile(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reconcile", reflect.TypeOf((*MockComponent)(nil).Reconcile), arg0)
 }
 
+// Uninstall mocks base method.
+func (m *MockComponent) Uninstall(arg0 spi.ComponentContext) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Uninstall", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Uninstall indicates an expected call of Uninstall.
+func (mr *MockComponentMockRecorder) Uninstall(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Uninstall", reflect.TypeOf((*MockComponent)(nil).Uninstall), arg0)
+}
+
 // Upgrade mocks base method.
 func (m *MockComponent) Upgrade(arg0 spi.ComponentContext) error {
 	m.ctrl.T.Helper()
@@ -868,6 +936,20 @@ func (mr *MockComponentMockRecorder) ValidateInstall(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateInstall", reflect.TypeOf((*MockComponent)(nil).ValidateInstall), arg0)
 }
 
+// ValidateInstallV1Beta1 mocks base method.
+func (m *MockComponent) ValidateInstallV1Beta1(arg0 *v1beta1.Verrazzano) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateInstallV1Beta1", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateInstallV1Beta1 indicates an expected call of ValidateInstallV1Beta1.
+func (mr *MockComponentMockRecorder) ValidateInstallV1Beta1(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateInstallV1Beta1", reflect.TypeOf((*MockComponent)(nil).ValidateInstallV1Beta1), arg0)
+}
+
 // ValidateUpdate mocks base method.
 func (m *MockComponent) ValidateUpdate(arg0, arg1 *v1alpha1.Verrazzano) error {
 	m.ctrl.T.Helper()
@@ -880,4 +962,18 @@ func (m *MockComponent) ValidateUpdate(arg0, arg1 *v1alpha1.Verrazzano) error {
 func (mr *MockComponentMockRecorder) ValidateUpdate(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateUpdate", reflect.TypeOf((*MockComponent)(nil).ValidateUpdate), arg0, arg1)
+}
+
+// ValidateUpdateV1Beta1 mocks base method.
+func (m *MockComponent) ValidateUpdateV1Beta1(arg0, arg1 *v1beta1.Verrazzano) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateUpdateV1Beta1", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateUpdateV1Beta1 indicates an expected call of ValidateUpdateV1Beta1.
+func (mr *MockComponentMockRecorder) ValidateUpdateV1Beta1(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateUpdateV1Beta1", reflect.TypeOf((*MockComponent)(nil).ValidateUpdateV1Beta1), arg0, arg1)
 }

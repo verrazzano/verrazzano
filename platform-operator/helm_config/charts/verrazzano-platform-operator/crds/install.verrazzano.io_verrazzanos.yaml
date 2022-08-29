@@ -828,8 +828,18 @@ spec:
                     type: object
                   grafana:
                     properties:
+                      database:
+                        properties:
+                          host:
+                            type: string
+                          name:
+                            type: string
+                        type: object
                       enabled:
                         type: boolean
+                      replicas:
+                        format: int32
+                        type: integer
                     type: object
                   ingress:
                     properties:
@@ -2804,6 +2814,8 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      keycloakAuthEnabled:
+                        type: boolean
                       monitorChanges:
                         type: boolean
                       overrides:
@@ -3880,7 +3892,7 @@ spec:
             type: object
         type: object
     served: true
-    storage: true
+    storage: false
     subresources:
       status: {}
   - additionalPrinterColumns:
@@ -5469,6 +5481,8 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      keycloakAuthEnabled:
+                        type: boolean
                       monitorChanges:
                         type: boolean
                       overrides:
@@ -6528,7 +6542,7 @@ spec:
             type: object
         type: object
     served: true
-    storage: false
+    storage: true
     subresources:
       status: {}
 status:

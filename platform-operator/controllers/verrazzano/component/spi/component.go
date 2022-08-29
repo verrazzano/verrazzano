@@ -5,7 +5,9 @@ package spi
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -16,10 +18,14 @@ type ComponentContext interface {
 	Log() vzlog.VerrazzanoLogger
 	// GetClient returns the controller client for the context
 	Client() clipkg.Client
-	// ActualCR returns the actual unmerged Verrazzano resource
-	ActualCR() *vzapi.Verrazzano
-	// EffectiveCR returns the effective merged Verrazzano CR
-	EffectiveCR() *vzapi.Verrazzano
+	// ActualCR returns the actual unmerged v1alpha1.Verrazzano resource
+	ActualCR() *v1alpha1.Verrazzano
+	// EffectiveCR returns the effective merged v1alpha1.Verrazzano CR
+	EffectiveCR() *v1alpha1.Verrazzano
+	// ActualCRV1Beta1 returns the actual unmerged v1beta1.Verrazzano resource
+	ActualCRV1Beta1() *v1beta1.Verrazzano
+	// EffectiveCRV1Beta1 returns the effective merged v1beta1.Verrazzano CR
+	EffectiveCRV1Beta1() *v1beta1.Verrazzano
 	// IsDryRun indicates the component context is in DryRun mode
 	IsDryRun() bool
 	// Copy returns a copy of the current context
@@ -40,12 +46,14 @@ type ComponentInfo interface {
 	Name() string
 	// Namespace returns the namespace of the Verrazzano component
 	Namespace() string
+	// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done, default false
+	ShouldInstallBeforeUpgrade() bool
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 	// IsReady Indicates whether or not a component is available and ready
 	IsReady(context ComponentContext) bool
 	// IsEnabled Indicates whether or a component is enabled for installation
-	IsEnabled(effectiveCR *vzapi.Verrazzano) bool
+	IsEnabled(effectiveCR runtime.Object) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 	GetMinVerrazzanoVersion() string
 	// GetIngressNames returns a list of names of the ingresses associated with the component
@@ -55,7 +63,7 @@ type ComponentInfo interface {
 	// GetJsonName returns the josn name of the verrazzano component in CRD
 	GetJSONName() string
 	// GetOverrides returns the list of overrides for a component
-	GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides
+	GetOverrides(effectiveCR *v1alpha1.Verrazzano) []v1alpha1.Overrides
 	// MonitorOverrides indicates whether the override sources for a component need to be monitored
 	MonitorOverrides(context ComponentContext) bool
 }
@@ -101,9 +109,13 @@ type ComponentUpgrader interface {
 // ComponentValidator interface defines validation operations for components that support it
 type ComponentValidator interface {
 	// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-	ValidateInstall(vz *vzapi.Verrazzano) error
+	ValidateInstall(vz *v1alpha1.Verrazzano) error
 	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-	ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
+	ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error
+	// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+	ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error
+	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+	ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error
 }
 
 // Generate mocs for the spi.Component interface for use in tests.

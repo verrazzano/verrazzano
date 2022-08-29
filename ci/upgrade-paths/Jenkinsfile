@@ -172,6 +172,7 @@ pipeline {
 
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
@@ -525,22 +526,21 @@ pipeline {
                 }
             }
         }
-
         stage('Post-upgrade Acceptance Tests') {
             stages {
-                stage('Post-upgrade Acceptance Tests parallel') {
-                    parallel {
-                        stage ('Console') {
-                            when { expression { isMultiCluster() } }
-                            steps {
-                                runConsoleTests()
-                            }
-                            post {
-                                always {
-                                    saveConsoleTestArtifacts()
-                                }
+                stage ('Console') {
+                    when { expression { isMultiCluster() } }
+                        steps {
+                            runConsoleTests()
+                        }
+                        post {
+                            always {
+                                saveConsoleTestArtifacts()
                             }
                         }
+                }
+                stage('Post-upgrade Acceptance Tests parallel') {
+                    parallel {
                         stage('post-upgrade verify keycloak') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
@@ -659,7 +659,7 @@ pipeline {
                 }
             }
             copyGeneratedTestReports()
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/*bug-report*/**,**/test-cluster-snapshots/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -701,6 +701,7 @@ def isMinVersion(v1, v2) {
     }
     return false
 }
+
 
 
 def createOCIDNSZone() {
@@ -891,15 +892,9 @@ def getVerrazzanoOperatorYaml() {
         echo "Platform Operator Configuration"
         cd ${GO_REPO_PATH}/verrazzano
         if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-            if [ "true" == "${params.EXTERNAL_ELASTICSEARCH}" ]; then
-                echo "Using the latest branch operator.yaml from object storage because external ES is not supported in versions prior to v1.1"
-                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-            else
-                echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
-                wget "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" -O ${WORKSPACE}/downloaded-release-operator.yaml
-                cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-            fi
+            echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
+            wget "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" -O ${WORKSPACE}/downloaded-release-operator.yaml
+            cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
         else
             echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
             env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
@@ -940,8 +935,10 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
-                echo "Create the verrazzano-install namespace"
-                kubectl create namespace verrazzano-install
+                if { [ 'false' == '${params.EXTERNAL_ELASTICSEARCH}' ]; } || { [ '${count}' != 1 ] && [ 'true' == '${params.EXTERNAL_ELASTICSEARCH}' ]; }; then
+                    echo "Create the verrazzano-install namespace"
+                    kubectl create namespace verrazzano-install
+                fi
 
                 echo "Create Image Pull Secrets"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
@@ -1459,7 +1456,12 @@ def dumpK8sSpecificCluster(count, dumpDirectory) {
         script {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count} -r ${dumpDirectory}-${count}/cluster-snapshot/analysis.report
+                mkdir -p ${dumpDirectory}/cluster-snapshot
+                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot-${count} -r ${dumpDirectory}/cluster-snapshot-${count}/cluster-snapshot/analysis.report
+
+                mkdir -p ${dumpDirectory}/bug-report-${count}/bug-report
+                ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report-${count}/bug-report.tar.gz
+                tar -xvf ${dumpDirectory}/bug-report-${count}/bug-report.tar.gz -C ${dumpDirectory}/bug-report-${count}/bug-report
             """
         }
     }

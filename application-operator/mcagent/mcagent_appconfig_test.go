@@ -12,7 +12,9 @@ import (
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -22,8 +24,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var mcAppConfigTestLabels = map[string]string{"label1": "test1"}
-var mcAppConfigTestUpdatedLabels = map[string]string{"label1": "test1updated"}
+var mcAppConfigExpectedLabels = map[string]string{"label1": "test1", vzconst.VerrazzanoManagedLabelKey: constants.LabelVerrazzanoManagedDefault}
+var mcAppConfigExpectedLabelsAfterUpdate = map[string]string{"label1": "test1updated", vzconst.VerrazzanoManagedLabelKey: constants.LabelVerrazzanoManagedDefault}
 
 // TestCreateMCAppConfig tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterApplicationConfiguration objects
@@ -63,12 +65,13 @@ func TestCreateMCAppConfig(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(s.ManagedClusterName, component.Labels[managedClusterLabel])
 	assert.Equal(testMCAppConfig.Name, component.Labels[mcAppConfigsLabel])
+	assert.Equal(constants.LabelVerrazzanoManagedDefault, component.Labels[vzconst.VerrazzanoManagedLabelKey])
 
 	// Verify MultiClusterApplicationConfiguration got created on local cluster
 	mcAppConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig.Name, Namespace: testMCAppConfig.Namespace}, mcAppConfig)
 	assert.NoError(err)
-	assert.Equal(mcAppConfigTestLabels, mcAppConfig.Labels, "mcappconfig labels did not match")
+	assert.Equal(mcAppConfig.Labels, mcAppConfigExpectedLabels, "mcappconfig labels did not match")
 	assert.Equal(testClusterName, mcAppConfig.Spec.Placement.Clusters[0].Name, "mcappconfig does not contain expected placement")
 }
 
@@ -114,7 +117,7 @@ func TestCreateMCAppConfigNoOAMComponent(t *testing.T) {
 	mcAppConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig.Name, Namespace: testMCAppConfig.Namespace}, mcAppConfig)
 	assert.NoError(err)
-	assert.Equal(mcAppConfigTestLabels, mcAppConfig.Labels, "mcappconfig labels did not match")
+	assert.Equal(mcAppConfig.Labels, mcAppConfigExpectedLabels, "mcappconfig labels did not match")
 	assert.Equal(testClusterName, mcAppConfig.Spec.Placement.Clusters[0].Name, "mcappconfig does not contain expected placement")
 }
 
@@ -160,7 +163,7 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	mcAppConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCAppConfig.Name, Namespace: testMCAppConfig.Namespace}, mcAppConfig)
 	assert.NoError(err)
-	assert.Equal(mcAppConfigTestUpdatedLabels, mcAppConfig.Labels, "mcappconfig labels did not match")
+	assert.Equal(mcAppConfigExpectedLabelsAfterUpdate, mcAppConfig.Labels, "mcappconfig labels did not match")
 	assert.Equal("Hello application updated", mcAppConfig.Spec.Template.Metadata.Annotations["description"])
 	assert.Equal(2, len(mcAppConfig.Spec.Template.Spec.Components))
 	comp0 := mcAppConfig.Spec.Template.Spec.Components[0]

@@ -32,6 +32,7 @@ const (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=verrazzanos
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=vz;vzs
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano installation"
@@ -341,6 +342,10 @@ type ComponentSpec struct {
 	// +optional
 	KubeStateMetrics *KubeStateMetricsComponent `json:"kubeStateMetrics,omitempty"`
 
+	// MySQL Operator configuration
+	// +optional
+	MySQLOperator *MySQLOperatorComponent `json:"mySQLOperator,omitempty"`
+
 	// Prometheus configuration
 	// +optional
 	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
@@ -387,7 +392,10 @@ type OpenSearchComponent struct {
 	// +optional
 	Enabled  *bool                         `json:"enabled,omitempty"`
 	Policies []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
-	Nodes    []OpenSearchNode              `json:"nodes,omitempty"`
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	Nodes []OpenSearchNode `json:"nodes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 //OpenSearchNode specifies a node group in the OpenSearch cluster
@@ -417,10 +425,18 @@ type KubeStateMetricsComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
+// DatabaseInfo specifies the database host, name, and username/password secret for Grafana DB instance
+type DatabaseInfo struct {
+	Host string `json:"host,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
 // GrafanaComponent specifies the Grafana configuration.
 type GrafanaComponent struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled  *bool         `json:"enabled,omitempty"`
+	Replicas *int32        `json:"replicas,omitempty"`
+	Database *DatabaseInfo `json:"database,omitempty"`
 }
 
 // PrometheusComponent specifies the Prometheus configuration.
@@ -603,11 +619,21 @@ type MySQLComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
+// MySQLOperatorComponent specifies the MySQL Operator configuration
+type MySQLOperatorComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
+}
+
 // RancherComponent specifies the Rancher configuration
 type RancherComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
+	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is false.
+	// +optional
+	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
 }
 
 // RancherBackupComponent specifies the Rancher Backup configuration

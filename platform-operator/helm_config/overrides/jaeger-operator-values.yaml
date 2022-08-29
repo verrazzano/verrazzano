@@ -13,6 +13,10 @@ jaeger:
       proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
     ingress:
       enabled: false
+    collector:
+      options:
+        collector:
+          tags: verrazzano_cluster=local
     storage:
       dependencies:
         enabled: false

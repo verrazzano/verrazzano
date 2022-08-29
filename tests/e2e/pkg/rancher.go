@@ -5,28 +5,29 @@ package pkg
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"go.uber.org/zap"
-	"io/ioutil"
-	"net/http"
-	"strings"
 )
 
-func EventuallyGetRancherURL(log *zap.SugaredLogger, api *APIEndpoint) string {
-	var rancherURL string
+func EventuallyGetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string, scheme string) string {
+	var ingressURL string
 	gomega.Eventually(func() error {
-		ingress, err := api.GetIngress("cattle-system", "rancher")
+		ingress, err := api.GetIngress(namespace, name)
 		if err != nil {
 			return err
 		}
-		rancherURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
-		log.Info(fmt.Sprintf("Found ingress URL: %s", rancherURL))
+		ingressURL = fmt.Sprintf("%s://%s", scheme, ingress.Spec.Rules[0].Host)
+		log.Info(fmt.Sprintf("Found ingress URL: %s", ingressURL))
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
-	gomega.Expect(rancherURL).ToNot(gomega.BeEmpty())
-	return rancherURL
+	gomega.Expect(ingressURL).ToNot(gomega.BeEmpty())
+	return ingressURL
 }
 
 func GetRancherAdminToken(log *zap.SugaredLogger, httpClient *retryablehttp.Client, rancherURL string) string {

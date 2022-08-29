@@ -89,6 +89,7 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
         string (name: 'PIPELINE_TAG', defaultValue: 'none', description: 'Tag representing the pipeline for tracking. Developers triggering test runs SHOULD NOT SET THIS, other pipelines will explicitly set this')
         string (name: 'SCENARIO_TAG', defaultValue: 'ad-hoc', description: 'Tag representing the scenario for tracking. Pipelines will explicitly set this, developers can set this if the know the correct value (not described here) otherwise they should just leave it as the default')
     }
@@ -153,9 +154,14 @@ pipeline {
 
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
 
+        // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+        CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
+
+        // Environment variable for Verrazzano CLI executable
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
@@ -575,7 +581,7 @@ pipeline {
             dumpNginxIngressControllerLogs()
             dumpVerrazzanoPlatformOperatorLogs()
 
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*full-cluster*/**,**/*bug-report*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -663,7 +669,7 @@ def runGinkgoFailFast(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

@@ -4,8 +4,9 @@
 package constants
 
 import (
-	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"time"
+
+	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
@@ -58,6 +59,9 @@ const CertManagerNamespace = "cert-manager"
 
 // KeycloakNamespace - the keycloak namespace
 const KeycloakNamespace = "keycloak"
+
+// MySQLOperatorNamespace indicates the namespace to be used for the MySQLOperator installation
+const MySQLOperatorNamespace = "mysql-operator"
 
 // RancherSystemNamespace - the Rancher cattle-system namespace
 const RancherSystemNamespace = "cattle-system"
@@ -120,8 +124,24 @@ const TestPrometheusJobScrapeInterval = "0s"
 // TestPrometheusJob - Name of a test prometheus scraper job
 const TestPrometheusScrapeJob = "test_job"
 
-// Default Opensearch URL
+// Default OpenSearch URL
 const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"
+
+// Default Jaeger OpenSearch URL
+const DefaultJaegerOSURL = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
+
+// DefaultJaegerSecretName is the Jaeger secret name used by the default Jaeger instance
+// #nosec
+const DefaultJaegerSecretName = "verrazzano-jaeger-secret"
+
+// JaegerInstanceName is the name of the default Jaeger instance
+const JaegerInstanceName = "jaeger-operator-jaeger"
+
+// JaegerQueryComponentName is the name of the collector component
+const JaegerCollectorComponentName = "collector"
+
+// JaegerQueryComponentName is the name of the collector component
+const JaegerQueryComponentName = "query"
 
 // VerrazzanoManagedLabelKey is a constant for a Kubernetes label that is applied to Verrazzano application namespaces
 const VerrazzanoManagedLabelKey = "verrazzano-managed"
@@ -153,7 +173,7 @@ const (
 	CoherenceOperator             = "coherence-operator"
 	IngressController             = "ingress-controller"
 	IngressDefaultBackend         = "ingress-controller-ingress-nginx-defaultbackend"
-	Mysql                         = "mysql"
+	MySQL                         = "mysql"
 	CertManager                   = "cert-manager"
 	Rancher                       = "rancher"
 	PrometheusPushgateway         = "prometheus-pushgateway"
@@ -172,6 +192,7 @@ const (
 	Verrazzano                    = "verrazzano"
 	Fluentd                       = "fluentd"
 	RancherBackup                 = "rancher-backup"
+	MySQLOperator                 = "mysql-operator"
 )
 
 const (
@@ -189,7 +210,7 @@ var ComponentNameToNamespacesMap = map[string][]string{
 	VerrazzanoApplicationOperator: {VerrazzanoSystemNamespace},
 	CoherenceOperator:             {VerrazzanoSystemNamespace},
 	IngressController:             {platformOperatorConstants.IngressNginxNamespace},
-	Mysql:                         {KeycloakNamespace},
+	MySQL:                         {KeycloakNamespace},
 	CertManager:                   {CertManagerNamespace},
 	Rancher:                       {RancherSystemNamespace, RancherFleetSystemNamespace, RancherFleetLocalSystemNamespace},
 	PrometheusPushgateway:         {platformOperatorConstants.VerrazzanoMonitoringNamespace},
@@ -208,4 +229,5 @@ var ComponentNameToNamespacesMap = map[string][]string{
 	Verrazzano:                    {VerrazzanoSystemNamespace},
 	Fluentd:                       {VerrazzanoSystemNamespace},
 	RancherBackup:                 {platformOperatorConstants.RancherBackupNamesSpace},
+	MySQLOperator:                 {MySQLOperatorNamespace},
 }

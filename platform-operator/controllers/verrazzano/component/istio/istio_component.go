@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 	"strings"
 
@@ -225,12 +227,8 @@ func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
 }
 
 // IsEnabled istio-specific enabled check for installation
-func (i istioComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.Istio
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+func (i istioComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsIstioEnabled(effectiveCR)
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
@@ -269,6 +267,16 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	return i.validateForExternalIPSWithNodePort(&new.Spec)
 }
 
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (i istioComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (i istioComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
 func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoSpec) error {
 	// good if istio or istio.ingress is not set
@@ -283,7 +291,7 @@ func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 
 	// look for externalIPs if NodePort
 	if vz.Components.Istio.Ingress.Type == vzapi.NodePort {
-		return vzconfig.CheckExternalIPsArgs(vz.Components.Istio.IstioInstallArgs, ExternalIPArg, i.Name())
+		return vzconfig.CheckExternalIPsArgs(vz.Components.Istio.IstioInstallArgs, vz.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, i.Name())
 	}
 
 	return nil
@@ -402,6 +410,11 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 // GetCertificateNames returns the list of expected certificates used by this component
 func (i istioComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
+}
+
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (i istioComponent) ShouldInstallBeforeUpgrade() bool {
+	return false
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {

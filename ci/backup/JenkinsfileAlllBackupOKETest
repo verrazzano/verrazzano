@@ -155,6 +155,8 @@ pipeline {
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
+        // Environment variable for Verrazzano CLI executable
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
     }
 
     stages {
@@ -237,6 +239,15 @@ pipeline {
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
                 }
+
+                script {
+                    sh """
+                        echo "Downloading VZ CLI from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
+                        ${GO_REPO_PATH}/vz version
+                    """
+                 }
             }
         }
 
@@ -311,14 +322,6 @@ pipeline {
                     cat ${TEST_CONFIG_FILE}
                     echo "----------------------------------------"
                 """
-                script {
-                    sh """
-                        echo "Downloading VZ CLI from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
-                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                        ${GO_REPO_PATH}/vz version
-                    """
-                }
             }
             post {
                 always {
@@ -388,9 +391,9 @@ pipeline {
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
                 failure {
-                        script {
-                             dumpK8sCluster('rancher-backup-restore-cluster-dump')
-                        }
+                    script {
+                        dumpK8sCluster('rancher-backup-restore-cluster-dump')
+                    }
                 }
             }
         }
@@ -410,7 +413,7 @@ pipeline {
                 }
                 failure {
                     script {
-                         dumpK8sCluster('mysql-backup-restore-cluster-dump')
+                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
                     }
                 }
             }
@@ -425,7 +428,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.DELETE_BUCKET) {
@@ -446,7 +449,7 @@ pipeline {
         failure {
             script {
                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
+                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**', allowEmptyArchive: true
                 script {
                     if (env.JOB_NAME == "verrazzano-uninstall-test/master" || env.JOB_NAME ==~ "verrazzano-uninstall-test/release-*") {
                         slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
@@ -502,7 +505,7 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

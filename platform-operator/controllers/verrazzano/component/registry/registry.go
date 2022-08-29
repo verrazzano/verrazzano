@@ -18,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -78,6 +79,7 @@ func getComponents() []spi.Component {
 			grafana.NewComponent(),
 			authproxy.NewComponent(),
 			coherence.NewComponent(),
+			mysqloperator.NewComponent(), // mysqloperator needs to be upgraded before mysql
 			mysql.NewComponent(),
 			keycloak.NewComponent(),
 			kiali.NewComponent(),

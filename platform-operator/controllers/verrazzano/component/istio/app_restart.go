@@ -5,7 +5,9 @@ package istio
 
 import (
 	"context"
+	v1 "k8s.io/api/core/v1"
 	"strconv"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -201,28 +203,69 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 			return log.ErrorfNewErr("Failed to list pods for AppConfig %s/%s: %v", appConfig.Namespace, appConfig.Name, err)
 		}
 
-		// Check if any pods contain the old Istio proxy image
-		found := DoesPodContainOldIstioSidecar(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
-		if !found {
+		//Check if any pods that contain no or old istio proxy container with istio injection labeled namespace
+		foundOAMPodRequireRestart, _ := DoesAppPodNeedRestart(log, podList, "OAM Application", appConfig.Name, istioProxyImage)
+
+		if foundOAMPodRequireRestart {
+			err := restartOAMApp(log, appConfig, client, restartVersion)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// DoesAppPodNeedRestart returns true if any OAM pods with istio injected don't have or have an old Istio proxy sidecar
+func DoesAppPodNeedRestart(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) (bool, error) {
+	// Return true if the pod has an old Istio proxy container
+	for _, pod := range podList.Items {
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, "proxyv2") {
+				// Container contains the proxy2 image (Envoy Proxy).  Return true if it
+				// doesn't match the Istio proxy in the BOM
+				if 0 != strings.Compare(container.Image, istioProxyImageName) {
+					log.Oncef("Restarting %s %s which has a pod with an old Istio proxy %s", workloadType, workloadName, container.Image)
+					return true, nil
+				}
+			}
+		}
+		goClient, err := k8sutil.GetGoClient(log)
+		if err != nil {
+			return false, log.ErrorfNewErr("Failed to get kubernetes client for AppConfig %s/%s: %v", workloadType, workloadName, err)
+		}
+		podNamespace, _ := goClient.CoreV1().Namespaces().Get(context.TODO(), pod.GetNamespace(), metav1.GetOptions{})
+		namespaceLabels := podNamespace.GetLabels()
+		value, ok := namespaceLabels["istio-injection"]
+
+		// Ignore OAM pods that do not have Istio injected
+		if !ok || value != "enabled" {
 			continue
 		}
+		log.Oncef("Restarting %s %s which has a pod with istio injected namespace", workloadType, workloadName)
+		return true, nil
+	}
+	return false, nil
+}
 
-		// Set the update the restart version
-		var ac oam.ApplicationConfiguration
-		ac.Namespace = appConfig.Namespace
-		ac.Name = appConfig.Name
-		_, err = controllerutil.CreateOrUpdate(context.TODO(), client, &ac, func() error {
-			if ac.ObjectMeta.Annotations == nil {
-				ac.ObjectMeta.Annotations = make(map[string]string)
-			}
-			log.Progressf("Setting restart version for appconfig %s to %s. Previous version is %s", appConfig.Name,
-				restartVersion, ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
-			ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
-			return nil
-		})
-		if err != nil {
-			return err
+// restartOAMApp sets the restart version for appconfig to recycle the pod
+func restartOAMApp(log vzlog.VerrazzanoLogger, appConfig oam.ApplicationConfiguration, client clipkg.Client, restartVersion string) error {
+
+	// Set the update restart version
+	var ac oam.ApplicationConfiguration
+	ac.Namespace = appConfig.Namespace
+	ac.Name = appConfig.Name
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), client, &ac, func() error {
+		if ac.ObjectMeta.Annotations == nil {
+			ac.ObjectMeta.Annotations = make(map[string]string)
 		}
+		log.Progressf("Setting restart version for appconfig %s to %s. Previous version is %s", appConfig.Name,
+			restartVersion, ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
+		ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -712,7 +712,7 @@ func LogMessage(msg string) {
 	fmt.Fprintf(GetMultiWriterOut(), msgPrefix+msg)
 }
 
-// SetVerboseOutput sets the verbose output for the bug-report command
+// SetVerboseOutput sets the verbose output for the commands bug-report and analyze
 func SetVerboseOutput(enableVerbose bool) {
 	isVerbose = enableVerbose
 }

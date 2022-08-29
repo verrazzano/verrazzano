@@ -279,7 +279,7 @@ func TestPostUninstall(t *testing.T) {
 			},
 		},
 		{
-			name: "test role binding",
+			name: "test clusterRole binding",
 			objects: []clipkg.Object{
 				&nonRancherNs,
 				&rancherNs,
@@ -313,7 +313,7 @@ func TestPostUninstall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
-			ctx := spi.NewFakeContext(c, &vz, false)
+			ctx := spi.NewFakeContext(c, &vz, nil, false)
 
 			crd1 := v12.CustomResourceDefinition{}
 			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)

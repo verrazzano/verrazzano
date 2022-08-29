@@ -9,15 +9,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os/exec"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -57,7 +54,7 @@ const (
 	keycloakPodName         = "keycloak-0"
 )
 
-// Define the keycloak Key:Value pair for init container.
+// Define the Keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
 const kcIngressClassKey = "ingress.ingressClassName"
 const kcInitContainerKey = "extraInitContainers"
@@ -86,30 +83,7 @@ const pkceTmpl = `
       "surrogateAuthRequired": false,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "redirectUris": [
-        "https://verrazzano.{{.DNSSubDomain}}/*",
-        "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
-        "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
-        "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-        "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
-        "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-        "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
-        "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-        "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
-        "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-        "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
-        "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-        "https://jaeger.{{.DNSSubDomain}}/*"
-      ],
-      "webOrigins": [
-        "https://verrazzano.{{.DNSSubDomain}}",
-        "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
-        "https://prometheus.vmi.system.{{.DNSSubDomain}}",
-        "https://grafana.vmi.system.{{.DNSSubDomain}}",
-        "https://kibana.vmi.system.{{.DNSSubDomain}}",
-        "https://kiali.vmi.system.{{.DNSSubDomain}}",
-        "https://jaeger.{{.DNSSubDomain}}"
-      ],
+      ` + pkceClientUrisTemplate + `,
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -193,7 +167,6 @@ const pgClient = `
       "surrogateAuthRequired" : false,
       "directAccessGrantsEnabled" : "true",
       "clientAuthenticatorType" : "client-secret",
-      "secret" : "de05ccdc-67df-47f3-81f6-37e61d195aba",
       "redirectUris" : [ ],
       "webOrigins" : [ "+" ],
       "notBefore" : 0,
@@ -280,6 +253,152 @@ const pgClient = `
       "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
 }
 `
+const rancherClientTmpl = `
+{
+      "clientId": "rancher",
+      "name": "rancher",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      ` + rancherClientUrisTemplate + `,
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "id.token.as.detached.signature": "false",
+        "saml.assertion.signature": "false",
+        "saml.force.post.binding": "false",
+        "saml.multivalued.roles": "false",
+        "saml.encrypt": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "use.refresh.tokens": "true",
+        "exclude.session.state.from.auth.response": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "saml.artifact.binding": "false",
+        "backchannel.logout.session.required": "true",
+        "client_credentials.use_refresh_token": "false",
+        "saml_force_name_id_format": "false",
+        "require.pushed.authorization.requests": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "saml.onetimeuse.condition": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+        {
+          "name": "Client Audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "rancher",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "Groups Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "true",
+            "id.token.claim": "false",
+            "access.token.claim": "false",
+            "claim.name": "groups",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "Group Path",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "true",
+            "id.token.claim": "false",
+            "access.token.claim": "false",
+            "claim.name": "full_group_path",
+            "userinfo.token.claim": "true"
+          }
+        },
+		{
+		  "name": "full name",
+	      "protocol": "openid-connect",
+		  "protocolMapper": "oidc-full-name-mapper",
+		  "consentRequired": false,
+		  "config": {
+			  "id.token.claim": "true",
+			  "access.token.claim": "true",
+			  "userinfo.token.claim": "true"
+		  }
+		}
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+}
+`
+
+const pkceClientUrisTemplate = `
+	"redirectUris": [
+	  "https://verrazzano.{{.DNSSubDomain}}/*",
+	  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
+	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://jaeger.{{.DNSSubDomain}}/*"
+	],
+	"webOrigins": [
+	  "https://verrazzano.{{.DNSSubDomain}}",
+	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+	  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
+	  "https://grafana.vmi.system.{{.DNSSubDomain}}",
+	  "https://kibana.vmi.system.{{.DNSSubDomain}}",
+	  "https://kiali.vmi.system.{{.DNSSubDomain}}",
+	  "https://jaeger.{{.DNSSubDomain}}"
+	]
+`
+
+const rancherClientUrisTemplate = `
+	"redirectUris": [
+        "https://rancher.{{.DNSSubDomain}}/verify-auth"
+    ],
+	"webOrigins": [
+		"https://rancher.{{.DNSSubDomain}}"
+	]
+`
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
 type KeycloakClients []struct {
@@ -313,8 +432,8 @@ type KeycloakRoles []struct {
 	ContainerID string `json:"containerId"`
 }
 
-// KeycloakUsers is an array of users configured in Keycloak
-type KeycloakUsers []struct {
+// KeycloakUser is an user configured in Keycloak
+type KeycloakUser struct {
 	ID                         string        `json:"id"`
 	CreatedTimestamp           int64         `json:"createdTimestamp"`
 	Username                   string        `json:"username"`
@@ -333,20 +452,15 @@ type KeycloakUsers []struct {
 	} `json:"access"`
 }
 
+// KeycloakClientSecret represents a client-secret of a client currently configured in Keycloak
+type KeycloakClientSecret struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
 type templateData struct {
 	DNSSubDomain string
 }
-
-// Unit testing support
-type bashFuncSig func(inArgs ...string) (string, string, error)
-
-var bashFunc bashFuncSig = vzos.RunBash
-
-func setBashFunc(f bashFuncSig) {
-	bashFunc = f
-}
-
-var execCommand = exec.Command
 
 // imageData needed for template rendering
 type imageData struct {
@@ -419,7 +533,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		Value: host,
 	})
 
-	// this secret contains the keycloak TLS certificate created by cert-manager during the original keycloak installation
+	// this secret contains the Keycloak TLS certificate created by cert-manager during the original Keycloak installation
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsSecret,
 		Value: keycloakCertificateName,
@@ -467,48 +581,24 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 	return err
 }
 
-// updateKeycloakUris calls a bash script to update the Keycloak rewrite and weborigin uris
-func updateKeycloakUris(ctx spi.ComponentContext) error {
-
-	cfg, cli, err := k8sutil.ClientConfig()
+// updateKeycloakUris invokes kcadm.sh in Keycloak pod to update the client with Keycloak rewrite and weborigin uris
+func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod, clientID string, uriTemplate string) error {
+	data, err := populateSubdomainInTemplate(ctx, "{"+uriTemplate+"}")
 	if err != nil {
 		return err
 	}
 
-	err = loginKeycloak(ctx, cfg, cli)
+	// Update client
+	updateClientCmd := "/opt/jboss/keycloak/bin/kcadm.sh update clients/" + clientID + " -r " + vzSysRealm + " -b '" +
+		strings.TrimSpace(data) +
+		"'"
+	ctx.Log().Debugf("updateKeycloakUris: Update client with Id = %s, Cmd = %s", clientID, updateClientCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(updateClientCmd))
 	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed updating client with Id = %s stdout = %s, stderr = %s", clientID, stdout, stderr)
 		return err
 	}
 
-	// Get the Client ID JSON array
-	keycloakClients, err := getKeycloakClients(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Get the client ID for verrazzano-pkce
-	id := getClientID(keycloakClients, "verrazzano-pkce")
-	if id == "" {
-		err := errors.New("Component Keycloak failed retrieving ID for Keycloak user, zero length")
-		ctx.Log().Error(err)
-		return err
-	}
-	ctx.Log().Debug("Keycloak Post Upgrade: Successfully retrieved clientID")
-
-	// Get DNS Domain Configuration
-	dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
-		return err
-	}
-	ctx.Log().Debugf("Keycloak Post Upgrade: DNSDomain returned %s", dnsSubDomain)
-
-	// Call the Script and Update the URIs
-	scriptName := filepath.Join(config.GetInstallDir(), "update-kiali-redirect-uris.sh")
-	if _, stderr, err := bashFunc(scriptName, id, dnsSubDomain); err != nil {
-		ctx.Log().Errorf("Component Keycloak failed updating KeyCloak URIs %v: %s", err, stderr)
-		return err
-	}
 	ctx.Log().Debug("Component Keycloak successfully updated Keycloak URIs")
 	return nil
 }
@@ -561,7 +651,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create Verrazzano Users Group
-	userGroupID, err := createVerrazzanoUsersGroup(ctx)
+	userGroupID, err := createVerrazzanoGroup(ctx, cfg, cli, vzUsersGroup, "")
 	if err != nil {
 		return err
 	}
@@ -572,7 +662,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create Verrazzano Admin Group
-	adminGroupID, err := createVerrazzanoAdminGroup(ctx, userGroupID)
+	adminGroupID, err := createVerrazzanoGroup(ctx, cfg, cli, vzAdminGroup, userGroupID)
 	if err != nil {
 		return err
 	}
@@ -583,7 +673,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create Verrazzano Project Monitors Group
-	monitorGroupID, err := createVerrazzanoMonitorsGroup(ctx, userGroupID)
+	monitorGroupID, err := createVerrazzanoGroup(ctx, cfg, cli, vzMonitorGroup, userGroupID)
 	if err != nil {
 		return err
 	}
@@ -594,7 +684,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create Verrazzano System Group
-	err = createVerrazzanoSystemGroup(ctx, cfg, cli, userGroupID)
+	_, err = createVerrazzanoGroup(ctx, cfg, cli, vzSystemGroup, userGroupID)
 	if err != nil {
 		return err
 	}
@@ -612,33 +702,48 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Creating Verrazzano User
-	err = createUser(ctx, cfg, cli, vzUserName, "verrazzano", vzAdminGroup)
+	err = createUser(ctx, cfg, cli, vzUserName, "verrazzano", vzAdminGroup, "Verrazzano", "Admin")
 	if err != nil {
 		return err
 	}
 
 	// Creating Verrazzano Internal Prometheus User
-	err = createUser(ctx, cfg, cli, vzInternalPromUser, "verrazzano-prom-internal", vzSystemGroup)
+	err = createUser(ctx, cfg, cli, vzInternalPromUser, "verrazzano-prom-internal", vzSystemGroup, "", "")
 	if err != nil {
 		return err
 	}
 
 	// Creating Verrazzano Internal ES User
-	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-es-internal", vzSystemGroup)
+	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-es-internal", vzSystemGroup, "", "")
 	if err != nil {
 		return err
 	}
 
 	// Create verrazzano-pkce client
-	err = createOrUpdateVerrazzanoPkceClient(ctx, cfg, cli)
+	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false)
 	if err != nil {
 		return err
 	}
 
 	// Creating verrazzano-pg client
-	err = createVerrazzanoPgClient(ctx, cfg, cli)
+	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pg", pgClient, "", true)
 	if err != nil {
 		return err
+	}
+
+	if vzconfig.IsRancherEnabled(ctx.ActualCR()) {
+		// Creating rancher client
+		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
+		if err != nil {
+			return err
+		}
+
+		// Update Keycloak AuthConfig for Rancher with client secret
+		err = updateRancherClientSecretForKeycloakAuthConfig(ctx)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	// Setting password policy for master
@@ -818,124 +923,47 @@ func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 	return nil
 }
 
-func createVerrazzanoUsersGroup(ctx spi.ComponentContext) (string, error) {
-	keycloakGroups, err := getKeycloakGroups(ctx)
-	if err == nil && groupExists(keycloakGroups, vzUsersGroup) {
-		// Group already exists
-		return getGroupID(keycloakGroups, vzUsersGroup), nil
-	}
-
-	userGroup := "name=" + vzUsersGroup
-	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", userGroup)
-	ctx.Log().Debugf("createVerrazzanoUsersGroup: Create Verrazzano Users Group Cmd = %s", cmd.String())
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano Users Group: command output = %s", out)
-		return "", err
-	}
-	ctx.Log().Debugf("createVerrazzanoUsersGroup: Create Verrazzano Users Group Output = %s", out)
-	if len(string(out)) == 0 {
-		err = errors.New("Component Keycloak failed; user group ID from Keycloak is zero length")
-		ctx.Log().Error(err)
-		return "", err
-	}
-	arr := strings.Split(string(out), "'")
-	if len(arr) != 3 {
-		return "", fmt.Errorf("Component Keycloak failed parsing output returned from Users Group create stdout returned = %s", out)
-	}
-	ctx.Log().Debugf("createVerrazzanoUsersGroup: User Group ID = %s", arr[1])
-	ctx.Log().Once("Component Keycloak successfully created the Verrazzano user group")
-	return arr[1], nil
-}
-
-func createVerrazzanoAdminGroup(ctx spi.ComponentContext, userGroupID string) (string, error) {
-	keycloakGroups, err := getKeycloakGroups(ctx)
-	if err == nil && groupExists(keycloakGroups, vzAdminGroup) {
-		// Group already exists
-		return getGroupID(keycloakGroups, vzAdminGroup), nil
-	}
-	adminGroup := "groups/" + userGroupID + "/children"
-	adminGroupName := "name=" + vzAdminGroup
-	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", adminGroup, "-r", vzSysRealm, "-s", adminGroupName)
-	ctx.Log().Debugf("createVerrazzanoAdminGroup: Create Verrazzano Admin Group Cmd = %s", cmd.String())
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano Admin Group: command output = %s", out)
-		return "", err
-	}
-	ctx.Log().Debugf("createVerrazzanoAdminGroup: Create Verrazzano Admin Group Output = %s", out)
-	if len(string(out)) == 0 {
-		err = errors.New("Component Keycloak failed; admin group ID from Keycloak is zero length")
-		ctx.Log().Error(err)
-		return "", err
-	}
-	arr := strings.Split(string(out), "'")
-	if len(arr) != 3 {
-		return "", fmt.Errorf("Component Keycloak failed parsing output returned from Admin Group create stdout returned = %s", out)
-	}
-	ctx.Log().Debugf("createVerrazzanoAdminGroup: Admin Group ID = %s", arr[1])
-	ctx.Log().Once("Component Keycloak successfully created the Verrazzano admin group")
-	return arr[1], nil
-}
-
-func createVerrazzanoMonitorsGroup(ctx spi.ComponentContext, userGroupID string) (string, error) {
-	keycloakGroups, err := getKeycloakGroups(ctx)
-	if err == nil && groupExists(keycloakGroups, vzMonitorGroup) {
-		// Group already exists
-		return getGroupID(keycloakGroups, vzMonitorGroup), nil
-	}
-	monitorGroup := "groups/" + userGroupID + "/children"
-	monitorGroupName := "name=" + vzMonitorGroup
-	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
-	ctx.Log().Debugf("createVerrazzanoProjectMonitorsGroup: Create Verrazzano Monitors Group Cmd = %s", cmd.String())
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano Monitor Group: command output = %s", out)
-		return "", err
-	}
-	ctx.Log().Debugf("createVerrazzanoProjectMonitorsGroup: Create Verrazzano Project Monitors Group Output = %s", out)
-	if len(string(out)) == 0 {
-		err = errors.New("Component Keycloak failed; monitor group ID from Keycloak is zero length")
-		ctx.Log().Error(err)
-		return "", err
-	}
-	arr := strings.Split(string(out), "'")
-	if len(arr) != 3 {
-		return "", fmt.Errorf("Component Keycloak failed parsing output returned from Monitor Group create stdout returned = %s", out)
-	}
-	ctx.Log().Debugf("createVerrazzanoProjectMonitorsGroup: Monitor Group ID = %s", arr[1])
-	ctx.Log().Once("Component Keycloak successfully created the Verrazzano monitors group")
-
-	return arr[1], nil
-}
-
-func createVerrazzanoSystemGroup(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userGroupID string) error {
-
-	keycloakGroups, err := getKeycloakGroups(ctx)
-	if err == nil && groupExists(keycloakGroups, vzSystemGroup) {
-		return nil
-	}
-
+func createVerrazzanoGroup(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, group string, parentID string) (string, error) {
 	kcPod := keycloakPod()
-	systemGroup := "groups/" + userGroupID + "/children"
-	systemGroupName := "name=" + vzSystemGroup
-	createVzSystemGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + systemGroup + " -r " + vzSysRealm + " -s " + systemGroupName
-	ctx.Log().Debugf("createVerrazzanoSystemGroup: Create Verrazzano System Group Cmd = %s", createVzSystemGroupCmd)
-	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createVzSystemGroupCmd))
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano System Group: stdout = %s, stderr = %s", stdout, stderr)
-		return err
+	keycloakGroups, err := getKeycloakGroups(ctx, cfg, cli, kcPod)
+	if err == nil && groupExists(keycloakGroups, group) {
+		// Group already exists
+		return getGroupID(keycloakGroups, group), nil
 	}
-	ctx.Log().Once("Component Keycloak successfully created the Verrazzano system group")
-	return nil
+	groupsResource := "groups"
+	groupName := "name=" + group
+	if parentID != "" {
+		groupsResource = fmt.Sprintf("groups/%s/children", parentID)
+	}
+
+	cmd := fmt.Sprintf("/opt/jboss/keycloak/bin/kcadm.sh create %s -r %s -s %s", groupsResource, vzSysRealm, groupName)
+	ctx.Log().Debugf("createVerrazzanoGroup: Create Verrazzano %s Group Cmd = %s", group, cmd)
+	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(cmd))
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano %s Group: command output = %s", group, out)
+		return "", err
+	}
+	ctx.Log().Debugf("createVerrazzanoGroup: Create Verrazzano %s Group Output = %s", group, out)
+	if len(out) == 0 {
+		err = fmt.Errorf("Component Keycloak failed; %s group ID from Keycloak is zero length", group)
+		ctx.Log().Error(err)
+		return "", err
+	}
+	arr := strings.Split(string(out), "'")
+	if len(arr) != 3 {
+		return "", fmt.Errorf("Component Keycloak failed parsing output returned from %s Group create stdout returned = %s", group, out)
+	}
+	ctx.Log().Debugf("createVerrazzanoGroup: %s Group ID = %s", group, arr[1])
+	ctx.Log().Oncef("Component Keycloak successfully created the Verrazzano %s group", group)
+	return arr[1], nil
 }
 
 func createVerrazzanoRole(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, roleName string) error {
-	keycloakRoles, err := getKeycloakRoles(ctx)
+	kcPod := keycloakPod()
+	keycloakRoles, err := getKeycloakRoles(ctx, cfg, cli, kcPod)
 	if err == nil && roleExists(keycloakRoles, roleName) {
 		return nil
 	}
-	kcPod := keycloakPod()
 	role := "name=" + roleName
 	createRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh create roles -r " + vzSysRealm + " -s " + role
 	ctx.Log().Debugf("createVerrazzanoRole: Create Verrazzano API Access Role Cmd = %s", createRoleCmd)
@@ -964,15 +992,23 @@ func grantRolesToGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	return nil
 }
 
-func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName string, secretName string, groupName string) error {
-	keycloakUsers, err := getKeycloakUsers(ctx)
+func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName string, secretName string, groupName string, firstName string, lastName string) error {
+	kcPod := keycloakPod()
+	keycloakUsers, err := getKeycloakUsers(ctx, cfg, cli, kcPod)
 	if err == nil && userExists(keycloakUsers, userName) {
 		return nil
 	}
-	kcPod := keycloakPod()
 	vzUser := "username=" + userName
 	vzUserGroup := "groups[0]=/" + vzUsersGroup + "/" + groupName
 	createVzUserCmd := "/opt/jboss/keycloak/bin/kcadm.sh create users -r " + vzSysRealm + " -s " + vzUser + " -s " + vzUserGroup + " -s enabled=true"
+	if firstName != "" {
+		createVzUserCmd = createVzUserCmd + " -s firstName=" + firstName
+	}
+
+	if lastName != "" {
+		createVzUserCmd = createVzUserCmd + " -s lastName=" + lastName
+	}
+
 	ctx.Log().Debugf("createUser: Create Verrazzano User Cmd = %s", createVzUserCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createVzUserCmd))
 	if err != nil {
@@ -997,75 +1033,51 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 
 	return nil
 }
-
-func createOrUpdateVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
-	data := templateData{}
-
+func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool) error {
 	keycloakClients, err := getKeycloakClients(ctx)
 	if err != nil {
 		return err
 	}
-	if clientExists(keycloakClients, "verrazzano-pkce") {
-		if err := updateKeycloakUris(ctx); err != nil {
+
+	kcPod := keycloakPod()
+	if clientID := getClientID(keycloakClients, clientName); clientID != "" {
+		if uriTemplate != "" {
+			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientID, uriTemplate)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	data, err := populateSubdomainInTemplate(ctx, clientTemplate)
+	if err != nil {
+		return err
+	}
+
+	// Create client
+	clientCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
+		data +
+		"END"
+
+	ctx.Log().Debugf("createOrUpdateClient: Create %s client Cmd = %s", clientName, clientCreateCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateCmd))
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed creating %s client: stdout = %s, stderr = %s", clientName, stdout, stderr)
+		return err
+	}
+
+	if generateSecret {
+		err = generateClientSecret(ctx, cfg, cli, clientName, stdout, kcPod)
+		if err != nil {
+			ctx.Log().Errorf("Component Keycloak failed creating %s client secret: err = %s", clientName, err.Error())
 			return err
 		}
-		return nil
 	}
 
-	kcPod := keycloakPod()
-	// Get DNS Domain Configuration
-	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
-		return err
-	}
-	ctx.Log().Debugf("createOrUpdateVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
-
-	data.DNSSubDomain = dnsSubDomain
-
-	// use template to get populate template with data
-	var b bytes.Buffer
-	t, err := template.New("verrazzanoPkceClient").Parse(pkceTmpl)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(&b, &data)
-	if err != nil {
-		return err
-	}
-
-	// Create verrazzano-pkce client
-	vzPkceCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
-		b.String() +
-		"END"
-
-	ctx.Log().Debugf("createOrUpdateVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
-	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPkceCreateCmd))
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed creating verrazzano-pkce client: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("createOrUpdateVerrazzanoPkceClient: Created verrazzano-pkce client")
-	return nil
-}
-
-func createVerrazzanoPgClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
-	keycloakClients, err := getKeycloakClients(ctx)
-	if err == nil && clientExists(keycloakClients, "verrazzano-pg") {
-		return nil
-	}
-
-	kcPod := keycloakPod()
-	vzPgCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
-		pgClient +
-		"END"
-	ctx.Log().Debugf("createVerrazzanoPgClient: Create verrazzano-pg client Cmd = %s", vzPgCreateCmd)
-	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPgCreateCmd))
-	if err != nil {
-		ctx.Log().Errorf("createVerrazzanoPgClient: Error creating verrazzano-pg client: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("createVerrazzanoPgClient: Created verrazzano-pg client")
+	ctx.Log().Debugf("createOrUpdateClient: Created %s client", clientName)
+	ctx.Log().Oncef("Component Keycloak successfully created client %s", clientName)
 	return nil
 }
 
@@ -1126,21 +1138,21 @@ func removeLoginConfigFile(ctx spi.ComponentContext, cfg *restclient.Config, cli
 }
 
 // getKeycloakGroups returns a structure of Groups in Realm verrazzano-system
-func getKeycloakGroups(ctx spi.ComponentContext) (KeycloakGroups, error) {
+func getKeycloakGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) (KeycloakGroups, error) {
 	var keycloakGroups KeycloakGroups
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "groups", "-r", vzSysRealm)
-	out, err := cmd.Output()
+	cmd := fmt.Sprintf("/opt/jboss/keycloak/bin/kcadm.sh get groups -r %s", vzSysRealm)
+	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(cmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Groups: %s", err)
 		return nil, err
 	}
-	if len(string(out)) == 0 {
+	if len(out) == 0 {
 		err = errors.New("Component Keycloak failed; groups JSON from Keycloak is zero length")
 		ctx.Log().Error(err)
 		return nil, err
 	}
-	err = json.Unmarshal(out, &keycloakGroups)
+	err = json.Unmarshal([]byte(out), &keycloakGroups)
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed ummarshalling groups json: %v", err)
 		return nil, err
@@ -1178,21 +1190,20 @@ func getGroupID(keycloakGroups KeycloakGroups, groupName string) string {
 }
 
 // getKeycloakRoless returns a structure of Groups in Realm verrazzano-system
-func getKeycloakRoles(ctx spi.ComponentContext) (KeycloakRoles, error) {
+func getKeycloakRoles(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) (KeycloakRoles, error) {
 	var keycloakRoles KeycloakRoles
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm)
-	out, err := cmd.Output()
+	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get-roles -r "+vzSysRealm))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Roles: %s", err)
 		return nil, err
 	}
-	if len(string(out)) == 0 {
+	if len(out) == 0 {
 		err = errors.New("Component Keycloak failed; roles JSON from Keycloak is zero length")
 		ctx.Log().Error(err)
 		return nil, err
 	}
-	err = json.Unmarshal(out, &keycloakRoles)
+	err = json.Unmarshal([]byte(out), &keycloakRoles)
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed ummarshalling groups json: %v", err)
 		return nil, err
@@ -1211,21 +1222,20 @@ func roleExists(keycloakRoles KeycloakRoles, roleName string) bool {
 }
 
 // getKeycloakUsers returns a structure of Users in Realm verrazzano-system
-func getKeycloakUsers(ctx spi.ComponentContext) (KeycloakUsers, error) {
-	var keycloakUsers KeycloakUsers
+func getKeycloakUsers(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) ([]KeycloakUser, error) {
+	var keycloakUsers []KeycloakUser
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "users", "-r", vzSysRealm)
-	out, err := cmd.Output()
+	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get users -r "+vzSysRealm))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Users: %s", err)
 		return nil, err
 	}
-	if len(string(out)) == 0 {
+	if len(out) == 0 {
 		err := errors.New("Component Keycloak failed; users JSON from Keycloak is zero length")
 		ctx.Log().Error(err)
 		return nil, err
 	}
-	err = json.Unmarshal(out, &keycloakUsers)
+	err = json.Unmarshal([]byte(out), &keycloakUsers)
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed ummarshalling users json: %v", err)
 		return nil, err
@@ -1233,7 +1243,7 @@ func getKeycloakUsers(ctx spi.ComponentContext) (KeycloakUsers, error) {
 	return keycloakUsers, nil
 }
 
-func userExists(keycloakUsers KeycloakUsers, userName string) bool {
+func userExists(keycloakUsers []KeycloakUser, userName string) bool {
 	for _, keycloakUser := range keycloakUsers {
 		if keycloakUser.Username == userName {
 			return true
@@ -1245,34 +1255,27 @@ func userExists(keycloakUsers KeycloakUsers, userName string) bool {
 // getKeycloakClients returns a structure of Users in Realm verrazzano-system
 func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 	var keycloakClients KeycloakClients
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
-	out, err := cmd.Output()
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients -r "+vzSysRealm+" --fields id,clientId"))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving clients: %s", err)
 		return nil, err
 	}
-	if len(string(out)) == 0 {
+	if len(out) == 0 {
 		err := errors.New("Component Keycloak failed; clients JSON from Keycloak is zero length")
 		ctx.Log().Error(err)
 		return nil, err
 	}
-	err = json.Unmarshal(out, &keycloakClients)
+	err = json.Unmarshal([]byte(out), &keycloakClients)
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed ummarshalling client json: %v", err)
 		return nil, err
 	}
 	return keycloakClients, nil
-}
-
-func clientExists(keycloakClients KeycloakClients, clientName string) bool {
-
-	for _, keycloakClient := range keycloakClients {
-		if keycloakClient.ClientID == clientName {
-			return true
-		}
-	}
-	return false
 }
 
 func getClientID(keycloakClients KeycloakClients, clientName string) string {
@@ -1319,7 +1322,7 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 // to be scaled down before the upgrade.  The affinity rules installed by default
 // prior to the 1.4 release conflict with the new affinity rules being overridden
 // by Verrazzano (the upgrade will never complete).  The work around is to scale
-// down the replica count prior to upgrade, which terminates the keycloak pods, and
+// down the replica count prior to upgrade, which terminates the Keycloak pods, and
 // then do the upgrade.
 func upgradeStatefulSet(ctx spi.ComponentContext) error {
 	keycloakComp := ctx.EffectiveCR().Spec.Components.Keycloak
@@ -1377,4 +1380,162 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string, error) {
+	data := templateData{}
+	// Get DNS Domain Configuration
+	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
+		return "", err
+	}
+	ctx.Log().Debugf("populateSubdomainInTemplate: DNSDomain returned %s", dnsSubDomain)
+
+	data.DNSSubDomain = dnsSubDomain
+
+	// use template to get populate template with data
+	var b bytes.Buffer
+	t, err := template.New("").Parse(tmpl)
+	if err != nil {
+		return "", err
+	}
+
+	err = t.Execute(&b, &data)
+	if err != nil {
+		return "", err
+	}
+
+	return b.String(), nil
+}
+
+// GetRancherClientSecretFromKeycloak returns the secret from rancher client in Keycloak
+func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error) {
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return "", err
+	}
+
+	// Login to Keycloak
+	err = loginKeycloak(ctx, cfg, cli)
+	if err != nil {
+		return "", err
+	}
+
+	kcClients, err := getKeycloakClients(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	id := ""
+	for _, kcClient := range kcClients {
+		if kcClient.ClientID == "rancher" {
+			id = kcClient.ID
+		}
+	}
+
+	if id == "" {
+		ctx.Log().Debugf("GetRancherClientSecretFromKeycloak: rancher client does not exist")
+		return "", nil
+	}
+
+	var clientSecret KeycloakClientSecret
+	// Get the Client secret JSON array
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients/"+id+"/client-secret -r "+vzSysRealm))
+	if err != nil {
+		ctx.Log().Errorf("failed retrieving rancher client secret from keycloak: %s", err)
+		return "", err
+	}
+	if len(out) == 0 {
+		err = errors.New("client secret json from keycloak is zero length")
+		ctx.Log().Error(err)
+		return "", err
+	}
+
+	err = json.Unmarshal([]byte(out), &clientSecret)
+	if err != nil {
+		ctx.Log().Errorf("failed ummarshalling client secret json: %v", err)
+		return "", err
+	}
+
+	if clientSecret.Value == "" {
+		return "", ctx.Log().ErrorNewErr("client secret is empty")
+	}
+
+	return clientSecret.Value, nil
+}
+
+func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, createClientOutput string, kcPod *v1.Pod) error {
+	if len(createClientOutput) == 0 {
+		err := fmt.Errorf("Component Keycloak failed; %s client ID from Keycloak is zero length", clientName)
+		ctx.Log().Error(err)
+		return err
+	}
+
+	arr := strings.Split(string(createClientOutput), "'")
+	if len(arr) != 3 {
+		return fmt.Errorf("Component Keycloak failed parsing output returned from %s Client create stdout returned = %s", clientName, createClientOutput)
+	}
+
+	clientID := arr[1]
+	ctx.Log().Debugf("generateClientSecret: %s Client ID = %s", clientName, clientID)
+
+	// Create client secret
+	clientCreateSecretCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients/" + clientID + "/client-secret" + " -r " + vzSysRealm
+	ctx.Log().Debugf("generateClientSecret: Create %s client secret Cmd = %s", clientName, clientCreateSecretCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateSecretCmd))
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed creating %s client secret: stdout = %s, stderr = %s", clientName, stdout, stderr)
+		return err
+	}
+
+	ctx.Log().Oncef("Component Keycloak generated client secret for client: %v", clientName)
+	return nil
+}
+
+// GetVerrazzanoUserFromKeycloak returns the user verrazzano in Keycloak
+func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, error) {
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// Login to Keycloak
+	err = loginKeycloak(ctx, cfg, cli)
+	if err != nil {
+		return nil, err
+	}
+
+	kcUsers, err := getKeycloakUsers(ctx, cfg, cli, keycloakPod())
+	if err != nil {
+		return nil, err
+	}
+
+	var vzUser KeycloakUser
+	found := false
+	for _, user := range kcUsers {
+		if user.Username == "verrazzano" {
+			vzUser = user
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return nil, ctx.Log().ErrorfThrottledNewErr("GetVerrazzanoUserIDFromKeycloak: verrazzano user does not exist")
+	}
+
+	return &vzUser, nil
+}
+
+func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	clientSecret, err := GetRancherClientSecretFromKeycloak(ctx)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("failed updating client secret in keycloak auth config, unable to fetch rancher client secret: %s", err.Error())
+	}
+
+	authConfig := make(map[string]interface{})
+	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
+	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }

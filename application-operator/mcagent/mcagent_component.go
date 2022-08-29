@@ -6,6 +6,8 @@ package mcagent
 import (
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -91,6 +93,13 @@ func mutateMCComponent(mcComponent clustersv1alpha1.MultiClusterComponent, mcCom
 	mcComponentNew.Spec.Placement = mcComponent.Spec.Placement
 	mcComponentNew.Spec.Template = mcComponent.Spec.Template
 	mcComponentNew.Labels = mcComponent.Labels
+	// Mark the MC component we synced from Admin cluster with verrazzano-managed=true, to
+	// distinguish from any (though unlikely) that the user might have created on managed cluster
+	if mcComponentNew.Labels == nil {
+		mcComponentNew.Labels = map[string]string{}
+	}
+	mcComponentNew.Labels[vzconst.VerrazzanoManagedLabelKey] = constants.LabelVerrazzanoManagedDefault
+
 }
 
 // componentPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace

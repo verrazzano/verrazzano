@@ -6,6 +6,8 @@ package mcagent
 import (
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -91,6 +93,13 @@ func mutateMCConfigMap(mcConfigMap clustersv1alpha1.MultiClusterConfigMap, mcCon
 	mcConfigMapNew.Spec.Placement = mcConfigMap.Spec.Placement
 	mcConfigMapNew.Spec.Template = mcConfigMap.Spec.Template
 	mcConfigMapNew.Labels = mcConfigMap.Labels
+	// Mark the MC ConfigMap we synced from Admin cluster with verrazzano-managed=true, to
+	// distinguish from any (though unlikely) that the user might have created on managed cluster
+	if mcConfigMapNew.Labels == nil {
+		mcConfigMapNew.Labels = map[string]string{}
+	}
+	mcConfigMapNew.Labels[vzconst.VerrazzanoManagedLabelKey] = constants.LabelVerrazzanoManagedDefault
+
 }
 
 // configMapPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace

@@ -5,13 +5,14 @@ package grafana
 
 import (
 	"fmt"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -44,6 +45,11 @@ func (g grafanaComponent) Name() string {
 // Namespace returns the component namespace
 func (g grafanaComponent) Namespace() string {
 	return ComponentNamespace
+}
+
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
+	return false
 }
 
 // GetDependencies returns the dependencies of the Grafana component
@@ -106,7 +112,7 @@ func (g grafanaComponent) IsOperatorInstallSupported() bool {
 }
 
 // IsEnabled returns true if the Grafana component is enabled
-func (g grafanaComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (g grafanaComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsGrafanaEnabled(effectiveCR)
 }
 
@@ -125,6 +131,11 @@ func (g grafanaComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
 	return nil
 }
 
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (g grafanaComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
 // PreInstall ensures that preconditions are met before installing the Grafana component
 func (g grafanaComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
@@ -136,8 +147,11 @@ func (g grafanaComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
 		return err
 	}
+	if err := common.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
+		return err
+	}
 
-	return common.EnsureGrafanaAdminSecret(ctx.Client())
+	return common.EnsureGrafanaDatabaseSecret(ctx)
 }
 
 // Install performs Grafana install processing
@@ -174,8 +188,11 @@ func (g grafanaComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
+	if err := common.EnsureGrafanaAdminSecret(ctx.Client()); err != nil {
+		return err
+	}
 
-	return common.EnsureGrafanaAdminSecret(ctx.Client())
+	return common.EnsureGrafanaDatabaseSecret(ctx)
 }
 
 // Install performs Grafana upgrade processing
@@ -197,6 +214,11 @@ func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
 		return fmt.Errorf("Disabling component Grafana not allowed")
 	}
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (g grafanaComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	return nil
 }
 

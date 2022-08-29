@@ -75,6 +75,10 @@ pipeline {
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+
+        // Environment variable for Verrazzano CLI executable
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
+
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
@@ -100,19 +104,19 @@ pipeline {
 
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
         // used to emit metrics
-         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
-         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-         TEST_ENV_LABEL = "kind"
-         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
-         TEST_ENV = "KIND"
-         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+        TEST_ENV_LABEL = "kind"
+        K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+        TEST_ENV = "KIND"
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
-         // used to generate Ginkgo test reports
-         TEST_REPORT = "test-report.xml"
-         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
-         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -612,7 +616,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*cluster-snapshot*/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*full-cluster*/**,**/*bug-report*/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -694,7 +698,7 @@ def runGinkgoNamespace(testSuitePath, skipDeploy, skipUndeploy, namespace) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

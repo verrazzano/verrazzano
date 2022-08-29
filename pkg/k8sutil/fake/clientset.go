@@ -5,6 +5,7 @@ package fake
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	fakeclientset "k8s.io/client-go/kubernetes/fake"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -14,7 +15,7 @@ import (
 )
 
 func NewClientsetConfig(objects ...runtime.Object) (*restclient.Config, kubernetes.Interface) {
-	cfg, _ := restclient.InClusterConfig()
+	cfg := &restclient.Config{}
 	client := fakeclientset.NewSimpleClientset(objects...)
 	wrappedClient := &WrappedClientset{Clientset: client}
 	return cfg, wrappedClient
@@ -40,7 +41,7 @@ func (w *WrappedClientset) CoreV1() corev1.CoreV1Interface {
 		FakeCoreV1: fakecorev1.FakeCoreV1{
 			Fake: &w.Fake,
 		},
-		RestClient: &fakeRESTClient.RESTClient{},
+		RestClient: &fakeRESTClient.RESTClient{GroupVersion: schema.GroupVersion{Version: "v1"}},
 	}
 }
 

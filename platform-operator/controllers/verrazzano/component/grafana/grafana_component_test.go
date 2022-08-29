@@ -76,7 +76,7 @@ func TestIsEnabled(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false)
 			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
 		})
 	}
@@ -143,7 +143,7 @@ func TestGetIngressNames(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false)
 			assert.Equal(t, tt.ingresses, NewComponent().GetIngressNames(ctx))
 		})
 	}
@@ -210,7 +210,7 @@ func TestGetCertificateNames(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false)
 			assert.Equal(t, tt.certs, NewComponent().GetCertificateNames(ctx))
 		})
 	}
@@ -222,7 +222,16 @@ func TestPreInstall(t *testing.T) {
 	// WHEN the Grafana component PreInstall function is called
 	// THEN the function succeeds and the Grafana admin secret has been created
 	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
 	err := NewComponent().PreInstall(ctx)
 	assert.NoError(t, err)
 
@@ -236,7 +245,16 @@ func TestPreUpgrade(t *testing.T) {
 	// WHEN the Grafana component PreUpgrade function is called
 	// THEN the function succeeds and the Grafana admin secret has been created
 	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
 	err := NewComponent().PreUpgrade(ctx)
 	assert.NoError(t, err)
 
@@ -275,7 +293,7 @@ func testInstallOrUpgrade(t *testing.T, installOrUpgradeFunc func(spi.ComponentC
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(client, vz, false, profilesRelativePath)
+	ctx := spi.NewFakeContext(client, vz, nil, false, profilesRelativePath)
 	err := installOrUpgradeFunc(ctx)
 	assert.NoError(t, err)
 

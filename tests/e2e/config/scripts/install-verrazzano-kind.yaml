@@ -42,3 +42,5 @@ spec:
         minIndexAge: "7d"
         rollover:
           minIndexAge: "1d"
+    jaegerOperator:
+      enabled: true

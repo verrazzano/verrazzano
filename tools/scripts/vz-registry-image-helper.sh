@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Script to allow users to load Verrazzano images into a private Docker registry.
@@ -10,12 +10,14 @@
 set -o pipefail
 set -o errtrace
 
+SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
+. ${SCRIPT_DIR}/bom_utils.sh
+
 # variables
 TO_REGISTRY=
 TO_REPO=
-BOM_FILE=./verrazzano-bom.json
 USELOCAL=0
-IMAGES_DIR=
+IMAGES_DIR=./images
 INCREMENTAL_CLEAN=false
 CLEAN_ALL=false
 DRY_RUN=false
@@ -26,19 +28,23 @@ LIST_IMAGES_ONLY=
 function usage() {
   ec=${1:-0}
   echo """
-This script is to help pushing Verrazzano container images into a private repository from their default locations
+This script is to help pushing Verrazzano container images into a private repository from their default locations,
+or to generate a tarball of Verrazzano container images.
+
 usage:
 
   $0 -t <docker-registry> [-l <archive-path> -r <repository-path>]
   $0 -t <docker-registry> [-b <path> -r <repository-path>]
+  $0 -f <tarfile-location> [ -l <images-location> ]
   $0 -c [-b <path> | -l <archive-path>]
 
 Options:
  -t <docker-registry>   Target docker registry to push to, e.g., iad.ocir.io
  -r <repository-path>   Repository name/prefix for each image, e.g \"path/to/my/image\"; if not specified the default will be used according to the BOM
  -b <path>              Bill of materials (BOM) of Verrazzano components; if not specified, defaults to ./verrazzano-bom.json
- -l <archive-dir>       Use the specified directory to load local Docker image tarballs from instead of pulling from
+ -l <archive-dir>       Use the specified imagesDir to load local Docker image tarballs from instead of pulling from
  -i <component>         Include the specified component in the operation (can be repeated for multiple components)
+ -f <tarfile>           The name of the tar file to create for downloading and saving Verrazzano images
  -e <component>         Exclude the specified component from the operation (can be repeated for multiple components)
  -c                     Clean all local images/tags
  -z                     Incrementally clean each local image after it has been successfully pushed
@@ -58,7 +64,7 @@ Examples:
   # and removes the locally downloaded image after a successful push
   $0 -c -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json
 
-  # Loads all Docker tarball images in the directory /path/to/exploded/tarball into registry 'myreg.io' in repository 'myrepo'
+  # Loads all Docker tarball images in the imagesDir /path/to/exploded/tarball into registry 'myreg.io' in repository 'myrepo'
   $0 -t myreg.io -l /path/to/exploded/tarball -r myrepo
 
   # Do a dry-run with the tarball location /path/to/exploded/tarball with registry 'myreg.io' in repository 'myrepo'
@@ -76,6 +82,8 @@ Examples:
   # Processes *only* the images for the Verrazzano components cert-manager and istio
   $0 -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json -i cert-manager -i istio
 
+  # Pull and create a compressed tar file of all Verrazzano images, using /tmp/vzimages as the temporary image save location
+  $0 -f /tmp/myvzimages.tar.gz -l /tmp/vzimages
 """
   exit ${ec}
 }
@@ -117,35 +125,39 @@ Please log into the target registry and try again.
 
 # Wrapper for Docker pull
 function load() {
-  archive=$1
-
+  local archive=$1
   echo ">> Loading archive: ${archive}"
   run_docker load -i "${archive}"
 }
 
 # Wrapper for Docker pull
 function pull() {
-  image=$1
-
+  local image=$1
   echo ">> Pulling image: ${image}"
   run_docker pull "${image}"
 }
 
 # Wrapper for Docker tag
 function tag() {
-  from_image=$1
-  to_image=$2
-
+  local from_image=$1
+  local to_image=$2
   echo ">> Tagging image: ${from_image} to ${to_image}"
   run_docker tag "${from_image}" "${to_image}"
 }
 
 # Wrapper for Docker push
 function push() {
-  image=$1
-
+  local image=$1
   echo ">> Pushing image: ${image}"
   run_docker push "${image}"
+}
+
+# Wrapper for Docker save
+function save() {
+  local tarFile=$1
+  local image=$2
+  echo ">> Saving image: ${image} to ${tarFile}"
+  run_docker save -o "${tarFile}" "${image}" 
 }
 
 # Wrapper for Docker rmi
@@ -170,7 +182,7 @@ function check() {
     fi
   fi
 
-  if [ -z "${TO_REGISTRY}" ]; then
+  if [ -z "${TO_REGISTRY}" ] && [ -z "${TARBALL}" ]; then
     echo "Target registry not specified!"
     usage 1
   fi
@@ -241,47 +253,6 @@ function process_image() {
   fi
 }
 
-# Get the global Docker registry specified in the BOM
-function get_bom_global_registry() {
-  cat ${BOM_FILE} | jq -r '.registry'
-}
-
-# Get the list of component names in the BOM
-function list_components() {
-  cat ${BOM_FILE} | jq -r '.components[].name'
-}
-
-# List all the subcomponents for a component in the BOM
-function list_subcomponents() {
-  local compName=$1
-  cat ${BOM_FILE} | jq -r --arg comp ${compName} '.components[] | select(.name == $comp) | .subcomponents[].name'
-}
-
-# Get the repository name for a subcomponent in the BOM
-function get_subcomponent_repo() {
-  local compName=$1
-  local subcompName=$2
-  cat ${BOM_FILE} | jq -r -c --arg comp ${compName} --arg subcomp ${subcompName} '.components[] | select(.name == $comp) | .subcomponents[] | select(.name == $subcomp) | .repository'
-}
-
-function get_subcomponent_registry() {
-  local compName=$1
-  local subcompName=$2
-  local subcompRegistry=$(cat ${BOM_FILE} | jq -r -c --arg comp ${compName} --arg subcomp ${subcompName} '.components[] | select(.name == $comp) | .subcomponents[] | select(.name == $subcomp) | .registry')
-  if [ -z "$subcompRegistry" ] || [ "$subcompRegistry" == "null" ]; then
-    subcompRegistry=$(get_bom_global_registry)
-  fi
-  echo $subcompRegistry
-}
-
-# List the base image names for a subcomponent of a component in the BOM, in the form <image-name>:<tag>
-function list_subcomponent_images() {
-  local compName=$1
-  local subcompName=$2
-  cat ${BOM_FILE} | jq -r --arg comp ${compName} --arg subcomp ${subcompName} \
-    '.components[] | select(.name == $comp) | .subcomponents[] | select(.name == $subcomp) | .images[] | "\(.image):\(.tag)"'
-}
-
 # Get the target repo if overridden, otherwise return the provided default
 function get_target_repo() {
   local default_repo=$1
@@ -345,32 +316,37 @@ function process_images_from_bom() {
 
   echo "Components: ${components[*]}"
 
-#  local components=($(list_components))
   for component in "${components[@]}"; do
     if is_component_excluded ${component} ; then
       echo "Component ${component} excluded"
       continue
     fi
-    local subcomponents=($(list_subcomponents ${component}))
+    local subcomponents=($(list_subcomponent_names ${component}))
     for subcomp in "${subcomponents[@]}"; do
       echo "Processing images for Verrazzano subcomponent ${component}/${subcomp}"
       # Load the repository and base image names for the component
-      local from_registry=$(get_subcomponent_registry $component $subcomp)
-      local from_repository=$(get_subcomponent_repo $component $subcomp)
+      #local from_repository=$(get_subcomponent_repo $component $subcomp)
       local image_names=$(list_subcomponent_images $component $subcomp)
 
-      local from_image_prefix=${from_registry}
-      if [ -n "${from_repository}" ] && [ "${from_repository}" != "null" ]; then
-        from_image_prefix=${from_image_prefix}/${from_repository}
-      fi
-
-      local to_image_prefix=${TO_REGISTRY}
-      if [ -n "${TO_REPO}" ]; then
-        to_image_prefix=${to_image_prefix}/${TO_REPO}
-      fi
-      to_image_prefix=${to_image_prefix}/${from_repository}
-
+      # for each image in the subcomponent list:
+      # - resolve the BOM registry location for the image
+      # - resolve the BOM repository for the image
+      # - build the from/to locations for the image
+      # - call process_image to pull/tag/push the image
       for base_image in ${image_names}; do
+        local from_registry=$(resolve_image_registry_from_bom $component $subcomp $base_image)
+        local from_image_prefix=${from_registry}
+        local from_repository=$(resolve_image_repo_from_bom $component $subcomp $base_image)
+        if [ -n "${from_repository}" ] && [ "${from_repository}" != "null" ]; then
+          from_image_prefix=${from_image_prefix}/${from_repository}
+        fi
+
+        local to_image_prefix=${TO_REGISTRY}
+        if [ -n "${TO_REPO}" ]; then
+          to_image_prefix=${to_image_prefix}/${TO_REPO}
+        fi
+        to_image_prefix=${to_image_prefix}/${from_repository}
+
         # Build up the image name and target image name, and do a pull/tag/push
         local from_image=${from_image_prefix}/${base_image}
         local to_image=${to_image_prefix}/${base_image}
@@ -384,6 +360,63 @@ function process_images_from_bom() {
   done
 }
 
+# Main driver for pulling/saving images based on the Verrazzano bill of materials (BOM)
+function pull_and_save_images() {
+  tarFile=$1
+  imagesDir=$2
+
+  echo "Creating Verrazzano images tar file ${tarfile}, using ${imagesDir} to store images locally"
+
+  if [ ! -e ${imagesDir} ]; then
+    echo "Creating image imagesDir ${imagesDir}"
+    mkdir -p ${imagesDir}
+  fi
+
+  # Loop through registry components
+  echo "Using image registry ${BOM_FILE}"
+  local components=($(list_components))
+  for component in "${components[@]}"; do
+    local subcomponent_names=$(list_subcomponent_names ${component})
+    for subcomponent in ${subcomponent_names}; do
+      local image_names=$(list_subcomponent_images ${component} ${subcomponent})
+      for base_image in ${image_names}; do
+        local from_registry=$(resolve_image_registry_from_bom ${component} ${subcomponent} $base_image)
+        local from_image_prefix=${from_registry}
+        local from_repository=$(resolve_image_repo_from_bom ${component} ${subcomponent} $base_image)
+        if [ -n "${from_repository}" ] && [ "${from_repository}" != "null" ]; then
+          from_image_prefix=${from_image_prefix}/${from_repository}
+        fi
+
+        local from_image=${from_image_prefix}/${base_image}
+        echo "Processing:  ${from_image}"
+        local tarname=$(echo "${from_image}.tar" | sed -e 's;/;_;g' -e 's/:/-/g')
+        local tarLocation=${imagesDir}/${tarname}
+
+        if [ -e ${tarLocation} ]; then
+          # Some images may be replicated in the BOM in different subcomponents, skip the pull/save if we've already
+          # done it for this image
+          echo "${tarLocation} already exists, skipping..."
+          continue
+        fi
+
+        # Pull and save the image
+        pull $from_image
+        save ${tarLocation} ${from_image}
+
+        if [ "${INCREMENTAL_CLEAN}" == "true" ]; then
+          remove ${from_image}
+        fi
+      done
+    done
+  done
+  echo "Creating tar file $tarFile..."
+  if [ "${DRY_RUN}" != "true" ]; then
+    tar -czf $tarFile -C $imagesDir .
+  else
+    echo "Dry run, skipping tar file creation"
+  fi
+}
+
 output_bom_components() {
   echo """
 Verrazzano components in BOM file ${BOM_FILE}:
@@ -394,7 +427,9 @@ $(list_components)
 
 # Main fn
 function main() {
-  if [ "$USELOCAL" != "0" ]; then
+  if [ -n "${TARBALL}" ]; then
+    pull_and_save_images ${TARBALL} ${IMAGES_DIR}
+  elif [ "$USELOCAL" != "0" ]; then
     process_local_archives
   else
     process_images_from_bom
@@ -405,25 +440,25 @@ function main() {
     if [ ! -z "$LIST_IMAGES_ONLY" ]; then
       echo "[SUCCESS] All images listed"
     else
-      echo "[SUCCESS] All images pushed to [${TO_REGISTRY}]"
+      echo "[SUCCESS] All images processed"
     fi
   fi
 }
 
 while getopts 'hzcdom:b:t:f:r:l:i:e:' opt; do
   case $opt in
-  d)
-    DRY_RUN=true
-    ;;
   b)
     BOM_FILE=$OPTARG
     ;;
   d)
-    DB_DUMP=$OPTARG
+    DRY_RUN=true
     ;;
   e)
     echo "Exclude component: ${OPTARG}"
     EXCLUDE_COMPONENTS="${EXCLUDE_COMPONENTS} ${OPTARG}"
+    ;;
+  f)
+    TARBALL=$OPTARG
     ;;
   i)
     echo "Include component: ${OPTARG}"
@@ -434,9 +469,6 @@ while getopts 'hzcdom:b:t:f:r:l:i:e:' opt; do
     ;;
   t)
     TO_REGISTRY=$OPTARG
-    ;;
-  f)
-    TARBALL=$OPTARG
     ;;
   z)
     INCREMENTAL_CLEAN=true

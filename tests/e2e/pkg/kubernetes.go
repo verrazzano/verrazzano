@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
 	"strings"
@@ -772,7 +773,7 @@ func IsJaegerOperatorEnabled(kubeconfigPath string) bool {
 		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
 		return false
 	}
-	if vz.Spec.Components.JaegerOperator == nil || vz.Spec.Components.JaegerOperator.Enabled == nil {
+	if vz == nil || vz.Spec.Components.JaegerOperator == nil || vz.Spec.Components.JaegerOperator.Enabled == nil {
 		return false
 	}
 	return *vz.Spec.Components.JaegerOperator.Enabled
@@ -804,6 +805,20 @@ func IsKeycloakEnabled(kubeconfigPath string) bool {
 		return true
 	}
 	return *vz.Spec.Components.Keycloak.Enabled
+}
+
+// IsMySQLOperatorEnabled returns false if the MySQLOperator component is not set, or the value of its Enabled field otherwise
+func IsMySQLOperatorEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return false
+	}
+	if vz.Spec.Components.MySQLOperator == nil || vz.Spec.Components.MySQLOperator.Enabled == nil {
+		// MySQLOperator component is enabled by default
+		return true
+	}
+	return *vz.Spec.Components.MySQLOperator.Enabled
 }
 
 // IsVeleroEnabled returns false if the Velero component is not set, or the value of its Enabled field otherwise
@@ -1374,17 +1389,16 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 
 // GetTokenForServiceAccount returns the token associated with service account
 func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
-	serviceAccount, err := GetServiceAccount(namespace, sa)
-	if err != nil {
-		return nil, err
-	}
-	if len(serviceAccount.Secrets) == 0 {
-		msg := fmt.Sprintf("no secrets present in service account %s in namespace %s", sa, namespace)
+	// In k8s 1.24 and later, secret is not created for service account. Create a service account token secret and get
+	// the token from the same.
+	secretName := sa + "-token"
+	if err := createServiceAccountTokenSecret(sa, namespace); err != nil {
+		msg := fmt.Sprintf("failed to create a service account token secret %s in namespace %s: %v", secretName,
+			namespace, err)
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
 
-	secretName := serviceAccount.Secrets[0].Name
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
@@ -1395,16 +1409,26 @@ func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
-
-	token, ok := secret.Data["token"]
-
-	if !ok {
-		msg := fmt.Sprintf("no token present in secret %s for service account %s in namespace %s: %v", secretName, sa, namespace, err)
+	// API token secret is populated asynchronously. As a work-around, wait for up to 10 seconds for the secret to be
+	// populated.
+	// https://github.com/kubernetes/kubernetes/pull/108309/files#diff-9037e55a81aefc2c9dc448fa4329772381d50ed1f270575be0ff48e0a949e12eR475
+	err = wait.Poll(time.Second, 10*time.Second, func() (bool, error) {
+		if len(secret.Data["token"]) != 0 {
+			return true, nil
+		}
+		secret, err = clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+		if err != nil {
+			return false, fmt.Errorf("failed to get secret %s for service account %s in namespace %s: %v", secretName,
+				sa, namespace, err)
+		}
+		return false, nil
+	})
+	if err != nil {
+		msg := fmt.Sprintf("unable to find token in secret %s for service account %s in namespace %s: %v", secretName, sa, namespace, err)
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
-
-	return token, nil
+	return secret.Data["token"], nil
 }
 
 func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
@@ -1501,6 +1525,15 @@ func GetContainerEnv(namespace string, deploymentName string, containerName stri
 	return nil, fmt.Errorf("container %s not found in the namespace: %s", containerName, namespace)
 }
 
+func GetDeploymentLabelSelector(namespace, deploymentName string) (*metav1.LabelSelector, error) {
+	deployment, err := GetDeployment(namespace, deploymentName)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Deployment %v not found in the namespace: %v, error: %v", deploymentName, namespace, err))
+		return nil, fmt.Errorf("deployment %s not found in the namespace: %s, error: %v", deploymentName, namespace, err)
+	}
+	return deployment.Spec.Selector, err
+}
+
 // GetContainerImage returns the image used by the specified container for the specified deployment
 func GetContainerImage(namespace string, deploymentName string, containerName string) (string, error) {
 	deployment, err := GetDeployment(namespace, deploymentName)
@@ -1551,6 +1584,25 @@ func CreateConfigMap(configMap *corev1.ConfigMap) error {
 	}
 	_, err = clientset.CoreV1().ConfigMaps(configMap.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createServiceAccountTokenSecret(serviceAccount string, namespace string) error {
+	var secret corev1.Secret
+	secret.Name = serviceAccount + "-token"
+	secret.Namespace = namespace
+	secret.Type = corev1.SecretTypeServiceAccountToken
+	secret.Annotations = map[string]string{
+		corev1.ServiceAccountNameKey: serviceAccount,
+	}
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), &secret, metav1.CreateOptions{})
+	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
 	return nil

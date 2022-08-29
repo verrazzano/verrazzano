@@ -8,12 +8,12 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -116,7 +116,13 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Get the keycloak URL
-	keycloakURL, err := r.getKeycloakURL()
+	keycloakURL, err := k8sutil.GetURLForIngress(r.Client, "keycloak", "keycloak", "https")
+	if err != nil {
+		return err
+	}
+
+	// Get the Jaeger OpenSearch related data if it exists
+	jaegerStorage, err := r.getJaegerOpenSearchConfig(&vzList)
 	if err != nil {
 		return err
 	}
@@ -130,6 +136,12 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		mcconstants.RegistrationPasswordKey: esPassword,
 		mcconstants.KeycloakURLKey:          []byte(keycloakURL),
 		mcconstants.AdminCaBundleKey:        adminCaBundle,
+		mcconstants.JaegerOSURLKey:          []byte(jaegerStorage.URL),
+		mcconstants.JaegerOSTLSCAKey:        jaegerStorage.CA,
+		mcconstants.JaegerOSTLSKey:          jaegerStorage.TLSKey,
+		mcconstants.JaegerOSTLSCertKey:      jaegerStorage.TLSCert,
+		mcconstants.JaegerOSUsernameKey:     jaegerStorage.username,
+		mcconstants.JaegerOSPasswordKey:     jaegerStorage.password,
 	}
 	return nil
 }
@@ -217,14 +229,4 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 	}
 
 	return caBundle, nil
-}
-
-// Get the keycloak URL
-func (r *VerrazzanoManagedClusterReconciler) getKeycloakURL() (string, error) {
-	var ingress = &networkingv1.Ingress{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: "keycloak"}, ingress)
-	if err != nil {
-		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", "keycloak", "keycloak", err)
-	}
-	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
 }

@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	verrazzanov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/typed/verrazzano/v1alpha1"
+	verrazzanov1beta1 "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/typed/verrazzano/v1beta1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -17,6 +18,7 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	VerrazzanoV1beta1() verrazzanov1beta1.VerrazzanoV1beta1Interface
 	VerrazzanoV1alpha1() verrazzanov1alpha1.VerrazzanoV1alpha1Interface
 }
 
@@ -24,7 +26,13 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
+	verrazzanoV1beta1  *verrazzanov1beta1.VerrazzanoV1beta1Client
 	verrazzanoV1alpha1 *verrazzanov1alpha1.VerrazzanoV1alpha1Client
+}
+
+// VerrazzanoV1beta1 retrieves the VerrazzanoV1beta1Client
+func (c *Clientset) VerrazzanoV1beta1() verrazzanov1beta1.VerrazzanoV1beta1Interface {
+	return c.verrazzanoV1beta1
 }
 
 // VerrazzanoV1alpha1 retrieves the VerrazzanoV1alpha1Client
@@ -47,6 +55,10 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 // where httpClient was generated with rest.HTTPClientFor(c).
 func NewForConfig(c *rest.Config) (*Clientset, error) {
 	configShallowCopy := *c
+
+	if configShallowCopy.UserAgent == "" {
+		configShallowCopy.UserAgent = rest.DefaultKubernetesUserAgent()
+	}
 
 	// share the transport between all clients
 	httpClient, err := rest.HTTPClientFor(&configShallowCopy)
@@ -72,6 +84,10 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 
 	var cs Clientset
 	var err error
+	cs.verrazzanoV1beta1, err = verrazzanov1beta1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	if err != nil {
+		return nil, err
+	}
 	cs.verrazzanoV1alpha1, err = verrazzanov1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
 		return nil, err
@@ -97,6 +113,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.verrazzanoV1beta1 = verrazzanov1beta1.New(c)
 	cs.verrazzanoV1alpha1 = verrazzanov1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)

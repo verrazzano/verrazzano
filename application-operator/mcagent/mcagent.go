@@ -59,6 +59,7 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		}
 		s.updateDeployment("verrazzano-monitoring-operator")
 		s.configureLogging(false)
+		s.configureJaegerCR()
 		if !s.AgentReadyToSync() {
 			// there is no admin cluster we are connected to, so nowhere to send any status updates
 			// received - discard them
@@ -131,11 +132,13 @@ func (s *Syncer) ProcessAgentThread() error {
 		s.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
 	}
 
-	// if managed cluster information resulted in a change, the fluentd daemonset needs to be restarted
+	// if managed cluster information resulted in a change, the fluentd daemonset needs to be restarted and Jaeger CR
+	// needs to be updated
 	if managedClusterResult != controllerutil.OperationResultNone {
 		// configure logging and force a restart of the fluentd daemonset since CA or registration
 		// were updated
 		s.configureLogging(true)
+		s.configureJaegerCR()
 	}
 	return nil
 }

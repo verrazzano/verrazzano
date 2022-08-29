@@ -33,7 +33,7 @@ pipeline {
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
                 defaultValue: 'NONE',
-                description: 'This is the full git commit hash for the target upgrade.  By default, the Verrazzano tip will be used.',
+                description: 'This is the full git commit hash for the target upgrade.  By default, the Verrazzano last stable commit will be used.',
                 trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
@@ -59,6 +59,7 @@ pipeline {
                 description: 'Type of chaos to inflict',
                 // 1st choice is the default value
                 choices: [ "uninstall.failed.upgrade", "helm.chart.corrupted", "vpo.killed", "ephemeral.storage.upgrade", "upgrade.failed.upgrade", "upgrade.failing.upgrade" ])
+        booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
     }
 
     environment {
@@ -73,10 +74,14 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
-        // Used for dumping cluster from inside tests
+        // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+        CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
+
+        // Environment variable for Verrazzano CLI executable
+        VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
@@ -105,19 +110,19 @@ pipeline {
         APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot sockshop'"
 
         // used to emit metrics
-         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
-         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-         TEST_ENV_LABEL = "kind"
-         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
-         TEST_ENV = "KIND"
-         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+        TEST_ENV_LABEL = "kind"
+        K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+        TEST_ENV = "KIND"
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
-         // used to generate Ginkgo test reports
-         TEST_REPORT = "test-report.xml"
-         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
-         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -125,43 +130,46 @@ pipeline {
             environment {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
                 OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+                CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+                STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
+                STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
             }
             steps {
                 sh """
                     echo "${NODE_LABELS}"
+                    echo "Downloading latest stable commit info from object storage"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
                 """
 
                 script {
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                    if (params.GIT_COMMIT_FOR_UPGRADE == "NONE") {
-                        echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout([
-                                $class: 'GitSCM',
-                                branches: [[name: env.BRANCH_NAME]],
-                                extensions: [[$class: 'LocalBranch']],
-                                userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                    } else {
-                        echo "SCM checkout of ${params.GIT_COMMIT_FOR_UPGRADE}"
-                        def scmInfo = checkout([
-                                $class: 'GitSCM',
-                                branches: [[name: params.GIT_COMMIT_FOR_UPGRADE]],
-                                doGenerateSubmoduleConfigurations: false,
-                                extensions: [],
-                                submoduleCfg: [],
-                                userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
-                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_FOR_UPGRADE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_FOR_UPGRADE}, Found: ${scmInfo.GIT_COMMIT}"
-                            exit 1
-                        }
+                    COMMIT_FOR_UPGRADE = params.GIT_COMMIT_FOR_UPGRADE
+                    if (COMMIT_FOR_UPGRADE == "NONE") {
+                        echo "Specific GIT commit was not specified, using last stable commit"
+                        def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
+                        COMMIT_FOR_UPGRADE = stableCommitProps['git-commit']
+                    }
+                    echo "Checking out commit ${COMMIT_FOR_UPGRADE}"
+                    def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: COMMIT_FOR_UPGRADE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
+                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+
+                    // If the commit we were handed is not what the SCM says we are using, fail
+                    if (!env.GIT_COMMIT.equals(COMMIT_FOR_UPGRADE)) {
+                        echo "SCM didn't checkout the commit we expected. Expected: ${COMMIT_FOR_UPGRADE}, Found: ${scmInfo.GIT_COMMIT}"
+                        exit 1
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+
                 }
 
                 sh """
@@ -641,7 +649,7 @@ pipeline {
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*cluster-snapshot*/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*full-cluster*/**,**/bug-report/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -672,7 +680,7 @@ pipeline {
         failure {
             script {
                 METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-*" || env.BRANCH_NAME ==~ "mark/*") {
+                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-*") {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
             }
@@ -714,7 +722,7 @@ def runGinkgoNamespace(testSuitePath, skipDeploy, skipUndeploy, namespace) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

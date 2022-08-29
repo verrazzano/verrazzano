@@ -50,7 +50,7 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(rbacTestNamespace)
 	}
 
 	t.Logs.Info("Delete namespace")
@@ -332,10 +332,7 @@ var _ = t.Describe("Test Verrazzano API Service Account", func() {
 
 		t.It("Validate the secret of the Service Account of Verrazzano API", Label("f:security.apiproxy"), func() {
 			t.Logs.Info("DEBUG - This test fails on 1.21 - extra debugging added")
-			// Get secret for the SA
 			var pods *corev1.PodList
-			saSecret := serviceAccount.Secrets[0]
-			t.Logs.Info("SA SECRET: " + saSecret.String())
 			var clientset *kubernetes.Clientset
 			Eventually(func() (*kubernetes.Clientset, error) {
 				var err error
@@ -357,6 +354,9 @@ var _ = t.Describe("Test Verrazzano API Service Account", func() {
 
 			secretMatched := false
 			if minor <= 20 {
+				// Get secret for the SA. In k8s 1.24 and later, secret is not created for service accounts.
+				saSecret := serviceAccount.Secrets[0]
+				t.Logs.Info("SA SECRET: " + saSecret.String())
 				// in k8s 1.20 and lower, the SA token is mounted as a regular volume mounted secret
 				for i := range pods.Items {
 					// Get the secret of the API proxy pod

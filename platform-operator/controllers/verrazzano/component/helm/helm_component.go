@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -17,6 +19,7 @@ import (
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -51,6 +54,9 @@ type HelmComponent struct {
 
 	// ValuesFile is the helm chart values override file
 	ValuesFile string
+
+	// InstallBeforeUpgrade if component can be installed before upgade is done, default false
+	InstallBeforeUpgrade bool
 
 	// PreInstallFunc is an optional function to run before installing
 	PreInstallFunc preInstallFuncSig
@@ -147,6 +153,11 @@ func (h HelmComponent) Namespace() string {
 	return h.ChartNamespace
 }
 
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
+	return h.InstallBeforeUpgrade
+}
+
 // GetJsonName returns the josn name of the verrazzano component in CRD
 func (h HelmComponent) GetJSONName() string {
 	return h.JSONName
@@ -226,7 +237,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Indicates whether a component is enabled for installation
-func (h HelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (h HelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return true
 }
 
@@ -243,6 +254,16 @@ func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazza
 	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(new)); err != nil {
 		return err
 	}
+	return nil
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (h HelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (h HelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	return nil
 }
 

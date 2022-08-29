@@ -14,6 +14,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -59,8 +60,6 @@ const (
 	tmpFilePrefix         = "jaeger-operator-overrides-"
 	tmpSuffix             = "yaml"
 	tmpFileCreatePattern  = tmpFilePrefix + "*." + tmpSuffix
-	tmpFileCleanPattern   = tmpFilePrefix + ".*\\." + tmpSuffix
-	jaegerSecName         = "verrazzano-jaeger-secret"
 	jaegerCreateField     = "jaeger.create"
 	jaegerSecNameField    = "jaeger.spec.storage.secretName"
 	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"
@@ -69,6 +68,7 @@ const (
 	jaegerCertificateName = "jaeger-tls"
 	openSearchURL         = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
 	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090"
+	componentPrefixFmt    = "Component %s"
 )
 
 // Define the Jaeger images using extraEnv key.
@@ -103,6 +103,7 @@ const jaegerCreateTemplate = `jaeger:
       options:
         es:
           server-urls: {{.OpenSearchURL}}
+          num-replicas: {{.OpenSearchReplicaCount}}
       secretName: {{.SecretName}}
 `
 
@@ -119,11 +120,12 @@ type imageData struct {
 
 // jaegerData needed for template rendering
 type jaegerData struct {
-	OpenSearchURL string
-	SecretName    string
+	OpenSearchURL          string
+	SecretName             string
+	OpenSearchReplicaCount int32
 }
 
-// isjaegerOperatorReady checks if the Jaeger Operator deployment is ready
+// isJaegerOperatorReady checks if the Jaeger Operator deployment is ready
 func isJaegerOperatorReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{
@@ -131,8 +133,14 @@ func isJaegerOperatorReady(ctx spi.ComponentContext) bool {
 			Namespace: ComponentNamespace,
 		},
 	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+}
+
+// isDefaultJaegerInstanceReady checks if the deployments of default Jaeger instance managed by VZ are in ready state
+func isDefaultJaegerInstanceReady(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
 }
 
 // PreInstall implementation for the Jaeger Operator Component
@@ -258,7 +266,11 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		if err != nil {
 			return nil, err
 		}
-		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: jaegerSecName}
+		var osReplicaCount int32 = 1
+		if opensearch.IsSingleDataNodeCluster(compContext) {
+			osReplicaCount = 0
+		}
+		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
 		err = template.Execute(&b, data)
 		if err != nil {
 			return nil, err
@@ -394,7 +406,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 		return nil
 	}
 	// Copy the internal Elasticsearch secret
-	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", jaegerSecName)
+	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", globalconst.DefaultJaegerSecretName)
 	esInternalSecret, err := getESInternalSecret(ctx)
 	if err != nil {
 		return err
@@ -404,7 +416,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      jaegerSecName,
+			Name:      globalconst.DefaultJaegerSecretName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -420,7 +432,8 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 		}
 		return nil
 	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v", jaegerSecName, err)
+		return ctx.Log().ErrorfNewErr("Failed to create or update the %s secret: %v",
+			globalconst.DefaultJaegerSecretName, err)
 	}
 	return nil
 }
@@ -484,7 +497,7 @@ func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
 // As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
 func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		return true
 	}
 	return false
@@ -545,21 +558,9 @@ func ReassociateResources(cli clipkg.Client) error {
 	return nil
 }
 
-// Verifies if User created Jaeger instance deployments exists
 func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
-	client := ctx.Client()
-	deployments := []types.NamespacedName{
-		{
-			Name:      JaegerCollectorDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      JaegerQueryDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DoDeploymentsExist(ctx.Log(), client, deployments, 1, prefix)
+	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
+	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
 }
 
 // removeMutatingWebhookConfig removes the  jaeger-operator-mutating-webhook-configuration resource during the pre-upgrade
@@ -675,6 +676,19 @@ func removeOldCertAndSecret(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to delete secret %s/%s: %v", ComponentNamespace, ComponentSecretName, err)
 	}
 	return nil
+}
+
+func getJaegerComponentDeployments() []types.NamespacedName {
+	return []types.NamespacedName{
+		{
+			Name:      JaegerCollectorDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      JaegerQueryDeploymentName,
+			Namespace: ComponentNamespace,
+		},
+	}
 }
 
 // GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the

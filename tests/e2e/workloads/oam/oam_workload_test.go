@@ -19,6 +19,7 @@ import (
 const (
 	shortWaitTimeout     = 2 * time.Minute
 	shortPollingInterval = 10 * time.Second
+	longWaitTimeout      = 5 * time.Minute
 
 	appConfiguration  = "tests/testdata/test-applications/oam/oam-app.yaml"
 	compConfiguration = "tests/testdata/test-applications/oam/oam-comp.yaml"
@@ -48,7 +49,7 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
+		pkg.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		undeployOAMApp()
@@ -134,7 +135,7 @@ func undeployOAMApp() {
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}, longWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }

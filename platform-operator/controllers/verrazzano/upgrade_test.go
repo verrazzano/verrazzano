@@ -1724,7 +1724,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 	}
-	instanceInfo := vzinstance.GetInstanceInfo(spi.NewFakeContext(c, vz, false))
+	instanceInfo := vzinstance.GetInstanceInfo(spi.NewFakeContext(c, vz, nil, false))
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
 	assert.Equal(t, "https://"+rancherURL, *instanceInfo.RancherURL)
@@ -1923,7 +1923,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	}
 	vz.Status.VerrazzanoInstance = &fakeInstanceInfo
 
-	instanceInfo := vzinstance.GetInstanceInfo(spi.NewFakeContext(c, vz, false))
+	instanceInfo := vzinstance.GetInstanceInfo(spi.NewFakeContext(c, vz, nil, false))
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
 	assert.Equal(t, "https://"+rancherURL, *instanceInfo.RancherURL)

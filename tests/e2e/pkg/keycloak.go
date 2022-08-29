@@ -7,10 +7,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"go.uber.org/zap"
 
 	"io/ioutil"
 
@@ -216,7 +217,9 @@ func (c *KeycloakRESTClient) DeleteUser(userRealm string, userID string) error {
 		return fmt.Errorf("invalid response")
 	}
 	defer response.Body.Close()
-	if response.StatusCode != 200 {
+	// all responses in the 200 range are acceptable
+	// in practice, this call returns 204 (No Content) for success
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return fmt.Errorf("invalid response status: %d", response.StatusCode)
 	}
 	return nil

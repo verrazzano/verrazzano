@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -23,7 +24,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -42,7 +45,7 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 //  WHEN AppendOverrides is called
 //  THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev, nil, false)
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
@@ -67,7 +70,7 @@ func TestAppendRegistryOverrides(t *testing.T) {
 //  WHEN AppendOverrides is called
 //  THEN AppendOverrides should add private CA overrides
 func TestAppendCAOverrides(t *testing.T) {
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, false)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, nil, false)
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Nil(t, err)
 	v, ok := getValue(kvs, ingressTLSSourceKey)
@@ -111,12 +114,12 @@ func TestIsEnabled(t *testing.T) {
 	}{
 		{
 			"should be enabled",
-			spi.NewFakeContext(c, &vzWithRancher, false),
+			spi.NewFakeContext(c, &vzWithRancher, nil, false),
 			true,
 		},
 		{
 			"should not be enabled",
-			spi.NewFakeContext(c, &vzNoRancher, false),
+			spi.NewFakeContext(c, &vzNoRancher, nil, false),
 			false,
 		},
 	}
@@ -132,7 +135,7 @@ func TestIsEnabled(t *testing.T) {
 func TestPreInstall(t *testing.T) {
 	caSecret := createCASecret()
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret).Build()
-	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
+	ctx := spi.NewFakeContext(c, &vzDefaultCA, nil, false)
 	assert.Nil(t, NewComponent().PreInstall(ctx))
 }
 
@@ -220,12 +223,12 @@ func TestIsReady(t *testing.T) {
 	}{
 		{
 			"should be ready",
-			spi.NewFakeContext(readyClient, &vzDefaultCA, true),
+			spi.NewFakeContext(readyClient, &vzDefaultCA, nil, true),
 			true,
 		},
 		{
 			"should not be ready due to deployment",
-			spi.NewFakeContext(unreadyDeployClient, &vzDefaultCA, true),
+			spi.NewFakeContext(unreadyDeployClient, &vzDefaultCA, nil, true),
 			false,
 		},
 	}
@@ -318,10 +321,33 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	rootCASecret := createRootCASecret()
 	adminSecret := createAdminSecret()
 	rancherPodList := createRancherPodListWithAllRunning()
+	verrazzanoAdminClusterRole := createClusterRoles("verrazzano-admin")
+	verrazzanoMonitorClusterRole := createClusterRoles("verrazzano-monitor")
+
 	ingress := v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: common.CattleSystem,
 			Name:      constants.RancherIngress,
+		},
+		Spec: v1.IngressSpec{
+			Rules: []v1.IngressRule{
+				{
+					Host: "rancher",
+				},
+			},
+		},
+	}
+	kcIngress := v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "keycloak",
+			Name:      "keycloak",
+		},
+		Spec: v1.IngressSpec{
+			Rules: []v1.IngressRule{
+				{
+					Host: "keycloak",
+				},
+			},
 		},
 	}
 	time := metav1.Now()
@@ -336,23 +362,42 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	serverURLSetting := createServerURLSetting()
 	ociDriver := createOciDriver()
 	okeDriver := createOkeDriver()
+	authConfig := createKeycloakAuthConfig()
+	localAuthConfig := createLocalAuthConfig()
+	kcSecret := createKeycloakSecret()
+	firstLoginSetting := createFirstLoginSetting()
 
-	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver).Build()
-	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
+	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole).Build()
+	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, nil, false)
 
-	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver).Build()
-	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
-
+	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole).Build()
+	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, nil, false)
 	// mock the pod executor when resetting the Rancher admin password
+	scheme.Scheme.AddKnownTypes(schema.GroupVersion{Group: "", Version: "v1"}, &corev1.PodExecOptions{})
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
-	k8sutilfake.PodSTDOUT = "password"
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
+		var commands []string
+		if commands = url.Query()["command"]; len(commands) == 3 {
+			if strings.Contains(commands[2], "id,clientId") {
+				return "[{\"id\":\"something\", \"clientId\":\"" + AuthConfigKeycloakClientIDRancher + "\"}]", "", nil
+			}
+
+			if strings.Contains(commands[2], "client-secret") {
+				return "{\"type\":\"secret\",\"value\":\"abcdef\"}", "", nil
+			}
+
+			if strings.Contains(commands[2], "get users") {
+				return "[{\"id\":\"something\", \"username\":\"verrazzano\"}]", "", nil
+			}
+
+		}
+		return "", "", nil
+	}
 	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
 		config, k := k8sutilfake.NewClientsetConfig()
 		return config, k, nil
 	}
-
 	return ctxWithoutIngress, ctxWithIngress
-
 }
 
 func newReadyDeployment(namespace string, name string) *appsv1.Deployment {

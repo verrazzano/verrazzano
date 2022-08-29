@@ -138,6 +138,7 @@ pipeline {
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
         TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-olcne"
         KUBECONFIG="$WORKSPACE/test_kubeconfig"
+        VZ_COMMAND="$GO_REPO_PATH/vz"
         OLCNE_DUMP_DIR="$WORKSPACE/olcne"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
         INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
@@ -255,6 +256,20 @@ pipeline {
                         rm -rf $WORKSPACE/*
                     """
 
+                    script {
+                        echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
+                        echo "[INFO] agentlabel: $agentLabel"
+                        echo "[INFO] $NODE_LABELS"
+                        SHORT_COMMIT_HASH=sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                        // update the description with some meaningful info
+                        setDisplayName()
+                        currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
+                        // derive the prefix for the OLCNE cluster
+                        OLCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
+                        // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+                        env.K8S_VERSION_LABEL=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
+                    }
+
                     echo "[INFO] SCM checkout of $OLCNE_TERRAFORM_GIT_URL $OLCNE_BRANCH_TO_USE"
                     def scmInfo=checkout([
                         $class: 'GitSCM',
@@ -262,7 +277,7 @@ pipeline {
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [],
                         submoduleCfg: [],
-                        userRemoteConfigs: [[url: env.OLCNE_TERRAFORM_GIT_URL, credentialsId: 'sk_gitlab_rw']]])
+                        userRemoteConfigs: [[url: env.OLCNE_TERRAFORM_GIT_URL, credentialsId: 'gitlab_ocne_tf_rw']]])
                     env.TF_GIT_COMMIT=scmInfo.GIT_COMMIT
                     env.TF_GIT_BRANCH=scmInfo.GIT_BRANCH
                     // If the commit we were handed is not what the SCM says we are using, fail
@@ -293,19 +308,6 @@ pipeline {
                         chmod 600 $WORKSPACE/.netrc
                     """
 
-                    script {
-                        echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
-                        echo "[INFO] agentlabel: $agentLabel"
-                        echo "[INFO] $NODE_LABELS"
-                        SHORT_COMMIT_HASH=sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                        // update the description with some meaningful info
-                        setDisplayName()
-                        currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
-                        // derive the prefix for the OLCNE cluster
-                        OLCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
-                        // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
-                        env.K8S_VERSION_LABEL=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
-                    }
                     script {
                         sh """
                             echo "Downloading VZ CLI from object storage"
@@ -465,7 +467,7 @@ pipeline {
             dumpVerrazzanoApplicationOperatorLogs()
             dumpVerrazzanoApiLogs()
 
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*full-cluster*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -473,19 +475,6 @@ pipeline {
                         sh """
                             $GO_REPO_PATH/verrazzano/ci/scripts/dashboard/emit_metrics.sh "$WORKSPACE/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "[ERROR] Emit metrics failed, continuing with other post actions"
                         """
-                    }
-                }
-            }
-
-            script {
-                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
-                    if (env.installedVZ && env.installedVZ == "true") {
-                        echo "[INFO] Deleting Verrazzano"
-                        deleteVerrazzano()
-                    }
-                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
-                        echo "[INFO] Deleting OLCNE Cluster"
-                        deleteOLCNECluster()
                     }
                 }
             }
@@ -520,9 +509,25 @@ pipeline {
             }
        }
        cleanup {
-           metricBuildDuration()
-           emitJobMetrics()
-           deleteDir()
+            script {
+                if (params.KEEP_RESOURCES_AFTER_RUN == false) {
+                    if (env.installedVZ && env.installedVZ == "true") {
+                        try {
+                            echo "[INFO] Deleting Verrazzano"
+                            deleteVerrazzano()
+                        } catch (error) {
+                            echo "Failed to delete Verrazzano"
+                        }
+                    }
+                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
+                        echo "[INFO] Deleting OLCNE Cluster"
+                        deleteOLCNECluster()
+                    }
+                }
+            }
+            metricBuildDuration()
+            emitJobMetrics()
+            deleteDir()
         }
     }
 }
@@ -695,7 +700,7 @@ def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', s
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        $GO_REPO_PATH/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-snapshot/analysis.report
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 
@@ -943,10 +948,12 @@ def setupSSH() {
 def setupKubeconfig() {
     sh """
         scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@"$API_SERVER_IP":/home/opc/.kube/config "$KUBECONFIG"
+        cat "$KUBECONFIG"
         yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
         cp "$KUBECONFIG" $OLCNE_DUMP_DIR/kubeconfig
+        cat "$KUBECONFIG"
         kubectl get nodes
     """
 }
@@ -985,18 +992,23 @@ def createImagePullSecrets() {
 
 def installVerrazzanoPlatformOperator() {
     sh """
-        # oci --region us-phoenix-1 os object get \
-        # --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
-        # --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
-        # --file $WORKSPACE/downloaded-operator.yaml
-
-        # TODO: Need to fetch the Verrazzano Platform Operator from OCI Object Storage using the above commands instead of "wget"
-        wget -O $WORKSPACE/downloaded-operator.yaml https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/master/operator.yaml
+        oci --region us-phoenix-1 os object get \
+        --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
+        --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
+        --file $WORKSPACE/downloaded-operator.yaml
 
         cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
 
         # Install the verrazzano-platform-operator
         kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
+
+        # make sure ns exists
+        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+
+        # create secret in verrazzano-install ns
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
+
         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
         # make sure ns exists
         chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh

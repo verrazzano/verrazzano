@@ -1,0 +1,322 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: dev
+  version: 1.4.0
+  environmentName: env
+  security:
+    monitorSubjects:
+      - kind: test
+        apiGroup: test.io
+        name: testuser
+        namespace: default
+    adminSubjects:
+      - kind: test
+        apiGroup: test.io
+        name: testuser
+        namespace: default
+  components:
+    applicationOperator:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    authProxy:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+      kubernetes:
+        replicas: 1
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - verrazzano-authproxy
+                  topologyKey: kubernetes.io/hostname
+    certManager:
+      enabled: true
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+      overrides:
+        - values:
+            replicaCount: 1
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: cert-manager
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
+            cainjector:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: cainjector
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+            webhook:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: webhook
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+    coherenceOperator:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    console:
+      enabled: true
+      overrides:
+        - values:
+            replicas: 1
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: verrazzano-console
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
+    dns:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+      wildcard:
+        domain: "nip.io"
+    elasticsearch:
+      enabled: true
+    fluentd:
+      enabled: true
+      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
+      elasticsearchSecret: verrazzano-es-internal
+      overrides:
+        - values:
+            frobber: frob
+    grafana:
+      enabled: true
+      replicas: 1
+      database:
+        host: host
+        name: name
+    ingress:
+      enabled: true
+      type: LoadBalancer
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: false
+                minReplicas: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/component: controller
+                            app.kubernetes.io/name: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+            defaultBackend:
+              replicaCount: 1
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/component: default-backend
+                            app.kubernetes.io/name: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+    istio:
+      enabled: true
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    affinity:
+                      podAntiAffinity:
+                        preferredDuringSchedulingIgnoredDuringExecution:
+                          - podAffinityTerm:
+                              labelSelector:
+                                matchLabels:
+                                  app: istiod
+                              topologyKey: kubernetes.io/hostname
+                            weight: 100
+      ingress:
+        kubernetes:
+          replicas: 1
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-ingressgateway
+                    topologyKey: kubernetes.io/hostname
+      egress:
+        kubernetes:
+          replicas: 1
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-egressgateway
+                    topologyKey: kubernetes.io/hostname
+    jaegerOperator:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    kiali:
+      enabled: true
+      overrides:
+        - values:
+            deployment:
+              replicas: 1
+              affinity:
+                pod_anti:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: kiali
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+    keycloak:
+      enabled: true
+      mysql:
+        overrides:
+          - values:
+              frobber: frob
+      overrides:
+        - values:
+            replicas: 1
+            affinity: |
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app.kubernetes.io/instance: keycloak
+                          app.kubernetes.io/name: keycloak
+                      topologyKey: kubernetes.io/hostname
+    mysql-operator:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    kibana:
+      enabled: true
+      replicas: 1
+    oam:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    kubeStateMetrics:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    prometheus:
+      enabled: true
+    prometheusAdapter:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    prometheusOperator:
+      enabled: true
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 1
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/name: prometheus
+                          topologyKey: kubernetes.io/hostname
+                        weight: 100
+    prometheusNodeExporter:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    prometheusPushgateway:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    rancher:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    rancherBackup:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    velero:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    verrazzano:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob
+    weblogicOperator:
+      enabled: true
+      overrides:
+        - values:
+            frobber: frob

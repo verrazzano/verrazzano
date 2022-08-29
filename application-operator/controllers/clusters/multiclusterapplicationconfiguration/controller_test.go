@@ -6,18 +6,19 @@ package multiclusterapplicationconfiguration
 import (
 	"context"
 	"encoding/json"
-	"github.com/go-logr/logr"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"path/filepath"
 	"testing"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -429,6 +430,10 @@ func assertAppConfigValid(assert *asserts.Assertions, app *v1alpha2.ApplicationC
 	assert.Equal(namespace, app.ObjectMeta.Namespace)
 	assert.Equal(crName, app.ObjectMeta.Name)
 	assert.Equal(mcAppConfig.Spec.Template.Spec, app.Spec)
+
+	// assert that the app config is labeled verrazzano-managed=true since it was created by Verrazzano
+	assert.NotNil(app.Labels)
+	assert.Equal(constants.LabelVerrazzanoManagedDefault, app.Labels[vzconst.VerrazzanoManagedLabelKey])
 
 	// assert some fields on the app config spec (e.g. in the case of update, these fields should
 	// be different from the mock pre existing OAM app config)

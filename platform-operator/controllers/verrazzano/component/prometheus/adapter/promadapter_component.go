@@ -4,9 +4,10 @@
 package adapter
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -49,12 +50,8 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the Prometheus Adapter is enabled or if the component is not specified
 // in the Verrazzano CR.
-func (c prometheusAdapterComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.PrometheusAdapter
-	if comp == nil || comp.Enabled == nil {
-		return false
-	}
-	return *comp.Enabled
+func (c prometheusAdapterComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsPrometheusAdapterEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus Adapter deployment is ready

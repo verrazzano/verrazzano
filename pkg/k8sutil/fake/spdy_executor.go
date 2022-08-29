@@ -5,13 +5,14 @@ package fake
 
 import (
 	"bytes"
+	"net/url"
+
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
-	"net/url"
 )
 
-// PodSTDOUT can be used to output arbitrary strings during unit testing
-var PodSTDOUT = ""
+// PodExecResult can be used to output arbitrary strings during unit testing
+var PodExecResult = func(url *url.URL) (string, string, error) { return "", "", nil }
 
 //NewPodExecutor should be used instead of remotecommand.NewSPDYExecutor in unit tests
 func NewPodExecutor(config *rest.Config, method string, url *url.URL) (remotecommand.Executor, error) {
@@ -24,14 +25,22 @@ type dummyExecutor struct {
 	url    *url.URL
 }
 
-//Stream on a dummyExecutor sets stdout to PodSTDOUT
+//Stream on a dummyExecutor sets stdout to PodExecResult
 func (f *dummyExecutor) Stream(options remotecommand.StreamOptions) error {
+	stdout, stderr, err := PodExecResult(f.url)
 	if options.Stdout != nil {
 		buf := new(bytes.Buffer)
-		buf.WriteString(PodSTDOUT)
+		buf.WriteString(stdout)
 		if _, err := options.Stdout.Write(buf.Bytes()); err != nil {
 			return err
 		}
 	}
-	return nil
+	if options.Stderr != nil {
+		buf := new(bytes.Buffer)
+		buf.WriteString(stderr)
+		if _, err := options.Stderr.Write(buf.Bytes()); err != nil {
+			return err
+		}
+	}
+	return err
 }

@@ -42,6 +42,7 @@ fi
 mkdir ${WORKSPACE}/tar-files
 chmod uog+w ${WORKSPACE}/tar-files
 cp $GENERATED_BOM_FILE ${WORKSPACE}/tar-files/verrazzano-bom.json
+cp tools/scripts/bom_utils.sh ${WORKSPACE}/tar-files/bom_utils.sh
 cp tools/scripts/vz-registry-image-helper.sh ${WORKSPACE}/tar-files/vz-registry-image-helper.sh
 cp tools/scripts/README.md ${WORKSPACE}/tar-files/README.md
 mkdir -p ${WORKSPACE}/tar-files/charts

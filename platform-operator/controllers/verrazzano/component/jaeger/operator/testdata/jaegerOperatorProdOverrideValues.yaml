@@ -1,0 +1,29 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+extraEnv:
+  - name: "JAEGER-AGENT-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-agent:1.34.1-20220714175451-1fdab0ff"
+  - name: "JAEGER-QUERY-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-query:1.34.1-20220714175451-1fdab0ff"
+  - name: "JAEGER-COLLECTOR-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-collector:1.34.1-20220714175451-1fdab0ff"
+  - name: "JAEGER-INGESTER-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-ingester:1.34.1-20220714175451-1fdab0ff"
+  - name: "JAEGER-ES-INDEX-CLEANER-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-es-index-cleaner:1.34.1-20220714175451-1fdab0ff"
+  - name: "JAEGER-ES-ROLLOVER-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-es-rollover:1.34.1-20220714175451-1fdab0ff"
+  - name: "JAEGER-ALL-IN-ONE-IMAGE"
+    value: "ghcr.io/verrazzano/jaeger-all-in-one:1.34.1-20220718052137-ae4bd702"
+jaeger:
+  create: true
+  spec:
+    strategy: production
+    storage:
+      # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
+      type: elasticsearch
+      options:
+        es:
+          server-urls: "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
+          num-replicas: 1
+      secretName: "verrazzano-jaeger-secret"

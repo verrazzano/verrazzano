@@ -5,9 +5,11 @@ package multiclustersecret
 
 import (
 	"context"
+
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
@@ -41,7 +43,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == constants.KubeSystem {
+	if req.Namespace == vzconst.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
 		log.Infof("Multi-cluster secret resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
@@ -163,5 +165,9 @@ func (r *Reconciler) mutateSecret(mcSecret clustersv1alpha1.MultiClusterSecret, 
 	secret.Data = mcSecret.Spec.Template.Data
 	secret.StringData = mcSecret.Spec.Template.StringData
 	secret.Labels = mcSecret.Spec.Template.Metadata.Labels
+	if secret.Labels == nil {
+		secret.Labels = map[string]string{}
+	}
+	secret.Labels[vzconst.VerrazzanoManagedLabelKey] = constants.LabelVerrazzanoManagedDefault
 	secret.Annotations = mcSecret.Spec.Template.Metadata.Annotations
 }

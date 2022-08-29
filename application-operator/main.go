@@ -339,7 +339,10 @@ func main() {
 	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
 
 	// Initialize the metricsExporter
-	metricsexporter.InitRegisterStart(log)
+	if err := metricsexporter.StartMetricsServer(); err != nil {
+		log.Errorf("Failed to create metrics exporter: %v", err)
+		os.Exit(1)
+	}
 
 	if err = (&multiclustersecret.Reconciler{
 		Client:       mgr.GetClient(),

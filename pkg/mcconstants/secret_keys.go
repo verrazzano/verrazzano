@@ -16,6 +16,21 @@ const AdminCaBundleKey = "ca-bundle"
 // FluentdESCaBundleKey is the CA cert key in the Verrazzano CRD fluentd Elasticsearch secret
 const FluentdESCaBundleKey = "ca-bundle"
 
+// JaegerOSTLSKey is the key in registration secret containing TLS key used by Jaeger to connect to OpenSearch storage
+// when using mutual TLS
+const JaegerOSTLSKey = "jaeger-os-tls.key"
+
+// JaegerOSTLSCertKey is the key in registration secret containing TLS cert used by Jaeger to connect to OpenSearch storage
+// when using mutual TLS
+const JaegerOSTLSCertKey = "jaeger-os-tls.cert"
+
+// JaegerOSTLSCAKey is the key in registration secret containing TLS CA used by Jaeger to connect to OpenSearch storage
+const JaegerOSTLSCAKey = "jaeger-os-ca.crt"
+
+// JaegerManagedClusterSecretName is the name of the Jaeger secret in the managed cluster
+// #nosec
+const JaegerManagedClusterSecretName = "verrazzano-jaeger-managed-cluster"
+
 // KubeconfigKey is the kubeconfig key
 const KubeconfigKey = "admin-kubeconfig"
 
@@ -34,11 +49,20 @@ const VerrazzanoPasswordKey = "password"
 // VerrazzanoUsernameKey is the username key in Verrazzano secret
 const VerrazzanoUsernameKey = "username"
 
+// JaegerOSPasswordKey is the password key in Jaeger secret to connect to the OpenSearch storage
+const JaegerOSPasswordKey = "ES_PASSWORD"
+
+// JaegerOSUsernameKey is the username key in Jaeger secret to connect to the OpenSearch storage
+const JaegerOSUsernameKey = "ES_USERNAME"
+
 // TokenKey is the key for the service account token
 const TokenKey = "token"
 
 // ESURLKey is the key for Elasticsearch URL
 const ESURLKey = "es-url"
+
+// JaegerOSURLKey is the key in registration secret containing Jaeger OpenSearch URL
+const JaegerOSURLKey = "jaeger-os-url"
 
 // YamlKey is the key for YAML that can be applied using kubectl
 const YamlKey = "yaml"
