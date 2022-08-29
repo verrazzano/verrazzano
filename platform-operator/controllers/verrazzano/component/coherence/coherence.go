@@ -33,12 +33,10 @@ func GetOverrides(object runtime.Object) interface{} {
 			return effectiveCR.Spec.Components.CoherenceOperator.ValueOverrides
 		}
 		return []vzapi.Overrides{}
-	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.CoherenceOperator != nil {
-			return effectiveCR.Spec.Components.CoherenceOperator.ValueOverrides
-		}
-		return []v1beta1.Overrides{}
 	}
-
-	return []vzapi.Overrides{}
+	effectiveCR := object.(*v1beta1.Verrazzano)
+	if effectiveCR.Spec.Components.CoherenceOperator != nil {
+		return effectiveCR.Spec.Components.CoherenceOperator.ValueOverrides
+	}
+	return []v1beta1.Overrides{}
 }

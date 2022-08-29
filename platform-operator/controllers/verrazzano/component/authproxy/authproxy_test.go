@@ -359,12 +359,20 @@ func TestUninstallResources(t *testing.T) {
 }
 
 func TestGetOverrides(t *testing.T) {
+	ref := &corev1.ConfigMapKeySelector{
+		Key: "foo",
+	}
 	o := v1beta1.InstallOverrides{
 		ValueOverrides: []v1beta1.Overrides{
 			{
-				ConfigMapRef: &corev1.ConfigMapKeySelector{
-					Key: "foo",
-				},
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	oV1Alpha1 := vzapi.InstallOverrides{
+		ValueOverrides: []vzapi.Overrides{
+			{
+				ConfigMapRef: ref,
 			},
 		},
 	}
@@ -373,6 +381,19 @@ func TestGetOverrides(t *testing.T) {
 		cr   runtime.Object
 		res  interface{}
 	}{
+		{
+			"overrides when component not nil, v1alpha1",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						AuthProxy: &vzapi.AuthProxyComponent{
+							InstallOverrides: oV1Alpha1,
+						},
+					},
+				},
+			},
+			oV1Alpha1.ValueOverrides,
+		},
 		{
 			"Empty overrides when component nil",
 			&v1beta1.Verrazzano{},

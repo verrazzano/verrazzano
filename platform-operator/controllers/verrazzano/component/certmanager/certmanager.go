@@ -938,12 +938,10 @@ func GetOverrides(object runtime.Object) interface{} {
 			return effectiveCR.Spec.Components.CertManager.ValueOverrides
 		}
 		return []vzapi.Overrides{}
-	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.CertManager != nil {
-			return effectiveCR.Spec.Components.CertManager.ValueOverrides
-		}
-		return []v1beta1.Overrides{}
 	}
-
-	return []vzapi.Overrides{}
+	effectiveCR := object.(*v1beta1.Verrazzano)
+	if effectiveCR.Spec.Components.CertManager != nil {
+		return effectiveCR.Spec.Components.CertManager.ValueOverrides
+	}
+	return []v1beta1.Overrides{}
 }

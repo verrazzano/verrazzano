@@ -272,14 +272,12 @@ func GetOverrides(object runtime.Object) interface{} {
 			return effectiveCR.Spec.Components.AuthProxy.ValueOverrides
 		}
 		return []vzapi.Overrides{}
-	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.AuthProxy != nil {
-			return effectiveCR.Spec.Components.AuthProxy.ValueOverrides
-		}
-		return []v1beta1.Overrides{}
 	}
-
-	return []vzapi.Overrides{}
+	effectiveCR := object.(*v1beta1.Verrazzano)
+	if effectiveCR.Spec.Components.AuthProxy != nil {
+		return effectiveCR.Spec.Components.AuthProxy.ValueOverrides
+	}
+	return []v1beta1.Overrides{}
 }
 
 // getAuthproxyManagedResources returns a list of resource types and their namespaced names that are managed by the
