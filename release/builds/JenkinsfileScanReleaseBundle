@@ -98,7 +98,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: "**/scan_report_${BUNDLE_TO_SCAN}.out,**/scan_summary_${BUNDLE_TO_SCAN}.out,", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/scan_report*.out,**/scan_summary*.out,", allowEmptyArchive: true
         }
         cleanup {
             deleteDir()
