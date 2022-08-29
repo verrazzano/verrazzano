@@ -18,6 +18,7 @@ var _ ClusterLifeCycleManager = &kindClusterManager{}
 type kindClusterManager struct {
 	config            ClusterConfig
 	bootstrapProvider KindBootstrapProvider
+	defaultKindConfig string
 }
 
 func (r *kindClusterManager) GetKubeConfig() (string, error) {

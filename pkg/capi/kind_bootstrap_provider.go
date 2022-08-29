@@ -12,6 +12,11 @@ import (
 	kind "sigs.k8s.io/kind/pkg/cmd"
 )
 
+const defaultKindBootstrapNodeImage = "kindest/node:v1.24.0"
+
+// TODO: fill this in with real image when ready
+const defaultCNEBootstrapNodeImage = "kindest/node:v1.24.0"
+
 const defaultKindBootstrapConfig = `kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -22,7 +27,44 @@ nodes:
       containerPath: /var/run/docker.sock
 `
 
-const defaultKindBootstrapNodeImage = "kindest/node:v1.24.0"
+const defaultCNEBootstrapConfig = `kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    image: {{.BootstrapNodeImage}}
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        imageRepository: container-registry.oracle.com/olcne
+        kubernetesVersion: 1.23.7
+        etcd:
+          local:
+            imageRepository: container-registry.oracle.com/olcne
+            imageTag: 3.5.1
+        dns:
+          imageRepository: container-registry.oracle.com/olcne
+          imageTag: 1.8.6
+        nodeRegistration:
+          criSocket: unix:///var/run/crio/crio.sock
+        apiServer:
+          extraArgs:
+            "service-account-issuer": "kubernetes.default.svc"
+            "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          criSocket: unix:///var/run/crio/crio.sock
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+            authorization-mode: "AlwaysAllow"
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          criSocket: unix:///var/run/crio/crio.sock
+    extraMounts:
+      - hostPath: /var/run/docker.sock
+        containerPath: /var/run/docker.sock
+`
 
 var getKindProviderFunc = getKindProvider
 
