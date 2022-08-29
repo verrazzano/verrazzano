@@ -122,6 +122,7 @@ pipeline {
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
+        BOM_DOWNLOADED_FILE_NAME = "downloaded-from-bom.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -139,12 +140,6 @@ pipeline {
 
     stages {
         stage('Initialize workspace and checkout') {
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-                VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
-            }
             steps {
                 script {
                     echo "Current execution region: $ocirRegion"
@@ -254,14 +249,17 @@ pipeline {
             steps {
                 script {
                     downloadLocation = "${WORKSPACE}/${zipFileLoc}"
+                    echo "download location: $downloadLocation"
                     baseFilename = sh (
                         script: "basename ${zipFileLoc} .zip",
                         returnStdout: true
                         ).trim()
                     // Commercial bundle doesn't have a tarfile and CheckSum, add logic based on distribution variant
-                    tarfileName = ""
-                    checksumFile = ""
-                    // echo "base name: $baseFilename, tar name: $tarfileName"
+                    if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                        tarfileName = "verrazzano-1.4.0-linux-amd64.tar.gz" // TODO make it from a variable
+                        checksumFile = "${tarfileName}.sha256"
+                        echo "base name: $baseFilename, tar name: $tarfileName, checksum name: $checksumFile"
+                    }
 
                     zipDir = sh (
                         script: "dirname $downloadLocation",
@@ -275,16 +273,24 @@ pipeline {
 
                     dir(env.TARBALL_DIR) {
                         unzip zipFile: downloadLocation
+                        
+                        if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                            sh """
+                                # Installing VZ CLI
+                                cp ${TARBALL_DIR}/bin/vz ${GO_REPO_PATH}
+                                ${GO_REPO_PATH}/vz version # Verify install
+
+                                sha256sum -c $checksumFile
+                                tar xvf $tarfileName
+                            """
+                        }
+
                         if (params.DISTRIBUTION_VARIANT == "Commercial") {
                             sh """
                                 mv ${TARBALL_DIR}/bin/linux-amd64/vz ${GO_REPO_PATH}/vz
                                 chmod +x ${GO_REPO_PATH}/vz
                                 ${GO_REPO_PATH}/vz version
                             """
-                        }
-                        if (params.DISTRIBUTION_VARIANT == "OpenSource") {
-                            // sh "sha256sum -c $checksumFile"
-                            sh "tar xvf $tarfileName"
                         }
                     }
                 }
@@ -293,17 +299,34 @@ pipeline {
         stage('Upload Verrazzano Images') {
             steps {
                 script {
-                    sh """
-                        # Create OCIR repos for the images in the tarballs in the test compartment
-                        sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
-                        echo "Upload OCIR region: $ocirRegion"
-                        echo "Upload OCIR Repository: ${ocirRegistry}"
-                    """
                     if (params.DISTRIBUTION_VARIANT == "Commercial") {
                         sh """
+                            # Create OCIR repos for the images in the tarballs in the test compartment
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            echo "Upload OCIR region: $ocirRegion"
+                            echo "Upload OCIR Repository: ${ocirRegistry}"
                             cd ${TARBALL_DIR}
                             chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
                             ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
+                        """
+                    }
+
+                    if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                        sh """
+                            # Create OCIR repos for the images in the tarballs in the test compartment
+                            cd ${TARBALL_DIR}
+                            sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -f ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
+                            tar xvf ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
+                            cd ${TEST_SCRIPTS_DIR}
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                            echo "Upload OCIR region: $ocirRegion"
+                            echo "Upload OCIR Repository: ${ocirRegistry}"
+                            # Run the image-helper to load the images into the OCIR registry in the runner's region
+                            cd ${TARBALL_DIR}
+                            pwd
+                            ls
+                            chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
                         """
                     }
                 }
