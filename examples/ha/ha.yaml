@@ -52,7 +52,7 @@ spec:
       overrides:
         - values:
             replicas: 2
-    openearchDashboards:
+    opensearchDashboards:
       replicas: 2
     kiali:
       overrides:
