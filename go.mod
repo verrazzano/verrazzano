@@ -162,7 +162,6 @@ require (
 )
 
 require (
-	github.com/verrazzano/kind v0.14.1-0.20220829142452-2791a1eb08ce
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	sigs.k8s.io/kind v0.14.0
 )
@@ -179,4 +178,5 @@ replace (
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.11.2
+	sigs.k8s.io/kind => github.com/verrazzano/kind v0.14.1-0.20220829193750-35132e97913c
 )

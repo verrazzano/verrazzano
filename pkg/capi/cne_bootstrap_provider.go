@@ -5,8 +5,8 @@ package capi
 import (
 	"os"
 
-	kindcluster "github.com/verrazzano/kind/pkg/cluster"
-	kind "github.com/verrazzano/kind/pkg/cmd"
+	kindcluster "sigs.k8s.io/kind/pkg/cluster"
+	kind "sigs.k8s.io/kind/pkg/cmd"
 )
 
 // TODO: fill this in with real image when ready
