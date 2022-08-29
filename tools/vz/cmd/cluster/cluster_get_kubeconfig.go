@@ -85,7 +85,9 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 		return fmt.Errorf("failed to get the kubeconfig for cluster %s: %v", clusterName, err)
 	}
 
-	return os.WriteFile(filePath, []byte(kubeconfigContents), 0700)
+	err = os.WriteFile(filePath, []byte(kubeconfigContents), 0700)
+	fmt.Fprintf(helper.GetOutputStream(), "wrote kubeconfig to file %s\n", filePath)
+	return err
 }
 
 func defaultKubeconfigFilePath() (string, error) {
