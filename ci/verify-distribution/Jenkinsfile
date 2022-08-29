@@ -283,7 +283,7 @@ pipeline {
                             """
                         }
                         if (params.DISTRIBUTION_VARIANT == "OpenSource") {
-                            sh "sha256sum -c $checksumFile"
+                            // sh "sha256sum -c $checksumFile"
                             sh "tar xvf $tarfileName"
                         }
                     }
