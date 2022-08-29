@@ -95,10 +95,8 @@ func (g grafanaComponent) GetJSONName() string {
 func (g grafanaComponent) GetOverrides(object runtime.Object) interface{} {
 	if _, ok := object.(*vzapi.Verrazzano); ok {
 		return []vzapi.Overrides{}
-	} else if _, ok := object.(*installv1beta1.Verrazzano); ok {
-		return []installv1beta1.Overrides{}
 	}
-	return []vzapi.Overrides{}
+	return []installv1beta1.Overrides{}
 }
 
 // MonitorOverrides indicates if monitoring of override sources is enabled or not for a component

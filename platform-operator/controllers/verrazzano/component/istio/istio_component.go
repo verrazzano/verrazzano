@@ -101,14 +101,12 @@ func (i istioComponent) GetOverrides(object runtime.Object) interface{} {
 			return effectiveCR.Spec.Components.Istio.ValueOverrides
 		}
 		return []vzapi.Overrides{}
-	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.Istio != nil {
-			return effectiveCR.Spec.Components.Istio.ValueOverrides
-		}
-		return []installv1beta1.Overrides{}
 	}
-
-	return []vzapi.Overrides{}
+	effectiveCR := object.(*installv1beta1.Verrazzano)
+	if effectiveCR.Spec.Components.Istio != nil {
+		return effectiveCR.Spec.Components.Istio.ValueOverrides
+	}
+	return []installv1beta1.Overrides{}
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
