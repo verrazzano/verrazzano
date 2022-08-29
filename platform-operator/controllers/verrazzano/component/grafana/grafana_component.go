@@ -5,6 +5,7 @@ package grafana
 
 import (
 	"fmt"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -214,6 +215,10 @@ func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (g grafanaComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	// do not allow disabling active components
+	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
+		return fmt.Errorf("Disabling component Grafana not allowed")
+	}
 	return nil
 }
 
