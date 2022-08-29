@@ -39,16 +39,23 @@ EOM
 BRANCH=${1}
 WORK_DIR=${2:-$SCRIPT_DIR}
 RELEASE_VERSION=${3}
+
 SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
 SCANNER_HOME="$WORK_DIR/scanner_home"
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
-RELEASE_TAR_BALL="verrazzano_$RELEASE_VERSION.zip"
+RELEASE_TAR_BALL="verrazzano_$RELEASE_VERSION-open-source.zip"
+
+# Option to scan commercial bundle
+if [ "${BUNDLE_TO_SCAN}" == "commercial" ];then
+  RELEASE_TAR_BALL="verrazzano_$RELEASE_VERSION-commercial.zip"
+fi
+
 RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
-VERRAZZANO_TAR_GZ_FILE="verrazzano_periodic.tar.gz"
 
 function download_release_tarball() {
   cd $WORK_DIR
   mkdir -p $RELEASE_BUNDLE_DIR
+  echo "Downloading release bundle to $RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL} ..."
   oci --region ${OCI_REGION} os object get \
         --namespace ${OBJECT_STORAGE_NS} \
         -bn ${OBJECT_STORAGE_BUCKET} \
@@ -80,7 +87,6 @@ function scan_release_binaries() {
   cd $RELEASE_BUNDLE_DIR
   unzip $RELEASE_TAR_BALL
   rm $RELEASE_TAR_BALL
-  gunzip $VERRAZZANO_TAR_GZ_FILE
 
   count_files=$(ls -1q *.* | wc -l)
   ls $RELEASE_BUNDLE_DIR

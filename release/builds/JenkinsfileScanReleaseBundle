@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 pipeline {
@@ -20,9 +20,9 @@ pipeline {
     parameters {
         string (description: 'The release branch', name: 'RELEASE_BRANCH', defaultValue: 'NONE', trim: true)
         string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
-        string (description: 'The source commit for the release (required for full release)', name: 'RELEASE_COMMIT', defaultValue: 'NONE', trim: true )
-        string (description: 'The full git commit hash from the source build', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
-        booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: true)
+        choice (name: 'DISTRIBUTION_VARIANT',
+                description: 'Verrazzano Distribution Variant to use for testing',
+                choices: ["commercial", "open-source"])
     }
 
     environment {
@@ -34,7 +34,6 @@ pipeline {
 
         OBJECT_STORAGE_NS = credentials('oci-os-namespace')
         OBJECT_STORAGE_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_REGION="us-phoenix-1"
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -44,6 +43,7 @@ pipeline {
 
         RELEASE_BINARIES_DIR = "${WORKSPACE}/release/scripts/release_work"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        BUNDLE_TO_SCAN = "${params.DISTRIBUTION_VARIANT}"
     }
 
     stages {
@@ -87,19 +87,6 @@ pipeline {
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${params.RELEASE_COMMIT}").trim()
-                }
-            }
-        }
-
-        stage('Download Release Binaries') {
-            steps {
-                script {
-                    sh """
-                        mkdir -p ${RELEASE_BINARIES_DIR}
-                        cd ${WORKSPACE}/release/scripts
-                        ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${RELEASE_BINARIES_DIR}
-                    """
                 }
             }
         }
@@ -114,65 +101,23 @@ pipeline {
            steps {
                 script {
                     // The scan alone takes around 55 minutes, so setting a higher timeout
-                    timeout(time: 90, unit: 'MINUTES') {
+                    timeout(time: 240, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            unset BUNDLE_TO_SCAN
                             ./scan_release_binaries.sh ${params.RELEASE_BRANCH} ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
                         """
                    }
                 }
             }
         }
-
-        stage('Create Github Release') {
-            environment {
-                SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
-                SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
-
-                // The minimum required scopes for the token are: "repo", "read:org".
-                GITHUB_ACCESS_TOKEN = credentials('github-api-token-release-process')
-                NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
-            }
-            steps {
-                script {
-                  sh """
-                    echo "${env.GITHUB_ACCESS_TOKEN}" | gh auth login --with-token
-
-                    cd ${WORKSPACE}/release/scripts
-                    ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
-                  """
-                }
-            }
-        }
-
-        stage('Copy Results to Release') {
-            steps {
-                script {
-                    sh """
-                        if [ $TEST_RUN == true ] ; then
-                          echo "TEST_RUN is set to true, NOT pushing scan artifacts to object storage, but confirming they exist to be pushed and commands to push them:"
-                          echo ""
-                          ls ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_report.out
-                          ls ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_summary.out
-                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_report.out"
-                          echo "oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_summary.out"
-                        else
-                          oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_report.out
-                          oci --region us-phoenix-1 os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${RELEASE_BINARIES_DIR}/scan_report_dir/scan_summary.out
-                        fi
-                    """
-                }
-            }
-        }
-
     }
     post {
         always {
-            archiveArtifacts artifacts: "**/scan_report.out,**/scan_summary.out,", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/scan_report_${BUNDLE_TO_SCAN}.out,**/scan_summary_${BUNDLE_TO_SCAN}.out,", allowEmptyArchive: true
         }
         cleanup {
             deleteDir()
         }
     }
 }
+
