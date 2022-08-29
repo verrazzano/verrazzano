@@ -339,7 +339,7 @@ func main() {
 	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
 
 	// Initialize the metricsExporter
-	if err := metricsexporter.InitRegisterStart(log); err != nil {
+	if err := metricsexporter.StartMetricsServer(); err != nil {
 		log.Errorf("Failed to create metrics exporter: %v", err)
 		os.Exit(1)
 	}

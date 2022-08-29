@@ -89,7 +89,6 @@ var (
 // WHEN the controller is created
 // THEN verify no error is returned
 func TestReconcilerSetupWithManager(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker *gomock.Controller
@@ -120,7 +119,6 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the trait is created.
 func TestSuccessfullyCreateNewIngress(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -207,7 +205,6 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the trait is created.
 func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -291,7 +288,6 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the trait and the authorization policy are created.
 func TestSuccessfullyCreateNewIngressWithAuthorizationPolicy(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -401,7 +397,6 @@ func TestSuccessfullyCreateNewIngressWithAuthorizationPolicy(t *testing.T) {
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the trait and the authorization policy are created.
 func TestSuccessfullyCreateNewIngressWithAuthorizationPolicyMultipleRules(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -520,7 +515,6 @@ func TestSuccessfullyCreateNewIngressWithAuthorizationPolicyMultipleRules(t *tes
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the trait and the authorization policy are not created.
 func TestFailureCreateNewIngressWithAuthorizationPolicyNoFromClause(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -629,7 +623,6 @@ func TestFailureCreateNewIngressWithAuthorizationPolicyNoFromClause(t *testing.T
 // WHEN the trait and ingress/gateway exist
 // THEN ensure that the trait is updated with the expected hosts.
 func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -741,7 +734,6 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 // WHEN the secret is specified but no associated hosts are configured
 // THEN ensure that the trait creation fails
 func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -818,7 +810,6 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 // WHEN the trait exists but doesn't specify an oam app label
 // THEN ensure that an error is generated
 func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -885,7 +876,6 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the service workload is unwrapped and the trait is created.
 func TestSuccessfullyCreateNewIngressForServiceComponent(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -996,7 +986,6 @@ func TestSuccessfullyCreateNewIngressForServiceComponent(t *testing.T) {
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the workload is unwrapped and the trait is created.
 func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1153,7 +1142,6 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 // WHEN the workload related to the trait cannot be found
 // THEN ensure that an error is returned
 func TestFailureToGetWorkload(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1204,7 +1192,6 @@ func TestFailureToGetWorkload(t *testing.T) {
 // WHEN the workload definition of the workload related to the trait cannot be found
 // THEN ensure that an error is returned
 func TestFailureToGetWorkloadDefinition(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1260,7 +1247,6 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 // WHEN the request to update the trait status fails
 // THEN ensure an error is returned
 func TestFailureToUpdateStatus(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1321,7 +1307,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 // WHEN the ingress domain is not nip.io
 // THEN ensure that the correct DNS name is built
 func TestBuildAppHostNameForDNS(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1365,7 +1351,7 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 // WHEN the buildAppFullyQualifiedHostName function is called
 // THEN ensure that the correct DNS name is built and that the wildcard and empty names are ignored
 func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1415,7 +1401,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 // WHEN the ingress domain is not nip.io and the Verrazzano annotation is missing
 // THEN ensure that an error is returned
 func TestFailureBuildAppHostNameForDNS(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1458,7 +1444,7 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 // WHEN the ingress domain is nip.io and LoadBalancer is used
 // THEN ensure that the correct DNS name is built
 func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1518,7 +1504,7 @@ func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 // WHEN the ingress domain is nip.io and an external LoadBalancer is used
 // THEN ensure that the correct DNS name is built
 func TestBuildAppHostNameExternalLoadBalancerNIP(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1576,7 +1562,7 @@ func TestBuildAppHostNameExternalLoadBalancerNIP(t *testing.T) {
 // WHEN the ingress domain is nip.io and an external LoadBalancer is used and LoadBalancer ise also used in Istio Ingress
 // THEN ensure that the correct DNS name is built
 func TestBuildAppHostNameBothInternalAndExternalLoadBalancerNIP(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1637,7 +1623,7 @@ func TestBuildAppHostNameBothInternalAndExternalLoadBalancerNIP(t *testing.T) {
 // WHEN the ingress domain is nip.io and an external LoadBalancer is used, but no IP is found
 // THEN ensure that an error is returned
 func TestBuildAppHostNameExternalLoadBalancerNIPNotFound(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1693,7 +1679,7 @@ func TestBuildAppHostNameExternalLoadBalancerNIPNotFound(t *testing.T) {
 // WHEN the ingress domain is nip.io and LoadBalancer is used, but an error occurs
 // THEN ensure that the correct error is returned
 func TestFailureBuildAppHostNameLoadBalancerNIP(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1750,7 +1736,7 @@ func TestFailureBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 // WHEN the ingress domain is nip.io and NodePort is used together with ExternalIPs
 // THEN ensure that the correct DNS name is built
 func TestBuildAppHostNameNodePortExternalIP(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1808,7 +1794,7 @@ func TestBuildAppHostNameNodePortExternalIP(t *testing.T) {
 // WHEN a failure occurs getting the ingress trait resource
 // THEN the error is propagated
 func TestGetTraitFailurePropagated(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1831,7 +1817,7 @@ func TestGetTraitFailurePropagated(t *testing.T) {
 // WHEN a failure occurs indicating the resource is not found
 // THEN the error is propagated
 func TestGetNotFoundResource(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1851,7 +1837,7 @@ func TestGetNotFoundResource(t *testing.T) {
 // WHEN converting to the related CRD namespaced name
 // THEN ensure the conversion is correct
 func TestConvertCRAPIVersionAndKindToCRDNamespacedName(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	actual := convertAPIVersionAndKindToNamespacedName("core.oam.dev/v1alpha2", "ContainerizedWorkload")
 	expect := types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}
@@ -1860,7 +1846,7 @@ func TestConvertCRAPIVersionAndKindToCRDNamespacedName(t *testing.T) {
 
 // TestCreateVirtualServiceMatchUriFromIngressTraitPath tests various use cases of createVirtualServiceMatchURIFromIngressTraitPath
 func TestCreateVirtualServiceMatchUriFromIngressTraitPath(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	var path vzapi.IngressPath
 	var match *istionet.StringMatch
@@ -1911,7 +1897,7 @@ func TestCreateVirtualServiceMatchUriFromIngressTraitPath(t *testing.T) {
 // WHEN a host slice DNS domain exists in the ingress
 // THEN verify that only the default host is used
 func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -1958,7 +1944,7 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 
 // TestCreateHostsFromIngressTraitRule tests various use cases of createHostsFromIngressTraitRule
 func TestCreateHostsFromIngressTraitRule(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	var rule vzapi.IngressRule
 	var hosts []string
@@ -2014,7 +2000,7 @@ func TestGetPathsFromTrait(t *testing.T) {
 
 // TestCreateDestinationFromService test various use cases of createDestinationFromService
 func TestCreateDestinationFromService(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	var services []*k8score.Service
 	var dest *istionet.HTTPRouteDestination
@@ -2150,7 +2136,7 @@ func TestCreateDestinationFromService(t *testing.T) {
 
 // TestCreateDestinationForWeblogicWorkload test various use cases of createDestinationFromService for weblogic workload
 func TestCreateDestinationForWeblogicWorkload(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	var services []*k8score.Service
 	var dest *istionet.HTTPRouteDestination
@@ -2210,7 +2196,7 @@ func TestCreateDestinationForWeblogicWorkload(t *testing.T) {
 
 // TestCreateDestinationFromRuleOrService test various use cases of createDestinationFromRuleOrService
 func TestCreateDestinationFromRuleOrService(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	var rule vzapi.IngressRule
 	var services []*k8score.Service
@@ -2351,7 +2337,7 @@ func TestCreateDestinationFromRuleOrService(t *testing.T) {
 // WHEN extracting the services
 // THEN ensure the returned service is the child from the list
 func TestExtractServicesOnlyOneService(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	workload := &unstructured.Unstructured{}
@@ -2378,7 +2364,7 @@ func TestExtractServicesOnlyOneService(t *testing.T) {
 // WHEN extracting the services
 // THEN ensure the returned services has details of all the services
 func TestExtractServicesMultipleServices(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	workload := &unstructured.Unstructured{}
@@ -2414,7 +2400,7 @@ func TestExtractServicesMultipleServices(t *testing.T) {
 // WHEN an ingress trait is reconciled
 // THEN verify gateway and virtual service are created correctly.
 func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
@@ -2515,7 +2501,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 // WHEN the ingress trait is reconciled
 // THEN verify the correct gateway and virtual services are created.
 func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
@@ -2617,7 +2603,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 // WHEN the ingress trait is reconciled
 // THEN verify the correct gateway and virtual services are created.
 func TestMultiplePortsOnDiscoveredService(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
@@ -2723,7 +2709,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 // WHEN the ingress trait is reconciled
 // THEN verify the correct gateway and virtual services are created.
 func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
@@ -2855,7 +2841,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 // THEN create a service as the WebLogic operator would
 // THEN verity that the expected gateway and virtual services are created.
 func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
@@ -3151,7 +3137,7 @@ func createResourceFromTemplate(cli client.Client, template string, data interfa
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the workload is unwrapped and the trait is created.
 func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEnabled(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -3335,7 +3321,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEna
 // WHEN the trait exists but the ingress does not
 // THEN ensure that the workload is unwrapped and the trait is created.
 func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDisabled(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -3519,7 +3505,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDis
 // TestReconcileKubeSystem tests to make sure we do not reconcile
 // Any resource that belong to the kube-system namespace
 func TestReconcileKubeSystem(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -3540,7 +3526,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 // WHEN no existing Servers are present in the Gateway
 // THEN ensure that a new Gateway is appended to the servers list
 func TestUpdateGatewayServersList(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	reconciler := createReconcilerWithFake()
@@ -3561,7 +3547,7 @@ func TestUpdateGatewayServersList(t *testing.T) {
 // WHEN we are upgrading from a release before 1.3 where the Gateway maintains a single Server object for all hosts for an application
 // THEN ensure that the resulting servers list contains only an entry for the single IngressTrait being reconciled
 func TestUpdateGatewayServersUpgrade(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	reconciler := createReconcilerWithFake()
@@ -3601,7 +3587,7 @@ func TestUpdateGatewayServersUpgrade(t *testing.T) {
 // WHEN when the Server object for existing Trait has an updated hosts list
 // THEN ensure the returned Servers list has the new Server for the IngressTrait
 func TestUpdateGatewayServersUpdateTraitHosts(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	reconciler := createReconcilerWithFake()
@@ -3649,7 +3635,7 @@ func TestUpdateGatewayServersUpdateTraitHosts(t *testing.T) {
 // WHEN we are adding a new IngressTrait
 // THEN ensure the returned Servers list has the new Server for the IngressTrait
 func TestUpdateGatewayServersNewTraitHost(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	reconciler := createReconcilerWithFake()
@@ -3680,7 +3666,7 @@ func TestUpdateGatewayServersNewTraitHost(t *testing.T) {
 // WHEN a new Trate/TraitRule is added
 // THEN ensure the returned Servers list has the new Server for the IngressTrait
 func TestMutateGatewayAddTrait(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	trait1Hosts := []string{"trait1host1", "trait1host2"}
@@ -3744,7 +3730,7 @@ func createWorkloadReference(appName string) oamrt.TypedReference {
 // WHEN a new TraitRule has been added or remvoed to an existing Trait with new hosts
 // THEN ensure the gateway Server hosts lists for the Trait has been updated accordingly
 func TestMutateGatewayHostsAddRemoveTraitRule(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	trait1Hosts := []string{"trait1host1", "trait1host2"}
@@ -4119,7 +4105,7 @@ func getIngressTraitResourceExpectations(mock *mocks.MockClient, assert *asserts
 // WHEN the IngressTrait is found as being deleted
 // THEN cert and secret are deleted and gateway spec is cleaned up
 func TestIngressTraitIsDeleted(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	cli := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	params := map[string]string{
@@ -4238,7 +4224,7 @@ func createReconcilerWithFake(initObjs ...client.Object) Reconciler {
 
 // TestReconcileFailed tests to make sure the failure metric is being exposed
 func TestReconcileFailed(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 	cli := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	// Create a request and reconcile it
