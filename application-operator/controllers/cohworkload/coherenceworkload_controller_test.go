@@ -62,7 +62,6 @@ var specJvmArgsFields = []string{specField, jvmField, argsField}
 // WHEN the controller is created
 // THEN verify no error is returned
 func TestReconcilerSetupWithManager(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker *gomock.Controller
@@ -95,7 +94,6 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Coherence CR to be written
 func TestReconcileCreateCoherence(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -210,7 +208,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Coherence CR to be written
 func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -337,7 +335,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Coherence CR to be written
 func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -539,7 +537,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Coherence CR to be written
 func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -707,7 +705,7 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 // WHEN the controller Reconcile function is called
 // THEN the Fluentd image should be replaced in the Fluentd sidecar
 func TestReconcileUpdateFluentdImage(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -838,7 +836,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 // WHEN the controller Reconcile function is called and the Coherence CR already exists
 // THEN the Coherence CR is updated
 func TestReconcileUpdateCR(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -959,9 +957,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 // WHEN the controller Reconcile function is called
 // THEN expect a Coherence CR to be written with the combined JVM args
 func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
-
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
@@ -1086,9 +1082,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 // WHEN the controller Reconcile function is called and there is an error creating the Coherence CR
 // THEN expect an error to be returned
 func TestReconcileErrorOnCreate(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
-
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
 
@@ -1176,7 +1170,6 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 // WHEN the controller Reconcile function is called and we attempt to fetch the workload
 // THEN return success from the controller as there is nothing more to do
 func TestReconcileWorkloadNotFound(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1205,7 +1198,6 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 // WHEN the controller Reconcile function is called and we attempt to fetch the workload and get an error
 // THEN return the error
 func TestReconcileFetchWorkloadError(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1233,7 +1225,6 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect no error to be returned and destination rule is created
 func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1291,7 +1282,6 @@ func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect no error to be returned and destination rule is updated
 func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1354,7 +1344,6 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect an error to be returned
 func TestCreateUpdateDestinationRuleNoOamLabel(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	reconciler := Reconciler{}
@@ -1370,7 +1359,6 @@ func TestCreateUpdateDestinationRuleNoOamLabel(t *testing.T) {
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect an error to be returned
 func TestCreateUpdateDestinationRuleNoLabel(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	reconciler := Reconciler{}
@@ -1431,7 +1419,6 @@ func getUnstructuredConfigMapList() *unstructured.UnstructuredList {
 // WHEN the controller Reconcile function is called and the restart-version is specified in annotations
 // THEN the restart-version annotation written  to the Coherence CR
 func TestReconcileRestart(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1562,7 +1549,7 @@ func TestReconcileRestart(t *testing.T) {
 // TestReconcileKubeSystem tests to make sure we do not reconcile
 // Any resource that belong to the kube-system namespace
 func TestReconcileKubeSystem(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -1582,7 +1569,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 func TestReconcileFailed(t *testing.T) {
 	testAppConfigName := "unit-test-app-config"
 	testNamespace := "test-ns"
-	metricsexporter.RequiredInitialization()
+
 	scheme := k8scheme.Scheme
 	assert := asserts.New(t)
 	clientBuilder := fake.NewClientBuilder().WithScheme(scheme).Build()
