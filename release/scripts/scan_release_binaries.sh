@@ -44,12 +44,12 @@ WORK_DIR=${2:-$SCRIPT_DIR}
 SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
 SCANNER_HOME="$WORK_DIR/scanner_home"
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
-RELEASE_TAR_BALL="verrazzano_$RELEASE_VERSION-open-source.zip"
+RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-open-source.zip"
 
 # Option to scan commercial bundle
-if [ "${BUNDLE_TO_SCAN}" == "commercial" ];then
-  RELEASE_TAR_BALL="verrazzano_$RELEASE_VERSION-commercial.zip"
-fi
+#if [ "${BUNDLE_TO_SCAN}" == "commercial" ];then
+#  RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-commercial.zip"
+#fi
 
 RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
 

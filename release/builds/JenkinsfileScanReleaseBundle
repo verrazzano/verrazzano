@@ -24,7 +24,7 @@ pipeline {
         string (description: 'The release branch', name: 'RELEASE_BRANCH', defaultValue: 'NONE', trim: true)
         string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
         choice (name: 'DISTRIBUTION_VARIANT',
-                description: 'Verrazzano Distribution Variant to use for testing',
+                description: 'Verrazzano Distribution Variant to use for scanning',
                 choices: ["commercial", "open-source"])
     }
 
