@@ -47,9 +47,9 @@ SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-open-source.zip"
 
 # Option to scan commercial bundle
-#if [ "${BUNDLE_TO_SCAN}" == "commercial" ];then
-#  RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-commercial.zip"
-#fi
+if [ "${BUNDLE_TO_SCAN}" == "commercial" ];then
+  RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-commercial.zip"
+fi
 
 RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
 
@@ -63,7 +63,7 @@ function download_release_tarball() {
         --name "${BRANCH}/${RELEASE_TAR_BALL}" \
         --file "$RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL}"
   echo "Successfully downloaded the release bundle"
-  ls $RELEASE_BUNDLE_DIR
+  ls -ltr $RELEASE_BUNDLE_DIR
 }
 
 function install_scanner() {
@@ -143,15 +143,7 @@ function scan_release_binaries() {
   fi
 }
 
-function list_array() {
-    for i in "${releaseArtifacts[@]}"
-    do
-      echo "File in the bundle $i"
-    done
-}
-
 mkdir -p $SCANNER_HOME
-list_array || exit 1
 validate_oci_cli || exit 1
 download_release_tarball || exit 1
 install_scanner || exit 1

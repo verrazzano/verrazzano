@@ -47,7 +47,8 @@ pipeline {
         RELEASE_BINARIES_DIR = "${WORKSPACE}/release/scripts/release_work"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         BUNDLE_TO_SCAN = "${params.DISTRIBUTION_VARIANT}"
-        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        INTERMEDIATE_BRANCH_NAME = "${params.RELEASE_BRANCH == 'NONE' ? "env.BRANCH_NAME" : "params.RELEASE_BRANCH"}"
+        CLEAN_BRANCH_NAME = "${env.INTERMEDIATE_BRANCH_NAME.replace("/", "%2F")}"
     }
 
     stages {
