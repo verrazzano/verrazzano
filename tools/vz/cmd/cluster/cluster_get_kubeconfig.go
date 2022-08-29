@@ -61,7 +61,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(helper.GetOutputStream(), "no kubeconfig file specified - using %s", filePath)
+		fmt.Fprintf(helper.GetOutputStream(), "no kubeconfig file specified - using %s\n", filePath)
 	}
 
 	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfigInfo{
