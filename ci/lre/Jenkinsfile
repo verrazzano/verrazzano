@@ -241,6 +241,7 @@ pipeline {
                }
             }
             parallel {
+/*
                 stage('verify-scripts') {
                     steps {
                         runGinkgoRandomize('scripts', "${KUBECONFIG}")
@@ -278,6 +279,7 @@ pipeline {
                         runGinkgo('security/rbac')
                     }
                 }
+*/
                 stage('system component metrics') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
