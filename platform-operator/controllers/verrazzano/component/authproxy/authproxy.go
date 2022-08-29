@@ -268,12 +268,12 @@ func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
 // GetOverrides gets the install overrides
 func GetOverrides(object runtime.Object) interface{} {
 	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
-		if effectiveCR.Spec.Components.ApplicationOperator != nil {
+		if effectiveCR.Spec.Components.AuthProxy != nil {
 			return effectiveCR.Spec.Components.AuthProxy.ValueOverrides
 		}
 		return []vzapi.Overrides{}
 	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
-		if effectiveCR.Spec.Components.ApplicationOperator != nil {
+		if effectiveCR.Spec.Components.AuthProxy != nil {
 			return effectiveCR.Spec.Components.AuthProxy.ValueOverrides
 		}
 		return []v1beta1.Overrides{}

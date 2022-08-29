@@ -3,6 +3,8 @@
 package coherence
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -75,4 +77,47 @@ func TestIsCoherenceOperatorNotReady(t *testing.T) {
 		},
 	}).Build()
 	assert.False(t, isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+}
+
+func TestGetOverrides(t *testing.T) {
+	o := v1beta1.InstallOverrides{
+		ValueOverrides: []v1beta1.Overrides{
+			{
+				ConfigMapRef: &corev1.ConfigMapKeySelector{
+					Key: "foo",
+				},
+			},
+		},
+	}
+	var tests = []struct {
+		name string
+		cr   runtime.Object
+		res  interface{}
+	}{
+		{
+			"Empty overrides when component nil",
+			&v1beta1.Verrazzano{},
+			[]v1beta1.Overrides{},
+		},
+		{
+			"overrides when component not nil",
+			&v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						CoherenceOperator: &v1beta1.CoherenceOperatorComponent{
+							InstallOverrides: o,
+						},
+					},
+				},
+			},
+			o.ValueOverrides,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			override := GetOverrides(tt.cr)
+			assert.EqualValues(t, tt.res, override)
+		})
+	}
 }
