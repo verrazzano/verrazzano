@@ -86,7 +86,8 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Installing Verrazzano on Kind"
-${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE_KIND}
+# ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE_KIND}
+kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
 
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
