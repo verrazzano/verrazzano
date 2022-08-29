@@ -8,7 +8,6 @@
 set -e
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-. $SCRIPT_DIR/common.sh
 
 usage() {
     cat <<EOM
@@ -21,6 +20,7 @@ usage() {
     $(basename $0) release-1.0 . 1.0.2
 
   The script expects the OCI CLI is installed. It also expects the following environment variables -
+    RELEASE_VERSION - release version (major.minor.patch format, e.g. 1.0.1)
     OCI_REGION - OCI region
     OBJECT_STORAGE_NS - top-level namespace used for the request
     OBJECT_STORAGE_BUCKET - object storage bucket where the artifacts are stored
@@ -34,26 +34,36 @@ EOM
 
 [ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OBJECT_STORAGE_BUCKET" ] ||
 [ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] || [ -z "$NO_PROXY_SUFFIX" ] ||
-[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
+
+. $SCRIPT_DIR/common.sh
 
 BRANCH=${1}
 WORK_DIR=${2:-$SCRIPT_DIR}
-RELEASE_VERSION=${3}
+
 SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
 SCANNER_HOME="$WORK_DIR/scanner_home"
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
-RELEASE_TAR_BALL="verrazzano_$RELEASE_VERSION.zip"
+RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-open-source.zip"
+
+# Option to scan commercial bundle
+if [ "${BUNDLE_TO_SCAN}" == "commercial" ];then
+  RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-commercial.zip"
+fi
+
 RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
-VERRAZZANO_TAR_GZ_FILE="verrazzano_periodic.tar.gz"
 
 function download_release_tarball() {
   cd $WORK_DIR
   mkdir -p $RELEASE_BUNDLE_DIR
+  echo "Downloading release bundle to $RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL} ..."
   oci --region ${OCI_REGION} os object get \
         --namespace ${OBJECT_STORAGE_NS} \
         -bn ${OBJECT_STORAGE_BUCKET} \
         --name "${BRANCH}/${RELEASE_TAR_BALL}" \
         --file "$RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL}"
+  echo "Successfully downloaded the release bundle"
+  ls -ltr $RELEASE_BUNDLE_DIR
 }
 
 function install_scanner() {

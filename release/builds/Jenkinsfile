@@ -60,7 +60,6 @@ pipeline {
 
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         PERIODIC_JOB_OBJECT_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
-        //PERIODIC_PRODUCT_ZIP_OBJECT_NAME = "verrazzano_periodic.zip"
         PERIODIC_PRODUCT_ZIP_OBJECT_NAME = "verrazzano-${params.TARGET_VERSION}-open-source.zip"
     }
 
