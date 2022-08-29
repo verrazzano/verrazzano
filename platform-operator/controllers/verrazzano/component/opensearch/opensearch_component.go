@@ -38,6 +38,11 @@ func (o opensearchComponent) Namespace() string {
 	return ComponentNamespace
 }
 
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (o opensearchComponent) ShouldInstallBeforeUpgrade() bool {
+	return false
+}
+
 // GetDependencies returns the dependencies of the OpenSearch component
 func (o opensearchComponent) GetDependencies() []string {
 	return []string{vmo.ComponentName}

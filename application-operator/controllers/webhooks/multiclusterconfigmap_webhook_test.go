@@ -35,7 +35,6 @@ func newMultiClusterConfigmapValidator() MultiClusterConfigmapValidator {
 // WHEN the MultiClusterConfigMap resource is missing Placement information
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterConfigMapCreationWithoutTargetClusters(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterConfigmapValidator()
 	p := v1alpha12.MultiClusterConfigMap{
@@ -63,7 +62,6 @@ func TestValidationFailureForMultiClusterConfigMapCreationWithoutTargetClusters(
 // WHEN the MultiClusterConfigMap resource references a VerrazzanoManagedCluster that does not exist
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterConfigMapCreationTargetingMissingManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterConfigmapValidator()
 	p := v1alpha12.MultiClusterConfigMap{
@@ -95,7 +93,6 @@ func TestValidationFailureForMultiClusterConfigMapCreationTargetingMissingManage
 // WHEN the MultiClusterConfigMap resource references a VerrazzanoManagedCluster that does exist
 // THEN the validation should pass.
 func TestValidationSuccessForMultiClusterConfigMapCreationTargetingExistingManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterConfigmapValidator()
 	c := v1alpha1.VerrazzanoManagedCluster{
@@ -157,7 +154,6 @@ func TestValidationSuccessForMultiClusterConfigMapCreationTargetingExistingManag
 // AND the validation is being done on a managed cluster
 // THEN the validation should succeed.
 func TestValidationSuccessForMultiClusterConfigMapCreationWithoutTargetClustersOnManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterConfigmapValidator()
 	s := corev1.Secret{
@@ -212,7 +208,6 @@ func TestValidationSuccessForMultiClusterConfigMapCreationWithoutTargetClustersO
 // WHEN the MultiClusterConfigMap resource is failing
 // THEN the validation should fail.
 func TestMultiClusterConfigmapHandleFailed(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
 	mcc := v1alpha12.MultiClusterComponent{
 		ObjectMeta: metav1.ObjectMeta{
