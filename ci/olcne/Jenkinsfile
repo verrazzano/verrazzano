@@ -138,7 +138,7 @@ pipeline {
         VZ_COMMAND="$GO_REPO_PATH/vz"
         OCNE_DUMP_DIR="$WORKSPACE/$VZ_ENVIRONMENT_NAME"
         INSTALL_CONFIG_FILE_OCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocne.yaml"
-        OCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-ocne-url")
+        OCNE_TERRAFORM_GIT_URL=credentials("gitlab_ocne_tf_url")
         OCNE_BRANCH_TO_USE="origin/release/${params.OCNE_VERSION}"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
 
