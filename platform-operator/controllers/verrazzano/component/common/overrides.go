@@ -5,8 +5,10 @@ package common
 
 import (
 	"context"
+
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -32,6 +34,15 @@ func GetInstallOverridesYAMLUsingClient(client client.Client, overrides []v1alph
 	return getInstallOverridesYAML(log, client, overrides, namespace)
 }
 
+// GetInstallOverridesV1beta1YAMLUsingClient takes the list of Overrides and returns a string array of YAMLs using the
+// specified client
+func GetInstallOverridesV1beta1YAMLUsingClient(client client.Client, overrides []v1beta1.Overrides, namespace string) ([]string, error) {
+	// DefaultLogger is used since this is invoked from validateInstall and validateUpdate functions and
+	// any actual logging isn't being performed
+	log := vzlog.DefaultLogger()
+	return getInstallOverridesV1beta1YAML(log, client, overrides, namespace)
+}
+
 // ExtractValueFromOverrideString is a helper function to extract a given value from override.
 func ExtractValueFromOverrideString(overrideStr string, field string) (interface{}, error) {
 	jsonConfig, err := yaml.YAMLToJSON([]byte(overrideStr))
@@ -47,6 +58,43 @@ func ExtractValueFromOverrideString(overrideStr string, field string) (interface
 
 // getInstallOverridesYAML takes the list of Overrides and returns a string array of YAMLs
 func getInstallOverridesYAML(log vzlog.VerrazzanoLogger, client client.Client, overrides []v1alpha1.Overrides,
+	namespace string) ([]string, error) {
+	var overrideStrings []string
+	for _, override := range overrides {
+		// Check if ConfigMapRef is populated and gather data
+		if override.ConfigMapRef != nil {
+			// Get the ConfigMap data
+			data, err := getConfigMapOverrides(log, client, override.ConfigMapRef, namespace)
+			if err != nil {
+				return overrideStrings, err
+			}
+			overrideStrings = append(overrideStrings, data)
+			continue
+		}
+		// Check if SecretRef is populated and gather data
+		if override.SecretRef != nil {
+			// Get the Secret data
+			data, err := getSecretOverrides(log, client, override.SecretRef, namespace)
+			if err != nil {
+				return overrideStrings, err
+			}
+			overrideStrings = append(overrideStrings, data)
+			continue
+		}
+		if override.Values != nil {
+			overrideValuesData, err := yaml.Marshal(override.Values)
+			if err != nil {
+				return overrideStrings, err
+			}
+			overrideStrings = append(overrideStrings, string(overrideValuesData))
+		}
+
+	}
+	return overrideStrings, nil
+}
+
+// getInstallOverridesV1beta1YAML takes the list of Overrides and returns a string array of YAMLs
+func getInstallOverridesV1beta1YAML(log vzlog.VerrazzanoLogger, client client.Client, overrides []v1beta1.Overrides,
 	namespace string) ([]string, error) {
 	var overrideStrings []string
 	for _, override := range overrides {

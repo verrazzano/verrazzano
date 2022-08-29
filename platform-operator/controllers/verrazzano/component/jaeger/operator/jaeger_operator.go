@@ -7,11 +7,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/fs"
+	"io/ioutil"
+	"os"
+	"text/template"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -19,8 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/fs"
-	"io/ioutil"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,10 +36,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"text/template"
 )
 
 var (
@@ -302,34 +304,62 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 
 // validateJaegerOperator checks scenarios in which the Verrazzano CR violates install verification
 // due to Jaeger Operator specifications
-func (c jaegerOperatorComponent) validateJaegerOperator(vz *vzapi.Verrazzano) error {
+func (c jaegerOperatorComponent) validateJaegerOperator(cr runtime.Object) error {
+	// if Jaeger operator component is disabled, return early
+	if !c.IsEnabled(cr) {
+		return nil
+	}
 	// Validate install overrides
-	if vz.Spec.Components.JaegerOperator != nil && vz.Spec.Components.JaegerOperator.Enabled != nil &&
-		*vz.Spec.Components.JaegerOperator.Enabled {
-		overrides := vz.Spec.Components.JaegerOperator.ValueOverrides
-		if err := vzapi.ValidateInstallOverrides(overrides); err != nil {
-			return err
-		}
+	client, err := getControllerRuntimeClient()
+	if err != nil {
+		return err
+	}
+	if vzv1alpha1, ok := cr.(*v1alpha1.Verrazzano); ok {
+		// Validate install overrides for v1alpha1
+		return validateV1alhpa1InstallOverrides(vzv1alpha1.Spec.Components.JaegerOperator.ValueOverrides, client)
+	} else if vzv1beta1, ok := cr.(*v1beta1.Verrazzano); ok {
+		// Validate install overrides for v1beta1
+		return validateV1betaInstallOverrides(vzv1beta1.Spec.Components.JaegerOperator.ValueOverrides, client)
+	}
+	return nil
+}
 
-		client, err := getControllerRuntimeClient()
-		if err != nil {
-			return err
-		}
-		overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
-		if err != nil {
-			return err
-		}
-		for _, overrideYAML := range overrideYAMLs {
-			// Check if there are any Helm chart values that are not allowed to be overridden by the user
-			for _, disallowedOverride := range disallowedOverrides {
-				value, err := common.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
-				if err != nil {
-					return err
-				}
-				if value != nil {
-					return fmt.Errorf("the Jaeger Operator Helm chart value %s cannot be overridden in the "+
-						"Verrazzano CR", disallowedOverride)
-				}
+// validateV1alhpa1InstallOverrides validates the v1alpha1 install overrides (v1alpha1.Overrides) configured for Jaeger component
+func validateV1alhpa1InstallOverrides(overrides []v1alpha1.Overrides, client clipkg.Client) error {
+	if err := v1alpha1.ValidateInstallOverrides(overrides); err != nil {
+		return err
+	}
+	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
+	if err != nil {
+		return err
+	}
+	return validateOverrideYamls(overrideYAMLs)
+}
+
+// validateV1betaInstallOverrides validates the v1beta1 install overrides (v1beta1.Overrides) configured for Jaeger component
+func validateV1betaInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
+	if err := v1beta1.ValidateInstallOverrides(overrides); err != nil {
+		return err
+	}
+	overrideYAMLs, err := common.GetInstallOverridesV1beta1YAMLUsingClient(client, overrides, ComponentNamespace)
+	if err != nil {
+		return err
+	}
+	return validateOverrideYamls(overrideYAMLs)
+}
+
+// validateOverrideYamls validates if the given overrides in YAML format contains only values that are not forbidden to override.
+func validateOverrideYamls(yamlOverrides []string) error {
+	for _, overrideYAML := range yamlOverrides {
+		// Check if there are any Helm chart values that are not allowed to be overridden by the user
+		for _, disallowedOverride := range disallowedOverrides {
+			value, err := common.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
+			if err != nil {
+				return err
+			}
+			if value != nil {
+				return fmt.Errorf("the Jaeger Operator Helm chart value %s cannot be overridden in the "+
+					"Verrazzano CR", disallowedOverride)
 			}
 		}
 	}
@@ -337,11 +367,11 @@ func (c jaegerOperatorComponent) validateJaegerOperator(vz *vzapi.Verrazzano) er
 }
 
 // GetOverrides returns the list of install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func GetOverrides(effectiveCR *v1alpha1.Verrazzano) []v1alpha1.Overrides {
 	if effectiveCR.Spec.Components.JaegerOperator != nil {
 		return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []v1alpha1.Overrides{}
 }
 
 func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
@@ -808,7 +838,7 @@ func getClient() (clipkg.Client, error) {
 // newScheme creates a new scheme that includes this package's object for use by client
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	_ = vzapi.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 	_ = clientgoscheme.AddToScheme(scheme)
 	return scheme
 }
