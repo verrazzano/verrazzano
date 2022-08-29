@@ -87,10 +87,6 @@ pipeline {
                     timeout(time: 240, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            REL_BRANCH=""
-                            if [ "${params.RELEASE_BRANCH}" === "NONE" ];then
-                              REL_BRANCH="${env.BRANCH_NAME}"
-                            fi
                             REL_BRANCH="${env.BRANCH_NAME.replace("/", "%2F")}"
                             echo "Release Branch ${REL_BRANCH}"
                             ./scan_release_binaries.sh ${REL_BRANCH} ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
