@@ -276,12 +276,12 @@ pipeline {
                         
                         if (params.DISTRIBUTION_VARIANT == "OpenSource") {
                             sh """
+                                sha256sum -c $checksumFile
+                                tar xvf $tarfileName
+
                                 # Installing VZ CLI
                                 cp ${TARBALL_DIR}/bin/vz ${GO_REPO_PATH}
                                 ${GO_REPO_PATH}/vz version # Verify install
-
-                                sha256sum -c $checksumFile
-                                tar xvf $tarfileName
                             """
                         }
 
