@@ -4,21 +4,23 @@
 package v1beta1
 
 import (
+	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"go.uber.org/zap"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-var getControllerRuntimeClient = getClient
+var getControllerRuntimeClient = validators.GetClient
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager, log *zap.SugaredLogger) error {
@@ -56,13 +58,13 @@ func (v *Verrazzano) ValidateCreate() error {
 		return nil
 	}
 
-	client, err := getControllerRuntimeClient()
+	client, err := getControllerRuntimeClient(newScheme())
 	if err != nil {
 		return err
 	}
 
 	// Verify only one instance of the operator is running
-	if err := validators.VerifyPlatformOperatorSingleton(client); err != nil {
+	if err := v.verifyPlatformOperatorSingleton(); err != nil {
 		return err
 	}
 
@@ -102,13 +104,8 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 		return nil
 	}
 
-	client, err := getControllerRuntimeClient()
-	if err != nil {
-		return err
-	}
-
 	// Verify only one instance of the operator is running
-	if err := validators.VerifyPlatformOperatorSingleton(client); err != nil {
+	if err := v.verifyPlatformOperatorSingleton(); err != nil {
 		return err
 	}
 
@@ -126,18 +123,22 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 		return fmt.Errorf("Profile change is not allowed oldResource %s to %s", oldResource.Spec.Profile, v.Spec.Profile)
 	}
 
-	//ASK DEVA ABOUT CLIENT, ERR GET CONTROLLER RUNTIME. needs to happen before platformoperatorsingleton
-
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
 	newSpecVerString := strings.TrimSpace(v.Spec.Version)
 	currStatusVerString := strings.TrimSpace(oldResource.Status.Version)
 	currSpecVerString := strings.TrimSpace(oldResource.Spec.Version)
-	err = validators.ValidateUpgradeRequest(newSpecVerString, currStatusVerString, currSpecVerString)
+	err := validators.ValidateUpgradeRequest(newSpecVerString, currStatusVerString, currSpecVerString)
 
 	if err != nil {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
 		return err
 	}
+
+	client, err := getControllerRuntimeClient(newScheme())
+	if err != nil {
+		return err
+	}
+
 	if err := validateOCISecrets(client, &v.Spec); err != nil {
 		return err
 	}
@@ -152,22 +153,30 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	return nil
 }
 
+// verifyPlatformOperatorSingleton Verifies that only one instance of the VPO is running; when upgrading operators,
+// if the terminationGracePeriod for the pod is > 0 there's a chance that an old version may try to handle resource
+// updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
+// multiple instances, if that makes sense.
+func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
+	runtimeClient, err := getControllerRuntimeClient(newScheme())
+	if err != nil {
+		return err
+	}
+	var podList v1.PodList
+	runtimeClient.List(context.TODO(), &podList,
+		client.InNamespace(constants.VerrazzanoInstallNamespace),
+		client.MatchingLabels{"app": "verrazzano-platform-operator"})
+	if len(podList.Items) > 1 {
+		return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
+	}
+	return nil
+}
+
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (v *Verrazzano) ValidateDelete() error {
 
 	// Webhook is not configured for deletes so function will not be called.
 	return nil
-}
-
-// getClient returns a controller runtime client for the Verrazzano resource
-func getClient() (client.Client, error) {
-
-	config, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return client.New(config, client.Options{Scheme: newScheme()})
 }
 
 // newScheme creates a new scheme that includes this package's object for use by client

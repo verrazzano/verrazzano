@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package validators
@@ -8,10 +8,6 @@ import (
 	"encoding/pem"
 	goerrors "errors"
 	"fmt"
-	"io/fs"
-	"os"
-	"strings"
-
 	"github.com/onsi/gomega/gstruct/errors"
 	"github.com/oracle/oci-go-sdk/v53/common"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -20,12 +16,16 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
+	"io/fs"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+	"strings"
 )
 
 const (
@@ -75,21 +75,6 @@ func CleanTempFiles(log *zap.SugaredLogger) error {
 func CombineErrors(errs []error) error {
 	if len(errs) > 0 {
 		return goerrors.New(errors.AggregateError(errs).Error())
-	}
-	return nil
-}
-
-// verifyPlatformOperatorSingleton Verifies that only one instance of the VPO is running; when upgrading operators,
-// if the terminationGracePeriod for the pod is > 0 there's a chance that an old version may try to handle resource
-// updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
-// multiple instances, if that makes sense.
-func VerifyPlatformOperatorSingleton(runtimeClient client.Client) error {
-	var podList v1.PodList
-	runtimeClient.List(context.TODO(), &podList,
-		client.InNamespace(constants.VerrazzanoInstallNamespace),
-		client.MatchingLabels{"app": "verrazzano-platform-operator"})
-	if len(podList.Items) > 1 {
-		return fmt.Errorf("Found more than one running instance of the platform operator, only one instance allowed")
 	}
 	return nil
 }
@@ -402,4 +387,15 @@ func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string
 
 	return currentSemVer.IsEqualTo(requestedSemVer) || currentSemVer.IsGreatherThan(requestedSemVer)
 
+}
+
+// getClient returns a controller runtime client for the Verrazzano resource
+func GetClient(scheme *runtime.Scheme) (client.Client, error) {
+
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return client.New(config, client.Options{Scheme: scheme})
 }

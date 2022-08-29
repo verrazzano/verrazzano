@@ -1,3 +1,6 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package v1beta1
 
 import (
@@ -73,6 +76,7 @@ func validateOCISecrets(client client.Client, spec *VerrazzanoSpec) error {
 }
 
 // ValidateInstallOverrides checks that the overrides slice has only one override type per slice item
+
 func ValidateInstallOverrides(overrides []Overrides) error {
 	for _, override := range overrides {
 		if err := isValidOverrideItems(override.ConfigMapRef, override.SecretRef, override.Values); err != nil {

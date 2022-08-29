@@ -1,0 +1,13 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: prod
+  components:
+    keycloak:
+      keycloakInstallArgs:
+        - name: "{ foo"
+          value: "bar"

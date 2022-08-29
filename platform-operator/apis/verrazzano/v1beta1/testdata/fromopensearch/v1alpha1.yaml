@@ -1,0 +1,46 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: prod
+  components:
+    elasticsearch:
+      installArgs:
+        - name: "nodes.master.replicas"
+          value: "3"
+        - name: "nodes.data.replicas"
+          value: "3"
+        - name: "nodes.ingest.replicas"
+          value: "1"
+      policies:
+        - name: p1
+          indexPattern: verrazzano-system
+        - name: p2
+          indexPattern: verrazzano-app*
+      nodes:
+        - name: es-master
+          resources:
+            requests:
+              memory: 2Gi
+        - name: master
+          replicas: 3
+          roles:
+            - master
+          resources:
+            requests:
+              memory: 1Gi
+          storage:
+            size: 50Gi
+        - name: data-ingest
+          replicas: 3
+          roles:
+            - data
+            - ingest
+          resources:
+            requests:
+              memory: 3Gi
+          storage:
+            size: 250Gi
