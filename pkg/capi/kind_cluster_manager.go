@@ -3,9 +3,6 @@
 package capi
 
 import (
-	"io/ioutil"
-	"os"
-
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	"go.uber.org/zap"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -15,22 +12,41 @@ const capiDockerProvider = "docker"
 
 var defaultCAPIProviders = []string{capiDockerProvider}
 
+var _ ClusterLifeCycleManager = &kindClusterManager{}
+
 // kindClusterManager ClusterLifecycleManager impl for a KIND-based bootstrap cluster
 type kindClusterManager struct {
-	config ClusterConfig
+	config            ClusterConfig
+	bootstrapProvider KindBootstrapProvider
 }
 
 func (r *kindClusterManager) GetKubeConfig() (string, error) {
-	return bootstrapProviderImpl.GetKubeconfig(r.config.GetClusterName())
+	return r.bootstrapProvider.GetKubeconfig(r.config)
+}
+
+func (r *kindClusterManager) GetConfig() ClusterConfig {
+	return r.config
+}
+
+func (r *kindClusterManager) Create() error {
+	return r.bootstrapProvider.CreateCluster(r.config)
 }
 
 func (r *kindClusterManager) Init() error {
-	config, err := r.createKubeConfigFile()
+	return initCAPI(r)
+}
+
+func (r *kindClusterManager) Destroy() error {
+	return r.bootstrapProvider.DestroyCluster(r.config)
+}
+
+func initCAPI(clcm ClusterLifeCycleManager) error {
+	config, err := createKubeConfigFile(clcm)
 	if err != nil {
 		return err
 	}
 	defer os2.RemoveTempFiles(zap.S(), config.Name())
-	capiclient, err := capiInitFunc("") // TODO: do we need to provide a CAPI config?
+	capiclient, err := capiInitFunc("")
 	if err != nil {
 		return err
 	}
@@ -41,31 +57,4 @@ func (r *kindClusterManager) Init() error {
 		InfrastructureProviders: defaultCAPIProviders,
 	})
 	return err
-}
-
-func (r *kindClusterManager) GetConfig() ClusterConfig {
-	return r.config
-}
-
-func (r *kindClusterManager) Create() error {
-	return bootstrapProviderImpl.CreateCluster(r.config.GetClusterName())
-}
-
-func (r *kindClusterManager) Destroy() error {
-	return bootstrapProviderImpl.DestroyCluster(r.config.GetClusterName())
-}
-
-func (r *kindClusterManager) createKubeConfigFile() (*os.File, error) {
-	kcFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-"+r.config.GetClusterName())
-	if err != nil {
-		return nil, err
-	}
-	config, err := r.GetKubeConfig()
-	if err != nil {
-		return nil, err
-	}
-	if _, err := kcFile.Write([]byte(config)); err != nil {
-		return nil, err
-	}
-	return kcFile, nil
 }

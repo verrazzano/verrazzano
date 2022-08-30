@@ -5,6 +5,7 @@ package externaldns
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os/exec"
@@ -361,5 +362,69 @@ func newReplicaSet(name string) *appsv1.ReplicaSet {
 			Name:        name + "-95d8c5d96",
 			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
+	}
+}
+
+func TestGetOverrides(t *testing.T) {
+	ref := &v1.ConfigMapKeySelector{
+		Key: "foo",
+	}
+	o := v1beta1.InstallOverrides{
+		ValueOverrides: []v1beta1.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	oV1Alpha1 := vzapi.InstallOverrides{
+		ValueOverrides: []vzapi.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	var tests = []struct {
+		name string
+		cr   runtime.Object
+		res  interface{}
+	}{
+		{
+			"overrides when component not nil, v1alpha1",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							InstallOverrides: oV1Alpha1,
+						},
+					},
+				},
+			},
+			oV1Alpha1.ValueOverrides,
+		},
+		{
+			"Empty overrides when component nil",
+			&v1beta1.Verrazzano{},
+			[]v1beta1.Overrides{},
+		},
+		{
+			"overrides when component not nil",
+			&v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						DNS: &v1beta1.DNSComponent{
+							InstallOverrides: o,
+						},
+					},
+				},
+			},
+			o.ValueOverrides,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			override := GetOverrides(tt.cr)
+			assert.EqualValues(t, tt.res, override)
+		})
 	}
 }

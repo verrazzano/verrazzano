@@ -6,6 +6,8 @@ package nodeexporter
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -59,10 +61,19 @@ func preInstall(ctx spi.ComponentContext) error {
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.PrometheusNodeExporter != nil {
-		return effectiveCR.Spec.Components.PrometheusNodeExporter.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.PrometheusNodeExporter != nil {
+			return effectiveCR.Spec.Components.PrometheusNodeExporter.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.PrometheusNodeExporter != nil {
+			return effectiveCR.Spec.Components.PrometheusNodeExporter.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 
