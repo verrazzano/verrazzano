@@ -22,7 +22,7 @@ import (
 	"testing"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
 
 // genericTestRunner is used to run generic OS commands with expected results
 type genericTestRunner struct {
