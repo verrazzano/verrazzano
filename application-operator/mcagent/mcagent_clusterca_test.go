@@ -581,6 +581,12 @@ func assertRegistrationInfoEqual(t *testing.T, regSecret1 *corev1.Secret, regSec
 	asserts.Equal(t, regSecret1.Data[mcconstants.RegistrationUsernameKey], regSecret2.Data[mcconstants.RegistrationUsernameKey], "Registration Username is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.RegistrationPasswordKey], regSecret2.Data[mcconstants.RegistrationPasswordKey], "Registration Password is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.ESCaBundleKey], regSecret2.Data[mcconstants.ESCaBundleKey], "Registration Password is different")
+	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSURLKey], regSecret2.Data[mcconstants.JaegerOSURLKey], "Jaeger OS URL is different")
+	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSUsernameKey], regSecret2.Data[mcconstants.JaegerOSUsernameKey], "Jaeger OS username is different")
+	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSPasswordKey], regSecret2.Data[mcconstants.JaegerOSPasswordKey], "Jaeger OS password different")
+	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSTLSCAKey], regSecret2.Data[mcconstants.JaegerOSTLSCAKey], "Jaeger OS TLS CA is different")
+	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSTLSCertKey], regSecret2.Data[mcconstants.JaegerOSTLSCertKey], "Jaeger OS TLS Cert is different")
+	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSTLSKey], regSecret2.Data[mcconstants.JaegerOSTLSKey], "Jaeger OS TLS Key is different")
 }
 
 func createSecretWithOverrides(filepath string, overrides map[string]string) *corev1.Secret {
