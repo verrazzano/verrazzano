@@ -74,23 +74,43 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 	if node.Replicas < 1 {
 		return true
 	}
-
 	nodeControllerName := fmt.Sprintf(nodeNamePrefix, node.Name)
-	if isMasterNode(node.Roles) {
+
+	// If a node has the master role, it is a statefulset
+	if hasRole(node.Roles, vmov1.MasterRole) {
 		return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 			Name:      nodeControllerName,
 			Namespace: ComponentNamespace,
 		}}, node.Replicas, prefix)
 	}
+
+	// Data nodes have N = node.Replicas number of deployment objects.
+	if hasRole(node.Roles, vmov1.DataRole) {
+		var dataDeployments []types.NamespacedName
+		var i int32
+		for i = 0; i < node.Replicas; i++ {
+			dataDeploymentName := fmt.Sprintf("%s-%d", nodeControllerName, i)
+			dataDeployments = append(dataDeployments, types.NamespacedName{
+				Name:      dataDeploymentName,
+				Namespace: ComponentNamespace,
+			})
+		}
+		return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
+			Name:      nodeControllerName,
+			Namespace: ComponentNamespace,
+		}}, 1, prefix)
+	}
+
+	// Ingest nodes can be handled like normal deployments
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 		Name:      nodeControllerName,
 		Namespace: ComponentNamespace,
 	}}, node.Replicas, prefix)
 }
 
-func isMasterNode(roles []vmov1.NodeRole) bool {
+func hasRole(roles []vmov1.NodeRole, roleToHave vmov1.NodeRole) bool {
 	for _, role := range roles {
-		if role == vmov1.MasterRole {
+		if role == roleToHave {
 			return true
 		}
 	}
