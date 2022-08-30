@@ -27,7 +27,7 @@ func (k *kindBootstrapProviderImpl) CreateCluster(config ClusterConfig) error {
 		return err
 	}
 	//fmt.Println(fmt.Sprintf("%s", bootstrapConfig))
-	return provider.Create(config.GetClusterName(), kindcluster.CreateWithRawConfig(bootstrapConfig))
+	return provider.Create(config.ClusterName, kindcluster.CreateWithRawConfig(bootstrapConfig))
 }
 
 func (k *kindBootstrapProviderImpl) DestroyCluster(config ClusterConfig) error {
@@ -48,7 +48,7 @@ func (k *kindBootstrapProviderImpl) DestroyCluster(config ClusterConfig) error {
 	defer func() {
 		os.Remove(kubePath)
 	}()
-	return provider.Delete(config.GetClusterName(), kubePath)
+	return provider.Delete(config.ClusterName, kubePath)
 }
 
 func saveKubeconfigToFile(kubeconfigContents string) (string, error) {
@@ -69,12 +69,12 @@ func (k *kindBootstrapProviderImpl) GetKubeconfig(config ClusterConfig) (string,
 		return "", nil
 	}
 	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
-	return provider.KubeConfig(config.GetClusterName(), false)
+	return provider.KubeConfig(config.ClusterName, false)
 }
 
 func parseKindBoostrapConfig(config ClusterConfig) ([]byte, error) {
-	kindBoostrapConfig := getDefaultBoostrapKindConfig(config.GetType())
-	data := templateData{BootstrapNodeImage: config.GetContainerImage()}
+	kindBoostrapConfig := getDefaultBoostrapKindConfig(config.Type)
+	data := templateData{BootstrapNodeImage: config.ContainerImage}
 	var b bytes.Buffer
 	t, err := template.New("boostrapConfig").Parse(kindBoostrapConfig)
 	if err != nil {
@@ -110,7 +110,7 @@ func getDefaultBoostrapKindConfig(clusterType string) string {
 }
 
 func createKubeConfigFile(clcm ClusterLifeCycleManager) (*os.File, error) {
-	kcFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-"+clcm.GetConfig().GetClusterName())
+	kcFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-"+clcm.GetConfig().ClusterName)
 	if err != nil {
 		return nil, err
 	}
