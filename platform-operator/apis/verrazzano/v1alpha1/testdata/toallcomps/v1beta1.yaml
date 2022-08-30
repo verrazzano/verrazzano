@@ -111,6 +111,7 @@ spec:
             frobber: frob
       wildcard:
         domain: nip.io
+      subDomain: env
     fluentd:
       enabled: true
       opensearchSecret: verrazzano-es-internal
@@ -120,7 +121,7 @@ spec:
             frobber: frob
     grafana:
       enabled: true
-    ingress:
+    ingressNGINX:
       enabled: true
       overrides:
         - values:
