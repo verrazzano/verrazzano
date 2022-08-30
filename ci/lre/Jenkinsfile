@@ -263,6 +263,7 @@ pipeline {
                         runGinkgoRandomize('verify-infra/oam')
                     }
                 }
+*/
                 stage('verify-infra vmi') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
@@ -279,7 +280,7 @@ pipeline {
                         runGinkgo('security/rbac')
                     }
                 }
-*/
+
                 stage('system component metrics') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
@@ -297,6 +298,7 @@ pipeline {
             }
         }
 
+/*
         stage('Hello Helidon Application Test') {
             when {
                expression {
@@ -318,7 +320,7 @@ pipeline {
                 }
             }
         }
-
+*/
     }
     post {
         failure {
