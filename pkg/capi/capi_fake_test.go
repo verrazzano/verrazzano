@@ -1,6 +1,6 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package fake
+package capi
 
 import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -12,15 +12,15 @@ import (
 
 type TestBootstrapProvider struct{}
 
-func (t *TestBootstrapProvider) CreateCluster(_ string) error {
+func (t *TestBootstrapProvider) CreateCluster(config ClusterConfig) error {
 	return nil
 }
 
-func (t *TestBootstrapProvider) DestroyCluster(_ string) error {
+func (t *TestBootstrapProvider) DestroyCluster(config ClusterConfig) error {
 	return nil
 }
 
-func (t *TestBootstrapProvider) GetKubeconfig(_ string) (string, error) {
+func (t *TestBootstrapProvider) GetKubeconfig(config ClusterConfig) (string, error) {
 	return "", nil
 }
 

@@ -12,11 +12,12 @@ type CAPIInitFuncType = func(path string, options ...clusterapi.Option) (cluster
 
 const (
 	KindClusterType = "kind"
+	CNEClusterType  = "cne"
 	NoClusterType   = "noCluster"
 )
 
 var capiInitFunc = clusterapi.New
-var publicSupportedClusterTypes = []string{KindClusterType}
+var publicSupportedClusterTypes = []string{KindClusterType, CNEClusterType}
 var allSupportedClusterTypes = append(publicSupportedClusterTypes, NoClusterType)
 
 // SetCAPIInitFunc For unit testing, override the CAPI init function
@@ -48,7 +49,8 @@ type ClusterLifeCycleManager interface {
 // NewDefaultBoostrapCluster Creates a new cluster manager for a local bootstrap cluster with default config
 func NewDefaultBoostrapCluster() ClusterLifeCycleManager {
 	return &kindClusterManager{
-		config: bootstrapClusterConfig{},
+		config:            bootstrapClusterConfig{},
+		bootstrapProvider: defaultKindBootstrapProviderImpl,
 	}
 }
 
@@ -63,7 +65,13 @@ func NewBoostrapCluster(clusterConfig ClusterConfig) (ClusterLifeCycleManager, e
 	switch actualConfig.GetType() {
 	case KindClusterType:
 		return &kindClusterManager{
-			config: actualConfig,
+			config:            actualConfig,
+			bootstrapProvider: defaultKindBootstrapProviderImpl,
+		}, nil
+	case CNEClusterType:
+		return &kindClusterManager{
+			config:            actualConfig,
+			bootstrapProvider: defaultCNEBootstrapProviderImpl,
 		}, nil
 	case NoClusterType:
 		return &noClusterManager{
@@ -88,7 +96,10 @@ func setDefaults(c ClusterConfig) ClusterConfig {
 		actualConfig.Type = defaultConfig.GetType()
 	}
 	if actualConfig.GetContainerImage() == "" {
-		actualConfig.ContainerImage = defaultConfig.GetContainerImage()
+		defaultImage := getDefaultBoostrapImage(actualConfig.GetType())
+		if len(defaultImage) > 0 {
+			actualConfig.ContainerImage = defaultImage
+		}
 	}
 	return actualConfig
 }
