@@ -5,11 +5,12 @@ package operator
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -263,8 +264,9 @@ func TestAppendOverrides(t *testing.T) {
 			tempFilePath := kvs[0].Value
 			files = append(files, tempFilePath)
 			_, err = os.Stat(tempFilePath)
-			asserts.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
-			cleanFile(tempFilePath)
+			asserts.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err.Error())
+			err = cleanFile(tempFilePath)
+			asserts.NoError(err, "Unexpected error when cleaning up temp files %s: %s", tempFilePath, err.Error())
 
 			if test.name == "OverrideMetricsStorageType" {
 				asserts.Equal(kvs[1].Key, prometheusServerField)
@@ -291,16 +293,6 @@ func cleanFile(file string) error {
 func fileExists(name string) bool {
 	_, err := os.Stat(name)
 	return !os.IsNotExist(err)
-}
-
-// TestEnsureMonitoringOperatorNamespace asserts the verrazzano-monitoring namespaces can be created
-func TestEnsureMonitoringOperatorNamespace(t *testing.T) {
-	// GIVEN a Verrazzano CR with Jaeger Component enabled,
-	// WHEN we call the ensureVerrazzanoMonitoringNamespace function,
-	// THEN no error is returned.
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, nil, false)
-	err := ensureVerrazzanoMonitoringNamespace(ctx)
-	assert.NoError(t, err)
 }
 
 // TestBuildJaegerDNSNames asserts if the generated DNS name for Jaeger is correct.

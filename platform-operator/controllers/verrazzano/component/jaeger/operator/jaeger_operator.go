@@ -7,6 +7,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/fs"
+	"io/ioutil"
+	"os"
+	"text/template"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -19,8 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/fs"
-	"io/ioutil"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,10 +35,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"text/template"
 )
 
 var (
@@ -152,7 +153,8 @@ func preInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create the verrazzano-monitoring namespace if not already created
-	if err := ensureVerrazzanoMonitoringNamespace(ctx); err != nil {
+	ctx.Log().Debugf("Creating namespace %s for the Jaeger Operator", constants.VerrazzanoMonitoringNamespace)
+	if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
 		return err
 	}
 
@@ -342,37 +344,6 @@ func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
 		return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
 	}
 	return []vzapi.Overrides{}
-}
-
-func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
-	// Create the verrazzano-monitoring namespace
-	ctx.Log().Debugf("Creating namespace %s for the Jaeger Operator", ComponentNamespace)
-	namespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
-		MutateVerrazzanoMonitoringNamespace(ctx, &namespace)
-		return nil
-	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
-	}
-	return nil
-}
-
-// MutateVerrazzanoMonitoringNamespace modifies the given namespace for the Monitoring subcomponents
-// with the appropriate labels, in one location. If the provided namespace is not the Verrazzano
-// monitoring namespace, it is ignored.
-func MutateVerrazzanoMonitoringNamespace(ctx spi.ComponentContext, namespace *corev1.Namespace) {
-	if namespace.Name != constants.VerrazzanoMonitoringNamespace {
-		return
-	}
-	if namespace.Labels == nil {
-		namespace.Labels = map[string]string{}
-	}
-	namespace.Labels[globalconst.LabelVerrazzanoNamespace] = constants.VerrazzanoMonitoringNamespace
-
-	istio := ctx.EffectiveCR().Spec.Components.Istio
-	if istio != nil && istio.IsInjectionEnabled() {
-		namespace.Labels[globalconst.LabelIstioInjection] = "enabled"
-	}
 }
 
 func generateOverridesFile(ctx spi.ComponentContext, contents []byte) (string, error) {

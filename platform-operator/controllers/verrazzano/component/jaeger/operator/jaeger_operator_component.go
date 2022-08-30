@@ -6,9 +6,11 @@ package operator
 import (
 	"context"
 	"fmt"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
+
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
@@ -171,7 +173,7 @@ func (c jaegerOperatorComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verra
 func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Jaeger pre-upgrade")
 	// Create the verrazzano-monitoring namespace if not already created
-	if err := ensureVerrazzanoMonitoringNamespace(ctx); err != nil {
+	if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
 		return err
 	}
 	installed, err := helmcli.IsReleaseInstalled(ComponentName, ComponentNamespace)

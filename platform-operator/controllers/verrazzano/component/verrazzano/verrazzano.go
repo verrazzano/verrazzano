@@ -7,8 +7,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"io/ioutil"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -67,7 +68,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
+func verrazzanoPreUpgrade(ctx spi.ComponentContext) error {
 	if err := exportFromHelmChart(ctx.Client()); err != nil {
 		return err
 	}
@@ -75,7 +76,8 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 		return err
 	}
 	// Auth policies and Network policies created in the helm chart requires verrazzano-monitoring namespace
-	if err := ensureVerrazzanoMonitoringNamespace(ctx); err != nil {
+	ctx.Log().Debugf("Creating namespace %s for the Verrazzano component", constants.VerrazzanoMonitoringNamespace)
+	if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -384,37 +386,5 @@ func removeNodeExporterService(ctx spi.ComponentContext) {
 		if err := ctx.Client().Delete(context.TODO(), s); err != nil {
 			ctx.Log().Debugf("Ignoring failure to delete service %s/%s: %v", monitoringNamespace, nodeExporter, err)
 		}
-	}
-}
-
-// ensureVerrazzanoMonitoringNamespace ensures that the verrazzano-monitoring namespace is created with the right labels.
-func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
-	// Create the verrazzano-monitoring namespace
-	ctx.Log().Debugf("Creating namespace %s for the Verrazzano Operator", constants.VerrazzanoMonitoringNamespace)
-	namespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: constants.VerrazzanoMonitoringNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
-		MutateVerrazzanoMonitoringNamespace(ctx, &namespace)
-		return nil
-	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", constants.VerrazzanoMonitoringNamespace, err)
-	}
-	return nil
-}
-
-// MutateVerrazzanoMonitoringNamespace modifies the given namespace for the Monitoring subcomponents
-// with the appropriate labels, in one location. If the provided namespace is not the Verrazzano
-// monitoring namespace, it is ignored.
-func MutateVerrazzanoMonitoringNamespace(ctx spi.ComponentContext, namespace *corev1.Namespace) {
-	if namespace.Name != constants.VerrazzanoMonitoringNamespace {
-		return
-	}
-	if namespace.Labels == nil {
-		namespace.Labels = map[string]string{}
-	}
-	namespace.Labels[globalconst.LabelVerrazzanoNamespace] = constants.VerrazzanoMonitoringNamespace
-
-	istio := ctx.EffectiveCR().Spec.Components.Istio
-	if istio != nil && istio.IsInjectionEnabled() {
-		namespace.Labels[globalconst.LabelIstioInjection] = "enabled"
 	}
 }
