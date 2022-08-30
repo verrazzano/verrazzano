@@ -486,7 +486,7 @@ def kill_vpo_loop(vpoLogsDir) {
             RESTARTS=1
             while [ ! -z \$VZ_STATUS ] && [ \$VZ_STATUS == "UninstallStarted" ] ; do
                 NS_STATUS=\$(kubectl get ns verrazzano-install --ignore-not-found -o jsonpath={.status.phase})
-                if [ ! -z "$NS_STATUS" ]; then
+                if [ ! -z \$NS_STATUS ]; then
                     mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
                     kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator >> ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-\${RESTARTS}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
                     kubectl -n verrazzano-install delete pod -l app=verrazzano-platform-operator --ignore-not-found
