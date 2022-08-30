@@ -121,6 +121,7 @@ func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 	return nil
 }
 
+
 //ValidateVersionHigherOrEqual checks that currentVersion matches requestedVersion or is a higher version
 func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string) bool {
 	log := zap.S().With("validate", "version")
@@ -146,11 +147,9 @@ func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string
 		log.Error(fmt.Sprintf("Invalid currentVersion : %s, error: %v.", currentVersion, err))
 		return false
 	}
-
 	return currentSemVer.IsEqualTo(requestedSemVer) || currentSemVer.IsGreatherThan(requestedSemVer)
-
 }
-
+s 
 // ValidateInstallOverrides checks that the overrides slice has only one override type per slice item
 func ValidateInstallOverrides(overrides []Overrides) error {
 	for _, override := range overrides {
