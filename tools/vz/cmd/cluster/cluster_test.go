@@ -76,15 +76,15 @@ func TestClusterCreateOptions(t *testing.T) {
 func TestClusterCreateHelp(t *testing.T) {
 	output, _, err := runCommand(createSubCommandName, []string{"-h"})
 	asserts.Nil(t, err)
-	// The image flag should be hidden in help
-	asserts.NotContains(t, output, constants.ClusterImageFlagName)
-	asserts.NotContains(t, output, constants.ClusterImageFlagHelp)
-
 	asserts.Contains(t, output, nameFlag)
 	asserts.Contains(t, output, constants.ClusterNameFlagHelp)
 
-	asserts.Contains(t, output, typeFlag)
-	asserts.Contains(t, output, constants.ClusterTypeFlagHelp)
+	// The image and type flags should be hidden in help
+	asserts.NotContains(t, output, constants.ClusterImageFlagName)
+	asserts.NotContains(t, output, constants.ClusterImageFlagHelp)
+	asserts.NotContains(t, output, typeFlag)
+	asserts.NotContains(t, output, constants.ClusterTypeFlagHelp)
+
 }
 
 func TestClusterDeleteOptions(t *testing.T) {
