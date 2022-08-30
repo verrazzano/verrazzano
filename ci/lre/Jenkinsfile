@@ -241,13 +241,11 @@ pipeline {
                }
             }
             parallel {
-/*
                 stage('verify-scripts') {
                     steps {
                         runGinkgoRandomize('scripts', "${KUBECONFIG}")
                     }
                 }
-*/
                 stage('verify-infra restapi') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
