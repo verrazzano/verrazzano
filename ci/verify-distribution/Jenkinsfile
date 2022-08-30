@@ -11,8 +11,8 @@ def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def commercialBundleLocation="pabhat%2Fvz-commercial-bundle-last-clean-periodic-test/verrazzano-1.4.0-commercial.zip"
-def openSourceBundleLocation=""
+def commercialBundleLocation="master-last-clean-periodic-test/verrazzano-${VERRAZZANO_DEV_VERSION}-commercial.zip"
+def openSourceBundleLocation="master-last-clean-periodic-test/verrazzano-${VERRAZZANO_DEV_VERSION}-open-source.zip"
 def zipFileLoc=""
 
 pipeline {
@@ -254,9 +254,9 @@ pipeline {
                         script: "basename ${zipFileLoc} .zip",
                         returnStdout: true
                         ).trim()
-                    // Commercial bundle doesn't have a tarfile and CheckSum, add logic based on distribution variant
+
                     if (params.DISTRIBUTION_VARIANT == "OpenSource") {
-                        tarfileName = "verrazzano-${VERRAZZANO_DEV_VERSION}-linux-amd64.tar.gz" // TODO make it from a variable
+                        tarfileName = "verrazzano-${VERRAZZANO_DEV_VERSION}-linux-amd64.tar.gz"
                         checksumFile = "${tarfileName}.sha256"
                         echo "base name: $baseFilename, tar name: $tarfileName, checksum name: $checksumFile"
                     }
@@ -283,9 +283,7 @@ pipeline {
                                 cp ${TARBALL_DIR}/bin/vz ${GO_REPO_PATH}
                                 ${GO_REPO_PATH}/vz version # Verify install
                             """
-                        }
-
-                        if (params.DISTRIBUTION_VARIANT == "Commercial") {
+                        } else {
                             sh """
                                 mv ${TARBALL_DIR}/bin/linux-amd64/vz ${GO_REPO_PATH}/vz
                                 chmod +x ${GO_REPO_PATH}/vz
@@ -309,9 +307,7 @@ pipeline {
                             chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
                             ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
                         """
-                    }
-
-                    if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                    } else {
                         sh """
                             # Create OCIR repos for the images in the tarballs in the test compartment
                             cd ${TARBALL_DIR}
