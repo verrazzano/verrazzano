@@ -9,8 +9,7 @@ import (
 	kind "sigs.k8s.io/kind/pkg/cmd"
 )
 
-// TODO: fill this in with real image when ready
-const defaultCNEBootstrapNodeImage = "kindest/node:v1.24.0"
+const defaultCNEBootstrapNodeImage = "ghcr.io/verrazzano/kind-ocne:v0.14.0-20220829221147-81d706e2"
 
 const defaultCNEBootstrapConfig = `kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -71,7 +70,7 @@ func (k *cneBootstrapProviderImpl) DestroyCluster(config ClusterConfig) error {
 	if err != nil {
 		return err
 	}
-	kubeconfig, err := k.GetKubeconfig(nil)
+	kubeconfig, err := k.GetKubeconfig(config)
 	if err != nil {
 		return err
 	}
