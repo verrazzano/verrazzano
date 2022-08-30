@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../../manifests/profiles"
+const profilesRelativePath = "../../../../../manifests/profiles/v1alpha1"
 
 // TestIsEnabled tests the IsEnabled function for the Prometheus Node-Exporter component
 func TestIsEnabled(t *testing.T) {

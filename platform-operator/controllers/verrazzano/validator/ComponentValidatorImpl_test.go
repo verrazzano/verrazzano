@@ -44,7 +44,7 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 			numberOfErrors: 0,
 		},
 	}
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = "../../../manifests/profiles/v1alpha1"
 	defer func() { config.TestProfilesDir = "" }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -120,7 +120,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 			numberOfErrors: 2,
 		},
 	}
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = "../../../manifests/profiles/v1alpha1"
 	defer func() { config.TestProfilesDir = "" }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
