@@ -51,14 +51,13 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	out.ObjectMeta = in.ObjectMeta
 
-	components, err := convertComponentsTo(in.Spec.Components)
+	components, err := convertComponentsTo(in.Spec.Components, in.Spec.EnvironmentName)
 	if err != nil {
 		return err
 	}
 
 	// Convert Spec
 	out.Spec.Profile = v1beta1.ProfileType(in.Spec.Profile)
-	out.Spec.Components.DNS.SubDomain = in.Spec.EnvironmentName
 	out.Spec.Version = in.Spec.Version
 	out.Spec.DefaultVolumeSource = in.Spec.DefaultVolumeSource
 	out.Spec.VolumeClaimSpecTemplates = convertVolumeClaimTemplateTo(in.Spec.VolumeClaimSpecTemplates)
@@ -85,7 +84,7 @@ func convertVolumeClaimTemplateTo(src []VolumeClaimSpecTemplate) []v1beta1.Volum
 	return templates
 }
 
-func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
+func convertComponentsTo(src ComponentSpec, envName string) (v1beta1.ComponentSpec, error) {
 	authProxyComponent, err := convertAuthProxyToV1Beta1(src.AuthProxy)
 	if err != nil {
 		return v1beta1.ComponentSpec{}, err
@@ -117,7 +116,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		AuthProxy:              authProxyComponent,
 		OAM:                    convertOAMToV1Beta1(src.OAM),
 		Console:                convertConsoleToV1Beta1(src.Console),
-		DNS:                    convertDNSToV1Beta1(src.DNS),
+		DNS:                    convertDNSToV1Beta1(src.DNS, envName),
 		OpenSearch:             opensearchComponent,
 		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
 		Grafana:                convertGrafanaToV1Beta1(src.Grafana),
@@ -238,16 +237,17 @@ func convertConsoleToV1Beta1(src *ConsoleComponent) *v1beta1.ConsoleComponent {
 	}
 }
 
-func convertDNSToV1Beta1(src *DNSComponent) *v1beta1.DNSComponent {
-	if src == nil {
-		return nil
+func convertDNSToV1Beta1(src *DNSComponent, envName string) *v1beta1.DNSComponent {
+	dnsComponent := &v1beta1.DNSComponent{
+		SubDomain: envName,
 	}
-	return &v1beta1.DNSComponent{
-		Wildcard:         convertWildcardDNSToV1Beta1(src.Wildcard),
-		OCI:              convertOCIDNSToV1Beta1(src.OCI),
-		External:         convertExternalDNSToV1Beta1(src.External),
-		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	if src != nil {
+		dnsComponent.Wildcard = convertWildcardDNSToV1Beta1(src.Wildcard)
+		dnsComponent.OCI = convertOCIDNSToV1Beta1(src.OCI)
+		dnsComponent.External = convertExternalDNSToV1Beta1(src.External)
+		dnsComponent.InstallOverrides = convertInstallOverridesToV1Beta1(src.InstallOverrides)
 	}
+	return dnsComponent
 }
 
 func convertWildcardDNSToV1Beta1(wildcard *Wildcard) *v1beta1.Wildcard {
