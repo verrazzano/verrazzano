@@ -318,8 +318,6 @@ pipeline {
                             echo "Upload OCIR Repository: ${ocirRegistry}"
                             # Run the image-helper to load the images into the OCIR registry in the runner's region
                             cd ${TARBALL_DIR}
-                            pwd
-                            ls
                             chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
                             ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
                         """
