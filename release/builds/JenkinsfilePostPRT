@@ -44,6 +44,8 @@ pipeline {
 
         RELEASE_BINARIES_DIR = "${WORKSPACE}/release/scripts/release_work"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+
+        RELEASE_VERSION = "${params.RELEASE_VERSION}"
     }
 
     stages {
@@ -117,7 +119,7 @@ pipeline {
                     timeout(time: 90, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            ./scan_release_binaries.sh ${params.RELEASE_BRANCH} ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                            ./scan_release_binaries.sh ${params.RELEASE_BRANCH} ${RELEASE_BINARIES_DIR}
                         """
                    }
                 }
@@ -139,7 +141,7 @@ pipeline {
                     echo "${env.GITHUB_ACCESS_TOKEN}" | gh auth login --with-token
 
                     cd ${WORKSPACE}/release/scripts
-                    ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
+                    ./create_github_release.sh ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
                   """
                 }
             }
