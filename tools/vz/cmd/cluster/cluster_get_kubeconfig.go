@@ -20,7 +20,7 @@ const (
 	getKubeconfigSubCommandName = "get-kubeconfig"
 	getKubeconfigHelpShort      = "Verrazzano cluster get-kubeconfig"
 	getKubeconfigHelpLong       = `The command 'cluster get-kubeconfig' gets the kubeconfig for the cluster with the given name and saves it to the specified file (defaults to "` + constants.ClusterNameFlagDefault + `")`
-	getKubeconfigHelpExample    = `vz cluster get-kubeconfig --name mycluster --file path_to_my_file`
+	getKubeconfigHelpExample    = `vz cluster get-kubeconfig --name mycluster --path path_to_my_file`
 )
 
 func newSubcmdGetKubeconfig(vzHelper helpers.VZHelper) *cobra.Command {
