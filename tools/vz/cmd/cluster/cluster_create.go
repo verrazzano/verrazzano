@@ -68,6 +68,6 @@ func runCmdClusterCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	fmt.Println("Cluster initialization complete")
-	fmt.Sprintf("To get the kubeconfig for this cluster, run: vz cluster get-kubeconfig --name %s (for more details, run vz cluster get-kubeconfig -h)\n", clusterName)
+	fmt.Printf("To get the kubeconfig for this cluster, run: vz cluster get-kubeconfig --name %s (for more details, run vz cluster get-kubeconfig -h)\n", clusterName)
 	return nil
 }
