@@ -314,9 +314,9 @@ type ComponentSpec struct {
 	// +optional
 	Grafana *GrafanaComponent `json:"grafana,omitempty"`
 
-	// Ingress contains the ingress-nginx component configuration
+	// IngressNGINX contains the ingress-nginx component configuration
 	// +optional
-	Ingress *IngressNginxComponent `json:"ingress,omitempty"`
+	IngressNGINX *IngressNginxComponent `json:"IngressNGINX,omitempty"`
 
 	// Istio contains the istio component configuration
 	// +optional
@@ -545,6 +545,7 @@ type DNSComponent struct {
 	// +optional
 	External         *External `json:"external,omitempty"`
 	InstallOverrides `json:",inline"`
+	SubDomain string `json:"subDomain"`
 }
 
 // IngressNginxComponent specifies the ingress-nginx configuration

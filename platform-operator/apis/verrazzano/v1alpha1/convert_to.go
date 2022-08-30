@@ -58,7 +58,7 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Convert Spec
 	out.Spec.Profile = v1beta1.ProfileType(in.Spec.Profile)
-	out.Spec.EnvironmentName = in.Spec.EnvironmentName
+	out.Spec.Components.DNS.SubDomain = in.Spec.EnvironmentName
 	out.Spec.Version = in.Spec.Version
 	out.Spec.DefaultVolumeSource = in.Spec.DefaultVolumeSource
 	out.Spec.VolumeClaimSpecTemplates = convertVolumeClaimTemplateTo(in.Spec.VolumeClaimSpecTemplates)
