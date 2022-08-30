@@ -16,8 +16,8 @@ import (
 const (
 	createSubCommandName = "create"
 	createHelpShort      = "Verrazzano cluster create"
-	createHelpLong       = `The command 'cluster create' provisions a new local cluster with the given name and type (defaults to "` + constants.ClusterNameFlagDefault + `" and "` + capi.KindClusterType + `")`
-	createHelpExample    = `vz cluster create --name mycluster --type ` + capi.KindClusterType
+	createHelpLong       = `The command 'cluster create' provisions a new local cluster with the given name (defaults to "` + constants.ClusterNameFlagDefault + `")`
+	createHelpExample    = `vz cluster create --name mycluster`
 )
 
 func newSubcmdCreate(vzHelper helpers.VZHelper) *cobra.Command {
@@ -27,8 +27,8 @@ func newSubcmdCreate(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.ClusterTypeFlagName, constants.ClusterTypeFlagDefault, constants.ClusterTypeFlagHelp)
 	cmd.PersistentFlags().String(constants.ClusterImageFlagName, constants.ClusterImageFlagDefault, constants.ClusterImageFlagHelp)
 	// the image and type flags should be hidden since they are not intended for general use
-	cmd.PersistentFlags().MarkHidden(constants.ClusterImageFlagName)
 	cmd.PersistentFlags().MarkHidden(constants.ClusterTypeFlagName)
+	cmd.PersistentFlags().MarkHidden(constants.ClusterImageFlagName)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdClusterCreate(cmd, args)
 	}
