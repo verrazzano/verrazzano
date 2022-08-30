@@ -5,8 +5,10 @@ package authproxy
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/fs"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -264,11 +266,18 @@ func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.AuthProxy != nil {
+			return effectiveCR.Spec.Components.AuthProxy.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	}
+	effectiveCR := object.(*v1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.AuthProxy != nil {
 		return effectiveCR.Spec.Components.AuthProxy.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []v1beta1.Overrides{}
 }
 
 // getAuthproxyManagedResources returns a list of resource types and their namespaced names that are managed by the

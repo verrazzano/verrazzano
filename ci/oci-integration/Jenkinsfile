@@ -45,7 +45,7 @@ pipeline {
         choice (description: 'Kubernetes Version for KinD Cluster',
             name: 'KIND_CLUSTER_VERSION',
             // 1st choice is the default value
-            choices: [ "1.22", "1.23", "1.21", "1.20" ])
+            choices: [ "1.22", "1.23", "1.24", "1.21", "1.20" ])
         choice(description: 'Verrazzano Install Profile', name: "INSTALL_PROFILE", choices: installProfiles )
         string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
         choice (name: 'WILDCARD_DNS_DOMAIN',

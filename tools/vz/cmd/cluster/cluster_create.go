@@ -59,5 +59,13 @@ func runCmdClusterCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return cluster.Create()
+	if err := cluster.Create(); err != nil {
+		return err
+	}
+	fmt.Printf("Cluster %s created successfully, initializing...\n", clusterName)
+	if err := cluster.Init(); err != nil {
+		return err
+	}
+	fmt.Println("Cluster initialization complete")
+	return nil
 }
