@@ -264,9 +264,9 @@ func TestAppendOverrides(t *testing.T) {
 			tempFilePath := kvs[0].Value
 			files = append(files, tempFilePath)
 			_, err = os.Stat(tempFilePath)
-			asserts.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err.Error())
+			asserts.NoError(err, "Unexpected error checking for temp file %s: %v", tempFilePath, err)
 			err = cleanFile(tempFilePath)
-			asserts.NoError(err, "Unexpected error when cleaning up temp files %s: %s", tempFilePath, err.Error())
+			asserts.NoError(err, "Unexpected error when cleaning up temp files %s: %v", tempFilePath, err)
 
 			if test.name == "OverrideMetricsStorageType" {
 				asserts.Equal(kvs[1].Key, prometheusServerField)
