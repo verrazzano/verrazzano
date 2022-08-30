@@ -353,9 +353,6 @@ pipeline {
                                 }
                             }
                         }
-                        always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                        }
                     }
                 }
                 stage('Run Acceptance Tests') {
