@@ -95,10 +95,7 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 				Namespace: ComponentNamespace,
 			})
 		}
-		return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
-			Name:      nodeControllerName,
-			Namespace: ComponentNamespace,
-		}}, 1, prefix)
+		return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), dataDeployments, 1, prefix)
 	}
 
 	// Ingest nodes can be handled like normal deployments
