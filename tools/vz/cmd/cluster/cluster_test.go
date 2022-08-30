@@ -131,7 +131,7 @@ func TestClusterGetKubeconfigOptions(t *testing.T) {
 		{"cluster get-kubeconfig with default name", []string{typeFlag, capi.NoClusterType}, "", false, false},
 		{"cluster get-kubeconfig with custom name", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "", false, false},
 		{"cluster get-kubeconfig with custom kubeconfig path", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "somekubeconfig", false, false},
-		{"cluster get-kubeconfig with existing kubeconfig", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "", true, true},
+		{"cluster get-kubeconfig with existing kubeconfig", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "", true, false},
 		{"cluster get-kubeconfig with unknown flag", []string{"--someflag", "randomcluster"}, "", false, true},
 	}
 	for _, tt := range tests {
