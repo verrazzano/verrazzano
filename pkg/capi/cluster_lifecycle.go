@@ -12,12 +12,12 @@ type CAPIInitFuncType = func(path string, options ...clusterapi.Option) (cluster
 
 const (
 	KindClusterType = "kind"
-	CNEClusterType  = "cne"
+	OCNEClusterType = "ocne"
 	NoClusterType   = "noCluster"
 )
 
 var capiInitFunc = clusterapi.New
-var publicSupportedClusterTypes = []string{KindClusterType, CNEClusterType}
+var publicSupportedClusterTypes = []string{KindClusterType, OCNEClusterType}
 var allSupportedClusterTypes = append(publicSupportedClusterTypes, NoClusterType)
 
 // SetCAPIInitFunc For unit testing, override the CAPI init function
@@ -63,15 +63,10 @@ func NewBoostrapCluster(clusterConfig ClusterConfig) (ClusterLifeCycleManager, e
 		return nil, err
 	}
 	switch actualConfig.GetType() {
-	case KindClusterType:
+	case KindClusterType, OCNEClusterType:
 		return &kindClusterManager{
 			config:            actualConfig,
 			bootstrapProvider: defaultKindBootstrapProviderImpl,
-		}, nil
-	case CNEClusterType:
-		return &kindClusterManager{
-			config:            actualConfig,
-			bootstrapProvider: defaultCNEBootstrapProviderImpl,
 		}, nil
 	case NoClusterType:
 		return &noClusterManager{

@@ -67,7 +67,7 @@ func TestCreateBootstrapClusterConfigValidations(t *testing.T) {
 		{clusterName: "some-cluster", clusterType: "sometype", containerImage: "someimage", errExpected: true},
 		{clusterName: "", clusterType: "", containerImage: "", errExpected: false, expectedClusterName: testBootstrapCfg.GetClusterName(), expectedClusterType: testBootstrapCfg.GetType(), expectedContainerImage: defaultCNEBootstrapNodeImage},
 		{clusterName: "some-cluster", clusterType: "", containerImage: "someimage", errExpected: false, expectedClusterType: testBootstrapCfg.GetType()},
-		{clusterName: "some-cluster", clusterType: CNEClusterType, containerImage: "someimage", errExpected: false, expectedClusterType: testBootstrapCfg.GetType()},
+		{clusterName: "some-cluster", clusterType: OCNEClusterType, containerImage: "someimage", errExpected: false, expectedClusterType: testBootstrapCfg.GetType()},
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {

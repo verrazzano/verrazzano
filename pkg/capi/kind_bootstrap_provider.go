@@ -12,18 +12,6 @@ import (
 	kind "sigs.k8s.io/kind/pkg/cmd"
 )
 
-const defaultKindBootstrapConfig = `kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  image: {{.BootstrapNodeImage}}
-  extraMounts:
-    - hostPath: /var/run/docker.sock
-      containerPath: /var/run/docker.sock
-`
-
-const defaultKindBootstrapNodeImage = "kindest/node:v1.24.0"
-
 type kindBootstrapProviderImpl struct{}
 
 func (k *kindBootstrapProviderImpl) CreateCluster(config ClusterConfig) error {
@@ -34,7 +22,7 @@ func (k *kindBootstrapProviderImpl) CreateCluster(config ClusterConfig) error {
 	}
 	provider := kindcluster.NewProvider(po, kindcluster.ProviderWithLogger(kind.NewLogger()))
 
-	bootstrapConfig, err := parseKindBoostrapConfig(config, defaultKindBootstrapConfig)
+	bootstrapConfig, err := parseKindBoostrapConfig(config)
 	if err != nil {
 		return err
 	}
@@ -84,7 +72,8 @@ func (k *kindBootstrapProviderImpl) GetKubeconfig(config ClusterConfig) (string,
 	return provider.KubeConfig(config.GetClusterName(), false)
 }
 
-func parseKindBoostrapConfig(config ClusterConfig, kindBoostrapConfig string) ([]byte, error) {
+func parseKindBoostrapConfig(config ClusterConfig) ([]byte, error) {
+	kindBoostrapConfig := getDefaultBoostrapKindConfig(config.GetType())
 	data := templateData{BootstrapNodeImage: config.GetContainerImage()}
 	var b bytes.Buffer
 	t, err := template.New("boostrapConfig").Parse(kindBoostrapConfig)
@@ -105,11 +94,19 @@ func getDefaultBoostrapImage(clusterType string) string {
 	switch clusterType {
 	case KindClusterType:
 		return defaultKindBootstrapNodeImage
-	case CNEClusterType:
+	case OCNEClusterType:
 		return defaultCNEBootstrapNodeImage
 	default:
 		return ""
 	}
+}
+
+func getDefaultBoostrapKindConfig(clusterType string) string {
+	switch clusterType {
+	case KindClusterType:
+		return defaultKindBootstrapConfig
+	}
+	return defaultCNEBootstrapConfig
 }
 
 func createKubeConfigFile(clcm ClusterLifeCycleManager) (*os.File, error) {

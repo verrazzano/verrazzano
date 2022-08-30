@@ -14,7 +14,7 @@ func (r bootstrapClusterConfig) GetClusterName() string {
 }
 
 func (r bootstrapClusterConfig) GetType() string {
-	return CNEClusterType
+	return OCNEClusterType
 }
 
 func (r bootstrapClusterConfig) GetContainerImage() string {
