@@ -545,7 +545,7 @@ type DNSComponent struct {
 	// +optional
 	External         *External `json:"external,omitempty"`
 	InstallOverrides `json:",inline"`
-	SubDomain string `json:"subDomain"`
+	SubDomain        string `json:"subDomain"`
 }
 
 // IngressNginxComponent specifies the ingress-nginx configuration
