@@ -9,14 +9,14 @@ const (
 
 type bootstrapClusterConfig struct{}
 
-func (r bootstrapClusterConfig) GetClusterName() string {
+func (r *bootstrapClusterConfig) GetClusterName() string {
 	return bootstrapClusterName
 }
 
-func (r bootstrapClusterConfig) GetType() string {
+func (r *bootstrapClusterConfig) GetType() string {
 	return OCNEClusterType
 }
 
-func (r bootstrapClusterConfig) GetContainerImage() string {
+func (r *bootstrapClusterConfig) GetContainerImage() string {
 	return getDefaultBoostrapImage(r.GetType())
 }

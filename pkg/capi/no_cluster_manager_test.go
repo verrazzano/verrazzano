@@ -7,13 +7,12 @@ import (
 	"testing"
 )
 
+// TestNoClusterManager - mainly for code coverage
 func TestNoClusterManager(t *testing.T) {
 	asserts := assert.New(t)
 
-	cm := &noClusterManager{
-		config: bootstrapClusterConfig{},
-	}
-
+	cm, err := newNoClusterManager(&bootstrapClusterConfig{})
+	asserts.NoError(err)
 	asserts.NoError(cm.Create())
 	asserts.NoError(cm.Destroy())
 	asserts.NoError(cm.Init())
@@ -24,8 +23,4 @@ func TestNoClusterManager(t *testing.T) {
 	kubeConfig, err := cm.GetKubeConfig()
 	asserts.NoError(err)
 	asserts.NotNil(kubeConfig)
-
-	kc, err := cm.createKubeConfigFile()
-	asserts.Nil(kc)
-	asserts.NoError(err)
 }

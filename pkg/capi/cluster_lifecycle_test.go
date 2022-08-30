@@ -11,7 +11,7 @@ import (
 
 var testBootstrapCfg = &bootstrapClusterConfig{}
 
-func fakeCAPINew(path string, options ...client.Option) (client.Client, error) {
+func fakeCAPINew(_ string, _ ...client.Option) (client.Client, error) {
 	return &FakeCAPIClient{}, nil
 }
 
@@ -22,9 +22,9 @@ func TestCreateDefaultBootstrapCluster(t *testing.T) {
 	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
 
-	bootstrapCluster := NewDefaultBoostrapCluster()
-	err := bootstrapCluster.Create()
+	clm, err := NewBoostrapCluster(&ClusterConfigInfo{})
 	asserts.NoError(err)
+	asserts.NoError(clm.Create())
 }
 
 func TestInitDefaultBoostrapCluster(t *testing.T) {
@@ -36,8 +36,9 @@ func TestInitDefaultBoostrapCluster(t *testing.T) {
 	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
 
-	bootstrapCluster := NewDefaultBoostrapCluster()
-	asserts.NotNil(bootstrapCluster)
+	clm, err := NewBoostrapCluster(&ClusterConfigInfo{})
+	asserts.NoError(err)
+	asserts.NotNil(clm)
 }
 
 func TestDeleteDefaultBootstrapCluster(t *testing.T) {
@@ -49,7 +50,9 @@ func TestDeleteDefaultBootstrapCluster(t *testing.T) {
 	defer ResetKindBootstrapProvider()
 	defer ResetCAPIInitFunc()
 
-	asserts.NoError(NewDefaultBoostrapCluster().Destroy())
+	clm, err := NewBoostrapCluster(&ClusterConfigInfo{})
+	asserts.NoError(err)
+	asserts.NoError(clm.Destroy())
 }
 
 // Test NewBootstrapCluster with different valid and invalid configurations

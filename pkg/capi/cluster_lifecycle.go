@@ -4,6 +4,8 @@ package capi
 
 import (
 	"fmt"
+	os2 "github.com/verrazzano/verrazzano/pkg/os"
+	"go.uber.org/zap"
 
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
@@ -46,14 +48,6 @@ type ClusterLifeCycleManager interface {
 	Destroy() error
 }
 
-// NewDefaultBoostrapCluster Creates a new cluster manager for a local bootstrap cluster with default config
-func NewDefaultBoostrapCluster() ClusterLifeCycleManager {
-	return &kindClusterManager{
-		config:            bootstrapClusterConfig{},
-		bootstrapProvider: defaultKindBootstrapProviderImpl,
-	}
-}
-
 // NewBoostrapCluster Creates a new cluster manager for a local bootstrap cluster with the given
 // config, applying defaults where needed
 func NewBoostrapCluster(clusterConfig ClusterConfig) (ClusterLifeCycleManager, error) {
@@ -64,14 +58,9 @@ func NewBoostrapCluster(clusterConfig ClusterConfig) (ClusterLifeCycleManager, e
 	}
 	switch actualConfig.GetType() {
 	case KindClusterType, OCNEClusterType:
-		return &kindClusterManager{
-			config:            actualConfig,
-			bootstrapProvider: defaultKindBootstrapProviderImpl,
-		}, nil
+		return newKindClusterManager(actualConfig)
 	case NoClusterType:
-		return &noClusterManager{
-			config: actualConfig,
-		}, nil
+		return newNoClusterManager(actualConfig)
 	default:
 		return nil, unknownClusterTypeError(actualConfig.GetType())
 	}
@@ -115,4 +104,23 @@ func validateConfig(config ClusterConfig) error {
 func unknownClusterTypeError(clusterType string) error {
 	return fmt.Errorf("unsupported cluster type %s - supported types are %v",
 		clusterType, publicSupportedClusterTypes)
+}
+
+func initCAPI(clcm ClusterLifeCycleManager) error {
+	config, err := createKubeConfigFile(clcm)
+	if err != nil {
+		return err
+	}
+	defer os2.RemoveTempFiles(zap.S(), config.Name())
+	capiclient, err := capiInitFunc("")
+	if err != nil {
+		return err
+	}
+	_, err = capiclient.Init(clusterapi.InitOptions{
+		Kubeconfig: clusterapi.Kubeconfig{
+			Path: config.Name(),
+		},
+		InfrastructureProviders: defaultCAPIProviders,
+	})
+	return err
 }
