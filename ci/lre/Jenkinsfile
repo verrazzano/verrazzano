@@ -263,6 +263,9 @@ pipeline {
             }
             parallel {
                 stage('verify-scripts') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-scripts"
+                    }
                     steps {
                         runGinkgoRandomize('scripts', "${KUBECONFIG}")
                     }
