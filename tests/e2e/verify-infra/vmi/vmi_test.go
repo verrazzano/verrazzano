@@ -192,22 +192,20 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				pkg.Concurrently(
 					func() {
 						Eventually(func() bool {
-							return pkg.LogRecordFound(indexName,
-								time.Now().Add(-24*time.Hour), map[string]string{
-									"kubernetes.container_name": "verrazzano-monitoring-operator",
-									"caller":                    "controller",
-									"cluster_name":              constants.MCLocalCluster,
-								})
+							return pkg.FindLog(indexName,
+								[]pkg.Match{
+									{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
+									{Key: "cluster_name", Value: constants.MCLocalCluster}},
+								[]pkg.Match{})
 						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
 					},
 					func() {
 						Eventually(func() bool {
-							return pkg.LogRecordFound(indexName,
-								time.Now().Add(-24*time.Hour), map[string]string{
-									"kubernetes.container_name": "verrazzano-application-operator",
-									"caller":                    "controller",
-									"cluster_name":              constants.MCLocalCluster,
-								})
+							return pkg.FindLog(indexName,
+								[]pkg.Match{
+									{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
+									{Key: "cluster_name", Value: constants.MCLocalCluster}},
+								[]pkg.Match{})
 						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
 					},
 				)
