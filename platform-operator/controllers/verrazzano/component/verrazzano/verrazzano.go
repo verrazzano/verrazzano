@@ -75,10 +75,12 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext) error {
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
-	// Auth policies and Network policies created in the helm chart requires verrazzano-monitoring namespace
-	ctx.Log().Debugf("Creating namespace %s for the Verrazzano component", constants.VerrazzanoMonitoringNamespace)
-	if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
-		return err
+	if vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) || vzconfig.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+		// Auth policies and Network policies created in the helm chart requires verrazzano-monitoring namespace
+		ctx.Log().Debugf("Creating namespace %s for the Verrazzano component", constants.VerrazzanoMonitoringNamespace)
+		if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
+			return err
+		}
 	}
 	return nil
 }
