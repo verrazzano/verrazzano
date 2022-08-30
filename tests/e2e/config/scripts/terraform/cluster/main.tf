@@ -55,7 +55,7 @@ module "oke" {
 
   node_pool_image_id = var.node_pool_image_id
 
-  tags = {
+  freeform_tags = {
     vcn = {
         "verrazzano-infra/Branch" = var.branch_tag
         "verrazzano-infra/Pipeline" = var.pipeline_tag
@@ -71,5 +71,26 @@ module "oke" {
         "verrazzano-infra/Pipeline" = var.pipeline_tag
         "verrazzano-infra/JobScenario" = var.job_scenario_tag
     }
+    oke = {
+      cluster = {
+        "verrazzano-infra/Branch" = var.branch_tag
+        "verrazzano-infra/Pipeline" = var.pipeline_tag
+        "verrazzano-infra/JobScenario" = var.job_scenario_tag
+      }
+      service_lb = {
+        "verrazzano-infra/Branch" = var.branch_tag
+        "verrazzano-infra/Pipeline" = var.pipeline_tag
+        "verrazzano-infra/JobScenario" = var.job_scenario_tag
+      }
+      node_pool = {
+        "verrazzano-infra/Branch" = var.branch_tag
+        "verrazzano-infra/Pipeline" = var.pipeline_tag
+        "verrazzano-infra/JobScenario" = var.job_scenario_tag
+      }
+    }
+  }
+
+  providers = {
+    oci.home = oci.home
   }
 }
