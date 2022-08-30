@@ -244,8 +244,7 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
             }
             steps {
-                // skip running the bomValidator tests
-                runGinkgoRandomize('verify-install', 'bomvalidator')
+                runGinkgoRandomize('verify-install')
             }
             post {
                 always {
@@ -346,11 +345,11 @@ def downloadCLI() {
     }
 }
 
-def runGinkgoRandomize(testSuitePath, skipPackage='') {
+def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color --skipPackage ${skipPackage} ${testSuitePath}/...
+            ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
         """
     }
 }
