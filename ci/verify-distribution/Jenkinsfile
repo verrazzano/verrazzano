@@ -11,8 +11,7 @@ def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def commercialBundleLocation="master-last-clean-periodic-test/verrazzano-${VERRAZZANO_DEV_VERSION}-commercial.zip"
-def openSourceBundleLocation="master-last-clean-periodic-test/verrazzano-${VERRAZZANO_DEV_VERSION}-open-source.zip"
+def releaseBundlePrefix="master-last-clean-periodic-test/verrazzano-${VERRAZZANO_DEV_VERSION}-commercial.zip"
 def zipFileLoc=""
 
 pipeline {
@@ -236,9 +235,9 @@ pipeline {
                     zipFileLoc = params.ZIPFILE_LOCATION
                     if (params.ZIPFILE_LOCATION == "NONE") {
                         if (params.DISTRIBUTION_VARIANT == "Commercial") {
-                            zipFileLoc = "${commercialBundleLocation}".trim()
+                            zipFileLoc = "${releaseBundlePrefix}/verrazzano-${VERRAZZANO_DEV_VERSION}-commercial.zip".trim()
                         } else {
-                            zipFileLoc = "${openSourceBundleLocation}".trim()
+                            zipFileLoc = "${releaseBundlePrefix}/verrazzano-${VERRAZZANO_DEV_VERSION}-open-source.zip".trim()
                         }
                     }
                 }
