@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
-var testBootstrapCfg = newDefaultConfig()
+var testBootstrapCfg = NewClusterConfig()
 
 func fakeCAPINew(_ string, _ ...client.Option) (client.Client, error) {
 	return &FakeCAPIClient{}, nil

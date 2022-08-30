@@ -108,18 +108,3 @@ func getDefaultBoostrapKindConfig(clusterType string) string {
 	}
 	return defaultCNEBootstrapConfig
 }
-
-func createKubeConfigFile(clcm ClusterLifeCycleManager) (*os.File, error) {
-	kcFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-"+clcm.GetConfig().ClusterName)
-	if err != nil {
-		return nil, err
-	}
-	config, err := clcm.GetKubeConfig()
-	if err != nil {
-		return nil, err
-	}
-	if _, err := kcFile.Write([]byte(config)); err != nil {
-		return nil, err
-	}
-	return kcFile, nil
-}

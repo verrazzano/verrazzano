@@ -37,7 +37,7 @@ func (r *kindClusterManager) Create() error {
 }
 
 func (r *kindClusterManager) Init() error {
-	return initCAPI(r)
+	return initializeCAPI(r)
 }
 
 func (r *kindClusterManager) Destroy() error {

@@ -11,7 +11,7 @@ import (
 func TestNoClusterManager(t *testing.T) {
 	asserts := assert.New(t)
 
-	cm, err := newNoClusterManager(newDefaultConfig())
+	cm, err := newNoClusterManager(NewClusterConfig())
 	asserts.NoError(err)
 	asserts.NoError(cm.Create())
 	asserts.NoError(cm.Destroy())
