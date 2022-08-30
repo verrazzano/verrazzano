@@ -234,6 +234,27 @@ pipeline {
             }
         }
 
+        stage('Verify Install') {
+            when {
+               expression {
+                   return params.RUN_TESTS
+               }
+            }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+            }
+            steps {
+                // skip running the bomValidator tests
+                runGinkgoRandomize('verify-install', 'bomvalidator')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
         stage('Run Acceptance Tests Infra') {
             when {
                expression {
@@ -263,6 +284,7 @@ pipeline {
                     }
                 }
 
+/*
                 stage('verify-infra vmi') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
@@ -271,6 +293,7 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
+*/
                 stage('security role based access') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
@@ -323,11 +346,11 @@ def downloadCLI() {
     }
 }
 
-def runGinkgoRandomize(testSuitePath) {
+def runGinkgoRandomize(testSuitePath, skipPackage='') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
+            ginkgo -p --randomize-all -v --keep-going --no-color --skipPackage ${skipPackage} ${testSuitePath}/...
         """
     }
 }
