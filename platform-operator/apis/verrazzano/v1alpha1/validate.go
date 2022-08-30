@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -112,6 +113,16 @@ func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 			if err := validators.ValidatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+//ValidateInstallOverridesV1Beta1 checks that the overrides slice has only one override type per slice item for v1beta1
+func ValidateInstallOverridesV1Beta1(overrides []v1beta1.Overrides) error {
+	for _, override := range overrides {
+		if err := isValidOverrideItems(override.ConfigMapRef, override.SecretRef, override.Values); err != nil {
+			return err
 		}
 	}
 	return nil
