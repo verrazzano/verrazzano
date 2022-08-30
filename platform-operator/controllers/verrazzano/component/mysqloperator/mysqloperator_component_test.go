@@ -48,7 +48,7 @@ func TestGetInstallOverrides(t *testing.T) {
 	}
 
 	comp := NewComponent()
-	overrides := comp.GetOverrides(vz)
+	overrides := comp.GetOverrides(vz).([]vzapi.Overrides)
 	assert.Equal(t, []byte("{\"key1\": \"value1\"}"), overrides[0].Values.Raw)
 }
 

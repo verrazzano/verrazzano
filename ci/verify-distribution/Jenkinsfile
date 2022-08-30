@@ -11,6 +11,7 @@ def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+def zipFileLoc=""
 
 pipeline {
     options {
@@ -31,7 +32,10 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.22", "1.23", "1.24", "1.21", "1.20" ])
+                choices: [ "1.22", "1.23", "1.21", "1.20" ])
+        choice (name: 'DISTRIBUTION_VARIANT',
+                description: 'Verrazzano Distribution Variant to use for testing',
+                choices: ["Commercial", "OpenSource"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -41,7 +45,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         string (name: 'ZIPFILE_LOCATION',
-                        defaultValue: 'master-last-clean-periodic-test/verrazzano_periodic.zip',
+                        defaultValue: 'NONE',
                         description: 'The bucket location to use for the Zip file download',
                         trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
@@ -116,6 +120,7 @@ pipeline {
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
+        BOM_DOWNLOADED_FILE_NAME = "downloaded-from-bom.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -129,16 +134,13 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        CLEAN_PERIODIC_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
     }
 
     stages {
         stage('Initialize workspace and checkout') {
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-                VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
-            }
             steps {
                 script {
                     echo "Current execution region: $ocirRegion"
@@ -232,12 +234,14 @@ pipeline {
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
                 script {
-                    sh """
-                        echo "Downloading VZ CLI from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
-                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                        ${GO_REPO_PATH}/vz version
-                    """
+                    zipFileLoc = params.ZIPFILE_LOCATION
+                    if (params.ZIPFILE_LOCATION == "NONE") {
+                        if (params.DISTRIBUTION_VARIANT == "Commercial") {
+                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}-commercial.zip".trim()
+                        } else {
+                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}-open-source.zip".trim()
+                        }
+                    }
                 }
             }
         }
@@ -245,14 +249,18 @@ pipeline {
         stage('Download and extract Tarball') {
             steps {
                 script {
-                    downloadLocation = "${WORKSPACE}/${params.ZIPFILE_LOCATION}"
+                    downloadLocation = "${WORKSPACE}/${zipFileLoc}"
+                    echo "download location: $downloadLocation"
                     baseFilename = sh (
-                        script: "basename ${params.ZIPFILE_LOCATION} .zip",
+                        script: "basename ${zipFileLoc} .zip",
                         returnStdout: true
                         ).trim()
-                    tarfileName = "${baseFilename}.tar.gz"
-                    checksumFile = "${tarfileName}.sha256"
-                    echo "base name: $baseFilename, tar name: $tarfileName"
+
+                    if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                        tarfileName = "verrazzano-${VERRAZZANO_DEV_VERSION}-linux-amd64.tar.gz"
+                        checksumFile = "${tarfileName}.sha256"
+                        echo "base name: $baseFilename, tar name: $tarfileName, checksum name: $checksumFile"
+                    }
 
                     zipDir = sh (
                         script: "dirname $downloadLocation",
@@ -261,28 +269,62 @@ pipeline {
 
                     sh """
                         mkdir -p $zipDir || true
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.ZIPFILE_LOCATION} --file ${downloadLocation}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
                     """
 
                     dir(env.TARBALL_DIR) {
                         unzip zipFile: downloadLocation
-                        sh "sha256sum -c $checksumFile"
-                        sh "tar xvf $tarfileName"
+
+                        if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                            sh """
+                                sha256sum -c $checksumFile
+                                tar xvf $tarfileName
+
+                                # Installing VZ CLI
+                                cp ${TARBALL_DIR}/bin/vz ${GO_REPO_PATH}
+                                ${GO_REPO_PATH}/vz version # Verify install
+                            """
+                        } else {
+                            sh """
+                                mv ${TARBALL_DIR}/bin/linux-amd64/vz ${GO_REPO_PATH}/vz
+                                chmod +x ${GO_REPO_PATH}/vz
+                                ${GO_REPO_PATH}/vz version
+                            """
                         }
+                    }
                 }
             }
         }
         stage('Upload Verrazzano Images') {
             steps {
-                sh """
-                    # Create OCIR repos for the images in the tarballs in the test compartment
-                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
-                    echo "Upload OCIR region: $ocirRegion"
-                    echo "Upload OCIR Repository: ${ocirRegistry}"
-                    # Run the image-helper to load the images into the OCIR registry in the runner's region
-                    cd ${TARBALL_DIR}
-                    ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
-                """
+                script {
+                    if (params.DISTRIBUTION_VARIANT == "Commercial") {
+                        sh """
+                            # Create OCIR repos for the images in the tarballs in the test compartment
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            echo "Upload OCIR region: $ocirRegion"
+                            echo "Upload OCIR Repository: ${ocirRegistry}"
+                            cd ${TARBALL_DIR}
+                            chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
+                        """
+                    } else {
+                        sh """
+                            # Create OCIR repos for the images in the tarballs in the test compartment
+                            cd ${TARBALL_DIR}
+                            sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -f ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
+                            tar xvf ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
+                            cd ${TEST_SCRIPTS_DIR}
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                            echo "Upload OCIR region: $ocirRegion"
+                            echo "Upload OCIR Repository: ${ocirRegistry}"
+                            # Run the image-helper to load the images into the OCIR registry in the runner's region
+                            cd ${TARBALL_DIR}
+                            chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
+                        """
+                    }
+                }
             }
         }
         stage('Acceptance Tests') {
@@ -299,7 +341,8 @@ pipeline {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_private_registry_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                            chmod +x ci/scripts/prepare_distribution_test_jenkins_at_environment.sh
+                            ci/scripts/prepare_distribution_test_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
                     }
                     post {
@@ -309,9 +352,6 @@ pipeline {
                                     dumpK8sCluster('install-success-cluster-snapshot')
                                 }
                             }
-                        }
-                        always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                         }
                     }
                 }

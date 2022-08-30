@@ -31,7 +31,7 @@ import (
 //  WHEN Handle is called with an invalid admission.Request containing no content
 //  THEN Handle should return an error with http.StatusBadRequest
 func TestHandleBadRequest(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	decoder := decoder()
 	defaulter := &IstioWebhook{}
 	err := defaulter.InjectDecoder(decoder)
@@ -47,7 +47,7 @@ func TestHandleBadRequest(t *testing.T) {
 //  WHEN Handle is called with an admission.Request containing a pod resource with Istio disabled
 //  THEN Handle should return an Allowed response with no action required
 func TestHandleIstioDisabled(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	defaulter := &IstioWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
@@ -84,7 +84,7 @@ func TestHandleIstioDisabled(t *testing.T) {
 //  WHEN Handle is called with an admission.Request containing a pod resource with no owner references
 //  THEN Handle should return an Allowed response with no action required
 func TestHandleNoOnwerReference(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	defaulter := &IstioWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
@@ -118,7 +118,7 @@ func TestHandleNoOnwerReference(t *testing.T) {
 //  WHEN Handle is called with an admission.Request containing a pod resource with no parent appconfig owner references
 //  THEN Handle should return an Allowed response with no action required
 func TestHandleNoAppConfigOnwerReference(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	defaulter := &IstioWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
@@ -187,7 +187,7 @@ func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 //    and a default service account referenced by the pod
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference1(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
@@ -261,7 +261,7 @@ func TestHandleAppConfigOnwerReference1(t *testing.T) {
 //    and a non-default service account referenced by the pod
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference2(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
@@ -347,7 +347,7 @@ func TestHandleAppConfigOnwerReference2(t *testing.T) {
 //    A different service account is used on each call.
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference3(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
@@ -489,7 +489,7 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 //    The same service account is used on each call.
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference4(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
@@ -621,7 +621,7 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 //	  and a project that matches the namespace of pod resource
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleProject1(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
@@ -715,7 +715,7 @@ func TestHandleProject1(t *testing.T) {
 //	  and a project that matches the namespace of pod resource. There are 2 different appconfigs.
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleProject2(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
@@ -873,7 +873,7 @@ func TestHandleProject2(t *testing.T) {
 //	  and a project that does not matches the namespace of pod resource.  There are 2 different appconfigs.
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleProject3(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
@@ -1025,7 +1025,7 @@ func TestHandleProject3(t *testing.T) {
 
 // TestHandleFailed tests to make sure the failure metric is being exposed
 func TestIstioHandleFailed(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	assert := assert.New(t)
 	// Create a request and decode(Handle) it
 	decoder := decoder()

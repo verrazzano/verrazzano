@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -117,25 +118,31 @@ func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 }
 
 // ValidateInstallOverrides checks that the overrides slice has only one override type per slice item
-func ValidateInstallOverrides(Overrides []Overrides) error {
-	overridePerItem := 0
-	for _, override := range Overrides {
-		if override.ConfigMapRef != nil {
-			overridePerItem++
+func ValidateInstallOverrides(overrides []Overrides) error {
+	for _, override := range overrides {
+		if err := isValidOverrideItems(override.ConfigMapRef, override.SecretRef, override.Values); err != nil {
+			return err
 		}
-		if override.SecretRef != nil {
-			overridePerItem++
-		}
-		if override.Values != nil {
-			overridePerItem++
-		}
-		if overridePerItem > 1 {
-			return fmt.Errorf("Invalid install overrides. Cannot specify more than one override type in the same list element")
-		}
-		if overridePerItem == 0 {
-			return fmt.Errorf("Invalid install overrides. No override specified")
-		}
-		overridePerItem = 0
+	}
+	return nil
+}
+
+func isValidOverrideItems(cm *corev1.ConfigMapKeySelector, s *corev1.SecretKeySelector, v *apiextensionsv1.JSON) error {
+	items := 0
+	if cm != nil {
+		items++
+	}
+	if s != nil {
+		items++
+	}
+	if v != nil {
+		items++
+	}
+	if items > 1 {
+		return fmt.Errorf("Invalid install overrides. Cannot specify more than one override type in the same list element")
+	}
+	if items == 0 {
+		return fmt.Errorf("Invalid install overrides. No override specified")
 	}
 	return nil
 }
