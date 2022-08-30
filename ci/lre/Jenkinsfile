@@ -234,6 +234,28 @@ pipeline {
             }
         }
 
+        stage('Hello Helidon Application Test') {
+            when {
+               expression {
+                   return params.RUN_TESTS
+               }
+            }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+            }
+            steps {
+                script {
+                    runGinkgoAppTest('examples/helidon', "hello-helidon", "${TEST_DUMP_ROOT}/examples-helidon", 'true', 'true')
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
         stage('Verify Install') {
             when {
                expression {

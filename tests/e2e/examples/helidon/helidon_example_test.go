@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
-
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
@@ -181,17 +179,12 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 				Skip(skipVerifications)
 			}
 			Eventually(func() bool {
-				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/name": helloHelidon,
-					"kubernetes.container_name":            "hello-helidon-container",
-				})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-			Eventually(func() bool {
-				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
-					"kubernetes.labels.app_oam_dev\\/name":      helloHelidon,
-					"kubernetes.container_name":                 "hello-helidon-container",
-				})
+				return pkg.FindLog(indexName,
+					[]pkg.Match{
+						{Key: "kubernetes.labels.app_oam_dev\\/component", Value: "hello-helidon-component"},
+						{Key: "kubernetes.labels.app_oam_dev\\/name", Value: helloHelidon},
+						{Key: "kubernetes.container_name", Value: "hello-helidon-container"}},
+					[]pkg.Match{})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 		})
 	})
