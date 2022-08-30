@@ -47,7 +47,7 @@ var (
 	trueValue  = true
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
 
 var testExternalIP = ip.RandomIP()
 
