@@ -195,7 +195,6 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 							return pkg.FindLog(indexName,
 								[]pkg.Match{
 									{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
-									{Key: "caller", Value: "controller"},
 									{Key: "cluster_name", Value: constants.MCLocalCluster}},
 								[]pkg.Match{})
 						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
@@ -205,7 +204,6 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 							return pkg.FindLog(indexName,
 								[]pkg.Match{
 									{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
-									{Key: "caller", Value: "controller"},
 									{Key: "cluster_name", Value: constants.MCLocalCluster}},
 								[]pkg.Match{})
 						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
