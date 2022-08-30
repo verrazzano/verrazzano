@@ -12,6 +12,7 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -337,11 +338,18 @@ func (c jaegerOperatorComponent) validateJaegerOperator(vz *vzapi.Verrazzano) er
 }
 
 // GetOverrides returns the list of install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.JaegerOperator != nil {
+			return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	}
+	effectiveCR := object.(*installv1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.JaegerOperator != nil {
 		return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []installv1beta1.Overrides{}
 }
 
 func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
@@ -505,7 +513,7 @@ func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
 
 // getOverrideVal gets the Helm value specified in the VZ CR for the specified override field
 func getOverrideVal(ctx spi.ComponentContext, field string) (interface{}, error) {
-	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()))
+	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]vzapi.Overrides))
 	if err != nil {
 		return nil, err
 	}
