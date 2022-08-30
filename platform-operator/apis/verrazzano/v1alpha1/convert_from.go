@@ -19,7 +19,9 @@ func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	// Convert Spec
 	in.Spec.Components = convertComponentsFromV1Beta1(src.Spec.Components)
 	in.Spec.Profile = ProfileType(src.Spec.Profile)
-	in.Spec.EnvironmentName = src.Spec.Components.DNS.SubDomain
+	if src.Spec.Components.DNS != nil {
+		in.Spec.EnvironmentName = src.Spec.Components.DNS.SubDomain
+	}
 	in.Spec.Version = src.Spec.Version
 	in.Spec.DefaultVolumeSource = src.Spec.DefaultVolumeSource
 	in.Spec.VolumeClaimSpecTemplates = convertVoumeClaimTemplatesFromV1Beta1(src.Spec.VolumeClaimSpecTemplates)
