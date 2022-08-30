@@ -512,8 +512,12 @@ pipeline {
             script {
                 if (params.KEEP_RESOURCES_AFTER_RUN == false) {
                     if (env.installedVZ && env.installedVZ == "true") {
-                        echo "[INFO] Deleting Verrazzano"
-                        deleteVerrazzano()
+                        try {
+                            echo "[INFO] Deleting Verrazzano"
+                            deleteVerrazzano()
+                        } catch (error) {
+                            echo "Failed to delete Verrazzano"
+                        }
                     }
                     if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
                         echo "[INFO] Deleting OLCNE Cluster"

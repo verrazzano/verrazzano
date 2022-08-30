@@ -27,6 +27,8 @@ create_kind_cluster() {
     KIND_IMAGE="v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105"
   elif [ ${K8S_VERSION} == 1.23 ]; then
     KIND_IMAGE="v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae"
+  elif [ ${K8S_VERSION} == 1.24 ]; then
+    KIND_IMAGE="v1.24.0@sha256:0866296e693efe1fed79d5e6c7af8df71fc73ae45e3679af05342239cdc5bc8e"
   else
     echo "ERROR: Invalid value for Kubernetes Version ${K8S_VERSION}."
     exit 1

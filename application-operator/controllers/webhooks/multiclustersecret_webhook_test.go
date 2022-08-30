@@ -35,7 +35,6 @@ func newMultiClusterSecretValidator() MultiClusterSecretValidator {
 // WHEN the MultiClusterSecret resource is missing Placement information
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterSecretCreationWithoutTargetClusters(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterSecretValidator()
 	p := v1alpha12.MultiClusterSecret{
@@ -63,7 +62,6 @@ func TestValidationFailureForMultiClusterSecretCreationWithoutTargetClusters(t *
 // WHEN the MultiClusterSecret resource references a VerrazzanoManagedCluster that does not exist
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterSecretCreationTargetingMissingManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterSecretValidator()
 	p := v1alpha12.MultiClusterSecret{
@@ -95,7 +93,6 @@ func TestValidationFailureForMultiClusterSecretCreationTargetingMissingManagedCl
 // WHEN the MultiClusterSecret resource references a VerrazzanoManagedCluster that does exist
 // THEN the validation should pass.
 func TestValidationSuccessForMultiClusterSecretCreationTargetingExistingManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterSecretValidator()
 	c := v1alpha1.VerrazzanoManagedCluster{
@@ -157,7 +154,6 @@ func TestValidationSuccessForMultiClusterSecretCreationTargetingExistingManagedC
 // AND the validation is being done on a managed cluster
 // THEN the validation should succeed.
 func TestValidationSuccessForMultiClusterSecretCreationWithoutTargetClustersOnManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterSecretValidator()
 	s := corev1.Secret{
@@ -212,7 +208,6 @@ func TestValidationSuccessForMultiClusterSecretCreationWithoutTargetClustersOnMa
 // WHEN the MultiClusterConfigMap resource is failing
 // THEN the validation should fail.
 func TestMultiClusterSecretHandleFailed(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
 	mcc := v1alpha12.MultiClusterComponent{
 		ObjectMeta: metav1.ObjectMeta{
