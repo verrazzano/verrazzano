@@ -88,9 +88,6 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 			return err
 		}
 		newKubeconfigPath = newKubeconfigFile.Name()
-		/*defer func() {
-			os.Remove(newKubeconfigPath)
-		}()*/
 	}
 
 	kubeconfigContents, err := cluster.GetKubeConfig()
@@ -105,6 +102,10 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 		fmt.Printf("Merging %s and %s\n", filePath, newKubeconfigPath)
 		kubeconfigContents, err = mergeKubeconfigs(filePath, newKubeconfigPath)
 		message = "Merged kubeconfig into existing file"
+		// delete the temp file
+		defer func() {
+			os.Remove(newKubeconfigPath)
+		}()
 	}
 	if err = os.WriteFile(filePath, []byte(kubeconfigContents), 0700); err != nil {
 		fmt.Fprintf(helper.GetOutputStream(), "Failed to write kubeconfig to file %s - %v\n", filePath, err)
