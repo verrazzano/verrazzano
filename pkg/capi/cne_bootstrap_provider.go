@@ -70,7 +70,7 @@ func (k *cneBootstrapProviderImpl) DestroyCluster(config ClusterConfig) error {
 	if err != nil {
 		return err
 	}
-	kubeconfig, err := k.GetKubeconfig(nil)
+	kubeconfig, err := k.GetKubeconfig(config)
 	if err != nil {
 		return err
 	}
