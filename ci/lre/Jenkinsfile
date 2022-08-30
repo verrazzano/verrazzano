@@ -247,6 +247,7 @@ pipeline {
                         runGinkgoRandomize('scripts', "${KUBECONFIG}")
                     }
                 }
+*/
                 stage('verify-infra restapi') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
@@ -263,7 +264,7 @@ pipeline {
                         runGinkgoRandomize('verify-infra/oam')
                     }
                 }
-*/
+
                 stage('verify-infra vmi') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
