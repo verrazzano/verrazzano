@@ -6,12 +6,14 @@ package mcagent
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -27,6 +29,7 @@ const (
 	clusterRegSecretPath       = "testdata/clusterca-clusterregsecret.yaml"
 	adminRegSecretPath         = "testdata/clusterca-adminregsecret.yaml"
 	adminRegNewSecretPath      = "testdata/clusterca-adminregsecret-new.yaml"
+	clusterCAAdminSecretPath   = "testdata/clusterca-admincasecret.yaml"
 	mcCASecretPath             = "testdata/clusterca-mccasecret.yaml"
 	vzTLSSecretPathNew         = "testdata/clusterca-mctlssecret-new.yaml"
 	vzTLSSecretPath            = "testdata/clusterca-mctlssecret.yaml"
@@ -50,7 +53,7 @@ func TestSyncCACertsNoDifference(t *testing.T) {
 	log := zap.S().With("test")
 
 	// Test data
-	testAdminCASecret, err := getSampleSecret("testdata/clusterca-admincasecret.yaml")
+	testAdminCASecret, err := getSampleSecret(clusterCAAdminSecretPath)
 	assert.NoError(err, sampleAdminCAReadErrMsg)
 
 	testAdminRegSecret, err := getSampleSecret(adminRegSecretPath)
@@ -271,7 +274,7 @@ func TestSyncRegistrationInfoDifferent(t *testing.T) {
 	// Test data
 
 	// Admin CA secret is the unchanged one
-	testAdminCASecret, err := getSampleSecret("testdata/clusterca-admincasecret.yaml")
+	testAdminCASecret, err := getSampleSecret(clusterCAAdminSecretPath)
 	assert.NoError(err, sampleAdminCAReadErrMsg)
 
 	// Use the "updated" admin registration data to simulate admin cluster reg secret changed
@@ -336,6 +339,218 @@ func TestSyncRegistrationInfoDifferent(t *testing.T) {
 	assertRegistrationInfoEqual(t, localSecret, newRegSecret)
 }
 
+func TestSyncRegistrationFromAdminCluster(t *testing.T) {
+	testAdminCASecret, err := getSampleSecret(clusterCAAdminSecretPath)
+	asserts.NoError(t, err, sampleAdminCAReadErrMsg)
+	log := zap.S().With("test")
+	tests := []struct {
+		name                    string
+		testAdminCASecret       *corev1.Secret
+		adminRegistrationSecret *corev1.Secret
+		localRegistrationSecret *corev1.Secret
+		expectedOperation       controllerutil.OperationResult
+		expectedError           error
+	}{
+		{
+			"OS url is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.ESURLKey: "new OS url",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"OS CA bundle is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.ESCaBundleKey: "new CA bundle",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"Registration username is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.RegistrationUsernameKey: "new user",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"Registration password  is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.RegistrationPasswordKey: "new password",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"Keycloak url is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.KeycloakURLKey: "new keycloak url",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"Jaeger OS url is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.JaegerOSURLKey: "new value",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"Jaeger OS username is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.JaegerOSUsernameKey: "newuser",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"Jaeger OS password is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.JaegerOSPasswordKey: "newpassword",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"Jaeger TLS CA is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.JaegerOSTLSCAKey: "newCAKey",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"Jaeger TLS cert is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.JaegerOSTLSCertKey: "newTLSCertKey",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"Jaeger TLS key is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.JaegerOSTLSKey: "newTLSKey",
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"Admin CA bundle is different in managed cluster",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, nil),
+			createSecretWithOverrides(clusterRegSecretPath, map[string]string{
+				mcconstants.AdminCaBundleKey: "new CA bundle",
+			}),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"All values are in sync between admin and managed1 cluster",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, nil),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultNone,
+			nil,
+		},
+		{
+			"When registration secret is missing in admin cluster, then it should return error",
+			&testAdminCASecret,
+			nil,
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultNone,
+			fmt.Errorf("secrets \"verrazzano-cluster-managed1-registration\" not found"),
+		},
+		{
+			"When registration secret is missing in local cluster, then it should return error",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, nil),
+			nil,
+			controllerutil.OperationResultNone,
+			fmt.Errorf("secrets \"verrazzano-cluster-registration\" not found"),
+		},
+		{
+			"When CA cert secret is missing in admin cluster, then it should return error",
+			nil,
+			createSecretWithOverrides(adminRegSecretPath, nil),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
+			controllerutil.OperationResultNone,
+			fmt.Errorf("secrets \"verrazzano-local-ca-bundle\" not found"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			adminRuntimeObjects := []runtime.Object{}
+			if tt.testAdminCASecret != nil {
+				adminRuntimeObjects = append(adminRuntimeObjects, tt.testAdminCASecret)
+			}
+			if tt.adminRegistrationSecret != nil {
+				adminRuntimeObjects = append(adminRuntimeObjects, tt.adminRegistrationSecret)
+			}
+			adminClient := fake.NewClientBuilder().
+				WithScheme(newClusterCAScheme()).
+				WithRuntimeObjects(adminRuntimeObjects...).
+				Build()
+
+			localRuntimeObjects := []runtime.Object{}
+			if tt.localRegistrationSecret != nil {
+				localRuntimeObjects = append(localRuntimeObjects, tt.localRegistrationSecret)
+			}
+			localClient := fake.NewClientBuilder().
+				WithScheme(newClusterCAScheme()).
+				WithRuntimeObjects(localRuntimeObjects...).
+				Build()
+
+			s := &Syncer{
+				AdminClient:        adminClient,
+				LocalClient:        localClient,
+				Log:                log,
+				ManagedClusterName: testClusterName,
+				Context:            context.TODO(),
+			}
+			actualOperationResult, err := s.syncRegistrationFromAdminCluster()
+			if tt.expectedError != nil {
+				asserts.Equal(t, err.Error(), tt.expectedError.Error())
+				return
+			}
+			asserts.NoError(t, err)
+			asserts.Equal(t, tt.expectedOperation, actualOperationResult)
+			// post sync call both the secrets should have the same values of registration secrets
+			// and calling sync again should be a no-op (unchanged).
+			reSyncOperationResult, err := s.syncRegistrationFromAdminCluster()
+			asserts.NoError(t, err)
+			asserts.Equal(t, controllerutil.OperationResultNone, reSyncOperationResult)
+		})
+	}
+}
+
 // getSampleClusterCAVMC creates and returns a sample VMC
 func getSampleClusterCAVMC(filePath string) (platformopclusters.VerrazzanoManagedCluster, error) {
 	vmc := platformopclusters.VerrazzanoManagedCluster{}
@@ -366,4 +581,16 @@ func assertRegistrationInfoEqual(t *testing.T, regSecret1 *corev1.Secret, regSec
 	asserts.Equal(t, regSecret1.Data[mcconstants.RegistrationUsernameKey], regSecret2.Data[mcconstants.RegistrationUsernameKey], "Registration Username is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.RegistrationPasswordKey], regSecret2.Data[mcconstants.RegistrationPasswordKey], "Registration Password is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.ESCaBundleKey], regSecret2.Data[mcconstants.ESCaBundleKey], "Registration Password is different")
+}
+
+func createSecretWithOverrides(filepath string, overrides map[string]string) *corev1.Secret {
+	secret, err := getSampleSecret(filepath)
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		return &corev1.Secret{}
+	}
+	for key, value := range overrides {
+		secret.Data[key] = []byte(value)
+	}
+	return &secret
 }
