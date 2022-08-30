@@ -53,7 +53,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 
 	clusterType, err := cmd.PersistentFlags().GetString(constants.ClusterTypeFlagName)
 	if err != nil {
-		return fmt.Errorf("failed to get the %s flag: %v", constants.ClusterTypeFlagName, err)
+		return fmt.Errorf("Failed to get the %s flag: %v", constants.ClusterTypeFlagName, err)
 	}
 
 	if filePath == "" {
@@ -61,7 +61,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(helper.GetOutputStream(), "no kubeconfig file specified - using %s\n", filePath)
+		fmt.Fprintf(helper.GetOutputStream(), "No path specified - using %s\n", filePath)
 	}
 
 	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfigInfo{
@@ -77,7 +77,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 		return err
 	}
 	if exists {
-		return fmt.Errorf("the file %s already exists - please provide a different kubeconfig file name", filePath)
+		return fmt.Errorf("The file %s already exists - please provide a different kubeconfig file name", filePath)
 	}
 
 	kubeconfigContents, err := cluster.GetKubeConfig()
@@ -86,7 +86,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 	}
 
 	err = os.WriteFile(filePath, []byte(kubeconfigContents), 0700)
-	fmt.Fprintf(helper.GetOutputStream(), "wrote kubeconfig to file %s\n", filePath)
+	fmt.Fprintf(helper.GetOutputStream(), "Wrote kubeconfig to file %s\n", filePath)
 	return err
 }
 

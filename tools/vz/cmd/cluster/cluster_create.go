@@ -26,8 +26,9 @@ func newSubcmdCreate(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.ClusterNameFlagName, constants.ClusterNameFlagDefault, constants.ClusterNameFlagHelp)
 	cmd.PersistentFlags().String(constants.ClusterTypeFlagName, constants.ClusterTypeFlagDefault, constants.ClusterTypeFlagHelp)
 	cmd.PersistentFlags().String(constants.ClusterImageFlagName, constants.ClusterImageFlagDefault, constants.ClusterImageFlagHelp)
-	// the image flag should be hidden since it is not intended for general use
+	// the image and type flags should be hidden since they are not intended for general use
 	cmd.PersistentFlags().MarkHidden(constants.ClusterImageFlagName)
+	cmd.PersistentFlags().MarkHidden(constants.ClusterTypeFlagName)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdClusterCreate(cmd, args)
 	}
@@ -67,5 +68,6 @@ func runCmdClusterCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	fmt.Println("Cluster initialization complete")
+	fmt.Sprintf("To get the kubeconfig for this cluster, run: vz cluster get-kubeconfig --name %s (for more details, run vz cluster get-kubeconfig -h)\n", clusterName)
 	return nil
 }
