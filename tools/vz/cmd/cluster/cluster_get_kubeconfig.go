@@ -99,7 +99,6 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 	if existingKubeconfig {
 		// write new kubeconfig to temp file and merge with existing file
 		err = os.WriteFile(newKubeconfigPath, []byte(kubeconfigContents), 0700)
-		fmt.Printf("Merging %s and %s\n", filePath, newKubeconfigPath)
 		kubeconfigContents, err = mergeKubeconfigs(filePath, newKubeconfigPath)
 		message = "Merged kubeconfig into existing file"
 		// delete the temp file
