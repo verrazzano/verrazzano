@@ -319,6 +319,7 @@
     },
     {
       "name": "weblogic-operator",
+      "version": "3.4.3",
       "subcomponents": [
         {
           "repository": "oracle",
