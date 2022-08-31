@@ -64,7 +64,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 		fmt.Fprintf(helper.GetOutputStream(), "No path specified - using %s\n", filePath)
 	}
 
-	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfigInfo{
+	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfig{
 		ClusterName: clusterName,
 		Type:        clusterType,
 	})

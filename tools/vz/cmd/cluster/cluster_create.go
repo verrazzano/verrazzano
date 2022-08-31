@@ -52,7 +52,7 @@ func runCmdClusterCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Failed to get the %s flag: %v", constants.ClusterImageFlagName, err)
 	}
 
-	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfigInfo{
+	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfig{
 		ClusterName:    clusterName,
 		Type:           clusterType,
 		ContainerImage: clusterImg,
