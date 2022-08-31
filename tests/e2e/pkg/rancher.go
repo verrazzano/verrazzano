@@ -4,15 +4,21 @@
 package pkg
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"go.uber.org/zap"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func EventuallyGetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string, scheme string) string {
@@ -75,4 +81,84 @@ func GetRancherAdminToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clie
 	}
 
 	return token
+}
+
+//VerifyRancherAccess verifies that Rancher is accessible.
+func VerifyRancherAccess() {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Logs.Error(fmt.Sprintf("Error getting kubeconfig: %v", err))
+		t.Fail(err.Error())
+	}
+
+	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
+	rancherURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
+	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	var httpResponse *pkg.HTTPResponse
+
+	Eventually(func() (*pkg.HTTPResponse, error) {
+		httpResponse, err = pkg.GetWebPageWithClient(httpClient, rancherURL, "")
+		return httpResponse, err
+	}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
+
+	Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
+}
+
+//VerifyRancherKeycloakAuthConfig verifies that Rancher/Keycloak AuthConfig is correctly populated
+func VerifyRancherKeycloakAuthConfig() {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Logs.Error(fmt.Sprintf("Error getting kubeconfig: %v", err))
+		t.Fail(err.Error())
+	}
+
+	start := time.Now()
+	t.Logs.Info("Verify Keycloak AuthConfig")
+	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
+	keycloakURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "keycloak", "keycloak", "https")
+	rancherURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
+	k8sClient, err := pkg.GetDynamicClientInCluster(kubeconfigPath)
+	if err != nil {
+		t.Logs.Error(fmt.Sprintf("Error getting K8S client: %v", err))
+		t.Fail(err.Error())
+	}
+
+	Eventually(func() (bool, error) {
+		authConfigData, err := k8sClient.Resource(gvkToGvr(common.GVKAuthConfig)).Get(context.Background(), common.AuthConfigKeycloak, v1.GetOptions{})
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("error getting keycloak oidc authConfig: %v", err))
+			return false, err
+		}
+
+		authConfigAttributes := authConfigData.UnstructuredContent()
+		if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeAccessMode, authConfigAttributes[rancher.AuthConfigKeycloakAttributeAccessMode].(string), rancher.AuthConfigKeycloakAccessMode); err != nil {
+			return false, err
+		}
+
+		if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeClientID, authConfigAttributes[rancher.AuthConfigKeycloakAttributeClientID].(string), rancher.AuthConfigKeycloakClientIDRancher); err != nil {
+			return false, err
+		}
+
+		if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeGroupSearchEnabled, authConfigAttributes[rancher.AuthConfigKeycloakAttributeGroupSearchEnabled].(bool), true); err != nil {
+			return false, err
+		}
+
+		if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeAuthEndpoint, authConfigAttributes[rancher.AuthConfigKeycloakAttributeAuthEndpoint].(string), keycloakURL+rancher.AuthConfigKeycloakURLPathAuthEndPoint); err != nil {
+			return false, err
+		}
+
+		if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeRancherURL, authConfigAttributes[rancher.AuthConfigKeycloakAttributeRancherURL].(string), rancherURL+rancher.AuthConfigKeycloakURLPathVerifyAuth); err != nil {
+			return false, err
+		}
+
+		authConfigClientSecret := authConfigAttributes[common.AuthConfigKeycloakAttributeClientSecret].(string)
+		if authConfigClientSecret == "" {
+			err = fmt.Errorf("keycloak auth config attribute %s not correctly configured, value is empty", common.AuthConfigKeycloakAttributeClientSecret)
+			t.Logs.Error(err.Error())
+			return false, err
+		}
+
+		return true, nil
+	}, waitTimeout, pollingInterval).Should(Equal(true), "keycloak oidc authconfig not configured correctly")
+	metrics.Emit(t.Metrics.With("get_kc_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
 }

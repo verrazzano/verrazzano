@@ -101,6 +101,8 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		}
 		validateIngressList(testEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
+		//Validate Rancher/Keycloak integration
+		pkg.VerifyRancherAccess()
 	})
 
 	t.It("Update and verify dns domain", func() {
