@@ -17,7 +17,7 @@ module "oke" {
   kubernetes_version = var.kubernetes_version
   allow_worker_ssh_access = var.allow_worker_ssh_access
   worker_type = var.worker_mode
-  control_plane_access = var.cluster_access
+  control_plane_type = var.cluster_access
   ssh_private_key_path = var.ssh_private_key_path
   ssh_public_key_path = var.ssh_public_key_path
   node_pools =var.node_pools
@@ -35,7 +35,7 @@ module "oke" {
   operator_shape = { shape="VM.Standard.E3.Flex", ocpus=1, memory=4, boot_volume_size=50 }
   operator_notification_endpoint = ""
   enable_operator_instance_principal = false
-  operator_notification_enabled = false
+  enable_operator_notification = false
   operator_timezone = "UTC"
 
   create_bastion_host = var.bastion_enabled
@@ -49,6 +49,7 @@ module "oke" {
   create_service_account = false
   service_account_cluster_role_binding = ""
 
+  use_encryption = false
   kms_key_id = ""
 
   use_signed_images = false
