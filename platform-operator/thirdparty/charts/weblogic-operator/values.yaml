@@ -4,7 +4,7 @@
 # serviceAccount specifies the name of the ServiceAccount in the operator's namespace that the
 # operator will use to make requests to the Kubernetes API server.
 # The customer is responsible for creating the ServiceAccount in the same namespace as this Helm release.
-# If not specified, the the operator will use the Helm release namespace's 'default' ServiceAccount.
+# If not specified, the operator will use the Helm release namespace's 'default' ServiceAccount.
 serviceAccount: "default"
 
 # domainNamespaceSelectionStrategy specifies how the operator will select the set of namespaces
@@ -213,7 +213,7 @@ externalServiceNameSuffix: "-ext"
 # The default value is true.
 clusterSizePaddingValidationEnabled: true
 
-# tokenReviewAuthentication, if set to true, specifies whether the operator's REST API should use
+# tokenReviewAuthentication, if set to true, specifies whether the the operator's REST API should use
 #   1. Kubernetes token review API for authenticating users, and
 #   2. Kubernetes subject access review API for authorizing a user's operation (get, list,
 #      patch, etc) on a resource.
