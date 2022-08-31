@@ -29,7 +29,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -839,7 +838,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 // loginKeycloak logs into Keycloak so kcadm API calls can be made
 func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	// Get the Keycloak admin password
-	secret := &corev1.Secret{}
+	secret := &v1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: "keycloak",
 		Name:      "keycloak-http",
@@ -891,31 +890,39 @@ func keycloakPod() *v1.Pod {
 // createKeycloakDBSecret creates or updates a secret containing the password used by keycloak to access the DB
 func createKeycloakDBSecret(ctx spi.ComponentContext) error {
 	// create MySQL keycloak user secret
-	keycloakSecret := v1.Secret{
+	keycloakSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      secretName,
 		},
 	}
-	password, err := vzpassword.GeneratePassword(12)
+	err := ctx.Client().Get(context.TODO(),client.ObjectKey{
+		Namespace: ComponentNamespace,
+		Name:      secretName,
+	}, keycloakSecret)
+
 	if err != nil {
-		return err
-	}
-	_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &keycloakSecret, func() error {
-		keycloakSecret.Data = map[string][]byte{
-			secretKey: []byte(password),
+		password, err := vzpassword.GeneratePassword(12)
+		if err != nil {
+			return err
 		}
-		return nil
-	})
-	if err != nil {
-		return err
+		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), keycloakSecret, func() error {
+			keycloakSecret.Data = map[string][]byte{
+				secretKey: []byte(password),
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		ctx.Log().Once("Component Keycloak successfully created the keycloak db secret")
 	}
 	return nil
 }
 
 // createAuthSecret verifies the secret doesn't already exists and creates it
 func createAuthSecret(ctx spi.ComponentContext, namespace string, secretname string, username string) error {
-	secret := &corev1.Secret{
+	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: secretname, Namespace: namespace},
 	}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -949,7 +956,7 @@ func createAuthSecret(ctx spi.ComponentContext, namespace string, secretname str
 
 // getSecretPassword retrieves the password associated with a secret
 func getSecretPassword(ctx spi.ComponentContext, namespace string, secretname string) (string, error) {
-	secret := &corev1.Secret{}
+	secret := &v1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: namespace,
 		Name:      secretname,
@@ -1413,7 +1420,7 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 
 	// Is there an override for affinity?
 	found := false
-	affinityOverride := &corev1.Affinity{}
+	affinityOverride := &v1.Affinity{}
 	for _, overrideYaml := range overrides {
 		if strings.Contains(overrideYaml, "affinity: |") {
 			found = true
@@ -1642,13 +1649,13 @@ func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, err
 // setupDatabase creates the user and database for keycloak
 func setupDatabase(ctx spi.ComponentContext) error {
 	// retrieve root password for mysql
-	rootSecret := corev1.Secret{}
+	rootSecret := v1.Secret{}
 	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: rootSec}, &rootSecret); err != nil {
 		return err
 	}
 	rootPwd := rootSecret.Data[rootPasswordKey]
 	// retrieve the keycloak user password
-	userSecret := corev1.Secret{}
+	userSecret := v1.Secret{}
 	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: secretName}, &userSecret); err != nil {
 		return err
 	}
@@ -1665,22 +1672,25 @@ func setupDatabase(ctx spi.ComponentContext) error {
 	}
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
 	if err != nil {
-		ctx.Log().Errorf("Failed logging into mysql: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, err)
+		errorMsg := maskPw(fmt.Sprintf("Failed logging into mysql: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, err))
+		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	return nil
 }
 
-func getMySQLPod(ctx spi.ComponentContext) (*corev1.Pod, error) {
+func getMySQLPod(ctx spi.ComponentContext) (*v1.Pod, error) {
 	tierReq, _ := kblabels.NewRequirement("tier", selection.Equals, []string{"mysql"})
+	compReq, _ := kblabels.NewRequirement("component", selection.Equals, []string{"mysqld"})
 	labelSelector := kblabels.NewSelector()
-	labelSelector = labelSelector.Add(*tierReq)
-	mysqlPods := corev1.PodList{}
+	labelSelector = labelSelector.Add(*tierReq, *compReq)
+	mysqlPods := v1.PodList{}
 	err := ctx.Client().List(context.TODO(), &mysqlPods, &client.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return nil, err
 	}
 	// return one of the pods
+	ctx.Log().Infof("Returning pod %s for mysql setup", mysqlPods.Items[0].Name)
 	return &mysqlPods.Items[0], nil
 }
 

@@ -24,7 +24,6 @@ spec:
   baseServerId: {{ required "baseServerId is required" .Values.baseServerId }}
   version: {{ .Values.serverVersion | default .Chart.AppVersion }}
   serviceAccountName: {{ .Release.Name }}-sa
-
 {{- if not $use_self_signed }}
   {{- $default_secret_name := printf "%s-ca" $cluster_name }}
   {{- $secret_name := default $default_secret_name ((.Values.tls).caSecretName) }}
@@ -42,12 +41,10 @@ spec:
   {{- end }}
   tlsSecretName: {{ $secret_name }}
 {{- end }}
-
 {{ if ((.Values).podSpec) }}
   podSpec:
 {{ toYaml ((.Values).podSpec) | indent 4 }}
 {{ end }}
-
 {{- if ((.Values).serverConfig) }}
   {{- if (((.Values).serverConfig).mycnf) }}
   mycnf: |
@@ -57,7 +54,6 @@ spec:
 {{ (((.Values).serverConfig).mycnf) | indent 4 }}
   {{- end }}
 {{- end }}
-
 {{- if .Values.datadirVolumeClaimTemplate }}
   {{- with .Values.datadirVolumeClaimTemplate }}
   datadirVolumeClaimTemplate:
@@ -74,7 +70,6 @@ spec:
     {{- end }}
   {{- end }}
 {{- end }}
-
 {{- if .Values.initDB }}
   {{- if and (and .Values.initDB.dump .Values.initDB.dump.name) (and .Values.initDB.clone .Values.initDB.donorUrl) }}
     {{- fail "Dump and Clone are mutually exclusive" }}
@@ -93,7 +88,7 @@ spec:
 
   {{- if and .Values.initDB .Values.initDB.dump }}
     {{- with .Values.initDB.dump }}
-      {{- if and .name (or .ociObjectStorage .persistentVolumeClaim) }}
+      {{- if and .name (or .ociObjectStorage .persistentVolumeClaim .options) }}
   initDB:
     dump:
         {{- if .name }}
@@ -101,6 +96,10 @@ spec:
         {{- end }}
         {{- if .path }}
       path: {{ .path }}
+        {{- end }}
+        {{- if .options }}
+      options:
+        {{- toYaml .options | nindent 8}}
         {{- end }}
       storage:
         {{- if .ociObjectStorage }}
