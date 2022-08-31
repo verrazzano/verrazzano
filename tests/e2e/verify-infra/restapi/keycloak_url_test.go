@@ -4,7 +4,11 @@
 package restapi_test
 
 import (
+	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -13,7 +17,13 @@ var _ = t.Describe("keycloak", Label("f:infra-lcm",
 
 	t.Context("test to", func() {
 		t.It("Verify Keycloak access", func() {
-			pkg.VerifyKeycloakAccess(t)
+			start := time.Now()
+			err := pkg.VerifyKeycloakAccess(t.Logs)
+			metrics.Emit(t.Metrics.With("verify_keycloak_access_response_time", time.Since(start).Milliseconds()))
+			if err != nil {
+				t.Logs.Error(fmt.Sprintf("Error verifying keycloak access: %v", err))
+				t.Fail(err.Error())
+			}
 		})
 	})
 })

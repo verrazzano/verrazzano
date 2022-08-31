@@ -16,12 +16,9 @@ import (
 
 	"io/ioutil"
 
-	"testing"
-
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -290,15 +287,15 @@ func (c *KeycloakRESTClient) SetPassword(userRealm string, userID string, passwo
 }
 
 //VerifyKeycloakAccess verifies access to Keycloak
-func VerifyKeycloakAccess(t *testing.T) {
+func VerifyKeycloakAccess(log *zap.SugaredLogger) error {
 	waitTimeout := 5 * time.Minute
 	pollingInterval := 5 * time.Second
 	if !IsManagedClusterProfile() {
 		var keycloakURL string
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
-			Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-			t.Fail(err.Error())
+			log.Error(fmt.Sprintf("Error getting kubeconfig: %v", err))
+			return err
 		}
 
 		Eventually(func() error {
@@ -308,21 +305,19 @@ func VerifyKeycloakAccess(t *testing.T) {
 				return err
 			}
 			keycloakURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
-			t.Logs.Infof("Found ingress URL: %s", keycloakURL)
+			log.Infof("Found ingress URL: %s", keycloakURL)
 			return nil
 		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 		Expect(keycloakURL).NotTo(BeEmpty())
 		var httpResponse *HTTPResponse
 
-		start := time.Now()
 		Eventually(func() (*HTTPResponse, error) {
 			var err error
 			httpResponse, err = GetWebPage(keycloakURL, "")
 			return httpResponse, err
 		}, waitTimeout, pollingInterval).Should(HasStatus(http.StatusOK))
-		metrics.Emit(t.Metrics.With("url_web_response_time", time.Since(start).Milliseconds()))
-
 		Expect(CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
 	}
+	return nil
 }
