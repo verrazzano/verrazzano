@@ -70,27 +70,25 @@ module "oke" {
         "verrazzano-infra/Pipeline" = var.pipeline_tag
         "verrazzano-infra/JobScenario" = var.job_scenario_tag
     }
-    oke = {
-      cluster = {
+    cluster = {
         "verrazzano-infra/Branch" = var.branch_tag
         "verrazzano-infra/Pipeline" = var.pipeline_tag
         "verrazzano-infra/JobScenario" = var.job_scenario_tag
-      }
-      service_lb = {
+    }
+    service_lb = {
         "verrazzano-infra/Branch" = var.branch_tag
         "verrazzano-infra/Pipeline" = var.pipeline_tag
         "verrazzano-infra/JobScenario" = var.job_scenario_tag
-      }
-      persistent_volume = {
+    }
+    persistent_volume = {
         "verrazzano-infra/Branch" = var.branch_tag
         "verrazzano-infra/Pipeline" = var.pipeline_tag
         "verrazzano-infra/JobScenario" = var.job_scenario_tag
-      }
-      node_pool = {
+    }
+    node_pool = {
         "verrazzano-infra/Branch" = var.branch_tag
         "verrazzano-infra/Pipeline" = var.pipeline_tag
         "verrazzano-infra/JobScenario" = var.job_scenario_tag
-      }
     }
   }
 
