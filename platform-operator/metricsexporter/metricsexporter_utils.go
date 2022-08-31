@@ -82,11 +82,9 @@ const (
 	fluentdMetricName              metricName = fluentd.ComponentName
 )
 
-// This function initalizes the metrics object, registers the metrics, and then starts the server
-func InitRegisterStart(log *zap.SugaredLogger) {
+func init() {
 	RequiredInitialization()
-	RegisterMetrics(log)
-	StartMetricsServer(log)
+	RegisterMetrics(zap.S())
 }
 
 // This function initalizes the metrics object, but does not register the metrics

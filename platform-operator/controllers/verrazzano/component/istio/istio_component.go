@@ -95,11 +95,18 @@ func (i istioComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the Helm override sources for a component
-func (i istioComponent) GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func (i istioComponent) GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Istio != nil {
+			return effectiveCR.Spec.Components.Istio.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	}
+	effectiveCR := object.(*installv1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.Istio != nil {
 		return effectiveCR.Spec.Components.Istio.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []installv1beta1.Overrides{}
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
@@ -410,6 +417,11 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 // GetCertificateNames returns the list of expected certificates used by this component
 func (i istioComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
+}
+
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (i istioComponent) ShouldInstallBeforeUpgrade() bool {
+	return false
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
