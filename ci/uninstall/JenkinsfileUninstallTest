@@ -451,11 +451,13 @@ def getUninstallStages(vpoLogsDir) {
              },
     ]
     if (params.CHAOS_TEST_TYPE == "uninstall.interrupt.uninstall") {
+    /* Uncomment this after fixing the issue with verrazzano-install namespace getting removed before vz is uninstalled
         stages = stages + [
              "uninstall-chaos": {
                     kill_vpo_loop(vpoLogsDir)
                  },
         ]
+   */
     }
     return stages
 }
