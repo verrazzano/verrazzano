@@ -5,13 +5,14 @@ package cluster
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/capi"
-	os2 "github.com/verrazzano/verrazzano/pkg/os"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -74,7 +75,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 		return err
 	}
 
-	exists, err := os2.FileExists(filePath)
+	exists, err := vzos.FileExists(filePath)
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 	if exists {
 		fmt.Fprintf(helper.GetOutputStream(), "The file %s already exists - the kubeconfig for cluster %s will be merged into it\n", filePath, clusterName)
 		existingKubeconfig = true
-		newKubeconfigFile, err := os2.CreateTempFile(generateTempKubeconfigFilename(), []byte{})
+		newKubeconfigFile, err := ioutil.TempFile(os.TempDir(), generateTempKubeconfigFilename())
 		if err != nil {
 			return err
 		}
