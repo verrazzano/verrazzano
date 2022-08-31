@@ -54,7 +54,7 @@ func NewClusterConfig() ClusterConfig {
 		ClusterName:    bootstrapClusterName,
 		Type:           OCNEClusterType,
 		ContainerImage: getDefaultBoostrapImage(OCNEClusterType),
-		CAPIProviders:  []string{capiDockerProvider},
+		CAPIProviders:  defaultCAPIProviders,
 	}
 }
 
