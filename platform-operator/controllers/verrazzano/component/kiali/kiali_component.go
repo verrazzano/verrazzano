@@ -71,8 +71,7 @@ func NewComponent() spi.Component {
 					Name:      constants.KialiIngress,
 				},
 			},
-			GetInstallOverridesFunc:        GetOverrides,
-			GetV1beta1InstallOverridesFunc: GetV1beta1Overrides,
+			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
 }
