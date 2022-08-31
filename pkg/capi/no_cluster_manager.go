@@ -4,11 +4,16 @@ package capi
 
 import (
 	"fmt"
-	"os"
 )
 
 // compile time checking for interface implementation
 var _ ClusterLifeCycleManager = &noClusterManager{}
+
+func newNoClusterManager(actualConfig ClusterConfig) (ClusterLifeCycleManager, error) {
+	return &noClusterManager{
+		config: actualConfig,
+	}, nil
+}
 
 // noClusterManager ClusterLifecycleManager impl for testing - does not perform any cluster operations
 type noClusterManager struct {
@@ -37,8 +42,4 @@ func (r *noClusterManager) Create() error {
 func (r *noClusterManager) Destroy() error {
 	fmt.Println("Destroying noCluster")
 	return nil
-}
-
-func (r *noClusterManager) createKubeConfigFile() (*os.File, error) {
-	return nil, nil
 }
