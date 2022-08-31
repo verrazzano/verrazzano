@@ -21,7 +21,7 @@ import (
 func VzContainsResource(ctx spi.ComponentContext, objectName string, objectKind string) (string, bool) {
 	for _, component := range registry.GetComponents() {
 		if component.MonitorOverrides(ctx) {
-			if found := componentContainsResource(component.GetOverrides(ctx.EffectiveCR()), objectName, objectKind); found {
+			if found := componentContainsResource(component.GetOverrides(ctx.EffectiveCR()).([]installv1alpha1.Overrides), objectName, objectKind); found {
 				return component.Name(), found
 			}
 		}

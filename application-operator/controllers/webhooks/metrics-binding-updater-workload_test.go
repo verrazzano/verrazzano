@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	admissionv1 "k8s.io/api/admission/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -67,7 +66,7 @@ func newGeneratorWorkloadRequest(op admissionv1.Operation, kind string, obj inte
 // WHEN the Pod is properly formed
 // THEN the validation should succeed
 func TestHandlePod(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
@@ -90,7 +89,7 @@ func TestHandlePod(t *testing.T) {
 // WHEN the Deployment is properly formed
 // THEN the validation should succeed
 func TestHandleDeployment(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
@@ -113,7 +112,7 @@ func TestHandleDeployment(t *testing.T) {
 // WHEN the ReplicaSet is properly formed
 // THEN the validation should succeed
 func TestHandleReplicaSet(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
@@ -136,7 +135,7 @@ func TestHandleReplicaSet(t *testing.T) {
 // WHEN the StatefulSet is properly formed
 // THEN the validation should succeed
 func TestHandleStatefulSet(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
@@ -159,7 +158,7 @@ func TestHandleStatefulSet(t *testing.T) {
 // WHEN the workload resource has owner references
 // THEN the Handle function should succeed and no metricsBinding is not created
 func TestHandleOwnerRefs(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
@@ -191,7 +190,7 @@ func TestHandleOwnerRefs(t *testing.T) {
 // WHEN the workload resource has  "app.verrazzano.io/metrics": "none"
 // THEN the Handle function should succeed and the metricsBinding is not created
 func TestHandleMetricsNone(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
@@ -221,7 +220,7 @@ func TestHandleMetricsNone(t *testing.T) {
 // WHEN the workload resource has  "app.verrazzano.io/metrics": "none"
 // THEN the Handle function should succeed and the metricsBinding is not created
 func TestHandleMetricsNoneNamespace(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
@@ -251,7 +250,7 @@ func TestHandleMetricsNoneNamespace(t *testing.T) {
 //    Generate an error for a pre-VZ 1.4 app with existing metrics binding
 //    Allow the workload for an app with no existing metrics binding
 func TestHandleInvalidMetricsTemplate(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	tests := []struct {
 		name                 string
 		metricsBindingExists bool
@@ -308,7 +307,7 @@ func TestHandleInvalidMetricsTemplate(t *testing.T) {
 // WHEN the workload resource has a valid metrics template reference
 // THEN the Handle function should succeed and the existing MetricsBinding is updated
 func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	tests := []struct {
 		name                       string
 		metricsBindingExists       bool
@@ -398,7 +397,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 //    AND for a pre-VZ 1.4 app with existing MetricsBinding, the metricsBinding is updated
 //    BUT for an app with no existing MetricsBinding, no action is taken
 func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	tests := []struct {
 		name                       string
 		metricsBindingExists       bool
@@ -487,7 +486,7 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 //    Allow the workload for an app with no existing metrics binding
 
 func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	tests := []struct {
 		name                      string
 		metricsBindingExists      bool
@@ -565,7 +564,7 @@ func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
 //    AND for a pre-VZ 1.4 app, the existing legacy MetricsBinding is updated
 //    BUT for an app with no existing MetricsBinding, no action is taken. It's up to user to create a monitor resource.
 func TestHandleMatchWorkloadNamespace(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	tests := []struct {
 		name                       string
 		metricsBindingExists       bool
@@ -659,7 +658,7 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 //    AND for a pre-VZ 1.4 app, the existing legacy MetricsBinding is updated
 //    BUT for an app with no existing MetricsBinding, no action is taken. It's up to user to create a monitor resource.
 func TestHandleMatchSystemNamespace(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	tests := []struct {
 		name                       string
 		metricsBindingExists       bool
@@ -753,7 +752,7 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 // WHEN the workload resource has no metrics template reference
 // THEN the Handle function should succeed and no metricsBinding is created
 func TestHandleMatchNotFound(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
@@ -814,7 +813,7 @@ func TestHandleMatchNotFound(t *testing.T) {
 // WHEN the workload resource has no metrics template reference
 // THEN the Handle function should succeed and no metricsBinding is created
 func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
@@ -864,7 +863,7 @@ func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
 // WHEN the workload resource has a metrics template reference
 // THEN the Handle function should succeed and no metricsBinding is created
 func TestHandleNoConfigMap(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
@@ -908,7 +907,7 @@ func TestHandleNoConfigMap(t *testing.T) {
 // WHEN the namespace has a metrics template reference
 // THEN the Handle function should succeed and a metricsBinding is created
 func TestHandleNamespaceAnnotation(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	tests := []struct {
 		name                       string
 		metricsBindingExists       bool
@@ -1006,7 +1005,7 @@ func TestHandleNamespaceAnnotation(t *testing.T) {
 // WHEN the webhook Handle is called
 // THEN the metrics binding should be modified to use the Pormetheus Operator additionalScrapeConfigs secret instead
 func TestExistingMetricsBindingVmiConfigMap(t *testing.T) {
-	metricsexporter.RequiredInitialization()
+
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data

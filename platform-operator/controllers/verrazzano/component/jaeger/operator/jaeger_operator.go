@@ -367,11 +367,18 @@ func validateOverrideYamls(yamlOverrides []string) error {
 }
 
 // GetOverrides returns the list of install overrides for a component
-func GetOverrides(effectiveCR *v1alpha1.Verrazzano) []v1alpha1.Overrides {
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.JaegerOperator != nil {
+			return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
+		}
+		return []v1alpha1.Overrides{}
+	}
+	effectiveCR := object.(*v1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.JaegerOperator != nil {
 		return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
 	}
-	return []v1alpha1.Overrides{}
+	return []v1beta1.Overrides{}
 }
 
 func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
@@ -535,7 +542,7 @@ func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
 
 // getOverrideVal gets the Helm value specified in the VZ CR for the specified override field
 func getOverrideVal(ctx spi.ComponentContext, field string) (interface{}, error) {
-	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()))
+	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]v1alpha1.Overrides))
 	if err != nil {
 		return nil, err
 	}

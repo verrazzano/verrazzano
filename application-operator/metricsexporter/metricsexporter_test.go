@@ -15,7 +15,6 @@ import (
 var logForTest = zap.S()
 
 func TestCollectReconcileMetrics(t *testing.T) {
-	RequiredInitialization()
 	assert := asserts.New(t)
 	test := struct {
 		name string
@@ -44,5 +43,4 @@ func TestCollectReconcileMetrics(t *testing.T) {
 		time.Sleep(time.Second)
 		reconcileDurationCount.TimerStop()
 	})
-
 }

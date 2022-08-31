@@ -5,11 +5,15 @@ package cluster
 
 import (
 	"bytes"
+	"fmt"
 	"os"
+	"path"
 	"testing"
+	"time"
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/capi"
+	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -17,8 +21,11 @@ import (
 
 const nameFlag = "--" + constants.ClusterNameFlagName
 const typeFlag = "--" + constants.ClusterTypeFlagName
+const kubePathFlag = "--" + constants.KubeconfigPathFlagName
 
 func TestClusterArgs(t *testing.T) {
+	tempKubeconfig := path.Join(os.TempDir(), fmt.Sprintf("somefile%d", time.Now().UnixNano()))
+	defer func() { os.Remove(tempKubeconfig) }()
 	tests := []struct {
 		name       string
 		subcommand string
@@ -27,13 +34,8 @@ func TestClusterArgs(t *testing.T) {
 	}{
 		// capi.NoClusterType is used in all testing so that we don't trigger an actual cluster create/delete
 		{"cluster create with default name", createSubCommandName, []string{typeFlag, capi.NoClusterType}, false},
-		{"cluster create with custom name and type", createSubCommandName, []string{nameFlag, "mycluster", typeFlag, capi.NoClusterType}, false},
-		{"cluster create with custom name, type and image", createSubCommandName, []string{nameFlag, "mycluster", typeFlag, capi.NoClusterType, "--image", "somerepo.io/someimage"}, false},
-		{"cluster create with unsupported type", createSubCommandName, []string{typeFlag, "unknown"}, true},
-		{"cluster create with unknown flag", createSubCommandName, []string{"--unknown", "value"}, true},
 		{"cluster delete with default name", deleteSubCommandName, []string{typeFlag, capi.NoClusterType}, false},
-		{"cluster delete with custom name", deleteSubCommandName, []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, false},
-		{"cluster delete with unknown flag", deleteSubCommandName, []string{"--someflag", "randomcluster"}, true},
+		{"cluster get-kubeconfig with default name and path", getKubeconfigSubCommandName, []string{kubePathFlag, tempKubeconfig, typeFlag, capi.NoClusterType}, false},
 		{"cluster with nonexistent subcommand", "nonexistent", []string{}, true},
 	}
 	for _, tt := range tests {
@@ -48,28 +50,131 @@ func TestClusterArgs(t *testing.T) {
 	}
 }
 
+func TestClusterCreateOptions(t *testing.T) {
+	tests := []struct {
+		name      string
+		args      []string
+		expectErr bool
+	}{
+		{"cluster create with custom name and type", []string{nameFlag, "mycluster", typeFlag, capi.NoClusterType}, false},
+		{"cluster create with custom name, type and image", []string{nameFlag, "mycluster", typeFlag, capi.NoClusterType, "--image", "somerepo.io/someimage"}, false},
+		{"cluster create with unsupported type", []string{typeFlag, "unknown"}, true},
+		{"cluster create with unknown flag", []string{"--unknown", "value"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := runCommand(createSubCommandName, tt.args)
+			if tt.expectErr {
+				asserts.Error(t, err)
+				return
+			}
+			asserts.NoError(t, err)
+		})
+	}
+}
+
 func TestClusterCreateHelp(t *testing.T) {
 	output, _, err := runCommand(createSubCommandName, []string{"-h"})
 	asserts.Nil(t, err)
-	// The image flag should be hidden in help
-	asserts.NotContains(t, output, constants.ClusterImageFlagName)
-	asserts.NotContains(t, output, constants.ClusterImageFlagHelp)
-
-	asserts.Contains(t, output, constants.ClusterNameFlagName)
+	asserts.Contains(t, output, nameFlag)
 	asserts.Contains(t, output, constants.ClusterNameFlagHelp)
 
-	asserts.Contains(t, output, constants.ClusterTypeFlagName)
-	asserts.Contains(t, output, constants.ClusterTypeFlagHelp)
+	// The image and type flags should be hidden in help
+	asserts.NotContains(t, output, constants.ClusterImageFlagName)
+	asserts.NotContains(t, output, constants.ClusterImageFlagHelp)
+	asserts.NotContains(t, output, typeFlag)
+	asserts.NotContains(t, output, constants.ClusterTypeFlagHelp)
+
+}
+
+func TestClusterDeleteOptions(t *testing.T) {
+	tests := []struct {
+		name      string
+		args      []string
+		expectErr bool
+	}{
+		{"cluster delete with default name", []string{typeFlag, capi.NoClusterType}, false},
+		{"cluster delete with custom name", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, false},
+		{"cluster delete with unknown flag", []string{"--someflag", "randomcluster"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := runCommand(deleteSubCommandName, tt.args)
+			if tt.expectErr {
+				asserts.Error(t, err)
+				return
+			}
+			asserts.NoError(t, err)
+		})
+	}
 }
 
 func TestClusterDeleteHelp(t *testing.T) {
 	output, _, err := runCommand(deleteSubCommandName, []string{"-h"})
 	asserts.Nil(t, err)
-	asserts.Contains(t, output, constants.ClusterNameFlagName)
+	asserts.Contains(t, output, nameFlag)
 	asserts.Contains(t, output, constants.ClusterNameFlagHelp)
 
 	// The type flag should be hidden in delete help
-	asserts.NotContains(t, output, constants.ClusterTypeFlagName)
+	asserts.NotContains(t, output, typeFlag)
+	asserts.NotContains(t, output, constants.ClusterTypeFlagHelp)
+}
+
+func TestClusterGetKubeconfigOptions(t *testing.T) {
+	tests := []struct {
+		name             string
+		args             []string
+		kubeconfigPath   string
+		kubeconfigExists bool
+		expectErr        bool
+	}{
+		{"cluster get-kubeconfig with default name", []string{typeFlag, capi.NoClusterType}, "", false, false},
+		{"cluster get-kubeconfig with custom name", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "", false, false},
+		{"cluster get-kubeconfig with custom kubeconfig path", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "somekubeconfig", false, false},
+		{"cluster get-kubeconfig with existing kubeconfig", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "", true, true},
+		{"cluster get-kubeconfig with unknown flag", []string{"--someflag", "randomcluster"}, "", false, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var kubeFile *os.File
+			kubePath := ""
+			var err error
+			if tt.kubeconfigPath != "" {
+				kubePath = tt.kubeconfigPath
+			}
+			if tt.kubeconfigExists {
+				// create a tempfile for the kubeconfig so that it is an existing file
+				kubeFile, err = os2.CreateTempFile(kubePath, []byte("somedata"))
+				asserts.NoError(t, err)
+				kubePath = kubeFile.Name()
+			} else {
+				// generate a random file name (which the test assumes does not exist)
+				kubePath = path.Join(os.TempDir(), fmt.Sprintf("testgetkubeconfig_%d", time.Now().UnixNano()))
+			}
+			if kubePath != "" {
+				tt.args = append(tt.args, kubePathFlag, kubePath)
+				// ensure that if the file was created, we delete it
+				defer func() { os.Remove(kubePath) }()
+			}
+			_, _, err = runCommand(getKubeconfigSubCommandName, tt.args)
+			if tt.expectErr {
+				asserts.Error(t, err)
+				return
+			}
+			asserts.NoError(t, err)
+		})
+	}
+}
+
+func TestClusterGetKubeconfigHelp(t *testing.T) {
+	output, _, err := runCommand(getKubeconfigSubCommandName, []string{"-h"})
+	asserts.Nil(t, err)
+	asserts.Contains(t, output, nameFlag)
+	asserts.Contains(t, output, constants.ClusterNameFlagHelp)
+	asserts.Contains(t, output, kubePathFlag)
+	asserts.Contains(t, output, constants.KubeconfigPathFlagHelp)
+
+	asserts.NotContains(t, output, typeFlag)
 	asserts.NotContains(t, output, constants.ClusterTypeFlagHelp)
 }
 

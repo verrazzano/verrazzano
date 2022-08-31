@@ -1,6 +1,5 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
 package capi
 
 import (
@@ -8,12 +7,16 @@ import (
 	"os"
 )
 
+// compile time checking for interface implementation
+var _ ClusterLifeCycleManager = &noClusterManager{}
+
 // noClusterManager ClusterLifecycleManager impl for testing - does not perform any cluster operations
 type noClusterManager struct {
 	config ClusterConfig
 }
 
 func (r *noClusterManager) GetKubeConfig() (string, error) {
+	fmt.Println("get kubeconfig for noCluster")
 	return "", nil
 }
 
