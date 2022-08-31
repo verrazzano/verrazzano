@@ -84,7 +84,7 @@ func TestNewVMIResources(t *testing.T) {
 		Storage: "50Gi",
 	}
 
-	opensearch, err := newOpenSearch(&vmiEnabledCR, r, nil, true, false)
+	opensearch, err := newOpenSearch(&vmiEnabledCR, nil, r, nil, true, false)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, opensearch.MasterNode.Replicas)
 	assert.EqualValues(t, 2, opensearch.IngestNode.Replicas)
@@ -114,7 +114,7 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 		},
 	}
 
-	_, err := newOpenSearch(crBadArgs, r, nil, false, false)
+	_, err := newOpenSearch(crBadArgs, nil, r, nil, false, false)
 	assert.Error(t, err)
 }
 
@@ -159,7 +159,7 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 		},
 	}
 
-	openSearch, err := newOpenSearch(testvz, r, testvmi, false, false)
+	openSearch, err := newOpenSearch(testvz, nil, r, testvmi, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, "1Gi", openSearch.MasterNode.Storage.Size)
 	assert.EqualValues(t, testvz.Spec.Components.Elasticsearch.Policies, openSearch.Policies)
@@ -290,6 +290,22 @@ func TestNodeAdapter(t *testing.T) {
 			},
 		},
 	}
+	bNode := vzapi.OpenSearchNode{
+		Name:     "b",
+		Replicas: 2,
+		Roles: []vmov1.NodeRole{
+			vmov1.DataRole,
+			vmov1.IngestRole,
+		},
+		Resources: &corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				"memory": resource.MustParse("48Mi"),
+			},
+		},
+		Storage: &vzapi.OpenSearchNodeStorage{
+			Size: "100Gi",
+		},
+	}
 	nodes := []vzapi.OpenSearchNode{
 		{
 			Name:     "a",
@@ -303,25 +319,10 @@ func TestNodeAdapter(t *testing.T) {
 				},
 			},
 		},
-		{
-			Name:     "b",
-			Replicas: 2,
-			Roles: []vmov1.NodeRole{
-				vmov1.DataRole,
-				vmov1.IngestRole,
-			},
-			Resources: &corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					"memory": resource.MustParse("48Mi"),
-				},
-			},
-			Storage: &vzapi.OpenSearchNodeStorage{
-				Size: "100Gi",
-			},
-		},
+		bNode,
 	}
 
-	adaptedNodes := nodeAdapter(vmi, nodes, &common.ResourceRequestValues{Storage: vmiStorage})
+	adaptedNodes := nodeAdapter(vmi, nodes, map[string]vzapi.OpenSearchNode{bNode.Name: bNode}, &common.ResourceRequestValues{Storage: vmiStorage})
 	compareNodes := func(n1, n2 *vmov1.ElasticsearchNode) {
 		assert.Equal(t, n1.Name, n2.Name)
 		assert.Equal(t, n1.Replicas, n2.Replicas)

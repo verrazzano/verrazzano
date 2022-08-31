@@ -94,15 +94,14 @@ spec:
         domain: "nip.io"
     elasticsearch:
       enabled: true
-      installArgs:
-        - name: nodes.master.replicas
-          value: "1"
-        - name: nodes.master.requests.memory
-          value: "1G"
-        - name: nodes.ingest.replicas
-          value: "0"
-        - name: nodes.data.replicas
-          value: "0"
+      nodes:
+        - name: es-master
+          replicas: 1
+          resources:
+            requests:
+              memory: 1G
+          roles:
+            - master
     fluentd:
       enabled: true
       elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
