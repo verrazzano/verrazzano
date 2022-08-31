@@ -36,7 +36,7 @@ variable "ssh_public_key_path" {
   default = ""
 }
 variable "ssh_private_key_path" {
-  default = ""
+  default = "none"
 }
 variable "node_pools" {
   default = {"np1" = {shape="VM.Standard2.4",node_pool_size=4,boot_volume_size=50}}
