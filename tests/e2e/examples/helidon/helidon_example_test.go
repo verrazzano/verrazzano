@@ -208,7 +208,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		t.Logs.Errorf("Unexpected error=%v", err)
-		if resp.Body != nil {
+		if resp != nil && resp.Body != nil {
 			bodyRaw, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
