@@ -120,6 +120,14 @@ func TestClusterDeleteHelp(t *testing.T) {
 	asserts.NotContains(t, output, constants.ClusterTypeFlagHelp)
 }
 
+var testEmptyKubeconfigData = `
+apiVersion: v1
+kind: ""
+clusters:
+users:
+contexts:
+`
+
 func TestClusterGetKubeconfigOptions(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -144,7 +152,7 @@ func TestClusterGetKubeconfigOptions(t *testing.T) {
 			}
 			if tt.kubeconfigExists {
 				// create a tempfile for the kubeconfig so that it is an existing file
-				kubeFile, err = os2.CreateTempFile(kubePath, []byte("somedata"))
+				kubeFile, err = os2.CreateTempFile(kubePath, []byte(testEmptyKubeconfigData))
 				asserts.NoError(t, err)
 				kubePath = kubeFile.Name()
 			} else {

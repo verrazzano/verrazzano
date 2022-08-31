@@ -9,6 +9,14 @@ import (
 // compile time checking for interface implementation
 var _ ClusterLifeCycleManager = &noClusterManager{}
 
+const emptyKubeconfig = `
+apiVersion: v1
+kind: ""
+clusters:
+users:
+contexts:
+`
+
 func newNoClusterManager(actualConfig ClusterConfig) (ClusterLifeCycleManager, error) {
 	return &noClusterManager{
 		config: actualConfig,
@@ -22,7 +30,7 @@ type noClusterManager struct {
 
 func (r *noClusterManager) GetKubeConfig() (string, error) {
 	fmt.Println("get kubeconfig for noCluster")
-	return "", nil
+	return emptyKubeconfig, nil
 }
 
 func (r *noClusterManager) Init() error {
