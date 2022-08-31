@@ -49,9 +49,6 @@ module "oke" {
   create_service_account = false
   service_account_cluster_role_binding = ""
 
-  use_encryption = false
-  kms_key_id = ""
-
   use_signed_images = false
   image_signing_keys = []
 
