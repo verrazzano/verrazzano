@@ -120,6 +120,14 @@ func TestClusterDeleteHelp(t *testing.T) {
 	asserts.NotContains(t, output, constants.ClusterTypeFlagHelp)
 }
 
+var testEmptyKubeconfigData = `
+apiVersion: v1
+kind: ""
+clusters:
+users:
+contexts:
+`
+
 func TestClusterGetKubeconfigOptions(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -131,7 +139,7 @@ func TestClusterGetKubeconfigOptions(t *testing.T) {
 		{"cluster get-kubeconfig with default name", []string{typeFlag, capi.NoClusterType}, "", false, false},
 		{"cluster get-kubeconfig with custom name", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "", false, false},
 		{"cluster get-kubeconfig with custom kubeconfig path", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "somekubeconfig", false, false},
-		{"cluster get-kubeconfig with existing kubeconfig", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "", true, true},
+		{"cluster get-kubeconfig with existing kubeconfig", []string{nameFlag, "randomcluster", typeFlag, capi.NoClusterType}, "", true, false},
 		{"cluster get-kubeconfig with unknown flag", []string{"--someflag", "randomcluster"}, "", false, true},
 	}
 	for _, tt := range tests {
@@ -144,7 +152,7 @@ func TestClusterGetKubeconfigOptions(t *testing.T) {
 			}
 			if tt.kubeconfigExists {
 				// create a tempfile for the kubeconfig so that it is an existing file
-				kubeFile, err = os2.CreateTempFile(kubePath, []byte("somedata"))
+				kubeFile, err = os2.CreateTempFile(kubePath, []byte(testEmptyKubeconfigData))
 				asserts.NoError(t, err)
 				kubePath = kubeFile.Name()
 			} else {
