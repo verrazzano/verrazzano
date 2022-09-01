@@ -175,7 +175,7 @@ func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error)
 	}
 	var profileFiles []string
 	for _, profile := range profiles {
-		profileFiles = append(profileFiles, config.GetProfile(actualCR.GroupVersionKind().GroupVersion(), profile))
+		profileFiles = append(profileFiles, config.GetProfile(v1alpha1.SchemeGroupVersion, profile))
 	}
 	// Merge the profile files into an effective profile YAML string
 	effectiveCR, err := MergeProfiles(actualCR, profileFiles...)
@@ -208,7 +208,7 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 	}
 	var profileFiles []string
 	for _, profile := range profiles {
-		profileFiles = append(profileFiles, config.GetProfile(actualCR.GroupVersionKind().GroupVersion(), profile))
+		profileFiles = append(profileFiles, config.GetProfile(v1beta1.SchemeGroupVersion, profile))
 	}
 	// Merge the profile files into an effective profile YAML string
 	effectiveCR, err := MergeProfilesForV1beta1(actualCR, profileFiles...)
