@@ -22,34 +22,37 @@ if [ -z "$3" ]; then
 fi
 VZ_DEVELOPENT_VERSION="$3"
 
-if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]  || [ -z "$OCI_OS_REGION" ]; then
-  echo "This script must only be called from Jenkins and requires a number of environment variables are set"
+if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]  || [ -z "$OCI_OS_REGION" ]  || [ -z "$CLEAN_BRANCH_NAME" ]; then
+  echo "This script requires environment variables - WORKSPACE, OCI_OS_NAMESPACE, OCI_OS_BUCKET, OCI_OS_REGION and CLEAN_BRANCH_NAME"
   exit 1
 fi
 
 
 # Create the general distribution layout under a given root directory
 createDistributionLayout() {
-  local distributionDirectory=$1
-  echo "Creating the distribution layout under ${distributionDirectory} ..."
-  mkdir -p ${distributionDirectory}
-  chmod uog+w ${distributionDirectory}
+  local rootDir=$1
+  local devVersion=$2
+  local distDir=${rootDir}/${devVersion}
 
-  mkdir -p ${distributionDirectory}/bin
-  mkdir -p ${distributionDirectory}/manifests/k8s
-  mkdir -p ${distributionDirectory}/manifests/charts
-  mkdir -p ${distributionDirectory}/manifests/profiles
+  echo "Creating the distribution layout under ${distDir} ..."
+  mkdir -p ${distDir}
+  chmod uog+w ${distDir}
 
-  if [ "${distributionDirectory}" == "${VZ_COMMERCIAL_ROOT}" ];then
+  mkdir -p ${distDir}/bin
+  mkdir -p ${distDir}/manifests/k8s
+  mkdir -p ${distDir}/manifests/charts
+  mkdir -p ${distDir}/manifests/profiles
+
+  if [ "${rootDir}" == "${VZ_COMMERCIAL_ROOT}" ];then
      echo "Creating the directory to place images and CLIs for supported platforms for commercial distribution ..."
      # Create a directory to place the images
-     mkdir -p ${distributionDirectory}/images
+     mkdir -p ${distDir}/images
 
      # Directory to place the CLI
-     mkdir -p ${distributionDirectory}/bin/darwin-amd64
-     mkdir -p ${distributionDirectory}/bin/darwin-arm64
-     mkdir -p ${distributionDirectory}/bin/linux-amd64
-     mkdir -p ${distributionDirectory}/bin/linux-arm64
+     mkdir -p ${distDir}/bin/darwin-amd64
+     mkdir -p ${distDir}/bin/darwin-arm64
+     mkdir -p ${distDir}/bin/linux-amd64
+     mkdir -p ${distDir}/bin/linux-arm64
   fi
 }
 
@@ -80,23 +83,23 @@ downloadCommonFiles() {
 
 # Copy the common files to directory from where the script builds Verrazzano release distribution
 includeCommonFiles() {
-  local distributionDirectory=$1
-  cp ${VZ_REPO_ROOT}/LICENSE.txt ${distributionDirectory}/LICENSE
+  local distDir=$1
+  cp ${VZ_REPO_ROOT}/LICENSE.txt ${distDir}/LICENSE
 
   # vz-registry-image-helper.sh has a dependency on bom_utils.sh, so copy both the files
-  cp ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh ${distributionDirectory}/bin/vz-registry-image-helper.sh
-  cp ${VZ_REPO_ROOT}/tools/scripts/bom_utils.sh ${distributionDirectory}/bin/bom_utils.sh
+  cp ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh ${distDir}/bin/vz-registry-image-helper.sh
+  cp ${VZ_REPO_ROOT}/tools/scripts/bom_utils.sh ${distDir}/bin/bom_utils.sh
 
   # Copy operator.yaml and charts
-  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${distributionDirectory}/manifests/k8s/verrazzano-platform-operator.yaml
-  cp -r ${VZ_REPO_ROOT}/platform-operator/helm_config/charts/verrazzano-platform-operator ${distributionDirectory}/manifests/charts
-  rm -f ${distributionDirectory}/manifests/charts/verrazzano-platform-operator/.helmignore || true
+  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${distDir}/manifests/k8s/verrazzano-platform-operator.yaml
+  cp -r ${VZ_REPO_ROOT}/platform-operator/helm_config/charts/verrazzano-platform-operator ${distDir}/manifests/charts
+  rm -f ${distDir}/manifests/charts/verrazzano-platform-operator/.helmignore || true
 
   # Copy profiles
   # copyProfiles ${distributionDirectory}/manifests/profiles
 
   # Copy Bill Of Materials, containing the list of images
-  cp ${GENERATED_BOM_FILE} ${distributionDirectory}/manifests/verrazzano-bom.json
+  cp ${GENERATED_BOM_FILE} ${distDir}/manifests/verrazzano-bom.json
 }
 
 # Copy profiles from the source repository to the directory from where the distribution bundles will be built
@@ -128,13 +131,15 @@ captureBundleContents() {
 generateOpenSourceDistribution() {
   echo "Generate open-source distribution ..."
   local rootDir=$1
-  local generatedDir=$2
+  local devVersion=$2
+  local generatedDir=$3
 
+  local distDir=${rootDir}/${devVersion}
   mkdir -p ${generatedDir}
-  includeCommonFiles $rootDir
+  includeCommonFiles $distDir
 
   # Extract the CLI for Linux AMD64
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${rootDir}/bin
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${distDir}/bin
 
   # Build distribution for Linux AMD64 architecture
   echo "Build distribution for Linux AMD64 architecture ..."
@@ -144,8 +149,8 @@ generateOpenSourceDistribution() {
 
   # Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture
   echo "Clean-up CLI for Linux AMD64 and extract CLI for Darwin AMD64 architecture ..."
-  rm -f ${rootDir}/bin/vz
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${rootDir}/bin
+  rm -f ${distDir}/bin/vz
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${distDir}/bin
 
   # Build distribution for Darwin AMD64 architecture
   tar -czf ${generatedDir}/${VZ_DARWIN_AMD64_TARGZ} -C ${rootDir} .
@@ -159,10 +164,11 @@ generateOpenSourceDistribution() {
   sha256sum ${VZ_DARWIN_AMD64_TARGZ} > ${VZ_DARWIN_AMD64_TARGZ_SHA256}
   sha256sum operator.yaml > operator.yaml.sha256
 
-  captureBundleContents ${generatedDir} ${generatedDir} ${OS_BUNDLE_CONTENTS}
+  captureBundleContents ${rootDir} ${generatedDir} ${OS_BUNDLE_CONTENTS}
 
   # Create and upload the final distribution zip file and upload
   echo "Build open-source distribution ${generatedDir}/${VZ_OPENSOURCE_RELEASE_BUNDLE} ..."
+  cd ${generatedDir}
   cp ${VZ_REPO_ROOT}/release/docs/README_OPEN_SOURCE.md README.md
   zip ${VZ_OPENSOURCE_RELEASE_BUNDLE} ${VZ_LINUX_AMD64_TARGZ} ${VZ_LINUX_AMD64_TARGZ_SHA256} ${VZ_DARWIN_AMD64_TARGZ} ${VZ_DARWIN_AMD64_TARGZ_SHA256} operator.yaml operator.yaml.sha256 README.md
   sha256sum ${VZ_OPENSOURCE_RELEASE_BUNDLE} > ${VZ_OPENSOURCE_RELEASE_BUNDLE_SHA256}
@@ -177,26 +183,29 @@ generateOpenSourceDistribution() {
 generateCommercialDistribution() {
   echo "Generate commercial distribution ..."
   local rootDir=$1
-  local generatedDir=$2
+  local devVersion=$2
+  local generatedDir=$3
 
+  local distDir=${rootDir}/${devVersion}
   mkdir -p ${generatedDir}
-  includeCommonFiles "${rootDir}"
+  includeCommonFiles "${distDir}"
 
   # Extract the CLIs for supported architectures
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${rootDir}/bin/linux-amd64
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ} -C ${rootDir}/bin/linux-arm64
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ} -C ${distDir}/bin/linux-amd64
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ} -C ${distDir}/bin/linux-arm64
 
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${rootDir}/bin/darwin-amd64
-  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${rootDir}/bin/darwin-arm64
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${distDir}/bin/darwin-amd64
+  tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${distDir}/bin/darwin-arm64
 
   # Move the tar files to images directory
-  mv ${WORKSPACE}/tar-files/*.tar ${rootDir}/images/
+  mv ${WORKSPACE}/tar-files/*.tar ${distDir}/images/
 
   captureBundleContents ${rootDir} ${generatedDir} ${COMM_BUNDLE_CONTENTS}
 
   # Create and upload the final distribution zip file and upload
   echo "Create ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE} and upload ..."
-  cp ${VZ_REPO_ROOT}/release/docs/README_COMMERCIAL.md README.md
+  cp ${VZ_REPO_ROOT}/release/docs/README_COMMERCIAL.md ${distDir}/README.md
+  cd ${rootDir}
   zip -r ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE} *
   oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_COMMERCIAL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_COMMERCIAL_RELEASE_BUNDLE}
 
@@ -264,12 +273,12 @@ COMM_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-commercial.txt"
 downloadCommonFiles
 
 # Build open-source distribution bundles
-createDistributionLayout "${VZ_OPENSOURCE_ROOT}"
-generateOpenSourceDistribution "${VZ_OPENSOURCE_ROOT}" "${VZ_OPENSOURCE_GENERATED}"
+createDistributionLayout "${VZ_OPENSOURCE_ROOT}" "${DISTRIBUTION_PREFIX}"
+generateOpenSourceDistribution "${VZ_OPENSOURCE_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_OPENSOURCE_GENERATED}"
 
 # Build commercial distribution bundle
-createDistributionLayout "${VZ_COMMERCIAL_ROOT}"
-generateCommercialDistribution "${VZ_COMMERCIAL_ROOT}" "${VZ_COMMERCIAL_GENERATED}"
+createDistributionLayout "${VZ_COMMERCIAL_ROOT}" "${DISTRIBUTION_PREFIX}"
+generateCommercialDistribution "${VZ_COMMERCIAL_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_COMMERCIAL_GENERATED}"
 
 # Delete the directories created under WORKSPACE
 cleanupWorkspace
