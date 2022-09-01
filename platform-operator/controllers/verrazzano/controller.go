@@ -71,6 +71,7 @@ var systemNamespaceLabels = map[string]string{
 
 // Set to true during unit testing
 var unitTesting bool
+var lastReconcileGen int64
 
 // Reconcile the Verrazzano CR
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos,verbs=get;list;watch;create;update;patch;delete
@@ -113,6 +114,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return newRequeueWithDelay(), nil
 	}
 
+	if vz.Generation <= lastReconcileGen {
+		return ctrl.Result{}, nil
+	}
+
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           vz.Name,
@@ -141,6 +146,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// The Verrazzano resource has been reconciled.
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
+
+	lastReconcileGen = vz.Generation
 
 	return ctrl.Result{}, nil
 }
