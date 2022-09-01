@@ -12,8 +12,6 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
-	kblabels "k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"reflect"
 	"strings"
 	"text/template"
@@ -1680,18 +1678,23 @@ func setupDatabase(ctx spi.ComponentContext) error {
 }
 
 func getMySQLPod(ctx spi.ComponentContext) (*v1.Pod, error) {
-	tierReq, _ := kblabels.NewRequirement("tier", selection.Equals, []string{"mysql"})
-	compReq, _ := kblabels.NewRequirement("component", selection.Equals, []string{"mysqld"})
-	labelSelector := kblabels.NewSelector()
-	labelSelector = labelSelector.Add(*tierReq, *compReq)
-	mysqlPods := v1.PodList{}
-	err := ctx.Client().List(context.TODO(), &mysqlPods, &client.ListOptions{LabelSelector: labelSelector})
+	//tierReq, _ := kblabels.NewRequirement("tier", selection.Equals, []string{"mysql"})
+	//compReq, _ := kblabels.NewRequirement("component", selection.Equals, []string{"mysqld"})
+	//labelSelector := kblabels.NewSelector()
+	//labelSelector = labelSelector.Add(*tierReq, *compReq)
+	//mysqlPods := v1.PodList{}
+	//err := ctx.Client().List(context.TODO(), &mysqlPods, &client.ListOptions{LabelSelector: labelSelector})
+	mysqlPod := v1.Pod{}
+	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: ComponentNamespace,
+		Name:      "mysql-0",
+	}, &mysqlPod)
 	if err != nil {
 		return nil, err
 	}
 	// return one of the pods
-	ctx.Log().Infof("Returning pod %s for mysql setup", mysqlPods.Items[0].Name)
-	return &mysqlPods.Items[0], nil
+	ctx.Log().Infof("Returning pod %s for mysql setup", mysqlPod.Name)
+	return &mysqlPod, nil
 }
 
 func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) error {
