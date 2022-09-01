@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
-const profilesRelativePath = "../../../../../manifests/profiles"
+const profilesRelativePath = "../../../../../manifests/profiles/v1alpha1"
 
 // TestIsEnabled tests the IsEnabled function for the Prometheus Pushgateway component
 func TestIsEnabled(t *testing.T) {

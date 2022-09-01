@@ -6,6 +6,8 @@ package coherence
 import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -25,9 +27,16 @@ func isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.CoherenceOperator != nil {
+			return effectiveCR.Spec.Components.CoherenceOperator.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	}
+	effectiveCR := object.(*v1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.CoherenceOperator != nil {
 		return effectiveCR.Spec.Components.CoherenceOperator.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []v1beta1.Overrides{}
 }

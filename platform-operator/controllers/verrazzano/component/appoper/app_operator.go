@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -194,9 +196,18 @@ func labelAnnotateWorkloadDefinitions(c client.Client) error {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.ApplicationOperator != nil {
-		return effectiveCR.Spec.Components.ApplicationOperator.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.ApplicationOperator != nil {
+			return effectiveCR.Spec.Components.ApplicationOperator.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.ApplicationOperator != nil {
+			return effectiveCR.Spec.Components.ApplicationOperator.ValueOverrides
+		}
+		return []v1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }

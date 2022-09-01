@@ -39,7 +39,7 @@ var crEnabled = vzapi.Verrazzano{
 
 var testScheme = runtime.NewScheme()
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)

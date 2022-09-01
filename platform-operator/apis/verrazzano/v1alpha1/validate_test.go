@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"os"
 	"path/filepath"
 	"testing"
@@ -1660,6 +1661,52 @@ func TestValidateInstallOverrides(t *testing.T) {
 	assert.Error(err1)
 	assert.Error(err2)
 	assert.NoError(err3)
+}
+
+func TestValidateInstallOverridesV1Beta1(t *testing.T) {
+	var tests = []struct {
+		name      string
+		overrides []v1beta1.Overrides
+		hasError  bool
+	}{
+		{
+			"no error when empty overrides",
+			[]v1beta1.Overrides{},
+			false,
+		},
+		{
+			"no error when valid overrides",
+			[]v1beta1.Overrides{
+				{
+					ConfigMapRef: &corev1.ConfigMapKeySelector{
+						Key: "foo",
+					},
+				},
+			},
+			false,
+		},
+		{
+			"error when multiple overrides per entry",
+			[]v1beta1.Overrides{
+				{
+					ConfigMapRef: &corev1.ConfigMapKeySelector{},
+					SecretRef:    &corev1.SecretKeySelector{},
+				},
+			},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateInstallOverridesV1Beta1(tt.overrides)
+			if tt.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 var testKey = []byte{}

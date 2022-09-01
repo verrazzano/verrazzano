@@ -1,0 +1,50 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  components:
+    opensearch:
+      nodes:
+        - name: es-data
+          replicas: 3
+          resources:
+            requests:
+              memory: 4.8Gi
+          roles:
+            - data
+          storage:
+            size: 50Gi
+        - name: es-ingest
+          replicas: 1
+          resources:
+            requests:
+              memory: 2.5Gi
+          roles:
+            - ingest
+        - name: es-master
+          replicas: 3
+          resources:
+            requests:
+              memory: 1.4Gi
+          roles:
+            - master
+          storage:
+            size: 50Gi
+      enabled: true
+    certManager:
+      enabled: true
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+    prometheusOperator:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                resources:
+                  requests:
+                    memory: "128Mi"

@@ -419,7 +419,7 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 		},
 	).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = "../../manifests/profiles/v1alpha1"
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request

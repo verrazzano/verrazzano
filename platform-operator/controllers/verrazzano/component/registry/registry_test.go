@@ -56,7 +56,7 @@ const (
 	cainjectorDeploymentName  = "cert-manager-cainjector"
 	webhookDeploymentName     = "cert-manager-webhook"
 	certManagerNamespace      = "cert-manager"
-	profileDir                = "../../../../manifests/profiles"
+	profileDir                = "../../../../manifests/profiles/v1alpha1"
 )
 
 // TestGetComponents tests getting the components
@@ -639,7 +639,7 @@ func (f fakeComponent) GetJSONName() string {
 	return f.name
 }
 
-func (f fakeComponent) GetOverrides(_ *v1alpha1.Verrazzano) []v1alpha1.Overrides {
+func (f fakeComponent) GetOverrides(_ runtime.Object) interface{} {
 	return []v1alpha1.Overrides{}
 }
 

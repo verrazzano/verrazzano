@@ -16,8 +16,8 @@ import (
 const (
 	createSubCommandName = "create"
 	createHelpShort      = "Verrazzano cluster create"
-	createHelpLong       = `The command 'cluster create' provisions a new local cluster with the given name and type (defaults to "` + constants.ClusterNameFlagDefault + `" and "` + capi.KindClusterType + `")`
-	createHelpExample    = `vz cluster create --name mycluster --type ` + capi.KindClusterType
+	createHelpLong       = `Creates a new local cluster`
+	createHelpExample    = `vz cluster create --name mycluster`
 )
 
 func newSubcmdCreate(vzHelper helpers.VZHelper) *cobra.Command {
@@ -26,7 +26,8 @@ func newSubcmdCreate(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.ClusterNameFlagName, constants.ClusterNameFlagDefault, constants.ClusterNameFlagHelp)
 	cmd.PersistentFlags().String(constants.ClusterTypeFlagName, constants.ClusterTypeFlagDefault, constants.ClusterTypeFlagHelp)
 	cmd.PersistentFlags().String(constants.ClusterImageFlagName, constants.ClusterImageFlagDefault, constants.ClusterImageFlagHelp)
-	// the image flag should be hidden since it is not intended for general use
+	// the image and type flags should be hidden since they are not intended for general use
+	cmd.PersistentFlags().MarkHidden(constants.ClusterTypeFlagName)
 	cmd.PersistentFlags().MarkHidden(constants.ClusterImageFlagName)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runCmdClusterCreate(cmd, args)
@@ -51,7 +52,7 @@ func runCmdClusterCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Failed to get the %s flag: %v", constants.ClusterImageFlagName, err)
 	}
 
-	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfigInfo{
+	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfig{
 		ClusterName:    clusterName,
 		Type:           clusterType,
 		ContainerImage: clusterImg,
@@ -59,5 +60,14 @@ func runCmdClusterCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return cluster.Create()
+	if err := cluster.Create(); err != nil {
+		return err
+	}
+	fmt.Printf("Cluster %s created successfully, initializing...\n", clusterName)
+	if err := cluster.Init(); err != nil {
+		return err
+	}
+	fmt.Println("Cluster initialization complete")
+	fmt.Printf("To get the kubeconfig for this cluster, run: vz cluster get-kubeconfig --name %s (for more details, run vz cluster get-kubeconfig -h)\n", clusterName)
+	return nil
 }
