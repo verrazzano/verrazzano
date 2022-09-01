@@ -109,7 +109,7 @@ func (u OpensearchDuplicateNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
 	arg := vzapi.InstallArgs{
-		Name: "nodes.master.replicas",
+		Name:  "nodes.master.replicas",
 		Value: "1",
 	}
 	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{
