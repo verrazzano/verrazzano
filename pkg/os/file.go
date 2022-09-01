@@ -3,30 +3,30 @@
 package os
 
 import (
-	"go.uber.org/zap"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"go.uber.org/zap"
 )
 
 // CreateTempFile creates a temp file from a filename pattern and data
-func CreateTempFile(log vzlog.VerrazzanoLogger, filenamePattern string, data []byte) (*os.File, error) {
+func CreateTempFile(filenamePattern string, data []byte) (*os.File, error) {
 	var tmpFile *os.File
 	tmpFile, err := ioutil.TempFile(os.TempDir(), filenamePattern)
 	if err != nil {
-		return tmpFile, log.ErrorfNewErr("Failed to create temporary file: %v", err)
+		return tmpFile, fmt.Errorf("Failed to create temporary file: %v", err)
 	}
 
 	if _, err = tmpFile.Write(data); err != nil {
-		return tmpFile, log.ErrorfNewErr("Failed to write to temporary file: %v", err)
+		return tmpFile, fmt.Errorf("Failed to write to temporary file: %v", err)
 	}
 
 	// Close the file
 	if err := tmpFile.Close(); err != nil {
-		return tmpFile, log.ErrorfNewErr("Failed to close temporary file: %v", err)
+		return tmpFile, fmt.Errorf("Failed to close temporary file: %v", err)
 	}
 	return tmpFile, nil
 }
@@ -53,4 +53,15 @@ func RemoveTempFiles(log *zap.SugaredLogger, regexPattern string) error {
 		}
 	}
 	return nil
+}
+
+// FileExists returns true if the file at the specified path exists, false otherwise
+func FileExists(filePath string) (bool, error) {
+	if _, err := os.Stat(filePath); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

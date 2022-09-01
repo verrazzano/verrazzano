@@ -7,7 +7,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -66,12 +70,19 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
+func verrazzanoPreUpgrade(ctx spi.ComponentContext) error {
 	if err := exportFromHelmChart(ctx.Client()); err != nil {
 		return err
 	}
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
+	}
+	if vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) || vzconfig.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+		// Auth policies and Network policies created in the helm chart requires verrazzano-monitoring namespace
+		ctx.Log().Debugf("Creating namespace %s for the Verrazzano component", constants.VerrazzanoMonitoringNamespace)
+		if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -298,10 +309,19 @@ func HashSum(config interface{}) string {
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.Verrazzano != nil {
-		return effectiveCR.Spec.Components.Verrazzano.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Verrazzano != nil {
+			return effectiveCR.Spec.Components.Verrazzano.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Verrazzano != nil {
+			return effectiveCR.Spec.Components.Verrazzano.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 

@@ -172,13 +172,17 @@ const (
 const (
 	ClusterNameFlagName    = "name"
 	ClusterNameFlagDefault = "vz-capi"
-	ClusterNameFlagHelp    = "The name of the cluster - defaults to " + ClusterNameFlagDefault
+	ClusterNameFlagHelp    = "The name of the cluster"
 
 	ClusterTypeFlagName    = "type"
-	ClusterTypeFlagDefault = "kind"
-	ClusterTypeFlagHelp    = "The type of the cluster - defaults to " + ClusterTypeFlagDefault
+	ClusterTypeFlagDefault = "ocne"
+	ClusterTypeFlagHelp    = "The type of the cluster"
 
 	ClusterImageFlagName    = "image"
 	ClusterImageFlagDefault = ""
 	ClusterImageFlagHelp    = "DEVELOPMENT ONLY - the image to use for the cluster"
+
+	KubeconfigPathFlagName    = "path"
+	KubeconfigPathFlagDefault = ""
+	KubeconfigPathFlagHelp    = "Path to the file where the kubeconfig should be saved - defaults to your current kubeconfig"
 )

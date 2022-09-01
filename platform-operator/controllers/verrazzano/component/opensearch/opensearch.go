@@ -6,9 +6,10 @@ package opensearch
 import (
 	"context"
 	"fmt"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -32,6 +33,7 @@ const (
 	esIngestDeployment = "vmi-system-es-ingest"
 
 	esMasterStatefulset = "vmi-system-es-master"
+	nodeNamePrefix      = "vmi-system-%s"
 )
 
 var (
@@ -57,56 +59,74 @@ func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
 // isOSReady checks if the OpenSearch resources are ready
 func isOSReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-
-	// check data nodes
-	var deployments []types.NamespacedName
-	dataReplicas := findESReplicas(ctx, "data")
-	for i := int32(0); dataReplicas > 0 && i < dataReplicas; i++ {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
-				Namespace: ComponentNamespace,
-			})
-	}
-	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
-		return false
-	}
-
-	// check ingest nodes
-	ingestReplicas := findESReplicas(ctx, "ingest")
-	if ingestReplicas > 0 &&
-		!status.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
-			Name:      esIngestDeployment,
-			Namespace: ComponentNamespace,
-		}}, ingestReplicas, prefix) {
-		return false
-	}
-
-	// check master nodes
-	masterReplicas := findESReplicas(ctx, "master")
-	if masterReplicas > 0 &&
-		!status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
-			Name:      esMasterStatefulset,
-			Namespace: ComponentNamespace,
-		}}, masterReplicas, prefix) {
-		return false
+	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
+			if !isOSNodeReady(ctx, node, prefix) {
+				return false
+			}
+		}
 	}
 
 	return common.IsVMISecretReady(ctx)
 }
 
+func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix string) bool {
+	if node.Replicas < 1 {
+		return true
+	}
+	nodeControllerName := fmt.Sprintf(nodeNamePrefix, node.Name)
+
+	// If a node has the master role, it is a statefulset
+	if hasRole(node.Roles, vmov1.MasterRole) {
+		return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
+			Name:      nodeControllerName,
+			Namespace: ComponentNamespace,
+		}}, node.Replicas, prefix)
+	}
+
+	// Data nodes have N = node.Replicas number of deployment objects.
+	if hasRole(node.Roles, vmov1.DataRole) {
+		var dataDeployments []types.NamespacedName
+		var i int32
+		for i = 0; i < node.Replicas; i++ {
+			dataDeploymentName := fmt.Sprintf("%s-%d", nodeControllerName, i)
+			dataDeployments = append(dataDeployments, types.NamespacedName{
+				Name:      dataDeploymentName,
+				Namespace: ComponentNamespace,
+			})
+		}
+		return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), dataDeployments, 1, prefix)
+	}
+
+	// Ingest nodes can be handled like normal deployments
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
+		Name:      nodeControllerName,
+		Namespace: ComponentNamespace,
+	}}, node.Replicas, prefix)
+}
+
+func hasRole(roles []vmov1.NodeRole, roleToHave vmov1.NodeRole) bool {
+	for _, role := range roles {
+		if role == roleToHave {
+			return true
+		}
+	}
+	return false
+}
+
 // findESReplicas searches the ES install args to find the correct resources to search for in isReady
-func findESReplicas(ctx spi.ComponentContext, nodeType string) int32 {
+func findESReplicas(ctx spi.ComponentContext, nodeType vmov1.NodeRole) int32 {
+	var replicas int32 = 0
 	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-		esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
-		for _, args := range esInstallArgs {
-			if args.Name == fmt.Sprintf("nodes.%s.replicas", nodeType) {
-				replicas, _ := strconv.Atoi(args.Value) //nolint:gosec //#gosec G109
-				return int32(replicas)
+		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
+			for _, role := range node.Roles {
+				if role == nodeType {
+					replicas += node.Replicas
+				}
 			}
 		}
 	}
-	return 0
+	return replicas
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
