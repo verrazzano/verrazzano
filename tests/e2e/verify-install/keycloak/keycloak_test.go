@@ -177,7 +177,11 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 		} else if pkg.IsProdProfile() {
 			t.It("Prod install profile", func() {
 				// 50 GB Persistent Volume create for MySQL in a prod install
-				Expect(len(volumeClaims)).To(Equal(1))
+				expectedClaims := 1
+				if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath); ok {
+					expectedClaims = 3
+				}
+				Expect(len(volumeClaims)).To(Equal(expectedClaims))
 				assertPersistentVolume(claimName, size)
 			})
 		}
