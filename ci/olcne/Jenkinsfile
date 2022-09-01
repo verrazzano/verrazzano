@@ -170,7 +170,7 @@ pipeline {
         TF_VAR_s3_bucket_access_key=credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key=credentials('oci-s3-bucket-secret-key')
 
-        // OCI variables - Required by update_lb_health_check.sh
+        // OCI variables
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING='True'
         OCI_CLI_REGION="${params.OCNE_CLUSTER_REGION}"
         OCI_CLI_TENANCY=credentials('oci-tenancy')
@@ -386,15 +386,6 @@ pipeline {
                         VZ_TEST_METRIC=metricJobName('')
                         metricTimerStart("${VZ_TEST_METRIC}")
                     }
-                }
-            }
-        }
-
-        stage("Update Load Balancer config") {
-            steps {
-                script {
-                    echo "[INFO] Update Load Balancer health check configuration"
-                    updateLoadBalancerHealthCheck()
                 }
             }
         }
@@ -997,15 +988,6 @@ def installVerrazzano() {
         echo "Keycloak username: keycloakadmin"
         kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo
     """
-}
-
-def updateLoadBalancerHealthCheck() {
-    // TODO: This function will not be required if OCI CCM module installation supports configuring health check protocol and port
-    sh '''
-        LB_MGMT_IP=$(kubectl get service ingress-controller-ingress-nginx-controller -n ingress-nginx -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
-        LB_APP_IP=$(kubectl get service  istio-ingressgateway  -n  istio-system -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
-        $GO_REPO_PATH/verrazzano/ci/scripts/update_lb_health_check.sh "$LB_MGMT_IP $LB_APP_IP"
-    '''
 }
 
 def deleteVerrazzano() {
