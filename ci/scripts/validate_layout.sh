@@ -10,6 +10,7 @@ mkdir -p $OPENSOURCE_EXTRACTED
 # Extract the ZIP
 #tar xvf $ZIPFILE -C $OPENSOURCE_EXTRACTED
 unzip $ZIPFILE -d $OPENSOURCE_EXTRACTED
+ls $OPENSOURCE_EXTRACTED
 
 LINUX_EXTRACTED="linux-${VZ_DEV_VERSION}"
 DARWIN_EXTRACTED="darwin-${VZ_DEV_VERSION}"
@@ -77,11 +78,11 @@ function verify_manifests() {
   checkIfFileExists "validatingwebhookconfiguration.yaml" $OPENSOURCE_EXTRACTED/${VARIANT}/manifests/charts/verrazzano-platform-operator/templates
 }
 
-tree $LINUX_EXTRACTED # TODO remove
+ls $LINUX_EXTRACTED # TODO remove
 verify_bin $LINUX_EXTRACTED
 verify_manifests $LINUX_EXTRACTED
 
-tree $DARWIN_EXTRACTED #TODO remove
+ls $DARWIN_EXTRACTED #TODO remove
 verify_bin $DARWIN_EXTRACTED
 verify_manifests $DARWIN_EXTRACTED
 
