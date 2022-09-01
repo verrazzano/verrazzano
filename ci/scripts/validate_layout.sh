@@ -29,7 +29,7 @@ function checkIfFileExists() {
 #    echo "FOUND ${fileName} at ${inputDirectory}"
 #  else
     echo "ERROR: Missing file ${fileName} at ${inputDirectory}"
-    exit 1
+#    exit 1 #TODO enable exit code
   fi
 }
 
@@ -77,9 +77,11 @@ function verify_manifests() {
   checkIfFileExists "validatingwebhookconfiguration.yaml" $OPENSOURCE_EXTRACTED/${VARIANT}/manifests/charts/verrazzano-platform-operator/templates
 }
 
+tree $LINUX_EXTRACTED # TODO remove
 verify_bin $LINUX_EXTRACTED
 verify_manifests $LINUX_EXTRACTED
 
+tree $DARWIN_EXTRACTED #TODO remove
 verify_bin $DARWIN_EXTRACTED
 verify_manifests $DARWIN_EXTRACTED
 
