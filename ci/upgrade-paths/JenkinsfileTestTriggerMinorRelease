@@ -429,9 +429,10 @@ def getStageOfUpgradeJob(job) {
                             booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                         ],  wait: true, propagate: true
                     }catch(err){
-                        retry(2){
+                        retry(JOB_PROMOTION_RETRIES){
                             echo "Caught: ${err}"
                             echo "Retrying..."
+                            getStageOfUpgradeJob(job)
                         }
                         /*catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
                             echo "Caught: ${err}"
