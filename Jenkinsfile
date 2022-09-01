@@ -593,16 +593,6 @@ def buildVerrazzanoCLI(dockerImageTag) {
     """
 }
 
-def checkRepoClean() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        echo 'Check for forgotten manifest/generate actions...'
-        (cd platform-operator; make check-repo-clean)
-        (cd application-operator; make check-repo-clean)
-        (cd image-patch-operator; make check-repo-clean)
-    """
-}
-
 // Called in Stage Build steps
 // Makes target docker push for application/platform operator and analysis
 def buildImages(dockerImageTag) {
