@@ -13,7 +13,7 @@ fi
 #creating a temporary arrangement for linter
 URL_LINTER_TEMPDIR=""
 function init_url_linter() {
-    export URL_LINTER_TEMPDIR=$(mktemp -d $(pwd)/url_linter_temp_XXX)
+    export URL_LINTER_TEMPDIR=$(mktemp -d $WORKSPACE/url_linter_temp_XXX)
     if [ -z $URL_LINTER_TEMPDIR ] || [ ! -d $URL_LINTER_TEMPDIR ]; then
         echo "Failed to initialize temporary directory"
         exit 1
