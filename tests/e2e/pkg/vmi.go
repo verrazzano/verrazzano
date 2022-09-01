@@ -5,21 +5,25 @@ package pkg
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"go.uber.org/zap"
-	"strings"
 
 	"gopkg.in/yaml.v2"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	v1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func VerifySystemVMIComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword, ingressName, expectedURLPrefix string) bool {
-	ingress, err := api.GetIngress("verrazzano-system", ingressName)
+	ingress, err := getIngress(ingressName)
 	if err != nil {
-		log.Errorf("Error getting ingress from API: %v", err)
+		log.Errorf("Error getting ingress: %v", err)
 		return false
 	}
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
@@ -28,6 +32,20 @@ func VerifySystemVMIComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHT
 		return false
 	}
 	return AssertURLAccessibleAndAuthorized(sysVmiHTTPClient, vmiComponentURL, vmiCredentials)
+}
+
+func getIngress(ingressName string) (*netv1.Ingress, error) {
+	ingressList, err := GetIngressList("verrazzano-system")
+	if err != nil {
+		return nil, err
+	}
+	for _, ingress := range ingressList.Items {
+		if ingress.Name == ingressName {
+			return &ingress, nil
+		}
+	}
+
+	return nil, errors.NewNotFound(schema.GroupResource{}, ingressName)
 }
 
 func VerifyOpenSearchComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {
