@@ -896,7 +896,7 @@ func createKeycloakDBSecret(ctx spi.ComponentContext) error {
 			Name:      secretName,
 		},
 	}
-	err := ctx.Client().Get(context.TODO(),client.ObjectKey{
+	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: ComponentNamespace,
 		Name:      secretName,
 	}, keycloakSecret)
