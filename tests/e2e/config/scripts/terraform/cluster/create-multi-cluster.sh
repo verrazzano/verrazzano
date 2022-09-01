@@ -81,7 +81,7 @@ fi
 echo '[{"description": "allow pub_lb_subnet access to workers","is-stateless": false,"direction": "INGRESS","protocol": "6","source": $LB_SUBNET_CIDR,"tcp-options": {"destination-port-range": {"max": 32767,"min": 30000}}},{"description": "allow pub_lb_subnet health check access to workers","is-stateless": false,"direction": "INGRESS","protocol": "6","source": $LB_SUBNET_CIDR,"tcp-options": {"destination-port-range": {"max": 10256,"min": 10256}}}]' > new.ingress-security-rules-${CLUSTER_INDEX}.json
 
 # update private_workers_seclist
-oci network nsg rules add --force --nsg-id "${NSG_ID}" --security-rules "file://${PWD}/new.ingress-security-rules-${CLUSTER_INDEX}.json"
+oci network nsg rules add --nsg-id "${NSG_ID}" --security-rules "file://${PWD}/new.ingress-security-rules-${CLUSTER_INDEX}.json"
 if [ $? -eq 0 ]; then
   echo "Updated the OKE private_workers_seclist"
 else
