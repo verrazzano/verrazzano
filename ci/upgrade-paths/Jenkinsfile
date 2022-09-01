@@ -500,7 +500,7 @@ pipeline {
             parallel {
                 stage('verify-scripts') {
                     steps {
-                        runGinkgoRandomizeParallel('scripts')
+                        runGinkgoRandomizeParallel('scripts/install')
                     }
                 }
                 stage('verify-infra restapi') {
@@ -1246,7 +1246,8 @@ def runGinkgoRandomize(count, clusterName, testSuitePath) {
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 export CLUSTER_NAME="${clusterName}"
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                ginkgo build ${testSuitePath}/
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test
             """
         }
     }
@@ -1261,7 +1262,8 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory) {
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo build ${testSuitePath}/
+            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test
         """
     }
 }
@@ -1275,7 +1277,8 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory) {
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo build ${testSuitePath}/
+            ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test
         """
     }
 }
@@ -1288,7 +1291,8 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+            ginkgo build ${testSuitePath}/
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
         """
     }
 }
@@ -1323,7 +1327,8 @@ def runGinkgoVerifyInCluster(count, clusterName, testSuitePath, clusterDumpDirec
                 export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 export DUMP_DIRECTORY="${clusterDumpDirectory}${clusterName}"
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+                ginkgo build ${testSuitePath}/
+                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
             """
         }
     }
