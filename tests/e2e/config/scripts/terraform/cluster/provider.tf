@@ -8,7 +8,6 @@ variable "api_fingerprint" {}
 variable "api_private_key_path" {}
 
 provider "oci" {
-  version              = "4.75.0"
   tenancy_ocid         = var.tenancy_id
   user_ocid            = var.user_id
   fingerprint          = var.api_fingerprint
@@ -16,6 +15,14 @@ provider "oci" {
   region               = var.region
 }
 
+provider "oci" {
+  tenancy_ocid         = var.tenancy_id
+  user_ocid            = var.user_id
+  fingerprint          = var.api_fingerprint
+  private_key_path     = var.api_private_key_path
+  region               = "us-phoenix-1"
+  alias                = "home"
+}
 terraform {
-  required_version = ">= 0.12"
+  required_version = ">= 1.0.0"
 }

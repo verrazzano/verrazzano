@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 variable "compartment_id" {}
@@ -36,7 +36,7 @@ variable "ssh_public_key_path" {
   default = ""
 }
 variable "ssh_private_key_path" {
-  default = ""
+  default = "none"
 }
 variable "node_pools" {
   default = {"np1" = {shape="VM.Standard2.4",node_pool_size=4,boot_volume_size=50}}
