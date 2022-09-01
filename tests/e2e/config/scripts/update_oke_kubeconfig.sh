@@ -18,6 +18,7 @@ kubectl -n kube-system apply -f <<EOF -
     annotations:
       kubernetes.io/service-account.name: kubeconfig-sa
   type: kubernetes.io/service-account-token
+EOF
 TOKEN=`kubectl -n kube-system get secret $TOKENNAME -o jsonpath='{.data.token}'| base64 --decode`
 kubectl config set-credentials kubeconfig-sa --token=$TOKEN
 kubectl config set-context --current --user=kubeconfig-sa
