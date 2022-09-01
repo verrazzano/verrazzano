@@ -431,9 +431,9 @@ def getStageOfUpgradeJob(job) {
                             booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                         ],  wait: true, propagate: true
                     }catch(err){
-                        //catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
+                        catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
                             echo "Caught: ${err}"
-                            //sh "exit 1"
+                            sh "exit 1"
                         }
                         // currentBuild.result = 'FAILURE'
                     }
