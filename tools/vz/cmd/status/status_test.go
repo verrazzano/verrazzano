@@ -102,6 +102,85 @@ func TestStatusCmd(t *testing.T) {
 	assert.Equal(t, expectedResult, result)
 }
 
+// TestStatusCmdDefaultProfile tests the status command
+// GIVEN an environment with a single VZ resource and the default prod profile
+//  WHEN I run the command vz status
+//  THEN expect a successful status report
+func TestStatusCmdDefaultProfile(t *testing.T) {
+	name := "verrazzano"
+	namespace := "test"
+	version := "1.2.3"
+	consoleURL := "https://verrazzano.default.10.107.141.8.nip.io"
+	keycloakURL := "https://keycloak.default.10.107.141.8.nip.io"
+	rancherURL := "https://rancher.default.10.107.141.8.nip.io"
+	osURL := "https://elasticsearch.vmi.system.10.107.141.8.nip.io"
+	kibanaURL := "https://kibana.vmi.system.10.107.141.8.nip.io"
+	grafanaURL := "https://grafana.vmi.system.10.107.141.8.nip.io"
+	prometheusURL := "https://prometheus.vmi.system.10.107.141.8.nip.io"
+	kialiURL := "https://kiali.vmi.system.10.107.141.8.nip.io"
+	jaegerURL := "https://jaeger.default.10.107.141.8.nip.io"
+
+	vz := vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Status: vzapi.VerrazzanoStatus{
+			Version: version,
+			VerrazzanoInstance: &vzapi.InstanceInfo{
+				ConsoleURL:    &consoleURL,
+				KeyCloakURL:   &keycloakURL,
+				RancherURL:    &rancherURL,
+				ElasticURL:    &osURL,
+				KibanaURL:     &kibanaURL,
+				GrafanaURL:    &grafanaURL,
+				PrometheusURL: &prometheusURL,
+				KialiURL:      &kialiURL,
+				JaegerURL:     &jaegerURL,
+			},
+			Conditions: nil,
+			State:      vzapi.VzStateReconciling,
+			Components: makeVerrazzanoComponentStatusMap(),
+		},
+	}
+
+	// Template map for status command output
+	templateMap := map[string]string{
+		"verrazzano_name":      name,
+		"verrazzano_namespace": namespace,
+		"verrazzano_version":   version,
+		"verrazzano_state":     string(vzapi.VzStateReconciling),
+		"console_url":          consoleURL,
+		"keycloak_url":         keycloakURL,
+		"rancher_url":          rancherURL,
+		"os_url":               osURL,
+		"kibana_url":           kibanaURL,
+		"grafana_url":          grafanaURL,
+		"prometheus_url":       prometheusURL,
+		"kiali_url":            kialiURL,
+		"jaeger_url":           jaegerURL,
+		"install_profile":      string(vzapi.Prod),
+	}
+
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
+
+	// Send the command output to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	statusCmd := NewCmdStatus(rc)
+	assert.NotNil(t, statusCmd)
+
+	// Run the status command, check for the expected status results to be displayed
+	err := statusCmd.Execute()
+	assert.NoError(t, err)
+	result := buf.String()
+	expectedResult, err := templates.ApplyTemplate(statusOutputTemplate, templateMap)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, result)
+}
+
 // TestVZNotFound tests the status command
 // GIVEN an environment with a no VZ resources exist
 //  WHEN I run the command vz status
