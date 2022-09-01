@@ -168,13 +168,6 @@ func VerifyRancherKeycloakAuthConfig(log *zap.SugaredLogger) error {
 	return nil
 }
 
-func verifyAuthConfigAttribute(name string, actual interface{}, expected interface{}) error {
-	if expected != actual {
-		return fmt.Errorf("keycloak auth config attribute %s not correctly configured, expected %v, actual %v", name, expected, actual)
-	}
-	return nil
-}
-
 //GvkToGvr converts a GroupVersionKind to corresponding GroupVersionResource
 func GvkToGvr(gvk schema.GroupVersionKind) schema.GroupVersionResource {
 	resource := strings.ToLower(gvk.Kind)
@@ -188,4 +181,11 @@ func GvkToGvr(gvk schema.GroupVersionKind) schema.GroupVersionResource {
 		Version:  gvk.Version,
 		Resource: resource,
 	}
+}
+
+func verifyAuthConfigAttribute(name string, actual interface{}, expected interface{}) error {
+	if expected != actual {
+		return fmt.Errorf("keycloak auth config attribute %s not correctly configured, expected %v, actual %v", name, expected, actual)
+	}
+	return nil
 }
