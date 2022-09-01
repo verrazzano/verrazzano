@@ -35,7 +35,7 @@ pipeline {
 
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
-        booleanParam (description: 'Whether to upgrade Verrazzano', name: 'UPGRADE_VERRAZZANO', defaultValue: true)
+        booleanParam (description: 'Whether to upgrade Verrazzano', name: 'UPGRADE_VERRAZZANO', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
