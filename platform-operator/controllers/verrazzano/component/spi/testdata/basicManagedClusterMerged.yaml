@@ -211,9 +211,6 @@ spec:
                 pullSecrets:
                   enabled: false
               podSpec:
-                metadata:
-                  labels:
-                    app: mysql
                 affinity:
                   podAntiAffinity:
                     preferredDuringSchedulingIgnoredDuringExecution:
