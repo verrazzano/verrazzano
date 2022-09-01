@@ -16,9 +16,9 @@ done
 #download terraform
 if [ ! -f $SCRIPT_DIR/terraform ];
 then
-  curl https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_$(uname -s | tr '[:upper:]' '[:lower:]')_amd64.zip -o $SCRIPT_DIR/terraform_1.0.0.zip
-  unzip $SCRIPT_DIR/terraform_1.0.0.zip -d $SCRIPT_DIR/
-  rm $SCRIPT_DIR/terraform_1.0.0.zip
+  curl https://releases.hashicorp.com/terraform/1.2.28/terraform_1.2.28_$(uname -s | tr '[:upper:]' '[:lower:]')_amd64.zip -o $SCRIPT_DIR/terraform_1.2.28.zip
+  unzip $SCRIPT_DIR/terraform_1.2.28.zip -d $SCRIPT_DIR/
+  rm $SCRIPT_DIR/terraform_1.2.28.zip
 fi
 
 if [ ! -f $SCRIPT_DIR/terraform ];
