@@ -409,9 +409,7 @@ List extractReleaseTags(final String fileContent) {
 def getStageOfUpgradeJob(job) {
     return {
         stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1].replace('_', " ")}"){
-                        options {
-                            retry(2)
-                        }
+            retry(count: JOB_PROMOTION_RETRIES) {
                 script {
                     try {
                         echo "Running upgrade job from version ${job[0]} to ${job[1].replace('_', " ")}"
@@ -433,12 +431,12 @@ def getStageOfUpgradeJob(job) {
                     }catch(err){
                         catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
                             echo "Caught: ${err}"
-                            sh "exit 1"
+                            //sh "exit 1"
                         }
                         // currentBuild.result = 'FAILURE'
                     }
                 }
-
+            }
         }
     }
 }
