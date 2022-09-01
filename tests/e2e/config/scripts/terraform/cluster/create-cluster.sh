@@ -64,15 +64,15 @@ if [ -z "$VCN_ID" ]; then
     exit 0
 fi
 
-# find private_workers_seclist id
-SEC_LIST_ID=$(oci network security-list list \
+# find workers NSG id
+NSG_ID=$(oci network nsg list \
   --compartment-id "${TF_VAR_compartment_id}" \
   --display-name "${TF_VAR_label_prefix}-workers" \
   --vcn-id "${VCN_ID}" \
   | jq -r '.data[0].id')
 
-if [ -z "$SEC_LIST_ID" ]; then
-    echo "Failed to get the id for security-list ${TF_VAR_label_prefix}-workers"
+if [ -z "$NSG_ID" ]; then
+    echo "Failed to get the id for NSG ${TF_VAR_label_prefix}-workers"
     exit 0
 fi
 
@@ -88,21 +88,11 @@ if [ -z "$LB_SUBNET_CIDR" ]; then
     exit 0
 fi
 
-# get current ingress-security-rules
-oci network security-list get --security-list-id "${SEC_LIST_ID}" | jq '.data."ingress-security-rules"' > ingress-security-rules.json
-if [ $? -eq 0 ]; then
-  echo "ingress-security-rules for security-list ${TF_VAR_label_prefix}-private-workers:"
-  cat ingress-security-rules.json
-else
-  echo "Failed to retrieve the ingress-security-rules for security-list ${TF_VAR_label_prefix}-private-workers"
-  exit 0
-fi
-
 # add pub_lb_subnet ingress-security-rule
-cat ingress-security-rules.json | jq --arg LB_SUBNET_CIDR "${LB_SUBNET_CIDR}" '. += [{"description": "allow pub_lb_subnet access to workers","is-stateless": false,"protocol": "6","source": $LB_SUBNET_CIDR,"tcp-options": {"destination-port-range": {"max": 32767,"min": 30000}}},{"description": "allow pub_lb_subnet health check access to workers","is-stateless": false,"protocol": "6","source": $LB_SUBNET_CIDR,"tcp-options": {"destination-port-range": {"max": 10256,"min": 10256}}}]' > new.ingress-security-rules.json
+echo ''[{"description": "allow pub_lb_subnet access to workers","is-stateless": false,"direction": "INGRESS","protocol": "6","source": $LB_SUBNET_CIDR,"tcp-options": {"destination-port-range": {"max": 32767,"min": 30000}}},{"description": "allow pub_lb_subnet health check access to workers","is-stateless": false,"direction": "INGRESS","protocol": "6","source": $LB_SUBNET_CIDR,"tcp-options": {"destination-port-range": {"max": 10256,"min": 10256}}}]' > new.ingress-security-rules.json
 
 # update private_workers_seclist
-oci network security-list update --force --security-list-id "${SEC_LIST_ID}" --ingress-security-rules "file://${PWD}/new.ingress-security-rules.json"
+oci network nsg rules add --force --nsg-id "${SEC_LIST_ID}" --security-rules "file://${PWD}/new.ingress-security-rules.json"
 if [ $? -eq 0 ]; then
   echo "Updated the OKE private_workers_seclist"
 else
