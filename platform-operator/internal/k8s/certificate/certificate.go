@@ -171,7 +171,7 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCe
 		return fmt.Errorf("Expected 3 webhooks in %s ValidatingWebhookConfiguration, but found %v", OperatorName, len(validatingWebhook.Webhooks))
 	}
 
-	for i, _ := range validatingWebhook.Webhooks {
+	for i := range validatingWebhook.Webhooks {
 		validatingWebhook.Webhooks[i].ClientConfig.CABundle = caCert.Bytes()
 	}
 
