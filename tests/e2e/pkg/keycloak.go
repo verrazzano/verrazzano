@@ -17,7 +17,7 @@ import (
 	"io/ioutil"
 
 	"github.com/hashicorp/go-retryablehttp"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -298,7 +298,7 @@ func VerifyKeycloakAccess(log *zap.SugaredLogger) error {
 			return err
 		}
 
-		Eventually(func() error {
+		gomega.Eventually(func() error {
 			api := EventuallyGetAPIEndpoint(kubeconfigPath)
 			ingress, err := api.GetIngress("keycloak", "keycloak")
 			if err != nil {
@@ -307,17 +307,17 @@ func VerifyKeycloakAccess(log *zap.SugaredLogger) error {
 			keycloakURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 			log.Infof("Found ingress URL: %s", keycloakURL)
 			return nil
-		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+		}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
 
-		Expect(keycloakURL).NotTo(BeEmpty())
+		gomega.Expect(keycloakURL).NotTo(gomega.BeEmpty())
 		var httpResponse *HTTPResponse
 
-		Eventually(func() (*HTTPResponse, error) {
+		gomega.Eventually(func() (*HTTPResponse, error) {
 			var err error
 			httpResponse, err = GetWebPage(keycloakURL, "")
 			return httpResponse, err
 		}, waitTimeout, pollingInterval).Should(HasStatus(http.StatusOK))
-		Expect(CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
+		gomega.Expect(CheckNoServerHeader(httpResponse)).To(gomega.BeTrue(), "Found unexpected server header in response")
 	}
 	return nil
 }

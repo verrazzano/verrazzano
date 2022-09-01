@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
-	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -97,12 +96,12 @@ func VerifyRancherAccess(log *zap.SugaredLogger) error {
 	httpClient := EventuallyVerrazzanoRetryableHTTPClient()
 	var httpResponse *HTTPResponse
 
-	Eventually(func() (*HTTPResponse, error) {
+	gomega.Eventually(func() (*HTTPResponse, error) {
 		httpResponse, err = GetWebPageWithClient(httpClient, rancherURL, "")
 		return httpResponse, err
 	}, waitTimeout, pollingInterval).Should(HasStatus(http.StatusOK))
 
-	Expect(CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
+	gomega.Expect(CheckNoServerHeader(httpResponse)).To(gomega.BeTrue(), "Found unexpected server header in response")
 	return nil
 }
 
@@ -124,7 +123,7 @@ func VerifyRancherKeycloakAuthConfig(log *zap.SugaredLogger) error {
 		return err
 	}
 
-	Eventually(func() (bool, error) {
+	gomega.Eventually(func() (bool, error) {
 		authConfigData, err := k8sClient.Resource(GvkToGvr(common.GVKAuthConfig)).Get(context.Background(), common.AuthConfigKeycloak, v1.GetOptions{})
 		if err != nil {
 			log.Error(fmt.Sprintf("error getting keycloak oidc authConfig: %v", err))
@@ -164,7 +163,7 @@ func VerifyRancherKeycloakAuthConfig(log *zap.SugaredLogger) error {
 		}
 
 		return true, nil
-	}, waitTimeout, pollingInterval).Should(Equal(true), "keycloak oidc authconfig not configured correctly")
+	}, waitTimeout, pollingInterval).Should(gomega.Equal(true), "keycloak oidc authconfig not configured correctly")
 	return nil
 }
 
