@@ -89,7 +89,7 @@ spec:
       opensearchURL: http://verrazzano-authproxy-elasticsearch:8775
     grafana:
       enabled: true
-    ingress:
+    ingressNGINX:
       enabled: true
       overrides:
         - values:
