@@ -119,7 +119,7 @@ pipeline {
         // Ideally use the TIBURON-DEV compartment, but we need permissions
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
-        TARBALL_DIR = "${WORKSPACE}/vz-tarball"
+        TARBALL_ROOT_DIR = "${WORKSPACE}/vz-tarball"
         BOM_DOWNLOADED_FILE_NAME = "downloaded-from-bom.tar.gz"
 
         // used to emit metrics
@@ -247,6 +247,9 @@ pipeline {
         }
 
         stage('Download and extract Tarball') {
+             environment {
+                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+             }
             steps {
                 script {
                     downloadLocation = "${WORKSPACE}/${zipFileLoc}"
@@ -272,7 +275,7 @@ pipeline {
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
                     """
 
-                    dir(env.TARBALL_DIR) {
+                    dir(env.TARBALL_ROOT_DIR) {
                         unzip zipFile: downloadLocation
 
                         if (params.DISTRIBUTION_VARIANT == "OpenSource") {
@@ -296,6 +299,9 @@ pipeline {
             }
         }
         stage('Upload Verrazzano Images') {
+             environment {
+                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+             }
             steps {
                 script {
                     if (params.DISTRIBUTION_VARIANT == "Commercial") {
@@ -337,6 +343,7 @@ pipeline {
                         PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
                         PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
                         CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
+                        TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
                     }
                     steps {
                         sh """
