@@ -191,6 +191,19 @@ pipeline {
             }
         }
 
+        stage('Check Repo Clean') {
+            steps {
+                checkRepoClean()
+            }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+            }
+        }
+
         stage('Parallel Build, Test, and Compliance') {
             parallel {
                 stage('Build Verrazzano CLI and Save Binary') {
@@ -593,15 +606,21 @@ def buildVerrazzanoCLI(dockerImageTag) {
     """
 }
 
-// Called in Stage Build steps
-// Makes target docker push for application/platform operator and analysis
-def buildImages(dockerImageTag) {
+def checkRepoClean() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
         echo 'Check for forgotten manifest/generate actions...'
         (cd platform-operator; make check-repo-clean)
         (cd application-operator; make check-repo-clean)
         (cd image-patch-operator; make check-repo-clean)
+    """
+}
+
+// Called in Stage Build steps
+// Makes target docker push for application/platform operator and analysis
+def buildImages(dockerImageTag) {
+    sh """
+
         echo 'Now build...'
         make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
