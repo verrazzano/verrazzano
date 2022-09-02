@@ -306,9 +306,12 @@ pipeline {
             }
         }
         stage('Upload Verrazzano Images') {
+             environment {
+                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+             }
             steps {
                 script {
-                    if (params.DISTRIBUTION_VARIANT == "Commercial") {
+                    if (params.DISTRIBUTION_VARIANT == "Full") {
                         sh """
                             # Create OCIR repos for the images in the tarballs in the test compartment
                             sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
@@ -347,6 +350,7 @@ pipeline {
                         PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
                         PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
                         CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
+                        TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
                     }
                     steps {
                         sh """

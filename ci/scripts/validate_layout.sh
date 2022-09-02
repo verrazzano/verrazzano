@@ -52,7 +52,12 @@ function verify_full_bin() {
 
 function verify_full_images() {
     INPUTDIR=$1
-    echo "Count of all tar images are: $(ls $INPUTDIR/images | wc -l)" #TODO verify images count
+    if [ ! $(ls $INPUTDIR/images | wc -l) -eq 60 ]
+    then
+      echo "ERROR: Missing some tar files, all tar files count should be 60 but found only $(ls $INPUTDIR/images | wc -l)"
+    else
+      echo "Success: Found all the tar files"
+    fi
 }
 
 function verify_common_manifests() {
@@ -137,3 +142,5 @@ if [ $TYPE == "Lite" ]
 fi
 
 # TODO verify BOM content for open source
+
+echo "Completed contents and layout validation of the provided bundle"
