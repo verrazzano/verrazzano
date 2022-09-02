@@ -35,7 +35,7 @@ pipeline {
                 choices: [ "1.22", "1.23", "1.21", "1.20" ])
         choice (name: 'DISTRIBUTION_VARIANT',
                 description: 'Verrazzano Distribution Variant to use for testing',
-                choices: ["Commercial", "OpenSource"])
+                choices: ["Full", "Lite"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -236,10 +236,10 @@ pipeline {
                 script {
                     zipFileLoc = params.ZIPFILE_LOCATION
                     if (params.ZIPFILE_LOCATION == "NONE") {
-                        if (params.DISTRIBUTION_VARIANT == "Commercial") {
-                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}-commercial.zip".trim()
+                        if (params.DISTRIBUTION_VARIANT == "Full") {
+                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}.zip".trim()
                         } else {
-                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}-open-source.zip".trim()
+                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}-lite.zip".trim()
                         }
                     }
                 }
@@ -259,7 +259,7 @@ pipeline {
                         returnStdout: true
                         ).trim()
 
-                    if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                    if (params.DISTRIBUTION_VARIANT == "Lite") {
                         tarfileName = "verrazzano-${VERRAZZANO_DEV_VERSION}-linux-amd64.tar.gz"
                         checksumFile = "${tarfileName}.sha256"
                         echo "base name: $baseFilename, tar name: $tarfileName, checksum name: $checksumFile"
@@ -278,7 +278,7 @@ pipeline {
                     dir(env.TARBALL_ROOT_DIR) {
                         unzip zipFile: downloadLocation
 
-                        if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                        if (params.DISTRIBUTION_VARIANT == "Lite") {
                             sh """
                                 sha256sum -c $checksumFile
                                 tar xvf $tarfileName
@@ -304,7 +304,7 @@ pipeline {
              }
             steps {
                 script {
-                    if (params.DISTRIBUTION_VARIANT == "Commercial") {
+                    if (params.DISTRIBUTION_VARIANT == "Full") {
                         sh """
                             # Create OCIR repos for the images in the tarballs in the test compartment
                             sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}

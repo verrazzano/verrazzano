@@ -46,13 +46,13 @@ SCANNER_HOME="$WORK_DIR/scanner_home"
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
 
-RELEASE_TAR_BALL="$VERRAZZANO_PREFIX-open-source.zip"
+RELEASE_TAR_BALL="$VERRAZZANO_PREFIX-lite.zip"
 RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
 DIR_TO_SCAN="$RELEASE_BUNDLE_DIR"
 
-# Option to scan commercial bundle
-if [ "${BUNDLE_TO_SCAN}" == "commercial" ];then
-  RELEASE_TAR_BALL="$VERRAZZANO_PREFIX-commercial.zip"
+# Option to scan full bundle
+if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
+  RELEASE_TAR_BALL="$VERRAZZANO_PREFIX.zip"
   DIR_TO_SCAN="$RELEASE_BUNDLE_DIR/$VERRAZZANO_PREFIX"
 fi
 
