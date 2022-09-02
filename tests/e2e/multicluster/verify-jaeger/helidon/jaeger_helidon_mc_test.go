@@ -18,13 +18,15 @@ import (
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
-	projectName          = "hello-helidon"
+	longPollingInterval  = 30 * time.Second
+	longWaitTimeout      = 10 * time.Minute
+	projectName          = "hello-helidon-jaeger"
 )
 
 const (
-	testAppComponentFilePath     = "testdata/jaeger/helidon/mc-helidon-tracing-comp.yaml"
-	testAppConfigurationFilePath = "examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml"
-	verrazzanoProjectFilePath    = "examples/multicluster/hello-helidon/verrazzano-project.yaml"
+	testAppComponentFilePath     = "testdata/jaeger/helidon/multicluster/mc-helidon-tracing-comp.yaml"
+	testAppConfigurationFilePath = "testdata/jaeger/helidon/multicluster/mc-helidon-tracing-app.yaml"
+	verrazzanoProjectFilePath    = "testdata/jaeger/helidon/multicluster/helidon-verrazzano-project.yaml"
 )
 
 var (
@@ -33,7 +35,7 @@ var (
 	beforeSuitePassed        = false
 	failed                   = false
 	start                    = time.Now()
-	helloHelidonServiceName  = "hello-helidon-mc"
+	helloHelidonServiceName  = "hello-helidon-jaeger-mc"
 )
 
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
@@ -81,7 +83,7 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	err := pkg.GenerateTrafficForTraces(projectName, "", "greet", managedKubeconfig)
 	if err != nil {
-		AbortSuite("Unable to send traffic requests to generate traces")
+		pkg.Log(pkg.Error, "Unable to send traffic requests to generate traces")
 	}
 	beforeSuitePassed = true
 })
@@ -136,7 +138,7 @@ var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-wor
 		// THEN we are able to get the traces
 		t.It("traces for the helidon app should be available when queried from Jaeger", func() {
 			validatorFn := pkg.ValidateApplicationTracesInCluster(adminKubeconfig, start, helloHelidonServiceName, managedClusterName)
-			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+			Eventually(validatorFn).WithPolling(longPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
 		})
 
 	})
