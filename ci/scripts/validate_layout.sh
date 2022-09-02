@@ -36,7 +36,7 @@ function checkIfFileExists() {
 function verify_full_contents() {
   INPUTDIR=$1
   checkIfFileExists "LICENSE" $INPUTDIR
-  checkIfFileExists "README.MD" $INPUTDIR
+  checkIfFileExists "README.md" $INPUTDIR
 }
 
 function verify_full_bin() {
