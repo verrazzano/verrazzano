@@ -11,5 +11,5 @@ import (
 
 func TestVerifyAppRestart(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Upgrade Verify App Restart Suite")
+	ginkgo.RunSpecs(t, "Verify Upgrade Suite")
 }
