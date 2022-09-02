@@ -441,7 +441,6 @@ pipeline {
                 }
                 stage('Upgrade Path Minor Release Tests') {
                     steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 build job: "/verrazzano-push-triggered-upgrade-minor-release-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
@@ -455,7 +454,6 @@ pipeline {
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
-                        }
                     }
                 }
                 /*
