@@ -190,7 +190,8 @@ generateCommercialDistribution() {
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${rootDir}/bin/darwin-arm64
 
   # Move the tar files to images directory
-  mv ${WORKSPACE}/tar-files/*.tar ${rootDir}/images/
+  ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -l ${rootDir}/images/ -b ${GENERATED_BOM_FILE}
+  # mv ${WORKSPACE}/tar-files/*.tar ${rootDir}/images/
 
   captureBundleContents ${rootDir} ${generatedDir} ${COMM_BUNDLE_CONTENTS}
 
