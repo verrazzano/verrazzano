@@ -115,6 +115,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if vz.Generation <= lastReconcileGen {
+		zap.S().Debug("Returning without requeue because the Generation and lastReconcileGeneration are equal")
 		return ctrl.Result{}, nil
 	}
 
@@ -147,7 +148,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
-	lastReconcileGen = vz.Generation
+	if vz.Status.Conditions[len(vz.Status.Conditions)-1].Type == installv1alpha1.CondUninstallComplete {
+		lastReconcileGen = 0
+	} else {
+		lastReconcileGen = vz.Generation
+	}
 
 	return ctrl.Result{}, nil
 }
