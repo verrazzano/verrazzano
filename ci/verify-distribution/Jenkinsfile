@@ -277,11 +277,12 @@ pipeline {
 
                     dir(env.TARBALL_ROOT_DIR) {
                         unzip zipFile: downloadLocation
+                        sh """
+                            sh -xv ${GO_REPO_PATH}/verrazzano/ci/scripts/validate_layout.sh ${TARBALL_ROOT_DIR} ${VERRAZZANO_DEV_VERSION} ${DISTRIBUTION_VARIANT}
+                        """
 
                         if (params.DISTRIBUTION_VARIANT == "Lite") {
                             sh """
-                                sh -xv ${GO_REPO_PATH}/verrazzano/ci/scripts/validate_layout.sh ${TARBALL_ROOT_DIR} ${VERRAZZANO_DEV_VERSION} ${DISTRIBUTION_VARIANT}
-
                                 sha256sum -c $checksumFile
                                 tar xvf $tarfileName
 
