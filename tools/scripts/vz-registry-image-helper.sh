@@ -362,8 +362,7 @@ function process_images_from_bom() {
 
 # Main driver for pulling/saving images based on the Verrazzano bill of materials (BOM)
 function pull_and_save_images() {
-  tarFile=$1
-  imagesDir=$2
+  imagesDir=$1
 
   echo "Creating Verrazzano images tar file ${tarfile}, using ${imagesDir} to store images locally"
 
@@ -427,8 +426,8 @@ $(list_components)
 
 # Main fn
 function main() {
-  if [ -n "${TARBALL}" ]; then
-    pull_and_save_images ${TARBALL} ${IMAGES_DIR}
+  if [ -n "${TARDIR}" ]; then
+    pull_and_save_images ${TARDIR}
   elif [ "$USELOCAL" != "0" ]; then
     process_local_archives
   else
@@ -458,7 +457,7 @@ while getopts 'hzcdom:b:t:f:r:l:i:e:' opt; do
     EXCLUDE_COMPONENTS="${EXCLUDE_COMPONENTS} ${OPTARG}"
     ;;
   f)
-    TARBALL=$OPTARG
+    TARDIR=$OPTARG
     ;;
   i)
     echo "Include component: ${OPTARG}"
