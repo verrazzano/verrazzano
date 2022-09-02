@@ -499,15 +499,8 @@ func runValidateWithIngressChangeTest() error {
 		Spec: VerrazzanoSpec{
 			Profile: Dev,
 			Components: ComponentSpec{
-				Ingress: &IngressNginxComponent{
+				IngressNGINX: &IngressNginxComponent{
 					Type: "sometype",
-					//NGINXInstallArgs: []InstallArgs{
-					//	{
-					//		Name:      "arg1",
-					//		Value:     "val1",
-					//		SetString: false,
-					//	},
-					//},
 					Ports: []corev1.ServicePort{
 						{
 							Name:     "port1",
@@ -527,15 +520,8 @@ func runValidateWithIngressChangeTest() error {
 			Version: v0170,
 			Profile: Dev,
 			Components: ComponentSpec{
-				Ingress: &IngressNginxComponent{
+				IngressNGINX: &IngressNginxComponent{
 					Type: "sometype",
-					//NGINXInstallArgs: []InstallArgs{
-					//	{
-					//		Name:      "arg1",
-					//		Value:     "val1",
-					//		SetString: false,
-					//	},
-					//},
 					Ports: []corev1.ServicePort{
 						{
 							Name:     "port1",
