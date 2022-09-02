@@ -393,7 +393,7 @@
         {
           "registry": "ghcr.io",
           "repository": "verrazzano",
-          "name": "additional-mysql-operator",
+          "name": "additional-mysql",
           "images": [
             {
               "image": "mysql-router",
