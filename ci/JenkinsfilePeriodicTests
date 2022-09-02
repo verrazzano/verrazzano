@@ -50,7 +50,7 @@ pipeline {
         choice (description: 'Predefined config permutations for Verrazzano installation. Prod profile is the default profile for NONE', name: 'VZ_INSTALL_CONFIG',
                 choices: ["NONE", "dev-kind-persistence"])
         string (name: 'EXCLUDE_RELEASES',
-                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4, v1.1.0, v1.1.1",
+                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4, v1.1.0, v1.1.1, v1.2.0, v1.2.1, v1.2.2",
                 description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         booleanParam (description: 'Skip tests to private registry stage, useful for testing out private registry testing, support and push to OCIR', name: 'SKIP_TO_PRIVATE_REGISTRY', defaultValue: false)
         booleanParam (description: 'Skip tests to private registry stage, useful for testing out private registry testing, support and push to OCIR', name: 'SKIP_TO_PRIVATE_REGISTRY', defaultValue: false)
