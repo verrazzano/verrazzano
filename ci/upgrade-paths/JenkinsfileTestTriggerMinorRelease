@@ -408,11 +408,12 @@ List extractReleaseTags(final String fileContent) {
 
 def getStageOfUpgradeJob(job) {
     return {
-       retry(count: JOB_PROMOTION_RETRIES) {
         stage("Upgrade Verrazzano from version ${job[0]} to  ${job[1].replace('_', " ")}"){
-                script {
-                    try {
-                        echo "Running upgrade job from version ${job[0]} to ${job[1].replace('_', " ")}"
+            script {
+                try {
+                    echo "Running upgrade job from version ${job[0]} to ${job[1].replace('_', " ")}"
+                    retry(count: JOB_PROMOTION_RETRIES) {
+                        echo "Retrying the build due to failure"
                         def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
                         parameters: [
                             string(name: 'GIT_COMMIT_TO_USE', value: params.GIT_COMMIT_TO_USE),
@@ -428,13 +429,13 @@ def getStageOfUpgradeJob(job) {
                             string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
                             booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                         ],  wait: true, propagate: true
-                    }catch(err){
-                        catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
-                            echo "Caught: ${err}"
-                            sh "exit 1"
-                        }
-                        // currentBuild.result = 'FAILURE'
                     }
+                }catch(err){
+                    catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
+                        echo "Caught: ${err}"
+                        sh "exit 1"
+                    }
+                    // currentBuild.result = 'FAILURE'
                 }
             }
         }
