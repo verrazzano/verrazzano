@@ -11,12 +11,12 @@ if [ $TYPE == "Commercial" ]
     echo "Provided type is Commercial"
     TYPE_EXTRACTED="verrazzano-${VZ_DEV_VERSION}-commercial-extracted"
     mkdir -p $TYPE_EXTRACTED
-#    unzip $ZIPFILE -d $TYPE_EXTRACTED
+    unzip $ZIPFILE -d $TYPE_EXTRACTED
   else
     echo "Provided OpenSource"
     TYPE_EXTRACTED="verrazzano-${VZ_DEV_VERSION}-open-source-extracted"
     mkdir -p $TYPE_EXTRACTED
-#    unzip $ZIPFILE -d $TYPE_EXTRACTED
+    unzip $ZIPFILE -d $TYPE_EXTRACTED
 
     LINUX_EXTRACTED="linux-${VZ_DEV_VERSION}"
     DARWIN_EXTRACTED="darwin-${VZ_DEV_VERSION}"
