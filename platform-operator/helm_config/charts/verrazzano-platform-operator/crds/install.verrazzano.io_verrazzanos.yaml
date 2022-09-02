@@ -29,6 +29,10 @@ spec:
       jsonPath: .status.version
       name: Version
       type: string
+    deprecated: true
+    deprecationWarning: install.verrazzano.io/v1alpha1 Verrazzano is deprecated; see
+      https://verrazzano.io/latest/docs/releasenotes/#v140 for instructions to migrate
+      to install.verrazzano.io/v1beta1 Verrazzano
     name: v1alpha1
     schema:
       openAPIV3Schema:
