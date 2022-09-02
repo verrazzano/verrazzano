@@ -16,12 +16,17 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func VerifySystemVMIComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword, ingressName, expectedURLPrefix string) bool {
-	ingress, err := getIngress(ingressName)
+	var ingress *netv1.Ingress
+	var err error
+
+	if api != nil {
+		ingress, err = api.GetIngress(vzconst.VerrazzanoSystemNamespace, ingressName)
+	} else {
+		ingress, err = GetIngress(vzconst.VerrazzanoSystemNamespace, ingressName)
+	}
 	if err != nil {
 		log.Errorf("Error getting ingress: %v", err)
 		return false
@@ -32,20 +37,6 @@ func VerifySystemVMIComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHT
 		return false
 	}
 	return AssertURLAccessibleAndAuthorized(sysVmiHTTPClient, vmiComponentURL, vmiCredentials)
-}
-
-func getIngress(ingressName string) (*netv1.Ingress, error) {
-	ingressList, err := GetIngressList("verrazzano-system")
-	if err != nil {
-		return nil, err
-	}
-	for _, ingress := range ingressList.Items {
-		if ingress.Name == ingressName {
-			return &ingress, nil
-		}
-	}
-
-	return nil, errors.NewNotFound(schema.GroupResource{}, ingressName)
 }
 
 func VerifyOpenSearchComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {
