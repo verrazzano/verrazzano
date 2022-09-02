@@ -450,7 +450,7 @@ pipeline {
                 }
                 stage ('Verify Metrics') {
                     steps {
-                        runGinkgoRandomizeParallel('metrics/syscomponents')
+                        runGinkgoRandomizeSerial('metrics/syscomponents')
                     }
                 }
             }
@@ -473,7 +473,7 @@ pipeline {
                 stage ('multicluster/verify-install') {
                     when { expression { isMultiCluster() } }
                     steps {
-                        runGinkgoRandomizeParallel('multicluster/verify-install')
+                        runGinkgoRandomizeSerial('multicluster/verify-install')
                     }
                 }
             }
@@ -500,22 +500,22 @@ pipeline {
             parallel {
                 stage('verify-scripts') {
                     steps {
-                        runGinkgoRandomizeParallel('scripts')
+                        runGinkgoRandomizeSerial('scripts')
                     }
                 }
                 stage('verify-infra restapi') {
                     steps {
-                        runGinkgoRandomizeParallel('verify-infra/restapi')
+                        runGinkgoRandomizeSerial('verify-infra/restapi')
                     }
                 }
                 stage('verify-infra oam') {
                     steps {
-                        runGinkgoRandomizeParallel('verify-infra/oam')
+                        runGinkgoRandomizeSerial('verify-infra/oam')
                     }
                 }
                 stage('verify-infra vmi') {
                     steps {
-                        runGinkgoRandomizeParallel('verify-infra/vmi')
+                        runGinkgoRandomizeSerial('verify-infra/vmi')
                     }
                 }
             }
@@ -1212,42 +1212,6 @@ def runGinkgoRandomizeSerial(testSuitePath) {
                     ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
                 """
             }
-        }
-    }
-}
-
-// Run a test suite against all clusters in parallel
-def runGinkgoRandomizeParallel(testSuitePath) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        script {
-            def runGinkgoRandomizeStages = createClusterExecutionsMap()
-            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-            def clusterName = ""
-            for(int count=1; count<=clusterCount; count++) {
-                // The first cluster created by this script is named as admin, and the subsequent clusters are named as
-                // managed1, managed2, etc.
-                if (count == 1) {
-                    clusterName="admin"
-                } else {
-                    clusterName="managed${count-1}"
-                }
-                runGinkgoRandomizeStages["${count} - Executing ginkgo test suite ${testSuitePath}"] = runGinkgoRandomize(count, clusterName, testSuitePath)
-            }
-            parallel runGinkgoRandomizeStages
-        }
-    }
-}
-
-def runGinkgoRandomize(count, clusterName, testSuitePath) {
-    // For parallel execution, wrap this in a Groovy enclosure {}
-    return {
-        script {
-            sh """
-                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                export CLUSTER_NAME="${clusterName}"
-                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-            """
         }
     }
 }
