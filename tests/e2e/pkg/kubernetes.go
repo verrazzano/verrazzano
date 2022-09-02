@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
 	"strings"
@@ -36,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -288,6 +288,21 @@ func GetIngressList(namespace string) (*netv1.IngressList, error) {
 		return nil, err
 	}
 	return ingressList, nil
+}
+
+// GetIngress returns the ingress given a namespace and ingress name
+func GetIngress(namespace string, ingressName string) (*netv1.Ingress, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	ingress, err := clientSet.NetworkingV1().Ingresses(namespace).Get(context.TODO(), ingressName, metav1.GetOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Ingress %s in namespace %s: %v ", ingressName, namespace, err))
+		return nil, err
+	}
+	return ingress, nil
 }
 
 // GetVirtualServiceList returns a list of virtual services in the given namespace
