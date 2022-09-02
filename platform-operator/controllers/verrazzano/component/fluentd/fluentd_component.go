@@ -6,7 +6,7 @@ package fluentd
 import (
 	"context"
 	"fmt"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzapibeta "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -77,14 +77,49 @@ func NewComponent() spi.Component {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (f fluentdComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := validateFluentd(vz); err != nil {
+	vzV1Beta1 := &vzapibeta.Verrazzano{}
+
+	if err := vz.ConvertTo(vzV1Beta1); err != nil {
 		return err
 	}
-	return f.HelmComponent.ValidateInstall(vz)
+
+	if err := f.ValidateInstallV1Beta1(vzV1Beta1); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	oldBeta := &vzapibeta.Verrazzano{}
+	newBeta := &vzapibeta.Verrazzano{}
+
+	if err := old.ConvertTo(oldBeta); err != nil {
+		return err
+	}
+
+	if err := new.ConvertTo(newBeta); err != nil {
+		return err
+	}
+
+	if err := f.ValidateUpdateV1Beta1(oldBeta, newBeta); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (f fluentdComponent) ValidateInstallV1Beta1(vz *vzapibeta.Verrazzano) error {
+	if err := validateFluentd(vz); err != nil {
+		return err
+	}
+	return f.HelmComponent.ValidateInstallV1Beta1(vz)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (f fluentdComponent) ValidateUpdateV1Beta1(old *vzapibeta.Verrazzano, new *vzapibeta.Verrazzano) error {
 	// Do not allow disabling active components
 	if err := f.checkEnabled(old, new); err != nil {
 		return err
@@ -92,20 +127,10 @@ func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 	if err := validateFluentd(new); err != nil {
 		return err
 	}
-	return f.HelmComponent.ValidateUpdate(old, new)
+	return f.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (f fluentdComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
-}
-
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (f fluentdComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
-}
-
-func (f fluentdComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (f fluentdComponent) checkEnabled(old *vzapibeta.Verrazzano, new *vzapibeta.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if f.IsEnabled(old) && !f.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
@@ -239,9 +264,9 @@ func GetOverrides(object runtime.Object) interface{} {
 		}
 		return []vzapi.Overrides{}
 	}
-	effectiveCR := object.(*installv1beta1.Verrazzano)
+	effectiveCR := object.(*vzapibeta.Verrazzano)
 	if effectiveCR.Spec.Components.Fluentd != nil {
 		return effectiveCR.Spec.Components.Fluentd.ValueOverrides
 	}
-	return []installv1beta1.Overrides{}
+	return []vzapibeta.Overrides{}
 }
