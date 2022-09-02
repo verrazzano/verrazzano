@@ -112,7 +112,7 @@ func (v veleroHelmComponent) validateVelero(vz *vzapi.Verrazzano) error {
 func (v veleroHelmComponent) validateVeleroV1beta1(vz *installv1beta1.Verrazzano) error {
 	// Validate install overrides
 	if vz.Spec.Components.Velero != nil {
-		if err := installv1beta1.ValidateInstallOverrides(vz.Spec.Components.Velero.ValueOverrides); err != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.Velero.ValueOverrides); err != nil {
 			return err
 		}
 	}

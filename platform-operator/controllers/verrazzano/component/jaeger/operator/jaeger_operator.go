@@ -338,7 +338,7 @@ func validateV1alhpa1InstallOverrides(overrides []v1alpha1.Overrides, client cli
 
 // validateV1betaInstallOverrides validates the v1beta1 install overrides (v1beta1.Overrides) configured for Jaeger component
 func validateV1betaInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
-	if err := v1beta1.ValidateInstallOverrides(overrides); err != nil {
+	if err := v1alpha1.ValidateInstallOverridesV1Beta1(overrides); err != nil {
 		return err
 	}
 	overrideYAMLs, err := common.GetInstallOverridesV1beta1YAMLUsingClient(client, overrides, ComponentNamespace)
