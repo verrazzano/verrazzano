@@ -108,17 +108,6 @@ func (v veleroHelmComponent) validateVelero(vz *vzapi.Verrazzano) error {
 	return nil
 }
 
-// validateVelero checks scenarios in which the Verrazzano CR violates install verification
-func (v veleroHelmComponent) validateVeleroV1beta1(vz *installv1beta1.Verrazzano) error {
-	// Validate install overrides
-	if vz.Spec.Components.Velero != nil {
-		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.Velero.ValueOverrides); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources
 func (v veleroHelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.Velero == nil {
@@ -161,7 +150,13 @@ func (v veleroHelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzan
 	if v.IsEnabled(old) && !v.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
-	return v.validateVeleroV1beta1(new)
+	// Validate install overrides
+	if new.Spec.Components.Velero != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(new.Spec.Components.Velero.ValueOverrides); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // PostUninstall processing for Velero

@@ -9,6 +9,7 @@ import (
 
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/stretchr/testify/assert"
@@ -72,6 +73,7 @@ func TestGetIngressNames(t *testing.T) {
 	assert.Equal(t, ComponentNamespace, ingressNames[0].Namespace)
 }
 
+// Test_authProxyComponent_ValidateUpdate tests the AuthProxy ValidateUpdate call for v1alpha1.Verrazzano
 func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
@@ -80,6 +82,9 @@ func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
 		new     *vzapi.Verrazzano
 		wantErr bool
 	}{
+		// GIVEN a VZ CR with auth proxy component disabled,
+		// WHEN I call update the VZ CR to enable auth proxy component
+		// THEN the update succeeds with no errors.
 		{
 			name: "enable",
 			old: &vzapi.Verrazzano{
@@ -94,6 +99,9 @@ func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
 			new:     &vzapi.Verrazzano{},
 			wantErr: false,
 		},
+		// GIVEN a VZ CR with auth proxy component enabled,
+		// WHEN I call update the VZ CR to disable auth proxy component
+		// THEN the update fails with an error.
 		{
 			name: "disable",
 			old:  &vzapi.Verrazzano{},
@@ -108,6 +116,9 @@ func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		// GIVEN a default VZ CR with auth proxy component,
+		// WHEN I call update with no change to the auth proxy component
+		// THEN the update succeeds and no error is returned.
 		{
 			name:    "no change",
 			old:     &vzapi.Verrazzano{},
@@ -120,6 +131,69 @@ func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
 			c := NewComponent()
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// Test_authProxyComponent_ValidateUpdateV1beta1 tests the AuthProxy ValidateUpdate call for v1beta1.Verrazzano
+func Test_authProxyComponent_ValidateUpdateV1beta1(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name    string
+		old     *v1beta1.Verrazzano
+		new     *v1beta1.Verrazzano
+		wantErr bool
+	}{
+		// GIVEN a VZ CR with auth proxy component disabled,
+		// WHEN I call update the VZ CR to enable auth proxy component
+		// THEN the update succeeds with no error.
+		{
+			name: "enable",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						AuthProxy: &v1beta1.AuthProxyComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+		// GIVEN a VZ CR with auth proxy component enabled,
+		// WHEN I call update the VZ CR to disable auth proxy component
+		// THEN the update fails with an error.
+		{
+			name: "disable",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						AuthProxy: &v1beta1.AuthProxyComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		// GIVEN a default VZ CR with auth proxy component,
+		// WHEN I call update with no change to the auth proxy component
+		// THEN the update succeeds and no error is returned.
+		{
+			name:    "no change",
+			old:     &v1beta1.Verrazzano{},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
