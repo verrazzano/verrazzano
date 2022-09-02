@@ -59,6 +59,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
 				compLog.Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
 			} else {
+				compLog.Infof("Component generation for component %s is %v", compName, componentStatus.ReconcilingGeneration)
 				oldState := componentStatus.State
 				oldGen := componentStatus.ReconcilingGeneration
 				componentStatus.ReconcilingGeneration = 0

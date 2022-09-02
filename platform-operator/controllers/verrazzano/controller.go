@@ -326,7 +326,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return newRequeueWithDelay(), err
 	}
 
-	// Install any new components and do any updates to existing components
+	// Install components that should be installed before upgrade
 	if result, err := r.reconcileComponents(vzctx, true); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
@@ -342,7 +342,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		}
 	}
 
-	// Install components that should be installed before upgrade
+	// Install any new components and do any updates to existing components
 	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
