@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelpers "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	corev1 "k8s.io/api/core/v1"
@@ -58,7 +58,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	pkghelpers.SetMultiWriterErr(vzHelper.GetErrorStream(), stdErrFile)
 
 	// Verrazzano as a list is required for the analysis tool
-	vz := vzapi.VerrazzanoList{}
+	vz := v1beta1.VerrazzanoList{}
 	err = client.List(context.TODO(), &vz)
 	if (err != nil && len(vz.Items) == 0) || len(vz.Items) == 0 {
 		return fmt.Errorf("skip analyzing the cluster as Verrazzano is not installed")
@@ -95,7 +95,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 }
 
 // captureResources captures the resources from various namespaces, resources are collected in parallel as appropriate
-func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vz vzapi.VerrazzanoList, vzHelper pkghelpers.VZHelper, namespaces []string) error {
+func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vz v1beta1.VerrazzanoList, vzHelper pkghelpers.VZHelper, namespaces []string) error {
 
 	// List of pods to collect the logs
 	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
@@ -151,7 +151,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, bug
 }
 
 // captureVZResource collects the Verrazzano resource as a JSON, in parallel
-func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz vzapi.VerrazzanoList, bugReportDir string, vzHelper pkghelpers.VZHelper) {
+func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz v1beta1.VerrazzanoList, bugReportDir string, vzHelper pkghelpers.VZHelper) {
 	defer wg.Done()
 	err := pkghelpers.CaptureVZResource(bugReportDir, vz, vzHelper)
 	if err != nil {
@@ -182,7 +182,7 @@ func captureK8SResources(wg *sync.WaitGroup, ec chan ErrorsChannel, kubeClient k
 }
 
 // collectNamespaces gathers list of unique namespaces, to be considered to collect the information
-func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz vzapi.VerrazzanoList, vzHelper pkghelpers.VZHelper) ([]string, []string) {
+func collectNamespaces(kubeClient kubernetes.Interface, includedNS []string, vz v1beta1.VerrazzanoList, vzHelper pkghelpers.VZHelper) ([]string, []string) {
 
 	var nsList []string
 

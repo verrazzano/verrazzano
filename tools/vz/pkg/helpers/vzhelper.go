@@ -9,19 +9,23 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/semver"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	"io"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 type VZHelper interface {
@@ -34,10 +38,37 @@ type VZHelper interface {
 	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
 }
 
-// FindVerrazzanoResource - find the single Verrazzano resource
-func FindVerrazzanoResource(client client.Client) (*vzapi.Verrazzano, error) {
+const defaultVerrazzano = `apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+  namespace: default`
 
-	vzList := vzapi.VerrazzanoList{}
+func NewDefaultVerrazzano() (client.Object, error) {
+	vz := &unstructured.Unstructured{}
+	if err := yaml.Unmarshal([]byte(defaultVerrazzano), vz); err != nil {
+		return nil, err
+	}
+	return vz, nil
+}
+
+func NewVerrazzanoForVersion(groupVersion schema.GroupVersion) func() interface{} {
+	switch groupVersion {
+	case v1alpha1.SchemeGroupVersion:
+		return func() interface{} {
+			return &v1alpha1.Verrazzano{}
+		}
+	default:
+		return func() interface{} {
+			return &v1beta1.Verrazzano{}
+		}
+	}
+}
+
+// FindVerrazzanoResource - find the single Verrazzano resource
+func FindVerrazzanoResource(client client.Client) (*v1beta1.Verrazzano, error) {
+
+	vzList := v1beta1.VerrazzanoList{}
 	err := client.List(context.TODO(), &vzList)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to find any Verrazzano resources: %s", err.Error())
@@ -52,9 +83,9 @@ func FindVerrazzanoResource(client client.Client) (*vzapi.Verrazzano, error) {
 }
 
 // GetVerrazzanoResource - get a Verrazzano resource
-func GetVerrazzanoResource(client client.Client, namespacedName types.NamespacedName) (*vzapi.Verrazzano, error) {
+func GetVerrazzanoResource(client client.Client, namespacedName types.NamespacedName) (*v1beta1.Verrazzano, error) {
 
-	vz := &vzapi.Verrazzano{}
+	vz := &v1beta1.Verrazzano{}
 	err := client.Get(context.TODO(), namespacedName, vz)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get a Verrazzano install resource: %s", err.Error())
@@ -95,7 +126,8 @@ func getLatestReleaseVersion(releases []string) (string, error) {
 
 func NewScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	_ = vzapi.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
+	_ = v1beta1.AddToScheme(scheme)
 	_ = corev1.SchemeBuilder.AddToScheme(scheme)
 	_ = adminv1.SchemeBuilder.AddToScheme(scheme)
 	_ = rbacv1.SchemeBuilder.AddToScheme(scheme)
@@ -104,7 +136,7 @@ func NewScheme() *runtime.Scheme {
 }
 
 // GetNamespacesForAllComponents returns the list of unique namespaces of all the components included in the Verrazzano resource
-func GetNamespacesForAllComponents(vz vzapi.Verrazzano) []string {
+func GetNamespacesForAllComponents(vz v1beta1.Verrazzano) []string {
 	allComponents := getAllComponents(vz)
 	var nsList []string
 	for _, eachComp := range allComponents {
@@ -117,11 +149,11 @@ func GetNamespacesForAllComponents(vz vzapi.Verrazzano) []string {
 }
 
 // getAllComponents returns the list of components from the Verrazzano resource
-func getAllComponents(vzRes vzapi.Verrazzano) []string {
+func getAllComponents(vzRes v1beta1.Verrazzano) []string {
 	var compSlice = make([]string, 0)
 
 	for _, compStatusDetail := range vzRes.Status.Components {
-		if compStatusDetail.State == vzapi.CompStateDisabled {
+		if compStatusDetail.State == v1beta1.CompStateDisabled {
 			continue
 		}
 		compSlice = append(compSlice, compStatusDetail.Name)

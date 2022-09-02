@@ -6,12 +6,13 @@ package install
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -135,7 +136,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the platform operator to be ready before we create the Verrazzano resource.
-	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, vzapi.CondInstallComplete, lastTransitionTime)
+	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, lastTransitionTime)
 	if err != nil {
 		return err
 	}
@@ -159,11 +160,11 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the Verrazzano install to complete
-	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
+	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.GetNamespace(), Name: vz.GetName()}, timeout, logFormat)
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
-func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi.Verrazzano, err error) {
+func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz clipkg.Object, err error) {
 	// Get the list yaml filenames specified
 	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
 	if err != nil {
@@ -179,20 +180,21 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 	// If no yamls files were passed on the command line then create a minimal verrazzano
 	// resource.  The minimal resource is used to create a resource called verrazzano
 	// in the default namespace using the prod profile.
+	var gv schema.GroupVersion
 	if len(filenames) == 0 {
-		vz = &vzapi.Verrazzano{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "verrazzano",
-			},
-		}
-	} else {
-		// Merge the yaml files passed on the command line
-		vz, err = cmdhelpers.MergeYAMLFiles(filenames, os.Stdin)
+		vz, err = helpers.NewDefaultVerrazzano()
 		if err != nil {
 			return nil, err
 		}
+		gv = v1beta1.SchemeGroupVersion
+	} else {
+		// Merge the yaml files passed on the command line
+		obj, err := cmdhelpers.MergeYAMLFiles(filenames, os.Stdin)
+		if err != nil {
+			return nil, err
+		}
+		gv = obj.GroupVersionKind().GroupVersion()
+		vz = obj
 	}
 
 	// Generate yaml for the set flags passed on the command line
@@ -203,7 +205,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 
 	// Merge the set flags passed on the command line. The set flags take precedence over
 	// the yaml files passed on the command line.
-	vz, err = cmdhelpers.MergeSetFlags(vz, outYAML)
+	vz, err = cmdhelpers.MergeSetFlags(gv, vz, outYAML)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +282,7 @@ func getSetArguments(cmd *cobra.Command, vzHelper helpers.VZHelper) (map[string]
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
 // the ongoing Verrazzano install.
 func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
-	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, vzapi.CondInstallComplete)
+	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, v1beta1.CondInstallComplete)
 }
 
 // validateCmd - validate the command line options
