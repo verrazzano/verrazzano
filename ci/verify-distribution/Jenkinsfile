@@ -305,6 +305,301 @@ pipeline {
                 }
             }
         }
+        stage('Upload Verrazzano Images') {
+            steps {
+                script {
+                    if (params.DISTRIBUTION_VARIANT == "Commercial") {
+                        sh """
+                            # Create OCIR repos for the images in the tarballs in the test compartment
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            echo "Upload OCIR region: $ocirRegion"
+                            echo "Upload OCIR Repository: ${ocirRegistry}"
+                            cd ${TARBALL_DIR}
+                            chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
+                        """
+                    } else {
+                        sh """
+                            # Create OCIR repos for the images in the tarballs in the test compartment
+                            cd ${TARBALL_DIR}
+                            sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -f ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
+                            tar xvf ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
+                            cd ${TEST_SCRIPTS_DIR}
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                            echo "Upload OCIR region: $ocirRegion"
+                            echo "Upload OCIR Repository: ${ocirRegistry}"
+                            # Run the image-helper to load the images into the OCIR registry in the runner's region
+                            cd ${TARBALL_DIR}
+                            chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
+                        """
+                    }
+                }
+            }
+        }
+        stage('Acceptance Tests') {
+            stages {
+                stage('Prepare AT environment') {
+                    environment {
+                        KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
+                        PRIVATE_REPO="${baseImageRepo}"
+                        REGISTRY="${ocirRegistry}"
+                        PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
+                        PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
+                        CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
+                    }
+                    steps {
+                        sh """
+                            cd ${GO_REPO_PATH}/verrazzano
+                            chmod +x ci/scripts/prepare_distribution_test_jenkins_at_environment.sh
+                            ci/scripts/prepare_distribution_test_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                        """
+                    }
+                    post {
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster('install-success-cluster-snapshot')
+                                }
+                            }
+                        }
+                    }
+                }
+                stage('Run Acceptance Tests') {
+                    environment {
+                        PRIVATE_REPO="${baseImageRepo}"
+                        REGISTRY="${ocirRegistry}"
+                    }
+                    stages {
+                        stage('verify-install') {
+                            steps {
+                                runGinkgoRandomize('verify-install')
+                            }
+                        }
+
+                        stage('run-acceptance-tests') {
+                            parallel {
+                                stage('verify-infra restapi') {
+                                    steps {
+                                        runGinkgoRandomize('verify-infra/restapi')
+                                    }
+                                }
+                                stage('verify-infra oam') {
+                                    steps {
+                                        runGinkgoRandomize('verify-infra/oam')
+                                    }
+                                }
+                                stage('verify-infra vmi') {
+                                    steps {
+                                        runGinkgoRandomize('verify-infra/vmi')
+                                    }
+                                }
+                                stage('istio authorization policy') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('istio/authz')
+                                    }
+                                }
+                                stage('security role based access') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('security/rbac')
+                                    }
+                                }
+                                stage('security network policies') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/netpol"
+                                    }
+                                    steps {
+                                        script {
+                                            if (params.CREATE_CLUSTER_USE_CALICO == true) {
+                                                runGinkgo('security/netpol')
+                                            }
+                                        }
+                                    }
+                                }
+                                stage('k8s deployment workload metrics') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
+                                    }
+                                    steps {
+                                        runGinkgo('metrics/deploymetrics')
+                                    }
+                                }
+                                stage('examples logging helidon') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('logging/helidon')
+                                    }
+                                }
+                                stage('examples helidon') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('examples/helidon')
+                                    }
+                                }
+                                stage('weblogic workload') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-workload"
+                                    }
+                                    steps {
+                                        runGinkgoFailFast('workloads/weblogic')
+                                    }
+                                }
+                                stage('coherence workload') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('workloads/coherence')
+                                    }
+                                }
+                                stage('console ingress') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
+                                    }
+                                    steps {
+                                        runGinkgoKeepGoing('ingress/console')
+                                    }
+                                }
+                                stage('logging trait WebLogic workload') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
+                                    }
+                                    steps {
+                                        runGinkgo('loggingtrait/weblogicworkload')
+                                    }
+                                }
+                                stage('logging trait Helidon workload') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
+                                    }
+                                    steps {
+                                        runGinkgo('loggingtrait/helidonworkload')
+                                    }
+                                }
+                                stage('logging trait Coherence workload') {
+                                    environment {
+                                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
+                                    }
+                                    steps {
+                                        runGinkgo('loggingtrait/coherenceworkload')
+                                    }
+                                }
+                            }
+                            post {
+                                always {
+                                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                                }
+                            }
+                        }
+                    }
+                }
+                // Run Verify Registry after the other tests, when we know all the pods are up and ready without
+                // having to duplicate the waits.
+                stage('Verify Registry') {
+                    environment {
+                        REGISTRY="${ocirRegistry}"
+                        PRIVATE_REPO="${baseImageRepo}"
+                    }
+                    parallel {
+                        stage('verify-registry-url') {
+                            steps {
+                                runGinkgo('registry')
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('tests-failure-cluster-snapshot')
+                        }
+                    }
+                }
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('tests-success-cluster-snapshot')
+                        }
+                    }
+                }
+            }
+        }
+        stage('Uninstall') {
+            options {
+                timeout(time: 30, unit: "MINUTES")
+            }
+            steps {
+                script {
+                    try {
+                        sh """
+                            kubectl delete verrazzano my-verrazzano
+                        """
+                    } catch (err) {
+                        currentBuild.result = "FAILURE"
+                        echo "Caught: ${err}"
+                        err 'Verrazzano uninstall failed'
+                    }
+                }
+            }
+            post {
+                always {
+                    sh """
+                        echo "Listing all pods in all namespaces after uninstall"
+                        kubectl get pods --all-namespaces
+                        echo "-----------------------------------------------------"
+                    """
+                    listNamespacesAndPods('after Verrazzano uninstall')
+                    listHelmReleases('after Verrazzano uninstall')
+                }
+                failure {
+                    dumpK8sCluster('uninstall-failure-cluster-snapshot')
+                }
+                aborted {
+                    dumpK8sCluster('uninstall-aborted-cluster-snapshot')
+                }
+            }
+        }
+        stage("Verify Uninstall") {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
+                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
+                    """
+                }
+            }
+            post {
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verify-uninstall-success-cluster-snapshot')
+                        }
+                    }
+                }
+                failure {
+                    dumpK8sCluster('verify-uninstall-failed-cluster-snapshot')
+                }
+            }
+        }
     }
 
     post {
