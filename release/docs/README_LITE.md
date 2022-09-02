@@ -1,10 +1,10 @@
-# Verrazzano Commercial Edition
+# Verrazzano
 
-Verrazzano Commercial Edition is a fully-featured enterprise container platform for deploying cloud native and traditional applications in multicloud
-and hybrid environments, packaged for the enterprise.
+Verrazzano is a fully-featured enterprise container platform for deploying cloud native and traditional applications in multicloud
+and hybrid environments.
 
 # Overview
-Verrazzano Commercial Edition includes the following capabilities:
+Verrazzano includes the following capabilities:
 
 - Hybrid and multicluster workload management
 - Special handling for WebLogic, Coherence, and Helidon applications
@@ -14,8 +14,8 @@ Verrazzano Commercial Edition includes the following capabilities:
 - DevOps and GitOps enablement
 
 # Components
-Verrazzano Commercial Edition includes a curated set of open source components – many that you may already use and trust, 
-and some that were written specifically to pull together all the pieces to make this a cohesive and easy to use platform.
+Verrazzano includes a curated set of open source components – many that you may already use and trust, and some that were
+written specifically to pull together all the pieces to make this a cohesive and easy to use platform.
 
 | Component                    | Version | Description                                                                              |
 |------------------------------|---------|------------------------------------------------------------------------------------------|
@@ -41,38 +41,47 @@ and some that were written specifically to pull together all the pieces to make 
 | Prometheus Operator          | 0.55.1  | Provides management for Prometheus monitoring tools.                                     |
 | Prometheus Pushgateway       | 1.4.2   | Allows ephemeral and batch jobs to expose their metrics to Prometheus.                   |
 | Rancher                      | 2.6.7   | Manages multiple Kubernetes clusters.                                                    |
-| WebLogic Kubernetes Operator | 3.4.0   | Assists with deploying and managing WebLogic domains.                                    |
+| WebLogic Kubernetes Operator | 3.4.3   | Assists with deploying and managing WebLogic domains.                                    |
 
 ## Distribution layout
 
-The Verrazzano Commercial Edition distribution includes the following artifacts:
+The layout of the Verrazzano distribution is as follows:
 
 * `verrazzano-<major>.<minor>.<patch>/`
   * `README.md`
-  * `README.html` 
   * `LICENSE`: The Universal Permissive License (UPL).
   * `bin/`    
-     * `linux-amd64/vz`: Verrazzano command-line interface for Linux AMD64 architecture.
-     * `linux-arm64/vz`: Verrazzano command-line interface for Linux ARM64 architecture.
-     * `darwin-amd64/vz`: Verrazzano command-line interface for Darwin AMD64 architecture.
-     * `darwin-arm64/vz`: Verrazzano command-line interface for Darwin ARM64 architecture.
-     * `vz-registry-image-helper.sh, bom_utils.sh`:  Helper scripts to download the images from the bill of materials (BOM).
+     * `vz`: Verrazzano command-line interface.
+     * `vz-registry-image-helper.sh,bom_utils.sh`: Helper scripts to download the images from the bill of materials (BOM).
   * `manifests/`     
-     * `k8s/verrazzano-platform-operator.yaml`: Kubernetes manifests to deploy the Verrazzano platform operator.
-     * `charts/verrazzano-platform-operator/`: Helm chart for the Verrazzano Platform Operator.
-     * `verrazzano-bom.json`: Bill of materials (BOM) containing the list of Docker images for Verrazzano and the components installed by Verrazzano.
-  * `images/`:  Verrazzano Enterprise Container Platform archives for private registry install.
+     * `k8s/verrazzano-platform-operator.yaml`: Collection of Kubernetes manifests to deploy the Verrazzano Platform Operator.
+     * `charts/verrazzano-platform-operator/`: Helm charts for the Verrazzano Platform Operator.
+     * `verrazzano-bom.json`: Bill of materials (BOM) containing the list of Docker images required for installing Verrazzano.
 
 ## Install Verrazzano using a private container registry
 
 You can install Verrazzano using a private Docker-compliant container registry. This requires the following:
 
-*    Load the product images into your private registry. This includes loading all the required Verrazzano container images from `/images` into your own registry and repository.
+*    Loading all the required Verrazzano container images into your own registry and repository.
+*    Installing the Verrazzano platform operator with the private registry and repository used to load the images.
+
+To obtain the required Verrazzano images and install from your private registry, you must:
+*    Download the required Verrazzano images defined in `verrazzano-bom.json` as `tar.gz` file using `vz-registry-image-helper.sh`.
+     ```
+     $ bin/vz-registry-image-helper.sh -b ../manifests/verrazzano-bom.json -f verrazzano_images.tar.gz
+     ```
+*    Expand the TAR file to a directory of your choice.
+     ```
+     $ tar xvf verrazzano_images.tar.gz -C <directory>
+     ```
+*    Load the product images into your private registry.
 *    Install Verrazzano using the instructions in the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).
+
+Verrazzano release versions and source code are available at https://github.com/verrazzano/verrazzano.    
 
 ## Support
 
-*    If you have any questions about Verrazzano Commercial Edition, contact us through our [Slack channel](https://bit.ly/3gOeRJn).
+*    If you have any questions about Verrazzano, contact us through our [Slack channel](https://bit.ly/3gOeRJn).
 *    For instructions about using Verrazzano, see the [Verrazzano documentation](https://verrazzano.io/latest/docs/).
 *    For detailed installation instructions, see the [Install Guide](https://verrazzano.io/latest/docs/setup/install/installation/) in the Verrazzano documentation.
 *    For troubleshooting information, see [Diagnostic Tools](https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/) in the Verrazzano documentation.

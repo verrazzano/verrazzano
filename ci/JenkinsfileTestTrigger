@@ -158,7 +158,7 @@ pipeline {
                             script {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: true),
+                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: false),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -178,7 +178,7 @@ pipeline {
                             script {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: true),
+                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: false),
                                         booleanParam(name: 'EXTERNAL_ELASTICSEARCH', value: true),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -189,6 +189,29 @@ pipeline {
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
                                         string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
                                         string(name: 'VERSION_FOR_INSTALL', value: 'v1.2.0'),
+                                    ], wait: true
+                            }
+                        }
+                    }
+                }
+                stage('Upgrade Path Tests with External ES') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                def latestRelease = getLatestReleaseVersion()
+                                build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        booleanParam(name: 'EXTERNAL_ELASTICSEARCH', value: true),
+                                        string(name: 'VERSION_FOR_INSTALL', value: latestRelease),
+                                        string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }

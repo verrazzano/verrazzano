@@ -5,6 +5,8 @@ package verrazzano
 
 import (
 	"fmt"
+	"path/filepath"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -21,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -112,7 +113,7 @@ func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-	return verrazzanoPreUpgrade(ctx, ComponentNamespace)
+	return verrazzanoPreUpgrade(ctx)
 }
 
 // Upgrade Verrazzano component upgrade processing

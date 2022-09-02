@@ -175,7 +175,7 @@ func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error)
 	}
 	var profileFiles []string
 	for _, profile := range profiles {
-		profileFiles = append(profileFiles, config.GetProfile(profile))
+		profileFiles = append(profileFiles, config.GetProfile(actualCR.GroupVersionKind().GroupVersion(), profile))
 	}
 	// Merge the profile files into an effective profile YAML string
 	effectiveCR, err := MergeProfiles(actualCR, profileFiles...)
@@ -208,7 +208,7 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 	}
 	var profileFiles []string
 	for _, profile := range profiles {
-		profileFiles = append(profileFiles, config.GetProfile(profile))
+		profileFiles = append(profileFiles, config.GetProfile(actualCR.GroupVersionKind().GroupVersion(), profile))
 	}
 	// Merge the profile files into an effective profile YAML string
 	effectiveCR, err := MergeProfilesForV1beta1(actualCR, profileFiles...)
@@ -453,8 +453,8 @@ func appendComponentOverridesV1beta1(actual, profile *v1beta1.Verrazzano) {
 		actualDNS.ValueOverrides = mergeOverridesV1beta1(actualDNS.ValueOverrides, profileDNS.ValueOverrides)
 	}
 
-	actualIngress := actual.Spec.Components.Ingress
-	profileIngress := profile.Spec.Components.Ingress
+	actualIngress := actual.Spec.Components.IngressNGINX
+	profileIngress := profile.Spec.Components.IngressNGINX
 	if actualIngress != nil && profileIngress != nil {
 		actualIngress.ValueOverrides = mergeOverridesV1beta1(actualIngress.ValueOverrides, profileIngress.ValueOverrides)
 	}
