@@ -33,9 +33,9 @@ const (
 // +kubebuilder:resource:path=verrazzanos
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=vz;vzs
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall"
-// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano installation"
-// +kubebuilder:deprecatedversion:warning="install.verrazzano.io/v1alpha1 Verrazzano is deprecated; see https://verrazzano.io/latest/docs/releasenotes/#v140 for instructions to migrate to install.verrazzano.io/v1beta1 Verrazzano"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall."
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano installation."
+// +kubebuilder:deprecatedversion:warning="install.verrazzano.io/v1alpha1 Verrazzano is deprecated. To migrate to install.verrazzano.io/v1beta1 Verrazzano, see https://verrazzano.io/latest/docs/releasenotes/#v140."
 // +genclient
 
 // Verrazzano is the Schema for the verrazzanos API
