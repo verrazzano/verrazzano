@@ -120,7 +120,11 @@ spec:
             frobber: frob
     grafana:
       enabled: true
-    ingress:
+      replicas: 1
+      database:
+        host: host
+        name: name
+    ingressNGINX:
       enabled: true
       overrides:
         - values:

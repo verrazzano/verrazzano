@@ -170,7 +170,11 @@ func runCmdStatus(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		"verrazzano_namespace": vz.Namespace,
 		"verrazzano_version":   vz.Status.Version,
 		"verrazzano_state":     string(vz.Status.State),
-		"install_profile":      string(vz.Spec.Profile),
+	}
+	if vz.Spec.Profile == "" {
+		templateValues["install_profile"] = string(vzapi.Prod)
+	} else {
+		templateValues["install_profile"] = string(vz.Spec.Profile)
 	}
 	addAccessEndpoints(vz.Status.VerrazzanoInstance, templateValues)
 	addComponents(vz.Status.Components, templateValues)

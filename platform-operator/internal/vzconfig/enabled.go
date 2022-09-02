@@ -44,8 +44,8 @@ func IsNGINXEnabled(cr runtime.Object) bool {
 			return *vzv1alpha1.Spec.Components.Ingress.Enabled
 		}
 	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
-		if vzv1beta1 != nil && vzv1beta1.Spec.Components.Ingress != nil && vzv1beta1.Spec.Components.Ingress.Enabled != nil {
-			return *vzv1beta1.Spec.Components.Ingress.Enabled
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.IngressNGINX != nil && vzv1beta1.Spec.Components.IngressNGINX.Enabled != nil {
+			return *vzv1beta1.Spec.Components.IngressNGINX.Enabled
 		}
 	}
 	return true

@@ -31,7 +31,6 @@ pipeline {
             label "${agentLabel}"
         }
     }
-
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
@@ -50,11 +49,11 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.20.8", "v1.21.5", "v1.22.5" ])
+                choices: [ "v1.20.8", "v1.21.5", "v1.22.5", "v1.23.4", "v1.24.1" ])
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.21", "1.22", "1.23" ])
+                choices: [ "1.20", "1.21", "1.22", "1.23", "1.24" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.1.2',
                 description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.1.2 release will be installed',
@@ -167,16 +166,18 @@ pipeline {
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
-
         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
 
+        // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+        CAPTURE_FULL_CLUSTER="false"
+
+        // Environment variable for Verrazzano CLI executable
         VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
-
         EXTERNAL_ELASTICSEARCH = "${params.EXTERNAL_ELASTICSEARCH}"
 
         // used for console artifact capture on failure
@@ -210,7 +211,6 @@ pipeline {
 
         VERSION_FOR_UPGRADE_ENV = "${params.VERSION_FOR_UPGRADE}"
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
-
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
         RUNNING_OPERATOR_VERSION = ""
     }
@@ -659,7 +659,7 @@ pipeline {
                 }
             }
             copyGeneratedTestReports()
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/*bug-report*/**,**/test-cluster-snapshots/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/*bug-report*/**,**/full-cluster/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -1456,12 +1456,7 @@ def dumpK8sSpecificCluster(count, dumpDirectory) {
         script {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                mkdir -p ${dumpDirectory}/cluster-snapshot
-                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot-${count} -r ${dumpDirectory}/cluster-snapshot-${count}/cluster-snapshot/analysis.report
-
-                mkdir -p ${dumpDirectory}/bug-report-${count}/bug-report
-                ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report-${count}/bug-report.tar.gz
-                tar -xvf ${dumpDirectory}/bug-report-${count}/bug-report.tar.gz -C ${dumpDirectory}/bug-report-${count}/bug-report
+                ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}/cluster-snapshot-${count}
             """
         }
     }

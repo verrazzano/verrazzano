@@ -1,0 +1,108 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RELEASE_RUNNER_IMAGE}"
+            args "${RELEASE_RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "internal"
+        }
+    }
+
+    parameters {
+        string (description: 'The release branch', name: 'RELEASE_BRANCH', defaultValue: 'NONE', trim: true)
+        string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
+        choice (name: 'DISTRIBUTION_VARIANT',
+                description: 'Verrazzano Distribution Variant to use for scanning',
+                choices: ["Full", "Lite"])
+    }
+
+    environment {
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        NETRC_FILE = credentials('netrc')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
+        IS_PATCH_RELEASE = 'false'
+
+        OBJECT_STORAGE_NS = credentials('oci-os-namespace')
+        OBJECT_STORAGE_BUCKET="verrazzano-builds"
+        OCI_REGION="us-phoenix-1"
+        OCI_CLI_AUTH="api_key"
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+
+        RELEASE_BINARIES_DIR = "${WORKSPACE}/release/scripts/release_work"
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        BUNDLE_TO_SCAN = "${params.DISTRIBUTION_VARIANT}"
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+                script {
+                    def scmInfo = checkout scm
+                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+                sh """
+                    cp -f "${NETRC_FILE}" $HOME/.netrc
+                    chmod 600 $HOME/.netrc
+                """
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                }
+            }
+        }
+
+        stage('Scan Release Binaries') {
+            environment {
+                SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
+                SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
+                VIRUS_DEFINITION_LOCATION = credentials('virus-definition-location')
+                NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
+            }
+           steps {
+                script {
+                    // The scan alone takes around 55 minutes, so setting a higher timeout
+                    timeout(time: 240, unit: 'MINUTES') {
+                        sh """
+                            cd ${WORKSPACE}/release/scripts
+
+                            if [ ${params.RELEASE_BRANCH} == "NONE" ]; then
+                              ./scan_release_binaries.sh ${env.BRANCH_NAME.replace("/", "%2F")}-last-clean-periodic-test ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                            else
+                              ./scan_release_binaries.sh "${params.RELEASE_BRANCH}-last-clean-periodic-test" ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                            fi
+                        """
+                   }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: "**/scan_report*.out,**/scan_summary*.out,", allowEmptyArchive: true
+        }
+        cleanup {
+            deleteDir()
+        }
+    }
+}
+

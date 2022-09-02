@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -58,7 +60,7 @@ func isMySQLReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	serverReplicas := 1
 	routerReplicas := 0
-	overrides, err := common.GetInstallOverridesYAML(context, GetOverrides(context.EffectiveCR()))
+	overrides, err := common.GetInstallOverridesYAML(context, GetOverrides(context.EffectiveCR()).([]vzapi.Overrides))
 	if err != nil {
 		return false
 	}
@@ -262,10 +264,19 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 }
 
 // GetOverrides gets the list of overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.Keycloak != nil {
-		return effectiveCR.Spec.Components.Keycloak.MySQL.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Keycloak != nil {
+			return effectiveCR.Spec.Components.Keycloak.MySQL.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Keycloak != nil {
+			return effectiveCR.Spec.Components.Keycloak.MySQL.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 

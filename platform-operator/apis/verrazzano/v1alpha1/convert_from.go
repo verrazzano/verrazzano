@@ -114,7 +114,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		Elasticsearch:          convertOpenSearchFromV1Beta1(in.OpenSearch),
 		Fluentd:                convertFluentdFromV1Beta1(in.Fluentd),
 		Grafana:                convertGrafanaFromV1Beta1(in.Grafana),
-		Ingress:                convertIngressNGINXFromV1Beta1(in.Ingress),
+		Ingress:                convertIngressNGINXFromV1Beta1(in.IngressNGINX),
 		Istio:                  convertIstioFromV1Beta1(in.Istio),
 		JaegerOperator:         convertJaegerOperatorFromV1Beta1(in.JaegerOperator),
 		Kiali:                  convertKialiFromV1Beta1(in.Kiali),
@@ -313,8 +313,17 @@ func convertGrafanaFromV1Beta1(in *v1beta1.GrafanaComponent) *GrafanaComponent {
 	if in == nil {
 		return nil
 	}
+	var info *DatabaseInfo
+	if in.Database != nil {
+		info = &DatabaseInfo{
+			Host: in.Database.Host,
+			Name: in.Database.Name,
+		}
+	}
 	return &GrafanaComponent{
-		Enabled: in.Enabled,
+		Enabled:  in.Enabled,
+		Replicas: in.Replicas,
+		Database: info,
 	}
 }
 

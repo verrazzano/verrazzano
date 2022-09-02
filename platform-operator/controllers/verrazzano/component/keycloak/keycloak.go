@@ -12,6 +12,8 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
 	"strings"
 	"text/template"
@@ -781,16 +783,19 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Creating rancher client
-	err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
-	if err != nil {
-		return err
-	}
+	if vzconfig.IsRancherEnabled(ctx.ActualCR()) {
+		// Creating rancher client
+		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
+		if err != nil {
+			return err
+		}
 
-	// Update Keycloak AuthConfig for Rancher with client secret
-	err = updateRancherClientSecretForKeycloakAuthConfig(ctx)
-	if err != nil {
-		return err
+		// Update Keycloak AuthConfig for Rancher with client secret
+		err = updateRancherClientSecretForKeycloakAuthConfig(ctx)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	// Setting password policy for master
@@ -1391,10 +1396,19 @@ func isPodReady(pod *v1.Pod) bool {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.Keycloak != nil {
-		return effectiveCR.Spec.Components.Keycloak.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Keycloak != nil {
+			return effectiveCR.Spec.Components.Keycloak.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Keycloak != nil {
+			return effectiveCR.Spec.Components.Keycloak.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 

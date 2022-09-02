@@ -391,6 +391,26 @@ func TestConvertToV1Beta1(t *testing.T) {
 			testCaseInstallArgsErr,
 			true,
 		},
+		{
+			"convert base profile",
+			testBaseProfile,
+			false,
+		},
+		{
+			"convert prod profile",
+			testProdProfile,
+			false,
+		},
+		{
+			"convert dev profile",
+			testDevProfile,
+			false,
+		},
+		{
+			"convert managed-cluster profile",
+			testManagedClusterProfile,
+			false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -402,6 +422,7 @@ func TestConvertToV1Beta1(t *testing.T) {
 			// compute the actual v1beta1 CR from the v1alpha1 CR
 			v1beta1Actual := &v1beta1.Verrazzano{}
 			err = v1alpha1CR.ConvertTo(v1beta1Actual)
+
 			if tt.hasError {
 				assert.Error(t, err)
 			} else {

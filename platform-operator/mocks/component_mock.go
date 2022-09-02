@@ -306,10 +306,10 @@ func (mr *MockComponentInfoMockRecorder) GetMinVerrazzanoVersion() *gomock.Call 
 }
 
 // GetOverrides mocks base method.
-func (m *MockComponentInfo) GetOverrides(arg0 *v1alpha1.Verrazzano) []v1alpha1.Overrides {
+func (m *MockComponentInfo) GetOverrides(arg0 runtime.Object) interface{} {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOverrides", arg0)
-	ret0, _ := ret[0].([]v1alpha1.Overrides)
+	ret0, _ := ret[0].(interface{})
 	return ret0
 }
 
@@ -571,6 +571,20 @@ func (m *MockComponent) EXPECT() *MockComponentMockRecorder {
 	return m.recorder
 }
 
+// ShouldInstallBeforeUpgrade mocks base method.
+func (m *MockComponent) ShouldInstallBeforeUpgrade() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ShouldInstallBeforeUpgrade")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (mr *MockComponentMockRecorder) ShouldInstallBeforeUpgrade() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldInstallBeforeUpgrade", reflect.TypeOf((*MockComponent)(nil).ShouldInstallBeforeUpgrade))
+}
+
 // GetCertificateNames mocks base method.
 func (m *MockComponent) GetCertificateNames(arg0 spi.ComponentContext) []types.NamespacedName {
 	m.ctrl.T.Helper()
@@ -642,10 +656,10 @@ func (mr *MockComponentMockRecorder) GetMinVerrazzanoVersion() *gomock.Call {
 }
 
 // GetOverrides mocks base method.
-func (m *MockComponent) GetOverrides(arg0 *v1alpha1.Verrazzano) []v1alpha1.Overrides {
+func (m *MockComponent) GetOverrides(arg0 runtime.Object) interface{} {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOverrides", arg0)
-	ret0, _ := ret[0].([]v1alpha1.Overrides)
+	ret0, _ := ret[0].(interface{})
 	return ret0
 }
 

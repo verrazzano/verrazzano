@@ -67,6 +67,8 @@ pipeline {
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
@@ -187,6 +189,21 @@ pipeline {
                             """
                         }
                     }
+                    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+                        try {
+                            sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        } catch(error) {
+                            echo "docker login failed, retrying after sleep"
+                            retry(4) {
+                                sleep(30)
+                                sh """
+                                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                                """
+                            }
+                        }
+                    }
                 }
 
                 script {
@@ -216,7 +233,7 @@ pipeline {
                             script {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: true),
+                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: false),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -370,6 +387,23 @@ pipeline {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                         parameters: [
                                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23'),
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                                string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                                string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                                string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
+                                        ], wait: true
+                            }
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.24') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                        parameters: [
+                                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                                 string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),

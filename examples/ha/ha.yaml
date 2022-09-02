@@ -8,7 +8,7 @@ metadata:
 spec:
   profile: prod
   components:
-    authproxy:
+    authProxy:
       kubernetes:
         replicas: 2
     certManager:

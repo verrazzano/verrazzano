@@ -52,7 +52,7 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	// THEN the update fails and an error is reported to the user
 	t.It("OpenSearch update with duplicate names should fail", func() {
 		m := OpensearchDuplicateNodeGroupModifier{string(vmov1.DataRole)}
-		errMsg := "OpenSearch node group name is duplicated or invalid"
+		errMsg := "duplicate OpenSearch"
 		gomega.Eventually(func() bool {
 			err := update.UpdateCRExpectError(m)
 			if err != nil && strings.Contains(err.Error(), errMsg) {

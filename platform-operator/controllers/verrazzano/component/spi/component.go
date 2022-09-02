@@ -46,6 +46,8 @@ type ComponentInfo interface {
 	Name() string
 	// Namespace returns the namespace of the Verrazzano component
 	Namespace() string
+	// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done, default false
+	ShouldInstallBeforeUpgrade() bool
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 	// IsReady Indicates whether or not a component is available and ready
@@ -61,7 +63,7 @@ type ComponentInfo interface {
 	// GetJsonName returns the josn name of the verrazzano component in CRD
 	GetJSONName() string
 	// GetOverrides returns the list of overrides for a component
-	GetOverrides(effectiveCR *v1alpha1.Verrazzano) []v1alpha1.Overrides
+	GetOverrides(effectiveCR runtime.Object) interface{}
 	// MonitorOverrides indicates whether the override sources for a component need to be monitored
 	MonitorOverrides(context ComponentContext) bool
 }

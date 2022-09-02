@@ -139,9 +139,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return newRequeueWithDelay(), nil
 	}
 	// The Verrazzano resource has been reconciled.
-
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
-
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
 	return ctrl.Result{}, nil
@@ -229,7 +227,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		}
 
 		// Keep retrying to reconcile components until it completes
-		if result, err := r.reconcileComponents(vzctx); err != nil {
+		if result, err := r.reconcileComponents(vzctx, false); err != nil {
 			return newRequeueWithDelay(), err
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
@@ -284,7 +282,7 @@ func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctr
 	log := vzctx.Log
 	log.Debug("Entering ProcInstallingState")
 
-	if result, err := r.reconcileComponents(vzctx); err != nil {
+	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
@@ -316,6 +314,13 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return newRequeueWithDelay(), err
 	}
 
+	// Install any new components and do any updates to existing components
+	if result, err := r.reconcileComponents(vzctx, true); err != nil {
+		return newRequeueWithDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
+		return result, nil
+	}
+
 	// Only upgrade if Version has changed.  When upgrade completes, it will update the status version, see upgrade.go
 	if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
 		if result, err := r.reconcileUpgrade(log, actualCR); err != nil {
@@ -325,8 +330,8 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		}
 	}
 
-	// Install any new components and do any updates to existing components
-	if result, err := r.reconcileComponents(vzctx); err != nil {
+	// Install components that should be installed before upgrade
+	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
@@ -781,6 +786,7 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 			return false, err
 		}
 		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
+			spiCtx.Log().Progressf("Waiting for component %s to be ready", comp.Name())
 			return false, nil
 		}
 	}

@@ -232,9 +232,16 @@ func (f fluentdComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Fluentd != nil {
+			return effectiveCR.Spec.Components.Fluentd.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	}
+	effectiveCR := object.(*installv1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.Fluentd != nil {
 		return effectiveCR.Spec.Components.Fluentd.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []installv1beta1.Overrides{}
 }

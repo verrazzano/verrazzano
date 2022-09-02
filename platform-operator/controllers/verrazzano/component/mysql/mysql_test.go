@@ -29,9 +29,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesDir = "../../../../manifests/profiles"
+const profilesDir = "../../../../manifests/profiles/v1alpha1"
 const (
-	profilesRelativePath = "../../../../manifests/profiles"
+	profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
 )
 
 var crEnabled = vzapi.Verrazzano{

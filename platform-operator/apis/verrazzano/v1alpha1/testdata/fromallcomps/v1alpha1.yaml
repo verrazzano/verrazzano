@@ -121,6 +121,10 @@ spec:
             frobber: frob
     grafana:
       enabled: true
+      replicas: 1
+      database:
+        host: host
+        name: name
     ingress:
       enabled: true
       type: LoadBalancer
