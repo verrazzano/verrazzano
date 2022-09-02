@@ -314,9 +314,9 @@ type ComponentSpec struct {
 	// +optional
 	Grafana *GrafanaComponent `json:"grafana,omitempty"`
 
-	// Ingress contains the ingress-nginx component configuration
+	// IngressNGINX contains the ingress-nginx component configuration
 	// +optional
-	Ingress *IngressNginxComponent `json:"ingress,omitempty"`
+	IngressNGINX *IngressNginxComponent `json:"ingressNGINX,omitempty"`
 
 	// Istio contains the istio component configuration
 	// +optional

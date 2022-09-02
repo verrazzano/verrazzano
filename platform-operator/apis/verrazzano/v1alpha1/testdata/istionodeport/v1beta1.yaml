@@ -7,7 +7,7 @@ metadata:
 spec:
   profile: prod
   components:
-    ingress:
+    ingressNGINX:
       ports:
         - name: https
           protocol: TCP

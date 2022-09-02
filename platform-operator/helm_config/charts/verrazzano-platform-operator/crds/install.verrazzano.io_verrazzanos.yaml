@@ -4304,7 +4304,7 @@ spec:
                         format: int32
                         type: integer
                     type: object
-                  ingress:
+                  ingressNGINX:
                     properties:
                       enabled:
                         type: boolean
