@@ -1234,6 +1234,12 @@ def runGinkgoRandomizeParallel(testSuitePath) {
                 } else {
                     clusterName="managed${count-1}"
                 }
+                sh """
+                    export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                    export CLUSTER_NAME="${clusterName}"
+                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                    ginkgo build ${testSuitePath}/
+                """
                 runGinkgoRandomizeStages["${count} - Executing ginkgo test suite ${testSuitePath}"] = runGinkgoRandomize(count, clusterName, testSuitePath)
             }
             parallel runGinkgoRandomizeStages
@@ -1249,7 +1255,6 @@ def runGinkgoRandomize(count, clusterName, testSuitePath) {
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 export CLUSTER_NAME="${clusterName}"
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo build ${testSuitePath}/
                 ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test
             """
         }
