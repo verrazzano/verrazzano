@@ -44,14 +44,17 @@ WORK_DIR=${2:-$SCRIPT_DIR}
 SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
 SCANNER_HOME="$WORK_DIR/scanner_home"
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
-RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-open-source.zip"
+VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
 
-# Option to scan commercial bundle
-if [ "${BUNDLE_TO_SCAN}" == "commercial" ];then
-  RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-commercial.zip"
-fi
-
+RELEASE_TAR_BALL="$VERRAZZANO_PREFIX-lite.zip"
 RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
+DIR_TO_SCAN="$RELEASE_BUNDLE_DIR"
+
+# Option to scan full bundle
+if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
+  RELEASE_TAR_BALL="$VERRAZZANO_PREFIX.zip"
+  DIR_TO_SCAN="$RELEASE_BUNDLE_DIR/$VERRAZZANO_PREFIX"
+fi
 
 function download_release_tarball() {
   cd $WORK_DIR
@@ -88,14 +91,15 @@ function scan_release_binaries() {
   unzip $RELEASE_TAR_BALL
   rm $RELEASE_TAR_BALL
 
+  cd $DIR_TO_SCAN
   count_files=$(ls -1q *.* | wc -l)
-  ls $RELEASE_BUNDLE_DIR
+  ls
 
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
   # Also --REPORT option prints the output of the scan in the console, which is removed and redirected to a file
-  echo "Starting the scan of $RELEASE_BUNDLE_DIR, it might take a longer duration. The output of the scan is being written to $SCAN_REPORT ..."
-  ./uvscan $RELEASE_BUNDLE_DIR --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
+  echo "Starting the scan of $DIR_TO_SCAN, it might take a longer duration. The output of the scan is being written to $SCAN_REPORT ..."
+  ./uvscan $DIR_TO_SCAN --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
 
   # Extract only the last 25 lines from the scan report and create a file, which will be used for the validation
   local scan_summary="${SCAN_REPORT_DIR}/scan_summary.out"

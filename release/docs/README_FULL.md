@@ -1,10 +1,10 @@
-# Verrazzano Commercial Edition
+# Verrazzano
 
-Verrazzano Commercial Edition is a fully-featured enterprise container platform for deploying cloud native and traditional applications in multicloud
+Verrazzano is a fully-featured enterprise container platform for deploying cloud native and traditional applications in multicloud
 and hybrid environments, packaged for the enterprise.
 
 # Overview
-Verrazzano Commercial Edition includes the following capabilities:
+Verrazzano includes the following capabilities:
 
 - Hybrid and multicluster workload management
 - Special handling for WebLogic, Coherence, and Helidon applications
@@ -14,7 +14,7 @@ Verrazzano Commercial Edition includes the following capabilities:
 - DevOps and GitOps enablement
 
 # Components
-Verrazzano Commercial Edition includes a curated set of open source components – many that you may already use and trust, 
+Verrazzano includes a curated set of open source components – many that you may already use and trust,
 and some that were written specifically to pull together all the pieces to make this a cohesive and easy to use platform.
 
 | Component                    | Version | Description                                                                              |
@@ -41,15 +41,14 @@ and some that were written specifically to pull together all the pieces to make 
 | Prometheus Operator          | 0.55.1  | Provides management for Prometheus monitoring tools.                                     |
 | Prometheus Pushgateway       | 1.4.2   | Allows ephemeral and batch jobs to expose their metrics to Prometheus.                   |
 | Rancher                      | 2.6.7   | Manages multiple Kubernetes clusters.                                                    |
-| WebLogic Kubernetes Operator | 3.4.0   | Assists with deploying and managing WebLogic domains.                                    |
+| WebLogic Kubernetes Operator | 3.4.3   | Assists with deploying and managing WebLogic domains.                                    |
 
 ## Distribution layout
 
-The Verrazzano Commercial Edition distribution includes the following artifacts:
+The Verrazzano distribution includes the following artifacts:
 
 * `verrazzano-<major>.<minor>.<patch>/`
   * `README.md`
-  * `README.html` 
   * `LICENSE`: The Universal Permissive License (UPL).
   * `bin/`    
      * `linux-amd64/vz`: Verrazzano command-line interface for Linux AMD64 architecture.
@@ -67,12 +66,12 @@ The Verrazzano Commercial Edition distribution includes the following artifacts:
 
 You can install Verrazzano using a private Docker-compliant container registry. This requires the following:
 
-*    Load the product images into your private registry. This includes loading all the required Verrazzano container images from `/images` into your own registry and repository.
+*    Load the product images into your private registry. This includes loading all the required Verrazzano container images from `/images` directory of the distribution into your own registry and repository.
 *    Install Verrazzano using the instructions in the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).
 
 ## Support
 
-*    If you have any questions about Verrazzano Commercial Edition, contact us through our [Slack channel](https://bit.ly/3gOeRJn).
+*    If you have any questions about Verrazzano, contact us through our [Slack channel](https://bit.ly/3gOeRJn).
 *    For instructions about using Verrazzano, see the [Verrazzano documentation](https://verrazzano.io/latest/docs/).
 *    For detailed installation instructions, see the [Install Guide](https://verrazzano.io/latest/docs/setup/install/installation/) in the Verrazzano documentation.
 *    For troubleshooting information, see [Diagnostic Tools](https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/) in the Verrazzano documentation.
