@@ -124,7 +124,7 @@ spec:
       database:
         host: host
         name: name
-    ingress:
+    ingressNGINX:
       enabled: true
       overrides:
         - values:
