@@ -435,7 +435,6 @@ def getStageOfUpgradeJob(job) {
                         echo "Caught: ${err}"
                         sh "exit 1"
                     }
-                    // currentBuild.result = 'FAILURE'
                 }
             }
         }
