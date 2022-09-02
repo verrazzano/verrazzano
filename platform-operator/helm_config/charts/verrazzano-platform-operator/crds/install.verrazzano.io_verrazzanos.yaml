@@ -2625,6 +2625,42 @@ spec:
                           type: object
                         type: array
                     type: object
+                  mySQLOperator:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
                   oam:
                     properties:
                       enabled:
@@ -4255,10 +4291,20 @@ spec:
                     type: object
                   grafana:
                     properties:
+                      database:
+                        properties:
+                          host:
+                            type: string
+                          name:
+                            type: string
+                        type: object
                       enabled:
                         type: boolean
+                      replicas:
+                        format: int32
+                        type: integer
                     type: object
-                  ingress:
+                  ingressNGINX:
                     properties:
                       enabled:
                         type: boolean
@@ -5178,6 +5224,42 @@ spec:
                         type: array
                     type: object
                   kubeStateMetrics:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  mySQLOperator:
                     properties:
                       enabled:
                         type: boolean

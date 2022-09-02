@@ -89,7 +89,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Incorrect host returns a 404", minimumVersion, kubeconfigPath, func() {
-			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OLCNE" {
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OLCNE" && os.Getenv("TEST_ENV") != "LRE" {
 				Eventually(func() (string, error) {
 					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 					if err != nil {
@@ -121,7 +121,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Directory traversal returns a 400", minimumVersion, kubeconfigPath, func() {
-			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OLCNE" {
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OLCNE" && os.Getenv("TEST_ENV") != "LRE" {
 				Eventually(func() (string, error) {
 					api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 					vzURL, err := api.GetVerrazzanoIngressURL()

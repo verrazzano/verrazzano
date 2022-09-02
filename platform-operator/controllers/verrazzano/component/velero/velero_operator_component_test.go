@@ -22,7 +22,7 @@ import (
 	"testing"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
 
 var enabled = true
 var veleroEnabledCR = &vzapi.Verrazzano{

@@ -84,6 +84,12 @@ func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationRes
 			registrationSecret.Data[mcconstants.RegistrationPasswordKey] = adminRegistrationSecret.Data[mcconstants.RegistrationPasswordKey]
 			registrationSecret.Data[mcconstants.KeycloakURLKey] = adminRegistrationSecret.Data[mcconstants.KeycloakURLKey]
 			registrationSecret.Data[mcconstants.ESCaBundleKey] = adminRegistrationSecret.Data[mcconstants.ESCaBundleKey]
+			registrationSecret.Data[mcconstants.JaegerOSURLKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSURLKey]
+			registrationSecret.Data[mcconstants.JaegerOSUsernameKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSUsernameKey]
+			registrationSecret.Data[mcconstants.JaegerOSPasswordKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSPasswordKey]
+			registrationSecret.Data[mcconstants.JaegerOSTLSCAKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSTLSCAKey]
+			registrationSecret.Data[mcconstants.JaegerOSTLSCertKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSTLSCertKey]
+			registrationSecret.Data[mcconstants.JaegerOSTLSKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSTLSKey]
 			return nil
 		})
 		if err != nil {
@@ -107,7 +113,19 @@ func registrationInfoEqual(regSecret1 corev1.Secret, regSecret2 corev1.Secret) b
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.RegistrationPasswordKey],
 			regSecret2.Data[mcconstants.RegistrationPasswordKey]) &&
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.ESCaBundleKey],
-			regSecret2.Data[mcconstants.ESCaBundleKey])
+			regSecret2.Data[mcconstants.ESCaBundleKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.JaegerOSURLKey],
+			regSecret2.Data[mcconstants.JaegerOSURLKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.JaegerOSUsernameKey],
+			regSecret2.Data[mcconstants.JaegerOSUsernameKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.JaegerOSPasswordKey],
+			regSecret2.Data[mcconstants.JaegerOSPasswordKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.JaegerOSTLSCAKey],
+			regSecret2.Data[mcconstants.JaegerOSTLSCAKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.JaegerOSTLSCertKey],
+			regSecret2.Data[mcconstants.JaegerOSTLSCertKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.JaegerOSTLSKey],
+			regSecret2.Data[mcconstants.JaegerOSTLSKey])
 }
 
 // syncLocalClusterCA - synchronize the local cluster CA cert -- update admin copy if local CA changes

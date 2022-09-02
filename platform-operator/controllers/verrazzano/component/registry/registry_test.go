@@ -56,7 +56,7 @@ const (
 	cainjectorDeploymentName  = "cert-manager-cainjector"
 	webhookDeploymentName     = "cert-manager-webhook"
 	certManagerNamespace      = "cert-manager"
-	profileDir                = "../../../../manifests/profiles"
+	profileDir                = "../../../../manifests/profiles/v1alpha1"
 )
 
 // TestGetComponents tests getting the components

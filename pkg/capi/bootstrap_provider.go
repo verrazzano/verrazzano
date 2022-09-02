@@ -24,17 +24,6 @@ func ResetKindBootstrapProvider() {
 	defaultKindBootstrapProviderImpl = &kindBootstrapProviderImpl{}
 }
 
-// SetKindBootstrapProvider for unit testing, override the KIND provider
-func SetCNEBootstrapProvider(p KindBootstrapProvider) {
-	defaultCNEBootstrapProviderImpl = p
-}
-
-// ResetKindBootstrapProvider for unit testing, reset the KIND provider
-func ResetCNEBootstrapProvider() {
-	defaultCNEBootstrapProviderImpl = &cneBootstrapProviderImpl{}
-}
-
 var (
 	defaultKindBootstrapProviderImpl KindBootstrapProvider = &kindBootstrapProviderImpl{}
-	defaultCNEBootstrapProviderImpl  KindBootstrapProvider = &cneBootstrapProviderImpl{}
 )

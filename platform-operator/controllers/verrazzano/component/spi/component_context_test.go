@@ -4,6 +4,7 @@ package spi
 
 import (
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"path/filepath"
 	"testing"
 
@@ -40,7 +41,7 @@ func init() {
 // WHEN I call NewContext
 // THEN the correct correct context is created with the proper merge of the profile and user overrides
 func TestContextProfilesMerge(t *testing.T) {
-	config.TestProfilesDir = "../../../../manifests/profiles"
+	config.TestProfilesDir = "../../../../manifests/profiles/v1alpha1"
 	defer func() { config.TestProfilesDir = "" }()
 
 	tests := []struct {
@@ -161,7 +162,7 @@ func TestContextProfilesMerge(t *testing.T) {
 			a.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 			a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
-			a.Equal(expectedVZ, context.EffectiveCR(), "Effective CR did not match expected results")
+			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results")
 		})
 	}
 }

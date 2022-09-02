@@ -16,7 +16,7 @@ import (
 const (
 	createSubCommandName = "create"
 	createHelpShort      = "Verrazzano cluster create"
-	createHelpLong       = `The command 'cluster create' provisions a new local cluster with the given name (defaults to "` + constants.ClusterNameFlagDefault + `")`
+	createHelpLong       = `Creates a new local cluster`
 	createHelpExample    = `vz cluster create --name mycluster`
 )
 
@@ -52,7 +52,7 @@ func runCmdClusterCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Failed to get the %s flag: %v", constants.ClusterImageFlagName, err)
 	}
 
-	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfigInfo{
+	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfig{
 		ClusterName:    clusterName,
 		Type:           clusterType,
 		ContainerImage: clusterImg,

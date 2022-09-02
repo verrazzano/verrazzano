@@ -2,13 +2,14 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package capi
 
-import (
-	os2 "github.com/verrazzano/verrazzano/pkg/os"
-	"go.uber.org/zap"
-	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
-)
-
 const capiDockerProvider = "docker"
+
+func newKindClusterManager(actualConfig ClusterConfig) (ClusterLifeCycleManager, error) {
+	return &kindClusterManager{
+		config:            actualConfig,
+		bootstrapProvider: defaultKindBootstrapProviderImpl,
+	}, nil
+}
 
 // compile time checking for interface implementation
 var _ ClusterLifeCycleManager = &kindClusterManager{}
@@ -36,28 +37,9 @@ func (r *kindClusterManager) Create() error {
 }
 
 func (r *kindClusterManager) Init() error {
-	return initCAPI(r)
+	return initializeCAPI(r)
 }
 
 func (r *kindClusterManager) Destroy() error {
 	return r.bootstrapProvider.DestroyCluster(r.config)
-}
-
-func initCAPI(clcm ClusterLifeCycleManager) error {
-	config, err := createKubeConfigFile(clcm)
-	if err != nil {
-		return err
-	}
-	defer os2.RemoveTempFiles(zap.S(), config.Name())
-	capiclient, err := capiInitFunc("")
-	if err != nil {
-		return err
-	}
-	_, err = capiclient.Init(clusterapi.InitOptions{
-		Kubeconfig: clusterapi.Kubeconfig{
-			Path: config.Name(),
-		},
-		InfrastructureProviders: defaultCAPIProviders,
-	})
-	return err
 }
