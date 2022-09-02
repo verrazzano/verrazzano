@@ -62,7 +62,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	}
 	var tokenName string
 	if len(sa.Secrets) == 0 {
-		r.log.Infof("Service account %s/%s is missing a secret name. Using the service account token secret created"+
+		r.log.Oncef("Service account %s/%s is missing a secret name. Using the service account token secret created"+
 			" by the VerrazzanoManagedCluster controller", managedNamespace, saName)
 		tokenName = sa.Name + "-token"
 	} else {

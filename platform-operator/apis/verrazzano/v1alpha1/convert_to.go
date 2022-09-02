@@ -121,7 +121,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		OpenSearch:             opensearchComponent,
 		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
 		Grafana:                convertGrafanaToV1Beta1(src.Grafana),
-		Ingress:                ingressComponent,
+		IngressNGINX:           ingressComponent,
 		Istio:                  istioComponent,
 		JaegerOperator:         convertJaegerOperatorToV1Beta1(src.JaegerOperator),
 		Kiali:                  convertKialiToV1Beta1(src.Kiali),
@@ -522,12 +522,6 @@ func convertIstioToV1Beta1(src *IstioComponent) (*v1beta1.IstioComponent, error)
 	}, nil
 }
 
-type IstioOperator struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	Spec              *operatorv1alpha1.IstioOperatorSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-}
-
 func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrides) ([]v1beta1.Overrides, error) {
 	if !isOverrideValueUnset(override) {
 		if len(overrides) < 1 {
@@ -535,10 +529,15 @@ func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrid
 				override,
 			}, nil
 		}
+
 		if isOverrideValueUnset(overrides[0]) {
 			overrides[0].Values = override.Values
 		} else {
-			data, err := strategicpatch.StrategicMergePatch(overrides[0].Values.Raw, override.Values.Raw, IstioOperator{})
+			data, err := strategicpatch.StrategicMergePatch(overrides[0].Values.Raw, override.Values.Raw, struct {
+				metav1.TypeMeta   `json:",inline"`
+				metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+				Spec              *operatorv1alpha1.IstioOperatorSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+			}{})
 			if err != nil {
 				return nil, err
 			}
