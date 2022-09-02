@@ -1108,7 +1108,8 @@ def verifyRegisterManagedCluster(count, minimalVerification) {
                 export MANAGED_CLUSTER_NAME="managed${count-1}"
                 export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/... -- --minimalVerification=${minimalVerification}
+                ginkgo build multicluster/verify-register/
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/*.test -- --minimalVerification=${minimalVerification}
             """
         }
     }
@@ -1138,7 +1139,8 @@ def verifyDeregisterManagedCluster(count) {
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 kubectl -n verrazzano-system delete secret verrazzano-cluster-registration
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/...
+                ginkgo build multicluster/verify-deregister/
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/*.test
             """
         }
     }
@@ -1209,7 +1211,8 @@ def runGinkgoRandomizeSerial(testSuitePath) {
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                    ginkgo build ${testSuitePath}/
+                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test
                 """
             }
         }
