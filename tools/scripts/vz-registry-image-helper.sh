@@ -182,7 +182,7 @@ function check() {
     fi
   fi
 
-  if [ -z "${TO_REGISTRY}" ] && [ -z "${TARBALL}" ]; then
+  if [ -z "${TO_REGISTRY}" ] && [ -z "${TARDIR}" ]; then
     echo "Target registry not specified!"
     usage 1
   fi
