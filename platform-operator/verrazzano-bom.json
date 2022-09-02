@@ -389,6 +389,17 @@
               "helmFullImageKey": "image"
             }
           ]
+        },
+        {
+          "registry": "ghcr.io",
+          "repository": "verrazzano",
+          "name": "additional-mysql-operator",
+          "images": [
+            {
+              "image": "mysql-router",
+              "tag": "8.0.30"
+            }
+          ]
         }
       ]
     },
