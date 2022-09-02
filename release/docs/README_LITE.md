@@ -45,19 +45,6 @@ written specifically to pull together all the pieces to make this a cohesive and
 
 ## Distribution layout
 
-Verrazzano includes the following artifacts:
-
-* `operator.yaml`: A collection of Kubernetes manifests that can be used to deploy the Verrazzano platform operator.
-* `operator.yaml.sha256`: SHA256 checksum of the `operator.yaml` artifact.
-* `verrazzano-<major>.<minor>.<patch>-linux-amd64.tar.gz`: Verrazzano distribution with binaries compiled for AMD64 Linux distributions.
-* `verrazzano-<major>.<minor>.<patch>-linux-amd64.tar.gz.sha256`: SHA256 checksum of `verrazzano-<major>.<minor>.<patch>-linux-amd64.tar.gz` artifact.
-* `verrazzano-<major>.<minor>.<patch>-linux-arm64.tar.gz`: Verrazzano distribution with binaries compiled for ARM64 Linux distributions.
-* `verrazzano-<major>.<minor>.<patch>-linux-arm64.tar.gz.sha256`: SHA256 checksum of `verrazzano-<major>.<minor>.<patch>-linux-arm64.tar.gz` artifact.
-* `verrazzano-<major>.<minor>.<patch>-darwin-amd64.tar.gz`: Verrazzano distribution with binaries compiled for Darwin AMD64 (MacOS) distributions.
-* `verrazzano-<major>.<minor>.<patch>-darwin-amd64.tar.gz.sha256`: SHA256 checksum of `verrazzano-<major>.<minor>.<patch>-darwin-amd64.tar.gz` artifact.
-* `verrazzano-<major>.<minor>.<patch>-darwin-arm64.tar.gz`: Verrazzano distribution with binaries compiled for Darwin ARM64 (MacOS) distributions.
-* `verrazzano-<major>.<minor>.<patch>-darwin-arm64.tar.gz.sha256`: SHA256 checksum of `verrazzano-<major>.<minor>.<patch>-darwin-arm64.tar.gz` artifact.
-
 The layout of the Verrazzano distribution is as follows:
 
 * `verrazzano-<major>.<minor>.<patch>/`
