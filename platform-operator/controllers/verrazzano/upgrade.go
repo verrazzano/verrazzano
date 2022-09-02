@@ -72,9 +72,6 @@ var upgradeTrackerMap = make(map[string]*upgradeTracker)
 func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Oncef("Upgrading Verrazzano to version %s", cr.Spec.Version)
 
-	// Upgrade version was validated in webhook, see ValidateVersion
-	targetVersion := cr.Spec.Version
-
 	tracker := getUpgradeTracker(cr)
 	done := false
 	for !done {
@@ -152,8 +149,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 					componentStatus.LastReconciledGeneration = cr.Generation
 				}
 			}
-			// Update the status with the new version and component generations
-			cr.Status.Version = targetVersion
+			// Update the component generations
 			if err := r.updateVerrazzanoStatus(log, cr); err != nil {
 				return newRequeueWithDelay(), err
 			}

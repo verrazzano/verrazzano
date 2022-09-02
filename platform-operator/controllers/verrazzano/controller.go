@@ -502,7 +502,7 @@ func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	// Set upgrade complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano upgrade completed successfully"
 	// Status and State update must be performed on the actual CR read from K8S
-	return true, r.updateVzStatusAndState(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
+	return true, r.updateVzStatusAndStateAndVersion(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
@@ -626,8 +626,8 @@ func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alph
 	return r.updateVerrazzanoStatus(log, cr)
 }
 
-// updateVzState updates the status state in the Verrazzano CR
-func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, state installv1alpha1.VzStateType) error {
+// updateVzStatusAndStateAndVersion updates the status, state, and version in the Verrazzano CR
+func (r *Reconciler) updateVzStatusAndStateAndVersion(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, state installv1alpha1.VzStateType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -641,6 +641,9 @@ func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *inst
 
 	// Set the state of resource
 	cr.Status.State = state
+
+	// Update the Status Version
+	cr.Status.Version = cr.Spec.Version
 	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
 
 	// Update the status
@@ -768,13 +771,15 @@ func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv
 
 // setInstallStartedCondition
 func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	// Set the version in the status.  This will be updated when the starting install condition is updated.
-	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
-	if err != nil {
-		return err
-	}
+	// Set the version in the status if this is the initial install.  This will be updated when the starting install condition is updated.
+	if vz.Spec.Version == "" {
+		bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
+		if err != nil {
+			return err
+		}
 
-	vz.Status.Version = bomSemVer.ToString()
+		vz.Status.Version = bomSemVer.ToString()
+	}
 	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.CondInstallStarted)
 }
 
