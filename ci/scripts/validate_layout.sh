@@ -1,34 +1,25 @@
 #!/bin/bash
 
-ZIPFILE=$1
+ROOTDIR=$1
 VZ_DEV_VERSION=$2
-TYPE=$3 # Open-source or Commercial
+TYPE=$3 # lite or full bundle
 
+VZ_DIR="verrazzano-${VZ_DEV_VERSION}"
 
-
-if [ $TYPE == "Commercial" ]
+if [ $TYPE == "Lite" ]
   then
-    echo "Provided type is Commercial"
-    TYPE_EXTRACTED="verrazzano-${VZ_DEV_VERSION}-commercial-extracted"
-    mkdir -p $TYPE_EXTRACTED
-    unzip $ZIPFILE -d $TYPE_EXTRACTED
-  else
-    echo "Provided OpenSource"
-    TYPE_EXTRACTED="verrazzano-${VZ_DEV_VERSION}-open-source-extracted"
-    mkdir -p $TYPE_EXTRACTED
-    unzip $ZIPFILE -d $TYPE_EXTRACTED
-
+    echo "Provided Lite bundle"
+    LINUX_NAME="verrazzano-${VZ_DEV_VERSION}-linux-amd64.tar.gz"
     LINUX_EXTRACTED="linux-${VZ_DEV_VERSION}"
+    DARWIN_NAME="verrazzano-${VZ_DEV_VERSION}-darwin-amd64.tar.gz"
     DARWIN_EXTRACTED="darwin-${VZ_DEV_VERSION}"
 
-    mkdir -p $TYPE_EXTRACTED/$LINUX_EXTRACTED
-    tar xvf $TYPE_EXTRACTED/verrazzano-${VZ_DEV_VERSION}-linux-amd64.tar.gz -C $TYPE_EXTRACTED/$LINUX_EXTRACTED
+    mkdir -p $LINUX_EXTRACTED
+    mkdir -p $DARWIN_EXTRACTED
 
-    mkdir -p $TYPE_EXTRACTED/$DARWIN_EXTRACTED
-    tar xvf $TYPE_EXTRACTED/verrazzano-${VZ_DEV_VERSION}-darwin-amd64.tar.gz -C $TYPE_EXTRACTED/$DARWIN_EXTRACTED
+    tar xvf $LINUX_NAME -C $LINUX_EXTRACTED
+    tar xvf $DARWIN_NAME -C $DARWIN_EXTRACTED
 fi
-
-ls $TYPE_EXTRACTED
 
 function checkIfFileExists() {
   fileName=$1
@@ -36,111 +27,113 @@ function checkIfFileExists() {
   if [ ! -e $inputDirectory/$fileName ]
   then
     echo "ERROR: Missing file ${fileName} at ${inputDirectory}"
-    ls $inputDirectory
 #    exit 1 #TODO enable exit code
-#  else
-#    echo "FOUND ${fileName} at ${inputDirectory}"
+  else
+    echo "FOUND ${fileName} at ${inputDirectory}" #TODO cleanup
   fi
 }
 
-function verify_commercial_contents() {
-  checkIfFileExists "LICENSE" $TYPE_EXTRACTED
-  checkIfFileExists "README.MD" $TYPE_EXTRACTED
+function verify_full_contents() {
+  INPUTDIR=$1
+  checkIfFileExists "LICENSE" $INPUTDIR
+  checkIfFileExists "README.MD" $INPUTDIR
 }
 
-function verify_commercial_bin() {
-  DIR=$1
-  checkIfFileExists "bom_utils.sh" $DIR/bin
-  checkIfFileExists "vz-registry-image-helper.sh" $DIR/bin
+function verify_full_bin() {
+  INPUTDIR=$1
+  checkIfFileExists "bom_utils.sh" $INPUTDIR/bin
+  checkIfFileExists "vz-registry-image-helper.sh" $INPUTDIR/bin
 
-  checkIfFileExists "vz" "${DIR}/bin/darwin-amd64"
-  checkIfFileExists "vz" "${DIR}/bin/darwin-arm64"
-  checkIfFileExists "vz" "${DIR}/bin/linux-amd64"
-  checkIfFileExists "vz" "${DIR}/bin/linux-arm64"
+  checkIfFileExists "vz" "${INPUTDIR}/bin/darwin-amd64"
+  checkIfFileExists "vz" "${INPUTDIR}/bin/darwin-arm64"
+  checkIfFileExists "vz" "${INPUTDIR}/bin/linux-amd64"
+  checkIfFileExists "vz" "${INPUTDIR}/bin/linux-arm64"
 }
 
-function verify_commercial_images() {
-    DIR=$1
-    # Verify the images count to some value
-    echo "Count of all tar images are: $(ls $DIR/images | wc -l)"
+function verify_full_images() {
+    INPUTDIR=$1
+    echo "Count of all tar images are: $(ls $INPUTDIR/images | wc -l)" #TODO verify images count
 }
 
 function verify_common_manifests() {
-  DIR=$1
+  INPUTDIR=$1
 
   # Verify BOM
-  checkIfFileExists "verrazzano-bom.json" $DIR/manifests
+  checkIfFileExists "verrazzano-bom.json" $INPUTDIR/manifests
 
   # Verify K8S
-  checkIfFileExists "verrazzano-platform-operator.yaml" $DIR/manifests/k8s
+  checkIfFileExists "verrazzano-platform-operator.yaml" $INPUTDIR/manifests/k8s
 
-  #checkIfFileExists "" $DIR/manifests/profiles
+  #checkIfFileExists "" $INPUTDIR/manifests/profiles
 
   # Verify verrazzano-platform-operator
-  checkIfFileExists "Chart.yaml" $DIR/manifests/charts/verrazzano-platform-operator
-  checkIfFileExists "NOTES.txt" $DIR/manifests/charts/verrazzano-platform-operator
-  checkIfFileExists "values.yaml" $DIR/manifests/charts/verrazzano-platform-operator
+  checkIfFileExists "Chart.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator
+  checkIfFileExists "NOTES.txt" $INPUTDIR/manifests/charts/verrazzano-platform-operator
+  checkIfFileExists "values.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator
 
   # Verify verrazzano-platform-operator/crds
-  checkIfFileExists "clusters.verrazzano.io_verrazzanomanagedclusters.yaml" $DIR/manifests/charts/verrazzano-platform-operator/crds
-  checkIfFileExists "install.verrazzano.io_verrazzanos.yaml" $DIR/manifests/charts/verrazzano-platform-operator/crds
+  checkIfFileExists "clusters.verrazzano.io_verrazzanomanagedclusters.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator/crds
+  checkIfFileExists "install.verrazzano.io_verrazzanos.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator/crds
 
   # Verify verrazzano-platform-operator/templates
-  checkIfFileExists "clusterrole.yaml" $DIR/manifests/charts/verrazzano-platform-operator/templates
-  checkIfFileExists "clusterrolebinding.yaml" $DIR/manifests/charts/verrazzano-platform-operator/templates
-  checkIfFileExists "deployment.yaml" $DIR/manifests/charts/verrazzano-platform-operator/templates
-  checkIfFileExists "namespace.yaml" $DIR/manifests/charts/verrazzano-platform-operator/templates
-  checkIfFileExists "service.yaml" $DIR/manifests/charts/verrazzano-platform-operator/templates
-  checkIfFileExists "serviceaccount.yaml" $DIR/manifests/charts/verrazzano-platform-operator/templates
-  checkIfFileExists "validatingwebhookconfiguration.yaml" $DIR/manifests/charts/verrazzano-platform-operator/templates
+  checkIfFileExists "clusterrole.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator/templates
+  checkIfFileExists "clusterrolebinding.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator/templates
+  checkIfFileExists "deployment.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator/templates
+  checkIfFileExists "namespace.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator/templates
+  checkIfFileExists "service.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator/templates
+  checkIfFileExists "serviceaccount.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator/templates
+  checkIfFileExists "validatingwebhookconfiguration.yaml" $INPUTDIR/manifests/charts/verrazzano-platform-operator/templates
 }
 
-function verify_opensource_contents() {
-  checkIfFileExists "README.MD" $TYPE_EXTRACTED
-  checkIfFileExists "operator.yaml" ${TYPE_EXTRACTED}
-  checkIfFileExists "operator.yaml.sha256" ${TYPE_EXTRACTED}
+function verify_lite_contents() {
+  INPUTDIR=$1
+  checkIfFileExists "operator.yaml" ${INPUTDIR}
+  checkIfFileExists "operator.yaml.sha256" ${INPUTDIR}
 
   # Verify the tar files and sha256 are present for linux and darwin
-  checkIfFileExists "verrazzano-1.4.0-darwin-amd64.tar.gz" ${TYPE_EXTRACTED}
-  checkIfFileExists "verrazzano-1.4.0-darwin-amd64.tar.gz.sha256" ${TYPE_EXTRACTED}
-  checkIfFileExists "verrazzano-1.4.0-linux-amd64.tar.gz" ${TYPE_EXTRACTED}
-  checkIfFileExists "verrazzano-1.4.0-linux-amd64.tar.gz.sha256" ${TYPE_EXTRACTED}
-
-  checkIfFileExists "LICENSE" $TYPE_EXTRACTED/${LINUX_EXTRACTED}
-  checkIfFileExists "LICENSE" $TYPE_EXTRACTED/${DARWIN_EXTRACTED}
+  checkIfFileExists "verrazzano-${VZ_DEV_VERSION}-darwin-amd64.tar.gz" ${INPUTDIR}
+  checkIfFileExists "verrazzano-${VZ_DEV_VERSION}-darwin-amd64.tar.gz.sha256" ${INPUTDIR}
+  checkIfFileExists "verrazzano-${VZ_DEV_VERSION}-linux-amd64.tar.gz" ${INPUTDIR}
+  checkIfFileExists "verrazzano-${VZ_DEV_VERSION}-linux-amd64.tar.gz.sha256" ${INPUTDIR}
 }
 
-function verify_opensource_bin() {
-  DIR=$1
-  checkIfFileExists "bom_utils.sh" $DIR/bin
-  checkIfFileExists "vz" $DIR/bin
-  checkIfFileExists "vz-registry-image-helper.sh" $DIR/bin
+function verify_top_level_flavor_contents() {
+    INPUT_DIR=$1
+    checkIfFileExists "LICENSE" ${INPUT_DIR}
+    checkIfFileExists "README.md" ${INPUT_DIR}
 }
 
-if [ $TYPE == "Commercial" ]
+function verify_lite_bin() {
+  INPUTDIR=$1
+  checkIfFileExists "bom_utils.sh" $INPUTDIR/bin
+  checkIfFileExists "vz" $INPUTDIR/bin
+  checkIfFileExists "vz-registry-image-helper.sh" $INPUTDIR/bin
+}
+
+function validation_cleanup() {
+  INPUTDIR=$1
+  echo "Deleting directory: ${INPUTDIR}"
+  rm -rf ${INPUTDIR}
+}
+
+if [ $TYPE == "Lite" ]
   then
-    echo "Provided type is Commercial"
-    verify_commercial_contents
-    verify_commercial_bin $TYPE_EXTRACTED
-    verify_commercial_images $TYPE_EXTRACTED
-    verify_common_manifests $TYPE_EXTRACTED
-  else
-    echo "In OpenSource"
-    ls $TYPE_EXTRACTED/$LINUX_EXTRACTED # TODO remove
-    ls $TYPE_EXTRACTED/$DARWIN_EXTRACTED #TODO remove
+    verify_lite_contents ${ROOTDIR}
 
-    verify_opensource_contents
-    verify_opensource_bin $TYPE_EXTRACTED/$LINUX_EXTRACTED
-    verify_common_manifests $TYPE_EXTRACTED/$LINUX_EXTRACTED
-    verify_opensource_bin $TYPE_EXTRACTED/$DARWIN_EXTRACTED
-    verify_common_manifests $TYPE_EXTRACTED/$DARWIN_EXTRACTED
+    verify_top_level_flavor_contents ${LINUX_EXTRACTED}/${VZ_DIR}
+    verify_lite_bin ${LINUX_EXTRACTED}/${VZ_DIR}
+    verify_common_manifests ${LINUX_EXTRACTED}/${VZ_DIR}
+    validation_cleanup $LINUX_EXTRACTED
+
+    verify_top_level_flavor_contents ${DARWIN_EXTRACTED}/${VZ_DIR}
+    verify_lite_bin ${DARWIN_EXTRACTED}/${VZ_DIR}
+    verify_common_manifests ${DARWIN_EXTRACTED}/${VZ_DIR}
+    validation_cleanup $DARWIN_EXTRACTED
+  else
+    verify_full_contents ${ROOTDIR}/${VZ_DIR}
+    verify_full_bin ${ROOTDIR}/${VZ_DIR}
+    verify_full_images ${ROOTDIR}/${VZ_DIR}
+    verify_common_manifests ${ROOTDIR}/${VZ_DIR}
 fi
 
 # TODO verify BOM content for open source
-
-function validation_cleanup() {
-  # Cleaning up extracted directory
-   rm -rf $TYPE_EXTRACTED
-}
-
-#validation_cleanup
