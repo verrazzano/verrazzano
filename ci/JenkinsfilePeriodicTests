@@ -233,7 +233,7 @@ pipeline {
                             script {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: true),
+                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: false),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),

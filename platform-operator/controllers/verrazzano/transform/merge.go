@@ -453,8 +453,8 @@ func appendComponentOverridesV1beta1(actual, profile *v1beta1.Verrazzano) {
 		actualDNS.ValueOverrides = mergeOverridesV1beta1(actualDNS.ValueOverrides, profileDNS.ValueOverrides)
 	}
 
-	actualIngress := actual.Spec.Components.Ingress
-	profileIngress := profile.Spec.Components.Ingress
+	actualIngress := actual.Spec.Components.IngressNGINX
+	profileIngress := profile.Spec.Components.IngressNGINX
 	if actualIngress != nil && profileIngress != nil {
 		actualIngress.ValueOverrides = mergeOverridesV1beta1(actualIngress.ValueOverrides, profileIngress.ValueOverrides)
 	}

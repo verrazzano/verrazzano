@@ -108,24 +108,14 @@ func (u OpensearchDuplicateNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
-	cr.Spec.Components.Elasticsearch.Nodes =
-		append(cr.Spec.Components.Elasticsearch.Nodes,
-			vzapi.OpenSearchNode{
-				Name:      string(u.Name),
-				Replicas:  1,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
-				Storage:   newNodeStorage("2Gi"),
-				Resources: newResources("512Mi"),
-			},
-			vzapi.OpenSearchNode{
-				Name:      string(u.Name),
-				Replicas:  1,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
-				Storage:   newNodeStorage("2Gi"),
-				Resources: newResources("512Mi"),
-			},
-		)
+	arg := vzapi.InstallArgs{
+		Name:  "nodes.master.replicas",
+		Value: "1",
+	}
+	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{
+		arg,
+		arg,
+	}
 }
 
 func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -49,18 +49,20 @@ kubectl -n ingress-nginx create rolebinding ${TEST_ID}-${TEST_ROLE}-binding --cl
 kubectl -n keycloak create rolebinding ${TEST_ID}-${TEST_ROLE}-binding --clusterrole=${TEST_ROLE} --serviceaccount=${TEST_NAMESPACE}:${TEST_ID}-sa
 kubectl -n ${TEST_NAMESPACE} create rolebinding ${TEST_ID}-${TEST_ROLE}-binding --clusterrole=${TEST_ROLE} --serviceaccount=${TEST_NAMESPACE}:${TEST_ID}-sa
 kubectl -n ${TEST_NAMESPACE} create rolebinding ${TEST_ID}-${PROJECT_ADMIN_ROLE}-binding --clusterrole=${PROJECT_ADMIN_ROLE} --serviceaccount=${TEST_NAMESPACE}:${TEST_ID}-sa
+# In k8s 1.24 and later, secret is not created for service account. Create a service account token secret and get the
+#	token from the same.
+secret=${TEST_ID}-sa-token
+kubectl -n ${TEST_NAMESPACE} apply -f <<EOF -
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: ${secret}
+    annotations:
+      kubernetes.io/service-account.name: ${TEST_ID}-sa
+  type: kubernetes.io/service-account-token
+EOF
 
 echo "Creating test kubeconfig at ${TEST_KUBECONFIG}"
-if ! secret="$(kubectl -n $TEST_NAMESPACE get serviceaccount "${TEST_ID}-sa" -o 'jsonpath={.secrets[0].name}' 2>/dev/null)"; then
-  echo "serviceaccounts \"${TEST_ID}-sa\" not found."
-  exit 2
-fi
-
-if [[ -z "$secret" ]]; then
-  echo "serviceaccounts \"${TEST_ID}-sa\" doesn't have a serviceaccount token."
-  exit 2
-fi
-
 export OLD_KUBECONFIG=${KUBECONFIG}
 cp ${KUBECONFIG} /tmp/${TEST_ID}-kubeconfig
 export KUBECONFIG=/tmp/${TEST_ID}-kubeconfig
