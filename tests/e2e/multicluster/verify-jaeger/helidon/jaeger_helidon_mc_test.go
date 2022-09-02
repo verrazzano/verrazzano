@@ -18,8 +18,6 @@ import (
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
-	longPollingInterval  = 30 * time.Second
-	longWaitTimeout      = 10 * time.Minute
 	projectName          = "hello-helidon-jaeger"
 )
 
@@ -138,7 +136,7 @@ var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-wor
 		// THEN we are able to get the traces
 		t.It("traces for the helidon app should be available when queried from Jaeger", func() {
 			validatorFn := pkg.ValidateApplicationTracesInCluster(adminKubeconfig, start, helloHelidonServiceName, managedClusterName)
-			Eventually(validatorFn).WithPolling(longPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue())
+			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})
 
 	})
