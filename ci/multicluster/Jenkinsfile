@@ -1635,6 +1635,9 @@ def verifyInfra() {
         "verify-infra jaeger-install": {
             runGinkgoRandomize('multicluster/verify-jaeger/install')
         },
+        "verify-infra jaeger-system": {
+            runGinkgoRandomize('multicluster/verify-jaeger/system')
+        },
     ]
 }
 

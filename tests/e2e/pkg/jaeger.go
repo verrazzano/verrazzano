@@ -48,11 +48,11 @@ var (
 	// common services running in both admin and managed cluster
 	managedClusterSystemServiceNames = []string{
 		"fluentd.verrazzano-system",
+		"verrazzano-authproxy.verrazzano-system",
 	}
 
 	// services that are common plus the ones unique to admin cluster
 	adminClusterSystemServiceNames = append(managedClusterSystemServiceNames,
-		"verrazzano-authproxy.verrazzano-system",
 		"jaeger-operator-jaeger.verrazzano-monitoring",
 		"system-es-master.verrazzano-system")
 )
