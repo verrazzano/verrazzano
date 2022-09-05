@@ -215,8 +215,8 @@ pipeline {
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
                     storeLocation="${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
-                    fullBundle="${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
-                    liteBundle="${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
+                    fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+                    liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
                     RELEASABLE_IMAGES_OBJECT_STORE = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
                 }
             }
