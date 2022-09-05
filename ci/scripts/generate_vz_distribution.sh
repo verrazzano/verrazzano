@@ -235,7 +235,7 @@ generateVZFullDistribution() {
 createImagesTarFiles() {
   local rootDir=$1
   local devVersion=$2
-  local distDir=${rootDir}/${devVersion}
+  local distDir=${rootDir}/${devVersion}/images
   ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${distDir} -b ${GENERATED_BOM_FILE}
 }
 # Clean-up workspace after uploading the distribution bundles
