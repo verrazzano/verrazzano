@@ -9,6 +9,9 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
 def storeLocation=""
+def verrazzanoPrefix="verrazzano-"
+def fullBundle=""
+def liteBundle=""
 def branchSpecificSchedule = getCronSchedule()
 def SUSPECT_LIST = ""
 def COMPARISON_URL_ON_FAILURE = ""
@@ -211,7 +214,9 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
-                    storeLocation="${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
+                    storeLocation="${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
+                    fullBundle="${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+                    liteBundle="${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
                     RELEASABLE_IMAGES_OBJECT_STORE = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
                 }
             }
@@ -607,7 +612,10 @@ pipeline {
                         """
                     }
                 }
+
+
                 stage('Private Registry Tests') {
+                    /*
                     when {
                         allOf {
                             not { buildingTag() }
@@ -617,18 +625,40 @@ pipeline {
                             }
                         }
                     }
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'ZIPFILE_LOCATION', value: storeLocation)
-                                    ], wait: true
+                    */
+                    parallel {
+                        stage('Verrazzano Lite Bundle') {
+                            steps {
+                                retry(count: JOB_PROMOTION_RETRIES) {
+                                    script {
+                                        build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
+                                            parameters: [
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                                string(name: 'DISTRIBUTION_VARIANT', value: 'Lite'),
+                                                string(name: 'ZIPFILE_LOCATION', value: liteBundle)
+                                            ], wait: true
+                                    }
+                                }
                             }
                         }
+                        stage('Verrazzano Full Bundle') {
+                            steps {
+                                retry(count: JOB_PROMOTION_RETRIES) {
+                                    script {
+                                        build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
+                                            parameters: [
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                                string(name: 'DISTRIBUTION_VARIANT', value: 'Full'),
+                                                string(name: 'ZIPFILE_LOCATION', value: fullBundle)
+                                            ], wait: true
+                                    }
+                                }
+                            }
+                        }
+
                     }
                 }
+
                 stage('Push to OCIR') {
                     environment {
                         OCI_CLI_AUTH="api_key"
