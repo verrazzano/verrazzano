@@ -21,14 +21,17 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: The current status of the install/uninstall
+    - description: The current status of the install/uninstall.
       jsonPath: .status.conditions[-1:].type
       name: Status
       type: string
-    - description: The current version of the Verrazzano installation
+    - description: The current version of the Verrazzano installation.
       jsonPath: .status.version
       name: Version
       type: string
+    deprecated: true
+    deprecationWarning: install.verrazzano.io/v1alpha1 Verrazzano is deprecated. To
+      migrate to install.verrazzano.io/v1beta1 Verrazzano, see https://verrazzano.io/latest/docs/releasenotes/#v140.
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -3932,11 +3935,11 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
-    - description: The current status of the install/uninstall
+    - description: The current status of the install/uninstall.
       jsonPath: .status.conditions[-1:].type
       name: Status
       type: string
-    - description: The current version of the Verrazzano installation
+    - description: The current version of the Verrazzano installation.
       jsonPath: .status.version
       name: Version
       type: string
@@ -4304,7 +4307,7 @@ spec:
                         format: int32
                         type: integer
                     type: object
-                  ingress:
+                  ingressNGINX:
                     properties:
                       enabled:
                         type: boolean

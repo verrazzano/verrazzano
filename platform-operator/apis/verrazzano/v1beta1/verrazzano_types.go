@@ -34,8 +34,8 @@ const (
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=vz;vzs
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall"
-// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano installation"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall."
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano installation."
 // +genclient
 
 // Verrazzano is the Schema for the verrazzanos API
@@ -314,9 +314,9 @@ type ComponentSpec struct {
 	// +optional
 	Grafana *GrafanaComponent `json:"grafana,omitempty"`
 
-	// Ingress contains the ingress-nginx component configuration
+	// IngressNGINX contains the ingress-nginx component configuration
 	// +optional
-	Ingress *IngressNginxComponent `json:"ingress,omitempty"`
+	IngressNGINX *IngressNginxComponent `json:"ingressNGINX,omitempty"`
 
 	// Istio contains the istio component configuration
 	// +optional

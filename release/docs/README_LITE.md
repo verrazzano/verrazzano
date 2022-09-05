@@ -1,10 +1,10 @@
-# Verrazzano Open Source Edition
+# Verrazzano
 
-Verrazzano Open Source Edition is a fully-featured enterprise container platform for deploying cloud native and traditional applications in multicloud
-and hybrid environments. It is a freely available, community supported, open source distribution of the Verrazzano Enterprise Container Platform.
+Verrazzano is a fully-featured enterprise container platform for deploying cloud native and traditional applications in multicloud
+and hybrid environments.
 
 # Overview
-Verrazzano Open Source Edition includes the following capabilities:
+Verrazzano includes the following capabilities:
 
 - Hybrid and multicluster workload management
 - Special handling for WebLogic, Coherence, and Helidon applications
@@ -14,8 +14,8 @@ Verrazzano Open Source Edition includes the following capabilities:
 - DevOps and GitOps enablement
 
 # Components
-Verrazzano Open Source Edition includes a curated set of open source components – many that you may already use and trust,
-and some that were written specifically to pull together all the pieces to make this a cohesive and easy to use platform.
+Verrazzano includes a curated set of open source components – many that you may already use and trust, and some that were
+written specifically to pull together all the pieces to make this a cohesive and easy to use platform.
 
 | Component                    | Version | Description                                                                              |
 |------------------------------|---------|------------------------------------------------------------------------------------------|
@@ -45,26 +45,16 @@ and some that were written specifically to pull together all the pieces to make 
 
 ## Distribution layout
 
-Verrazzano Open Source Edition includes the following artifacts:
-
-* `operator.yaml`: A collection of Kubernetes manifests that can be used to deploy the Verrazzano platform operator.
-* `operator.yaml.sha256`: SHA256 checksum of the `operator.yaml` artifact.
-* `verrazzano-<major>.<minor>.<patch>-linux-amd64.tar.gz`: Verrazzano distribution with binaries compiled for AMD64 Linux distributions.
-* `verrazzano-<major>.<minor>.<patch>-linux-amd64.tar.gz.sha256`: SHA256 checksum of `verrazzano-<major>.<minor>.<patch>-linux-amd64.tar.gz` artifact.
-* `verrazzano-<major>.<minor>.<patch>-darwin-amd64.tar.gz`: Verrazzano distribution with binaries compiled for Darwin AMD64 (MacOS) distributions.
-* `verrazzano-<major>.<minor>.<patch>-darwin-amd64.tar.gz.sha256`: SHA256 checksum of `verrazzano-<major>.<minor>.<patch>-darwin-amd64.tar.gz` artifact.
-
 The layout of the Verrazzano distribution is as follows:
 
 * `verrazzano-<major>.<minor>.<patch>/`
   * `README.md`
-  * `README.html` 
   * `LICENSE`: The Universal Permissive License (UPL).
   * `bin/`    
      * `vz`: Verrazzano command-line interface.
      * `vz-registry-image-helper.sh,bom_utils.sh`: Helper scripts to download the images from the bill of materials (BOM).
   * `manifests/`     
-     * `k8s/verrazzano-platform-operator.yaml`: Collection of Kubernetes manifests to deploy the Verrazzano platform operator.
+     * `k8s/verrazzano-platform-operator.yaml`: Collection of Kubernetes manifests to deploy the Verrazzano Platform Operator.
      * `charts/verrazzano-platform-operator/`: Helm charts for the Verrazzano Platform Operator.
      * `verrazzano-bom.json`: Bill of materials (BOM) containing the list of Docker images required for installing Verrazzano.
 
@@ -78,14 +68,21 @@ You can install Verrazzano using a private Docker-compliant container registry. 
 To obtain the required Verrazzano images and install from your private registry, you must:
 *    Download the required Verrazzano images defined in `verrazzano-bom.json` as `tar.gz` file using `vz-registry-image-helper.sh`.
      ```
-     $ bin/vz-registry-image-helper.sh -b ../manifests/verrazzano-bom.json -f ~/verrazzano_distribution.tar.gz
+     $ bin/vz-registry-image-helper.sh -b ../manifests/verrazzano-bom.json -f verrazzano_images.tar.gz
      ```
 *    Expand the TAR file to a directory of your choice.
      ```
-     $ tar xvf ~/verrazzano_distribution.tar.gz -C <directory>
+     $ tar xvf verrazzano_images.tar.gz -C <directory>
      ```
 *    Load the product images into your private registry.
 *    Install Verrazzano using the instructions in the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).
 
- 
 Verrazzano release versions and source code are available at https://github.com/verrazzano/verrazzano.    
+
+## Support
+
+*    If you have any questions about Verrazzano, contact us through our [Slack channel](https://bit.ly/3gOeRJn).
+*    For instructions about using Verrazzano, see the [Verrazzano documentation](https://verrazzano.io/latest/docs/).
+*    For detailed installation instructions, see the [Install Guide](https://verrazzano.io/latest/docs/setup/install/installation/) in the Verrazzano documentation.
+*    For troubleshooting information, see [Diagnostic Tools](https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/) in the Verrazzano documentation.
+*    To report a bug or request for an enhancement, submit them through [bugs or enhancements requests](https://github.com/verrazzano/verrazzano/issues/new/choose) in GitHub.
