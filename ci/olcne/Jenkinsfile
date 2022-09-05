@@ -500,7 +500,7 @@ pipeline {
                             echo "Failed to delete Verrazzano"
                         }
                     }
-                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
+                    if (env.createdOCNECluster && env.createdOCNECluster == "true") {
                         try {
                             echo "[INFO] Deleting OCNE Cluster"
                             deleteOCNECluster()
