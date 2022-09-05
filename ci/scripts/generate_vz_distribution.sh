@@ -215,7 +215,6 @@ generateVZFullDistribution() {
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${distDir}/bin/darwin-arm64
 
   # Move the tar files to images directory
-  ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${rootDir}/images/ -b ${GENERATED_BOM_FILE}
   # mv ${WORKSPACE}/tar-files/*.tar ${rootDir}/images/
 
   captureBundleContents ${rootDir} ${generatedDir} ${FULL_BUNDLE_CONTENTS}
@@ -233,6 +232,12 @@ generateVZFullDistribution() {
   echo "Successfully uploaded ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}"
 }
 
+createImagesTarFiles() {
+  local rootDir=$1
+  local devVersion=$2
+  local distDir=${rootDir}/${devVersion}
+  ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${distDir} -b ${GENERATED_BOM_FILE}
+}
 # Clean-up workspace after uploading the distribution bundles
 cleanupWorkspace() {
   rm -rf ${VZ_DISTRIBUTION_COMMON}
@@ -306,6 +311,7 @@ generateVZLiteDistribution "${VZ_LITE_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_LITE
 
 # Build Verrazzano full distribution bundle
 createDistributionLayout "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
+createImagesTarFiles "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
 generateVZFullDistribution "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_FULL_GENERATED}"
 
 # Delete the directories created under WORKSPACE
