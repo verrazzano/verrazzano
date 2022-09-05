@@ -487,9 +487,16 @@ pipeline {
                     }
                 }
                 stage("verify-jaeger-apps") {
-                    steps {
-                        script {
-                            parallel verifyJaegerApps()
+                    parallel {
+                        stage('Jaeger Helidon App') {
+                            steps {
+                                runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
+                            }
+                        }
+                        stage('Jaeger Hot R.O.D App') {
+                            steps {
+                                runGinkgo("multicluster/verify-jaeger/hotrod", "${TEST_DUMP_ROOT}/jaeger-hotrod")
+                            }
                         }
                     }
                 }
@@ -1664,18 +1671,6 @@ def verifyExamples() {
         },
         "Coherence Workload": {
             runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
-        },
-    ]
-}
-
-
-def verifyJaegerApps() {
-    return [
-        "Jaeger Helidon": {
-            runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
-        },
-        "Jaeger Hotrod": {
-            runGinkgo("multicluster/verify-jaeger/hotrod", "${TEST_DUMP_ROOT}/jaeger-hotrod")
         },
     ]
 }
