@@ -276,6 +276,10 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
 	}
 
+	if err := configureUISettings(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring rancher UI Settings: %s", err.Error())
+	}
+
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed helm component post install: %s", err.Error())
 	}
@@ -313,6 +317,10 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 	if err := configureAuthProviders(ctx, true); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
+	}
+
+	if err := configureUISettings(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring rancher UI Settings: %s", err.Error())
 	}
 
 	if err := r.HelmComponent.PostUpgrade(ctx); err != nil {
@@ -496,4 +504,24 @@ func formatBool(isTrue bool, trueValue string, falseValue string) string {
 		return trueValue
 	}
 	return falseValue
+}
+
+// configureUISettings configures Rancher setting ui-pl, ui-logo-light and ui-logo-dark.
+func configureUISettings(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	client := ctx.Client()
+
+	if err := createOrUpdateUiPlSetting(log, client); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring ui-pl setting: %s", err.Error())
+	}
+
+	if err := createOrUpdateUiLogoSetting(log, client, SettingUILogoLight, SettingUILogoLightLogoFilePath); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoLight, SettingUILogoLightLogoFilePath, err.Error())
+	}
+
+	if err := createOrUpdateUiLogoSetting(log, client, SettingUILogoDark, SettingUILogoDarkLogoFilePath); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkLogoFilePath, err.Error())
+	}
+
+	return nil
 }

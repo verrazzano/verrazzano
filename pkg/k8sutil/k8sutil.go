@@ -341,3 +341,31 @@ func GetURLForIngress(client client.Client, name string, namespace string, schem
 	}
 	return fmt.Sprintf("%s://%s", scheme, ingress.Spec.Rules[0].Host), nil
 }
+
+// GetRunningPodForLabel returns the reference of a running pod that matches the given label
+func GetRunningPodForLabel(c client.Client, label string, namespace string, log ...vzlog.VerrazzanoLogger) (*v1.Pod, error) {
+	var logger vzlog.VerrazzanoLogger
+	if log != nil && len(log) > 0 {
+		logger = log[0]
+	} else {
+		logger = vzlog.DefaultLogger()
+	}
+
+	pods := &v1.PodList{}
+	err := c.List(context.Background(), pods, client.MatchingLabels{"app": "rancher"}, client.MatchingFields{"status.phase": "Running"})
+
+	if err != nil {
+		return nil, logger.ErrorfThrottledNewErr("Failed getting running pods for label %s in namespace %s, error: %v", label, namespace, err.Error())
+	}
+
+	if pods.Items == nil || !(len(pods.Items) > 0) {
+		return nil, logger.ErrorfThrottledNewErr("Invalid running pod list for label %s in namespace %s", label, namespace)
+	}
+
+	pod := pods.Items[0]
+	if pod.GetName() == "" {
+		return nil, logger.ErrorfThrottledNewErr("Invalid running pod for label %s in namespace %s", label, namespace)
+	}
+
+	return &pod, nil
+}

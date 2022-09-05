@@ -7,9 +7,10 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"strings"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -96,15 +97,21 @@ const (
 )
 
 const (
-	SettingServerURL            = "server-url"
-	SettingFirstLogin           = "first-login"
-	KontainerDriverOKE          = "oraclecontainerengine"
-	NodeDriverOCI               = "oci"
-	ClusterLocal                = "local"
-	AuthConfigLocal             = "local"
-	UserVerrazzano              = "u-verrazzano"
-	UserVerrazzanoDescription   = "Verrazzano Admin"
-	GlobalRoleBindingVerrazzano = "grb-" + UserVerrazzano
+	SettingServerURL               = "server-url"
+	SettingFirstLogin              = "first-login"
+	KontainerDriverOKE             = "oraclecontainerengine"
+	NodeDriverOCI                  = "oci"
+	ClusterLocal                   = "local"
+	AuthConfigLocal                = "local"
+	UserVerrazzano                 = "u-verrazzano"
+	UserVerrazzanoDescription      = "Verrazzano Admin"
+	GlobalRoleBindingVerrazzano    = "grb-" + UserVerrazzano
+	SettingUIPL                    = "ui-pl"
+	SettingUIPLValueVerrazzano     = "Verrazzano"
+	SettingUILogoLight             = "ui-logo-light"
+	SettingUILogoLightLogoFilePath = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-light.svg"
+	SettingUILogoDark              = "ui-logo-dark"
+	SettingUILogoDarkLogoFilePath  = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
 )
 
 // auth config
@@ -698,6 +705,86 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 	err = c.Update(context.Background(), &firstLoginSetting)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("Failed updating first-login Setting: %s", err.Error())
+	}
+
+	return nil
+}
+
+// updateUiPlSetting updates the ui-pl Setting
+func createOrUpdateUiPlSetting(log vzlog.VerrazzanoLogger, c client.Client) error {
+	uiPlSetting := unstructured.Unstructured{}
+	uiPlSetting.SetGroupVersionKind(GVKSetting)
+	uiPlSettingName := types.NamespacedName{Name: SettingUIPL}
+	create := false
+	err := c.Get(context.Background(), uiPlSettingName, &uiPlSetting)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			create = true
+			uiPlSetting.SetName(SettingUIPL)
+		} else {
+			return log.ErrorfThrottledNewErr("Failed getting ui-pl Setting: %s", err.Error())
+		}
+	}
+
+	uiPlSetting.UnstructuredContent()["value"] = SettingUIPLValueVerrazzano
+	if create {
+		err = c.Create(context.Background(), &uiPlSetting)
+	} else {
+		err = c.Update(context.Background(), &uiPlSetting)
+	}
+
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed updating ui-pl Setting: %s", err.Error())
+	}
+
+	return nil
+}
+
+// updateUiPlSetting updates the ui-pl Setting
+func createOrUpdateUiLogoSetting(log vzlog.VerrazzanoLogger, c client.Client, settingName string, logoPath string) error {
+	uiLogoSetting := unstructured.Unstructured{}
+	uiLogoSetting.SetGroupVersionKind(GVKSetting)
+	uiLogoSettingName := types.NamespacedName{Name: settingName}
+	create := false
+	err := c.Get(context.Background(), uiLogoSettingName, &uiLogoSetting)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			create = true
+			uiLogoSetting.SetName(settingName)
+		} else {
+			return log.ErrorfThrottledNewErr("Failed getting %s Setting: %s", settingName, err.Error())
+		}
+	}
+
+	pod, err := k8sutil.GetRunningPodForLabel(c, "app=rancher", "cattle-system", log)
+	if err != nil {
+		return err
+	}
+
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, pod, "rancher", logoCommand)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed execing into Rancher pod %s: %v", stderr, err)
+	}
+
+	if len(stdout) == 0 {
+		return log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
+	}
+
+	uiLogoSetting.UnstructuredContent()["value"] = fmt.Sprintf("data:image/svg+xml;base64,%v", stdout)
+	if create {
+		err = c.Create(context.Background(), &uiLogoSetting)
+	} else {
+		err = c.Update(context.Background(), &uiLogoSetting)
+	}
+
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed creating/updating %s Setting for logo path %s: %s", settingName, logoPath, err.Error())
 	}
 
 	return nil
