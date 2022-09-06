@@ -5,8 +5,6 @@ package v1alpha1
 
 import (
 	goerrors "errors"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -29,10 +27,10 @@ func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	getControllerRuntimeClient = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme()), nil
 	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { getControllerRuntimeClient = getClient }()
 
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -53,10 +51,10 @@ func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	getControllerRuntimeClient = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme()), nil
 	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { getControllerRuntimeClient = getClient }()
 
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -91,10 +89,10 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 		config.SetDefaultBomFilePath("")
 	}()
 
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	getControllerRuntimeClient = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme()), nil
 	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { getControllerRuntimeClient = getClient }()
 
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
@@ -130,10 +128,10 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 		},
 	}
 
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	getControllerRuntimeClient = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme()), nil
 	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { getControllerRuntimeClient = getClient }()
 
 	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
 }
@@ -163,10 +161,10 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 		},
 	}
 
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	getControllerRuntimeClient = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme()), nil
 	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { getControllerRuntimeClient = getClient }()
 
 	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
 }
@@ -195,10 +193,10 @@ func TestRollbackRejected(t *testing.T) {
 		},
 	}
 
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	getControllerRuntimeClient = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme()), nil
 	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { getControllerRuntimeClient = getClient }()
 
 	err := newSpec.ValidateUpdate(oldSpec)
 	assert.Error(t, err)
@@ -350,7 +348,7 @@ func Test_verifyPlatformOperatorSingleton(t *testing.T) {
 	labels := map[string]string{
 		"app": "verrazzano-platform-operator",
 	}
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	getControllerRuntimeClient = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme(), &v1.PodList{
 			TypeMeta: metav1.TypeMeta{},
 			Items: []v1.Pod{
@@ -359,7 +357,7 @@ func Test_verifyPlatformOperatorSingleton(t *testing.T) {
 			},
 		}), nil
 	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { getControllerRuntimeClient = getClient }()
 
 	assert.Error(t, vz.verifyPlatformOperatorSingleton())
 }
@@ -374,7 +372,7 @@ func Test_verifyPlatformOperatorSingletonNoMatchingLabels(t *testing.T) {
 	labels := map[string]string{
 		"app": "someapp",
 	}
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	getControllerRuntimeClient = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme(), &v1.PodList{
 			TypeMeta: metav1.TypeMeta{},
 			Items: []v1.Pod{
@@ -382,7 +380,7 @@ func Test_verifyPlatformOperatorSingletonNoMatchingLabels(t *testing.T) {
 			},
 		}), nil
 	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { getControllerRuntimeClient = getClient }()
 
 	assert.NoError(t, vz.verifyPlatformOperatorSingleton())
 }
@@ -397,7 +395,7 @@ func Test_verifyPlatformOperatorSingletonSuccess(t *testing.T) {
 	labels := map[string]string{
 		"app": "verrazzano-platform-operator",
 	}
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	getControllerRuntimeClient = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme(), &v1.PodList{
 			TypeMeta: metav1.TypeMeta{},
 			Items: []v1.Pod{
@@ -405,7 +403,7 @@ func Test_verifyPlatformOperatorSingletonSuccess(t *testing.T) {
 			},
 		}), nil
 	}
-	defer func() { getControllerRuntimeClient = validators.GetClient }()
+	defer func() { getControllerRuntimeClient = getClient }()
 
 	assert.NoError(t, vz.verifyPlatformOperatorSingleton())
 }
@@ -416,16 +414,16 @@ func Test_verifyPlatformOperatorSingletonSuccess(t *testing.T) {
 // THEN a combined error is returned
 func Test_combineErrors(t *testing.T) {
 	var errs []error
-	err := validators.CombineErrors(errs)
+	err := combineErrors(errs)
 	assert.Nil(t, err)
 
 	errs = []error{goerrors.New("e1")}
-	err = validators.CombineErrors(errs)
+	err = combineErrors(errs)
 	assert.NotNil(t, err)
 	assert.Equal(t, "e1", err.Error())
 
 	errs = []error{goerrors.New("e1"), goerrors.New("e2"), goerrors.New("e3")}
-	err = validators.CombineErrors(errs)
+	err = combineErrors(errs)
 	assert.NotNil(t, err)
 	assert.Equal(t, "[e1, e2, e3]", err.Error())
 }
@@ -451,12 +449,12 @@ func TestUpdateMissingOciLoggingApiSecret(t *testing.T) {
 			},
 		},
 	}
-	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+	getControllerRuntimeClient = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme()), nil
 	}
 	defer func() {
 		config.SetDefaultBomFilePath("")
-		getControllerRuntimeClient = validators.GetClient
+		getControllerRuntimeClient = getClient
 	}()
 	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
 }

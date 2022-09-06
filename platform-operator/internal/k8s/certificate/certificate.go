@@ -167,14 +167,11 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCe
 	if err != nil {
 		return err
 	}
-	if len(validatingWebhook.Webhooks) != 3 {
-		return fmt.Errorf("Expected 3 webhooks in %s ValidatingWebhookConfiguration, but found %v", OperatorName, len(validatingWebhook.Webhooks))
+	if len(validatingWebhook.Webhooks) != 2 {
+		return fmt.Errorf("Expected 2 webhooks in %s ValidatingWebhookConfiguration, but found %v", OperatorName, len(validatingWebhook.Webhooks))
 	}
-
-	for i := range validatingWebhook.Webhooks {
-		validatingWebhook.Webhooks[i].ClientConfig.CABundle = caCert.Bytes()
-	}
-
+	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
+	validatingWebhook.Webhooks[1].ClientConfig.CABundle = caCert.Bytes()
 	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
 	return err
 }

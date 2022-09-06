@@ -33,32 +33,6 @@ webhooks:
     admissionReviewVersions:
       - v1beta1
       - v1
-  - name: install.verrazzano.io.v1beta1
-    namespaceSelector:
-      matchExpressions:
-        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
-    clientConfig:
-      service:
-        name: {{ .Values.name }}
-        namespace: {{ .Values.namespace }}
-        path: /validate-install-verrazzano-io-v1beta1-verrazzano
-    rules:
-      - apiGroups:
-          - install.verrazzano.io
-        apiVersions:
-          - v1beta1
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - verrazzanos
-    sideEffects: None
-    failurePolicy: Fail
-    matchPolicy: Exact
-    timeoutSeconds: 30
-    admissionReviewVersions:
-      - v1beta1
-      - v1
   - name: clusters.verrazzano.io
     namespaceSelector:
       matchExpressions:

@@ -10,24 +10,35 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"go.uber.org/zap"
+
+	"sigs.k8s.io/yaml"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	"github.com/verrazzano/verrazzano/pkg/semver"
+
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/yaml"
-	"testing"
 )
 
 // For unit testing
 const (
-	testBomFilePath         = "../testdata/test_bom.json"
-	testRollbackBomFilePath = "../testdata/rollback_bom.json"
+	actualBomFilePath          = "../../../verrazzano-bom.json"
+	testBomFilePath            = "testdata/test_bom.json"
+	testRollbackBomFilePath    = "testdata/rollback_bom.json"
+	invalidTestBomFilePath     = "testdata/invalid_test_bom.json"
+	invalidPathTestBomFilePath = "testdata/invalid_test_bom_path.json"
 
 	v0160 = "v0.16.0"
 	v0170 = "v0.17.0"
@@ -60,7 +71,7 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.NoError(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestUpdateBeforeUpgrade Tests ValidateUpgradeRequest
@@ -92,7 +103,7 @@ func TestUpdateBeforeUpgrade(t *testing.T) {
 			},
 		},
 	}
-	assert.Error(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestUpdateWithUpgrade Tests ValidateUpgradeRequest
@@ -125,7 +136,7 @@ func TestUpdateWithUpgrade(t *testing.T) {
 			},
 		},
 	}
-	assert.NoError(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestUpgradeNewVerDoesNotMatchBOMVer Tests ValidateUpgradeRequest
@@ -151,7 +162,7 @@ func TestUpgradeNewVerDoesNotMatchBOMVer(t *testing.T) {
 			Version: "v0.9.0",
 		},
 	}
-	assert.Error(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestUpgradeNewVerLessThanCurrentCer Tests ValidateUpgradeRequest
@@ -179,7 +190,7 @@ func TestUpgradeNewVerLessThanCurrentCer(t *testing.T) {
 			Version: v110,
 		},
 	}
-	assert.Error(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidUpgradeRequestCurrentVersionExists Tests the condition for valid upgrade where versions are specified in both specs
@@ -206,7 +217,7 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 			Profile: Dev,
 		},
 	}
-	assert.NoError(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidUpgradeRequestCurrentVersionExists Tests the condition where both specs are at the same version
@@ -233,7 +244,7 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 			Profile: Dev,
 		},
 	}
-	assert.NoError(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidateUpgradeBadOldVersion Tests scenario where there is an invalid version string in the old spec (should never happen, but...code coverage)
@@ -260,7 +271,7 @@ func TestValidateUpgradeBadOldVersion(t *testing.T) {
 			Profile: Dev,
 		},
 	}
-	assert.Error(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidateUpgradeBadOldVersion Tests scenario where there is an invalid version string in the new spec
@@ -287,7 +298,7 @@ func TestValidateUpgradeBadNewVersion(t *testing.T) {
 			Profile: Dev,
 		},
 	}
-	assert.Error(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestNoVersionsSpecified Tests ValidateUpgradeRequest
@@ -312,7 +323,7 @@ func TestNoVersionsSpecified(t *testing.T) {
 			Profile: Dev,
 		},
 	}
-	assert.NoError(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidValidVersionWithProfileChange Tests the validate fails if the upgrade version is OK but the profile is changed
@@ -338,7 +349,7 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 			Profile: Prod,
 		},
 	}
-	assert.Error(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithEnvNameChange Tests the validate fails if the upgrade version is OK but the EnvironmentName is changed
@@ -365,7 +376,7 @@ func TestValidVersionWithEnvNameChange(t *testing.T) {
 			EnvironmentName: "newEnv",
 		},
 	}
-	assert.Error(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithCertManagerChange Tests the validate fails if the upgrade version is OK but the CertManagerComponent is changed
@@ -413,7 +424,7 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 			},
 		},
 	}
-	assert.Error(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithNewDNS Tests the validate fails if the upgrade version is OK but the DNS component is added
@@ -469,7 +480,7 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 			},
 		},
 	}
-	assert.Error(t, validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithIngressChange Tests the validate fails if the upgrade version is OK but the Ingress component is changed
@@ -553,8 +564,100 @@ func runValidateWithIngressChangeTest() error {
 			},
 		},
 	}
-	err := validators.ValidateUpgradeRequest(newSpec.Spec.Version, currentSpec.Status.Version, currentSpec.Spec.Version)
+	err := ValidateUpgradeRequest(currentSpec, newSpec)
 	return err
+}
+
+// TestGetCurrentBomVersion Tests basic getBomVersion() happy path
+// GIVEN a request for the current VZ Bom version
+// WHEN the version in the Bom is available
+// THEN no error is returned and a valid SemVersion representing the Bom version is returned
+func TestGetCurrentBomVersion(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	expectedVersion, err := semver.NewSemVersion(v110)
+	assert.NoError(t, err)
+
+	version, err := GetCurrentBomVersion()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedVersion, version)
+}
+
+// TestActualBomFile Tests GetCurrentBomVersion with the actual verrazzano-bom.json that is in this
+// code repo to ensure the file can at least be parsed
+func TestActualBomFile(t *testing.T) {
+	// repeat the test with the _actual_ bom file in the code repository
+	// to make sure it can at least be parsed without an error
+	config.SetDefaultBomFilePath(actualBomFilePath)
+	_, err := GetCurrentBomVersion()
+	absPath, err2 := filepath.Abs(actualBomFilePath)
+	if err2 != nil {
+		absPath = actualBomFilePath
+	}
+	assert.NoError(t, err, "Could not get BOM version from file %s", absPath)
+}
+
+// TestGetCurrentBomVersionFileReadError Tests  getBomVersion() when there is an error reading the BOM file
+// GIVEN a request for the current VZ Bom version
+// WHEN an error occurs reading the BOM file from the filesystem
+// THEN an error is returned and nil is returned for the Bom SemVersion
+func TestGetCurrentBomVersionFileReadError(t *testing.T) {
+	config.SetDefaultBomFilePath(invalidPathTestBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	version, err := GetCurrentBomVersion()
+	assert.Error(t, err)
+	assert.Nil(t, version)
+}
+
+// TestGetCurrentBomVersionBadYAML Tests  getBomVersion() when the BOM file is invalid
+// GIVEN a request for the current VZ Bom version
+// WHEN an error occurs reading in the BOM file as json
+// THEN an error is returned and nil is returned for the Bom SemVersion
+func TestGetCurrentBomVersionBadYAML(t *testing.T) {
+	config.SetDefaultBomFilePath(invalidTestBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	version, err := GetCurrentBomVersion()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unexpected end of JSON input")
+	assert.Nil(t, version)
+}
+
+// TestValidateVersionInvalidVersionCheckingDisabled Tests  ValidateVersion() when version checking is disabled
+// GIVEN a request for the current VZ Bom version
+// WHEN the version provided is not valid version and checking is disabled
+// THEN no error is returned
+func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+	assert.NoError(t, ValidateVersion("blah"))
+}
+
+// TestValidateVersionInvalidVersion Tests  ValidateVersion() for invalid version
+// GIVEN a request for the current VZ Bom version
+// WHEN the version provided is not valid version
+// THEN an error is returned
+func TestValidateVersionInvalidVersion(t *testing.T) {
+	assert.Error(t, ValidateVersion("blah"))
+}
+
+// TestValidateVersionBadBomFile Tests  ValidateVersion() the BOM file is bad
+// GIVEN a request for the current VZ Bom version
+// WHEN the version provided is not valid version
+// THEN a json parsing error is returned
+func TestValidateVersionBadBomfile(t *testing.T) {
+	config.SetDefaultBomFilePath(invalidTestBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	err := ValidateVersion(v0170)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unexpected end of JSON input")
 }
 
 // TestValidateActiveInstall tests that there is no Verrazzano installs active
@@ -605,13 +708,13 @@ func TestValidateInProgress(t *testing.T) {
 	vzOld.Status.State = VzStateUninstalling
 	err = ValidateInProgress(&vzOld)
 	if assert.Error(t, err) {
-		assert.Equal(t, validators.ValidateInProgressError, err.Error())
+		assert.Equal(t, ValidateInProgressError, err.Error())
 	}
 
 	vzOld.Status.State = VzStateUpgrading
 	err = ValidateInProgress(&vzOld)
 	if assert.Error(t, err) {
-		assert.Equal(t, validators.ValidateInProgressError, err.Error())
+		assert.Equal(t, ValidateInProgressError, err.Error())
 	}
 }
 
@@ -673,13 +776,13 @@ func TestValidateEnable(t *testing.T) {
 			test.vzOld.Status.State = VzStateUpgrading
 			err = ValidateInProgress(&test.vzOld)
 			if assert.Error(t, err) {
-				assert.Equal(t, validators.ValidateInProgressError, err.Error())
+				assert.Equal(t, ValidateInProgressError, err.Error())
 			}
 
 			test.vzOld.Status.State = VzStateUninstalling
 			err = ValidateInProgress(&test.vzOld)
 			if assert.Error(t, err) {
-				assert.Equal(t, validators.ValidateInProgressError, err.Error())
+				assert.Equal(t, ValidateInProgressError, err.Error())
 			}
 		})
 	}
@@ -719,7 +822,7 @@ func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 // WHEN validateOCISecrets is called
 // THEN success is returned from validateOCISecrets
 func TestValidateOciDnsSecretUserAuth(t *testing.T) {
-	runValidateOCIDNSAuthTest(t, validators.UserPrincipal)
+	runValidateOCIDNSAuthTest(t, userPrincipal)
 }
 
 // TestValidateOciDnsSecretInstancePrincipalAuth tests validateOCISecrets
@@ -727,10 +830,10 @@ func TestValidateOciDnsSecretUserAuth(t *testing.T) {
 // WHEN validateOCISecrets is called
 // THEN success is returned from validateOCISecrets
 func TestValidateOciDnsSecretInstancePrincipalAuth(t *testing.T) {
-	runValidateOCIDNSAuthTest(t, validators.InstancePrincipal)
+	runValidateOCIDNSAuthTest(t, instancePrincipal)
 }
 
-func runValidateOCIDNSAuthTest(t *testing.T, authType validators.AuthenticationType) {
+func runValidateOCIDNSAuthTest(t *testing.T, authType authenticationType) {
 	vz := Verrazzano{
 		Spec: VerrazzanoSpec{
 			Components: ComponentSpec{
@@ -750,13 +853,13 @@ func runValidateOCIDNSAuthTest(t *testing.T, authType validators.AuthenticationT
 	assert.NoError(t, err)
 	client := fake.NewFakeClientWithScheme(scheme)
 
-	var ociConfig validators.OciAuth
+	var ociConfig ociAuth
 	switch authType {
-	case validators.UserPrincipal:
+	case userPrincipal:
 		key, err := generateTestPrivateKey()
 		assert.NoError(t, err)
-		ociConfig = validators.OciAuth{
-			Auth: validators.AuthData{
+		ociConfig = ociAuth{
+			Auth: authData{
 				Region:      "us-ashburn-1",
 				Tenancy:     "my-tenancy",
 				User:        "my-user",
@@ -766,8 +869,8 @@ func runValidateOCIDNSAuthTest(t *testing.T, authType validators.AuthenticationT
 			},
 		}
 	default:
-		ociConfig = validators.OciAuth{
-			Auth: validators.AuthData{
+		ociConfig = ociAuth{
+			Auth: authData{
 				AuthType: authType,
 			},
 		}
@@ -782,7 +885,7 @@ func runValidateOCIDNSAuthTest(t *testing.T, authType validators.AuthenticationT
 			Namespace: constants.VerrazzanoInstallNamespace,
 		},
 		Data: map[string][]byte{
-			validators.OciDNSSecretFileName: secretData,
+			ociDNSSecretFileName: secretData,
 		},
 	}
 	err = client.Create(context.TODO(), secret)
@@ -861,8 +964,8 @@ func TestValidateOciDnsSecretTooManyDataKeys(t *testing.T) {
 			Namespace: constants.VerrazzanoInstallNamespace,
 		},
 		Data: map[string][]byte{
-			validators.OciDNSSecretFileName:        []byte("value1"),
-			validators.OciDNSSecretFileName + "-2": []byte("value2"),
+			ociDNSSecretFileName:        []byte("value1"),
+			ociDNSSecretFileName + "-2": []byte("value2"),
 		},
 	}
 	err = client.Create(context.TODO(), secret)
@@ -900,13 +1003,13 @@ func TestValidateOciDnsSecretInvalidAPIKey(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(scheme)
 
 	assert.NoError(t, err)
-	ociConfig := validators.OciAuth{
-		Auth: validators.AuthData{
+	ociConfig := ociAuth{
+		Auth: authData{
 			Region:      "us-ashburn-1",
 			Tenancy:     "my-tenancy",
 			User:        "my-user",
 			Fingerprint: "a-fingerprint",
-			AuthType:    validators.UserPrincipal,
+			AuthType:    userPrincipal,
 			Key:         "foo",
 		},
 	}
@@ -919,7 +1022,7 @@ func TestValidateOciDnsSecretInvalidAPIKey(t *testing.T) {
 			Namespace: constants.VerrazzanoInstallNamespace,
 		},
 		Data: map[string][]byte{
-			validators.OciDNSSecretFileName: secretData,
+			ociDNSSecretFileName: secretData,
 		},
 	}
 	err = client.Create(context.TODO(), secret)
@@ -956,8 +1059,8 @@ func TestValidateOciDnsSecretInvalidAuthType(t *testing.T) {
 
 	key, err := generateTestPrivateKey()
 	assert.NoError(t, err)
-	ociConfig := validators.OciAuth{
-		Auth: validators.AuthData{
+	ociConfig := ociAuth{
+		Auth: authData{
 			Region:      "us-ashburn-1",
 			Tenancy:     "my-tenancy",
 			User:        "my-user",
@@ -975,7 +1078,7 @@ func TestValidateOciDnsSecretInvalidAuthType(t *testing.T) {
 			Namespace: constants.VerrazzanoInstallNamespace,
 		},
 		Data: map[string][]byte{
-			validators.OciDNSSecretFileName: secretData,
+			ociDNSSecretFileName: secretData,
 		},
 	}
 	err = client.Create(context.TODO(), secret)
@@ -983,7 +1086,7 @@ func TestValidateOciDnsSecretInvalidAuthType(t *testing.T) {
 
 	err = validateOCISecrets(client, &vz.Spec)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("Authtype \"InvalidAuthType\" in OCI secret must be either '%s' or '%s'", validators.UserPrincipal, validators.InstancePrincipal))
+	assert.Contains(t, err.Error(), fmt.Sprintf("Authtype \"InvalidAuthType\" in OCI secret must be either '%s' or '%s'", userPrincipal, instancePrincipal))
 }
 
 // TestValidateOciDnsSecretNoOci tests that validate succeeds if the DNS component is not OCI
@@ -1171,8 +1274,8 @@ func runTestFluentdOCIConfig(t *testing.T, ociConfigBytes string, errorMsg ...st
 			Namespace: constants.VerrazzanoInstallNamespace,
 		},
 		Data: map[string][]byte{
-			validators.FluentdOCISecretConfigEntry:     []byte(ociConfigBytes),
-			validators.FluentdOCISecretPrivateKeyEntry: key,
+			fluentdOCISecretConfigEntry:     []byte(ociConfigBytes),
+			fluentdOCISecretPrivateKeyEntry: key,
 		},
 	}
 	err = client.Create(context.TODO(), secret)
@@ -1241,8 +1344,8 @@ key_file=/root/.oci/key
 			Namespace: constants.VerrazzanoInstallNamespace,
 		},
 		Data: map[string][]byte{
-			validators.FluentdOCISecretConfigEntry:     []byte(ociConfigBytes),
-			validators.FluentdOCISecretPrivateKeyEntry: key,
+			fluentdOCISecretConfigEntry:     []byte(ociConfigBytes),
+			fluentdOCISecretPrivateKeyEntry: key,
 		},
 	}
 	err = client.Create(context.TODO(), secret)
@@ -1292,7 +1395,7 @@ key_file=/root/.oci/key
 			Namespace: constants.VerrazzanoInstallNamespace,
 		},
 		Data: map[string][]byte{
-			validators.FluentdOCISecretConfigEntry: []byte(ociConfigBytes),
+			fluentdOCISecretConfigEntry: []byte(ociConfigBytes),
 		},
 	}
 	err = client.Create(context.TODO(), secret)
@@ -1300,7 +1403,7 @@ key_file=/root/.oci/key
 
 	err = validateOCISecrets(client, &vz.Spec)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("Expected entry \"%s\" not found in secret \"%s\"", validators.FluentdOCISecretPrivateKeyEntry, ociSecretName))
+	assert.Contains(t, err.Error(), fmt.Sprintf("Expected entry \"%s\" not found in secret \"%s\"", fluentdOCISecretPrivateKeyEntry, ociSecretName))
 }
 
 // TestValidateFluentdOCISecretMissingConfigSection tests validateOCISecrets
@@ -1336,7 +1439,7 @@ func TestValidateFluentdOCISecretMissingConfigSection(t *testing.T) {
 			Namespace: constants.VerrazzanoInstallNamespace,
 		},
 		Data: map[string][]byte{
-			validators.FluentdOCISecretPrivateKeyEntry: key,
+			fluentdOCISecretPrivateKeyEntry: key,
 		},
 	}
 	err = client.Create(context.TODO(), secret)
@@ -1393,9 +1496,85 @@ key_file=invalid/path/to/key
 	runTestFluentdOCIConfig(t, ociConfigBytes, "Unexpected or missing value for the Fluentd OCI key file location in secret \"fluentd-oci\", should be \"/root/.oci/key\"")
 }
 
+// Test_validateSecretContents Tests validateSecretContents
+// GIVEN a call to validateSecretContents
+// WHEN the YAML bytes are not valid
+// THEN an error is returned
+func Test_validateSecretContents(t *testing.T) {
+	err := validateSecretContents("mysecret", []byte("foo"), &authData{})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error unmarshaling JSON")
+}
+
+// Test_validateSecretContentsEmpty Tests validateSecretContents
+// GIVEN a call to validateSecretContents
+// WHEN the YAML bytes are empty
+// THEN an error is returned
+func Test_validateSecretContentsEmpty(t *testing.T) {
+	err := validateSecretContents("mysecret", []byte{}, &authData{})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Secret \"mysecret\" data is empty")
+}
+
 func newBool(v bool) *bool {
 	b := v
 	return &b
+}
+
+// TestValidateVersionHigherOrEqualEmptyRequestedVersion Tests ValidateVersionHigherOrEqual() requestedVersion is empty
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the requestedVersion provided is emptty
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualEmptyRequestedVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("v1.0.1", ""))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() currentVersion is empty
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the currentVersion provided is emptty
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualEmptyCurrentVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("", "v1.0.1"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() requestedVersion is invalid
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the requestedVersion provided is invalid
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualInvalidRequestedVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("v1.0.1", "xyz.zz"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() currentVersion is invalid
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the currentVersion provided is invalid
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualInvalidVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("xyz.zz", "v1.0.1"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests ValidateVersionHigherOrEqual() versions are equal
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the requested version is equal to current version
+// THEN success is returned
+func TestValidateVersionHigherOrEqualCurrentVersion(t *testing.T) {
+	assert.True(t, ValidateVersionHigherOrEqual("v1.0.1", "v1.0.1"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() requestedVersion is higher
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the requested version is greater than current ersion
+// THEN failure is returned
+func TestValidateVersionHigherOrEqualHigherVersion(t *testing.T) {
+	assert.False(t, ValidateVersionHigherOrEqual("v1.0.1", "v1.0.2"))
+}
+
+// TestValidateVersionHigherOrEqualEmptyVersion Tests  ValidateVersionHigherOrEqual() requestedVersion is lower
+// GIVEN a request for the validating a requested version to be equal to or higher than provided current version
+// WHEN the requested version is lower than current version
+// THEN success is returned
+func TestValidateVersionHigherOrEqualLowerVersion(t *testing.T) {
+	assert.True(t, ValidateVersionHigherOrEqual("v1.0.2", "v1.0.1"))
 }
 
 // TestValidateProfileEmptyProfile Tests ValidateProfile() for empty profile
@@ -1420,6 +1599,29 @@ func TestValidateProfileDevProfile(t *testing.T) {
 // THEN an error is returned
 func TestValidateProfileInvalidProfile(t *testing.T) {
 	assert.Error(t, ValidateProfile("wrong-profile"))
+}
+
+// TestValidateProfileInvalidProfile Tests cleanTempFiles()
+// GIVEN a call to cleanTempFiles
+// WHEN there are leftover validation temp files in the TMP dir
+// THEN the temp files are cleaned up properly
+func Test_cleanTempFiles(t *testing.T) {
+	assert := assert.New(t)
+
+	tmpFiles := []*os.File{}
+	for i := 1; i < 5; i++ {
+		temp, err := os.CreateTemp(os.TempDir(), validateTempFilePattern)
+		assert.NoErrorf(err, "Unable to create temp file %s for testing: %s", temp.Name(), err)
+		assert.FileExists(temp.Name())
+		tmpFiles = append(tmpFiles, temp)
+	}
+
+	err := cleanTempFiles(zap.S())
+	if assert.NoError(err) {
+		for _, tmpFile := range tmpFiles {
+			assert.NoFileExists(tmpFile.Name(), "Error, temp file %s not deleted", tmpFile.Name())
+		}
+	}
 }
 
 func TestValidateInstallOverrides(t *testing.T) {
