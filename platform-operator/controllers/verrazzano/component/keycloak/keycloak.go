@@ -9,10 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
 	"strings"
@@ -56,39 +53,10 @@ const (
 	vzInternalPromUser      = "verrazzano-prom-internal"
 	vzInternalEsUser        = "verrazzano-es-internal"
 	keycloakPodName         = "keycloak-0"
-	secretName              = "mysql"
-	secretKey               = "mysql-password"
-	rootSec                 = "mysql-cluster-secret"
-	rootPasswordKey         = "rootPassword"
 	noRouterAddr            = "mysql-instances"
 	routerAddr              = "mysql"
 	dbHostKey               = "mysql.dbHost"
 )
-
-// Keycloak DB initialization
-const mySQLDbCommands = `mysql -uroot -p%s -e "CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
-CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-USE keycloak;
-GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO 'keycloak'@'%%';
-FLUSH PRIVILEGES;
-CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
-  ID varchar(255) NOT NULL,
-  AUTHOR varchar(255) NOT NULL,
-  FILENAME varchar(255) NOT NULL,
-  DATEEXECUTED datetime NOT NULL,
-  ORDEREXECUTED int(11) NOT NULL,
-  EXECTYPE varchar(10) NOT NULL,
-  MD5SUM varchar(35) DEFAULT NULL,
-  DESCRIPTION varchar(255) DEFAULT NULL,
-  COMMENTS varchar(255) DEFAULT NULL,
-  TAG varchar(255) DEFAULT NULL,
-  LIQUIBASE varchar(20) DEFAULT NULL,
-  CONTEXTS varchar(255) DEFAULT NULL,
-  LABELS varchar(255) DEFAULT NULL,
-  DEPLOYMENT_ID varchar(10) DEFAULT NULL,
-  PRIMARY KEY (ID,AUTHOR,FILENAME)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
-`
 
 // Define the Keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
@@ -890,39 +858,6 @@ func keycloakPod() *v1.Pod {
 	}
 }
 
-// createKeycloakDBSecret creates or updates a secret containing the password used by keycloak to access the DB
-func createKeycloakDBSecret(ctx spi.ComponentContext) error {
-	// create MySQL keycloak user secret
-	keycloakSecret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      secretName,
-		},
-	}
-	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: ComponentNamespace,
-		Name:      secretName,
-	}, keycloakSecret)
-
-	if err != nil {
-		password, err := vzpassword.GeneratePassword(12)
-		if err != nil {
-			return err
-		}
-		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), keycloakSecret, func() error {
-			keycloakSecret.Data = map[string][]byte{
-				secretKey: []byte(password),
-			}
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-		ctx.Log().Once("Component Keycloak successfully created the keycloak db secret")
-	}
-	return nil
-}
-
 // createAuthSecret verifies the secret doesn't already exists and creates it
 func createAuthSecret(ctx spi.ComponentContext, namespace string, secretname string, username string) error {
 	secret := &v1.Secret{
@@ -1503,42 +1438,6 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 	return b.String(), nil
 }
 
-func recreateDBIfEphemeralStorage(ctx spi.ComponentContext) error {
-	// setup the db if the former MySQL deployment exists (rather than a stateful set) and there is ephemeral storage
-	deployment := &appv1.Deployment{}
-
-	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: mysql.ComponentName}, deployment); err != nil {
-		if errors2.IsNotFound(err) {
-			ctx.Log().Debugf("Deployment does not exist.  No need to initialize db")
-		}
-	}
-
-	if deployment != nil {
-		mySQLVolumeSource := getMySQLVolumeSource(ctx.EffectiveCR())
-		// check for ephemeral storage
-		if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
-			// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
-			// provide the sql initialization file
-			err := setupDatabase(ctx)
-			if err != nil {
-				return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-			}
-		}
-	}
-	return nil
-}
-
-func getMySQLVolumeSource(effectiveCR *vzapi.Verrazzano) *v1.VolumeSource {
-	var mySQLVolumeSource *v1.VolumeSource
-	if effectiveCR.Spec.Components.Keycloak != nil {
-		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
-	}
-	if mySQLVolumeSource == nil {
-		mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
-	}
-	return mySQLVolumeSource
-}
-
 // GetRancherClientSecretFromKeycloak returns the secret from rancher client in Keycloak
 func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error) {
 	cfg, cli, err := k8sutil.ClientConfig()
@@ -1656,59 +1555,6 @@ func GetVerrazzanoUserFromKeycloak(ctx spi.ComponentContext) (*KeycloakUser, err
 	}
 
 	return &vzUser, nil
-}
-
-// setupDatabase creates the user and database for keycloak
-func setupDatabase(ctx spi.ComponentContext) error {
-	// retrieve root password for mysql
-	rootSecret := v1.Secret{}
-	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: rootSec}, &rootSecret); err != nil {
-		return err
-	}
-	rootPwd := rootSecret.Data[rootPasswordKey]
-	// retrieve the keycloak user password
-	userSecret := v1.Secret{}
-	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: secretName}, &userSecret); err != nil {
-		return err
-	}
-	userPwd := userSecret.Data[secretKey]
-	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd, userPwd)
-	execCmd := []string{"bash", "-c", sqlCmd}
-	cfg, cli, err := k8sutil.ClientConfig()
-	if err != nil {
-		return err
-	}
-	mysqlPod, err := getMySQLPod(ctx)
-	if err != nil {
-		return err
-	}
-	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
-	if err != nil {
-		errorMsg := maskPw(fmt.Sprintf("Failed logging into mysql: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, err))
-		ctx.Log().Error(errorMsg)
-		return fmt.Errorf("error: %s", maskPw(err.Error()))
-	}
-	return nil
-}
-
-func getMySQLPod(ctx spi.ComponentContext) (*v1.Pod, error) {
-	//tierReq, _ := kblabels.NewRequirement("tier", selection.Equals, []string{"mysql"})
-	//compReq, _ := kblabels.NewRequirement("component", selection.Equals, []string{"mysqld"})
-	//labelSelector := kblabels.NewSelector()
-	//labelSelector = labelSelector.Add(*tierReq, *compReq)
-	//mysqlPods := v1.PodList{}
-	//err := ctx.Client().List(context.TODO(), &mysqlPods, &client.ListOptions{LabelSelector: labelSelector})
-	mysqlPod := v1.Pod{}
-	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: ComponentNamespace,
-		Name:      "mysql-0",
-	}, &mysqlPod)
-	if err != nil {
-		return nil, err
-	}
-	// return one of the pods
-	ctx.Log().Infof("Returning pod %s for mysql setup", mysqlPod.Name)
-	return &mysqlPod, nil
 }
 
 func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) error {

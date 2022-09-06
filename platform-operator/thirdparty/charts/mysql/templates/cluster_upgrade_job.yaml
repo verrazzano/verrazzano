@@ -1,0 +1,56 @@
+{{- if .Values.legacyUpgrade }}
+{{- $cluster_name :=  default "mysql" .Release.Name }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-dump
+  namespace: {{ .Release.Namespace }}
+spec:
+  template:
+    spec:
+      initContainers:
+        - command:
+            - bash
+            - -c
+            - chown -R 27:27 /var/lib/dump
+          image: {{ if .Values.legacyUpgrade.registry }}{{ .Values.legacyUpgrade.registry }}/{{- end }}{{- if .Values.legacyUpgrade.repository }}{{ .Values.legacyUpgrade.repository }}/{{ end }}{{ .Values.legacyUpgrade.initContainer.image.name }}:{{ .Values.legacyUpgrade.initContainer.image.tag | default .Chart.AppVersion }}
+          imagePullPolicy: IfNotPresent
+          name: fixdumpdir
+          resources: {}
+          securityContext:
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /var/lib/dump
+              name: keycloak-dump
+      volumes:
+        - name: keycloak-dump
+          persistentVolumeClaim:
+            claimName: {{ .Values.legacyUpgrade.claimName }}
+      containers:
+        - command: ["bash"]
+          args:
+            - -c
+            - >-
+              while ! mysqladmin ping -h"{{ $cluster_name }}.{{ .Release.Namespace }}.svc.cluster.local" --silent; do sleep 1; done &&
+              mysqlsh -u root -p{{ .Values.credentials.root.password }} -h {{ $cluster_name }}.{{ .Release.Namespace }}.svc.cluster.local -e 'util.loadDump("/var/lib/dump/dump", {includeSchemas: ["keycloak"], includeUsers: ["keycloak"], loadUsers: true})'
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: rootPassword
+                  name: {{ $cluster_name }}-cluster-secret
+            - name: MYSQL_HOST
+              value: {{ $cluster_name }}
+          image: {{ if .Values.legacyUpgrade.registry }}{{ .Values.legacyUpgrade.registry }}/{{- end }}{{- if .Values.legacyUpgrade.repository }}{{ .Values.legacyUpgrade.repository }}/{{ end }}{{ .Values.legacyUpgrade.container.image.name }}:{{ .Values.legacyUpgrade.container.image.tag | default .Chart.AppVersion }}
+          imagePullPolicy: IfNotPresent
+          name: mysqlsh-load-dump
+          resources: {}
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /var/lib/dump
+              name: keycloak-dump
+      restartPolicy: Never
+{{- end -}}

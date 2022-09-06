@@ -6,12 +6,14 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/security/password"
+	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -29,10 +31,39 @@ import (
 )
 
 const (
-	rootSec              = "mysql-cluster-secret"
-	helmRootPwd          = "credentials.root.password" //nolint:gosec //#gosec G101
-	mySQLRootKey         = "rootPassword"
-	statefulsetClaimName = "data-mysql-0"
+	rootSec               = "mysql-cluster-secret"
+	helmRootPwd           = "credentials.root.password" //nolint:gosec //#gosec G101
+	mySQLRootKey          = "rootPassword"
+	secretName            = "mysql"
+	secretKey             = "mysql-password"
+	mySQLUsername         = "keycloak"
+	statefulsetClaimName  = "data-mysql-0"
+	mySQLInitFilePrefix   = "init-mysql-"
+	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
+	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
+	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
+	initDbScript          = `CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
+CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+USE keycloak;
+GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';
+FLUSH PRIVILEGES;
+CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
+  ID varchar(255) NOT NULL,
+  AUTHOR varchar(255) NOT NULL,
+  FILENAME varchar(255) NOT NULL,
+  DATEEXECUTED datetime NOT NULL,
+  ORDEREXECUTED int(11) NOT NULL,
+  EXECTYPE varchar(10) NOT NULL,
+  MD5SUM varchar(35) DEFAULT NULL,
+  DESCRIPTION varchar(255) DEFAULT NULL,
+  COMMENTS varchar(255) DEFAULT NULL,
+  TAG varchar(255) DEFAULT NULL,
+  LIQUIBASE varchar(20) DEFAULT NULL,
+  CONTEXTS varchar(255) DEFAULT NULL,
+  LABELS varchar(255) DEFAULT NULL,
+  DEPLOYMENT_ID varchar(10) DEFAULT NULL,
+  PRIMARY KEY (ID,AUTHOR,FILENAME)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
 )
 
 // map of MySQL helm persistence values from previous version to existing version.  Other values will be ignored since
@@ -98,9 +129,21 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	//	return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	//}
 
+	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
+		err := createKeycloakDBSecret(compContext)
+		if err != nil {
+			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		}
+		mySQLInitFile, err := createMySQLInitFile(compContext)
+		if err != nil {
+			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		}
+		kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
+		kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
+	}
 	kvs, err := appendMySQLSecret(compContext, kvs)
 	if err != nil {
-		return []bom.KeyValue{}, err
+		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	// generate the MySQl PV overrides
@@ -297,7 +340,7 @@ func appendMySQLSecret(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]
 		// A secret is not expected to be found the first time around (i.e. it's an install and not an update scenario).
 		// So do not return an error in this case.
 		if errors.IsNotFound(err) && compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
-			rootPwd, err := password.GeneratePassword(12)
+			rootPwd, err := vzpassword.GeneratePassword(12)
 			if err != nil {
 				return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
@@ -391,4 +434,61 @@ func convertOldInstallArgs(kvs []bom.KeyValue) []bom.KeyValue {
 		}
 	}
 	return kvs
+}
+
+// createMySQLInitFile creates the .sql file that gets passed to helm as an override
+// this initializes the MySQL DB
+func createMySQLInitFile(ctx spi.ComponentContext) (string, error) {
+	// retrieve the keycloak user password
+	userSecret := v1.Secret{}
+	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: secretName}, &userSecret); err != nil {
+		return "", err
+	}
+	userPwd := userSecret.Data[secretKey]
+	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.sql", mySQLInitFilePrefix))
+	if err != nil {
+		return "", err
+	}
+	_, err = file.Write([]byte(fmt.Sprintf(initDbScript, userPwd, mySQLUsername)))
+	if err != nil {
+		return "", ctx.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
+	}
+	// Close the file
+	if err := file.Close(); err != nil {
+		return "", ctx.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
+	}
+	return file.Name(), nil
+}
+
+// createKeycloakDBSecret creates or updates a secret containing the password used by keycloak to access the DB
+func createKeycloakDBSecret(ctx spi.ComponentContext) error {
+	// create MySQL keycloak user secret
+	keycloakSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      secretName,
+		},
+	}
+	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: ComponentNamespace,
+		Name:      secretName,
+	}, keycloakSecret)
+
+	if err != nil {
+		password, err := vzpassword.GeneratePassword(12)
+		if err != nil {
+			return err
+		}
+		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), keycloakSecret, func() error {
+			keycloakSecret.Data = map[string][]byte{
+				secretKey: []byte(password),
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		ctx.Log().Once("Component Keycloak successfully created the keycloak db secret")
+	}
+	return nil
 }

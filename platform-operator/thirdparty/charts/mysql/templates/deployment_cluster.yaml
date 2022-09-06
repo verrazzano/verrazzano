@@ -43,7 +43,55 @@ spec:
 {{- end }}
 {{ if ((.Values).podSpec) }}
   podSpec:
-{{ toYaml ((.Values).podSpec) | indent 4 }}
+{{ if ((.Values).podSpec.affinity) }}
+    affinity:
+{{ toYaml ((.Values).podSpec.affinity) | indent 6 }}
+{{ end }}
+{{ if (.Values).configurationFiles }}
+    containers:
+      - name: mysql
+        volumeMounts:
+{{- range $key, $val := .Values.configurationFiles }}
+        - name: configurations
+          mountPath: {{ $.Values.configurationFilesPath }}{{ $key }}
+          subPath: {{ $key }}
+{{- end -}}
+{{ end }}
+{{ if(.Values).initdbScripts }}
+    initContainers:
+    - name: initmysql
+      volumeMounts:
+{{- range $key, $val := .Values.initdbScripts }}
+      - name: custominitsql
+        mountPath: /docker-entrypoint-initdb.d/{{ $key }}
+        subPath: {{ $key }}
+{{- end -}}
+{{ end }}
+{{ if (or (.Values).initdbScripts (.Values).configurationFiles) }}
+    volumes:
+{{- if .Values.configurationFiles }}
+    - name: configurations
+      configMap:
+        name: {{ $cluster_name }}-configuration
+        defaultMode: 0755
+        items:
+{{- range $key, $val := .Values.configurationFiles }}
+          - key: {{ $key }}
+            path: {{ $key }}
+{{- end -}}
+{{- end -}}
+{{- if .Values.initdbScripts }}
+    - name: custominitsql
+      configMap:
+        name: initsql
+        defaultMode: 0755
+        items:
+{{- range $key, $val := .Values.initdbScripts }}
+          - key: {{ $key }}
+            path: {{ $key }}
+{{- end -}}
+{{- end -}}
+{{ end }}
 {{ end }}
 {{- if ((.Values).serverConfig) }}
   {{- if (((.Values).serverConfig).mycnf) }}
