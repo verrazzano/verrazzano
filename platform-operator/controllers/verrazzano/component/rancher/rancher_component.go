@@ -511,15 +511,15 @@ func configureUISettings(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	client := ctx.Client()
 
-	if err := createOrUpdateUiPlSetting(log, client); err != nil {
+	if err := createOrUpdateUIPlSetting(log, client); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring ui-pl setting: %s", err.Error())
 	}
 
-	if err := createOrUpdateUiLogoSetting(log, client, SettingUILogoLight, SettingUILogoLightLogoFilePath); err != nil {
+	if err := createOrUpdateUILogoSetting(log, client, SettingUILogoLight, SettingUILogoLightLogoFilePath); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoLight, SettingUILogoLightLogoFilePath, err.Error())
 	}
 
-	if err := createOrUpdateUiLogoSetting(log, client, SettingUILogoDark, SettingUILogoDarkLogoFilePath); err != nil {
+	if err := createOrUpdateUILogoSetting(log, client, SettingUILogoDark, SettingUILogoDarkLogoFilePath); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkLogoFilePath, err.Error())
 	}
 

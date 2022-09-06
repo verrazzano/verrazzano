@@ -112,6 +112,7 @@ const (
 	SettingUILogoLightLogoFilePath = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-light.svg"
 	SettingUILogoDark              = "ui-logo-dark"
 	SettingUILogoDarkLogoFilePath  = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
+	SettingUILogoValueprefix       = "data:image/svg+xml;base64,"
 )
 
 // auth config
@@ -710,8 +711,8 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// updateUiPlSetting updates the ui-pl Setting
-func createOrUpdateUiPlSetting(log vzlog.VerrazzanoLogger, c client.Client) error {
+// createOrUpdateUIPlSetting creates/updates the ui-pl Setting with value Verrazzano
+func createOrUpdateUIPlSetting(log vzlog.VerrazzanoLogger, c client.Client) error {
 	uiPlSetting := unstructured.Unstructured{}
 	uiPlSetting.SetGroupVersionKind(GVKSetting)
 	uiPlSettingName := types.NamespacedName{Name: SettingUIPL}
@@ -741,7 +742,7 @@ func createOrUpdateUiPlSetting(log vzlog.VerrazzanoLogger, c client.Client) erro
 }
 
 // updateUiPlSetting updates the ui-pl Setting
-func createOrUpdateUiLogoSetting(log vzlog.VerrazzanoLogger, c client.Client, settingName string, logoPath string) error {
+func createOrUpdateUILogoSetting(log vzlog.VerrazzanoLogger, c client.Client, settingName string, logoPath string) error {
 	uiLogoSetting := unstructured.Unstructured{}
 	uiLogoSetting.SetGroupVersionKind(GVKSetting)
 	uiLogoSettingName := types.NamespacedName{Name: settingName}
@@ -776,7 +777,7 @@ func createOrUpdateUiLogoSetting(log vzlog.VerrazzanoLogger, c client.Client, se
 		return log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
 	}
 
-	uiLogoSetting.UnstructuredContent()["value"] = fmt.Sprintf("data:image/svg+xml;base64,%v", stdout)
+	uiLogoSetting.UnstructuredContent()["value"] = fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)
 	if create {
 		err = c.Create(context.Background(), &uiLogoSetting)
 	} else {
