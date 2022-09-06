@@ -17,6 +17,7 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -70,17 +71,11 @@ func FindVerrazzanoResource(client client.Client) (*v1beta1.Verrazzano, error) {
 	vzList := v1beta1.VerrazzanoList{}
 	err := client.List(context.TODO(), &vzList)
 	if err != nil {
-		vzV1Alpha1List := v1alpha1.VerrazzanoList{}
-		err = client.List(context.TODO(), &vzV1Alpha1List)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to find any Verrazzano resources: %s", err.Error())
+		// If v1beta1 resource version doesn't exist, try v1alpha1
+		if meta.IsNoMatchError(err) {
+			return findVerazzanoResourceV1Alpha1(client)
 		}
-		if err := checkListLength(len(vzV1Alpha1List.Items)); err != nil {
-			return nil, err
-		}
-		vzConverted := &v1beta1.Verrazzano{}
-		err = vzV1Alpha1List.Items[0].ConvertTo(vzConverted)
-		return vzConverted, err
+		return nil, failedToFindResourceError(err)
 	}
 	if err := checkListLength(len(vzList.Items)); err != nil {
 		return nil, err
@@ -92,12 +87,11 @@ func FindVerrazzanoResource(client client.Client) (*v1beta1.Verrazzano, error) {
 func GetVerrazzanoResource(client client.Client, namespacedName types.NamespacedName) (*v1beta1.Verrazzano, error) {
 	vz := &v1beta1.Verrazzano{}
 	if err := client.Get(context.TODO(), namespacedName, vz); err != nil {
-		vzV1Alpha1 := &v1alpha1.Verrazzano{}
-		if err := client.Get(context.TODO(), namespacedName, vzV1Alpha1); err != nil {
-			return nil, fmt.Errorf("Failed to get a Verrazzano install resource: %s", err.Error())
+		if meta.IsNoMatchError(err) {
+			return getVerrazzanoResourceV1Alpha1(client, namespacedName)
 		}
-		err = vzV1Alpha1.ConvertTo(vz)
-		return vz, err
+		return nil, failedToGetResourceError(err)
+
 	}
 	return vz, nil
 }
@@ -168,6 +162,38 @@ func getAllComponents(vzRes v1beta1.Verrazzano) []string {
 		compSlice = append(compSlice, compStatusDetail.Name)
 	}
 	return compSlice
+}
+
+func findVerazzanoResourceV1Alpha1(client client.Client) (*v1beta1.Verrazzano, error) {
+	vzV1Alpha1List := v1alpha1.VerrazzanoList{}
+	err := client.List(context.TODO(), &vzV1Alpha1List)
+	if err != nil {
+		return nil, failedToFindResourceError(err)
+	}
+	if err := checkListLength(len(vzV1Alpha1List.Items)); err != nil {
+		return nil, err
+	}
+	vzConverted := &v1beta1.Verrazzano{}
+	err = vzV1Alpha1List.Items[0].ConvertTo(vzConverted)
+	return vzConverted, err
+}
+
+func getVerrazzanoResourceV1Alpha1(client client.Client, namespacedName types.NamespacedName) (*v1beta1.Verrazzano, error) {
+	vzV1Alpha1 := &v1alpha1.Verrazzano{}
+	if err := client.Get(context.TODO(), namespacedName, vzV1Alpha1); err != nil {
+		return nil, failedToGetResourceError(err)
+	}
+	vz := &v1beta1.Verrazzano{}
+	err := vzV1Alpha1.ConvertTo(vz)
+	return vz, err
+}
+
+func failedToFindResourceError(err error) error {
+	return fmt.Errorf("Failed to find any Verrazzano resources: %s", err.Error())
+}
+
+func failedToGetResourceError(err error) error {
+	return fmt.Errorf("Failed to get a Verrazzano install resource: %s", err.Error())
 }
 
 func checkListLength(length int) error {
