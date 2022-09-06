@@ -367,6 +367,9 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	kcSecret := createKeycloakSecret()
 	firstLoginSetting := createFirstLoginSetting()
 	rancherPod := newPod("cattle-system", "rancher")
+	rancherPod.Status = corev1.PodStatus{
+		Phase: corev1.PodRunning,
+	}
 
 	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, rancherPod).Build()
 	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, nil, false)
