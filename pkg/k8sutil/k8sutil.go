@@ -354,7 +354,7 @@ func GetRunningPodForLabel(c client.Client, label string, namespace string, log 
 
 	pods := &v1.PodList{}
 	labelPair := strings.Split(label, "=")
-	err := c.List(context.Background(), pods, client.MatchingLabels{labelPair[0]: labelPair[1]}, client.MatchingFields{"status.phase": "Running"})
+	err := c.List(context.Background(), pods, client.MatchingLabels{labelPair[0]: labelPair[1]})
 
 	if err != nil {
 		return nil, logger.ErrorfThrottledNewErr("Failed getting running pods for label %s in namespace %s, error: %v", label, namespace, err.Error())
@@ -364,10 +364,11 @@ func GetRunningPodForLabel(c client.Client, label string, namespace string, log 
 		return nil, logger.ErrorfThrottledNewErr("Invalid running pod list for label %s in namespace %s", label, namespace)
 	}
 
-	pod := pods.Items[0]
-	if pod.GetName() == "" {
-		return nil, logger.ErrorfThrottledNewErr("Invalid running pod for label %s in namespace %s", label, namespace)
+	for _, pod := range pods.Items {
+		if pod.Status.Phase == v1.PodRunning {
+			return &pod, nil
+		}
 	}
 
-	return &pod, nil
+	return nil, logger.ErrorfThrottledNewErr("No running pod for label %s in namespace %s", label, namespace)
 }
