@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
@@ -279,8 +280,8 @@ func createNamespace() *corev1.Namespace {
 	}
 }
 
-func createVz() *vzapi.Verrazzano {
-	return &vzapi.Verrazzano{
+func createVz() *v1beta1.Verrazzano {
+	return &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",

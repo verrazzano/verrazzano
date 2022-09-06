@@ -1,0 +1,56 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: prod
+  components:
+    ingressNGINX:
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 2
+              service:
+                externalIPs:
+                  - 10.11.12.13
+                externalTrafficPolicy: Local
+      ports:
+        - name: http
+          nodePort: 30080
+          port: 80
+          protocol: TCP
+          targetPort: 0
+        - name: https
+          nodePort: 30443
+          port: 443
+          protocol: TCP
+          targetPort: 0
+        - name: healthz
+          nodePort: 30254
+          port: 30254
+          protocol: TCP
+          targetPort: 10254
+      type: LoadBalancer
+    istio:
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                egressGateways:
+                  - enabled: true
+                    name: istio-egressgateway
+                ingressGateways:
+                  - enabled: true
+                    k8s:
+                      service:
+                        externalIPs:
+                          - 20.21.22.23
+                        type: LoadBalancer
+                    name: istio-ingressgateway

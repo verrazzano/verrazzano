@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -19,7 +20,6 @@ import (
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	clik8sutil "github.com/verrazzano/verrazzano/tools/vz/pkg/k8sutil"
@@ -138,7 +138,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 }
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
-func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType vzapi.ConditionType, lastTransitionTime metav1.Time) (string, error) {
+func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType v1beta1.ConditionType, lastTransitionTime metav1.Time) (string, error) {
 	// Provide the user with feedback while waiting for the verrazzano-platform-operator to be ready
 	feedbackChan := make(chan bool)
 	defer close(feedbackChan)
@@ -189,7 +189,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 
 // WaitForOperationToComplete waits for the Verrazzano install/upgrade to complete and
 // shows the logs of the ongoing Verrazzano install/upgrade.
-func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat LogFormat, condType vzapi.ConditionType) error {
+func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat LogFormat, condType v1beta1.ConditionType) error {
 	rc, err := GetVpoLogStream(kubeClient, vpoPodName)
 	if err != nil {
 		return err
@@ -324,9 +324,9 @@ func PrintSimpleLogFormat(sc *bufio.Scanner, outputStream io.Writer, regexp *reg
 }
 
 // return the operation string to display
-func getOperationString(condType vzapi.ConditionType) string {
+func getOperationString(condType v1beta1.ConditionType) string {
 	operation := "install"
-	if condType == vzapi.CondUpgradeComplete {
+	if condType == v1beta1.CondUpgradeComplete {
 		operation = "upgrade"
 	}
 	return operation
