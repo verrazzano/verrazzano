@@ -24,6 +24,8 @@ if [ "${CLUSTER_COUNT}" -gt 1 ] ; then
     yq -i eval '.spec.components.istio.istioInstallArgs[2].value = "ISTIO_MUTUAL"' "${VZ_CR_FILE}"
     yq -i eval '.spec.components.istio.istioInstallArgs[3].name = "meshConfig.defaultConfig.tracing.zipkin.address"' "${VZ_CR_FILE}"
     yq -i eval '.spec.components.istio.istioInstallArgs[3].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' "${VZ_CR_FILE}"
+    yq -i eval '.spec.components.istio.istioInstallArgs[4].name = "global.proxy.holdApplicationUntilProxyStarts"' ${VZ_CR_FILE}
+    yq -i eval '.spec.components.istio.istioInstallArgs[4].value = "true"' ${VZ_CR_FILE}
 fi
 
 echo "VZ CR to be applied:"
