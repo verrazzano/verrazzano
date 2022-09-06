@@ -66,5 +66,5 @@ func loadV1Beta1(testCase string) (*v1beta1.Verrazzano, error) {
 }
 
 func loadTestCase(testCase, version string) ([]byte, error) {
-	return os.ReadFile(path.Join("../testdata", testCase, fmt.Sprintf("%s.yaml", version)))
+	return os.ReadFile(path.Join("testdata", testCase, fmt.Sprintf("%s.yaml", version)))
 }
