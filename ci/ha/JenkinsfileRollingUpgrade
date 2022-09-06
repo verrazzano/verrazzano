@@ -36,7 +36,7 @@ pipeline {
         choice (name: 'OKE_NODE_POOL',
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
-                choices: [ "VM.Standard2.4-3", "VM.Standard2.4-5" ])
+                choices: [ "VM.Standard2.4-4", "VM.Standard2.4-2" ])
         choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
