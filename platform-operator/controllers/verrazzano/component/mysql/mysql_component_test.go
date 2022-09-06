@@ -15,7 +15,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-func Test_mysqlComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
 	var storageClass1 = "class1"
@@ -343,7 +343,7 @@ func Test_mysqlComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func Test_mysqlComponent_ValidateUpdateV1beta1(t *testing.T) {
+func TestValidateUpdateV1beta1(t *testing.T) {
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
 	var storageClass1 = "class1"

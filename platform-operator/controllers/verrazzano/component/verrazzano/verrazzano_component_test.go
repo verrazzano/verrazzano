@@ -216,7 +216,7 @@ func getBoolPtr(b bool) *bool {
 	return &b
 }
 
-func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
@@ -460,7 +460,7 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func Test_verrazzanoComponent_ValidateUpdateV1beta1(t *testing.T) {
+func TestValidateUpdateV1beta1(t *testing.T) {
 	disabled := false
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")

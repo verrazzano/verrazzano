@@ -263,7 +263,7 @@ func TestPostUpgrade(t *testing.T) {
 	assert.Nil(t, component.PostUpgrade(ctxWithIngress))
 }
 
-func Test_rancherComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
@@ -316,7 +316,7 @@ func Test_rancherComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func Test_rancherComponent_ValidateUpdateV1beta1(t *testing.T) {
+func TestValidateUpdateV1beta1(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string

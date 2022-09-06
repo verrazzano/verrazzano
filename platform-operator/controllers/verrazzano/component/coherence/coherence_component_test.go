@@ -10,8 +10,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
-// Test_coherenceComponent_ValidateUpdate tests the Coherence ValidateUpdate call for v1alpha1.Verrazzano
-func Test_coherenceComponent_ValidateUpdate(t *testing.T) {
+// TestValidateUpdate tests the Coherence ValidateUpdate call for v1alpha1.Verrazzano
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
@@ -73,8 +73,8 @@ func Test_coherenceComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-// Test_coherenceComponent_ValidateUpdateV1beta1 tests the Coherence ValidateUpdate call for v1beta1.Verrazzano
-func Test_coherenceComponent_ValidateUpdateV1beta1(t *testing.T) {
+// TestValidateUpdateV1beta1 tests the Coherence ValidateUpdate call for v1beta1.Verrazzano
+func TestValidateUpdateV1beta1(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string

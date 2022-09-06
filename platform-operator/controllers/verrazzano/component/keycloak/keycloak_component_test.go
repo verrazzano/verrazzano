@@ -135,11 +135,11 @@ func TestPreinstall(t *testing.T) {
 	}
 }
 
-// TestKeycloakComponent_ValidateUpdate tests the Keycloak ValidateUpdate call
+// TestKeycloakComponentValidateUpdate tests the Keycloak ValidateUpdate call
 // GIVEN a Keycloak component
 //  WHEN I call ValidateUpdate
 //  THEN an error is returned if the validation is expected to fail
-func TestKeycloakComponent_ValidateUpdate(t *testing.T) {
+func TestKeycloakComponentValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
@@ -206,11 +206,11 @@ func TestKeycloakComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-// TestKeycloakComponent_ValidateUpdateV1Beta1 tests the Keycloak ValidateUpdateV1beta1 call
+// TestKeycloakComponentValidateUpdateV1Beta1 tests the Keycloak ValidateUpdateV1beta1 call
 // GIVEN a Keycloak component
 //  WHEN I call ValidateUpdate
 //  THEN an error is returned if the validation is expected to fail
-func TestKeycloakComponent_ValidateUpdateV1Beta1(t *testing.T) {
+func TestKeycloakComponentValidateUpdateV1Beta1(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string

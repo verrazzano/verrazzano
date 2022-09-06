@@ -10,7 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
-func Test_weblogicComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
@@ -63,7 +63,7 @@ func Test_weblogicComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func Test_weblogicComponent_ValidateUpdateV1beta1(t *testing.T) {
+func TestValidateUpdateV1beta1(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string

@@ -73,8 +73,8 @@ func TestGetIngressNames(t *testing.T) {
 	assert.Equal(t, ComponentNamespace, ingressNames[0].Namespace)
 }
 
-// Test_authProxyComponent_ValidateUpdate tests the AuthProxy ValidateUpdate call for v1alpha1.Verrazzano
-func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
+// TestValidateUpdate tests the AuthProxy ValidateUpdate call for v1alpha1.Verrazzano
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
@@ -136,8 +136,8 @@ func Test_authProxyComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-// Test_authProxyComponent_ValidateUpdateV1beta1 tests the AuthProxy ValidateUpdate call for v1beta1.Verrazzano
-func Test_authProxyComponent_ValidateUpdateV1beta1(t *testing.T) {
+// TestValidateUpdateV1beta1 tests the AuthProxy ValidateUpdate call for v1beta1.Verrazzano
+func TestValidateUpdateV1beta1(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
