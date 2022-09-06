@@ -67,28 +67,37 @@ func NewVerrazzanoForVersion(groupVersion schema.GroupVersion) func() interface{
 
 // FindVerrazzanoResource - find the single Verrazzano resource
 func FindVerrazzanoResource(client client.Client) (*v1beta1.Verrazzano, error) {
-
 	vzList := v1beta1.VerrazzanoList{}
 	err := client.List(context.TODO(), &vzList)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to find any Verrazzano resources: %s", err.Error())
+		vzV1Alpha1List := v1alpha1.VerrazzanoList{}
+		err = client.List(context.TODO(), &vzV1Alpha1List)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to find any Verrazzano resources: %s", err.Error())
+		}
+		if err := checkListLength(len(vzV1Alpha1List.Items)); err != nil {
+			return nil, err
+		}
+		vzConverted := &v1beta1.Verrazzano{}
+		err = vzV1Alpha1List.Items[0].ConvertTo(vzConverted)
+		return vzConverted, err
 	}
-	if len(vzList.Items) == 0 {
-		return nil, fmt.Errorf("Failed to find any Verrazzano resources")
-	}
-	if len(vzList.Items) != 1 {
-		return nil, fmt.Errorf("Expected to only find one Verrazzano resource, but found %d", len(vzList.Items))
+	if err := checkListLength(len(vzList.Items)); err != nil {
+		return nil, err
 	}
 	return &vzList.Items[0], nil
 }
 
 // GetVerrazzanoResource - get a Verrazzano resource
 func GetVerrazzanoResource(client client.Client, namespacedName types.NamespacedName) (*v1beta1.Verrazzano, error) {
-
 	vz := &v1beta1.Verrazzano{}
-	err := client.Get(context.TODO(), namespacedName, vz)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get a Verrazzano install resource: %s", err.Error())
+	if err := client.Get(context.TODO(), namespacedName, vz); err != nil {
+		vzV1Alpha1 := &v1alpha1.Verrazzano{}
+		if err := client.Get(context.TODO(), namespacedName, vzV1Alpha1); err != nil {
+			return nil, fmt.Errorf("Failed to get a Verrazzano install resource: %s", err.Error())
+		}
+		err = vzV1Alpha1.ConvertTo(vz)
+		return vz, err
 	}
 	return vz, nil
 }
@@ -159,4 +168,14 @@ func getAllComponents(vzRes v1beta1.Verrazzano) []string {
 		compSlice = append(compSlice, compStatusDetail.Name)
 	}
 	return compSlice
+}
+
+func checkListLength(length int) error {
+	if length == 0 {
+		return fmt.Errorf("Failed to find any Verrazzano resources")
+	}
+	if length != 1 {
+		return fmt.Errorf("Expected to only find one Verrazzano resource, but found %d", length)
+	}
+	return nil
 }
