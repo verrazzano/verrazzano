@@ -20,6 +20,8 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
+const fooDomainSuffix = "foo.com"
+
 // TestExternalDNSPostUninstall tests the PostUninstall fn
 // GIVEN a call to PostUninstall
 // WHEN ExternalDNS is installed
@@ -53,8 +55,8 @@ func TestExternalDNSPostUninstall(t *testing.T) {
 	assert.True(t, errors.IsNotFound(err))
 }
 
-func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
-	tests := []struct {
+func TestValidateUpdate(t *testing.T) {
+	var tests = []struct {
 		name    string
 		old     *vzapi.Verrazzano
 		new     *vzapi.Verrazzano
@@ -105,7 +107,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						DNS: &vzapi.DNSComponent{
-							External: &vzapi.External{Suffix: "foo.com"},
+							External: &vzapi.External{Suffix: fooDomainSuffix},
 						},
 					},
 				},
@@ -129,7 +131,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						DNS: &vzapi.DNSComponent{
-							External: &vzapi.External{Suffix: "foo.com"},
+							External: &vzapi.External{Suffix: fooDomainSuffix},
 						},
 					},
 				},
@@ -207,7 +209,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func Test_externalDNSComponent_ValidateUpdateV1beta1(t *testing.T) {
+func TestValidateUpdateV1beta1(t *testing.T) {
 	tests := []struct {
 		name    string
 		old     *v1beta1.Verrazzano
@@ -259,7 +261,7 @@ func Test_externalDNSComponent_ValidateUpdateV1beta1(t *testing.T) {
 				Spec: v1beta1.VerrazzanoSpec{
 					Components: v1beta1.ComponentSpec{
 						DNS: &v1beta1.DNSComponent{
-							External: &v1beta1.External{Suffix: "foo.com"},
+							External: &v1beta1.External{Suffix: fooDomainSuffix},
 						},
 					},
 				},
@@ -283,7 +285,7 @@ func Test_externalDNSComponent_ValidateUpdateV1beta1(t *testing.T) {
 				Spec: v1beta1.VerrazzanoSpec{
 					Components: v1beta1.ComponentSpec{
 						DNS: &v1beta1.DNSComponent{
-							External: &v1beta1.External{Suffix: "foo.com"},
+							External: &v1beta1.External{Suffix: fooDomainSuffix},
 						},
 					},
 				},
