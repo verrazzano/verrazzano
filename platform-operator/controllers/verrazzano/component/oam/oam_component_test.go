@@ -24,7 +24,7 @@ func init() {
 	_ = rbacv1.AddToScheme(testScheme)
 }
 
-func Test_oamComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
@@ -77,7 +77,7 @@ func Test_oamComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func Test_oamComponent_ValidateUpdateV1Beta1(t *testing.T) {
+func TestValidateUpdateV1Beta1(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
