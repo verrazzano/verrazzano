@@ -5,9 +5,10 @@ package operator
 
 import (
 	"fmt"
+	"path/filepath"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -136,12 +137,15 @@ func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 
 // ValidateInstall verifies the installation of the Verrazzano object
 func (c prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	return c.validatePrometheusOperator(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.validatePrometheusOperator(new)
 }
 
 // getIngressNames - gets the names of the ingresses associated with this component
