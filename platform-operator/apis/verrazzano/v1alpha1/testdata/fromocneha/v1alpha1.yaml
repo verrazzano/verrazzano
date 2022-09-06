@@ -1,0 +1,98 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+kind: Verrazzano
+apiVersion: install.verrazzano.io/v1alpha1
+metadata:
+  name: verrazzano
+spec:
+  profile: prod
+  components:
+    authProxy:
+      kubernetes:
+        replicas: 2
+    certManager:
+      overrides:
+        - values:
+            replicaCount: 2
+            cainjector:
+              replicaCount: 2
+            webhook:
+              replicaCount: 2
+    console:
+      overrides:
+        - values:
+            replicas: 2
+    ingress:
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 2
+            defaultBackend:
+              replicaCount: 2
+      nginxInstallArgs:
+        - name: controller.service.externalTrafficPolicy
+          value: Local
+        - name: controller.service.externalIPs
+          valueList:
+            - 10.11.12.13
+      ports:
+        - name: http
+          nodePort: 30080
+          port: 80
+          protocol: TCP
+          targetPort: 0
+        - name: https
+          nodePort: 30443
+          port: 443
+          protocol: TCP
+          targetPort: 0
+        - name: healthz
+          nodePort: 30254
+          port: 30254
+          protocol: TCP
+          targetPort: 10254
+      type: LoadBalancer
+    istio:
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    replicaCount: 2
+      ingress:
+        kubernetes:
+          replicas: 2
+      egress:
+        kubernetes:
+          replicas: 2
+      istioInstallArgs:
+        - name: gateways.istio-ingressgateway.externalIPs
+          valueList:
+            - 20.21.22.23
+    keycloak:
+      overrides:
+        - values:
+            replicas: 2
+    kibana:
+      replicas: 2
+    kiali:
+      overrides:
+        - values:
+            deployment:
+              replicas: 2
+    prometheusOperator:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 2
+    elasticsearch:
+      installArgs:
+        - name: nodes.ingest.replicas
+          value: "2"
