@@ -1,7 +1,7 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1alpha1
+package v1beta1
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -500,15 +499,8 @@ func runValidateWithIngressChangeTest() error {
 		Spec: VerrazzanoSpec{
 			Profile: Dev,
 			Components: ComponentSpec{
-				Ingress: &IngressNginxComponent{
+				IngressNGINX: &IngressNginxComponent{
 					Type: "sometype",
-					NGINXInstallArgs: []InstallArgs{
-						{
-							Name:      "arg1",
-							Value:     "val1",
-							SetString: false,
-						},
-					},
 					Ports: []corev1.ServicePort{
 						{
 							Name:     "port1",
@@ -528,15 +520,8 @@ func runValidateWithIngressChangeTest() error {
 			Version: v0170,
 			Profile: Dev,
 			Components: ComponentSpec{
-				Ingress: &IngressNginxComponent{
+				IngressNGINX: &IngressNginxComponent{
 					Type: "sometype",
-					NGINXInstallArgs: []InstallArgs{
-						{
-							Name:      "arg1",
-							Value:     "val1",
-							SetString: false,
-						},
-					},
 					Ports: []corev1.ServicePort{
 						{
 							Name:     "port1",
@@ -1459,52 +1444,6 @@ func TestValidateInstallOverrides(t *testing.T) {
 	assert.Error(err1)
 	assert.Error(err2)
 	assert.NoError(err3)
-}
-
-func TestValidateInstallOverridesV1Beta1(t *testing.T) {
-	var tests = []struct {
-		name      string
-		overrides []v1beta1.Overrides
-		hasError  bool
-	}{
-		{
-			"no error when empty overrides",
-			[]v1beta1.Overrides{},
-			false,
-		},
-		{
-			"no error when valid overrides",
-			[]v1beta1.Overrides{
-				{
-					ConfigMapRef: &corev1.ConfigMapKeySelector{
-						Key: "foo",
-					},
-				},
-			},
-			false,
-		},
-		{
-			"error when multiple overrides per entry",
-			[]v1beta1.Overrides{
-				{
-					ConfigMapRef: &corev1.ConfigMapKeySelector{},
-					SecretRef:    &corev1.SecretKeySelector{},
-				},
-			},
-			true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateInstallOverridesV1Beta1(tt.overrides)
-			if tt.hasError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
 }
 
 var testKey = []byte{}
