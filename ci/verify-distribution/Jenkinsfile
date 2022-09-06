@@ -35,7 +35,7 @@ pipeline {
                 choices: [ "1.22", "1.23", "1.21", "1.20" ])
         choice (name: 'DISTRIBUTION_VARIANT',
                 description: 'Verrazzano Distribution Variant to use for testing',
-                choices: ["Commercial", "OpenSource"])
+                choices: ["Full", "Lite"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -119,7 +119,7 @@ pipeline {
         // Ideally use the TIBURON-DEV compartment, but we need permissions
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
-        TARBALL_DIR = "${WORKSPACE}/vz-tarball"
+        TARBALL_ROOT_DIR = "${WORKSPACE}/vz-tarball"
         BOM_DOWNLOADED_FILE_NAME = "downloaded-from-bom.tar.gz"
 
         // used to emit metrics
@@ -236,10 +236,10 @@ pipeline {
                 script {
                     zipFileLoc = params.ZIPFILE_LOCATION
                     if (params.ZIPFILE_LOCATION == "NONE") {
-                        if (params.DISTRIBUTION_VARIANT == "Commercial") {
-                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}-commercial.zip".trim()
+                        if (params.DISTRIBUTION_VARIANT == "Full") {
+                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}.zip".trim()
                         } else {
-                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}-open-source.zip".trim()
+                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}-lite.zip".trim()
                         }
                     }
                 }
@@ -247,6 +247,9 @@ pipeline {
         }
 
         stage('Download and extract Tarball') {
+             environment {
+                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+             }
             steps {
                 script {
                     downloadLocation = "${WORKSPACE}/${zipFileLoc}"
@@ -256,7 +259,7 @@ pipeline {
                         returnStdout: true
                         ).trim()
 
-                    if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                    if (params.DISTRIBUTION_VARIANT == "Lite") {
                         tarfileName = "verrazzano-${VERRAZZANO_DEV_VERSION}-linux-amd64.tar.gz"
                         checksumFile = "${tarfileName}.sha256"
                         echo "base name: $baseFilename, tar name: $tarfileName, checksum name: $checksumFile"
@@ -272,10 +275,10 @@ pipeline {
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
                     """
 
-                    dir(env.TARBALL_DIR) {
+                    dir(env.TARBALL_ROOT_DIR) {
                         unzip zipFile: downloadLocation
 
-                        if (params.DISTRIBUTION_VARIANT == "OpenSource") {
+                        if (params.DISTRIBUTION_VARIANT == "Lite") {
                             sh """
                                 sha256sum -c $checksumFile
                                 tar xvf $tarfileName
@@ -296,9 +299,12 @@ pipeline {
             }
         }
         stage('Upload Verrazzano Images') {
+             environment {
+                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+             }
             steps {
                 script {
-                    if (params.DISTRIBUTION_VARIANT == "Commercial") {
+                    if (params.DISTRIBUTION_VARIANT == "Full") {
                         sh """
                             # Create OCIR repos for the images in the tarballs in the test compartment
                             sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
@@ -337,6 +343,7 @@ pipeline {
                         PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
                         PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
                         CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
+                        TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
                     }
                     steps {
                         sh """
