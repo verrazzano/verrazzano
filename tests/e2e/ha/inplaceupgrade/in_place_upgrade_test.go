@@ -168,7 +168,7 @@ func waitForReplacementNode(existingNodes *corev1.NodeList) *corev1.NodeList {
 		latestNodes = ha.EventuallyGetNodes(clientset, t.Logs)
 		for _, node := range latestNodes.Items {
 			if !ha.IsControlPlaneNode(node) {
-				if !isExistingNode(&node, existingNodes) {
+				if !isExistingNode(node, existingNodes) {
 					replacement = node.Name
 					break
 				}
@@ -188,7 +188,7 @@ func waitForReplacementNode(existingNodes *corev1.NodeList) *corev1.NodeList {
 }
 
 // isExistingNode returns true if the specified node is in the list of existing nodes
-func isExistingNode(node *corev1.Node, existingNodes *corev1.NodeList) bool {
+func isExistingNode(node corev1.Node, existingNodes *corev1.NodeList) bool {
 	for _, existingNode := range existingNodes.Items {
 		if node.Name == existingNode.Name {
 			return true
