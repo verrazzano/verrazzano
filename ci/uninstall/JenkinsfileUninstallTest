@@ -451,11 +451,13 @@ def getUninstallStages(vpoLogsDir) {
              },
     ]
     if (params.CHAOS_TEST_TYPE == "uninstall.interrupt.uninstall") {
+    /* Uncomment this after fixing the issue with verrazzano-install namespace getting removed before vz is uninstalled
         stages = stages + [
              "uninstall-chaos": {
                     kill_vpo_loop(vpoLogsDir)
                  },
         ]
+   */
     }
     return stages
 }
@@ -485,13 +487,14 @@ def kill_vpo_loop(vpoLogsDir) {
             VZ_STATUS=\$(kubectl get vz my-verrazzano --ignore-not-found -o jsonpath={.status.conditions[-1].type})
             RESTARTS=1
             while [ ! -z \$VZ_STATUS ] && [ \$VZ_STATUS == "UninstallStarted" ] ; do
-                POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
-                mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-                kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator >> ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-\${RESTARTS}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-                kubectl -n verrazzano-install delete po \$POD
-                POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
-                kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
-                echo "VPO \$POD successfully restarted"
+                NS_STATUS=\$(kubectl get ns verrazzano-install --ignore-not-found -o jsonpath={.status.phase})
+                if [ ! -z \$NS_STATUS ]; then
+                    mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
+                    kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator >> ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-\${RESTARTS}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                    kubectl -n verrazzano-install delete pod -l app=verrazzano-platform-operator --ignore-not-found
+                    kubectl -n verrazzano-install rollout status deployments/verrazzano-platform-operator --timeout=600s
+                    echo "VPO pod successfully restarted"
+                fi
 
                 # Sleep a random interval between 15 and 60 seconds
                 SLEEP_SEC=\$[ \$RANDOM % 45 + 15 ]
