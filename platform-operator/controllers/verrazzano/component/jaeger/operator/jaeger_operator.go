@@ -317,7 +317,6 @@ func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) 
 	}
 	// Validate install overrides for v1beta1
 	return validateInstallOverrides(cr.Spec.Components.JaegerOperator.ValueOverrides, client)
-	return nil
 }
 
 // validateInstallOverrides validates the v1beta1 install overrides (v1beta1.Overrides) configured for Jaeger component
