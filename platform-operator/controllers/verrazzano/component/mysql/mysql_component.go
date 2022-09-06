@@ -127,17 +127,21 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
-	oldSetting, err := doGenerateVolumeSourceOverridesV1beta1(old, []bom.KeyValue{})
+	oldSetting, err := doGenerateVolumeSourceOverrides(old, []bom.KeyValue{})
 	if err != nil {
 		return err
 	}
-	newSetting, err := doGenerateVolumeSourceOverridesV1beta1(new, []bom.KeyValue{})
+	newSetting, err := doGenerateVolumeSourceOverrides(new, []bom.KeyValue{})
 	if err != nil {
 		return err
 	}
 	// Reject any persistence-specific changes via the mysqlInstallArgs settings
 	if err := validatePersistenceSpecificChanges(oldSetting, newSetting); err != nil {
 		return err
+	}
+	// Reject any installArgs changes for now
+	if err := common.CompareInstallOverrides(c.getInstallOverridesV1beta1(old), c.getInstallOverridesV1beta1(new)); err != nil {
+		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
@@ -163,9 +167,19 @@ func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs
 	return nil
 }
 
-func (c mysqlComponent) getInstallArgsV1beta1(vz *v1beta1.Verrazzano) []v1beta1.Overrides {
+func (c mysqlComponent) getInstallOverridesV1beta1(object runtime.Object) []v1beta1.Overrides {
+	if vz, ok := object.(*vzapi.Verrazzano); ok {
+		if vz != nil && vz.Spec.Components.Keycloak != nil {
+			valueOverrides, err := vzapi.ConvertInstallOverridesWithArgsToV1Beta1(vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs, vz.Spec.Components.Keycloak.MySQL.InstallOverrides)
+			if err != nil {
+				return nil
+			}
+			return valueOverrides.ValueOverrides
+		}
+	}
+	vz := object.(*v1beta1.Verrazzano)
 	if vz != nil && vz.Spec.Components.Keycloak != nil {
-		return vz.Spec.Components.Keycloak.MySQL.ValueOverrides
+		return vz.Spec.Components.Keycloak.MySQL.InstallOverrides.ValueOverrides
 	}
 	return nil
 }

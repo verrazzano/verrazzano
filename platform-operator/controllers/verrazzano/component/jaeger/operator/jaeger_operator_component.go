@@ -159,12 +159,12 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 	return c.validateJaegerOperator(new)
 }
 
-// ValidateInstall validates the installation of the Verrazzano CR
+// ValidateInstallV1Beta1 validates the installation of the Verrazzano CR
 func (c jaegerOperatorComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
 	return c.validateJaegerOperator(vz)
 }
 
-// ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
+// ValidateUpdateV1Beta1 validates if the update operation of the Verrazzano CR is valid or not.
 func (c jaegerOperatorComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)

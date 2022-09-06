@@ -264,8 +264,8 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 	if createInstance {
-		// use template to populate Jaeger spec data
-		template, err := template.New("jaeger").Parse(jaegerCreateTemplate)
+		// use jaegerCRTemplate to populate Jaeger spec data
+		jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
 		if err != nil {
 			return nil, err
 		}
@@ -274,7 +274,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 			osReplicaCount = 0
 		}
 		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
-		err = template.Execute(&b, data)
+		err = jaegerCRTemplate.Execute(&b, data)
 		if err != nil {
 			return nil, err
 		}
@@ -317,32 +317,20 @@ func (c jaegerOperatorComponent) validateJaegerOperator(cr runtime.Object) error
 	}
 	if vzv1alpha1, ok := cr.(*v1alpha1.Verrazzano); ok {
 		// Validate install overrides for v1alpha1
-		return validateV1alhpa1InstallOverrides(vzv1alpha1.Spec.Components.JaegerOperator.ValueOverrides, client)
+		return validateInstallOverrides(v1alpha1.ConvertValueOverridesToV1Beta1(vzv1alpha1.Spec.Components.JaegerOperator.ValueOverrides), client)
 	} else if vzv1beta1, ok := cr.(*v1beta1.Verrazzano); ok {
 		// Validate install overrides for v1beta1
-		return validateV1betaInstallOverrides(vzv1beta1.Spec.Components.JaegerOperator.ValueOverrides, client)
+		return validateInstallOverrides(vzv1beta1.Spec.Components.JaegerOperator.ValueOverrides, client)
 	}
 	return nil
 }
 
-// validateV1alhpa1InstallOverrides validates the v1alpha1 install overrides (v1alpha1.Overrides) configured for Jaeger component
-func validateV1alhpa1InstallOverrides(overrides []v1alpha1.Overrides, client clipkg.Client) error {
-	if err := v1alpha1.ValidateInstallOverrides(overrides); err != nil {
-		return err
-	}
-	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
-	if err != nil {
-		return err
-	}
-	return validateOverrideYamls(overrideYAMLs)
-}
-
-// validateV1betaInstallOverrides validates the v1beta1 install overrides (v1beta1.Overrides) configured for Jaeger component
-func validateV1betaInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
+// validateInstallOverrides validates the v1beta1 install overrides (v1beta1.Overrides) configured for Jaeger component
+func validateInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
 	if err := v1alpha1.ValidateInstallOverridesV1Beta1(overrides); err != nil {
 		return err
 	}
-	overrideYAMLs, err := common.GetInstallOverridesV1beta1YAMLUsingClient(client, overrides, ComponentNamespace)
+	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
 	if err != nil {
 		return err
 	}
@@ -574,14 +562,14 @@ func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 // The jaeger-operator-mutating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
 // On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
-	config, err := controllerruntime.GetConfig()
+	kubeConfig, err := controllerruntime.GetConfig()
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get kubeconfig with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubeconfig with error: %v", err)
 		return err
 	}
-	kubeClient, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get kubeClient with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubeClient with error: %v", err)
 		return err
 	}
 	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), ComponentMutatingWebhookConfigName, metav1.GetOptions{})
@@ -599,14 +587,14 @@ func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 // The jaeger-operator-validating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
 // On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
-	config, err := controllerruntime.GetConfig()
+	kubeConfig, err := controllerruntime.GetConfig()
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get kubeconfig with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubeconfig with error: %v", err)
 		return err
 	}
-	kubeClient, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get kubeClient with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubeClient with error: %v", err)
 		return err
 	}
 	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), ComponentValidatingWebhookConfigName, metav1.GetOptions{})

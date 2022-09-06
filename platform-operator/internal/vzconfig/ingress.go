@@ -25,18 +25,8 @@ func GetEnvName(vz *vzapi.Verrazzano) string {
 	return envName
 }
 
-// FindVolumeTemplate Find a named VolumeClaimTemplate in the list
-func FindVolumeTemplate(templateName string, templates []vzapi.VolumeClaimSpecTemplate) (*v1.PersistentVolumeClaimSpec, bool) {
-	for i, template := range templates {
-		if templateName == template.Name {
-			return &templates[i].Spec, true
-		}
-	}
-	return nil, false
-}
-
-// FindVolumeTemplateV1beta1 Find a named VolumeClaimTemplate in the list for v1beta1.
-func FindVolumeTemplateV1beta1(templateName string, templates []v1beta1.VolumeClaimSpecTemplate) (*v1.PersistentVolumeClaimSpec, bool) {
+// FindVolumeTemplate Find a named VolumeClaimTemplate in the list for v1beta1.
+func FindVolumeTemplate(templateName string, templates []v1beta1.VolumeClaimSpecTemplate) (*v1.PersistentVolumeClaimSpec, bool) {
 	for i, template := range templates {
 		if templateName == template.Name {
 			return &templates[i].Spec, true

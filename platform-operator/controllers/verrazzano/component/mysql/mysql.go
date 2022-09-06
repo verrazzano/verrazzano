@@ -235,7 +235,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 }
 
 // doGenerateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
-func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func doGenerateVolumeSourceOverrides(effectiveCR runtime.Object, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	mySQLVolumeSource := getMySQLVolumeSource(effectiveCR)
 	// No volumes to process, return what we have
 	if mySQLVolumeSource == nil {
@@ -251,62 +251,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
-		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
-		if !found {
-			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
-		}
-		storageClass := storageSpec.StorageClassName
-		if storageClass != nil && len(*storageClass) > 0 {
-			kvs = append(kvs, bom.KeyValue{
-				Key:       "primary.persistence.storageClass",
-				Value:     *storageClass,
-				SetString: true,
-			})
-		}
-		storage := storageSpec.Resources.Requests.Storage()
-		if storageSpec.Resources.Requests != nil && !storage.IsZero() {
-			kvs = append(kvs, bom.KeyValue{
-				Key:       "primary.persistence.size",
-				Value:     storage.String(),
-				SetString: true,
-			})
-		}
-		accessModes := storageSpec.AccessModes
-		if len(accessModes) > 0 {
-			// MySQL only allows a single AccessMode value, so just choose the first
-			kvs = append(kvs, bom.KeyValue{
-				Key:       "primary.persistence.accessMode",
-				Value:     string(accessModes[0]),
-				SetString: true,
-			})
-		}
-		// Enable MySQL persistence
-		kvs = append(kvs, bom.KeyValue{
-			Key:   persistenceEnabledKey,
-			Value: "true",
-		})
-	}
-	return kvs, nil
-}
-
-// doGenerateVolumeSourceOverridesV1beta1 generates the appropriate persistence overrides given the effective CR
-func doGenerateVolumeSourceOverridesV1beta1(effectiveCR *v1beta1.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	mySQLVolumeSource := getMySQLVolumeSourceV1beta1(effectiveCR)
-	// No volumes to process, return what we have
-	if mySQLVolumeSource == nil {
-		return kvs, nil
-	}
-
-	if mySQLVolumeSource.EmptyDir != nil {
-		// EmptyDir, disable persistence
-		kvs = append(kvs, bom.KeyValue{
-			Key:   persistenceEnabledKey,
-			Value: "false",
-		})
-	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
-		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
-		pvcs := mySQLVolumeSource.PersistentVolumeClaim
-		storageSpec, found := vzconfig.FindVolumeTemplateV1beta1(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, getVolumeClaimSpecTemplates(effectiveCR))
 		if !found {
 			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
@@ -345,8 +290,18 @@ func doGenerateVolumeSourceOverridesV1beta1(effectiveCR *v1beta1.Verrazzano, kvs
 }
 
 // getMySQLVolumeSourceV1beta1 returns the volume source from v1beta1.Verrazzano
-func getMySQLVolumeSource(effectiveCR *vzapi.Verrazzano) *v1.VolumeSource {
+func getMySQLVolumeSource(object runtime.Object) *v1.VolumeSource {
 	var mySQLVolumeSource *v1.VolumeSource
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Keycloak != nil {
+			mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
+		}
+		if mySQLVolumeSource == nil {
+			mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
+		}
+		return mySQLVolumeSource
+	}
+	effectiveCR, _ := object.(*v1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.Keycloak != nil {
 		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
 	}
@@ -356,16 +311,12 @@ func getMySQLVolumeSource(effectiveCR *vzapi.Verrazzano) *v1.VolumeSource {
 	return mySQLVolumeSource
 }
 
-// getMySQLVolumeSourceV1beta1 returns the volume source from v1beta1.Verrazzano
-func getMySQLVolumeSourceV1beta1(effectiveCR *v1beta1.Verrazzano) *v1.VolumeSource {
-	var mySQLVolumeSource *v1.VolumeSource
-	if effectiveCR.Spec.Components.Keycloak != nil {
-		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
+func getVolumeClaimSpecTemplates(object runtime.Object) []v1beta1.VolumeClaimSpecTemplate {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		return vzapi.ConvertVolumeClaimTemplateTo(effectiveCR.Spec.VolumeClaimSpecTemplates)
 	}
-	if mySQLVolumeSource == nil {
-		mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
-	}
-	return mySQLVolumeSource
+	effectiveCR, _ := object.(*v1beta1.Verrazzano)
+	return effectiveCR.Spec.VolumeClaimSpecTemplates
 }
 
 //appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
