@@ -43,10 +43,6 @@ pipeline {
     }
 
     parameters {
-        string (name: 'N_JOBS_FOR_EACH_BATCH',
-                defaultValue: '3',
-                description: 'This is to define total number of jobs executed in parallel per each batch for Upgrade path minor release pipeline',
-                trim: true)
         choice (description: 'Predefined config permutations for Verrazzano installation. Prod profile is the default profile for NONE', name: 'VZ_INSTALL_CONFIG',
                 choices: ["NONE", "dev-kind-persistence"])
         string (name: 'EXCLUDE_RELEASES',
@@ -445,7 +441,6 @@ pipeline {
                                 build job: "/verrazzano-push-triggered-upgrade-minor-release-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'N_JOBS_FOR_EACH_BATCH', value: N_JOBS_FOR_EACH_BATCH),
                                         string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
                                         string(name: 'EXCLUDE_RELEASES', value: params.EXCLUDE_RELEASES),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
