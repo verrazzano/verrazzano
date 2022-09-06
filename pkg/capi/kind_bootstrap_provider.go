@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	defaultCNEBootstrapNodeImage  = "ghcr.io/verrazzano/kind-ocne:v0.14.0-20220829221147-81d706e2"
+	defaultCNEBootstrapNodeImage  = "ghcr.io/verrazzano/kind-ocne:v0.14.0-20220901152106-d1f46433"
 	defaultKindBootstrapNodeImage = "kindest/node:v1.24.0"
 
 	defaultCNEBootstrapConfig = `kind: Cluster
