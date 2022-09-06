@@ -24,8 +24,8 @@ if [ -z "$3" ]; then
 fi
 SHORT_COMMIT_HASH_ENV="$3"
 
-if [ -z "$BRANCH_NAME" ] || [ -z "$CLEAN_BRANCH_NAME" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_REGION" ] || [ -z "$WORKSPACE" ]; then
-  echo "This script requires environment variables - BRANCH_NAME, CLEAN_BRANCH_NAME, OCI_OS_BUCKET, OCI_OS_COMMIT_BUCKET, OCI_OS_NAMESPACE, OCI_OS_REGION and WORKSPACE"
+if [ -z "$BRANCH_NAME" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_REGION" ] || [ -z "$WORKSPACE" ]; then
+  echo "This script requires environment variables - BRANCH_NAME, OCI_OS_COMMIT_BUCKET, OCI_OS_NAMESPACE, OCI_OS_REGION and WORKSPACE"
   exit 1
 fi
 
