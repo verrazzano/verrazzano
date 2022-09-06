@@ -110,6 +110,7 @@ func TestInstall(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			lastReconcileGen = 0
 			unitTesting = true
 			namespace := test.namespace
 			name := test.name
@@ -134,7 +135,9 @@ func TestInstall(t *testing.T) {
 				Namespace:  namespace,
 				Name:       name,
 				Labels:     labels,
+				Generation: 1,
 				Finalizers: []string{test.finalizer}}
+
 			verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
 
 			verrazzanoToUse.Status.State = vzapi.VzStateReady
@@ -207,6 +210,7 @@ func TestInstall(t *testing.T) {
 // GIVEN a request to reconcile a Verrazzano resource when Status.Components is empty
 // THEN ensure that the Status.components is populated
 func TestInstallInitComponents(t *testing.T) {
+	lastReconcileGen = 0
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -230,6 +234,7 @@ func TestInstallInitComponents(t *testing.T) {
 		Namespace:  namespace,
 		Name:       name,
 		Labels:     labels,
+		Generation: 1,
 		Finalizers: []string{finalizerName}}
 	verrazzanoToUse.Status.State = vzapi.VzStateReady
 
@@ -377,6 +382,7 @@ func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 // WHEN a Verrazzano resource has been created
 // THEN ensure all the objects are created
 func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
+	lastReconcileGen = 0
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -396,6 +402,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		Namespace:  namespace,
 		Name:       name,
 		Labels:     labels,
+		Generation: 1,
 		Finalizers: []string{finalizerName}}
 	vzToUse.Spec.Components.DNS = &vzapi.DNSComponent{
 		OCI: &vzapi.OCI{
@@ -477,6 +484,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallComplete(t *testing.T) {
+	lastReconcileGen = 0
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -507,6 +515,7 @@ func TestUninstallComplete(t *testing.T) {
 				Namespace:         name.Namespace,
 				Name:              name.Name,
 				DeletionTimestamp: &deleteTime,
+				Generation:        1,
 				Finalizers:        []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State:      vzapi.VzStateReady,
@@ -570,6 +579,7 @@ func TestUninstallComplete(t *testing.T) {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure an unisntall job is started
 func TestUninstallStarted(t *testing.T) {
+	lastReconcileGen = 0
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -603,6 +613,7 @@ func TestUninstallStarted(t *testing.T) {
 				Name:              name.Name,
 				Labels:            labels,
 				DeletionTimestamp: &deleteTime,
+				Generation:        1,
 				Finalizers:        []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateReady,
@@ -676,6 +687,7 @@ func setFakeComponentsDisabled() {
 // WHEN a Verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallSucceeded(t *testing.T) {
+	lastReconcileGen = 0
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -706,6 +718,7 @@ func TestUninstallSucceeded(t *testing.T) {
 				Namespace:         name.Namespace,
 				Name:              name.Name,
 				DeletionTimestamp: &deleteTime,
+				Generation:        1,
 				Finalizers:        []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateReady}
@@ -824,6 +837,7 @@ func TestVerrazzanoGetError(t *testing.T) {
 // WHEN a there is an error getting the Verrazzano system namespace
 // THEN return error
 func TestVZSystemNamespaceGetError(t *testing.T) {
+	lastReconcileGen = 0
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -842,6 +856,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 		Namespace:  namespace,
 		Name:       name,
 		Labels:     labels,
+		Generation: 1,
 		Finalizers: []string{finalizerName}}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.VzStateReady}
@@ -882,6 +897,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 // WHEN a there is an error creating the Verrazzano system namespace
 // THEN return error
 func TestVZSystemNamespaceCreateError(t *testing.T) {
+	lastReconcileGen = 0
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -900,6 +916,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 		Namespace:  namespace,
 		Name:       name,
 		Labels:     labels,
+		Generation: 1,
 		Finalizers: []string{finalizerName}}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.VzStateReady}
@@ -945,6 +962,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 // WHEN a there is an error getting the OCI CR secret
 // THEN return error
 func TestGetOCIConfigSecretError(t *testing.T) {
+	lastReconcileGen = 0
 	unitTesting = true
 	namespace := "verrazzano"
 	name := "test"
@@ -963,6 +981,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 		Namespace:  namespace,
 		Name:       name,
 		Labels:     labels,
+		Generation: 1,
 		Finalizers: []string{finalizerName}}
 	verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{
 		OCI: &vzapi.OCI{

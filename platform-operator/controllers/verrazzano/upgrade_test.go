@@ -277,6 +277,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 // WHEN spec.version doesn't match status.version
 // THEN ensure that the Status.components is populated
 func TestUpgradeInitComponents(t *testing.T) {
+	lastReconcileGen = 0
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -330,6 +331,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 // WHEN upgrade has not been started and spec.version doesn't match status.version
 // THEN ensure status state is updated to upgrading
 func TestUpgradeStarted(t *testing.T) {
+	lastReconcileGen = 0
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -385,6 +387,7 @@ func TestUpgradeStarted(t *testing.T) {
 // WHEN upgrade has started and deletion timestamp is not zero
 // THEN ensure a condition with type Uninstall Started is added
 func TestDeleteDuringUpgrade(t *testing.T) {
+	lastReconcileGen = 0
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -444,6 +447,7 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 // WHEN the total upgrade failures exceed the limit, but the current upgrade is under the limit
 // THEN ensure that upgrade is started
 func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
+	lastReconcileGen = 0
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -526,6 +530,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 // WHEN spec.version doesn't match status.version
 // THEN ensure a condition with type UpgradeCompleted is added
 func TestUpgradeCompleted(t *testing.T) {
+	lastReconcileGen = 0
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -605,6 +610,7 @@ func TestUpgradeCompleted(t *testing.T) {
 // WHEN spec.version doesn't match status.version and reconcile is called multiple times
 // THEN ensure a condition with type UpgradeCompleted is added
 func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
+	lastReconcileGen = 0
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -688,6 +694,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 // WHEN the update of the VZ resource status fails and returns an error
 // THEN ensure an error is returned and a requeue is requested
 func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
+	lastReconcileGen = 0
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -729,6 +736,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			verrazzano.ObjectMeta = metav1.ObjectMeta{
 				Namespace:  name.Namespace,
 				Name:       name.Name,
+				Generation: 1,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "1.2.0"}
@@ -786,6 +794,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 // THEN ensure a condition with type UpgradePaused is added
 func TestUpgradeHelmError(t *testing.T) {
 	initUnitTesing()
+	lastReconcileGen = 0
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -868,6 +877,7 @@ func TestUpgradeHelmError(t *testing.T) {
 // THEN an error is returned and the VZ status is not updated
 func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 	initUnitTesing()
+	lastReconcileGen = 0
 	namespace := "verrazzano"
 	name := "test"
 
@@ -1219,6 +1229,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 // THEN ensure the annotations are updated and the reconciler requeues with the Ready StateType
 func TestRetryUpgrade(t *testing.T) {
 	initUnitTesing()
+	lastReconcileGen = 0
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -1281,6 +1292,7 @@ func TestRetryUpgrade(t *testing.T) {
 // THEN ensure the reconciler transitions to the paused StateType
 func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 	initUnitTesing()
+	lastReconcileGen = 0
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -1338,6 +1350,7 @@ func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 // THEN ensure the reconciler transitions to a paused StateType
 func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 	initUnitTesing()
+	lastReconcileGen = 0
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -1394,6 +1407,7 @@ func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 // THEN ensure the reconciler transitions to a ready StateType
 func TestTransitionFromPausedUpgrade(t *testing.T) {
 	initUnitTesing()
+	lastReconcileGen = 0
 	namespace := "verrazzano"
 	name := "test"
 	var verrazzanoToUse vzapi.Verrazzano
@@ -2011,6 +2025,7 @@ func createObjectMeta(namespace string, name string, finalizers []string) metav1
 	return metav1.ObjectMeta{
 		Namespace:  namespace,
 		Name:       name,
+		Generation: 1,
 		Finalizers: finalizers,
 	}
 }
