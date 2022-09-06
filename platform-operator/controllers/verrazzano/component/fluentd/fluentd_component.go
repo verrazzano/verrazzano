@@ -83,11 +83,7 @@ func (f fluentdComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 		return err
 	}
 
-	if err := f.ValidateInstallV1Beta1(vzV1Beta1); err != nil {
-		return err
-	}
-
-	return nil
+	return f.ValidateInstallV1Beta1(vzV1Beta1)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -103,11 +99,7 @@ func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 		return err
 	}
 
-	if err := f.ValidateUpdateV1Beta1(oldBeta, newBeta); err != nil {
-		return err
-	}
-
-	return nil
+	return f.ValidateUpdateV1Beta1(oldBeta, newBeta)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
