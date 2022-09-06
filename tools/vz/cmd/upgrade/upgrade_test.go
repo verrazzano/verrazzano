@@ -66,6 +66,7 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 			Namespace: "default",
 			Name:      "verrazzano",
 		},
+		Status: vzapi.VerrazzanoStatus{Version: "v1.3.4"},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, vz).Build()
 
@@ -77,6 +78,7 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -125,6 +127,7 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 			Namespace: "default",
 			Name:      "verrazzano",
 		},
+		Status: vzapi.VerrazzanoStatus{Version: "v1.3.4"},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, vz).Build()
 
@@ -136,12 +139,13 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2s exceeded waiting for upgrade to complete\n", errBuf.String())
-	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.3.1")
+	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
 }
 
 // TestUpgradeCmdDefaultNoVPO
@@ -155,6 +159,7 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 			Namespace: "default",
 			Name:      "verrazzano",
 		},
+		Status: vzapi.VerrazzanoStatus{Version: "v1.3.4"},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
 
@@ -165,6 +170,7 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 
 	// Run upgrade command
 	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
@@ -227,6 +233,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 			Namespace: "default",
 			Name:      "verrazzano",
 		},
+		Status: vzapi.VerrazzanoStatus{Version: "v1.3.4"},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo1, vpo2, deployment, vz).Build()
 
@@ -237,6 +244,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 
 	// Run upgrade command
 	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
@@ -288,6 +296,7 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 			Namespace: "default",
 			Name:      "verrazzano",
 		},
+		Status: vzapi.VerrazzanoStatus{Version: "v1.3.4"},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, vz).Build()
 
@@ -300,6 +309,7 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -348,6 +358,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			Namespace: "default",
 			Name:      "verrazzano",
 		},
+		Status: vzapi.VerrazzanoStatus{Version: "v1.3.4"},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo, deployment, vz).Build()
 
@@ -360,7 +371,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "../../test/testdata/operator-file-fake.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.2.3")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -384,7 +395,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	// Verify the version got updated
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, vz)
 	assert.NoError(t, err)
-	assert.Equal(t, "v1.2.3", vz.Spec.Version)
+	assert.Equal(t, "v1.4.0", vz.Spec.Version)
 }
 
 // TestUpgradeCmdNoVerrazzano
@@ -392,17 +403,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 //  WHEN I call cmd.Execute for upgrade
 //  THEN the CLI upgrade command fails
 func TestUpgradeCmdNoVerrazzano(t *testing.T) {
-	vpo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-			Labels: map[string]string{
-				"app": constants.VerrazzanoPlatformOperator,
-			},
-		},
-	}
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpo).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects().Build()
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
@@ -416,4 +417,34 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Verrazzano is not installed: Failed to find any Verrazzano resources\n", errBuf.String())
+}
+
+// TestUpgradeCmdLesserVersion
+// GIVEN a CLI upgrade command specifying a version less than the installed version
+//  WHEN I call cmd.Execute for upgrade
+//  THEN the CLI upgrade command fails
+func TestUpgradeCmdLesserVersion(t *testing.T) {
+	vz := &vzapi.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+		Status: vzapi.VerrazzanoStatus{Version: "v1.3.4"},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdUpgrade(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.3")
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Equal(t, "Error: Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was v1.3.3 and current Verrazzano version is v1.3.4\n", errBuf.String())
 }

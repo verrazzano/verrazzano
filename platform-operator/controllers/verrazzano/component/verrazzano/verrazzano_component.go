@@ -113,7 +113,7 @@ func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-	return verrazzanoPreUpgrade(ctx, ComponentNamespace)
+	return verrazzanoPreUpgrade(ctx)
 }
 
 // Upgrade Verrazzano component upgrade processing

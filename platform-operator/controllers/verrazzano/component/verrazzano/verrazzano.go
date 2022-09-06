@@ -11,6 +11,8 @@ import (
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -68,12 +70,19 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
+func verrazzanoPreUpgrade(ctx spi.ComponentContext) error {
 	if err := exportFromHelmChart(ctx.Client()); err != nil {
 		return err
 	}
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
+	}
+	if vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) || vzconfig.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+		// Auth policies and Network policies created in the helm chart requires verrazzano-monitoring namespace
+		ctx.Log().Debugf("Creating namespace %s for the Verrazzano component", constants.VerrazzanoMonitoringNamespace)
+		if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
+			return err
+		}
 	}
 	return nil
 }

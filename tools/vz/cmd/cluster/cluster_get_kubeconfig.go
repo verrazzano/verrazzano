@@ -5,15 +5,18 @@ package cluster
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/capi"
-	os2 "github.com/verrazzano/verrazzano/pkg/os"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -64,7 +67,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 		fmt.Fprintf(helper.GetOutputStream(), "No path specified - using %s\n", filePath)
 	}
 
-	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfigInfo{
+	cluster, err := capi.NewBoostrapCluster(capi.ClusterConfig{
 		ClusterName: clusterName,
 		Type:        clusterType,
 	})
@@ -72,12 +75,20 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 		return err
 	}
 
-	exists, err := os2.FileExists(filePath)
+	exists, err := vzos.FileExists(filePath)
 	if err != nil {
 		return err
 	}
+	existingKubeconfig := false
+	newKubeconfigPath := filePath
 	if exists {
-		return fmt.Errorf("The file %s already exists - please provide a different kubeconfig file name", filePath)
+		fmt.Fprintf(helper.GetOutputStream(), "The file %s already exists - the kubeconfig for cluster %s will be merged into it\n", filePath, clusterName)
+		existingKubeconfig = true
+		newKubeconfigFile, err := ioutil.TempFile(os.TempDir(), generateTempKubeconfigFilename())
+		if err != nil {
+			return err
+		}
+		newKubeconfigPath = newKubeconfigFile.Name()
 	}
 
 	kubeconfigContents, err := cluster.GetKubeConfig()
@@ -85,9 +96,33 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 		return fmt.Errorf("failed to get the kubeconfig for cluster %s: %v", clusterName, err)
 	}
 
-	err = os.WriteFile(filePath, []byte(kubeconfigContents), 0700)
-	fmt.Fprintf(helper.GetOutputStream(), "Wrote kubeconfig to file %s\n", filePath)
-	return err
+	message := "Wrote kubeconfig to file"
+	if existingKubeconfig {
+		// write new kubeconfig to temp file and merge with existing file
+		if err = os.WriteFile(newKubeconfigPath, []byte(kubeconfigContents), 0700); err != nil {
+			return err
+		}
+
+		if kubeconfigContents, err = mergeKubeconfigs(filePath, newKubeconfigPath); err != nil {
+			return err
+		}
+
+		message = "Merged kubeconfig into existing file"
+		// delete the temp file
+		defer func() {
+			os.Remove(newKubeconfigPath)
+		}()
+	}
+	if err = os.WriteFile(filePath, []byte(kubeconfigContents), 0700); err != nil {
+		fmt.Fprintf(helper.GetOutputStream(), "Failed to write kubeconfig to file %s - %v\n", filePath, err)
+		return err
+	}
+	fmt.Fprintf(helper.GetOutputStream(), "%s %s\n", message, filePath)
+	return nil
+}
+
+func generateTempKubeconfigFilename() string {
+	return fmt.Sprintf("tempkubeconfig_%d", time.Now().UnixNano())
 }
 
 func defaultKubeconfigFilePath() (string, error) {
@@ -100,4 +135,18 @@ func defaultKubeconfigFilePath() (string, error) {
 		return "", err
 	}
 	return path.Join(home, ".kube", "config"), nil
+}
+
+func mergeKubeconfigs(existingConfigPath string, newConfigPath string) (string, error) {
+	loadingRules := clientcmd.ClientConfigLoadingRules{
+		Precedence: []string{existingConfigPath, newConfigPath}}
+	mergedConfig, err := loadingRules.Load()
+	if err != nil {
+		return "", fmt.Errorf("failed to merge kubeconfigs: %v", err)
+	}
+	mergedBytes, err := clientcmd.Write(*mergedConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to write merged kubeconfig: %v", err)
+	}
+	return string(mergedBytes), nil
 }

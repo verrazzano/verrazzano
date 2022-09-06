@@ -154,7 +154,8 @@ func preInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create the verrazzano-monitoring namespace if not already created
-	if err := ensureVerrazzanoMonitoringNamespace(ctx); err != nil {
+	ctx.Log().Debugf("Creating namespace %s for the Jaeger Operator", constants.VerrazzanoMonitoringNamespace)
+	if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
 		return err
 	}
 
@@ -379,37 +380,6 @@ func GetOverrides(object runtime.Object) interface{} {
 		return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
 	}
 	return []v1beta1.Overrides{}
-}
-
-func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
-	// Create the verrazzano-monitoring namespace
-	ctx.Log().Debugf("Creating namespace %s for the Jaeger Operator", ComponentNamespace)
-	namespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
-		MutateVerrazzanoMonitoringNamespace(ctx, &namespace)
-		return nil
-	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
-	}
-	return nil
-}
-
-// MutateVerrazzanoMonitoringNamespace modifies the given namespace for the Monitoring subcomponents
-// with the appropriate labels, in one location. If the provided namespace is not the Verrazzano
-// monitoring namespace, it is ignored.
-func MutateVerrazzanoMonitoringNamespace(ctx spi.ComponentContext, namespace *corev1.Namespace) {
-	if namespace.Name != constants.VerrazzanoMonitoringNamespace {
-		return
-	}
-	if namespace.Labels == nil {
-		namespace.Labels = map[string]string{}
-	}
-	namespace.Labels[globalconst.LabelVerrazzanoNamespace] = constants.VerrazzanoMonitoringNamespace
-
-	istio := ctx.EffectiveCR().Spec.Components.Istio
-	if istio != nil && istio.IsInjectionEnabled() {
-		namespace.Labels[globalconst.LabelIstioInjection] = "enabled"
-	}
 }
 
 func generateOverridesFile(ctx spi.ComponentContext, contents []byte) (string, error) {
