@@ -224,7 +224,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 						}
 						value := clusterData.UnstructuredContent()["value"].(string)
 						return rancher.SettingUIPLValueVerrazzano == value, nil
-					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher local cluster not in active state")
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher ui-pl setting not updated")
 					metrics.Emit(t.Metrics.With("get_uipl_setting_elapsed_time", time.Since(start).Milliseconds()))
 					verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightLogoFilePath, k8sClient)
 					verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkLogoFilePath, k8sClient)
