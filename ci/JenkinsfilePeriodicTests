@@ -83,8 +83,6 @@ pipeline {
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
         CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
 
-        // Directory containing the Verrazzano image tar files
-        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-commercial/images"
         OCI_OS_REGION="us-phoenix-1"
     }
 
@@ -640,6 +638,8 @@ pipeline {
                         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
                         OCI_CLI_REGION = "us-ashburn-1"
                         OCI_REGION = "${env.OCI_CLI_REGION}"
+                        // Directory containing the Verrazzano image tar files
+                        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
                     }
                     steps {
                         script {
