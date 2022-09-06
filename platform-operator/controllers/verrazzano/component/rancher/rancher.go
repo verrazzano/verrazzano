@@ -741,7 +741,7 @@ func createOrUpdateUIPlSetting(log vzlog.VerrazzanoLogger, c client.Client) erro
 	return nil
 }
 
-// updateUiPlSetting updates the ui-pl Setting
+// createOrUpdateUILogoSetting updates the ui-logo-* Settings
 func createOrUpdateUILogoSetting(log vzlog.VerrazzanoLogger, c client.Client, settingName string, logoPath string) error {
 	uiLogoSetting := unstructured.Unstructured{}
 	uiLogoSetting.SetGroupVersionKind(GVKSetting)
