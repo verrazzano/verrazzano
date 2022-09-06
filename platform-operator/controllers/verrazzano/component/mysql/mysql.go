@@ -212,22 +212,6 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 		}
 	}
 
-	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
-		pvList, err := common.GetPersistentVolumes(compContext, ComponentName)
-		if err != nil {
-			return kvs, err
-		}
-		if len(pvList.Items) > 0 {
-			// need to use existing claim
-			compContext.Log().Infof("Using existing PVC for MySQL persistence")
-			kvs = append(kvs, bom.KeyValue{
-				Key:       "primary.persistence.existingClaim",
-				Value:     statefulsetClaimName,
-				SetString: true,
-			})
-		}
-	}
-
 	return kvs, nil
 }
 

@@ -120,3 +120,4 @@ configurationFilesPath: /etc/mysql/conf.d/
 #      name: mysql-server
 #      tag: ""
 #  claimName: dump-claim
+#  dumpDir:  /var/lib/mysql/dump
