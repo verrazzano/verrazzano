@@ -490,6 +490,7 @@ pipeline {
                             echo "Building zipfile, prefix: ${tarfilePrefix}, location:  ${storeLocation}"
                             sh """
                                 ci/scripts/generate_product_zip.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${env.BRANCH_NAME} ${tarfilePrefix} ${generatedBOM}
+                                ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
                             """
                         }
                     }
@@ -497,11 +498,14 @@ pipeline {
                 stage("Private Registry Test") {
                     steps {
                         script {
+                            tarfilePrefix="verrazzano-${VERRAZZANO_DEV_VERSION}-lite"
+                            storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${tarfilePrefix}.zip"
                             echo "Starting private registry test for ${storeLocation}, file prefix ${tarfilePrefix}"
                             build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'DISTRIBUTION_VARIANT', value: 'Lite'),
                                     string(name: 'ZIPFILE_LOCATION', value: storeLocation)
                                 ], wait: true
                         }

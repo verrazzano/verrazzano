@@ -214,7 +214,7 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
-                    storeLocation="${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
+                    storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                     fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
                     liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
                     RELEASABLE_IMAGES_OBJECT_STORE = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
@@ -613,8 +613,8 @@ pipeline {
                     }
                 }
 
-
                 stage('Private Registry Tests') {
+                    /*
                     when {
                         allOf {
                             not { buildingTag() }
@@ -624,6 +624,7 @@ pipeline {
                             }
                         }
                     }
+                    */
                     parallel {
                         stage('Verrazzano Lite Distribution') {
                             steps {
@@ -653,7 +654,6 @@ pipeline {
                                 }
                             }
                         }
-
                     }
                 }
 
@@ -696,6 +696,17 @@ pipeline {
                         }
                     }
                 }
+
+                stage('Update Last Clean Periodic Test') {
+                    steps {
+                        script {
+                            sh """
+                                ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION}
+                            """
+                        }
+                    }
+                }
+
             }
         }
     }

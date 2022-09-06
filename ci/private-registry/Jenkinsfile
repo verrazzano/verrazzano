@@ -98,6 +98,7 @@ pipeline {
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
 
         // Variables to set the OCI CLI user context to the CI user
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -272,7 +273,7 @@ pipeline {
 
                     sh """
                         mkdir -p $zipDir || true
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
                     """
 
                     dir(env.TARBALL_ROOT_DIR) {
