@@ -615,7 +615,6 @@ pipeline {
 
 
                 stage('Private Registry Tests') {
-                    /*
                     when {
                         allOf {
                             not { buildingTag() }
@@ -625,9 +624,8 @@ pipeline {
                             }
                         }
                     }
-                    */
                     parallel {
-                        stage('Verrazzano Lite Bundle') {
+                        stage('Verrazzano Lite Distribution') {
                             steps {
                                 retry(count: JOB_PROMOTION_RETRIES) {
                                     script {
@@ -641,7 +639,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Verrazzano Full Bundle') {
+                        stage('Verrazzano Full Distribution') {
                             steps {
                                 retry(count: JOB_PROMOTION_RETRIES) {
                                     script {
