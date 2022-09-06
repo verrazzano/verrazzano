@@ -293,7 +293,7 @@ func TestValidateInstall(t *testing.T) {
 	}
 }
 
-// TestAppendOverrides tests the AppendOverrides
+// TestAppendOverrides tests the AppendOverrides function
 // GIVEN a call to AppendOverrides
 //  WHEN the verrazzano-container-registry secret exists in the mysql-operator namespace
 //  THEN the correct Helm overrides are returned
