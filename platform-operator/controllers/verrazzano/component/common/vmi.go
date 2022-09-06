@@ -209,7 +209,7 @@ func FindStorageOverride(effectiveCR *vzapi.Verrazzano) (*ResourceRequestValues,
 	}
 	if defaultVolumeSource.PersistentVolumeClaim != nil {
 		pvcClaim := defaultVolumeSource.PersistentVolumeClaim
-		storageSpec, found := vzconfig.FindVolumeTemplate(pvcClaim.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcClaim.ClaimName, effectiveCR)
 		if !found {
 			return nil, fmt.Errorf("Failed, did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
 		}
@@ -234,7 +234,7 @@ func FindStorageOverrideV1Beta1(effectiveCR *v1beta1.Verrazzano) (*ResourceReque
 	}
 	if defaultVolumeSource.PersistentVolumeClaim != nil {
 		pvcClaim := defaultVolumeSource.PersistentVolumeClaim
-		storageSpec, found := vzconfig.FindVolumeTemplateV1beta1(pvcClaim.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcClaim.ClaimName, effectiveCR)
 		if !found {
 			return nil, fmt.Errorf("Failed, did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
 		}

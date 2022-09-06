@@ -251,7 +251,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR runtime.Object, kvs []bom.KeyVa
 	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
-		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, getVolumeClaimSpecTemplates(effectiveCR))
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR)
 		if !found {
 			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
@@ -309,14 +309,6 @@ func getMySQLVolumeSource(object runtime.Object) *v1.VolumeSource {
 		mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
 	}
 	return mySQLVolumeSource
-}
-
-func getVolumeClaimSpecTemplates(object runtime.Object) []v1beta1.VolumeClaimSpecTemplate {
-	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
-		return vzapi.ConvertVolumeClaimTemplateTo(effectiveCR.Spec.VolumeClaimSpecTemplates)
-	}
-	effectiveCR, _ := object.(*v1beta1.Verrazzano)
-	return effectiveCR.Spec.VolumeClaimSpecTemplates
 }
 
 //appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
