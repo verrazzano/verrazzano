@@ -252,7 +252,7 @@ pipeline {
                         """
 
                         script {
-                            OKE_CLUSTER_ID = sh(returnStdout: true, script: "cd ${WORKSPACE}/tests/e2e/config/scripts/terraform/cluster && terraform output -raw cluster_id").trim()
+                            OKE_CLUSTER_ID = sh(returnStdout: true, script: "cd ${WORKSPACE}/tests/e2e/config/scripts/terraform/cluster && ./terraform output -raw cluster_id").trim()
                             echo "OKE cluster id: ${OKE_CLUSTER_ID}"
                         }
                     }
