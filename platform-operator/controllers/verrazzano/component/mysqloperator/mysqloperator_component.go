@@ -11,6 +11,7 @@ import (
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -120,7 +121,11 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (c mysqlOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return c.validateMySQLOperator(vz)
+	convertedVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(vz, &convertedVZ); err != nil {
+		return err
+	}
+	return c.validateMySQLOperator(&convertedVZ)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -128,15 +133,19 @@ func (c mysqlOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
-	return c.validateMySQLOperator(new)
+	convertedVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(new, &convertedVZ); err != nil {
+		return err
+	}
+	return c.validateMySQLOperator(&convertedVZ)
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
 func (c mysqlOperatorComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	return c.validateMySQLOperator(vz)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c mysqlOperatorComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)

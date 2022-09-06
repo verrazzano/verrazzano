@@ -105,11 +105,19 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	// Block all changes for now, particularly around storage changes
 
 	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
-	oldSetting, err := doGenerateVolumeSourceOverrides(old, []bom.KeyValue{})
+	convertedOldVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(old, &convertedOldVZ); err != nil {
+		return err
+	}
+	oldSetting, err := doGenerateVolumeSourceOverrides(&convertedOldVZ, []bom.KeyValue{})
 	if err != nil {
 		return err
 	}
-	newSetting, err := doGenerateVolumeSourceOverrides(new, []bom.KeyValue{})
+	convertedNewVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(new, &convertedNewVZ); err != nil {
+		return err
+	}
+	newSetting, err := doGenerateVolumeSourceOverrides(&convertedNewVZ, []bom.KeyValue{})
 	if err != nil {
 		return err
 	}
@@ -138,10 +146,6 @@ func (c mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1be
 	// Reject any persistence-specific changes via the mysqlInstallArgs settings
 	if err := validatePersistenceSpecificChanges(oldSetting, newSetting); err != nil {
 		return err
-	}
-	// Reject any installArgs changes for now
-	if err := common.CompareInstallOverrides(c.getInstallOverridesV1beta1(old), c.getInstallOverridesV1beta1(new)); err != nil {
-		return fmt.Errorf("Updates to mysqlInstallArgs not allowed for %s", ComponentJSONName)
 	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }

@@ -305,7 +305,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 
 // validateJaegerOperator checks scenarios in which the Verrazzano CR violates install verification
 // due to Jaeger Operator specifications
-func (c jaegerOperatorComponent) validateJaegerOperator(cr runtime.Object) error {
+func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) error {
 	// if Jaeger operator component is disabled, return early
 	if !c.IsEnabled(cr) {
 		return nil
@@ -315,13 +315,8 @@ func (c jaegerOperatorComponent) validateJaegerOperator(cr runtime.Object) error
 	if err != nil {
 		return err
 	}
-	if vzv1alpha1, ok := cr.(*v1alpha1.Verrazzano); ok {
-		// Validate install overrides for v1alpha1
-		return validateInstallOverrides(v1alpha1.ConvertValueOverridesToV1Beta1(vzv1alpha1.Spec.Components.JaegerOperator.ValueOverrides), client)
-	} else if vzv1beta1, ok := cr.(*v1beta1.Verrazzano); ok {
-		// Validate install overrides for v1beta1
-		return validateInstallOverrides(vzv1beta1.Spec.Components.JaegerOperator.ValueOverrides, client)
-	}
+	// Validate install overrides for v1beta1
+	return validateInstallOverrides(cr.Spec.Components.JaegerOperator.ValueOverrides, client)
 	return nil
 }
 

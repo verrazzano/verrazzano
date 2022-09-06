@@ -148,7 +148,11 @@ func (c jaegerOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // ValidateInstall validates the installation of the Verrazzano CR
 func (c jaegerOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return c.validateJaegerOperator(vz)
+	convertedVZ := installv1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(vz, &convertedVZ); err != nil {
+		return err
+	}
+	return c.validateJaegerOperator(&convertedVZ)
 }
 
 // ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
@@ -156,7 +160,11 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
-	return c.validateJaegerOperator(new)
+	convertedVZ := installv1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(new, &convertedVZ); err != nil {
+		return err
+	}
+	return c.validateJaegerOperator(&convertedVZ)
 }
 
 // ValidateInstallV1Beta1 validates the installation of the Verrazzano CR

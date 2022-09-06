@@ -413,29 +413,18 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 }
 
 // validatePrometheusOperator checks scenarios in which the Verrazzano CR violates install verification due to Prometheus Operator specifications
-func (c prometheusComponent) validatePrometheusOperator(vz runtime.Object) error {
+func (c prometheusComponent) validatePrometheusOperator(vz *installv1beta1.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
 	if !c.IsEnabled(vz) && vzconfig.IsPrometheusEnabled(vz) {
 		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
 	}
-	if convertedVZ, ok := vz.(*vzapi.Verrazzano); ok {
-		// Validate install overrides for v1alpha1.Verrazzano
-		if convertedVZ.Spec.Components.PrometheusOperator != nil {
-			if err := vzapi.ValidateInstallOverrides(convertedVZ.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
-				return err
-			}
+	//Validate install overrides for v1beta1.Verrazzano
+	if vz.Spec.Components.PrometheusOperator != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
+			return err
 		}
-		return nil
-	} else if convertedVZ, ok := vz.(*installv1beta1.Verrazzano); ok {
-		//Validate install overrides for v1beta1.Verrazzano
-		if convertedVZ.Spec.Components.PrometheusOperator != nil {
-			if err := vzapi.ValidateInstallOverridesV1Beta1(convertedVZ.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
-				return err
-			}
-		}
-		return nil
 	}
-	return fmt.Errorf("VZ object is not a valid type %t", vz)
+	return nil
 }
 
 // appendIstioOverrides appends Istio annotations necessary for Prometheus in Istio
