@@ -1,0 +1,71 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: prod
+  components:
+    authProxy:
+      kubernetes:
+        replicas: 2
+    certManager:
+      overrides:
+        - values:
+            replicaCount: 2
+            cainjector:
+              replicaCount: 2
+            webhook:
+              replicaCount: 2
+    console:
+      overrides:
+        - values:
+            replicas: 2
+    ingress:
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 2
+            defaultBackend:
+              replicaCount: 2
+    istio:
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                pilot:
+                  k8s:
+                    replicaCount: 2
+      ingress:
+        kubernetes:
+          replicas: 2
+      egress:
+        kubernetes:
+          replicas: 2
+    keycloak:
+      overrides:
+        - values:
+            replicas: 2
+    kibana:
+      replicas: 2
+    kiali:
+      overrides:
+        - values:
+            deployment:
+              replicas: 2
+    prometheusOperator:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 2
+    elasticsearch:
+      installArgs:
+        - name: nodes.ingest.replicas
+          value: "2"

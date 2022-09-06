@@ -411,6 +411,21 @@ func TestConvertToV1Beta1(t *testing.T) {
 			testManagedClusterProfile,
 			false,
 		},
+		{
+			"converts from v1alpha1 in the ha case",
+			testCaseHA,
+			false,
+		},
+		{
+			"converts from v1alpha1 in the OCNE case",
+			testCaseOCNE,
+			false,
+		},
+		{
+			"converts from v1alpha1 in the OCNE HA case",
+			testCaseOCNEHA,
+			false,
+		},
 	}
 
 	for _, tt := range tests {
