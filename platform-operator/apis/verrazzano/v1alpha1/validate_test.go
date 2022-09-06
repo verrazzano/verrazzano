@@ -10,7 +10,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
@@ -1498,7 +1497,7 @@ func TestValidateInstallOverridesV1Beta1(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateInstallOverrides(tt.overrides)
+			err := ValidateInstallOverridesV1Beta1(tt.overrides)
 			if tt.hasError {
 				assert.Error(t, err)
 			} else {

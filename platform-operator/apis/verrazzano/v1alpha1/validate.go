@@ -6,9 +6,8 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -116,40 +115,19 @@ func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 			}
 		}
 	}
-
-	//spec does not have ocidns secret nor fluentd oci auth secret
 	return nil
 }
 
-
-//ValidateVersionHigherOrEqual checks that currentVersion matches requestedVersion or is a higher version
-func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string) bool {
-	log := zap.S().With("validate", "version")
-	log.Info("Validate version")
-	if len(requestedVersion) == 0 {
-		log.Error("Invalid requestedVersion of length 0.")
-		return false
+//ValidateInstallOverridesV1Beta1 checks that the overrides slice has only one override type per slice item for v1beta1
+func ValidateInstallOverridesV1Beta1(overrides []v1beta1.Overrides) error {
+	for _, override := range overrides {
+		if err := isValidOverrideItems(override.ConfigMapRef, override.SecretRef, override.Values); err != nil {
+			return err
+		}
 	}
-
-	if len(currentVersion) == 0 {
-		log.Error("Invalid currentVersion of length 0.")
-		return false
-	}
-
-	requestedSemVer, err := semver.NewSemVersion(requestedVersion)
-	if err != nil {
-		log.Error(fmt.Sprintf("Invalid requestedVersion : %s, error: %v.", requestedVersion, err))
-		return false
-	}
-
-	currentSemVer, err := semver.NewSemVersion(currentVersion)
-	if err != nil {
-		log.Error(fmt.Sprintf("Invalid currentVersion : %s, error: %v.", currentVersion, err))
-		return false
-	}
-	return currentSemVer.IsEqualTo(requestedSemVer) || currentSemVer.IsGreatherThan(requestedSemVer)
+	return nil
 }
-s 
+
 // ValidateInstallOverrides checks that the overrides slice has only one override type per slice item
 func ValidateInstallOverrides(overrides []Overrides) error {
 	for _, override := range overrides {
