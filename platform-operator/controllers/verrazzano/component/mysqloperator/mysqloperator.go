@@ -5,6 +5,7 @@ package mysqloperator
 
 import (
 	"fmt"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -57,16 +58,24 @@ func getDeploymentList() []types.NamespacedName {
 
 // validateMySQLOperator checks scenarios in which the Verrazzano CR violates install verification
 // MySQLOperator must be enabled if Keycloak is enabled
-func (c mysqlOperatorComponent) validateMySQLOperator(vz *vzapi.Verrazzano) error {
+func (c mysqlOperatorComponent) validateMySQLOperator(object runtime.Object) error {
 	// Validate install overrides
-	if vz.Spec.Components.MySQLOperator != nil {
-		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.MySQLOperator.ValueOverrides); err != nil {
-			return err
+	if vz, ok := object.(*vzapi.Verrazzano); ok {
+		if vz.Spec.Components.MySQLOperator != nil {
+			if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.MySQLOperator.ValueOverrides); err != nil {
+				return err
+			}
+		}
+	} else if vz, ok := object.(*installv1beta1.Verrazzano); ok {
+		if vz.Spec.Components.MySQLOperator != nil {
+			if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.MySQLOperator.ValueOverrides); err != nil {
+				return err
+			}
 		}
 	}
 	// Must be enabled if Keycloak is enabled
-	if config.IsKeycloakEnabled(vz) {
-		if !c.IsEnabled(vz) {
+	if config.IsKeycloakEnabled(object) {
+		if !c.IsEnabled(object) {
 			return fmt.Errorf("MySQLOperator must be enabled if Keycloak is enabled")
 		}
 	}
