@@ -106,12 +106,6 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 					Service: &serviceClusters,
 				},
 			},
-			{
-				Name: "install.verrazzano.io.v1beta",
-				ClientConfig: adminv1.WebhookClientConfig{
-					Service: &serviceInstall,
-				},
-			},
 		},
 	}
 

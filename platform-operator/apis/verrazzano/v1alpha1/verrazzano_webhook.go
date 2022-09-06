@@ -5,12 +5,12 @@ package v1alpha1
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	"github.com/onsi/gomega/gstruct/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
-	"strings"
 
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,12 +20,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-var getControllerRuntimeClient = validators.GetClient
+var getControllerRuntimeClient = getClient
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager, log *zap.SugaredLogger) error {
 	// clean up any temp files that may have been left over after a container restart
-	if err := validators.CleanTempFiles(log); err != nil {
+	if err := cleanTempFiles(log); err != nil {
 		return err
 	}
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -63,7 +63,7 @@ func (v *Verrazzano) ValidateCreate() error {
 		return err
 	}
 
-	client, err := getControllerRuntimeClient(newScheme())
+	client, err := getControllerRuntimeClient()
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (v *Verrazzano) ValidateCreate() error {
 		return err
 	}
 
-	if err := validators.ValidateVersion(v.Spec.Version); err != nil {
+	if err := ValidateVersion(v.Spec.Version); err != nil {
 		return err
 	}
 
@@ -88,7 +88,7 @@ func (v *Verrazzano) ValidateCreate() error {
 	// hand the Verrazzano to component validator to validate
 	if componentValidator != nil {
 		if errs := componentValidator.ValidateInstall(v); len(errs) > 0 {
-			return validators.CombineErrors(errs)
+			return combineErrors(errs)
 		}
 	}
 	return nil
@@ -124,16 +124,13 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
-	newSpecVerString := strings.TrimSpace(v.Spec.Version)
-	currStatusVerString := strings.TrimSpace(oldResource.Status.Version)
-	currSpecVerString := strings.TrimSpace(oldResource.Spec.Version)
-	err := validators.ValidateUpgradeRequest(newSpecVerString, currStatusVerString, currSpecVerString)
+	err := ValidateUpgradeRequest(oldResource, v)
 	if err != nil {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
 		return err
 	}
 
-	client, err := getControllerRuntimeClient(newScheme())
+	client, err := getControllerRuntimeClient()
 	if err != nil {
 		return err
 	}
@@ -144,7 +141,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	// hand the old and new Verrazzano to component validator to validate
 	if componentValidator != nil {
 		if errs := componentValidator.ValidateUpdate(oldResource, v); len(errs) > 0 {
-			return validators.CombineErrors(errs)
+			return combineErrors(errs)
 		}
 	}
 
@@ -156,7 +153,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 // updates before terminating.  In the longer term we may want some kind of leader-election strategy to support
 // multiple instances, if that makes sense.
 func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
-	runtimeClient, err := getControllerRuntimeClient(newScheme())
+	runtimeClient, err := getControllerRuntimeClient()
 	if err != nil {
 		return err
 	}
@@ -175,6 +172,25 @@ func (v *Verrazzano) ValidateDelete() error {
 
 	// Webhook is not configured for deletes so function will not be called.
 	return nil
+}
+
+// combineErrors combines multiple errors into one error, nil if no error
+func combineErrors(errs []error) error {
+	if len(errs) > 0 {
+		return goerrors.New(errors.AggregateError(errs).Error())
+	}
+	return nil
+}
+
+// getClient returns a controller runtime client for the Verrazzano resource
+func getClient() (client.Client, error) {
+
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return client.New(config, client.Options{Scheme: newScheme()})
 }
 
 // newScheme creates a new scheme that includes this package's object for use by client
