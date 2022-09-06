@@ -56,7 +56,7 @@ func convertPortsToMap(ports []corev1.ServicePort) map[int32]corev1.ServicePort 
 func CompareInstallOverrides(old []v1beta1.Overrides, new []v1beta1.Overrides) error {
 	for _, oldOverride := range old {
 		for _, newOverride := range new {
-			if err := compareJsonValues(*oldOverride.Values, *newOverride.Values); err != nil {
+			if err := compareJSONValues(*oldOverride.Values, *newOverride.Values); err != nil {
 				return err
 			}
 		}
@@ -64,7 +64,7 @@ func CompareInstallOverrides(old []v1beta1.Overrides, new []v1beta1.Overrides) e
 	return nil
 }
 
-func compareJsonValues(old, new v1.JSON) error {
+func compareJSONValues(old, new v1.JSON) error {
 	var oldOverrideObj, newOverrideObj interface{}
 	if err := json.Unmarshal(old.Raw, oldOverrideObj); err != nil {
 		return fmt.Errorf("err %v, old JSON %s", err, old)
