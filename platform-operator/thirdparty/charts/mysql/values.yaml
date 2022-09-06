@@ -98,3 +98,25 @@ baseServerId: 1000
 #          prefix : /
 #          bucketName: idbcluster_backup
 #          credentials: oci-credentials
+
+#initdbScripts: {}
+
+# Custom mysql configuration files path
+configurationFilesPath: /etc/mysql/conf.d/
+
+# Custom mysql configuration files
+# configurationFiles: {}
+
+#legacyUpgrade:
+#  registry:
+#  repository: mysql
+#  pullPolicy: IfNotPresent
+#  initContainer:
+#    image:
+#      name: mysql-operator
+#      tag: ""
+#  container:
+#    image:
+#      name: mysql-server
+#      tag: ""
+#  claimName: dump-claim
