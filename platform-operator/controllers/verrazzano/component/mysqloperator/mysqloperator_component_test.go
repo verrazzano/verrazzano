@@ -4,9 +4,8 @@
 package mysqloperator
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -16,7 +15,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 var testScheme = runtime.NewScheme()
@@ -289,4 +290,17 @@ func TestValidateInstall(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAppendOverrides tests the AppendOverrides function
+// GIVEN a call to AppendOverrides
+//  WHEN the verrazzano-container-registry secret exists in the mysql-operator namespace
+//  THEN the correct Helm overrides are returned
+func TestAppendOverrides(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	kvs, err := AppendOverrides(spi.NewFakeContext(fakeClient, nil, nil, false), "", "", "", []bom.KeyValue{{Key: "key1", Value: "value1"}})
+	assert.Nil(t, err)
+	assert.Len(t, kvs, 1)
+	assert.Equal(t, bom.KeyValue{Key: "key1", Value: "value1"}, kvs[0])
+	//	assert.Equal(t, bom.KeyValue{Key: webFQDNKey, Value: fmt.Sprintf("%s.default.mydomain.com", kialiHostName)}, kvs[1])
 }
