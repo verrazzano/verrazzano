@@ -28,30 +28,10 @@ spec:
       overrides:
         - values:
             controller:
-              affinity:
-                podAntiAffinity:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - podAffinityTerm:
-                        labelSelector:
-                          matchLabels:
-                            app.kubernetes.io/component: controller
-                            app.kubernetes.io/name: ingress-nginx
-                        topologyKey: kubernetes.io/hostname
-                      weight: 100
               autoscaling:
                 enabled: true
                 minReplicas: 2
             defaultBackend:
-              affinity:
-                podAntiAffinity:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - podAffinityTerm:
-                        labelSelector:
-                          matchLabels:
-                            app.kubernetes.io/component: default-backend
-                            app.kubernetes.io/name: ingress-nginx
-                        topologyKey: kubernetes.io/hostname
-                      weight: 100
               replicaCount: 2
     istio:
       overrides:
