@@ -192,14 +192,22 @@ func (o opensearchComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return validateNoDuplicatedConfiguration(vz)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (o opensearchComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	// Do not allow disabling active components
+	if err := o.isOpenSearchEnabledV1Beta1(old, new); err != nil {
+		return err
+	}
+	// Reject any other edits except InstallArgs
+	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
+	if err := common.CompareStorageOverridesV1Beta1(old, new, ComponentJSONName); err != nil {
+		return err
+	}
+	// Reject edits that duplicate names of install args or node groups
+	return validateNoDuplicatedConfigurationV1Beta1(new)
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (o opensearchComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	return validateNoDuplicatedConfigurationV1Beta1(vz)
 }
 
 // Name returns the component name
@@ -208,6 +216,14 @@ func (o opensearchComponent) Name() string {
 }
 
 func (o opensearchComponent) isOpenSearchEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow disabling of any component post-install for now
+	if vzconfig.IsOpenSearchEnabled(old) && !vzconfig.IsOpenSearchEnabled(new) {
+		return fmt.Errorf("Disabling component OpenSearch not allowed")
+	}
+	return nil
+}
+
+func (o opensearchComponent) isOpenSearchEnabledV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if vzconfig.IsOpenSearchEnabled(old) && !vzconfig.IsOpenSearchEnabled(new) {
 		return fmt.Errorf("Disabling component OpenSearch not allowed")

@@ -4,6 +4,7 @@ package vzconfig
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -26,6 +27,16 @@ func GetEnvName(vz *vzapi.Verrazzano) string {
 
 // FindVolumeTemplate Find a named VolumeClaimTemplate in the list
 func FindVolumeTemplate(templateName string, templates []vzapi.VolumeClaimSpecTemplate) (*v1.PersistentVolumeClaimSpec, bool) {
+	for i, template := range templates {
+		if templateName == template.Name {
+			return &templates[i].Spec, true
+		}
+	}
+	return nil, false
+}
+
+// FindVolumeTemplate Find a named VolumeClaimTemplate in the list
+func FindVolumeTemplateV1Beta1(templateName string, templates []v1beta1.VolumeClaimSpecTemplate) (*v1.PersistentVolumeClaimSpec, bool) {
 	for i, template := range templates {
 		if templateName == template.Name {
 			return &templates[i].Spec, true

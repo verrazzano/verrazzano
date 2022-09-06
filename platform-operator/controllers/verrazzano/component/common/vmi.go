@@ -13,6 +13,7 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzsecret "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -221,6 +222,31 @@ func FindStorageOverride(effectiveCR *vzapi.Verrazzano) (*ResourceRequestValues,
 	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
 }
 
+// FindStorageOverride finds and returns the correct storage override from the effective CR
+func FindStorageOverrideV1Beta1(effectiveCR *v1beta1.Verrazzano) (*ResourceRequestValues, error) {
+	if effectiveCR == nil || effectiveCR.Spec.DefaultVolumeSource == nil {
+		return nil, nil
+	}
+	defaultVolumeSource := effectiveCR.Spec.DefaultVolumeSource
+	if defaultVolumeSource.EmptyDir != nil {
+		return &ResourceRequestValues{
+			Storage: "",
+		}, nil
+	}
+	if defaultVolumeSource.PersistentVolumeClaim != nil {
+		pvcClaim := defaultVolumeSource.PersistentVolumeClaim
+		storageSpec, found := vzconfig.FindVolumeTemplateV1Beta1(pvcClaim.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
+		if !found {
+			return nil, fmt.Errorf("Failed, did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
+		}
+		storageString := storageSpec.Resources.Requests.Storage().String()
+		return &ResourceRequestValues{
+			Storage: storageString,
+		}, nil
+	}
+	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
+}
+
 // IsVMISecretReady returns true if the VMI secret is present in the system namespace
 func IsVMISecretReady(ctx spi.ComponentContext) bool {
 	if err := ctx.Client().Get(context.TODO(),
@@ -256,6 +282,23 @@ func CompareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano, jsonN
 		return err
 	}
 	newSetting, err := FindStorageOverride(new)
+	if err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(oldSetting, newSetting) {
+		return fmt.Errorf("Can not change volume settings for %s", jsonName)
+	}
+	return nil
+}
+
+// CompareStorageOverrides compares storage override settings for the VMI components
+func CompareStorageOverridesV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano, jsonName string) error {
+	// compare the storage overrides and reject if the type or size is different
+	oldSetting, err := FindStorageOverrideV1Beta1(old)
+	if err != nil {
+		return err
+	}
+	newSetting, err := FindStorageOverrideV1Beta1(new)
 	if err != nil {
 		return err
 	}

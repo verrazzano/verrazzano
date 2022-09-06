@@ -6,6 +6,7 @@ package opensearch
 import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 //entryTracker is a Set like construct to track if a value was seen already
@@ -42,6 +43,22 @@ func validateNoDuplicatedConfiguration(vz *vzapi.Verrazzano) error {
 
 }
 
+func validateNoDuplicatedConfigurationV1Beta1(vz *v1beta1.Verrazzano) error {
+	if vz.Spec.Components.OpenSearch == nil {
+		return nil
+	}
+	opensearch := vz.Spec.Components.OpenSearch
+	if err := validateNoDuplicateArgsV1Beta1(opensearch); err != nil {
+		return err
+	}
+	return validateNoDuplicateNodeGroupsV1Beta1(opensearch)
+
+}
+
+func validateNoDuplicateArgsV1Beta1(opensearch *v1beta1.OpenSearchComponent) error {
+	return nil
+}
+
 //validateNoDuplicateArgs rejects InstallArgs with duplicated names
 func validateNoDuplicateArgs(opensearch *vzapi.ElasticsearchComponent) error {
 	tracker := newTracker()
@@ -55,6 +72,16 @@ func validateNoDuplicateArgs(opensearch *vzapi.ElasticsearchComponent) error {
 
 //validateNoDuplicateNodeGroups rejects Nodes with duplicated group names
 func validateNoDuplicateNodeGroups(opensearch *vzapi.ElasticsearchComponent) error {
+	tracker := newTracker()
+	for _, group := range opensearch.Nodes {
+		if err := tracker.add(group.Name); err != nil {
+			return fmt.Errorf("OpenSearch node group name is duplicated or invalid: %v", err)
+		}
+	}
+	return nil
+}
+
+func validateNoDuplicateNodeGroupsV1Beta1(opensearch *v1beta1.OpenSearchComponent) error {
 	tracker := newTracker()
 	for _, group := range opensearch.Nodes {
 		if err := tracker.add(group.Name); err != nil {
