@@ -5,7 +5,6 @@ package restapi_test
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -249,12 +248,7 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 		}
 
 		value := clusterData.UnstructuredContent()["value"].(string)
-		logoSVG, err := base64.StdEncoding.DecodeString(strings.Split(value, rancher.SettingUILogoValueprefix)[1])
-		if err != nil {
-			t.Logs.Error(fmt.Sprintf("Error decoding value of %s setting: %v", settingName, err))
-			return false, err
-		}
-
+		logoSVG := strings.Split(value, rancher.SettingUILogoValueprefix)[1]
 		cfg, err := k8sutil.GetKubeConfig()
 		if err != nil {
 			t.Logs.Error(fmt.Sprintf("Error getting client config to verify value of %s setting: %v", settingName, err))
@@ -279,7 +273,7 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 			return false, err
 		}
 
-		logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s", logoPath)}
+		logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
 		stdout, stderr, err := k8sutil.ExecPod(k8sClient, cfg, pod, "rancher", logoCommand)
 		if err != nil {
 			t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod to verify value of %s setting: %v, stderr: %v", settingName, err, stderr))
