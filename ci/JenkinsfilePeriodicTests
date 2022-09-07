@@ -1,27 +1,47 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def GIT_COMMIT_TO_USE
-def LAST_CLEAN_PERIODIC_COMMIT
-def VERRAZZANO_DEV_VERSION
-def RELEASABLE_IMAGES_OBJECT_STORE
+import groovy.transform.Field
+
+@Field
+def GIT_COMMIT_TO_USE = ""
+@Field
+def LAST_CLEAN_PERIODIC_COMMIT = ""
+@Field
+def VERRAZZANO_DEV_VERSION = ""
+@Field
+def RELEASABLE_IMAGES_OBJECT_STORE = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
+@Field
 def TESTS_FAILED = false
+@Field
 def tarfilePrefix="verrazzano_periodic"
+@Field
 def storeLocation=""
+@Field
 def verrazzanoPrefix="verrazzano-"
+@Field
 def fullBundle=""
+@Field
 def liteBundle=""
-def branchSpecificSchedule = getCronSchedule()
+@Field
 def SUSPECT_LIST = ""
+@Field
 def COMPARISON_URL_ON_FAILURE = ""
 
 // The job name from which the verrazzano_images file is available to be copied to this job
 // We will copy over and make it part of the artifacts of the periodic job, available when we want to release a candidate
+@Field
 def verrazzanoImagesJobProjectName = "verrazzano-examples"
+@Field
 def verrazzanoImagesFile           = "verrazzano_images.txt"
+@Field
 def verrazzanoImagesBuildNumber    = 0     // will be set to actual build number when the job is run
-periodicsUpToDate                  = false // If true, indicates that the periodics already passed at the latest commit
+@Field
+def periodicsUpToDate              = false // If true, indicates that the periodics already passed at the latest commit
+
+// Non Fields
+def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
     options {
@@ -102,38 +122,9 @@ pipeline {
                 """
 
                 script {
-
-                    // Get the last stable commit ID to pass the triggered tests
-                    def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
-                    GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
-                    echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
-
-                    LAST_CLEAN_PERIODIC_COMMIT=getLastCleanPeriodicCommit()
-                    echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
-
-                    if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
-                        periodicsUpToDate = true
-                    }
-
-                    echo "Up to date: ${periodicsUpToDate}"
-                    echo "Dry run: ${params.DRY_RUN}"
-                    echo "Force run: ${params.FORCE}"
-                    echo "Execute tests: " + runTests()
-
-                    // Indicate in title if run is up-to-date or dry-run
-                    if (params.DRY_RUN) {
-                        currentBuild.displayName = "${currentBuild.displayName} : DRY-RUN"
-                    }
-                    if (periodicsUpToDate) {
-                        currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE"
-                    }
-                    if (params.FORCE) {
-                        currentBuild.displayName = "${currentBuild.displayName} : FORCE"
-                    }
-
-                    if (runTests()) {
-                        echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
-                    }
+                    // Check if there is already a clean periodic run at this commit already, and set the display name if
+                    // it already is tested, or if doing a special run type (dry run, etc...)
+                    preliminaryChecks()
                 }
             }
         }
@@ -145,79 +136,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "${NODE_LABELS}"
-                    echo "SCM checkout of ${GIT_COMMIT_TO_USE}"
-                    def scmInfo = checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: GIT_COMMIT_TO_USE]],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [],
-                        submoduleCfg: [],
-                        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                    // If the commit we were handed is not what the SCM says we are using, fail
-                    if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
-                        error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
-                    }
-
-                    if (LAST_CLEAN_PERIODIC_COMMIT != null) {
-                        COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${LAST_CLEAN_PERIODIC_COMMIT}...${GIT_COMMIT_TO_USE}"
-                        def lastClean = "${LAST_CLEAN_PERIODIC_COMMIT}"
-                        def currentStable = "${GIT_COMMIT_TO_USE}"
-                        def commitList = getCommitListFromGitLog(lastClean, currentStable)
-                        withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
-                            def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                            SUSPECT_LIST = getSuspectList(commitList, userMappings)
-                            echo "Suspect list: ${SUSPECT_LIST}"
-                        }
-                    }
-                    echo "URL if fails: ${COMPARISON_URL_ON_FAILURE}"
-                }
-
-                script {
-                    try {
-                        sh """
-                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-                    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
-                        try {
-                            sh """
-                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                            """
-                        } catch(error) {
-                            echo "docker login failed, retrying after sleep"
-                            retry(4) {
-                                sleep(30)
-                                sh """
-                                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                                """
-                            }
-                        }
-                    }
-                }
-
-                script {
-                    def props = readProperties file: '.verrazzano-development-version'
-                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
-                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    // update the description with some meaningful info
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
-                    storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
-                    fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
-                    liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
-                    RELEASABLE_IMAGES_OBJECT_STORE = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
+                    cleanWorkspaceAndCheckout()
                 }
             }
         }
@@ -652,7 +571,6 @@ pipeline {
                                 }
                             }
                         }
-                        /*
                         stage('Verrazzano Full Distribution') {
                             steps {
                                 retry(count: JOB_PROMOTION_RETRIES) {
@@ -667,7 +585,6 @@ pipeline {
                                 }
                             }
                         }
-                        */
                     }
                 }
 
@@ -696,17 +613,7 @@ pipeline {
                 stage('Release Candidate Validation Checks') {
                     steps {
                         script {
-                            def built = build job: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
-                                ], wait: true, propagate: false
-                            println("Result of verrazzano-prerelease-check is ${built.result}")
-                            dir ("${WORKSPACE}") {
-                                copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
-                                        selector: specific("${built.number}"));
-                                def releaseStatus = readFile file: "release_status.out"
-                                currentBuild.displayName = "${currentBuild.displayName} : ${releaseStatus}"
-                            }
+                            releaseValidationChecks()
                         }
                     }
                 }
@@ -759,6 +666,119 @@ pipeline {
     }
 }
 
+// Preliminary job checks and display updates
+def preliminaryChecks() {
+    // Get the last stable commit ID to pass the triggered tests
+    def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
+    GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
+    echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
+
+    LAST_CLEAN_PERIODIC_COMMIT=getLastCleanPeriodicCommit()
+    echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
+
+    if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
+        periodicsUpToDate = true
+    }
+
+    echo "Up to date: ${periodicsUpToDate}"
+    echo "Dry run: ${params.DRY_RUN}"
+    echo "Force run: ${params.FORCE}"
+    echo "Execute tests: " + runTests()
+
+    // Indicate in title if run is up-to-date or dry-run
+    if (params.DRY_RUN) {
+        currentBuild.displayName = "${currentBuild.displayName} : DRY-RUN"
+    }
+    if (periodicsUpToDate) {
+        currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE"
+    }
+    if (params.FORCE) {
+        currentBuild.displayName = "${currentBuild.displayName} : FORCE"
+    }
+
+    if (runTests()) {
+        echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
+    }
+}
+
+def dockerLogins() {
+    try {
+        sh """
+            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+        """
+    } catch(error) {
+        echo "docker login failed, retrying after sleep"
+        retry(4) {
+            sleep(30)
+            sh """
+            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+            """
+        }
+    }
+    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+        try {
+            sh """
+                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+            """
+        } catch(error) {
+            echo "docker login failed, retrying after sleep"
+            retry(4) {
+                sleep(30)
+                sh """
+                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                """
+            }
+        }
+    }
+}
+
+def scmCheckout() {
+    echo "${NODE_LABELS}"
+    echo "SCM checkout of ${GIT_COMMIT_TO_USE}"
+    def scmInfo = checkout([
+        $class: 'GitSCM',
+        branches: [[name: GIT_COMMIT_TO_USE]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+    // If the commit we were handed is not what the SCM says we are using, fail
+    if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
+        error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
+    }
+
+    if (LAST_CLEAN_PERIODIC_COMMIT != null) {
+        COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${LAST_CLEAN_PERIODIC_COMMIT}...${GIT_COMMIT_TO_USE}"
+        def lastClean = "${LAST_CLEAN_PERIODIC_COMMIT}"
+        def currentStable = "${GIT_COMMIT_TO_USE}"
+        def commitList = getCommitListFromGitLog(lastClean, currentStable)
+        withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+            def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+            SUSPECT_LIST = getSuspectList(commitList, userMappings)
+            echo "Suspect list: ${SUSPECT_LIST}"
+        }
+    }
+    echo "URL if fails: ${COMPARISON_URL_ON_FAILURE}"
+}
+
+def cleanWorkspaceAndCheckout() {
+    scmCheckout()
+    dockerLogins()
+    def props = readProperties file: '.verrazzano-development-version'
+    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+    // update the description with some meaningful info
+    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
+    storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+    fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+    liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
+    RELEASABLE_IMAGES_OBJECT_STORE = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
+}
+
 // Returns the last clean commit for the periodics, or null if the commit file does not exist yet.
 // - fails the pipeline if any error other than 404 is returned by the OCI CLI
 def getLastCleanPeriodicCommit() {
@@ -800,6 +820,20 @@ def isAlertingEnabled() {
         return true
     }
     return false
+}
+
+def releaseValidationChecks() {
+    def built = build job: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+        parameters: [
+            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+        ], wait: true, propagate: false
+    println("Result of verrazzano-prerelease-check is ${built.result}")
+    dir ("${WORKSPACE}") {
+        copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+                selector: specific("${built.number}"));
+        def releaseStatus = readFile file: "release_status.out"
+        currentBuild.displayName = "${currentBuild.displayName} : ${releaseStatus}"
+    }
 }
 
 def isPagerDutyEnabled() {
