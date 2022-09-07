@@ -68,10 +68,10 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   DEPLOYMENT_ID varchar(10) DEFAULT NULL,
   PRIMARY KEY (ID,AUTHOR,FILENAME)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
-	mySqlDbCommands = `mysql -uroot -p%s -e "USE keycloak;
+	mySQLDbCommands = `mysql -uroot -p%s -e "USE keycloak;
 ALTER TABLE DATABASECHANGELOG;
 ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"`
-	mySqlShCommands = `mysqlsh -uroot -p%s -e "util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})"`
+	mySQLShCommands = `mysqlsh -uroot -p%s -e "util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})"`
 )
 
 var (
@@ -540,10 +540,10 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	rootPwd := rootSecret.Data[rootPasswordKey]
 
 	// ADD Primary Key Cmd
-	sqlCmd := fmt.Sprintf(mySqlDbCommands, rootPwd)
+	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
 	execCmd := []string{"bash", "-c", sqlCmd}
 	// util.dumpInstance() Cmd
-	sqlShCmd := fmt.Sprintf(mySqlShCommands, rootPwd)
+	sqlShCmd := fmt.Sprintf(mySQLShCommands, rootPwd)
 	execShCmd := []string{"bash", "-c", sqlShCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
