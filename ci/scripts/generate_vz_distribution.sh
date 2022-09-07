@@ -255,7 +255,7 @@ createImagesTarFiles() {
   local rootDir=$1
   local devVersion=$2
   local distDir=${rootDir}/${devVersion}/images
-  ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${distDir} -b ${GENERATED_BOM_FILE}
+  ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${distDir} -b ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json
 }
 # Clean-up workspace after uploading the distribution bundles
 cleanupWorkspace() {
