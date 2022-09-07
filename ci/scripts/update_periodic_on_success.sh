@@ -59,9 +59,6 @@ mkdir -p $(dirname ${local_bom}) || true
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/generated-verrazzano-bom.json --file ${local_bom}
 # NOTE: The first time we run through for a branch we do not have a last-ocir-pushed-verrazzano-bom.bom present yet in object storage (there is no previous run), so we ignore if it fails to find one here
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/last-ocir-pushed-verrazzano-bom.json --file ${last_ocir_pushed_bom} || true
-# Call the script to generate and publish the BOM
-echo "Creating Zip for commit ${GIT_COMMIT_USED}, short hash ${SHORT_COMMIT_HASH_ENV}, file prefix ${ZIPFILE_PREFIX}, BOM file ${local_bom}"
-# ci/scripts/generate_product_zip.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} ${CLEAN_BRANCH_NAME}-last-clean-periodic-test ${ZIPFILE_PREFIX} ${local_bom}
 
 # Note: We have Verrazzano images tar files locally under ${WORKSPACE}/tar-files
 # Move them to a new directory (rather than changing the vz-registry-image-helper.sh) and use the new directory from here onwards in the periodic job
