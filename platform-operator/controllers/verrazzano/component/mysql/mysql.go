@@ -211,7 +211,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 // doGenerateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
 func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	mySQLVolumeSource := getMySQLVolumeSource(effectiveCR)
-	if mySQLVolumeSource.EmptyDir != nil {
+	if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
 		return kvs, fmt.Errorf("EmptyDir currently not supported for MySQL server.  A default persistent volume will be used.")
 	}
 

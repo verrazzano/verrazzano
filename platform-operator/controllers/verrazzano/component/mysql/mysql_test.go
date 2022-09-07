@@ -6,11 +6,12 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -140,7 +141,7 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 // TestAppendMySQLOverridesDev tests the appendMySQLOverrides function
 // GIVEN a call to appendMySQLOverrides
 // WHEN I pass in an VZ CR with the dev profile
-// THEN the overrides contain the correct mysql persistence config
+// THEN expect failure because emptyDir not supported
 func TestAppendMySQLOverridesDev(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
@@ -157,9 +158,8 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	ctx := spi.NewFakeContext(fakeClient, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
-	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.NoError(t, err)
-	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
+	_, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.Error(t, err)
 }
 
 // TestAppendMySQLOverridesDevWithPersistence tests the appendMySQLOverrides function
