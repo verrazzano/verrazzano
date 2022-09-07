@@ -320,7 +320,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	if err := configureUISettings(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring rancher UI Settings: %s", err.Error())
+		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
 
 	if err := r.HelmComponent.PostUpgrade(ctx); err != nil {
