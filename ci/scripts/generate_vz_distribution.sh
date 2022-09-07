@@ -4,6 +4,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
+set -e
+
 if [ -z "$1" ]; then
   echo "Root of Verrazzano repository must be specified"
   exit 1
@@ -11,19 +13,19 @@ fi
 VZ_REPO_ROOT="$1"
 
 if [ -z "$2" ]; then
-  echo "Path to the generated BOM file must be specified"
-  exit 1
-fi
-GENERATED_BOM_FILE="$2"
-
-if [ -z "$3" ]; then
   echo "Verrazzano development version must be specified"
   exit 1
 fi
-VZ_DEVELOPENT_VERSION="$3"
+VZ_DEVELOPENT_VERSION="$2"
 
-if [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ]  || [ -z "$OCI_OS_REGION" ]  || [ -z "$CLEAN_BRANCH_NAME" ]; then
-  echo "This script requires environment variables - WORKSPACE, OCI_OS_NAMESPACE, OCI_OS_BUCKET, OCI_OS_REGION and CLEAN_BRANCH_NAME"
+if [ -z "$3" ]; then
+  echo "Short commit hash must be specified"
+  exit 1
+fi
+SHORT_COMMIT_HASH_ENV="$3"
+
+if [ -z "$BRANCH_NAME" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_REGION" ] || [ -z "$WORKSPACE" ]; then
+  echo "This script requires environment variables - BRANCH_NAME, OCI_OS_COMMIT_BUCKET, OCI_OS_NAMESPACE, OCI_OS_REGION and WORKSPACE"
   exit 1
 fi
 
@@ -62,23 +64,38 @@ downloadCommonFiles() {
   mkdir -p ${VZ_DISTRIBUTION_COMMON}
 
   # operator.yaml
-  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/operator.yaml --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/operator.yaml --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml
 
   # CLI for Linux AMD64
-  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ}
-  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_CLI_LINUX_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
 
   # CLI for Linux ARM64
-  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ}
-  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_LINUX_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ_SHA256}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_CLI_LINUX_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_CLI_LINUX_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_LINUX_ARM64_TARGZ_SHA256}
 
   # CLI for Darwin AMD64
-  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ}
-  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_CLI_DARWIN_AMD64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256}
 
   # CLI for Darwin ARM64
-  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ}
-  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_CLI_DARWIN_ARM64_TARGZ} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ}
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256} --file ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256}
+
+  # Bill of materials
+  oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/generated-verrazzano-bom.json --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json
+
+  # Validate SHA256 of the downloaded bundle
+  SHA256_CMD="sha256sum -c"
+
+  if [ "$(uname)" == "Darwin" ]; then
+      SHA256_CMD="shasum -a 256 -c"
+  fi
+  cd ${VZ_DISTRIBUTION_COMMON}
+  ${SHA256_CMD} ${VZ_CLI_LINUX_AMD64_TARGZ_SHA256}
+  ${SHA256_CMD} ${VZ_CLI_LINUX_ARM64_TARGZ_SHA256}
+  ${SHA256_CMD} ${VZ_CLI_DARWIN_AMD64_TARGZ_SHA256}
+  ${SHA256_CMD} ${VZ_CLI_DARWIN_ARM64_TARGZ_SHA256}
 }
 
 # Copy the common files to directory from where the script builds Verrazzano release distribution
@@ -99,7 +116,7 @@ includeCommonFiles() {
   # copyProfiles ${distributionDirectory}/manifests/profiles
 
   # Copy Bill Of Materials, containing the list of images
-  cp ${GENERATED_BOM_FILE} ${distDir}/manifests/verrazzano-bom.json
+  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json ${distDir}/manifests/verrazzano-bom.json
 }
 
 # Copy profiles from the source repository to the directory from where the distribution bundles will be built
@@ -122,7 +139,7 @@ captureBundleContents() {
   then
     sort -u -o "${generatedDir}/${textFile}" "${generatedDir}/${textFile}"
   fi
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${textFile} --file ${generatedDir}/${textFile}
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${textFile} --file ${generatedDir}/${textFile}
   rm ${generatedDir}/${textFile}
 }
 
@@ -191,8 +208,9 @@ generateVZLiteDistribution() {
   sha256sum ${VZ_LITE_RELEASE_BUNDLE} > ${VZ_LITE_RELEASE_BUNDLE_SHA256}
 
   echo "Upload Verrazzano lite distribution ${generatedDir}/${VZ_LITE_RELEASE_BUNDLE} ..."
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_LITE_RELEASE_BUNDLE} --file ${VZ_LITE_RELEASE_BUNDLE}
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_LITE_RELEASE_BUNDLE_SHA256} --file ${VZ_LITE_RELEASE_BUNDLE_SHA256}
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE} --file ${VZ_LITE_RELEASE_BUNDLE}
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_LITE_RELEASE_BUNDLE_SHA256} --file ${VZ_LITE_RELEASE_BUNDLE_SHA256}
+
   echo "Successfully uploaded ${generatedDir}/${VZ_LITE_RELEASE_BUNDLE}"
 }
 
@@ -224,11 +242,12 @@ generateVZFullDistribution() {
   cp ${VZ_REPO_ROOT}/release/docs/README_FULL.md ${distDir}/README.md
   cd ${rootDir}
   zip -r ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} *
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
 
   cd ${generatedDir}
   sha256sum ${VZ_FULL_RELEASE_BUNDLE} > ${VZ_FULL_RELEASE_BUNDLE_SHA256}
-  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_RELEASE_BUNDLE_SHA256}
+  oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE_SHA256} --file ${VZ_FULL_RELEASE_BUNDLE_SHA256}
+
   echo "Successfully uploaded ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}"
 }
 
@@ -242,9 +261,9 @@ createImagesTarFiles() {
 cleanupWorkspace() {
   rm -rf ${VZ_DISTRIBUTION_COMMON}
   rm -rf ${VZ_LITE_ROOT}
-  # Do not delete ${VZ_FULL_ROOT} as push_to_ocir.sh requires ${VZ_FULL_ROOT}/images/*.tar
-  rm -rf ${VZ_LITE_GENERATED}
-  rm -rf ${VZ_FULL_GENERATED}
+  # Do not delete the generated files, which is required to push bundles to last_clean_periodic object
+  # rm -rf ${VZ_LITE_GENERATED}
+  # rm -rf ${VZ_FULL_GENERATED}
 }
 
 # List of files in storage
@@ -304,6 +323,7 @@ FULL_BUNDLE_CONTENTS="${DISTRIBUTION_PREFIX}-full.txt"
 
 # Call the function to download the artifacts common to both types of distribution bundles
 downloadCommonFiles
+cd ${WORKSPACE}
 
 # Build Verrazzano lite distribution bundles
 createDistributionLayout "${VZ_LITE_ROOT}" "${DISTRIBUTION_PREFIX}"

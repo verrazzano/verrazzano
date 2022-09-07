@@ -271,7 +271,7 @@ spec:
       to:
         - operation:
             ports: ["15090", "14269"]
-
+---
 #
 # Istio AuthorizationPolicy for Jaeger Query deployed by Verrazzano
 #

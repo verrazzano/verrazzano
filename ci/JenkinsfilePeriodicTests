@@ -9,6 +9,9 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
 def storeLocation=""
+def verrazzanoPrefix="verrazzano-"
+def fullBundle=""
+def liteBundle=""
 def branchSpecificSchedule = getCronSchedule()
 def SUSPECT_LIST = ""
 def COMPARISON_URL_ON_FAILURE = ""
@@ -211,7 +214,9 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
-                    storeLocation="${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
+                    storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                    fullBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+                    liteBundle="${storeLocation}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
                     RELEASABLE_IMAGES_OBJECT_STORE = "verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
                 }
             }
@@ -427,6 +432,20 @@ pipeline {
                         }
                     }
                 }
+                stage('Upgrade Path Minor Release Tests') {
+                    steps {
+                            script {
+                                build job: "/verrazzano-push-triggered-upgrade-minor-release-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                    ], wait: true
+                            }
+                    }
+                }
                 /*
                 stage('Upgrade Resiliency tests') {
                     steps {
@@ -607,6 +626,7 @@ pipeline {
                         """
                     }
                 }
+
                 stage('Private Registry Tests') {
                     when {
                         allOf {
@@ -617,18 +637,38 @@ pipeline {
                             }
                         }
                     }
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'ZIPFILE_LOCATION', value: storeLocation)
-                                    ], wait: true
+                    parallel {
+                        stage('Verrazzano Lite Distribution') {
+                            steps {
+                                retry(count: JOB_PROMOTION_RETRIES) {
+                                    script {
+                                        build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
+                                            parameters: [
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                                string(name: 'DISTRIBUTION_VARIANT', value: 'Lite'),
+                                                string(name: 'ZIPFILE_LOCATION', value: liteBundle)
+                                            ], wait: true
+                                    }
+                                }
+                            }
+                        }
+                        stage('Verrazzano Full Distribution') {
+                            steps {
+                                retry(count: JOB_PROMOTION_RETRIES) {
+                                    script {
+                                        build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
+                                            parameters: [
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                                string(name: 'DISTRIBUTION_VARIANT', value: 'Full'),
+                                                string(name: 'ZIPFILE_LOCATION', value: fullBundle)
+                                            ], wait: true
+                                    }
+                                }
                             }
                         }
                     }
                 }
+
                 stage('Push to OCIR') {
                     environment {
                         OCI_CLI_AUTH="api_key"
@@ -668,6 +708,17 @@ pipeline {
                         }
                     }
                 }
+
+                stage('Update Last Clean Periodic Test') {
+                    steps {
+                        script {
+                            sh """
+                                ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION}
+                            """
+                        }
+                    }
+                }
+
             }
         }
     }
@@ -873,4 +924,20 @@ def getSuspectList(commitList, userMappings) {
     }
     echo "returning suspect list: ${retValue}"
     return retValue
+}
+
+@NonCPS
+List extractReleaseTags(final String fileContent) {
+    List releases = []
+    fileContent.eachLine { tag ->
+        releases << tag
+    }
+    return releases
+}
+
+def getLatestReleaseVersion() {
+    final String releaseTags = readFile(file: "${workspace}/tags.txt")
+    list gitTags = extractReleaseTags(releaseTags)
+    echo "gitTags = ${gitTags}"
+    return gitTags.pop()
 }
