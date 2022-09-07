@@ -102,6 +102,8 @@ pipeline {
                 """
 
                 script {
+                    // Check if there is already a clean periodic run at this commit already, and set the display name if
+                    // it already is tested, or if doing a special run type (dry run, etc...)
                     preliminaryChecks()
                 }
             }
@@ -114,69 +116,8 @@ pipeline {
             }
             steps {
                 script {
-                    echo "${NODE_LABELS}"
-                    echo "SCM checkout of ${GIT_COMMIT_TO_USE}"
-                    def scmInfo = checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: GIT_COMMIT_TO_USE]],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [],
-                        submoduleCfg: [],
-                        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
-                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                    // If the commit we were handed is not what the SCM says we are using, fail
-                    if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
-                        error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
-                    }
-
-                    if (LAST_CLEAN_PERIODIC_COMMIT != null) {
-                        COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${LAST_CLEAN_PERIODIC_COMMIT}...${GIT_COMMIT_TO_USE}"
-                        def lastClean = "${LAST_CLEAN_PERIODIC_COMMIT}"
-                        def currentStable = "${GIT_COMMIT_TO_USE}"
-                        def commitList = getCommitListFromGitLog(lastClean, currentStable)
-                        withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
-                            def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                            SUSPECT_LIST = getSuspectList(commitList, userMappings)
-                            echo "Suspect list: ${SUSPECT_LIST}"
-                        }
-                    }
-                    echo "URL if fails: ${COMPARISON_URL_ON_FAILURE}"
-                }
-
-                script {
-                    try {
-                        sh """
-                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-                    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
-                        try {
-                            sh """
-                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                            """
-                        } catch(error) {
-                            echo "docker login failed, retrying after sleep"
-                            retry(4) {
-                                sleep(30)
-                                sh """
-                                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                                """
-                            }
-                        }
-                    }
-                }
-
-                script {
+                    scmCheckout()
+                    dockerLogins()
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -761,6 +702,69 @@ def preliminaryChecks() {
     if (runTests()) {
         echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
     }
+}
+
+def dockerLogins() {
+    try {
+        sh """
+            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+        """
+    } catch(error) {
+        echo "docker login failed, retrying after sleep"
+        retry(4) {
+            sleep(30)
+            sh """
+            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+            """
+        }
+    }
+    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+        try {
+            sh """
+                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+            """
+        } catch(error) {
+            echo "docker login failed, retrying after sleep"
+            retry(4) {
+                sleep(30)
+                sh """
+                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                """
+            }
+        }
+    }
+}
+
+def scmCheckout() {
+    echo "${NODE_LABELS}"
+    echo "SCM checkout of ${GIT_COMMIT_TO_USE}"
+    def scmInfo = checkout([
+        $class: 'GitSCM',
+        branches: [[name: GIT_COMMIT_TO_USE]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+    // If the commit we were handed is not what the SCM says we are using, fail
+    if (!env.GIT_COMMIT.equals(GIT_COMMIT_TO_USE)) {
+        error( "SCM didn't checkout the commit we expected. Expected: ${GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}")
+    }
+
+    if (LAST_CLEAN_PERIODIC_COMMIT != null) {
+        COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${LAST_CLEAN_PERIODIC_COMMIT}...${GIT_COMMIT_TO_USE}"
+        def lastClean = "${LAST_CLEAN_PERIODIC_COMMIT}"
+        def currentStable = "${GIT_COMMIT_TO_USE}"
+        def commitList = getCommitListFromGitLog(lastClean, currentStable)
+        withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+            def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+            SUSPECT_LIST = getSuspectList(commitList, userMappings)
+            echo "Suspect list: ${SUSPECT_LIST}"
+        }
+    }
+    echo "URL if fails: ${COMPARISON_URL_ON_FAILURE}"
 }
 
 // Returns the last clean commit for the periodics, or null if the commit file does not exist yet.
