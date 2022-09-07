@@ -9,6 +9,7 @@ def TESTS_FAILED = false
 def availableRegions = [ "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1",
                          "eu-zurich-1", "me-jeddah-1", "sa-saopaulo-1" ]
 def OKE_CLUSTER_PREFIX = ""
+def OKE_CLUSTER_ID = ""
 Collections.shuffle(availableRegions)
 
 pipeline {
@@ -249,6 +250,11 @@ pipeline {
                             TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=rollingupgrade-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh
                             kubectl get nodes
                         """
+
+                        script {
+                            OKE_CLUSTER_ID = sh(returnStdout: true, script: "cd ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/terraform/cluster && ./terraform output -raw oke_cluster_id").trim()
+                            echo "OKE cluster id: ${OKE_CLUSTER_ID}"
+                        }
                     }
                     post {
                         failure {

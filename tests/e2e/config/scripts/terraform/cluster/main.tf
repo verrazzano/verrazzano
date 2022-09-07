@@ -55,3 +55,7 @@ module "oke" {
 
   node_pool_image_id = var.node_pool_image_id
 }
+
+output "oke_cluster_id" {
+  value = module.oke.cluster_id
+}

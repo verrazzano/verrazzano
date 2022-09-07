@@ -48,9 +48,6 @@ then
   exit 1
 fi
 
-export OKE_CLUSTER_ID=$($SCRIPT_DIR/terraform output -raw cluster_id)
-echo "OKE_CLUSTER_ID is ${OKE_CLUSTER_ID}"
-
 echo "updating OKE private_workers_seclist to allow pub_lb_subnet access to workers"
 
 # the script would return 0 even if it fails to update OKE private_workers_seclist
