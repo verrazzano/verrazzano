@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../../manifests/profiles"
+const profilesRelativePath = "../../../../../manifests/profiles/v1alpha1"
 
 // TestIsEnabled tests the IsEnabled function for the Prometheus Node-Exporter component
 func TestIsEnabled(t *testing.T) {
@@ -85,7 +85,7 @@ func TestIsEnabled(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false, profilesRelativePath)
 			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
 		})
 	}
@@ -146,7 +146,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false, profilesRelativePath)
 			var err error
 			kvs := make([]bom.KeyValue, 0)
 			kvs, err = AppendOverrides(ctx, "", "", "", kvs)
@@ -163,7 +163,7 @@ func TestPostInstall(t *testing.T) {
 	// WHEN we call the PostInstall function
 	// THEN no error is returned
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profilesRelativePath)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profilesRelativePath)
 	err := NewComponent().PostInstall(ctx)
 	assert.NoError(t, err)
 }
@@ -174,7 +174,7 @@ func TestPostUpgrade(t *testing.T) {
 	// WHEN we call the PostUpgrade function
 	// THEN no error is returned
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profilesRelativePath)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profilesRelativePath)
 	err := NewComponent().PostUpgrade(ctx)
 	assert.NoError(t, err)
 }

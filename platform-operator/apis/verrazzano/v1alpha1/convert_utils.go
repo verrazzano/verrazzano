@@ -20,12 +20,19 @@ const (
 	testCaseIstioOverrides    = "istiomultipleoverrides"
 	testCaseIstioNodePort     = "istionodeport"
 	testCaseFromAllComps      = "fromallcomps"
+	testCaseHA                = "fromha"
+	testCaseOCNE              = "fromocne"
+	testCaseOCNEHA            = "fromocneha"
 	testCaseOpensearch        = "fromopensearch"
 	testCaseInstallArgsErr    = "frominstallargserr"
 	testCaseToAllComps        = "toallcomps"
 	testCaseRancherKeycloak   = "rancherkeycloak"
 	testCaseVolumeOverrides   = "volumeoverrides"
 	testCaseGeneralOverrides  = "overrides"
+	testBaseProfile           = "base"
+	testProdProfile           = "prod"
+	testDevProfile            = "dev"
+	testManagedClusterProfile = "managed-cluster"
 )
 
 type converisonTestCase struct {

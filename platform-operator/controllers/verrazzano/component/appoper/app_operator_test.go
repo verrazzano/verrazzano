@@ -107,7 +107,7 @@ func TestIsApplicationOperatorReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
+	assert.True(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 // TestIsApplicationOperatorNotReady tests the isApplicationOperatorReady function
@@ -127,7 +127,7 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
+	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 // TestLabelAnnotateTraitDefinitions tests the labelAnnotateTraitDefinitions function

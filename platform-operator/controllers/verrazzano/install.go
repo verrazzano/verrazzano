@@ -21,8 +21,8 @@ import (
 // 3. Loop through all components before returning, except for the case
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
-func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
-	spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, r.DryRun)
+func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preUpgrade bool) (ctrl.Result, error) {
+	spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, nil, r.DryRun)
 	if err != nil {
 		spiCtx.Log().Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
@@ -32,19 +32,24 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
 
 	var requeue bool
-
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
 		compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
 		compLog := compContext.Log()
 
-		compLog.Oncef("Component %s is being reconciled", compName)
+		compLog.Debugf("Component %s is being reconciled", compName)
 
 		if !comp.IsOperatorInstallSupported() {
 			compLog.Debugf("Component based install not supported for %s", compName)
 			continue
 		}
+
+		// Some components, like MySQL Operator, need to be installed before upgrade
+		if preUpgrade && !comp.ShouldInstallBeforeUpgrade() {
+			continue
+		}
+
 		componentStatus, ok := cr.Status.Components[comp.Name()]
 		if !ok {
 			compLog.Debugf("Did not find status details in map for component %s", comp.Name())
@@ -100,7 +105,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				// User has disabled component in Verrazzano CR, don't install
 				continue
 			}
-			if !isVersionOk(compLog, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
+			// Only check for min VPO version if this is not the preupgrade case
+			if !preUpgrade && !isVersionOk(compLog, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
 				// User needs to do upgrade before this component can be installed
 				compLog.Progressf("Component %s cannot be installed until Verrazzano is upgraded to at least version %s",
 					comp.Name(), comp.GetMinVerrazzanoVersion())

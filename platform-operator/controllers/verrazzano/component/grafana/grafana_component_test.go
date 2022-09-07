@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
 
 var (
 	falseValue = false
@@ -76,7 +76,7 @@ func TestIsEnabled(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false)
 			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
 		})
 	}
@@ -143,7 +143,7 @@ func TestGetIngressNames(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false)
 			assert.Equal(t, tt.ingresses, NewComponent().GetIngressNames(ctx))
 		})
 	}
@@ -210,7 +210,7 @@ func TestGetCertificateNames(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false)
 			assert.Equal(t, tt.certs, NewComponent().GetCertificateNames(ctx))
 		})
 	}
@@ -231,7 +231,7 @@ func TestPreInstall(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(client, vz, false)
+	ctx := spi.NewFakeContext(client, vz, nil, false)
 	err := NewComponent().PreInstall(ctx)
 	assert.NoError(t, err)
 
@@ -254,7 +254,7 @@ func TestPreUpgrade(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(client, vz, false)
+	ctx := spi.NewFakeContext(client, vz, nil, false)
 	err := NewComponent().PreUpgrade(ctx)
 	assert.NoError(t, err)
 
@@ -293,7 +293,7 @@ func testInstallOrUpgrade(t *testing.T, installOrUpgradeFunc func(spi.ComponentC
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(client, vz, false, profilesRelativePath)
+	ctx := spi.NewFakeContext(client, vz, nil, false, profilesRelativePath)
 	err := installOrUpgradeFunc(ctx)
 	assert.NoError(t, err)
 

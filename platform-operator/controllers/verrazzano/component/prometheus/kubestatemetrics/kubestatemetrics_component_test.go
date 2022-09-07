@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
-const profilesRelativePath = "../../../../../manifests/profiles"
+const profilesRelativePath = "../../../../../manifests/profiles/v1alpha1"
 
 // TestIsEnabled tests the IsEnabled function for the kube-state-metrics component
 func TestIsEnabled(t *testing.T) {
@@ -66,7 +66,7 @@ func TestIsEnabled(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false, profilesRelativePath)
 			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
 		})
 	}

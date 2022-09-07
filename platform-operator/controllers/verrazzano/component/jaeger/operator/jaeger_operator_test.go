@@ -5,11 +5,14 @@ package operator
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -127,7 +130,7 @@ func init() {
 func TestPreInstallInternal(t *testing.T) {
 	for _, tt := range getPreInstallTests() {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, tt.dryRun)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, nil, tt.dryRun)
 			err := preInstall(ctx)
 			if tt.err != nil {
 				assert.Error(t, err)
@@ -221,7 +224,7 @@ func TestAppendOverrides(t *testing.T) {
 			asserts.NoError(err)
 
 			fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
-			fakeContext := spi.NewFakeContext(fakeClient, &testCR, false, profileDir)
+			fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false, profileDir)
 
 			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
 				if test.expectedErr != nil {
@@ -263,8 +266,9 @@ func TestAppendOverrides(t *testing.T) {
 			tempFilePath := kvs[0].Value
 			files = append(files, tempFilePath)
 			_, err = os.Stat(tempFilePath)
-			asserts.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
-			cleanFile(tempFilePath)
+			asserts.NoError(err, "Unexpected error checking for temp file %s: %v", tempFilePath, err)
+			err = cleanFile(tempFilePath)
+			asserts.NoError(err, "Unexpected error when cleaning up temp files %s: %v", tempFilePath, err)
 
 			if test.name == "OverrideMetricsStorageType" {
 				asserts.Equal(kvs[1].Key, prometheusServerField)
@@ -291,16 +295,6 @@ func cleanFile(file string) error {
 func fileExists(name string) bool {
 	_, err := os.Stat(name)
 	return !os.IsNotExist(err)
-}
-
-// TestEnsureMonitoringOperatorNamespace asserts the verrazzano-monitoring namespaces can be created
-func TestEnsureMonitoringOperatorNamespace(t *testing.T) {
-	// GIVEN a Verrazzano CR with Jaeger Component enabled,
-	// WHEN we call the ensureVerrazzanoMonitoringNamespace function,
-	// THEN no error is returned.
-	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, false)
-	err := ensureVerrazzanoMonitoringNamespace(ctx)
-	assert.NoError(t, err)
 }
 
 // TestBuildJaegerDNSNames asserts if the generated DNS name for Jaeger is correct.
@@ -381,5 +375,69 @@ func getPreInstallTests() []preInstallTestStruct {
 			nil,
 			true,
 		},
+	}
+}
+
+func TestGetOverrides(t *testing.T) {
+	ref := &corev1.ConfigMapKeySelector{
+		Key: "foo",
+	}
+	o := v1beta1.InstallOverrides{
+		ValueOverrides: []v1beta1.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	oV1Alpha1 := vzapi.InstallOverrides{
+		ValueOverrides: []vzapi.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	var tests = []struct {
+		name string
+		cr   runtime.Object
+		res  interface{}
+	}{
+		{
+			"overrides when component not nil, v1alpha1",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							InstallOverrides: oV1Alpha1,
+						},
+					},
+				},
+			},
+			oV1Alpha1.ValueOverrides,
+		},
+		{
+			"Empty overrides when component nil",
+			&v1beta1.Verrazzano{},
+			[]v1beta1.Overrides{},
+		},
+		{
+			"overrides when component not nil",
+			&v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						JaegerOperator: &v1beta1.JaegerOperatorComponent{
+							InstallOverrides: o,
+						},
+					},
+				},
+			},
+			o.ValueOverrides,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			override := GetOverrides(tt.cr)
+			assert.EqualValues(t, tt.res, override)
+		})
 	}
 }

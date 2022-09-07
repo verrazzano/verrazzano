@@ -6,10 +6,11 @@ package upgrade
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"time"
 
 	"github.com/spf13/cobra"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -70,6 +71,28 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Verrazzano is not installed: %s", err.Error())
 	}
 
+	// Get the version Verrazzano is being upgraded to
+	version, err := cmdhelpers.GetVersion(cmd, vzHelper)
+	if err != nil {
+		return err
+	}
+
+	vzVersion, err := semver.NewSemVersion(vz.Status.Version)
+	if err != nil {
+		return fmt.Errorf("Failed creating semantic version from Verrazzano resource version %s: %s", vz.Status.Version, err.Error())
+	}
+	upgradeVersion, err := semver.NewSemVersion(version)
+	if err != nil {
+		return fmt.Errorf("Failed creating semantic version from version %s specified: %s", version, err.Error())
+	}
+
+	// Version being upgraded to cannot be less than the installed version
+	if upgradeVersion.IsLessThan(vzVersion) {
+		return fmt.Errorf("Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was %s and current Verrazzano version is %s", version, vz.Status.Version)
+	}
+
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
+
 	// Get the timeout value for the upgrade command
 	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
 	if err != nil {
@@ -88,13 +111,6 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return err
 	}
 
-	// Get the version Verrazzano is being upgraded to
-	version, err := cmdhelpers.GetVersion(cmd, vzHelper)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
-
 	// Apply the Verrazzano operator.yaml
 	lastTransitionTime := metav1.Now()
 	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
@@ -103,7 +119,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	// Wait for the platform operator to be ready before we update the verrazzano install resource
-	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, vzapi.CondUpgradeComplete, lastTransitionTime)
+	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete, lastTransitionTime)
 	if err != nil {
 		return err
 	}
@@ -137,5 +153,5 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 
 // Wait for the upgrade operation to complete
 func waitForUpgradeToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
-	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, vzapi.CondUpgradeComplete)
+	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, v1beta1.CondUpgradeComplete)
 }

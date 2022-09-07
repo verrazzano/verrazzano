@@ -48,7 +48,7 @@ func TestGetInstallOverrides(t *testing.T) {
 	}
 
 	comp := NewComponent()
-	overrides := comp.GetOverrides(vz)
+	overrides := comp.GetOverrides(vz).([]vzapi.Overrides)
 	assert.Equal(t, []byte("{\"key1\": \"value1\"}"), overrides[0].Values.Raw)
 }
 
@@ -155,7 +155,7 @@ func TestIsMySQLOperatorReady(t *testing.T) {
 		},
 	).Build()
 
-	assert.True(t, isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.True(t, isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsMySQLOperatorNotReady tests the isReady function
@@ -179,7 +179,7 @@ func TestIsMySQLOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.False(t, isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsInstalled tests the isInstalled function
@@ -202,7 +202,7 @@ func TestIsInstalled(t *testing.T) {
 		},
 	).Build()
 
-	assert.True(t, isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.True(t, isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsInstalledFalse tests the isInstalled function
@@ -212,7 +212,7 @@ func TestIsInstalled(t *testing.T) {
 func TestIsInstalledFalse(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build()
 
-	assert.False(t, isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.False(t, isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestValidateInstall tests the ValidateInstall function

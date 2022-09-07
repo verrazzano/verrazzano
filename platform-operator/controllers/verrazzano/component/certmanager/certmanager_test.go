@@ -5,6 +5,7 @@ package certmanager
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -32,7 +33,7 @@ import (
 )
 
 const (
-	profileDir    = "../../../../manifests/profiles"
+	profileDir    = "../../../../manifests/profiles/v1alpha1"
 	testNamespace = "testNamespace"
 	testBomFile   = "../../testdata/test_bom.json"
 )
@@ -80,7 +81,7 @@ func init() {
 func TestIsCertManagerEnabled(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
-	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false).EffectiveCR()))
+	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, nil, false).EffectiveCR()))
 }
 
 // TestIsOCIDNS tests whether the Effective CR is using OCI DNS
@@ -146,7 +147,7 @@ func TestCleanTempFiles(t *testing.T) {
 func TestIsCertManagerDisabled(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
-	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false).EffectiveCR()))
+	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, nil, false).EffectiveCR()))
 }
 
 // TestAppendCertManagerOverrides tests the AppendOverrides fn
@@ -155,7 +156,7 @@ func TestIsCertManagerDisabled(t *testing.T) {
 // THEN the values created properly
 func TestAppendCertManagerOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFile)
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 }
@@ -169,7 +170,7 @@ func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
 	getClientFunc = createClientFunc(localvz.Spec.Components.CertManager.Certificate.CA, "defaultVZConfig-cn")
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 	assert.Contains(t, kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: testNamespace})
@@ -181,7 +182,7 @@ func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 // THEN no errors are returned
 func TestCertManagerPreInstallDryRun(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, true))
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, true))
 	assert.NoError(t, err)
 }
 
@@ -194,7 +195,7 @@ func TestCertManagerPreInstall(t *testing.T) {
 		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
 	})
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -214,7 +215,7 @@ func TestIsCertManagerReady(t *testing.T) {
 		newPod(webhookDeploymentName, map[string]string{"app": "webhook"}),
 		newReplicaSet(webhookDeploymentName),
 	).Build()
-	assert.True(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
+	assert.True(t, isCertManagerReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
 // TestIsCertManagerNotReady tests the isCertManagerReady function
@@ -227,7 +228,7 @@ func TestIsCertManagerNotReady(t *testing.T) {
 		newDeployment(cainjectorDeploymentName, map[string]string{"app": "cainjector"}, false),
 		newDeployment(webhookDeploymentName, map[string]string{"app": "webhook"}, false),
 	).Build()
-	assert.False(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
+	assert.False(t, isCertManagerReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
 // TestIsCANilWithProfile tests the isCA function
@@ -236,7 +237,7 @@ func TestIsCertManagerNotReady(t *testing.T) {
 // THEN true is returned
 func TestIsCANilWithProfile(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	isCAValue, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profileDir))
+	isCAValue, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir))
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
 }
@@ -254,7 +255,7 @@ func TestIsCATrue(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 
-	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
+	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
 }
@@ -279,7 +280,7 @@ func TestIsCAFalse(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
+	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.Nil(t, err)
 	assert.False(t, isCAValue)
 }
@@ -293,7 +294,7 @@ func TestIsCABothPopulated(t *testing.T) {
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	_, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
+	_, err := isCA(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.Error(t, err)
 }
 
@@ -307,7 +308,7 @@ func TestCreateCAResources(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 
-	opResult, err := createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
+	opResult, err := createOrUpdateCAResources(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.NoError(t, err)
 	assert.Equal(t, controllerutil.OperationResultCreated, opResult)
 
@@ -335,7 +336,7 @@ func TestCreateCAResources(t *testing.T) {
 	}
 	client = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&secret).Build()
 
-	opResult, err = createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
+	opResult, err = createOrUpdateCAResources(spi.NewFakeContext(client, localvz, nil, false, profileDir))
 	assert.NoError(t, err)
 	assert.Equal(t, controllerutil.OperationResultCreated, opResult)
 
@@ -359,7 +360,7 @@ func TestCreateCAResources(t *testing.T) {
 //  THEN no error is returned
 func TestRenewAllCertificatesNoCertsPresent(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	fakeContext := spi.NewFakeContext(client, defaultVZConfig, false)
+	fakeContext := spi.NewFakeContext(client, defaultVZConfig, nil, false)
 	assert.NoError(t, checkRenewAllCertificates(fakeContext, true))
 }
 
@@ -378,7 +379,7 @@ func TestDeleteObject(t *testing.T) {
 			secretToDelete,
 		).Build()
 
-	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profileDir)
+	fakeContext := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false, profileDir)
 	assert.NoError(t, deleteObject(fakeContext.Client(), name, ns, &v1.Secret{}))
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, &v1.Secret{})
 	assert.Error(t, err)
@@ -402,7 +403,7 @@ func TestCleanupUnusedACMEResources(t *testing.T) {
 		WithObjects(createDefaultIssuerResources()...).
 		Build()
 
-	fakeContext := spi.NewFakeContext(client, vz, false, profileDir)
+	fakeContext := spi.NewFakeContext(client, vz, nil, false, profileDir)
 	assert.NoError(t, cleanupUnusedResources(fakeContext, true))
 	assertFound(t, client, verrazzanoClusterIssuerName, ComponentNamespace, &certv1.ClusterIssuer{})
 	assertNotFound(t, client, caAcmeSecretName, ComponentNamespace, &v1.Secret{})
@@ -426,7 +427,7 @@ func TestCleanupUnusedDefaultCAResources(t *testing.T) {
 		WithObjects(createDefaultIssuerResources()...).
 		Build()
 
-	fakeContext := spi.NewFakeContext(client, vz, false, profileDir)
+	fakeContext := spi.NewFakeContext(client, vz, nil, false, profileDir)
 	assert.NoError(t, cleanupUnusedResources(fakeContext, false))
 	assertFound(t, client, caAcmeSecretName, ComponentNamespace, &v1.Secret{})
 	assertFound(t, client, verrazzanoClusterIssuerName, ComponentNamespace, &certv1.ClusterIssuer{})
@@ -457,7 +458,7 @@ func TestCustomCAConfigCleanupUnusedResources(t *testing.T) {
 		WithObjects(createDefaultIssuerResources()...).
 		Build()
 
-	fakeContext := spi.NewFakeContext(client, vz, false, profileDir)
+	fakeContext := spi.NewFakeContext(client, vz, nil, false, profileDir)
 	assert.NoError(t, cleanupUnusedResources(fakeContext, true))
 	assertFound(t, client, customCAName, customCANamespace, &v1.Secret{})
 	assertFound(t, client, verrazzanoClusterIssuerName, ComponentNamespace, &certv1.ClusterIssuer{})
@@ -608,7 +609,7 @@ func TestUninstallCertManager(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(tt.objects...).Build()
-			fakeContext := spi.NewFakeContext(c, vz, false, profileDir)
+			fakeContext := spi.NewFakeContext(c, vz, nil, false, profileDir)
 			err := uninstallCertManager(fakeContext)
 			assert.NoError(t, err)
 			// expect the controller ConfigMap to get deleted
@@ -632,6 +633,70 @@ func TestUninstallCertManager(t *testing.T) {
 			// expect the Namespace to get deleted
 			err = c.Get(context.TODO(), types.NamespacedName{Name: caAcmeSecretName, Namespace: ComponentNamespace}, &v1.Secret{})
 			assert.Error(t, err, "Expected the Secret %s to be deleted", ComponentNamespace)
+		})
+	}
+}
+
+func TestGetOverrides(t *testing.T) {
+	ref := &v1.ConfigMapKeySelector{
+		Key: "foo",
+	}
+	o := v1beta1.InstallOverrides{
+		ValueOverrides: []v1beta1.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	oV1Alpha1 := vzapi.InstallOverrides{
+		ValueOverrides: []vzapi.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	var tests = []struct {
+		name string
+		cr   runtime.Object
+		res  interface{}
+	}{
+		{
+			"overrides when component not nil, v1alpha1",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							InstallOverrides: oV1Alpha1,
+						},
+					},
+				},
+			},
+			oV1Alpha1.ValueOverrides,
+		},
+		{
+			"Empty overrides when component nil",
+			&v1beta1.Verrazzano{},
+			[]v1beta1.Overrides{},
+		},
+		{
+			"overrides when component not nil",
+			&v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						CertManager: &v1beta1.CertManagerComponent{
+							InstallOverrides: o,
+						},
+					},
+				},
+			},
+			o.ValueOverrides,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			override := GetOverrides(tt.cr)
+			assert.EqualValues(t, tt.res, override)
 		})
 	}
 }

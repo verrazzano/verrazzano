@@ -41,7 +41,7 @@ import (
 )
 
 const (
-	profileDir      = "../../../../manifests/profiles"
+	profileDir      = "../../../../manifests/profiles/v1alpha1"
 	testBomFilePath = "../../testdata/test_bom.json"
 )
 
@@ -168,7 +168,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 			t.Log(test.description)
 
 			fakeClient := createFakeClientWithIngress()
-			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
+			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, nil, false, profileDir)
 			values := verrazzanoValues{}
 
 			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
@@ -329,7 +329,7 @@ func Test_appendVMIValues(t *testing.T) {
 			t.Log(test.description)
 
 			fakeClient := createFakeClientWithIngress()
-			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
+			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, nil, false, profileDir)
 			values := verrazzanoValues{}
 
 			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
@@ -521,7 +521,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			t.Log(test.description)
 
 			fakeClient := createFakeClientWithIngress()
-			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
+			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, nil, false, profileDir)
 
 			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
 				if test.expectedErr != nil {
@@ -688,7 +688,7 @@ func TestAssociateHelmObjectAndKeep(t *testing.T) {
 //  THEN false is returned
 func TestIsReadyNotReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	assert.False(t, isVerrazzanoReady(ctx))
 }
 
@@ -704,7 +704,7 @@ func TestIsReady(t *testing.T) {
 
 	vz := &vzapi.Verrazzano{}
 	vz.Spec.Components = vzapi.ComponentSpec{}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.True(t, isVerrazzanoReady(ctx))
 }
 
@@ -729,7 +729,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
 		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.True(t, isVerrazzanoReady(ctx))
 }
 
@@ -790,7 +790,7 @@ func TestRemoveNodeExporterResources(t *testing.T) {
 		},
 	).Build()
 
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	removeNodeExporterResources(ctx)
 
 	namespacedName := types.NamespacedName{Namespace: monitoringNamespace, Name: nodeExporter}

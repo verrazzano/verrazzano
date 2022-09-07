@@ -67,6 +67,8 @@ pipeline {
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
@@ -81,8 +83,7 @@ pipeline {
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
         CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
 
-        // Directory containing the Verrazzano image tar files
-        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-commercial/images"
+        OCI_OS_REGION="us-phoenix-1"
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -186,6 +187,21 @@ pipeline {
                             """
                         }
                     }
+                    if (!(env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-1."))) {
+                        try {
+                            sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        } catch(error) {
+                            echo "docker login failed, retrying after sleep"
+                            retry(4) {
+                                sleep(30)
+                                sh """
+                                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                                """
+                            }
+                        }
+                    }
                 }
 
                 script {
@@ -215,7 +231,7 @@ pipeline {
                             script {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: true),
+                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: false),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -369,6 +385,23 @@ pipeline {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                         parameters: [
                                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23'),
+                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                                string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                                string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                                string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                                booleanParam(name: 'ENABLE_JWT_TESTING', value: true)
+                                        ], wait: true
+                            }
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.24') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                        parameters: [
+                                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                                 string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                                 string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -605,6 +638,8 @@ pipeline {
                         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
                         OCI_CLI_REGION = "us-ashburn-1"
                         OCI_REGION = "${env.OCI_CLI_REGION}"
+                        // Directory containing the Verrazzano image tar files
+                        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
                     }
                     steps {
                         script {

@@ -22,7 +22,7 @@ import (
 	"testing"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
 
 // genericTestRunner is used to run generic OS commands with expected results
 type genericTestRunner struct {
@@ -77,7 +77,7 @@ func TestIsEnabled(t *testing.T) {
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false, profilesRelativePath)
 			if tt.expectTrue {
 				assert.True(t, NewComponent().IsEnabled(ctx.EffectiveCR()))
 			} else {
@@ -98,7 +98,7 @@ func TestIsInstalled(t *testing.T) {
 			Name:      ComponentName,
 		},
 	}).Build()
-	installed, err := NewComponent().IsInstalled(spi.NewFakeContext(fakeClient, nil, false))
+	installed, err := NewComponent().IsInstalled(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.NoError(t, err)
 	assert.True(t, installed)
 }
@@ -109,7 +109,7 @@ func TestIsInstalled(t *testing.T) {
 //  THEN false is returned
 func TestIsNotInstalled(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	installed, err := NewComponent().IsInstalled(spi.NewFakeContext(fakeClient, nil, false))
+	installed, err := NewComponent().IsInstalled(spi.NewFakeContext(fakeClient, nil, nil, false))
 	assert.NoError(t, err)
 	assert.False(t, installed)
 }
@@ -155,7 +155,7 @@ func TestIsReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, NewComponent().IsReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, true)))
+	assert.True(t, NewComponent().IsReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, true)))
 }
 
 // TestIsReady tests the IsReady function
@@ -163,7 +163,7 @@ func TestIsReady(t *testing.T) {
 //  WHEN the VMO is not ready per Helm
 //  THEN true is returned
 func TestIsNotReady(t *testing.T) {
-	assert.False(t, NewComponent().IsReady(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false)))
+	assert.False(t, NewComponent().IsReady(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestPostUpgrade tests the VMO PostUpgrade call
@@ -178,7 +178,7 @@ func TestPostUpgrade(t *testing.T) {
 	_ = corev1.AddToScheme(scheme)
 	_ = netv1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
-	err := NewComponent().PostUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -194,7 +194,7 @@ func TestPreUpgrade(t *testing.T) {
 	_ = rbacv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, false))
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -210,7 +210,7 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 	})
 	defer helm.SetDefaultRunner()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -226,6 +226,6 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	})
 	defer helm.SetDefaultRunner()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }

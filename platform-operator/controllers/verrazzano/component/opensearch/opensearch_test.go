@@ -250,7 +250,7 @@ status:
 		return nil, err
 	}
 
-	return spi.NewFakeContext(c, &vzObject, false), nil
+	return spi.NewFakeContext(c, &vzObject, nil, false), nil
 }
 
 // createPod creates a k8s pod
@@ -470,7 +470,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.False(t, isOSReady(ctx))
 }
 
@@ -480,7 +480,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 //  THEN false is returned
 func TestIsReadyNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	assert.False(t, isOSReady(ctx))
 }
 
@@ -671,7 +671,7 @@ func TestIsReady(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.True(t, isOSReady(ctx))
 }
 
@@ -736,23 +736,23 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	vz.Spec.Components = vzapi.ComponentSpec{
 		Elasticsearch: &vzapi.ElasticsearchComponent{
-			ESInstallArgs: []vzapi.InstallArgs{
+			Nodes: []vzapi.OpenSearchNode{
 				{
-					Name:  "nodes.master.replicas",
-					Value: "2",
+					Name:     "es-master",
+					Replicas: 2,
 				},
 				{
-					Name:  "nodes.data.replicas",
-					Value: "2",
+					Name:     "es-data",
+					Replicas: 2,
 				},
 				{
-					Name:  "nodes.ingest.replicas",
-					Value: "2",
+					Name:     "es-ingest",
+					Replicas: 2,
 				},
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.False(t, isOSReady(ctx))
 }
 
@@ -778,7 +778,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
 		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.True(t, isOSReady(ctx))
 }
 
@@ -798,6 +798,131 @@ func TestIsinstalled(t *testing.T) {
 	).Build()
 
 	vz := &vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(c, vz, false)
+	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.True(t, doesOSExist(ctx))
+}
+
+func TestIsOSNodeReady(t *testing.T) {
+	readyPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo-95d8c5d96-m6mbr",
+			Namespace: ComponentNamespace,
+			Labels: map[string]string{
+				"controller-revision-hash": "foo-95d8c5d96",
+				"pod-template-hash":        "95d8c5d96",
+				"app":                      "foo",
+			},
+		},
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					Ready: true,
+				},
+			},
+		},
+	}
+	controllerRevision := &appsv1.ControllerRevision{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo-95d8c5d96",
+			Namespace: ComponentNamespace,
+		},
+		Revision: 1,
+	}
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
+	singleMasterClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esMasterStatefulset,
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Selector: selector,
+			},
+			Status: appsv1.StatefulSetStatus{
+				UpdatedReplicas: 1,
+				ReadyReplicas:   1,
+			},
+		},
+		readyPod,
+		controllerRevision,
+	).Build()
+	masterNode := vzapi.OpenSearchNode{
+		Name:     "es-master",
+		Replicas: 1,
+		Roles: []vmov1.NodeRole{
+			vmov1.MasterRole,
+		},
+	}
+
+	dataNode := vzapi.OpenSearchNode{
+		Name:     "es-data",
+		Replicas: 2,
+		Roles: []vmov1.NodeRole{
+			vmov1.DataRole,
+		},
+	}
+	dataDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      fmt.Sprintf("%s-%d", esDataDeployment, 0),
+			Labels:    map[string]string{"app": "foo"},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: selector,
+		},
+		Status: appsv1.DeploymentStatus{
+			UpdatedReplicas:   1,
+			ReadyReplicas:     1,
+			AvailableReplicas: 1,
+		},
+	}
+	dataDeployment2 := dataDeployment.DeepCopy()
+	dataDeployment2.Name = fmt.Sprintf("%s-%d", esDataDeployment, 1)
+	rs := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   ComponentNamespace,
+			Name:        "vmi-system-es-data-0-95d8c5d96",
+			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+		},
+	}
+	rs2 := rs.DeepCopy()
+	rs2.Name = "vmi-system-es-data-1-95d8c5d96"
+	dataNodeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		dataDeployment,
+		dataDeployment2,
+		readyPod,
+		controllerRevision,
+		rs,
+		rs2,
+	).Build()
+
+	var tests = []struct {
+		name  string
+		ctx   spi.ComponentContext
+		node  vzapi.OpenSearchNode
+		ready bool
+	}{
+		{
+			"ready when master node is ready",
+			spi.NewFakeContext(singleMasterClient, nil, nil, false),
+			masterNode,
+			true,
+		},
+		{
+			"ready when data node is ready",
+			spi.NewFakeContext(dataNodeClient, nil, nil, false),
+			dataNode,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.ready, isOSNodeReady(tt.ctx, tt.node, tt.name))
+		})
+	}
 }

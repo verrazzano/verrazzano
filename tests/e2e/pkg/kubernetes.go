@@ -35,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -287,6 +288,21 @@ func GetIngressList(namespace string) (*netv1.IngressList, error) {
 		return nil, err
 	}
 	return ingressList, nil
+}
+
+// GetIngress returns the ingress given a namespace and ingress name
+func GetIngress(namespace string, ingressName string) (*netv1.Ingress, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	ingress, err := clientSet.NetworkingV1().Ingresses(namespace).Get(context.TODO(), ingressName, metav1.GetOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Ingress %s in namespace %s: %v ", ingressName, namespace, err))
+		return nil, err
+	}
+	return ingress, nil
 }
 
 // GetVirtualServiceList returns a list of virtual services in the given namespace
@@ -1388,17 +1404,16 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 
 // GetTokenForServiceAccount returns the token associated with service account
 func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
-	serviceAccount, err := GetServiceAccount(namespace, sa)
-	if err != nil {
-		return nil, err
-	}
-	if len(serviceAccount.Secrets) == 0 {
-		msg := fmt.Sprintf("no secrets present in service account %s in namespace %s", sa, namespace)
+	// In k8s 1.24 and later, secret is not created for service account. Create a service account token secret and get
+	// the token from the same.
+	secretName := sa + "-token"
+	if err := createServiceAccountTokenSecret(sa, namespace); err != nil {
+		msg := fmt.Sprintf("failed to create a service account token secret %s in namespace %s: %v", secretName,
+			namespace, err)
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
 
-	secretName := serviceAccount.Secrets[0].Name
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		return nil, err
@@ -1409,16 +1424,26 @@ func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
-
-	token, ok := secret.Data["token"]
-
-	if !ok {
-		msg := fmt.Sprintf("no token present in secret %s for service account %s in namespace %s: %v", secretName, sa, namespace, err)
+	// API token secret is populated asynchronously. As a work-around, wait for up to 10 seconds for the secret to be
+	// populated.
+	// https://github.com/kubernetes/kubernetes/pull/108309/files#diff-9037e55a81aefc2c9dc448fa4329772381d50ed1f270575be0ff48e0a949e12eR475
+	err = wait.Poll(time.Second, 10*time.Second, func() (bool, error) {
+		if len(secret.Data["token"]) != 0 {
+			return true, nil
+		}
+		secret, err = clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+		if err != nil {
+			return false, fmt.Errorf("failed to get secret %s for service account %s in namespace %s: %v", secretName,
+				sa, namespace, err)
+		}
+		return false, nil
+	})
+	if err != nil {
+		msg := fmt.Sprintf("unable to find token in secret %s for service account %s in namespace %s: %v", secretName, sa, namespace, err)
 		Log(Error, msg)
 		return nil, errors.New(msg)
 	}
-
-	return token, nil
+	return secret.Data["token"], nil
 }
 
 func GetServiceAccount(namespace, name string) (*corev1.ServiceAccount, error) {
@@ -1574,6 +1599,25 @@ func CreateConfigMap(configMap *corev1.ConfigMap) error {
 	}
 	_, err = clientset.CoreV1().ConfigMaps(configMap.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createServiceAccountTokenSecret(serviceAccount string, namespace string) error {
+	var secret corev1.Secret
+	secret.Name = serviceAccount + "-token"
+	secret.Namespace = namespace
+	secret.Type = corev1.SecretTypeServiceAccountToken
+	secret.Annotations = map[string]string{
+		corev1.ServiceAccountNameKey: serviceAccount,
+	}
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), &secret, metav1.CreateOptions{})
+	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
 	return nil

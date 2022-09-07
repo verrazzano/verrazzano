@@ -38,6 +38,11 @@ func (o opensearchComponent) Namespace() string {
 	return ComponentNamespace
 }
 
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (o opensearchComponent) ShouldInstallBeforeUpgrade() bool {
+	return false
+}
+
 // GetDependencies returns the dependencies of the OpenSearch component
 func (o opensearchComponent) GetDependencies() []string {
 	return []string{vmo.ComponentName}
@@ -54,7 +59,12 @@ func (o opensearchComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the Helm override sources for a component
-func (o opensearchComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
+func (o opensearchComponent) GetOverrides(object runtime.Object) interface{} {
+	if _, ok := object.(*vzapi.Verrazzano); ok {
+		return []vzapi.Overrides{}
+	} else if _, ok := object.(*installv1beta1.Verrazzano); ok {
+		return []installv1beta1.Overrides{}
+	}
 	return []vzapi.Overrides{}
 }
 

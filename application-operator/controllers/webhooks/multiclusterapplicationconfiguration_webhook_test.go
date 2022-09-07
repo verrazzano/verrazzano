@@ -36,7 +36,6 @@ func newMultiClusterApplicationConfigurationValidator() MultiClusterApplicationC
 // WHEN the MultiClusterApplicationConfiguration resource is missing Placement information
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterApplicationConfigurationCreationWithoutTargetClusters(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
 	p := v1alpha12.MultiClusterApplicationConfiguration{
@@ -64,7 +63,6 @@ func TestValidationFailureForMultiClusterApplicationConfigurationCreationWithout
 // WHEN the MultiClusterApplicationConfiguration resource references a VerrazzanoManagedCluster that does not exist
 // THEN the validation should fail.
 func TestValidationFailureForMultiClusterApplicationConfigurationCreationTargetingMissingManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
 	p := v1alpha12.MultiClusterApplicationConfiguration{
@@ -96,7 +94,6 @@ func TestValidationFailureForMultiClusterApplicationConfigurationCreationTargeti
 // WHEN the MultiClusterApplicationConfiguration resource references a VerrazzanoManagedCluster that does exist
 // THEN the validation should pass.
 func TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargetingExistingManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
 	mc := v1alpha1.VerrazzanoManagedCluster{
@@ -158,7 +155,6 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargeti
 // AND the validation is being done on a managed cluster
 // THEN the validation should succeed.
 func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithoutTargetClustersOnManagedCluster(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
 	s := corev1.Secret{
@@ -214,7 +210,6 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 // THEN the validation should succeed or fail based on what secrets are specified in the
 //   MultiClusterApplicationConfiguration resource
 func TestValidateSecrets(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()
 
@@ -288,7 +283,6 @@ func TestValidateSecrets(t *testing.T) {
 
 // TestMultiClusterAppConfigHandleFailed tests to make sure the failure metric is being exposed
 func TestMultiClusterAppConfigHandleFailed(t *testing.T) {
-	metricsexporter.RequiredInitialization()
 	assert := assert.New(t)
 	// Create a request and decode(Handle)
 	decoder := decoder()

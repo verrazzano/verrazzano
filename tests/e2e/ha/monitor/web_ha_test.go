@@ -12,25 +12,25 @@ import (
 var _ = t.Describe("Web Access", Label("f:platform-lcm:ha"), func() {
 	t.Context("Prometheus", func() {
 		RunningUntilShutdownIt("can access Prometheus endpoint", func() {
-			Expect(pkg.VerifyPrometheusComponent(t.Logs, web.api, web.httpClient, web.users.verrazzano)).To(BeTrue())
+			Expect(pkg.VerifyPrometheusComponent(t.Logs, nil, web.httpClient, web.users.verrazzano)).To(BeTrue())
 		})
 	})
 
 	t.Context("Grafana", func() {
 		RunningUntilShutdownIt("can access Grafana endpoint", func() {
-			Expect(pkg.VerifyGrafanaComponent(t.Logs, web.api, web.httpClient, web.users.verrazzano)).To(BeTrue())
+			Expect(pkg.VerifyGrafanaComponent(t.Logs, nil, web.httpClient, web.users.verrazzano)).To(BeTrue())
 		})
 	})
 
 	t.Context("OpenSearch", func() {
 		RunningUntilShutdownIt("can access OpenSearch endpoint", func() {
-			Expect(pkg.VerifyOpenSearchComponent(t.Logs, web.api, web.httpClient, web.users.verrazzano)).To(BeTrue())
+			Expect(pkg.VerifyOpenSearchComponent(t.Logs, nil, web.httpClient, web.users.verrazzano)).To(BeTrue())
 		})
 	})
 
 	t.Context("OpenSearch Dashboards", func() {
 		RunningUntilShutdownIt("can access OpenSearch Dashboards endpoint", func() {
-			Expect(pkg.VerifyOpenSearchDashboardsComponent(t.Logs, web.api, web.httpClient, web.users.verrazzano)).To(BeTrue())
+			Expect(pkg.VerifyOpenSearchDashboardsComponent(t.Logs, nil, web.httpClient, web.users.verrazzano)).To(BeTrue())
 		})
 	})
 

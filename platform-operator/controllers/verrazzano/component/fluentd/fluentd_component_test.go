@@ -6,6 +6,7 @@ package fluentd
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -304,7 +305,7 @@ func TestPreInstall(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, nil, false)
 			err := NewComponent().PreInstall(ctx)
 			if tt.err != nil {
 				assert.Error(t, err)
@@ -312,6 +313,70 @@ func TestPreInstall(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestGetOverrides(t *testing.T) {
+	ref := &corev1.ConfigMapKeySelector{
+		Key: "foo",
+	}
+	o := v1beta1.InstallOverrides{
+		ValueOverrides: []v1beta1.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	oV1Alpha1 := vzapi.InstallOverrides{
+		ValueOverrides: []vzapi.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	var tests = []struct {
+		name string
+		cr   runtime.Object
+		res  interface{}
+	}{
+		{
+			"overrides when component not nil, v1alpha1",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							InstallOverrides: oV1Alpha1,
+						},
+					},
+				},
+			},
+			oV1Alpha1.ValueOverrides,
+		},
+		{
+			"Empty overrides when component nil",
+			&v1beta1.Verrazzano{},
+			[]v1beta1.Overrides{},
+		},
+		{
+			"overrides when component not nil",
+			&v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							InstallOverrides: o,
+						},
+					},
+				},
+			},
+			o.ValueOverrides,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			override := GetOverrides(tt.cr)
+			assert.EqualValues(t, tt.res, override)
 		})
 	}
 }
@@ -335,7 +400,7 @@ func TestInstall(t *testing.T) {
 				Fluentd: &vzapi.FluentdComponent{ElasticsearchSecret: vzapi.OciConfigSecretFile},
 			},
 		},
-	}, false)
+	}, nil, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetUpgradeFunc(fakeUpgrade)
 	defer helm.SetDefaultUpgradeFunc()
@@ -389,7 +454,7 @@ func TestPreUpgrade(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, tt.spec, false)
+			ctx := spi.NewFakeContext(tt.client, tt.spec, nil, false)
 			err := NewComponent().PreUpgrade(ctx)
 			if tt.err != nil {
 				assert.Error(t, err)
@@ -452,7 +517,7 @@ func TestIsInstalled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(tt.client, fluentdEnabledCR, false)
+			ctx := spi.NewFakeContext(tt.client, fluentdEnabledCR, nil, false)
 			installed, err := NewComponent().IsInstalled(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.isInstalled, installed)
@@ -472,7 +537,7 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 	})
 	defer helmcli.SetDefaultRunner()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -488,7 +553,7 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	})
 	defer helmcli.SetDefaultRunner()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -524,7 +589,7 @@ func TestUninstallResources(t *testing.T) {
 		serviceAccount,
 	).Build()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 
 	// Assert that the resources have been deleted
@@ -555,6 +620,6 @@ func getFakeComponentContext(c client.WithWatch) spi.ComponentContext {
 			},
 		},
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
-	}, false)
+	}, nil, false)
 	return ctx
 }
