@@ -5,13 +5,14 @@ package mysql
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -104,23 +105,25 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	// Block all changes for now, particularly around storage changes
 
 	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
-	oldSetting, err := doGenerateVolumeSourceOverrides(old, []bom.KeyValue{})
+	convertedOldVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(old, &convertedOldVZ); err != nil {
+		return err
+	}
+	oldSetting, err := doGenerateVolumeSourceOverrides(&convertedOldVZ, []bom.KeyValue{})
 	if err != nil {
 		return err
 	}
-	newSetting, err := doGenerateVolumeSourceOverrides(new, []bom.KeyValue{})
+	convertedNewVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(new, &convertedNewVZ); err != nil {
+		return err
+	}
+	newSetting, err := doGenerateVolumeSourceOverrides(&convertedNewVZ, []bom.KeyValue{})
 	if err != nil {
 		return err
 	}
 	// Reject any persistence-specific changes via the mysqlInstallArgs settings
-	if bom.FindKV(oldSetting, "primary.persistence.enabled") != bom.FindKV(newSetting, "primary.persistence.enabled") {
-		return fmt.Errorf("Can not change persistence enabled setting in component: %s", ComponentJSONName)
-	}
-	if bom.FindKV(oldSetting, "primary.persistence.size") != bom.FindKV(newSetting, "primary.persistence.size") {
-		return fmt.Errorf("Can not change persistence volume size in component: %s", ComponentJSONName)
-	}
-	if bom.FindKV(oldSetting, "primary.persistence.storageClass") != bom.FindKV(newSetting, "primary.persistence.storageClass") {
-		return fmt.Errorf("Can not change persistence storage class in component: %s", ComponentJSONName)
+	if err := validatePersistenceSpecificChanges(oldSetting, newSetting); err != nil {
+		return err
 	}
 	// Reject any installArgs changes for now
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
@@ -130,13 +133,57 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c mysqlComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+func (c mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
+	oldSetting, err := doGenerateVolumeSourceOverrides(old, []bom.KeyValue{})
+	if err != nil {
+		return err
+	}
+	newSetting, err := doGenerateVolumeSourceOverrides(new, []bom.KeyValue{})
+	if err != nil {
+		return err
+	}
+	// Reject any persistence-specific changes via the mysqlInstallArgs settings
+	if err := validatePersistenceSpecificChanges(oldSetting, newSetting); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
+}
+
+// validatePersistenceSpecificChanges validates if there are any persistence related changes done via the install overrides
+func validatePersistenceSpecificChanges(oldSetting, newSetting []bom.KeyValue) error {
+	if bom.FindKV(oldSetting, "primary.persistence.enabled") != bom.FindKV(newSetting, "primary.persistence.enabled") {
+		return fmt.Errorf("Can not change persistence enabled setting in component: %s", ComponentJSONName)
+	}
+	if bom.FindKV(oldSetting, "primary.persistence.size") != bom.FindKV(newSetting, "primary.persistence.size") {
+		return fmt.Errorf("Can not change persistence volume size in component: %s", ComponentJSONName)
+	}
+	if bom.FindKV(oldSetting, "primary.persistence.storageClass") != bom.FindKV(newSetting, "primary.persistence.storageClass") {
+		return fmt.Errorf("Can not change persistence storage class in component: %s", ComponentJSONName)
+	}
 	return nil
 }
 
 func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if vz != nil && vz.Spec.Components.Keycloak != nil {
 		return vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs
+	}
+	return nil
+}
+
+func (c mysqlComponent) getInstallOverridesV1beta1(object runtime.Object) []v1beta1.Overrides {
+	if vz, ok := object.(*vzapi.Verrazzano); ok {
+		if vz != nil && vz.Spec.Components.Keycloak != nil {
+			valueOverrides, err := vzapi.ConvertInstallOverridesWithArgsToV1Beta1(vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs, vz.Spec.Components.Keycloak.MySQL.InstallOverrides)
+			if err != nil {
+				return nil
+			}
+			return valueOverrides.ValueOverrides
+		}
+	}
+	vz := object.(*v1beta1.Verrazzano)
+	if vz != nil && vz.Spec.Components.Keycloak != nil {
+		return vz.Spec.Components.Keycloak.MySQL.InstallOverrides.ValueOverrides
 	}
 	return nil
 }

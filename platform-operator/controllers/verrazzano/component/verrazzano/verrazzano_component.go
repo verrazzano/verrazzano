@@ -187,7 +187,16 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c verrazzanoComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	// Do not allow disabling active components
+	if err := c.checkEnabled(old, new); err != nil {
+		return err
+	}
+	// Reject any other edits except InstallArgs
+	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
+	if err := common.CompareStorageOverridesV1Beta1(old, new, ComponentJSONName); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
@@ -197,10 +206,10 @@ func (c verrazzanoComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (c verrazzanoComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
-func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c verrazzanoComponent) checkEnabled(old runtime.Object, new runtime.Object) error {
 	// Do not allow disabling of any component post-install for now
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)

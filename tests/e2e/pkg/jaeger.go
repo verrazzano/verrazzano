@@ -47,8 +47,8 @@ const (
 var (
 	// common services running in both admin and managed cluster
 	managedClusterSystemServiceNames = []string{
-		"verrazzano-authproxy.verrazzano-system",
 		"fluentd.verrazzano-system",
+		"verrazzano-authproxy.verrazzano-system",
 	}
 
 	// services that are common plus the ones unique to admin cluster

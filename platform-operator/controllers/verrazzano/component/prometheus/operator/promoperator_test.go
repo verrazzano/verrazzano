@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -442,7 +443,10 @@ func TestValidatePrometheusOperator(t *testing.T) {
 	c := prometheusComponent{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := c.validatePrometheusOperator(&tt.vz)
+			convertedVZ := v1beta1.Verrazzano{}
+			err := common.ConvertVerrazzanoCR(&tt.vz, &convertedVZ)
+			assert.NoError(t, err)
+			err = c.validatePrometheusOperator(&convertedVZ)
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
