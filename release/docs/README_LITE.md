@@ -45,6 +45,7 @@ written specifically to pull together all the pieces to make this a cohesive and
 | Velero                       | 1.8.1   | Manages backup and restore of Kubernetes configurations and data.                        |
 | WebLogic Kubernetes Operator | 3.4.3   | Assists with deploying and managing WebLogic domains.                                    |
 
+
 ## Distribution layout
 
 The layout of the Verrazzano distribution is as follows:
