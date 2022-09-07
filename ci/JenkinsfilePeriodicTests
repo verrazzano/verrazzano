@@ -25,8 +25,6 @@ def fullBundle=""
 @Field
 def liteBundle=""
 @Field
-def branchSpecificSchedule = getCronSchedule()
-@Field
 def SUSPECT_LIST = ""
 @Field
 def COMPARISON_URL_ON_FAILURE = ""
@@ -41,6 +39,9 @@ def verrazzanoImagesFile           = "verrazzano_images.txt"
 def verrazzanoImagesBuildNumber    = 0     // will be set to actual build number when the job is run
 @Field
 def periodicsUpToDate              = false // If true, indicates that the periodics already passed at the latest commit
+
+// Non Fields
+def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
     options {
