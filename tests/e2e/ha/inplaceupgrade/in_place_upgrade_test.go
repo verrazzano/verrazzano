@@ -65,6 +65,11 @@ var _ = t.BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred(), "Error configuring OCI SDK compute client")
 })
 
+var _ = t.AfterSuite(func() {
+	// signal that the upgrade is done so the tests know to stop
+	ha.EventuallyCreateShutdownSignal(clientset, t.Logs)
+})
+
 var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 	var clusterResponse ocice.GetClusterResponse
 	var upgradeVersion string
@@ -103,7 +108,7 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(updateResponse.OpcWorkRequestId).ShouldNot(BeNil())
 
-		// wait for the work request to complete, this can take roughly 5-15 minutes
+		// wait for the work request to complete
 		waitForWorkRequest(*updateResponse.OpcWorkRequestId)
 	})
 
