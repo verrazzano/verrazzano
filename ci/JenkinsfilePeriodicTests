@@ -614,7 +614,6 @@ pipeline {
                 }
 
                 stage('Private Registry Tests') {
-                    /*
                     when {
                         allOf {
                             not { buildingTag() }
@@ -624,7 +623,6 @@ pipeline {
                             }
                         }
                     }
-                    */
                     parallel {
                         stage('Verrazzano Lite Distribution') {
                             steps {

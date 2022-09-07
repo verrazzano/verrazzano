@@ -521,6 +521,8 @@ pipeline {
                         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
                         OCI_CLI_REGION = "us-ashburn-1"
                         OCI_REGION = "${env.OCI_CLI_REGION}"
+                        // Directory containing the Verrazzano image tar files
+                        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
                     }
                     when {
                         expression{params.PUSH_TO_OCIR == true}
