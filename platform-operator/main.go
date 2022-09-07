@@ -5,15 +5,15 @@ package main
 
 import (
 	"flag"
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"os"
 	"sync"
-
-	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -120,7 +120,7 @@ func main() {
 	}
 
 	// Log the Verrazzano version
-	version, err := installv1alpha1.GetCurrentBomVersion()
+	version, err := validators.GetCurrentBomVersion()
 	if err == nil {
 		log.Infof("Verrazzano version: %s", version.ToString())
 	} else {
@@ -219,7 +219,7 @@ func main() {
 			log.Errorf("Failed to setup install.v1alpha1.Verrazzano webhook with manager: %v", err)
 			os.Exit(1)
 		}
-		if err = (&installv1beta1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&installv1beta1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
 			log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
 			os.Exit(1)
 		}

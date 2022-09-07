@@ -5,10 +5,11 @@ package weblogic
 
 import (
 	"fmt"
+	"path/filepath"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -72,7 +73,11 @@ func (c weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c weblogicComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	// Do not allow disabling of any component post-install for now
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
 // IsReady component check

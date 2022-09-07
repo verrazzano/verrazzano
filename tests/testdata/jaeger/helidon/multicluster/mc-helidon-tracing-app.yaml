@@ -1,0 +1,35 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: MultiClusterApplicationConfiguration
+metadata:
+  name: hello-helidon-appconf
+  namespace: hello-helidon-jaeger
+spec:
+  template:
+    metadata:
+      annotations:
+        version: v1.0.0
+        description: "Hello Helidon application"
+    spec:
+      components:
+        - componentName: hello-helidon-component
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                spec:
+                  scraper: verrazzano-system/vmi-system-prometheus-0
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                metadata:
+                  name: hello-helidon-ingress
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/"
+                          pathType: Prefix
+  placement:
+    clusters:
+      - name: managed1
