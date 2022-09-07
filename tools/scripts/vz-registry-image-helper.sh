@@ -82,7 +82,7 @@ Examples:
   # Processes *only* the images for the Verrazzano components cert-manager and istio
   $0 -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json -i cert-manager -i istio
 
-  # Pull and create a compressed tar file of all Verrazzano images, using /tmp/vzimages as the temporary image save location
+  # Pull and save Verrazzano images locally as tarfiles to the specified location
   $0 -f /tmp/myvzimages -b /path/to/my-bom.json
 """
   exit ${ec}
