@@ -20,16 +20,10 @@ fi
 SHORT_COMMIT_HASH_ENV="$2"
 
 if [ -z "$3" ]; then
-  echo "The tar/Zip file prefix must be specified"
-  exit 1
-fi
-ZIPFILE_PREFIX="$3"
-
-if [ -z "$4" ]; then
   echo "The Verrazzano development version must be specified"
   exit 1
 fi
-DEVELOPENT_VERSION="$4"
+DEVELOPENT_VERSION="$3"
 
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ] || [ -z "$BRANCH_NAME" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
