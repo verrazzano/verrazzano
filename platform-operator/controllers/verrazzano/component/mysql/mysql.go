@@ -212,7 +212,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	mySQLVolumeSource := getMySQLVolumeSource(effectiveCR)
 	if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
-		return kvs, fmt.Errorf("EmptyDir currently not supported for MySQL server.  A default persistent volume will be used.")
+		return kvs, fmt.Errorf("volume source of EmptyDir not supported for MySQL")
 	}
 
 	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
