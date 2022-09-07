@@ -121,11 +121,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Directory traversal returns a 400", minimumVersion, kubeconfigPath, func() {
-<<<<<<< HEAD
-			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OCNE" {
-=======
-			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OLCNE" && os.Getenv("TEST_ENV") != "LRE" {
->>>>>>> master
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OCNE" && os.Getenv("TEST_ENV") != "LRE" {
 				Eventually(func() (string, error) {
 					api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 					vzURL, err := api.GetVerrazzanoIngressURL()
