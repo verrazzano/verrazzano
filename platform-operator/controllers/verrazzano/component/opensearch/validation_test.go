@@ -77,23 +77,6 @@ func TestValidateNoDuplicatedConfiguration(t *testing.T) {
 			false,
 		},
 		{
-			"duplication when component has InstallArgs with the same name",
-			createVZ(&vzapi.ElasticsearchComponent{
-				ESInstallArgs: []vzapi.InstallArgs{
-					{
-						Name: "a",
-					},
-					{
-						Name: "b",
-					},
-					{
-						Name: "a",
-					},
-				},
-			}),
-			true,
-		},
-		{
 			"duplication when component has Node groups with the same name",
 			createVZ(&vzapi.ElasticsearchComponent{
 				Nodes: []vzapi.OpenSearchNode{
