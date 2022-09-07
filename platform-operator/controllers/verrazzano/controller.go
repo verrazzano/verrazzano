@@ -314,7 +314,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return newRequeueWithDelay(), err
 	}
 
-	// Install any new components and do any updates to existing components
+	// Install components that should be installed before upgrade
 	if result, err := r.reconcileComponents(vzctx, true); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
@@ -330,7 +330,13 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		}
 	}
 
-	// Install components that should be installed before upgrade
+	// Wait for all components to become ready before going into install and update
+	if ready, err := r.checkComponentReadyState(vzctx); !ready || err != nil {
+		log.Progressf("Upgrade is waiting for all components to enter a Ready state after upgrade before installing or updating components")
+		return newRequeueWithDelay(), err
+	}
+
+	// Install any new components and do any updates to existing components
 	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
@@ -490,7 +496,7 @@ func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	// Set upgrade complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano upgrade completed successfully"
 	// Status and State update must be performed on the actual CR read from K8S
-	return true, r.updateVzStatusAndState(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
+	return true, r.updateVzStatusAndStateAndVersion(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
@@ -614,8 +620,8 @@ func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alph
 	return r.updateVerrazzanoStatus(log, cr)
 }
 
-// updateVzState updates the status state in the Verrazzano CR
-func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, state installv1alpha1.VzStateType) error {
+// updateVzStatusAndStateAndVersion updates the status, state, and version in the Verrazzano CR
+func (r *Reconciler) updateVzStatusAndStateAndVersion(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, state installv1alpha1.VzStateType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -630,6 +636,9 @@ func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *inst
 	// Set the state of resource
 	cr.Status.State = state
 	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
+
+	// Update the Status Version
+	cr.Status.Version = cr.Spec.Version
 
 	// Update the status
 	return r.updateVerrazzanoStatus(log, cr)
@@ -671,7 +680,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 		}
 		cr.Status.Components[componentName] = componentStatus
 	}
-	if conditionType == installv1alpha1.CondInstallComplete {
+	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
 		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(compContext)
 		if componentStatus.ReconcilingGeneration > 0 {
 			componentStatus.LastReconciledGeneration = componentStatus.ReconcilingGeneration
@@ -785,7 +794,12 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 			spiCtx.Log().Errorf("Failed to create component context: %v", err)
 			return false, err
 		}
-		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
+		installed, err := comp.IsInstalled(spiCtx)
+		if err != nil {
+			spiCtx.Log().Errorf("Error searching for component %s: %v", comp.Name(), err)
+			return false, err
+		}
+		if comp.IsEnabled(spiCtx.EffectiveCR()) && installed && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
 			spiCtx.Log().Progressf("Waiting for component %s to be ready", comp.Name())
 			return false, nil
 		}
