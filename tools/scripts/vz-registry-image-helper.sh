@@ -83,7 +83,7 @@ Examples:
   $0 -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json -i cert-manager -i istio
 
   # Pull and create a compressed tar file of all Verrazzano images, using /tmp/vzimages as the temporary image save location
-  $0 -f /tmp/myvzimages.tar.gz -l /tmp/vzimages
+  $0 -f /tmp/myvzimages -b /path/to/my-bom.json
 """
   exit ${ec}
 }
