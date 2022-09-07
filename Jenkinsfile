@@ -485,12 +485,7 @@ pipeline {
                 stage("Build Product Zip") {
                     steps {
                         script {
-                            tarfilePrefix="verrazzano_${VERRAZZANO_DEV_VERSION}"
-                            storeLocation="${env.BRANCH_NAME}/${tarfilePrefix}.zip"
-                            generatedBOM="$WORKSPACE/generated-verrazzano-bom.json"
-                            echo "Building zipfile, prefix: ${tarfilePrefix}, location:  ${storeLocation}"
                             sh """
-                                ci/scripts/generate_product_zip.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${env.BRANCH_NAME} ${tarfilePrefix} ${generatedBOM}
                                 ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
                             """
                         }
