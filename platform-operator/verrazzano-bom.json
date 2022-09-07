@@ -386,7 +386,7 @@
             {
               "image": "mysql-server",
               "tag": "8.0.30",
-              "helmFullImageKey": "image"
+              "helmFullImageKey": "legacyUpgrade.container.image"
             }
           ]
         },
@@ -400,6 +400,11 @@
               "tag": "8.0.30"
             }
           ]
+        },
+        {
+          "image": "oraclelinux",
+          "tag": "7-slim",
+          "helmFullImageKey": "legacyUpgrade.initContainer.image"
         }
       ]
     },
