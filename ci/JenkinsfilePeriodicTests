@@ -3,28 +3,44 @@
 
 import groovy.transform.Field
 
-def GIT_COMMIT_TO_USE
-def LAST_CLEAN_PERIODIC_COMMIT
-def VERRAZZANO_DEV_VERSION
-def RELEASABLE_IMAGES_OBJECT_STORE
+@Field
+def GIT_COMMIT_TO_USE = ""
+@Field
+def LAST_CLEAN_PERIODIC_COMMIT = ""
+@Field
+def VERRAZZANO_DEV_VERSION = ""
+@Field
+def RELEASABLE_IMAGES_OBJECT_STORE = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
+@Field
 def TESTS_FAILED = false
+@Field
 def tarfilePrefix="verrazzano_periodic"
+@Field
 def storeLocation=""
+@Field
 def verrazzanoPrefix="verrazzano-"
+@Field
 def fullBundle=""
+@Field
 def liteBundle=""
+@Field
 def branchSpecificSchedule = getCronSchedule()
+@Field
 def SUSPECT_LIST = ""
 @Field
 def COMPARISON_URL_ON_FAILURE = ""
 
 // The job name from which the verrazzano_images file is available to be copied to this job
 // We will copy over and make it part of the artifacts of the periodic job, available when we want to release a candidate
+@Field
 def verrazzanoImagesJobProjectName = "verrazzano-examples"
+@Field
 def verrazzanoImagesFile           = "verrazzano_images.txt"
+@Field
 def verrazzanoImagesBuildNumber    = 0     // will be set to actual build number when the job is run
-periodicsUpToDate                  = false // If true, indicates that the periodics already passed at the latest commit
+@Field
+def periodicsUpToDate              = false // If true, indicates that the periodics already passed at the latest commit
 
 pipeline {
     options {
