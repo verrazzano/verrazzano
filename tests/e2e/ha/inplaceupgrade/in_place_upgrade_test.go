@@ -128,7 +128,8 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 				// terminate the compute instance that the node is on, OKE will replace it with a new node
 				// running the upgraded Kubernetes version
 				t.Logs.Infof("Terminating compute instance: %s", node.Spec.ProviderID)
-				terminateComputeInstance(node.Spec.ProviderID)
+				err = terminateComputeInstance(node.Spec.ProviderID)
+				Expect(err).ShouldNot(HaveOccurred())
 
 				latestNodes = waitForReplacementNode(latestNodes)
 
