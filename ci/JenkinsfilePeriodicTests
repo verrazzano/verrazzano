@@ -102,38 +102,7 @@ pipeline {
                 """
 
                 script {
-
-                    // Get the last stable commit ID to pass the triggered tests
-                    def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
-                    GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
-                    echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
-
-                    LAST_CLEAN_PERIODIC_COMMIT=getLastCleanPeriodicCommit()
-                    echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
-
-                    if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
-                        periodicsUpToDate = true
-                    }
-
-                    echo "Up to date: ${periodicsUpToDate}"
-                    echo "Dry run: ${params.DRY_RUN}"
-                    echo "Force run: ${params.FORCE}"
-                    echo "Execute tests: " + runTests()
-
-                    // Indicate in title if run is up-to-date or dry-run
-                    if (params.DRY_RUN) {
-                        currentBuild.displayName = "${currentBuild.displayName} : DRY-RUN"
-                    }
-                    if (periodicsUpToDate) {
-                        currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE"
-                    }
-                    if (params.FORCE) {
-                        currentBuild.displayName = "${currentBuild.displayName} : FORCE"
-                    }
-
-                    if (runTests()) {
-                        echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
-                    }
+                    preliminaryChecks()
                 }
             }
         }
@@ -756,6 +725,41 @@ pipeline {
         cleanup {
             deleteDir()
         }
+    }
+}
+
+// Preliminary job checks and display updates
+def preliminaryChecks() {
+    // Get the last stable commit ID to pass the triggered tests
+    def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
+    GIT_COMMIT_TO_USE = stableCommitProps['git-commit']
+    echo "Last stable commit: ${GIT_COMMIT_TO_USE}"
+
+    LAST_CLEAN_PERIODIC_COMMIT=getLastCleanPeriodicCommit()
+    echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
+
+    if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
+        periodicsUpToDate = true
+    }
+
+    echo "Up to date: ${periodicsUpToDate}"
+    echo "Dry run: ${params.DRY_RUN}"
+    echo "Force run: ${params.FORCE}"
+    echo "Execute tests: " + runTests()
+
+    // Indicate in title if run is up-to-date or dry-run
+    if (params.DRY_RUN) {
+        currentBuild.displayName = "${currentBuild.displayName} : DRY-RUN"
+    }
+    if (periodicsUpToDate) {
+        currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE"
+    }
+    if (params.FORCE) {
+        currentBuild.displayName = "${currentBuild.displayName} : FORCE"
+    }
+
+    if (runTests()) {
+        echo "Executing periodic tests for commit ${GIT_COMMIT_TO_USE}"
     }
 }
 
