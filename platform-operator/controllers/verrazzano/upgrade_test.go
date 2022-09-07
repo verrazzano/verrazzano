@@ -981,8 +981,14 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		List(gomock.Any(), &oamapi.ApplicationConfigurationList{}, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *oamapi.ApplicationConfigurationList, opts ...client.ListOption) error {
+			return nil
+		}).AnyTimes()
+	mock.EXPECT().
+		List(gomock.Any(), &networkingv1.IngressList{}).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, options ...client.UpdateOption) error {
+			ingressList.Items = []networkingv1.Ingress{}
 			return nil
 		}).AnyTimes()
 
