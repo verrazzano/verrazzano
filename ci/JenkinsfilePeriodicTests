@@ -652,6 +652,7 @@ pipeline {
                                 }
                             }
                         }
+                        /*
                         stage('Verrazzano Full Distribution') {
                             steps {
                                 retry(count: JOB_PROMOTION_RETRIES) {
@@ -666,6 +667,7 @@ pipeline {
                                 }
                             }
                         }
+                        */
                     }
                 }
 
