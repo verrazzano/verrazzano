@@ -6,7 +6,8 @@ package kiali
 import (
 	"context"
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -191,19 +192,18 @@ func buildKialiHostnameForDomain(dnsDomain string) string {
 	return fmt.Sprintf("%s.%s", kialiHostName, dnsDomain)
 }
 
-// GetOverrides gets the install overrides
+// GetOverrides returns the Kiali specific install overrides from v1beta1.Verrazzano CR
 func GetOverrides(object runtime.Object) interface{} {
-	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
 		if effectiveCR.Spec.Components.Kiali != nil {
 			return effectiveCR.Spec.Components.Kiali.ValueOverrides
 		}
-		return []vzapi.Overrides{}
+		return []v1alpha1.Overrides{}
 	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
 		if effectiveCR.Spec.Components.Kiali != nil {
 			return effectiveCR.Spec.Components.Kiali.ValueOverrides
 		}
 		return []installv1beta1.Overrides{}
 	}
-
-	return []vzapi.Overrides{}
+	return []v1alpha1.Overrides{}
 }

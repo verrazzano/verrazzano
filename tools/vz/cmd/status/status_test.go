@@ -5,6 +5,7 @@ package status
 
 import (
 	"bytes"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"os"
 	"testing"
 
@@ -32,35 +33,35 @@ func TestStatusCmd(t *testing.T) {
 	keycloakURL := "https://keycloak.default.10.107.141.8.nip.io"
 	rancherURL := "https://rancher.default.10.107.141.8.nip.io"
 	osURL := "https://elasticsearch.vmi.system.10.107.141.8.nip.io"
-	kibanaURL := "https://kibana.vmi.system.10.107.141.8.nip.io"
+	osdURL := "https://kibana.vmi.system.10.107.141.8.nip.io"
 	grafanaURL := "https://grafana.vmi.system.10.107.141.8.nip.io"
 	prometheusURL := "https://prometheus.vmi.system.10.107.141.8.nip.io"
 	kialiURL := "https://kiali.vmi.system.10.107.141.8.nip.io"
 	jaegerURL := "https://jaeger.default.10.107.141.8.nip.io"
 
-	vz := vzapi.Verrazzano{
+	vz := v1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
-		Spec: vzapi.VerrazzanoSpec{
-			Profile: vzapi.Dev,
+		Spec: v1beta1.VerrazzanoSpec{
+			Profile: v1beta1.Dev,
 		},
-		Status: vzapi.VerrazzanoStatus{
+		Status: v1beta1.VerrazzanoStatus{
 			Version: version,
-			VerrazzanoInstance: &vzapi.InstanceInfo{
-				ConsoleURL:    &consoleURL,
-				KeyCloakURL:   &keycloakURL,
-				RancherURL:    &rancherURL,
-				ElasticURL:    &osURL,
-				KibanaURL:     &kibanaURL,
-				GrafanaURL:    &grafanaURL,
-				PrometheusURL: &prometheusURL,
-				KialiURL:      &kialiURL,
-				JaegerURL:     &jaegerURL,
+			VerrazzanoInstance: &v1beta1.InstanceInfo{
+				ConsoleURL:              &consoleURL,
+				KeyCloakURL:             &keycloakURL,
+				RancherURL:              &rancherURL,
+				OpenSearchURL:           &osURL,
+				OpenSearchDashboardsURL: &osdURL,
+				GrafanaURL:              &grafanaURL,
+				PrometheusURL:           &prometheusURL,
+				KialiURL:                &kialiURL,
+				JaegerURL:               &jaegerURL,
 			},
 			Conditions: nil,
-			State:      vzapi.VzStateReconciling,
+			State:      v1beta1.VzStateReconciling,
 			Components: makeVerrazzanoComponentStatusMap(),
 		},
 	}
@@ -75,7 +76,7 @@ func TestStatusCmd(t *testing.T) {
 		"keycloak_url":         keycloakURL,
 		"rancher_url":          rancherURL,
 		"os_url":               osURL,
-		"kibana_url":           kibanaURL,
+		"osd_url":              osdURL,
 		"grafana_url":          grafanaURL,
 		"prometheus_url":       prometheusURL,
 		"kiali_url":            kialiURL,
@@ -114,32 +115,32 @@ func TestStatusCmdDefaultProfile(t *testing.T) {
 	keycloakURL := "https://keycloak.default.10.107.141.8.nip.io"
 	rancherURL := "https://rancher.default.10.107.141.8.nip.io"
 	osURL := "https://elasticsearch.vmi.system.10.107.141.8.nip.io"
-	kibanaURL := "https://kibana.vmi.system.10.107.141.8.nip.io"
+	osdURL := "https://kibana.vmi.system.10.107.141.8.nip.io"
 	grafanaURL := "https://grafana.vmi.system.10.107.141.8.nip.io"
 	prometheusURL := "https://prometheus.vmi.system.10.107.141.8.nip.io"
 	kialiURL := "https://kiali.vmi.system.10.107.141.8.nip.io"
 	jaegerURL := "https://jaeger.default.10.107.141.8.nip.io"
 
-	vz := vzapi.Verrazzano{
+	vz := v1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
-		Status: vzapi.VerrazzanoStatus{
+		Status: v1beta1.VerrazzanoStatus{
 			Version: version,
-			VerrazzanoInstance: &vzapi.InstanceInfo{
-				ConsoleURL:    &consoleURL,
-				KeyCloakURL:   &keycloakURL,
-				RancherURL:    &rancherURL,
-				ElasticURL:    &osURL,
-				KibanaURL:     &kibanaURL,
-				GrafanaURL:    &grafanaURL,
-				PrometheusURL: &prometheusURL,
-				KialiURL:      &kialiURL,
-				JaegerURL:     &jaegerURL,
+			VerrazzanoInstance: &v1beta1.InstanceInfo{
+				ConsoleURL:              &consoleURL,
+				KeyCloakURL:             &keycloakURL,
+				RancherURL:              &rancherURL,
+				OpenSearchURL:           &osURL,
+				OpenSearchDashboardsURL: &osdURL,
+				GrafanaURL:              &grafanaURL,
+				PrometheusURL:           &prometheusURL,
+				KialiURL:                &kialiURL,
+				JaegerURL:               &jaegerURL,
 			},
 			Conditions: nil,
-			State:      vzapi.VzStateReconciling,
+			State:      v1beta1.VzStateReconciling,
 			Components: makeVerrazzanoComponentStatusMap(),
 		},
 	}
@@ -154,7 +155,7 @@ func TestStatusCmdDefaultProfile(t *testing.T) {
 		"keycloak_url":         keycloakURL,
 		"rancher_url":          rancherURL,
 		"os_url":               osURL,
-		"kibana_url":           kibanaURL,
+		"osd_url":              osdURL,
 		"grafana_url":          grafanaURL,
 		"prometheus_url":       prometheusURL,
 		"kiali_url":            kialiURL,
@@ -212,13 +213,13 @@ func TestStatusMultipleVZ(t *testing.T) {
 	namespace1 := "test1"
 	namespace2 := "test2"
 
-	vz1 := vzapi.Verrazzano{
+	vz1 := v1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace1,
 			Name:      name,
 		},
 	}
-	vz2 := vzapi.Verrazzano{
+	vz2 := v1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace2,
 			Name:      name,
@@ -241,19 +242,19 @@ func TestStatusMultipleVZ(t *testing.T) {
 	assert.Equal(t, "Expected to only find one Verrazzano resource, but found 2", err.Error())
 }
 
-func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
-	statusMap := make(vzapi.ComponentStatusMap)
+func makeVerrazzanoComponentStatusMap() v1beta1.ComponentStatusMap {
+	statusMap := make(v1beta1.ComponentStatusMap)
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
-			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
+			statusMap[comp.Name()] = &v1beta1.ComponentStatusDetails{
 				Name: comp.Name(),
-				Conditions: []vzapi.Condition{
+				Conditions: []v1beta1.Condition{
 					{
-						Type:   vzapi.CondInstallComplete,
+						Type:   v1beta1.CondInstallComplete,
 						Status: corev1.ConditionTrue,
 					},
 				},
-				State: vzapi.CompStateReady,
+				State: v1beta1.CompStateReady,
 			}
 		}
 	}

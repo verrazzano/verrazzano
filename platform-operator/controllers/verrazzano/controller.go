@@ -21,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -578,7 +579,7 @@ func isOperatorNewerVersionThanCR(vzVersion string) (string, bool) {
 }
 
 func getVzAndOperatorVersions(vzVersion string) (*semver.SemVersion, *semver.SemVersion, bool) {
-	bomVersion, err := installv1alpha1.GetCurrentBomVersion()
+	bomVersion, err := validators.GetCurrentBomVersion()
 	if err != nil {
 		return nil, nil, false
 	}
@@ -766,7 +767,7 @@ func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv
 // setInstallStartedCondition
 func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Set the version in the status.  This will be updated when the starting install condition is updated.
-	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
+	bomSemVer, err := validators.GetCurrentBomVersion()
 	if err != nil {
 		return err
 	}
