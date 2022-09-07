@@ -42,8 +42,8 @@ written specifically to pull together all the pieces to make this a cohesive and
 | Prometheus Pushgateway       | 1.4.2   | Allows ephemeral and batch jobs to expose their metrics to Prometheus.                   |
 | Rancher                      | 2.6.7   | Manages multiple Kubernetes clusters.                                                    |
 | Rancher Backup Operator      | 2.1.3   | Manages backup and restore of Rancher configurations and data.                           |
-| WebLogic Kubernetes Operator | 3.4.3   | Assists with deploying and managing WebLogic domains.                                    |
 | Velero                       | 1.8.1   | Manages backup and restore of Kubernetes configurations and data.                        |
+| WebLogic Kubernetes Operator | 3.4.3   | Assists with deploying and managing WebLogic domains.                                    |
 
 ## Distribution layout
 
