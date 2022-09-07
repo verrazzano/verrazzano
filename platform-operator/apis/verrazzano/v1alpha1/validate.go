@@ -7,11 +7,12 @@ import (
 	"context"
 	"encoding/pem"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/fs"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 

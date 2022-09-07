@@ -649,7 +649,7 @@ def runGinkgoFailFast(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
+        ${WORKSPACE}/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

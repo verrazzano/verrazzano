@@ -5,6 +5,7 @@ package mysqloperator
 
 import (
 	"fmt"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -57,10 +58,10 @@ func getDeploymentList() []types.NamespacedName {
 
 // validateMySQLOperator checks scenarios in which the Verrazzano CR violates install verification
 // MySQLOperator must be enabled if Keycloak is enabled
-func (c mysqlOperatorComponent) validateMySQLOperator(vz *vzapi.Verrazzano) error {
+func (c mysqlOperatorComponent) validateMySQLOperator(vz *installv1beta1.Verrazzano) error {
 	// Validate install overrides
 	if vz.Spec.Components.MySQLOperator != nil {
-		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.MySQLOperator.ValueOverrides); err != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.MySQLOperator.ValueOverrides); err != nil {
 			return err
 		}
 	}

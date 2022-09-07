@@ -7,8 +7,10 @@ import (
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -24,8 +26,9 @@ func GetEnvName(vz *vzapi.Verrazzano) string {
 	return envName
 }
 
-// FindVolumeTemplate Find a named VolumeClaimTemplate in the list
-func FindVolumeTemplate(templateName string, templates []vzapi.VolumeClaimSpecTemplate) (*v1.PersistentVolumeClaimSpec, bool) {
+// FindVolumeTemplate Find a named VolumeClaimTemplate in the list for v1beta1.
+func FindVolumeTemplate(templateName string, object runtime.Object) (*v1.PersistentVolumeClaimSpec, bool) {
+	templates := getVolumeClaimSpecTemplates(object)
 	for i, template := range templates {
 		if templateName == template.Name {
 			return &templates[i].Spec, true
@@ -107,4 +110,14 @@ func GetIngressClassName(vz *vzapi.Verrazzano) string {
 		return *ingressComponent.IngressClassName
 	}
 	return defaultIngressClassName
+}
+
+// getVolumeClaimSpecTemplates returns the volume claim specs in v1beta1.
+func getVolumeClaimSpecTemplates(object runtime.Object) []v1beta1.VolumeClaimSpecTemplate {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		return vzapi.ConvertVolumeClaimTemplateTo(effectiveCR.Spec.VolumeClaimSpecTemplates)
+	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
+		return effectiveCR.Spec.VolumeClaimSpecTemplates
+	}
+	return nil
 }
