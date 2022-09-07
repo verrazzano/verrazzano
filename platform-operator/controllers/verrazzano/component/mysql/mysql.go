@@ -6,28 +6,31 @@ package mysql
 import (
 	"context"
 	"fmt"
-	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kblabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -37,7 +40,8 @@ const (
 	secretName            = "mysql"
 	secretKey             = "mysql-password"
 	mySQLUsername         = "keycloak"
-	statefulsetClaimName  = "data-mysql-0"
+	rootPasswordKey       = "rootPassword"
+	statefulsetClaimName  = "dump-claim"
 	mySQLInitFilePrefix   = "init-mysql-"
 	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
 	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
@@ -64,15 +68,25 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   DEPLOYMENT_ID varchar(10) DEFAULT NULL,
   PRIMARY KEY (ID,AUTHOR,FILENAME)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
+	mySqlDbCommands = `mysql -uroot -p%s -e "USE keycloak;
+ALTER TABLE DATABASECHANGELOG;
+ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"`
+	mySqlShCommands = `mysqlsh -uroot -p%s -e "util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})"`
 )
 
-// map of MySQL helm persistence values from previous version to existing version.  Other values will be ignored since
-// they have no equivalents in the current charts
-var helmValuesMap = map[string]string{
-	"persistence.accessModes":  "datadirVolumeClaimTemplate.accessModes",
-	"persistence.size":         "datadirVolumeClaimTemplate.resources.requests.storage",
-	"persistence.storageClass": "datadirVolumeClaimTemplate.storageClassName",
-}
+var (
+	// map of MySQL helm persistence values from previous version to existing version.  Other values will be ignored since
+	// they have no equivalents in the current charts
+	helmValuesMap = map[string]string{
+		"persistence.accessModes":  "datadirVolumeClaimTemplate.accessModes",
+		"persistence.size":         "datadirVolumeClaimTemplate.resources.requests.storage",
+		"persistence.storageClass": "datadirVolumeClaimTemplate.storageClassName",
+	}
+	// maskPw will mask passwords in strings with '******'
+	maskPw = vzpassword.MaskFunction("password ")
+	// Set to true during unit testing
+	unitTesting bool
+)
 
 // isMySQLReady checks to see if the MySQL component is in ready state
 func isMySQLReady(context spi.ComponentContext) bool {
@@ -224,7 +238,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
 		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
 		if !found {
-			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			return kvs, fmt.Errorf("failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
 		storageClass := storageSpec.StorageClassName
 		if storageClass != nil && len(*storageClass) > 0 {
@@ -357,40 +371,48 @@ func preUpgrade(ctx spi.ComponentContext) error {
 	// following steps are only needed for persistent storage
 	mySQLVolumeSource := getMySQLVolumeSource(ctx.EffectiveCR())
 	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
-		deploymentPvc := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
-		err := common.RetainPersistentVolume(ctx, deploymentPvc, ComponentName)
+		// get the current MySQL deployment
+		deployment, err := getMySQLDeployment(ctx)
 		if err != nil {
 			return err
 		}
-
-		// get the current MySQL deployment
-		deployment := &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
-		}
-		// delete the deployment to free up the pv/pvc
-		ctx.Log().Debugf("Deleting deployment %s", ComponentName)
-		if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
-			if !errors.IsNotFound(err) {
-				ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
+		// vz > 1.3 uses statefulsets, not deployments
+		// no migration is needed if vz >= 1.4
+		if deployment != nil {
+			// change the ReclaimPolicy of the PV to Reclaim
+			mysqlPVC := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
+			err := common.RetainPersistentVolume(ctx, mysqlPVC, ComponentName)
+			if err != nil {
 				return err
 			}
-		} else {
-			ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
-		}
+			if !unitTesting { // perform instance dump of MySQL
+				if err := dumpDatabase(ctx); err != nil {
+					ctx.Log().Debugf("Unable to perform dump of database %s", ComponentName)
+					return err
+				}
+			}
+			// delete the deployment to free up the pv/pvc
+			ctx.Log().Debugf("Deleting deployment %s", ComponentName)
+			if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
+				if !errors.IsNotFound(err) {
+					ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
+					return err
+				}
+			} else {
+				ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
+			}
 
-		ctx.Log().Debugf("Deleting PVC %v", deploymentPvc)
-		if err := common.DeleteExistingVolumeClaim(ctx, deploymentPvc); err != nil {
-			ctx.Log().Debugf("Unable to delete existing PVC %v", deploymentPvc)
-			return err
-		}
+			ctx.Log().Debugf("Deleting PVC %v", mysqlPVC)
+			if err := common.DeleteExistingVolumeClaim(ctx, mysqlPVC); err != nil {
+				ctx.Log().Debugf("Unable to delete existing PVC %v", mysqlPVC)
+				return err
+			}
 
-		ctx.Log().Debugf("Updating PV/PVC %v", deploymentPvc)
-		if err := common.UpdateExistingVolumeClaims(ctx, deploymentPvc, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
-			ctx.Log().Debugf("Unable to update PV/PVC")
-			return err
+			ctx.Log().Debugf("Updating PV/PVC %v", mysqlPVC)
+			if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
+				ctx.Log().Debugf("Unable to update PV/PVC")
+				return err
+			}
 		}
 	}
 	return nil
@@ -475,4 +497,78 @@ func createKeycloakDBSecret(ctx spi.ComponentContext) error {
 		ctx.Log().Once("Component Keycloak successfully created the keycloak db secret")
 	}
 	return nil
+}
+
+// getMySQLPod returns the mySQL pod that mounts the PV used for migration
+func getMySQLPod(ctx spi.ComponentContext) (*v1.Pod, error) {
+	tierReq, _ := kblabels.NewRequirement("tier", selection.Equals, []string{"mysql"})
+	compReq, _ := kblabels.NewRequirement("component", selection.Equals, []string{"mysqld"})
+	labelSelector := kblabels.NewSelector()
+	labelSelector = labelSelector.Add(*tierReq, *compReq)
+	mysqlPods := v1.PodList{}
+	err := ctx.Client().List(context.TODO(), &mysqlPods, &client.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return nil, err
+	}
+	// return one of the pods
+	ctx.Log().Infof("Returning pod %s for mysql setup", mysqlPods.Items[0].Name)
+	return &mysqlPods.Items[0], nil
+}
+
+// getMySQLDeployment returns the deployment if it exists
+func getMySQLDeployment(ctx spi.ComponentContext) (*appsv1.Deployment, error) {
+	mysqlDeployment := &appsv1.Deployment{}
+	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: ComponentNamespace,
+		Name:      ComponentName,
+	}, mysqlDeployment); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, ctx.Log().ErrorfNewErr("Failed getting mysql deployment: %v", err)
+	}
+	return mysqlDeployment, nil
+}
+
+// dumpDatabase uses the mySQL Shell utility to dump the instance to its mounted PV
+func dumpDatabase(ctx spi.ComponentContext) error {
+	// retrieve root password for mysql
+	rootSecret := v1.Secret{}
+	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: rootSec}, &rootSecret); err != nil {
+		return err
+	}
+	rootPwd := rootSecret.Data[rootPasswordKey]
+
+	// ADD Primary Key Cmd
+	sqlCmd := fmt.Sprintf(mySqlDbCommands, rootPwd)
+	execCmd := []string{"bash", "-c", sqlCmd}
+	// util.dumpInstance() Cmd
+	sqlShCmd := fmt.Sprintf(mySqlShCommands, rootPwd)
+	execShCmd := []string{"bash", "-c", sqlShCmd}
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return err
+	}
+	mysqlPod, err := getMySQLPod(ctx)
+	if err != nil {
+		return err
+	}
+	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
+	if err != nil {
+		errorMsg := maskPw(fmt.Sprintf("Failed logging into mysql: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, err))
+		ctx.Log().Error(errorMsg)
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
+	}
+	stdOut, stdErr, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execShCmd)
+	if err != nil {
+		errorMsg := maskPw(fmt.Sprintf("Failed logging into mysql: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, err))
+		ctx.Log().Error(errorMsg)
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
+	}
+	return nil
+}
+
+// This is needed for unit testing
+func initUnitTesting() {
+	unitTesting = true
 }

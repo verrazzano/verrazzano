@@ -58,7 +58,7 @@ func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedNa
 	return err
 }
 
-// UpdateExistingVolumeClaim removes a persistent volume claim from the volume if the
+// UpdateExistingVolumeClaims removes a persistent volume claim from the volume if the
 // status is "released". This allows the new deployment to bind to the existing volume.
 func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.NamespacedName, newClaimName string, componentName string) error {
 	ctx.Log().Debugf("Removing old claim from persistent volume if a volume exists")
