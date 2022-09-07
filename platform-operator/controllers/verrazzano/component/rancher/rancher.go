@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // checkRancherUpgradeFailureSig is a function needed for unit test override
@@ -561,35 +562,23 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }
 
-// createOrUpdateResource creates or updates a Rancher resource used in the Keycloak OIDC integration
+// createOrUpdateResource creates or updates a Rancher resource
 func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, gvk schema.GroupVersionKind, attributes map[string]interface{}) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	resource := unstructured.Unstructured{}
 	resource.SetGroupVersionKind(gvk)
-	err := c.Get(context.Background(), nsn, &resource)
-	createNew := false
-	if err != nil {
-		if errors.IsNotFound(err) {
-			createNew = true
-			log.Debugf("%s %s does not exist", gvk.Kind, nsn.Name)
-		} else {
-			return log.ErrorfThrottledNewErr("failed configuring %s, unable to fetch %s: %s", gvk.Kind, nsn.Name, err.Error())
+	resource.SetName(nsn.Name)
+	resource.SetNamespace(nsn.Namespace)
+	_, err := controllerutil.CreateOrUpdate(context.Background(), c, &resource, func() error {
+		if len(attributes) > 0 {
+			data := resource.UnstructuredContent()
+			for k, v := range attributes {
+				data[k] = v
+			}
 		}
-	}
-
-	data := resource.UnstructuredContent()
-	for k, v := range attributes {
-		data[k] = v
-	}
-
-	if createNew {
-		resource.SetName(nsn.Name)
-		resource.SetNamespace(nsn.Namespace)
-		err = c.Create(context.Background(), &resource, &client.CreateOptions{})
-	} else {
-		err = c.Update(context.Background(), &resource, &client.UpdateOptions{})
-	}
+		return nil
+	})
 
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring %s %s: %s", gvk.Kind, nsn.Name, err.Error())
@@ -699,64 +688,27 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 	firstLoginSettingName := types.NamespacedName{Name: SettingFirstLogin}
 	err := c.Get(context.Background(), firstLoginSettingName, &firstLoginSetting)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting first-login Setting: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed getting first-login setting: %s", err.Error())
 	}
 
 	firstLoginSetting.UnstructuredContent()["value"] = "false"
 	err = c.Update(context.Background(), &firstLoginSetting)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed updating first-login Setting: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed updating first-login setting: %s", err.Error())
 	}
 
 	return nil
 }
 
-// createOrUpdateUIPlSetting creates/updates the ui-pl Setting with value Verrazzano
-func createOrUpdateUIPlSetting(log vzlog.VerrazzanoLogger, c client.Client) error {
-	uiPlSetting := unstructured.Unstructured{}
-	uiPlSetting.SetGroupVersionKind(GVKSetting)
-	uiPlSettingName := types.NamespacedName{Name: SettingUIPL}
-	create := false
-	err := c.Get(context.Background(), uiPlSettingName, &uiPlSetting)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			create = true
-			uiPlSetting.SetName(SettingUIPL)
-		} else {
-			return log.ErrorfThrottledNewErr("Failed getting ui-pl Setting: %s", err.Error())
-		}
-	}
-
-	uiPlSetting.UnstructuredContent()["value"] = SettingUIPLValueVerrazzano
-	if create {
-		err = c.Create(context.Background(), &uiPlSetting)
-	} else {
-		err = c.Update(context.Background(), &uiPlSetting)
-	}
-
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed updating ui-pl Setting: %s", err.Error())
-	}
-
-	return nil
+// createOrUpdateUIPlSetting creates/updates the ui-pl setting with value Verrazzano
+func createOrUpdateUIPlSetting(ctx spi.ComponentContext) error {
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPL}, GVKSetting, map[string]interface{}{"value": SettingUIPLValueVerrazzano})
 }
 
-// createOrUpdateUILogoSetting updates the ui-logo-* Settings
-func createOrUpdateUILogoSetting(log vzlog.VerrazzanoLogger, c client.Client, settingName string, logoPath string) error {
-	uiLogoSetting := unstructured.Unstructured{}
-	uiLogoSetting.SetGroupVersionKind(GVKSetting)
-	uiLogoSettingName := types.NamespacedName{Name: settingName}
-	create := false
-	err := c.Get(context.Background(), uiLogoSettingName, &uiLogoSetting)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			create = true
-			uiLogoSetting.SetName(settingName)
-		} else {
-			return log.ErrorfThrottledNewErr("Failed getting %s Setting: %s", settingName, err.Error())
-		}
-	}
-
+// createOrUpdateUILogoSetting updates the ui-logo-* settings
+func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, logoPath string) error {
+	log := ctx.Log()
+	c := ctx.Client()
 	pod, err := k8sutil.GetRunningPodForLabel(c, "app=rancher", "cattle-system", log)
 	if err != nil {
 		return err
@@ -777,16 +729,5 @@ func createOrUpdateUILogoSetting(log vzlog.VerrazzanoLogger, c client.Client, se
 		return log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
 	}
 
-	uiLogoSetting.UnstructuredContent()["value"] = fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)
-	if create {
-		err = c.Create(context.Background(), &uiLogoSetting)
-	} else {
-		err = c.Update(context.Background(), &uiLogoSetting)
-	}
-
-	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed creating/updating %s Setting for logo path %s: %s", settingName, logoPath, err.Error())
-	}
-
-	return nil
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
 }

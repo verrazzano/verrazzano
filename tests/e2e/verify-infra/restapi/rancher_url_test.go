@@ -237,6 +237,12 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 
 var _ = t.AfterEach(func() {})
 
+// verifyUILogoSetting verifies the value of ui logo related rancher setting
+// GIVEN a Verrazzano installation with ui settings (ui-logo-dark and ui-logo-light) populated
+// AND corresponding actual logo files present in specified path in a running rancher pod
+//  WHEN value of the base64 encoded logo file is extracted from the setting CR specified by settingName
+//  AND compared with base64 encoded value of corresponding actual logo file present in running rancher pod
+//  THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
 func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dynamic.Interface) {
 	start := time.Now()
 	t.Logs.Infof("Verify %s setting", settingName)
