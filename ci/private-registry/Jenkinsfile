@@ -320,7 +320,6 @@ pipeline {
                             # Create OCIR repos for the images in the tarballs in the test compartment
                             cd ${TARBALL_DIR}
                             sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -f ${TARBALL_DIR}/images
-                            tar xvf ${TARBALL_DIR}/${BOM_DOWNLOADED_FILE_NAME}
                             cd ${TEST_SCRIPTS_DIR}
                             sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
                             echo "Upload OCIR region: $ocirRegion"
