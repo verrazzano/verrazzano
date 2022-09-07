@@ -187,7 +187,7 @@ func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (o opensearchComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	var vzv1beta1 *installv1beta1.Verrazzano
+	vzv1beta1 := &installv1beta1.Verrazzano{}
 	if err := vz.ConvertTo(vzv1beta1); err != nil {
 		return err
 	}
