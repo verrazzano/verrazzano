@@ -104,6 +104,7 @@ pipeline {
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_OS_REGION="us-phoenix-1"
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
@@ -490,6 +491,7 @@ pipeline {
                             echo "Building zipfile, prefix: ${tarfilePrefix}, location:  ${storeLocation}"
                             sh """
                                 ci/scripts/generate_product_zip.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${env.BRANCH_NAME} ${tarfilePrefix} ${generatedBOM}
+                                ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
                             """
                         }
                     }
@@ -497,11 +499,14 @@ pipeline {
                 stage("Private Registry Test") {
                     steps {
                         script {
+                            tarfilePrefix="verrazzano-${VERRAZZANO_DEV_VERSION}-lite"
+                            storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${tarfilePrefix}.zip"
                             echo "Starting private registry test for ${storeLocation}, file prefix ${tarfilePrefix}"
                             build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'DISTRIBUTION_VARIANT', value: 'Lite'),
                                     string(name: 'ZIPFILE_LOCATION', value: storeLocation)
                                 ], wait: true
                         }
@@ -516,6 +521,8 @@ pipeline {
                         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
                         OCI_CLI_REGION = "us-ashburn-1"
                         OCI_REGION = "${env.OCI_CLI_REGION}"
+                        // Directory containing the Verrazzano image tar files
+                        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
                     }
                     when {
                         expression{params.PUSH_TO_OCIR == true}
