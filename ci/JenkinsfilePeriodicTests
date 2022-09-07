@@ -16,6 +16,7 @@ def fullBundle=""
 def liteBundle=""
 def branchSpecificSchedule = getCronSchedule()
 def SUSPECT_LIST = ""
+@Field
 def COMPARISON_URL_ON_FAILURE = ""
 
 // The job name from which the verrazzano_images file is available to be copied to this job
