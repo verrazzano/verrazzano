@@ -68,8 +68,8 @@ const (
 	prometheusServerField = "jaeger.spec.query.options.prometheus.server-url"
 	jaegerHostName        = "jaeger"
 	jaegerCertificateName = "jaeger-tls"
-	openSearchURL         = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
-	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090"
+	openSearchURL         = globalconst.DefaultJaegerOSURL
+	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring:9090"
 	componentPrefixFmt    = "Component %s"
 )
 
