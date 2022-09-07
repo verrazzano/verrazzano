@@ -6,14 +6,14 @@ package fluentd
 import (
 	"context"
 	"fmt"
-	vzapibeta "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -76,8 +76,8 @@ func NewComponent() spi.Component {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (f fluentdComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	vzV1Beta1 := &vzapibeta.Verrazzano{}
+func (f fluentdComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	vzV1Beta1 := &v1beta1.Verrazzano{}
 
 	if err := vz.ConvertTo(vzV1Beta1); err != nil {
 		return err
@@ -87,9 +87,9 @@ func (f fluentdComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	oldBeta := &vzapibeta.Verrazzano{}
-	newBeta := &vzapibeta.Verrazzano{}
+func (f fluentdComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	oldBeta := &v1beta1.Verrazzano{}
+	newBeta := &v1beta1.Verrazzano{}
 
 	if err := old.ConvertTo(oldBeta); err != nil {
 		return err
@@ -103,7 +103,7 @@ func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (f fluentdComponent) ValidateInstallV1Beta1(vz *vzapibeta.Verrazzano) error {
+func (f fluentdComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	if err := validateFluentd(vz); err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (f fluentdComponent) ValidateInstallV1Beta1(vz *vzapibeta.Verrazzano) error
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (f fluentdComponent) ValidateUpdateV1Beta1(old *vzapibeta.Verrazzano, new *vzapibeta.Verrazzano) error {
+func (f fluentdComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	// Do not allow disabling active components
 	if err := f.checkEnabled(old, new); err != nil {
 		return err
@@ -122,7 +122,7 @@ func (f fluentdComponent) ValidateUpdateV1Beta1(old *vzapibeta.Verrazzano, new *
 	return f.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
-func (f fluentdComponent) checkEnabled(old *vzapibeta.Verrazzano, new *vzapibeta.Verrazzano) error {
+func (f fluentdComponent) checkEnabled(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if f.IsEnabled(old) && !f.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
@@ -250,15 +250,15 @@ func (f fluentdComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 
 // GetOverrides returns install overrides for a component
 func GetOverrides(object runtime.Object) interface{} {
-	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
 		if effectiveCR.Spec.Components.Fluentd != nil {
 			return effectiveCR.Spec.Components.Fluentd.ValueOverrides
 		}
-		return []vzapi.Overrides{}
+		return []v1alpha1.Overrides{}
 	}
-	effectiveCR := object.(*vzapibeta.Verrazzano)
+	effectiveCR := object.(*v1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.Fluentd != nil {
 		return effectiveCR.Spec.Components.Fluentd.ValueOverrides
 	}
-	return []vzapibeta.Overrides{}
+	return []v1beta1.Overrides{}
 }

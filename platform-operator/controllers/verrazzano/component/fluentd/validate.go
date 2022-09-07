@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzapibeta "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +32,7 @@ var existingFluentdMountPaths = [7]string{
 
 var getControllerRuntimeClient = getClient
 
-func validateFluentd(vz *vzapibeta.Verrazzano) error {
+func validateFluentd(vz *v1beta1.Verrazzano) error {
 	fluentd := vz.Spec.Components.Fluentd
 	if fluentd == nil {
 		return nil
@@ -46,7 +46,7 @@ func validateFluentd(vz *vzapibeta.Verrazzano) error {
 	return nil
 }
 
-func validateExtraVolumeMounts(fluentd *vzapibeta.FluentdComponent) error {
+func validateExtraVolumeMounts(fluentd *v1beta1.FluentdComponent) error {
 	if len(fluentd.ExtraVolumeMounts) > 0 {
 		for _, vm := range fluentd.ExtraVolumeMounts {
 			mountPath := vm.Source
@@ -63,7 +63,7 @@ func validateExtraVolumeMounts(fluentd *vzapibeta.FluentdComponent) error {
 	return nil
 }
 
-func validateLogCollector(fluentd *vzapibeta.FluentdComponent) error {
+func validateLogCollector(fluentd *v1beta1.FluentdComponent) error {
 	if fluentd.OCI != nil && fluentd.OpenSearchURL != globalconst.DefaultOpensearchURL && fluentd.OpenSearchURL != "" {
 		return fmt.Errorf("fluentd config does not allow both OCI %v and external Opensearch %v", fluentd.OCI, fluentd.OpenSearchURL)
 	}
@@ -73,7 +73,7 @@ func validateLogCollector(fluentd *vzapibeta.FluentdComponent) error {
 	return nil
 }
 
-func validateLogCollectorSecret(fluentd *vzapibeta.FluentdComponent) error {
+func validateLogCollectorSecret(fluentd *v1beta1.FluentdComponent) error {
 	if len(fluentd.OpenSearchURL) > 0 && fluentd.OpenSearchURL != globalconst.VerrazzanoESInternal {
 		cli, err := getControllerRuntimeClient()
 		if err != nil {
@@ -123,7 +123,7 @@ func getClient() (client.Client, error) {
 // newScheme creates a new scheme that includes this package's object for use by client
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	vzapi.AddToScheme(scheme)
+	v1alpha1.AddToScheme(scheme)
 	clientgoscheme.AddToScheme(scheme)
 	return scheme
 }
