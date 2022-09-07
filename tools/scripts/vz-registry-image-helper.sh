@@ -44,7 +44,7 @@ Options:
  -b <path>              Bill of materials (BOM) of Verrazzano components; if not specified, defaults to ./verrazzano-bom.json
  -l <archive-dir>       Use the specified imagesDir to load local Docker image tarballs from instead of pulling from
  -i <component>         Include the specified component in the operation (can be repeated for multiple components)
- -f <tarfile>           The name of the directory that will be used to save Docker image tarballs locally
+ -f <tarfile_dir>           The name of the directory that will be used to save Docker image tarballs locally
  -e <component>         Exclude the specified component from the operation (can be repeated for multiple components)
  -c                     Clean all local images/tags
  -z                     Incrementally clean each local image after it has been successfully pushed
