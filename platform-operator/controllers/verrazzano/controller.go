@@ -796,8 +796,15 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 			return false, err
 		}
 		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
-			spiCtx.Log().Progressf("Waiting for component %s to be ready", comp.Name())
-			return false, nil
+			compInstalled, err := comp.IsInstalled(spiCtx)
+			if err != nil {
+				spiCtx.Log().Errorf("Error searching for component %s: %v", comp.Name(), err)
+				return false, err
+			}
+			if !(cr.Status.State == installv1alpha1.VzStateUpgrading && !compInstalled) {
+				spiCtx.Log().Progressf("Waiting for component %s to be ready", comp.Name())
+				return false, nil
+			}
 		}
 	}
 	return true, nil
