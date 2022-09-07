@@ -141,6 +141,14 @@ func (rb rancherBackupHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (rb rancherBackupHelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	if rb.IsEnabled(old) && !rb.IsEnabled(new) {
+		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
+	}
+	if new.Spec.Components.RancherBackup != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(new.Spec.Components.RancherBackup.ValueOverrides); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

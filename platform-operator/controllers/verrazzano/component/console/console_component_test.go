@@ -4,8 +4,11 @@
 package console
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,7 +16,6 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var (
@@ -23,6 +25,16 @@ var (
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Console: &vzapi.ConsoleComponent{
+					Enabled: &disabled,
+				},
+			},
+		},
+	}
+	testV1beta1VZConsoleEnabled  = v1beta1.Verrazzano{}
+	testV1beta1VZConsoleDisabled = v1beta1.Verrazzano{
+		Spec: v1beta1.VerrazzanoSpec{
+			Components: v1beta1.ComponentSpec{
+				Console: &v1beta1.ConsoleComponent{
 					Enabled: &disabled,
 				},
 			},
@@ -111,6 +123,49 @@ func TestValidateUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.hasError {
 				t.Errorf("c.ValidateUpdate() error: %v", err)
+			}
+		})
+	}
+}
+
+func TestValidateUpdateV1beta1(t *testing.T) {
+	c := NewComponent()
+	var tests = []struct {
+		name     string
+		old      *v1beta1.Verrazzano
+		new      *v1beta1.Verrazzano
+		hasError bool
+	}{
+		{
+			"allow update when going from enabled -> enabled",
+			&testV1beta1VZConsoleEnabled,
+			&testV1beta1VZConsoleEnabled,
+			false,
+		},
+		{
+			"allow update when going from disabled -> enabled",
+			&testV1beta1VZConsoleDisabled,
+			&testV1beta1VZConsoleEnabled,
+			false,
+		},
+		{
+			"allow update when going from disabled -> disabled",
+			&testV1beta1VZConsoleDisabled,
+			&testV1beta1VZConsoleDisabled,
+			false,
+		},
+		{
+			"allow update when going from enabled -> disabled",
+			&testV1beta1VZConsoleEnabled,
+			&testV1beta1VZConsoleDisabled,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.hasError {
+				t.Errorf("c.ValidateUpdateV1Beta1() error: %v", err)
 			}
 		})
 	}

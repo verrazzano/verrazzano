@@ -59,7 +59,7 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		}
 		s.updateDeployment("verrazzano-monitoring-operator")
 		s.configureLogging(false)
-		s.configureJaegerCR()
+		s.configureJaegerCR(false)
 		if !s.AgentReadyToSync() {
 			// there is no admin cluster we are connected to, so nowhere to send any status updates
 			// received - discard them
@@ -138,7 +138,7 @@ func (s *Syncer) ProcessAgentThread() error {
 		// configure logging and force a restart of the fluentd daemonset since CA or registration
 		// were updated
 		s.configureLogging(true)
-		s.configureJaegerCR()
+		s.configureJaegerCR(true)
 	}
 	return nil
 }
