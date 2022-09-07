@@ -4,6 +4,7 @@
 package inplaceupgrade
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -131,7 +132,8 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 				err = terminateComputeInstance(node.Spec.ProviderID)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				latestNodes = waitForReplacementNode(latestNodes)
+				latestNodes, err = waitForReplacementNode(latestNodes)
+				Expect(err).ShouldNot(HaveOccurred())
 
 				// wait for all pods to be ready before continuing to the next node
 				t.Logs.Infof("Waiting for all pods to be ready")
@@ -165,7 +167,7 @@ func terminateComputeInstance(instanceID string) error {
 
 // waitForReplacementNode waits for a replacement node to be ready. It returns the new list of nodes that includes
 // the replacement node.
-func waitForReplacementNode(existingNodes *corev1.NodeList) *corev1.NodeList {
+func waitForReplacementNode(existingNodes *corev1.NodeList) (*corev1.NodeList, error) {
 	var replacement string
 	var latestNodes *corev1.NodeList
 
@@ -183,14 +185,16 @@ func waitForReplacementNode(existingNodes *corev1.NodeList) *corev1.NodeList {
 		return replacement
 	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(BeEmpty())
 
-	if len(replacement) > 0 {
-		Eventually(func() (bool, error) {
-			t.Logs.Infof("Waiting for new worker node %s to be ready", replacement)
-			return isNodeReady(replacement)
-		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
+	if len(replacement) == 0 {
+		return nil, errors.New("Timed out waiting for new worker to be added to node pool")
 	}
 
-	return latestNodes
+	Eventually(func() (bool, error) {
+		t.Logs.Infof("Waiting for new worker node %s to be ready", replacement)
+		return isNodeReady(replacement)
+	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeTrue())
+
+	return latestNodes, nil
 }
 
 // isExistingNode returns true if the specified node is in the list of existing nodes
