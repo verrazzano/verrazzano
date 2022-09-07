@@ -18,8 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -168,10 +168,10 @@ func (h HelmComponent) GetOverrides(cr runtime.Object) interface{} {
 	if h.GetInstallOverridesFunc != nil {
 		return h.GetInstallOverridesFunc(cr)
 	}
-	if _, ok := cr.(*installv1beta1.Verrazzano); ok {
-		return []installv1beta1.Overrides{}
+	if _, ok := cr.(*v1beta1.Verrazzano); ok {
+		return []v1beta1.Overrides{}
 	}
-	return []vzapi.Overrides{}
+	return []v1alpha1.Overrides{}
 
 }
 
@@ -245,37 +245,37 @@ func (h HelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return true
 }
 
-func (h HelmComponent) v1alpha1Validate(vz *vzapi.Verrazzano) error {
-	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(vz).([]vzapi.Overrides)); err != nil {
+func (h HelmComponent) v1alpha1Validate(vz *v1alpha1.Verrazzano) error {
+	if err := v1alpha1.ValidateInstallOverrides(h.GetOverrides(vz).([]v1alpha1.Overrides)); err != nil {
 		return err
 	}
 	return nil
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (h HelmComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 	return h.v1alpha1Validate(vz)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (h HelmComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
 	return h.v1alpha1Validate(new)
 }
 
-func (h HelmComponent) v1beta1Validate(vz *installv1beta1.Verrazzano) error {
-	if err := vzapi.ValidateInstallOverridesV1Beta1(h.GetOverrides(vz).([]installv1beta1.Overrides)); err != nil {
+func (h HelmComponent) v1beta1Validate(vz *v1beta1.Verrazzano) error {
+	if err := v1alpha1.ValidateInstallOverridesV1Beta1(h.GetOverrides(vz).([]v1beta1.Overrides)); err != nil {
 		return err
 	}
 	return nil
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+func (h HelmComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	return h.v1beta1Validate(vz)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+func (h HelmComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	return h.v1beta1Validate(new)
 }
 
@@ -458,7 +458,7 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	// Sort the kvs list by priority (0th term has the highest priority)
 
 	// Getting user defined Helm overrides as the highest priority
-	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context.EffectiveCR()).([]vzapi.Overrides))
+	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context.EffectiveCR()).([]v1alpha1.Overrides))
 	if err != nil {
 		return overrides, err
 	}
@@ -621,7 +621,7 @@ func (h HelmComponent) GetIngressNames(context spi.ComponentContext) []types.Nam
 }
 
 // GetInstallArgs returns the list of install args as Helm value pairs
-func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
+func GetInstallArgs(args []v1alpha1.InstallArgs) []bom.KeyValue {
 	installArgs := []bom.KeyValue{}
 	for _, arg := range args {
 		installArg := bom.KeyValue{}
