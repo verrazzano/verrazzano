@@ -795,12 +795,7 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 			spiCtx.Log().Errorf("Failed to create component context: %v", err)
 			return false, err
 		}
-		installed, err := comp.IsInstalled(spiCtx)
-		if err != nil {
-			spiCtx.Log().Errorf("Error searching for component %s: %v", comp.Name(), err)
-			return false, err
-		}
-		if comp.IsEnabled(spiCtx.EffectiveCR()) && installed && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
+		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
 			spiCtx.Log().Progressf("Waiting for component %s to be ready", comp.Name())
 			return false, nil
 		}
