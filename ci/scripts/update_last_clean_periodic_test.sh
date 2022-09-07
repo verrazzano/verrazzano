@@ -6,6 +6,8 @@
 
 # Updates release artifacts to object last-clean-periodic-test
 
+set -e
+
 if [ -z "$1" ]; then
   echo "The Verrazzano development version must be specified"
   exit 1
@@ -29,7 +31,7 @@ oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPA
 oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/vz-darwin-arm64.tar.gz.sha256 --file vz-darwin-arm64.tar.gz.sha256
 
 # Upload Verrazzano distributions
-DISTRIBUTION_PREFIX="verrazzano-${VZ_DEVELOPENT_VERSION}"
+DISTRIBUTION_PREFIX="verrazzano-${DEVELOPENT_VERSION}"
 VZ_LITE_RELEASE_BUNDLE="${DISTRIBUTION_PREFIX}-lite.zip"
 VZ_LITE_RELEASE_BUNDLE_SHA256="${VZ_LITE_RELEASE_BUNDLE}.sha256"
 

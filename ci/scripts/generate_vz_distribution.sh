@@ -255,9 +255,9 @@ generateVZFullDistribution() {
 cleanupWorkspace() {
   rm -rf ${VZ_DISTRIBUTION_COMMON}
   rm -rf ${VZ_LITE_ROOT}
-  # Do not delete ${VZ_FULL_ROOT} as push_to_ocir.sh requires ${VZ_FULL_ROOT}/images/*.tar
-  rm -rf ${VZ_LITE_GENERATED}
-  rm -rf ${VZ_FULL_GENERATED}
+  # Do not delete the generated files, which is required to push bundles to last_clean_periodic object
+  # rm -rf ${VZ_LITE_GENERATED}
+  # rm -rf ${VZ_FULL_GENERATED}
 }
 
 # List of files in storage
