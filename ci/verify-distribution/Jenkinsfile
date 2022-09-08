@@ -291,6 +291,8 @@ pipeline {
                                 ${GO_REPO_PATH}/vz version # Verify install
 
                                 rm -rf ${downloadLocation}
+
+                                tree
                             """
                         } else {
                             sh """
