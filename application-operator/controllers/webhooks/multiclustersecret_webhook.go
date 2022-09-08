@@ -56,11 +56,6 @@ func (v *MultiClusterSecretValidator) Handle(ctx context.Context, req admission.
 				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Denied(err.Error())
 			}
-			err = validateNamespaceInProject(v.client, mcs.Namespace)
-			if err != nil {
-				errorCounterMetricObject.Inc(zapLogForMetrics, err)
-				return admission.Denied(err.Error())
-			}
 		}
 	}
 	counterMetricObject.Inc(zapLogForMetrics, err)
