@@ -67,9 +67,6 @@ function get_vz_release_artifacts() {
     ls
 }
 
-# Validate OCI CLI
-validate_oci_cli || exit 1
-
 mkdir -p $RELEASE_BINARIES_DIR
 
 # Download the release artifacts

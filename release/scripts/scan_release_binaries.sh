@@ -183,8 +183,6 @@ fi
 echo "RELEASE_TAR_BALL $RELEASE_TAR_BALL"
 echo "Directory to scan ${DIR_TO_SCAN}"
 
-validate_oci_cli || exit 1
-
 if [[ "${USE_DOWNLOADED_BUNDLE}" == "false" ]]; then
   download_release_tarball || exit 1
 fi
