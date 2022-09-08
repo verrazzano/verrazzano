@@ -6,12 +6,13 @@ package appoper
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -21,12 +22,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
 
-var crEnabled = vzapi.Verrazzano{
-	Spec: vzapi.VerrazzanoSpec{
-		Components: vzapi.ComponentSpec{
-			ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+var crEnabled = v1alpha1.Verrazzano{
+	Spec: v1alpha1.VerrazzanoSpec{
+		Components: v1alpha1.ComponentSpec{
+			ApplicationOperator: &v1alpha1.ApplicationOperatorComponent{
 				Enabled: getBoolPtr(true),
 			},
 		},
@@ -39,11 +40,11 @@ var crEnabled = vzapi.Verrazzano{
 //  THEN no delete of a ClusterRoleBinding
 func TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding(t *testing.T) {
 	clusterName := "managed1"
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				DNS: &vzapi.DNSComponent{
-					OCI: &vzapi.OCI{
+	vz := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				DNS: &v1alpha1.DNSComponent{
+					OCI: &v1alpha1.OCI{
 						DNSZoneName: "mydomain.com",
 					},
 				},
@@ -51,7 +52,7 @@ func TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
-		&v1alpha1.VerrazzanoManagedCluster{
+		&vmcv1alpha1.VerrazzanoManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: clusterName,
 			},
@@ -66,11 +67,11 @@ func TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding(t *testing.T) {
 //  THEN successful delete of the ClusterRoleBinding
 func TestAppOperatorPostUpgradeDeleteClusterRoleBinding(t *testing.T) {
 	clusterName := "managed1"
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				DNS: &vzapi.DNSComponent{
-					OCI: &vzapi.OCI{
+	vz := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				DNS: &v1alpha1.DNSComponent{
+					OCI: &v1alpha1.OCI{
 						DNSZoneName: "mydomain.com",
 					},
 				},
@@ -78,7 +79,7 @@ func TestAppOperatorPostUpgradeDeleteClusterRoleBinding(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
-		&v1alpha1.VerrazzanoManagedCluster{
+		&vmcv1alpha1.VerrazzanoManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: clusterName,
 			},
@@ -103,7 +104,7 @@ func TestAppOperatorPostUpgradeDeleteClusterRoleBinding(t *testing.T) {
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
-	_ = vzapi.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 	_ = rbacv1.AddToScheme(scheme)
 	return scheme
 }
@@ -123,7 +124,7 @@ func TestIsEnabledNilApplicationOperator(t *testing.T) {
 //  WHEN The ApplicationOperator component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -164,31 +165,31 @@ func Test_applicationOperatorComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
-		old     *vzapi.Verrazzano
-		new     *vzapi.Verrazzano
+		old     *v1alpha1.Verrazzano
+		new     *v1alpha1.Verrazzano
 		wantErr bool
 	}{
 		{
 			name: "enable",
-			old: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+			old: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						ApplicationOperator: &v1alpha1.ApplicationOperatorComponent{
 							Enabled: &disabled,
 						},
 					},
 				},
 			},
-			new:     &vzapi.Verrazzano{},
+			new:     &v1alpha1.Verrazzano{},
 			wantErr: false,
 		},
 		{
 			name: "disable",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						ApplicationOperator: &v1alpha1.ApplicationOperatorComponent{
 							Enabled: &disabled,
 						},
 					},
@@ -198,8 +199,8 @@ func Test_applicationOperatorComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name:    "no change",
-			old:     &vzapi.Verrazzano{},
-			new:     &vzapi.Verrazzano{},
+			old:     &v1alpha1.Verrazzano{},
+			new:     &v1alpha1.Verrazzano{},
 			wantErr: false,
 		},
 	}
@@ -208,6 +209,16 @@ func Test_applicationOperatorComponent_ValidateUpdate(t *testing.T) {
 			c := NewComponent()
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			v1beta1New := &v1beta1.Verrazzano{}
+			v1beta1Old := &v1beta1.Verrazzano{}
+			err := tt.new.ConvertTo(v1beta1New)
+			assert.NoError(t, err)
+			err = tt.old.ConvertTo(v1beta1Old)
+			assert.NoError(t, err)
+			if err := c.ValidateUpdateV1Beta1(v1beta1Old, v1beta1New); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

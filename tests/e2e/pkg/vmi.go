@@ -5,21 +5,38 @@ package pkg
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
 	"go.uber.org/zap"
-	"strings"
 
 	"gopkg.in/yaml.v2"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	v1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 )
 
 func VerifySystemVMIComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword, ingressName, expectedURLPrefix string) bool {
-	ingress, err := api.GetIngress("verrazzano-system", ingressName)
+	var ingress *netv1.Ingress
+	var err error
+
+	// retry in case of transient network errors
+	for i := 1; i <= 5; i++ {
+		if api != nil {
+			ingress, err = api.GetIngress(vzconst.VerrazzanoSystemNamespace, ingressName)
+		} else {
+			ingress, err = GetIngress(vzconst.VerrazzanoSystemNamespace, ingressName)
+		}
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Duration(i) * time.Second)
+	}
 	if err != nil {
-		log.Errorf("Error getting ingress from API: %v", err)
+		log.Errorf("Error getting ingress: %v", err)
 		return false
 	}
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)

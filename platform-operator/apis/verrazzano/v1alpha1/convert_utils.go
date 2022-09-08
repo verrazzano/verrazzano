@@ -20,12 +20,19 @@ const (
 	testCaseIstioOverrides    = "istiomultipleoverrides"
 	testCaseIstioNodePort     = "istionodeport"
 	testCaseFromAllComps      = "fromallcomps"
+	testCaseHA                = "fromha"
+	testCaseOCNE              = "fromocne"
+	testCaseOCNEHA            = "fromocneha"
 	testCaseOpensearch        = "fromopensearch"
 	testCaseInstallArgsErr    = "frominstallargserr"
 	testCaseToAllComps        = "toallcomps"
 	testCaseRancherKeycloak   = "rancherkeycloak"
 	testCaseVolumeOverrides   = "volumeoverrides"
 	testCaseGeneralOverrides  = "overrides"
+	testBaseProfile           = "base"
+	testProdProfile           = "prod"
+	testDevProfile            = "dev"
+	testManagedClusterProfile = "managed-cluster"
 )
 
 type converisonTestCase struct {
@@ -59,5 +66,5 @@ func loadV1Beta1(testCase string) (*v1beta1.Verrazzano, error) {
 }
 
 func loadTestCase(testCase, version string) ([]byte, error) {
-	return os.ReadFile(path.Join("testdata", testCase, fmt.Sprintf("%s.yaml", version)))
+	return os.ReadFile(path.Join("../testdata", testCase, fmt.Sprintf("%s.yaml", version)))
 }

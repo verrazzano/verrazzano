@@ -21,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -139,9 +140,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return newRequeueWithDelay(), nil
 	}
 	// The Verrazzano resource has been reconciled.
-
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
-
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
 	return ctrl.Result{}, nil
@@ -229,7 +228,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		}
 
 		// Keep retrying to reconcile components until it completes
-		if result, err := r.reconcileComponents(vzctx); err != nil {
+		if result, err := r.reconcileComponents(vzctx, false); err != nil {
 			return newRequeueWithDelay(), err
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
@@ -284,7 +283,7 @@ func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctr
 	log := vzctx.Log
 	log.Debug("Entering ProcInstallingState")
 
-	if result, err := r.reconcileComponents(vzctx); err != nil {
+	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
@@ -316,6 +315,13 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return newRequeueWithDelay(), err
 	}
 
+	// Install any new components and do any updates to existing components
+	if result, err := r.reconcileComponents(vzctx, true); err != nil {
+		return newRequeueWithDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
+		return result, nil
+	}
+
 	// Only upgrade if Version has changed.  When upgrade completes, it will update the status version, see upgrade.go
 	if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
 		if result, err := r.reconcileUpgrade(log, actualCR); err != nil {
@@ -325,8 +331,8 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		}
 	}
 
-	// Install any new components and do any updates to existing components
-	if result, err := r.reconcileComponents(vzctx); err != nil {
+	// Install components that should be installed before upgrade
+	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
@@ -567,7 +573,7 @@ func isOperatorNewerVersionThanCR(vzVersion string) (string, bool) {
 }
 
 func getVzAndOperatorVersions(vzVersion string) (*semver.SemVersion, *semver.SemVersion, bool) {
-	bomVersion, err := installv1alpha1.GetCurrentBomVersion()
+	bomVersion, err := validators.GetCurrentBomVersion()
 	if err != nil {
 		return nil, nil, false
 	}
@@ -752,7 +758,7 @@ func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv
 // setInstallStartedCondition
 func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Set the version in the status.  This will be updated when the starting install condition is updated.
-	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
+	bomSemVer, err := validators.GetCurrentBomVersion()
 	if err != nil {
 		return err
 	}
@@ -781,6 +787,7 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 			return false, err
 		}
 		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
+			spiCtx.Log().Progressf("Waiting for component %s to be ready", comp.Name())
 			return false, nil
 		}
 	}

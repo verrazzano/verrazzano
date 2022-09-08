@@ -12,6 +12,7 @@ import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -23,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
 
 var dnsComponents = vzapi.ComponentSpec{
 	DNS: &vzapi.DNSComponent{
@@ -215,7 +216,7 @@ func getBoolPtr(b bool) *bool {
 	return &b
 }
 
-func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
@@ -452,6 +453,248 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
 			err := c.ValidateUpdate(tt.old, tt.new)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateUpdateV1beta1(t *testing.T) {
+	disabled := false
+	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
+	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
+	sec := fakeSec("TestValidateUpdate-es-sec")
+	defer func() { getControllerRuntimeClient = getClient }()
+	tests := []struct {
+		name    string
+		old     *v1beta1.Verrazzano
+		new     *v1beta1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "enable",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Verrazzano: &v1beta1.VerrazzanoComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Verrazzano: &v1beta1.VerrazzanoComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-installargs",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Verrazzano: &v1beta1.VerrazzanoComponent{},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "no change",
+			old:     &v1beta1.Verrazzano{},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "emptyDir to PVC in defaultVolumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "PVC to emptyDir in volumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "resize pvc in defaultVolumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc1Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc2Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable-console",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Console: &v1beta1.ConsoleComponent{Enabled: &disabled},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable-prometheus",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Prometheus: &v1beta1.PrometheusComponent{Enabled: &disabled},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable-fluentd",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{Enabled: &disabled},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-fluentd-oci",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							OCI: &v1beta1.OciLoggingConfiguration{
+								APISecret: "secret",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-fluentd-es-secret",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							OpenSearchSecret: sec.Name,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-fluentd-es-url",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							OpenSearchURL: "url",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-fluentd-extravolume",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							ExtraVolumeMounts: []v1beta1.VolumeMount{{Source: "foo"}},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			err := c.ValidateUpdateV1Beta1(tt.old, tt.new)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}

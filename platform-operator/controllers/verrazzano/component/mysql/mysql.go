@@ -7,11 +7,18 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+
 	"os"
 	"path/filepath"
 	"strings"
+
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -79,7 +86,11 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		}
 
 		if deployment != nil {
-			mySQLVolumeSource := getMySQLVolumeSource(compContext.EffectiveCR())
+			convertedVZ := v1beta1.Verrazzano{}
+			if err := common.ConvertVerrazzanoCR(compContext.EffectiveCR(), &convertedVZ); err != nil {
+				return nil, err
+			}
+			mySQLVolumeSource := getMySQLVolumeSource(&convertedVZ)
 			// check for ephemeral storage
 			if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
 				// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
@@ -205,7 +216,11 @@ func removeMySQLInitFile(ctx spi.ComponentContext) {
 
 // generateVolumeSourceOverrides generates the appropriate persistence overrides given the component context
 func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	kvs, err := doGenerateVolumeSourceOverrides(compContext.EffectiveCR(), kvs)
+	convertedVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(compContext.EffectiveCR(), &convertedVZ); err != nil {
+		return nil, err
+	}
+	kvs, err := doGenerateVolumeSourceOverrides(&convertedVZ, kvs)
 	if err != nil {
 		return kvs, err
 	}
@@ -228,7 +243,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 }
 
 // doGenerateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
-func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	mySQLVolumeSource := getMySQLVolumeSource(effectiveCR)
 	// No volumes to process, return what we have
 	if mySQLVolumeSource == nil {
@@ -244,7 +259,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
-		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR)
 		if !found {
 			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
@@ -282,7 +297,8 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 	return kvs, nil
 }
 
-func getMySQLVolumeSource(effectiveCR *vzapi.Verrazzano) *v1.VolumeSource {
+// getMySQLVolumeSourceV1beta1 returns the volume source from v1beta1.Verrazzano
+func getMySQLVolumeSource(effectiveCR *v1beta1.Verrazzano) *v1.VolumeSource {
 	var mySQLVolumeSource *v1.VolumeSource
 	if effectiveCR.Spec.Components.Keycloak != nil {
 		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
@@ -318,10 +334,19 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 }
 
 // GetOverrides gets the list of overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.Keycloak != nil {
-		return effectiveCR.Spec.Components.Keycloak.MySQL.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Keycloak != nil {
+			return effectiveCR.Spec.Components.Keycloak.MySQL.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Keycloak != nil {
+			return effectiveCR.Spec.Components.Keycloak.MySQL.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 
@@ -369,7 +394,11 @@ func preUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	// following steps are only needed for persistent storage
-	mySQLVolumeSource := getMySQLVolumeSource(ctx.EffectiveCR())
+	convertedVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(ctx.EffectiveCR(), &convertedVZ); err != nil {
+		return err
+	}
+	mySQLVolumeSource := getMySQLVolumeSource(&convertedVZ)
 	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
 		deploymentPvc := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
 		err := common.RetainPersistentVolume(ctx, deploymentPvc, ComponentName)
@@ -416,7 +445,11 @@ func postUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL post upgrade dry run")
 		return nil
 	}
-	mySQLVolumeSource := getMySQLVolumeSource(ctx.EffectiveCR())
+	convertedVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(ctx.EffectiveCR(), &convertedVZ); err != nil {
+		return err
+	}
+	mySQLVolumeSource := getMySQLVolumeSource(&convertedVZ)
 	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
 		return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
 	}

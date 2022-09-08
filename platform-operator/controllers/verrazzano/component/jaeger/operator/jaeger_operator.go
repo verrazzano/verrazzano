@@ -7,11 +7,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/fs"
+	"io/ioutil"
+	"os"
+	"text/template"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -19,8 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/fs"
-	"io/ioutil"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,10 +36,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"text/template"
 )
 
 var (
@@ -66,8 +68,8 @@ const (
 	prometheusServerField = "jaeger.spec.query.options.prometheus.server-url"
 	jaegerHostName        = "jaeger"
 	jaegerCertificateName = "jaeger-tls"
-	openSearchURL         = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
-	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090"
+	openSearchURL         = globalconst.DefaultJaegerOSURL
+	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring:9090"
 	componentPrefixFmt    = "Component %s"
 )
 
@@ -152,7 +154,8 @@ func preInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create the verrazzano-monitoring namespace if not already created
-	if err := ensureVerrazzanoMonitoringNamespace(ctx); err != nil {
+	ctx.Log().Debugf("Creating namespace %s for the Jaeger Operator", constants.VerrazzanoMonitoringNamespace)
+	if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
 		return err
 	}
 
@@ -261,8 +264,8 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 	if createInstance {
-		// use template to populate Jaeger spec data
-		template, err := template.New("jaeger").Parse(jaegerCreateTemplate)
+		// use jaegerCRTemplate to populate Jaeger spec data
+		jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
 		if err != nil {
 			return nil, err
 		}
@@ -271,7 +274,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 			osReplicaCount = 0
 		}
 		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
-		err = template.Execute(&b, data)
+		err = jaegerCRTemplate.Execute(&b, data)
 		if err != nil {
 			return nil, err
 		}
@@ -302,34 +305,44 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 
 // validateJaegerOperator checks scenarios in which the Verrazzano CR violates install verification
 // due to Jaeger Operator specifications
-func (c jaegerOperatorComponent) validateJaegerOperator(vz *vzapi.Verrazzano) error {
+func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) error {
+	// if Jaeger operator component is disabled, return early
+	if !c.IsEnabled(cr) {
+		return nil
+	}
 	// Validate install overrides
-	if vz.Spec.Components.JaegerOperator != nil && vz.Spec.Components.JaegerOperator.Enabled != nil &&
-		*vz.Spec.Components.JaegerOperator.Enabled {
-		overrides := vz.Spec.Components.JaegerOperator.ValueOverrides
-		if err := vzapi.ValidateInstallOverrides(overrides); err != nil {
-			return err
-		}
+	client, err := getControllerRuntimeClient()
+	if err != nil {
+		return err
+	}
+	// Validate install overrides for v1beta1
+	return validateInstallOverrides(cr.Spec.Components.JaegerOperator.ValueOverrides, client)
+}
 
-		client, err := getControllerRuntimeClient()
-		if err != nil {
-			return err
-		}
-		overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
-		if err != nil {
-			return err
-		}
-		for _, overrideYAML := range overrideYAMLs {
-			// Check if there are any Helm chart values that are not allowed to be overridden by the user
-			for _, disallowedOverride := range disallowedOverrides {
-				value, err := common.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
-				if err != nil {
-					return err
-				}
-				if value != nil {
-					return fmt.Errorf("the Jaeger Operator Helm chart value %s cannot be overridden in the "+
-						"Verrazzano CR", disallowedOverride)
-				}
+// validateInstallOverrides validates the v1beta1 install overrides (v1beta1.Overrides) configured for Jaeger component
+func validateInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
+	if err := v1alpha1.ValidateInstallOverridesV1Beta1(overrides); err != nil {
+		return err
+	}
+	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
+	if err != nil {
+		return err
+	}
+	return validateOverrideYamls(overrideYAMLs)
+}
+
+// validateOverrideYamls validates if the given overrides in YAML format contains only values that are not forbidden to override.
+func validateOverrideYamls(yamlOverrides []string) error {
+	for _, overrideYAML := range yamlOverrides {
+		// Check if there are any Helm chart values that are not allowed to be overridden by the user
+		for _, disallowedOverride := range disallowedOverrides {
+			value, err := common.ExtractValueFromOverrideString(overrideYAML, disallowedOverride)
+			if err != nil {
+				return err
+			}
+			if value != nil {
+				return fmt.Errorf("the Jaeger Operator Helm chart value %s cannot be overridden in the "+
+					"Verrazzano CR", disallowedOverride)
 			}
 		}
 	}
@@ -337,42 +350,18 @@ func (c jaegerOperatorComponent) validateJaegerOperator(vz *vzapi.Verrazzano) er
 }
 
 // GetOverrides returns the list of install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.JaegerOperator != nil {
+			return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
+		}
+		return []v1alpha1.Overrides{}
+	}
+	effectiveCR := object.(*v1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.JaegerOperator != nil {
 		return effectiveCR.Spec.Components.JaegerOperator.ValueOverrides
 	}
-	return []vzapi.Overrides{}
-}
-
-func ensureVerrazzanoMonitoringNamespace(ctx spi.ComponentContext) error {
-	// Create the verrazzano-monitoring namespace
-	ctx.Log().Debugf("Creating namespace %s for the Jaeger Operator", ComponentNamespace)
-	namespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
-		MutateVerrazzanoMonitoringNamespace(ctx, &namespace)
-		return nil
-	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
-	}
-	return nil
-}
-
-// MutateVerrazzanoMonitoringNamespace modifies the given namespace for the Monitoring subcomponents
-// with the appropriate labels, in one location. If the provided namespace is not the Verrazzano
-// monitoring namespace, it is ignored.
-func MutateVerrazzanoMonitoringNamespace(ctx spi.ComponentContext, namespace *corev1.Namespace) {
-	if namespace.Name != constants.VerrazzanoMonitoringNamespace {
-		return
-	}
-	if namespace.Labels == nil {
-		namespace.Labels = map[string]string{}
-	}
-	namespace.Labels[globalconst.LabelVerrazzanoNamespace] = constants.VerrazzanoMonitoringNamespace
-
-	istio := ctx.EffectiveCR().Spec.Components.Istio
-	if istio != nil && istio.IsInjectionEnabled() {
-		namespace.Labels[globalconst.LabelIstioInjection] = "enabled"
-	}
+	return []v1beta1.Overrides{}
 }
 
 func generateOverridesFile(ctx spi.ComponentContext, contents []byte) (string, error) {
@@ -505,7 +494,7 @@ func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
 
 // getOverrideVal gets the Helm value specified in the VZ CR for the specified override field
 func getOverrideVal(ctx spi.ComponentContext, field string) (interface{}, error) {
-	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()))
+	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]v1alpha1.Overrides))
 	if err != nil {
 		return nil, err
 	}
@@ -567,14 +556,14 @@ func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 // The jaeger-operator-mutating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
 // On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
-	config, err := controllerruntime.GetConfig()
+	kubeConfig, err := controllerruntime.GetConfig()
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get kubeconfig with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubeconfig with error: %v", err)
 		return err
 	}
-	kubeClient, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get kubeClient with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubeClient with error: %v", err)
 		return err
 	}
 	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), ComponentMutatingWebhookConfigName, metav1.GetOptions{})
@@ -592,14 +581,14 @@ func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 // The jaeger-operator-validating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
 // On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
-	config, err := controllerruntime.GetConfig()
+	kubeConfig, err := controllerruntime.GetConfig()
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get kubeconfig with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubeconfig with error: %v", err)
 		return err
 	}
-	kubeClient, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
-		ctx.Log().ErrorfNewErr("Failed to get kubeClient with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubeClient with error: %v", err)
 		return err
 	}
 	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), ComponentValidatingWebhookConfigName, metav1.GetOptions{})
@@ -808,7 +797,7 @@ func getClient() (clipkg.Client, error) {
 // newScheme creates a new scheme that includes this package's object for use by client
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	_ = vzapi.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 	_ = clientgoscheme.AddToScheme(scheme)
 	return scheme
 }

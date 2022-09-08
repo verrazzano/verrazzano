@@ -46,6 +46,8 @@ type ComponentInfo interface {
 	Name() string
 	// Namespace returns the namespace of the Verrazzano component
 	Namespace() string
+	// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done, default false
+	ShouldInstallBeforeUpgrade() bool
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
 	// IsReady Indicates whether or not a component is available and ready
@@ -61,7 +63,7 @@ type ComponentInfo interface {
 	// GetJsonName returns the josn name of the verrazzano component in CRD
 	GetJSONName() string
 	// GetOverrides returns the list of overrides for a component
-	GetOverrides(effectiveCR *v1alpha1.Verrazzano) []v1alpha1.Overrides
+	GetOverrides(effectiveCR runtime.Object) interface{}
 	// MonitorOverrides indicates whether the override sources for a component need to be monitored
 	MonitorOverrides(context ComponentContext) bool
 }
@@ -110,9 +112,9 @@ type ComponentValidator interface {
 	ValidateInstall(vz *v1alpha1.Verrazzano) error
 	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 	ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error
-	// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+	// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
 	ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error
-	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+	// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 	ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error
 }
 

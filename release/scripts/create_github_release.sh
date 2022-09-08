@@ -14,7 +14,7 @@ usage() {
   Creates a Github release.
 
   Usage:
-    $(basename $0) <new version for the release> <hash of commit to release> <directory containing the release binaries> <a boolean to indicate test run, defaults to true>
+    $(basename $0) <hash of commit to release> <directory containing the release binaries> <a boolean to indicate test run, defaults to true>
 
   Example:
     $(basename $0) v1.0.1 aa94949a4e8e9b50bc0674035898f2579f2519cb ~/go/src/github.com/verrazzano/verrazzano/release
@@ -25,12 +25,18 @@ EOM
     exit 0
 }
 
-[ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] && { usage; }
 
-VERSION=${1}
-RELEASE_COMMIT=${2}
-RELEASE_BINARIES_DIR=${3}
-TEST_RUN=${4:-true}
+if [ -z "${RELEASE_VERSION}" ] ; then
+    echo "The script requires environment variable RELEASE_VERSION, in the format major.minor.patch (for example, 1.0.3)"
+    exit 1
+fi
+
+RELEASE_COMMIT=${1}
+RELEASE_BINARIES_DIR=${2}
+TEST_RUN=${3:-true}
+
+VERSION=${RELEASE_VERSION}
 
 if [[ $VERSION != v* ]] ; then
   VERSION="v${1}"

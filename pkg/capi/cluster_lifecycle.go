@@ -4,7 +4,6 @@ package capi
 
 import (
 	"fmt"
-
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
@@ -12,11 +11,15 @@ type CAPIInitFuncType = func(path string, options ...clusterapi.Option) (cluster
 
 const (
 	KindClusterType = "kind"
+	OCNEClusterType = "ocne"
 	NoClusterType   = "noCluster"
+
+	BootstrapImageEnvVar = "VZ_BOOTSTRAP_IMAGE"
+	bootstrapClusterName = "vz-capi-bootstrap"
 )
 
 var capiInitFunc = clusterapi.New
-var publicSupportedClusterTypes = []string{KindClusterType}
+var publicSupportedClusterTypes = []string{KindClusterType, OCNEClusterType}
 var allSupportedClusterTypes = append(publicSupportedClusterTypes, NoClusterType)
 
 // SetCAPIInitFunc For unit testing, override the CAPI init function
@@ -29,11 +32,11 @@ func ResetCAPIInitFunc() {
 	capiInitFunc = clusterapi.New
 }
 
-// ClusterConfig Defines the properties of a cluster
-type ClusterConfig interface {
-	GetClusterName() string
-	GetType() string
-	GetContainerImage() string
+type ClusterConfig struct {
+	ClusterName    string
+	Type           string
+	ContainerImage string
+	CAPIProviders  []string
 }
 
 // ClusterLifeCycleManager defines the lifecycle operations of a cluster
@@ -45,10 +48,13 @@ type ClusterLifeCycleManager interface {
 	Destroy() error
 }
 
-// NewDefaultBoostrapCluster Creates a new cluster manager for a local bootstrap cluster with default config
-func NewDefaultBoostrapCluster() ClusterLifeCycleManager {
-	return &kindClusterManager{
-		config: bootstrapClusterConfig{},
+//NewClusterConfig Creates a new ClusterConfig with defaults
+func NewClusterConfig() ClusterConfig {
+	return ClusterConfig{
+		ClusterName:    bootstrapClusterName,
+		Type:           OCNEClusterType,
+		ContainerImage: getDefaultBoostrapImage(OCNEClusterType),
+		CAPIProviders:  defaultCAPIProviders,
 	}
 }
 
@@ -60,35 +66,34 @@ func NewBoostrapCluster(clusterConfig ClusterConfig) (ClusterLifeCycleManager, e
 	if err != nil {
 		return nil, err
 	}
-	switch actualConfig.GetType() {
-	case KindClusterType:
-		return &kindClusterManager{
-			config: actualConfig,
-		}, nil
+	switch actualConfig.Type {
+	case KindClusterType, OCNEClusterType:
+		return newKindClusterManager(actualConfig)
 	case NoClusterType:
-		return &noClusterManager{
-			config: actualConfig,
-		}, nil
+		return newNoClusterManager(actualConfig)
 	default:
-		return nil, unknownClusterTypeError(actualConfig.GetType())
+		return nil, unknownClusterTypeError(actualConfig.Type)
 	}
 }
 
 func setDefaults(c ClusterConfig) ClusterConfig {
-	defaultConfig := bootstrapClusterConfig{}
-	actualConfig := ClusterConfigInfo{
-		ClusterName:    c.GetClusterName(),
-		Type:           c.GetType(),
-		ContainerImage: c.GetContainerImage(),
+	defaultConfig := NewClusterConfig()
+	actualConfig := ClusterConfig{
+		ClusterName:    c.ClusterName,
+		Type:           c.Type,
+		ContainerImage: c.ContainerImage,
 	}
-	if actualConfig.GetClusterName() == "" {
-		actualConfig.ClusterName = defaultConfig.GetClusterName()
+	if actualConfig.ClusterName == "" {
+		actualConfig.ClusterName = defaultConfig.ClusterName
 	}
-	if actualConfig.GetType() == "" {
-		actualConfig.Type = defaultConfig.GetType()
+	if actualConfig.Type == "" {
+		actualConfig.Type = defaultConfig.Type
 	}
-	if actualConfig.GetContainerImage() == "" {
-		actualConfig.ContainerImage = defaultConfig.GetContainerImage()
+	if actualConfig.ContainerImage == "" {
+		defaultImage := getDefaultBoostrapImage(actualConfig.Type)
+		if len(defaultImage) > 0 {
+			actualConfig.ContainerImage = defaultImage
+		}
 	}
 	return actualConfig
 }
@@ -96,12 +101,12 @@ func setDefaults(c ClusterConfig) ClusterConfig {
 func validateConfig(config ClusterConfig) error {
 	valid := false
 	for _, clusterType := range allSupportedClusterTypes {
-		if config.GetType() == clusterType {
+		if config.Type == clusterType {
 			valid = true
 		}
 	}
 	if !valid {
-		return unknownClusterTypeError(config.GetType())
+		return unknownClusterTypeError(config.Type)
 	}
 	return nil
 }

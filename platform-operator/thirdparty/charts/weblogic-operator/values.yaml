@@ -181,11 +181,11 @@ internalDebugHttpPort: 30999
 externalDebugHttpPort: 30999
 
 # dns1123Fields overrides the default list of field names that the operator
-# converts to DNS-1123 legal values when replacing variable references in the
+# converts to DNS-1123 legal values when replacing variable references in the 
 # Domain resource. The default list can be found inside the class LegalNames
 # in the oracle.kubernetes.operator.helpers package.
 # Supply a comma separated list of field names to customize the list of fields
-# such as "name, claimName, volumeName", or leave it commented out to use
+# such as "name, claimName, volumeName", or leave it commented out to use 
 # the default list of field names.
 # dns1123Fields: ""
 
@@ -229,6 +229,7 @@ clusterSizePaddingValidationEnabled: true
 # domainPresenceFailureRetryMaxCount: 5
 # domainPresenceFailureRetrySeconds: 10
 
-# runAsUser specifies the UID to run the operator container process. If not specified,
+# runAsUser specifies the UID to run the operator container process. If not specified, 
 # it defaults to the user specified in the operator's container image.
 #runAsUser: 1000
+

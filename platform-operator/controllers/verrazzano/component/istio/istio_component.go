@@ -95,11 +95,18 @@ func (i istioComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the Helm override sources for a component
-func (i istioComponent) GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func (i istioComponent) GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Istio != nil {
+			return effectiveCR.Spec.Components.Istio.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	}
+	effectiveCR := object.(*installv1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.Istio != nil {
 		return effectiveCR.Spec.Components.Istio.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []installv1beta1.Overrides{}
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
@@ -269,11 +276,25 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (i istioComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	if i.IsEnabled(old) && !i.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	// Validate install overrides
+	if new.Spec.Components.Istio != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(new.Spec.Components.Istio.ValueOverrides); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i istioComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	if vz.Spec.Components.Istio != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.Istio.ValueOverrides); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -410,6 +431,11 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 // GetCertificateNames returns the list of expected certificates used by this component
 func (i istioComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
+}
+
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (i istioComponent) ShouldInstallBeforeUpgrade() bool {
+	return false
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {

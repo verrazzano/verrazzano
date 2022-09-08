@@ -151,9 +151,16 @@ var devElasticSearchOverrides = v1alpha1.Verrazzano{
 		},
 		Components: v1alpha1.ComponentSpec{
 			Elasticsearch: &v1alpha1.ElasticsearchComponent{
-				ESInstallArgs: []v1alpha1.InstallArgs{
-					{Name: "nodes.master.replicas", Value: "3"},
-					{Name: "nodes.master.requests.memory", Value: "3G"},
+				Nodes: []v1alpha1.OpenSearchNode{
+					{
+						Name:     "es-master",
+						Replicas: 3,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("3G"),
+							},
+						},
+					},
 				},
 			},
 		},
@@ -249,13 +256,40 @@ var prodElasticSearchOverrides = v1alpha1.Verrazzano{
 		},
 		Components: v1alpha1.ComponentSpec{
 			Elasticsearch: &v1alpha1.ElasticsearchComponent{
-				ESInstallArgs: []v1alpha1.InstallArgs{
-					{Name: "nodes.master.replicas", Value: "3"},
-					{Name: "nodes.master.requests.memory", Value: "3G"},
-					{Name: "nodes.ingest.replicas", Value: "6"},
-					{Name: "nodes.ingest.requests.memory", Value: "32G"},
-					{Name: "nodes.data.replicas", Value: "6"},
-					{Name: "nodes.data.requests.memory", Value: "32G"},
+				Nodes: []v1alpha1.OpenSearchNode{
+					{
+						Name:     "es-master",
+						Replicas: 3,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("3G"),
+							},
+						},
+						Storage: &v1alpha1.OpenSearchNodeStorage{
+							Size: "50Gi",
+						},
+					},
+					{
+						Name:     "es-data",
+						Replicas: 6,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("32G"),
+							},
+						},
+						Storage: &v1alpha1.OpenSearchNodeStorage{
+							Size: "50Gi",
+						},
+					},
+					{
+						Name:     "es-ingest",
+						Replicas: 6,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("32G"),
+							},
+						},
+					},
 				},
 			},
 		},
@@ -271,15 +305,40 @@ var prodElasticSearchStorageArgs = v1alpha1.Verrazzano{
 		Profile:         "prod",
 		Components: v1alpha1.ComponentSpec{
 			Elasticsearch: &v1alpha1.ElasticsearchComponent{
-				ESInstallArgs: []v1alpha1.InstallArgs{
-					{Name: "nodes.master.replicas", Value: "3"},
-					{Name: "nodes.master.requests.memory", Value: "3G"},
-					{Name: "nodes.master.requests.storage", Value: "100Gi"},
-					{Name: "nodes.ingest.replicas", Value: "6"},
-					{Name: "nodes.ingest.requests.memory", Value: "32G"},
-					{Name: "nodes.data.replicas", Value: "6"},
-					{Name: "nodes.data.requests.memory", Value: "32G"},
-					{Name: "nodes.data.requests.storage", Value: "150Gi"},
+				Nodes: []v1alpha1.OpenSearchNode{
+					{
+						Name:     "es-master",
+						Replicas: 3,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("3G"),
+							},
+						},
+						Storage: &v1alpha1.OpenSearchNodeStorage{
+							Size: "100Gi",
+						},
+					},
+					{
+						Name:     "es-data",
+						Replicas: 6,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("32G"),
+							},
+						},
+						Storage: &v1alpha1.OpenSearchNodeStorage{
+							Size: "150Gi",
+						},
+					},
+					{
+						Name:     "es-ingest",
+						Replicas: 6,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("32G"),
+							},
+						},
+					},
 				},
 			},
 		},

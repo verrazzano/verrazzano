@@ -6,9 +6,10 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def TESTS_FAILED = false
 
-def availableRegions = [ "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1",
-                         "eu-zurich-1", "me-jeddah-1", "sa-saopaulo-1", "uk-london-1" ]
+def availableRegions = [ "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1",
+                         "eu-zurich-1", "me-jeddah-1", "sa-saopaulo-1" ]
 def OKE_CLUSTER_PREFIX = ""
+def OKE_CLUSTER_ID = ""
 Collections.shuffle(availableRegions)
 
 pipeline {
@@ -32,17 +33,21 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.23.4", "v1.22.5", "v1.21.5"])
+                choices: [ "v1.23.4", "v1.24.1", "v1.22.5", "v1.21.5"])
         choice (name: 'OKE_NODE_POOL',
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
-                choices: [ "VM.Standard2.4-3", "VM.Standard2.4-5" ])
+                choices: [ "VM.Standard2.4-4", "VM.Standard2.4-2" ])
         choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
         string (name: 'GIT_COMMIT_TO_USE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
+                trim: true)
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                defaultValue: 'NONE',
+                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from VZ repo will be leveraged to create VZ platform operator',
                 trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
@@ -244,7 +249,12 @@ pipeline {
                         sh """
                             TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=rollingupgrade-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh
                             kubectl get nodes
-                       """
+                        """
+
+                        script {
+                            OKE_CLUSTER_ID = sh(returnStdout: true, script: "cd ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/terraform/cluster && ./terraform output -raw oke_cluster_id").trim()
+                            echo "OKE cluster id: ${OKE_CLUSTER_ID}"
+                        }
                     }
                     post {
                         failure {
@@ -270,9 +280,6 @@ pipeline {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
 
-                            echo "Downloading platform operator from object storage"
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-
                             echo "Create the verrazzano-install namespace"
                             kubectl create namespace verrazzano-install
 
@@ -282,8 +289,16 @@ pipeline {
                             ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
                             ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
+                            if [ "NONE" == "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                                echo "Downloading platform operator from object storage"
+                                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/platform-operator.yaml
+                            else
+                                echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+                                env IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRET} DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/platform-operator.yaml
+                            fi
+
                             echo "Installing Verrazzano"
-                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/downloaded-operator.yaml
+                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/platform-operator.yaml
                        """
                     }
                     post {
@@ -294,7 +309,7 @@ pipeline {
                             }
                         }
                         always {
-                            archiveArtifacts artifacts: '**/downloaded-operator.yaml', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/platform-operator.yaml', allowEmptyArchive: true
                             // enable debug logging of Verrazzano api istio proxy
                             script {
                                 if (params.ENABLE_API_ENVOY_LOGGING) {
@@ -339,33 +354,6 @@ pipeline {
                         failure {
                             script {
                                 TESTS_FAILED = true
-                            }
-                        }
-                    }
-                }
-
-                stage('Reschedule 50% of Worker Nodes') {
-                    when {
-                        expression { TESTS_FAILED == false }
-                    }
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/scheduling"
-                    }
-                    steps {
-                        runGinkgoRandomize('ha/scheduling')
-                    }
-                    post {
-                        always {
-                            sh """
-                                kubectl get pods -A
-                            """
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                        failure {
-                            script {
-                                TESTS_FAILED = true
-                                dumpK8sCluster('reschedule-fail-cluster-snapshot')
                             }
                         }
                     }
@@ -433,9 +421,10 @@ pipeline {
                         stage('Rolling Update') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/rollingupdate"
+                                OKE_CLUSTER_ID="${OKE_CLUSTER_ID}"
                             }
                             steps {
-                                runGinkgoRandomize('ha/rollingupdate')
+                                runGinkgoFailFast('ha/inplaceupgrade')
                             }
                         }
                         stage('HA Tests') {
@@ -559,6 +548,15 @@ def runGinkgo(testSuitePath, arguments = '') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
+        """
+    }
+}
+
+def runGinkgoFailFast(testSuitePath, arguments = '') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
         """
     }
 }

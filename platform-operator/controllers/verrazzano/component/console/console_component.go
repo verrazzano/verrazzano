@@ -5,6 +5,8 @@ package console
 
 import (
 	"fmt"
+	"path/filepath"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -15,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 )
 
 const (
@@ -67,6 +68,10 @@ func (c consoleComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c consoleComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
 	return nil
 }
 
@@ -89,11 +94,18 @@ func (c consoleComponent) PreUpgrade(ctx spi.ComponentContext) error {
 }
 
 // GetOverrides gets the install overrides for the console
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Console != nil {
+			return effectiveCR.Spec.Components.Console.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	}
+	effectiveCR := object.(*installv1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.Console != nil {
 		return effectiveCR.Spec.Components.Console.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []installv1beta1.Overrides{}
 }
 
 // MonitorOverrides checks whether monitoring of install overrides for the console is enabled or not

@@ -18,8 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -54,6 +54,9 @@ type HelmComponent struct {
 
 	// ValuesFile is the helm chart values override file
 	ValuesFile string
+
+	// InstallBeforeUpgrade if component can be installed before upgade is done, default false
+	InstallBeforeUpgrade bool
 
 	// PreInstallFunc is an optional function to run before installing
 	PreInstallFunc preInstallFuncSig
@@ -118,7 +121,7 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
 // getInstallOverridesSig is an optional function called to generate additional overrides.
-type getInstallOverridesSig func(vz *vzapi.Verrazzano) []vzapi.Overrides
+type getInstallOverridesSig func(object runtime.Object) interface{}
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
@@ -150,17 +153,26 @@ func (h HelmComponent) Namespace() string {
 	return h.ChartNamespace
 }
 
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
+	return h.InstallBeforeUpgrade
+}
+
 // GetJsonName returns the josn name of the verrazzano component in CRD
 func (h HelmComponent) GetJSONName() string {
 	return h.JSONName
 }
 
 // GetOverrides returns the list of install overrides for a component
-func (h HelmComponent) GetOverrides(cr *vzapi.Verrazzano) []vzapi.Overrides {
+func (h HelmComponent) GetOverrides(cr runtime.Object) interface{} {
 	if h.GetInstallOverridesFunc != nil {
 		return h.GetInstallOverridesFunc(cr)
 	}
-	return []vzapi.Overrides{}
+	if _, ok := cr.(*v1beta1.Verrazzano); ok {
+		return []v1beta1.Overrides{}
+	}
+	return []v1alpha1.Overrides{}
+
 }
 
 // GetDependencies returns the Dependencies of this component
@@ -233,30 +245,38 @@ func (h HelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return true
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(vz)); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(new)); err != nil {
+func (h HelmComponent) v1alpha1Validate(vz *v1alpha1.Verrazzano) error {
+	if err := v1alpha1.ValidateInstallOverrides(h.GetOverrides(vz).([]v1alpha1.Overrides)); err != nil {
 		return err
 	}
 	return nil
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+func (h HelmComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	return h.v1alpha1Validate(vz)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+func (h HelmComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	return h.v1alpha1Validate(new)
+}
+
+func (h HelmComponent) v1beta1Validate(vz *v1beta1.Verrazzano) error {
+	if err := v1alpha1.ValidateInstallOverridesV1Beta1(h.GetOverrides(vz).([]v1beta1.Overrides)); err != nil {
+		return err
+	}
 	return nil
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (h HelmComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	return h.v1beta1Validate(vz)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (h HelmComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	return h.v1beta1Validate(new)
 }
 
 func (h HelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
@@ -400,8 +420,9 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	tmpFile, err := vzos.CreateTempFile(context.Log(), "values-*.yaml", stdout)
+	tmpFile, err := vzos.CreateTempFile("values-*.yaml", stdout)
 	if err != nil {
+		context.Log().Error(err.Error())
 		return err
 	}
 
@@ -437,13 +458,14 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	// Sort the kvs list by priority (0th term has the highest priority)
 
 	// Getting user defined Helm overrides as the highest priority
-	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context.EffectiveCR()))
+	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context.EffectiveCR()).([]v1alpha1.Overrides))
 	if err != nil {
 		return overrides, err
 	}
 	for _, overrideString := range overrideStrings {
-		file, err := vzos.CreateTempFile(context.Log(), fmt.Sprintf("install-overrides-%s-*.yaml", h.Name()), []byte(overrideString))
+		file, err := vzos.CreateTempFile(fmt.Sprintf("install-overrides-%s-*.yaml", h.Name()), []byte(overrideString))
 		if err != nil {
+			context.Log().Error(err.Error())
 			return overrides, err
 		}
 		kvs = append(kvs, bom.KeyValue{Value: file.Name(), IsFile: true})
@@ -522,8 +544,9 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 	}
 
 	// Create the file from the string
-	file, err := vzos.CreateTempFile(context.Log(), "helm-overrides-*.yaml", []byte(fileString))
+	file, err := vzos.CreateTempFile("helm-overrides-*.yaml", []byte(fileString))
 	if err != nil {
+		context.Log().Error(err.Error())
 		return newKvs, err
 	}
 	if file != nil {
@@ -598,7 +621,7 @@ func (h HelmComponent) GetIngressNames(context spi.ComponentContext) []types.Nam
 }
 
 // GetInstallArgs returns the list of install args as Helm value pairs
-func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
+func GetInstallArgs(args []v1alpha1.InstallArgs) []bom.KeyValue {
 	installArgs := []bom.KeyValue{}
 	for _, arg := range args {
 		installArg := bom.KeyValue{}

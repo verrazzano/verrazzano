@@ -5,6 +5,7 @@ package grafana
 
 import (
 	"fmt"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -47,6 +48,11 @@ func (g grafanaComponent) Namespace() string {
 	return ComponentNamespace
 }
 
+// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
+func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
+	return false
+}
+
 // GetDependencies returns the dependencies of the Grafana component
 func (g grafanaComponent) GetDependencies() []string {
 	return []string{vmo.ComponentName}
@@ -87,8 +93,11 @@ func (g grafanaComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the Helm overrides for a component
-func (g grafanaComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
-	return []vzapi.Overrides{}
+func (g grafanaComponent) GetOverrides(object runtime.Object) interface{} {
+	if _, ok := object.(*vzapi.Verrazzano); ok {
+		return []vzapi.Overrides{}
+	}
+	return []installv1beta1.Overrides{}
 }
 
 // MonitorOverrides indicates if monitoring of override sources is enabled or not for a component
@@ -214,6 +223,10 @@ func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (g grafanaComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	// do not allow disabling active components
+	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
+		return fmt.Errorf("Disabling component Grafana not allowed")
+	}
 	return nil
 }
 

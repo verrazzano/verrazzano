@@ -5,6 +5,8 @@ package mcagent
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -20,7 +22,6 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var deployment = &appsv1.Deployment{
@@ -67,7 +68,7 @@ func TestConfigureJaegerCR(t *testing.T) {
 				Log:         zap.S().With(tt.name),
 				Context:     context.TODO(),
 			}
-			s.configureJaegerCR()
+			s.configureJaegerCR(false)
 			if tt.fields.jaegerCreate {
 				assertJaegerSecret(t, mgdClient, tt.fields.mcRegSecret, tt.fields.mutualTLS)
 				assertJaegerCR(t, mgdClient)

@@ -5,6 +5,8 @@ package v1alpha1
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/Jeffail/gabs/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
@@ -17,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/yaml"
-	"strconv"
 )
 
 const (
@@ -61,7 +62,7 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	out.Spec.EnvironmentName = in.Spec.EnvironmentName
 	out.Spec.Version = in.Spec.Version
 	out.Spec.DefaultVolumeSource = in.Spec.DefaultVolumeSource
-	out.Spec.VolumeClaimSpecTemplates = convertVolumeClaimTemplateTo(in.Spec.VolumeClaimSpecTemplates)
+	out.Spec.VolumeClaimSpecTemplates = ConvertVolumeClaimTemplateTo(in.Spec.VolumeClaimSpecTemplates)
 	out.Spec.Components = components
 	out.Spec.Security = convertSecuritySpecTo(in.Spec.Security)
 
@@ -74,7 +75,7 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	return nil
 }
 
-func convertVolumeClaimTemplateTo(src []VolumeClaimSpecTemplate) []v1beta1.VolumeClaimSpecTemplate {
+func ConvertVolumeClaimTemplateTo(src []VolumeClaimSpecTemplate) []v1beta1.VolumeClaimSpecTemplate {
 	var templates []v1beta1.VolumeClaimSpecTemplate
 	for _, template := range src {
 		templates = append(templates, v1beta1.VolumeClaimSpecTemplate{
@@ -121,7 +122,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		OpenSearch:             opensearchComponent,
 		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
 		Grafana:                convertGrafanaToV1Beta1(src.Grafana),
-		Ingress:                ingressComponent,
+		IngressNGINX:           ingressComponent,
 		Istio:                  istioComponent,
 		JaegerOperator:         convertJaegerOperatorToV1Beta1(src.JaegerOperator),
 		Kiali:                  convertKialiToV1Beta1(src.Kiali),
@@ -485,7 +486,7 @@ func convertIngressNGINXToV1Beta1(src *IngressNginxComponent) (*v1beta1.IngressN
 	if src == nil {
 		return nil, nil
 	}
-	installOverrides, err := convertInstallOverridesWithArgsToV1Beta1(src.NGINXInstallArgs, src.InstallOverrides)
+	installOverrides, err := ConvertInstallOverridesWithArgsToV1Beta1(src.NGINXInstallArgs, src.InstallOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -522,12 +523,6 @@ func convertIstioToV1Beta1(src *IstioComponent) (*v1beta1.IstioComponent, error)
 	}, nil
 }
 
-type IstioOperator struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	Spec              *operatorv1alpha1.IstioOperatorSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-}
-
 func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrides) ([]v1beta1.Overrides, error) {
 	if !isOverrideValueUnset(override) {
 		if len(overrides) < 1 {
@@ -535,10 +530,15 @@ func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrid
 				override,
 			}, nil
 		}
+
 		if isOverrideValueUnset(overrides[0]) {
 			overrides[0].Values = override.Values
 		} else {
-			data, err := strategicpatch.StrategicMergePatch(overrides[0].Values.Raw, override.Values.Raw, IstioOperator{})
+			data, err := strategicpatch.StrategicMergePatch(overrides[0].Values.Raw, override.Values.Raw, struct {
+				metav1.TypeMeta   `json:",inline"`
+				metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+				Spec              *operatorv1alpha1.IstioOperatorSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+			}{})
 			if err != nil {
 				return nil, err
 			}
@@ -577,11 +577,11 @@ func convertKeycloakToV1Beta1(src *KeycloakComponent) (*v1beta1.KeycloakComponen
 	if src == nil {
 		return nil, nil
 	}
-	keycloakOverrides, err := convertInstallOverridesWithArgsToV1Beta1(src.KeycloakInstallArgs, src.InstallOverrides)
+	keycloakOverrides, err := ConvertInstallOverridesWithArgsToV1Beta1(src.KeycloakInstallArgs, src.InstallOverrides)
 	if err != nil {
 		return nil, err
 	}
-	mysqlOverrides, err := convertInstallOverridesWithArgsToV1Beta1(src.MySQL.MySQLInstallArgs, src.MySQL.InstallOverrides)
+	mysqlOverrides, err := ConvertInstallOverridesWithArgsToV1Beta1(src.MySQL.MySQLInstallArgs, src.MySQL.InstallOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -719,7 +719,7 @@ func convertVerrazzanoToV1Beta1(src *VerrazzanoComponent) (*v1beta1.VerrazzanoCo
 	if src == nil {
 		return nil, nil
 	}
-	installOverrides, err := convertInstallOverridesWithArgsToV1Beta1(src.InstallArgs, src.InstallOverrides)
+	installOverrides, err := ConvertInstallOverridesWithArgsToV1Beta1(src.InstallArgs, src.InstallOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -786,7 +786,7 @@ func convertSecuritySpecTo(security SecuritySpec) v1beta1.SecuritySpec {
 	}
 }
 
-func convertInstallOverridesWithArgsToV1Beta1(args []InstallArgs, overrides InstallOverrides) (v1beta1.InstallOverrides, error) {
+func ConvertInstallOverridesWithArgsToV1Beta1(args []InstallArgs, overrides InstallOverrides) (v1beta1.InstallOverrides, error) {
 	convertedOverrides := convertInstallOverridesToV1Beta1(overrides)
 	override := v1beta1.Overrides{}
 	if len(args) > 0 {
@@ -867,11 +867,11 @@ func convertCommonKubernetesToYaml(src CommonKubernetesSpec, replicasInfo, affin
 func convertInstallOverridesToV1Beta1(src InstallOverrides) v1beta1.InstallOverrides {
 	return v1beta1.InstallOverrides{
 		MonitorChanges: src.MonitorChanges,
-		ValueOverrides: convertValueOverridesToV1Beta1(src.ValueOverrides),
+		ValueOverrides: ConvertValueOverridesToV1Beta1(src.ValueOverrides),
 	}
 }
 
-func convertValueOverridesToV1Beta1(overrides []Overrides) []v1beta1.Overrides {
+func ConvertValueOverridesToV1Beta1(overrides []Overrides) []v1beta1.Overrides {
 	var out []v1beta1.Overrides
 	for _, override := range overrides {
 		out = append(out, v1beta1.Overrides{
