@@ -5,8 +5,10 @@ package common
 
 import (
 	"context"
+
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -20,12 +22,12 @@ import (
 
 // GetInstallOverridesYAML takes the list of Overrides and returns a string array of YAMLs
 func GetInstallOverridesYAML(ctx spi.ComponentContext, overrides []v1alpha1.Overrides) ([]string, error) {
-	return getInstallOverridesYAML(ctx.Log(), ctx.Client(), overrides, ctx.EffectiveCR().Namespace)
+	return getInstallOverridesYAML(ctx.Log(), ctx.Client(), v1alpha1.ConvertValueOverridesToV1Beta1(overrides), ctx.EffectiveCR().Namespace)
 }
 
 // GetInstallOverridesYAMLUsingClient takes the list of Overrides and returns a string array of YAMLs using the
 // specified client
-func GetInstallOverridesYAMLUsingClient(client client.Client, overrides []v1alpha1.Overrides, namespace string) ([]string, error) {
+func GetInstallOverridesYAMLUsingClient(client client.Client, overrides []v1beta1.Overrides, namespace string) ([]string, error) {
 	// DefaultLogger is used since this is invoked from validateInstall and validateUpdate functions and
 	// any actual logging isn't being performed
 	log := vzlog.DefaultLogger()
@@ -46,7 +48,7 @@ func ExtractValueFromOverrideString(overrideStr string, field string) (interface
 }
 
 // getInstallOverridesYAML takes the list of Overrides and returns a string array of YAMLs
-func getInstallOverridesYAML(log vzlog.VerrazzanoLogger, client client.Client, overrides []v1alpha1.Overrides,
+func getInstallOverridesYAML(log vzlog.VerrazzanoLogger, client client.Client, overrides []v1beta1.Overrides,
 	namespace string) ([]string, error) {
 	var overrideStrings []string
 	for _, override := range overrides {

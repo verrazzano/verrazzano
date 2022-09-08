@@ -24,7 +24,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -53,14 +53,14 @@ const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
 
 var testExternalIP = ip.RandomIP()
 
-var crEnabled = vzapi.Verrazzano{
-	Spec: vzapi.VerrazzanoSpec{
-		Components: vzapi.ComponentSpec{
-			Istio: &vzapi.IstioComponent{
+var crEnabled = v1alpha1.Verrazzano{
+	Spec: v1alpha1.VerrazzanoSpec{
+		Components: v1alpha1.ComponentSpec{
+			Istio: &v1alpha1.IstioComponent{
 				Enabled: getBoolPtr(true),
-				Ingress: &vzapi.IstioIngressSection{
-					Kubernetes: &vzapi.IstioKubernetesSection{
-						CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Ingress: &v1alpha1.IstioIngressSection{
+					Kubernetes: &v1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: v1alpha1.CommonKubernetesSpec{
 							Replicas: 2,
 							Affinity: &v1.Affinity{
 								PodAntiAffinity: &v1.PodAntiAffinity{
@@ -91,9 +91,9 @@ var crEnabled = vzapi.Verrazzano{
 						},
 					},
 				},
-				Egress: &vzapi.IstioEgressSection{
-					Kubernetes: &vzapi.IstioKubernetesSection{
-						CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Egress: &v1alpha1.IstioEgressSection{
+					Kubernetes: &v1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: v1alpha1.CommonKubernetesSpec{
 							Replicas: 2,
 							Affinity: &v1.Affinity{
 								PodAntiAffinity: &v1.PodAntiAffinity{
@@ -129,18 +129,18 @@ var crEnabled = vzapi.Verrazzano{
 	},
 }
 
-var crInstall = &vzapi.Verrazzano{
-	Spec: vzapi.VerrazzanoSpec{
+var crInstall = &v1alpha1.Verrazzano{
+	Spec: v1alpha1.VerrazzanoSpec{
 		Version: "1.0",
-		Components: vzapi.ComponentSpec{
-			Istio: &vzapi.IstioComponent{
-				IstioInstallArgs: []vzapi.InstallArgs{{
+		Components: v1alpha1.ComponentSpec{
+			Istio: &v1alpha1.IstioComponent{
+				IstioInstallArgs: []v1alpha1.InstallArgs{{
 					Name:  "arg1",
 					Value: "val1",
 				}},
-				Ingress: &vzapi.IstioIngressSection{
-					Kubernetes: &vzapi.IstioKubernetesSection{
-						CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Ingress: &v1alpha1.IstioIngressSection{
+					Kubernetes: &v1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: v1alpha1.CommonKubernetesSpec{
 							Replicas: 2,
 							Affinity: &v1.Affinity{
 								PodAntiAffinity: &v1.PodAntiAffinity{
@@ -171,9 +171,9 @@ var crInstall = &vzapi.Verrazzano{
 						},
 					},
 				},
-				Egress: &vzapi.IstioEgressSection{
-					Kubernetes: &vzapi.IstioKubernetesSection{
-						CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Egress: &v1alpha1.IstioEgressSection{
+					Kubernetes: &v1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: v1alpha1.CommonKubernetesSpec{
 							Replicas: 2,
 							Affinity: &v1.Affinity{
 								PodAntiAffinity: &v1.PodAntiAffinity{
@@ -472,7 +472,7 @@ func TestIsReady(t *testing.T) {
 	defer func() { isInstalledFunc = istio.IsInstalled }()
 
 	var iComp istioComponent
-	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	assert.True(t, iComp.IsReady(compContext))
 }
 
@@ -491,7 +491,7 @@ func TestIsEnabledNilIstio(t *testing.T) {
 //  WHEN The Istio component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -541,31 +541,31 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		old     *vzapi.Verrazzano
-		new     *vzapi.Verrazzano
+		old     *v1alpha1.Verrazzano
+		new     *v1alpha1.Verrazzano
 		wantErr bool
 	}{
 		{
 			name: "enable",
-			old: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
+			old: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
 							Enabled: &disabled,
 						},
 					},
 				},
 			},
-			new:     &vzapi.Verrazzano{},
+			new:     &v1alpha1.Verrazzano{},
 			wantErr: false,
 		},
 		{
 			name: "disable",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
 							Enabled: &disabled,
 						},
 					},
@@ -575,12 +575,12 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-install-args",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							IstioInstallArgs: []vzapi.InstallArgs{{Name: "foo", Value: "bar"}},
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							IstioInstallArgs: []v1alpha1.InstallArgs{{Name: "foo", Value: "bar"}},
 						},
 					},
 				},
@@ -589,14 +589,14 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-ingress-replicas",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Kubernetes: &vzapi.IstioKubernetesSection{
-									CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Kubernetes: &v1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: v1alpha1.CommonKubernetesSpec{
 										Replicas: 5,
 									},
 								},
@@ -609,14 +609,14 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-ingress-affinity",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Kubernetes: &vzapi.IstioKubernetesSection{
-									CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Kubernetes: &v1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: v1alpha1.CommonKubernetesSpec{
 										Affinity: affinityChange,
 									},
 								},
@@ -629,14 +629,14 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-egress-replicas",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Egress: &vzapi.IstioEgressSection{
-								Kubernetes: &vzapi.IstioKubernetesSection{
-									CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Egress: &v1alpha1.IstioEgressSection{
+								Kubernetes: &v1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: v1alpha1.CommonKubernetesSpec{
 										Replicas: 5,
 									},
 								},
@@ -649,14 +649,14 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-eggress-affinity",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Egress: &vzapi.IstioEgressSection{
-								Kubernetes: &vzapi.IstioKubernetesSection{
-									CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Egress: &v1alpha1.IstioEgressSection{
+								Kubernetes: &v1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: v1alpha1.CommonKubernetesSpec{
 										Affinity: affinityChange,
 									},
 								},
@@ -669,13 +669,13 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-type-to-nodeport-without-externalIPs",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Type: vzapi.NodePort,
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Type: v1alpha1.NodePort,
 							},
 						},
 					},
@@ -685,15 +685,15 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-type-to-nodeport-with-externalIPs",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Type: vzapi.NodePort,
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Type: v1alpha1.NodePort,
 							},
-							IstioInstallArgs: []vzapi.InstallArgs{
+							IstioInstallArgs: []v1alpha1.InstallArgs{
 								{
 									Name:      ExternalIPArg,
 									ValueList: []string{testExternalIP},
@@ -707,23 +707,23 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-type-from-nodeport",
-			old: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Type: vzapi.NodePort,
+			old: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Type: v1alpha1.NodePort,
 							},
 						},
 					},
 				},
 			},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Type: vzapi.LoadBalancer,
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Type: v1alpha1.LoadBalancer,
 							},
 						},
 					},
@@ -733,12 +733,12 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-ports",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
 								Ports: []v1.ServicePort{{Name: "https2", NodePort: 30057}},
 							},
 						},
@@ -749,8 +749,8 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name:    "no change",
-			old:     &vzapi.Verrazzano{},
-			new:     &vzapi.Verrazzano{},
+			old:     &v1alpha1.Verrazzano{},
+			new:     &v1alpha1.Verrazzano{},
 			wantErr: false,
 		},
 	}
@@ -766,29 +766,31 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 
 func Test_istioComponent_ValidateInstall(t *testing.T) {
 	tests := []struct {
-		name    string
-		vz      *vzapi.Verrazzano
-		wantErr bool
+		name        string
+		vz          *v1alpha1.Verrazzano
+		wantErr     bool
+		v1beta1Test bool
 	}{
 		{
 			name: "IstioComponentEmpty",
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{},
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{},
 					},
 				},
 			},
-			wantErr: false,
+			wantErr:     false,
+			v1beta1Test: true,
 		},
 		{
 			name: "IstioInstallArgsEmpty",
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Type: vzapi.NodePort,
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Type: v1alpha1.NodePort,
 							},
 						},
 					},
@@ -798,14 +800,14 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 		},
 		{
 			name: "IstioInstallMissingKey",
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Type: vzapi.NodePort,
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Type: v1alpha1.NodePort,
 							},
-							IstioInstallArgs: []vzapi.InstallArgs{
+							IstioInstallArgs: []v1alpha1.InstallArgs{
 								{
 									Name:      "foo",
 									ValueList: []string{testExternalIP},
@@ -819,14 +821,14 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 		},
 		{
 			name: "IstioInstallMissingIP",
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Type: vzapi.NodePort,
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Type: v1alpha1.NodePort,
 							},
-							IstioInstallArgs: []vzapi.InstallArgs{
+							IstioInstallArgs: []v1alpha1.InstallArgs{
 								{
 									Name:  ExternalIPArg,
 									Value: testExternalIP,
@@ -840,14 +842,14 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 		},
 		{
 			name: "IstioInstallInvalidIP",
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Type: vzapi.NodePort,
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Type: v1alpha1.NodePort,
 							},
-							IstioInstallArgs: []vzapi.InstallArgs{
+							IstioInstallArgs: []v1alpha1.InstallArgs{
 								{
 									Name:      ExternalIPArg,
 									ValueList: []string{testExternalIP + ".1"},
@@ -861,14 +863,14 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 		},
 		{
 			name: "IstioInstallValidConfig",
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
-							Ingress: &vzapi.IstioIngressSection{
-								Type: vzapi.NodePort,
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Ingress: &v1alpha1.IstioIngressSection{
+								Type: v1alpha1.NodePort,
 							},
-							IstioInstallArgs: []vzapi.InstallArgs{
+							IstioInstallArgs: []v1alpha1.InstallArgs{
 								{
 									Name:      ExternalIPArg,
 									ValueList: []string{testExternalIP},
@@ -878,7 +880,8 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+			wantErr:     false,
+			v1beta1Test: true,
 		},
 	}
 	for _, tt := range tests {
@@ -887,31 +890,49 @@ func Test_istioComponent_ValidateInstall(t *testing.T) {
 			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			if tt.v1beta1Test {
+				vzV1Beta1 := &v1beta1.Verrazzano{}
+				err := tt.vz.ConvertTo(vzV1Beta1)
+				assert.NoError(t, err)
+				if err := c.ValidateInstallV1Beta1(vzV1Beta1); (err != nil) != tt.wantErr {
+					t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			}
+
 		})
 	}
 }
 
 // TestValidateUpdate tests the istio ValidateUpdate function
 func TestValidateUpdate(t *testing.T) {
-	oldVZ := vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Istio: &vzapi.IstioComponent{
+	oldVZ := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Istio: &v1alpha1.IstioComponent{
 					Enabled: &trueValue,
 				},
 			},
 		},
 	}
-	newVZ := vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Istio: &vzapi.IstioComponent{
+	newVZ := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Istio: &v1alpha1.IstioComponent{
 					Enabled: &falseValue,
 				},
 			},
 		},
 	}
-	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
+	assert.Error(t, NewComponent().ValidateUpdate(oldVZ, newVZ))
+
+	oldV1Beta1 := &v1beta1.Verrazzano{}
+	err := oldVZ.ConvertTo(oldV1Beta1)
+	assert.NoError(t, err)
+	newV1Beta1 := &v1beta1.Verrazzano{}
+	err = newVZ.ConvertTo(newV1Beta1)
+	assert.NoError(t, err)
+	assert.Error(t, NewComponent().ValidateUpdateV1Beta1(oldV1Beta1, newV1Beta1))
+
 }
 
 // TestPostUninstall tests the PostUninstall function
@@ -950,7 +971,7 @@ func TestPostUninstall(t *testing.T) {
 	).Build()
 
 	var iComp istioComponent
-	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	assert.NoError(t, iComp.PostUninstall(compContext))
 
 	// Validate that the namespace does not exist
@@ -1005,8 +1026,8 @@ func TestGetOverrides(t *testing.T) {
 			},
 		},
 	}
-	oV1Alpha1 := vzapi.InstallOverrides{
-		ValueOverrides: []vzapi.Overrides{
+	oV1Alpha1 := v1alpha1.InstallOverrides{
+		ValueOverrides: []v1alpha1.Overrides{
 			{
 				ConfigMapRef: ref,
 			},
@@ -1019,10 +1040,10 @@ func TestGetOverrides(t *testing.T) {
 	}{
 		{
 			"overrides when component not nil, v1alpha1",
-			&vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Istio: &vzapi.IstioComponent{
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
 							InstallOverrides: oV1Alpha1,
 						},
 					},
