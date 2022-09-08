@@ -112,9 +112,9 @@ type ComponentValidator interface {
 	ValidateInstall(vz *v1alpha1.Verrazzano) error
 	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 	ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error
-	// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+	// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
 	ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error
-	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+	// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 	ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error
 }
 

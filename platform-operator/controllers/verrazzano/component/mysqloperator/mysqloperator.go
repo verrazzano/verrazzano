@@ -4,15 +4,18 @@
 package mysqloperator
 
 import (
+	"context"
 	"fmt"
-
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	config "github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -31,6 +34,24 @@ func getOverrides(object runtime.Object) interface{} {
 	}
 
 	return []vzapi.Overrides{}
+}
+
+// AppendOverrides Build the set of MySQL operator overrides for the helm install
+func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+
+	var secret corev1.Secret
+	if err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: constants.GlobalImagePullSecName}, &secret); err != nil {
+		if errors.IsNotFound(err) {
+			// Global secret not found
+			return kvs, nil
+		}
+		// we had an unexpected error
+		return kvs, err
+	}
+
+	// We found the global secret, set the image.pullSecrets.enabled value to true
+	kvs = append(kvs, bom.KeyValue{Key: "image.pullSecrets.enabled", Value: "true"})
+	return kvs, nil
 }
 
 // isReady - component specific checks for being ready
