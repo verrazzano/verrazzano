@@ -308,7 +308,7 @@ func getBoolPtr(b bool) *bool {
 	return &b
 }
 
-func TestValidateUpdate(t *testing.T) {
+func Test_opensearchComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
