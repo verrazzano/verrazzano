@@ -60,15 +60,17 @@ pipeline {
         KUBERNETES_VERSION = '1.20,1.21,1.22,1.23,1.24'
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+        STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
+        STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
     }
 
     stages {
         stage('Clean workspace and checkout') {
             steps {
-                sh """
-                    echo "${NODE_LABELS}"
-                """
-
                 sh """
                     echo "${NODE_LABELS}"
                     echo "Downloading latest stable commit info from object storage"
