@@ -5,7 +5,7 @@ package opensearch
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 //entryTracker is a Set like construct to track if a value was seen already
@@ -30,18 +30,31 @@ func (e entryTracker) add(entry string) error {
 
 //validateNoDuplicatedConfiguration rejects any updates that contain duplicated argument names:
 // Node group names or InstallArg names.
-func validateNoDuplicatedConfiguration(vz *v1beta1.Verrazzano) error {
-	if vz.Spec.Components.OpenSearch == nil {
+func validateNoDuplicatedConfiguration(vz *vzapi.Verrazzano) error {
+	if vz.Spec.Components.Elasticsearch == nil {
 		return nil
 	}
-	opensearch := vz.Spec.Components.OpenSearch
-
+	opensearch := vz.Spec.Components.Elasticsearch
+	if err := validateNoDuplicateArgs(opensearch); err != nil {
+		return err
+	}
 	return validateNoDuplicateNodeGroups(opensearch)
 
 }
 
+//validateNoDuplicateArgs rejects InstallArgs with duplicated names
+func validateNoDuplicateArgs(opensearch *vzapi.ElasticsearchComponent) error {
+	tracker := newTracker()
+	for _, arg := range opensearch.ESInstallArgs {
+		if err := tracker.add(arg.Name); err != nil {
+			return fmt.Errorf("duplicate OpenSearch install argument: %v", err)
+		}
+	}
+	return nil
+}
+
 //validateNoDuplicateNodeGroups rejects Nodes with duplicated group names
-func validateNoDuplicateNodeGroups(opensearch *v1beta1.OpenSearchComponent) error {
+func validateNoDuplicateNodeGroups(opensearch *vzapi.ElasticsearchComponent) error {
 	tracker := newTracker()
 	for _, group := range opensearch.Nodes {
 		if err := tracker.add(group.Name); err != nil {
