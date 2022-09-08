@@ -501,10 +501,10 @@ func createKeycloakDBSecret(ctx spi.ComponentContext) error {
 
 // getMySQLPod returns the mySQL pod that mounts the PV used for migration
 func getMySQLPod(ctx spi.ComponentContext) (*v1.Pod, error) {
-	tierReq, _ := kblabels.NewRequirement("tier", selection.Equals, []string{"mysql"})
-	compReq, _ := kblabels.NewRequirement("component", selection.Equals, []string{"mysqld"})
+	appReq, _ := kblabels.NewRequirement("app", selection.Equals, []string{"mysql"})
+	relReq, _ := kblabels.NewRequirement("release", selection.Equals, []string{"mysql"})
 	labelSelector := kblabels.NewSelector()
-	labelSelector = labelSelector.Add(*tierReq, *compReq)
+	labelSelector = labelSelector.Add(*appReq, *relReq)
 	mysqlPods := v1.PodList{}
 	err := ctx.Client().List(context.TODO(), &mysqlPods, &client.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
@@ -534,7 +534,7 @@ func getMySQLDeployment(ctx spi.ComponentContext) (*appsv1.Deployment, error) {
 func dumpDatabase(ctx spi.ComponentContext) error {
 	// retrieve root password for mysql
 	rootSecret := v1.Secret{}
-	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: rootSec}, &rootSecret); err != nil {
+	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: secretName}, &rootSecret); err != nil {
 		return err
 	}
 	rootPwd := rootSecret.Data[rootPasswordKey]
