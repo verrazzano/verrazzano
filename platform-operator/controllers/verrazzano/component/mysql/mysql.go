@@ -37,14 +37,14 @@ const (
 	rootSec               = "mysql-cluster-secret"
 	helmRootPwd           = "credentials.root.password" //nolint:gosec //#gosec G101
 	helmUserPwd           = "credentials.user.password" //nolint:gosec //#gosec G101
-	helmUserName          = "credentials.user.name" //nolint:gosec //#gosec G101
+	helmUserName          = "credentials.user.name"     //nolint:gosec //#gosec G101
 	mySQLRootKey          = "rootPassword"
 	secretName            = "mysql"
 	secretKey             = "mysql-password"
 	mySQLUsername         = "keycloak"
 	statefulsetClaimName  = "data-mysql-0"
 	mySQLInitFilePrefix   = "init-mysql-"
-	dbLoadJobName		  = "load-dump"
+	dbLoadJobName         = "load-dump"
 	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
 	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
 	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
@@ -346,7 +346,7 @@ func isLegacyDatabaseUpgrade(compContext spi.ComponentContext) bool {
 		},
 	}
 	compContext.Log().Debugf("Looking for deployment %s", ComponentName)
-	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName} ,deployment)
+	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment)
 	if err != nil {
 		compContext.Log().Infof("No legacy database found")
 		return false
@@ -568,7 +568,7 @@ func createKeycloakDBSecret(ctx spi.ComponentContext) (string, error) {
 	return password, nil
 }
 
-func createDatabaseInitializationValues(compContext spi.ComponentContext, userPwd []byte, kvs []bom.KeyValue)([]bom.KeyValue, error){
+func createDatabaseInitializationValues(compContext spi.ComponentContext, userPwd []byte, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	compContext.Log().Info("Adding database initialization values to MySQL helm values")
 	mySQLInitFile, err := createMySQLInitFile(compContext, userPwd)
 	if err != nil {
