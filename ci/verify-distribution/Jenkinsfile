@@ -293,6 +293,8 @@ pipeline {
                                 rm -rf ${downloadLocation}
 
                                 tree
+                                env
+                                printenv
                             """
                         } else {
                             sh """
