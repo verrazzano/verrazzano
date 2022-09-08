@@ -141,6 +141,15 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 			}
 		}
 	})
+
+	t.It("validates the k8s version of each worker node in the node pool", func() {
+		// get the nodes and check both the kube proxy and kubelet versions
+		nodes := ha.EventuallyGetNodes(clientset, t.Logs)
+		for _, node := range nodes.Items {
+			Expect(node.Status.NodeInfo.KubeProxyVersion).To(Equal(upgradeVersion), "kube proxy version is incorrect")
+			Expect(node.Status.NodeInfo.KubeletVersion).To(Equal(upgradeVersion), "kubelet version is incorrect")
+		}
+	})
 })
 
 // waitForWorkRequest waits for the work request to transition to success
