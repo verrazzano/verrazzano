@@ -8,11 +8,6 @@ import (
 	"fmt"
 	"testing"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -23,10 +18,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -141,7 +140,7 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 // TestAppendMySQLOverridesDev tests the appendMySQLOverrides function
 // GIVEN a call to appendMySQLOverrides
 // WHEN I pass in an VZ CR with the dev profile
-// THEN expect failure because emptyDir not supported
+// THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesDev(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
@@ -158,8 +157,9 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	ctx := spi.NewFakeContext(fakeClient, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
-	_, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Error(t, err)
+	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
+	assert.NoError(t, err)
+	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
 }
 
 // TestAppendMySQLOverridesDevWithPersistence tests the appendMySQLOverrides function
