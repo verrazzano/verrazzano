@@ -26,9 +26,12 @@ const (
 )
 
 var (
-	t         = framework.NewTestFramework("ha-helidon")
-	clientset = k8sutil.GetKubernetesClientsetOrDie()
+	t           = framework.NewTestFramework("ha-helidon")
+	clusterDump = pkg.NewClusterDumpWrapper(namespace)
+	clientset   = k8sutil.GetKubernetesClientsetOrDie()
 )
+
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 
 var _ = t.Describe("HA Hello Helidon app test", Label("f:app-lcm.helidon-workload"), func() {
 	var host string
