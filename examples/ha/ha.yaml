@@ -87,7 +87,7 @@ spec:
         overrides:
           - values:
               serverInstances: 3
-              routerInstances: 2
+              routerInstances: 1
     opensearchDashboards:
       replicas: 2
     kiali:
