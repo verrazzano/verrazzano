@@ -63,7 +63,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, mysqloperator.ComponentName},
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			AppendOverridesFunc:       AppendKeycloakOverrides,
