@@ -4,12 +4,12 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-BACKUP_DIR="/oracle/mysql/data-backup"
+BACKUP_DIR="/var/lib/mysql/data-backup"
 
 # takes backup of MySQL
 function backup() {
   FILE_PATH=${BACKUP_DIR}/$1
-  mysqldump --all-databases --single-transaction --quick --lock-tables=false > ${FILE_PATH} -u root -p${MYSQL_ROOT_PASSWORD}
+  mysqldump --set-gtid-purged=OFF --all-databases --single-transaction --quick --lock-tables=false > ${FILE_PATH} -u root -p${MYSQL_ROOT_PASSWORD}
   if [ $? -eq 0 ]; then
          echo "MySQL dump successful"
          exit 0
@@ -43,6 +43,14 @@ function restore() {
      exit 1
   fi
   echo "MySQL is up and ready to receive connections"
+
+
+  mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "SET GLOBAL read_only=0;"
+  if [ $? != 0 ] ; then
+       echo "Unable to change readonly status of MySQL."
+       exit 1
+  fi
+  echo "MySQL global status changed"
 
   # perform MySQL restore
   mysql -u root -p${MYSQL_ROOT_PASSWORD} < ${FILE_PATH}

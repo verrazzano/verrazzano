@@ -50,6 +50,13 @@ spec:
 {{ if (.Values).configurationFiles }}
     containers:
       - name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: rootPassword
+              name: mysql-cluster-secret
+            optional: false
         volumeMounts:
 {{- range $key, $val := .Values.configurationFiles }}
         - name: configurations
