@@ -23,7 +23,7 @@ pipeline {
         string (description: 'The source commit for the release (required for full release)', name: 'RELEASE_COMMIT', defaultValue: 'NONE', trim: true )
         choice (name: 'DISTRIBUTION_VARIANT',
                 description: 'Verrazzano Distribution Variant to use for scanning',
-                choices: ["Full", "Lite"])
+                choices: ["Lite", "Full"])
     }
 
     environment {
@@ -113,7 +113,7 @@ pipeline {
                             cd ${WORKSPACE}/release/scripts
                             ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR} ${SCANNER_HOME} ${SCAN_REPORT_DIR}
                             if [ "${BUNDLE_TO_SCAN}" == "Lite" ];then
-                              echo "Listing the contents directory containing release artifacts ..."
+                              echo "Listing the directory containing release artifacts ..."
                               ls ${RELEASE_BINARIES_DIR}
                             fi
                         """

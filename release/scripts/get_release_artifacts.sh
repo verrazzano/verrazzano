@@ -63,8 +63,6 @@ function get_vz_release_artifacts() {
     unzip ${_file}
     rm -f ${_file}
     rm -f ${_file}.sha256
-    echo "Listing of $RELEASE_BINARIES_DIR"
-    ls
 }
 
 mkdir -p $RELEASE_BINARIES_DIR

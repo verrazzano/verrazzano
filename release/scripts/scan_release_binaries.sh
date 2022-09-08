@@ -118,8 +118,6 @@ function scan_release_binaries() {
     done
   done < "$scan_summary"
   echo "Count of expected lines in the scan summary: ${result_count}"
-  echo "Listing ${RELEASE_BUNDLE_DOWNLOAD_DIR} for release artifacts"
-  ls ${RELEASE_BUNDLE_DOWNLOAD_DIR}
   if [ "$result_count" == "$array_count" ];then
     echo "Found all the expected lines in the summary of the scan report."
     return 0
@@ -137,7 +135,6 @@ if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
   VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
   DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/$VERRAZZANO_PREFIX"
 fi
-echo "Directory to scan ${DIR_TO_SCAN}"
 
 install_scanner || exit 1
 update_virus_definition || exit 1
