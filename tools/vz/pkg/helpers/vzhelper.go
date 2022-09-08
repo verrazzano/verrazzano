@@ -17,6 +17,7 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,21 +40,44 @@ type VZHelper interface {
 	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
 }
 
-const defaultVerrazzano = `apiVersion: install.verrazzano.io/v1beta1
+const defaultVerrazzanoTmpl = `apiVersion: install.verrazzano.io/%s
 kind: Verrazzano
 metadata:
   name: verrazzano
   namespace: default`
 
-func NewDefaultVerrazzano() (client.Object, error) {
+const v1beta1MinVersion = "1.4.0"
+
+func NewVerrazzanoForVZVersion(version string) (schema.GroupVersion, client.Object, error) {
+	if version == "" {
+		// default to a v1alpha1 compatible verison if not specified
+		version = "1.3.0"
+	}
+	actualVersion, err := semver.NewSemVersion(version)
+	if err != nil {
+		return schema.GroupVersion{}, nil, err
+	}
+	minVersion, err := semver.NewSemVersion(v1beta1MinVersion)
+	if err != nil {
+		return schema.GroupVersion{}, nil, err
+	}
+	if actualVersion.IsLessThan(minVersion) {
+		o, err := newVerazzanoWithAPIVersion(v1alpha1.SchemeGroupVersion.Version)
+		return v1alpha1.SchemeGroupVersion, o, err
+	}
+	o, err := newVerazzanoWithAPIVersion(v1beta1.SchemeGroupVersion.Version)
+	return v1beta1.SchemeGroupVersion, o, err
+}
+
+func newVerazzanoWithAPIVersion(version string) (client.Object, error) {
 	vz := &unstructured.Unstructured{}
-	if err := yaml.Unmarshal([]byte(defaultVerrazzano), vz); err != nil {
+	if err := yaml.Unmarshal([]byte(fmt.Sprintf(defaultVerrazzanoTmpl, version)), vz); err != nil {
 		return nil, err
 	}
 	return vz, nil
 }
 
-func NewVerrazzanoForVersion(groupVersion schema.GroupVersion) func() interface{} {
+func NewVerrazzanoForGroupVersion(groupVersion schema.GroupVersion) func() interface{} {
 	switch groupVersion {
 	case v1alpha1.SchemeGroupVersion:
 		return func() interface{} {
@@ -87,7 +111,7 @@ func FindVerrazzanoResource(client client.Client) (*v1beta1.Verrazzano, error) {
 func GetVerrazzanoResource(client client.Client, namespacedName types.NamespacedName) (*v1beta1.Verrazzano, error) {
 	vz := &v1beta1.Verrazzano{}
 	if err := client.Get(context.TODO(), namespacedName, vz); err != nil {
-		if meta.IsNoMatchError(err) {
+		if meta.IsNoMatchError(err) || apierrors.IsNotFound(err) {
 			return getVerrazzanoResourceV1Alpha1(client, namespacedName)
 		}
 		return nil, failedToGetResourceError(err)

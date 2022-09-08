@@ -6,6 +6,7 @@ package pkg
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
@@ -22,10 +23,17 @@ func VerifySystemVMIComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHT
 	var ingress *netv1.Ingress
 	var err error
 
-	if api != nil {
-		ingress, err = api.GetIngress(vzconst.VerrazzanoSystemNamespace, ingressName)
-	} else {
-		ingress, err = GetIngress(vzconst.VerrazzanoSystemNamespace, ingressName)
+	// retry in case of transient network errors
+	for i := 1; i <= 5; i++ {
+		if api != nil {
+			ingress, err = api.GetIngress(vzconst.VerrazzanoSystemNamespace, ingressName)
+		} else {
+			ingress, err = GetIngress(vzconst.VerrazzanoSystemNamespace, ingressName)
+		}
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Duration(i) * time.Second)
 	}
 	if err != nil {
 		log.Errorf("Error getting ingress: %v", err)
