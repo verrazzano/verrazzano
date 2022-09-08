@@ -490,6 +490,7 @@ func preUpgrade(ctx spi.ComponentContext) error {
 		// vz > 1.3 uses statefulsets, not deployments
 		// no migration is needed if vz >= 1.4
 		if deployment != nil {
+			ctx.Log().Debugf("Deployment != nil %s", ComponentName)
 			// change the ReclaimPolicy of the PV to Reclaim
 			mysqlPVC := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
 			err := common.RetainPersistentVolume(ctx, mysqlPVC, ComponentName)
@@ -497,6 +498,7 @@ func preUpgrade(ctx spi.ComponentContext) error {
 				return err
 			}
 			if !unitTesting { // perform instance dump of MySQL
+				ctx.Log().Debugf("Performing dump %s", ComponentName)
 				if err := dumpDatabase(ctx); err != nil {
 					ctx.Log().Debugf("Unable to perform dump of database %s", ComponentName)
 					return err
