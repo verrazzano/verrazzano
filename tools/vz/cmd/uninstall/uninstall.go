@@ -139,8 +139,9 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 			if err := client.Delete(context.TODO(), vzV1Alpha1); err != nil {
 				return failedToUninstallErr(err)
 			}
+		} else {
+			return failedToUninstallErr(err)
 		}
-		return failedToUninstallErr(err)
 	}
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
 
