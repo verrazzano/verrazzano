@@ -14,16 +14,13 @@ usage() {
   Performs malware scan on release binaries.
 
   Usage:
-    $(basename $0) <release branch> <directory where the release artifacts need to be downloaded, defaults to the current directory> <release version>
+    $(basename $0) <directory containing the release artifacts> <directory to download the scanner> <directory to place the scan report>
 
   Example:
-    $(basename $0) release-1.0 . 1.0.2
+    $(basename $0) release_bundle_dir scanner_home scan_report_dir
 
   The script expects the OCI CLI is installed. It also expects the following environment variables -
     RELEASE_VERSION - release version (major.minor.patch format, e.g. 1.0.1)
-    OCI_REGION - OCI region
-    OBJECT_STORAGE_NS - top-level namespace used for the request
-    OBJECT_STORAGE_BUCKET - object storage bucket where the artifacts are stored
     SCANNER_ARCHIVE_LOCATION - command line scanner
     SCANNER_ARCHIVE_FILE - scanner archive
     VIRUS_DEFINITION_LOCATION - virus definition location
@@ -32,41 +29,42 @@ EOM
     exit 0
 }
 
-[ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OBJECT_STORAGE_BUCKET" ] ||
 [ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] || [ -z "$NO_PROXY_SUFFIX" ] ||
-[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ "$1" == "-h" ] && { usage; }
 
 . $SCRIPT_DIR/common.sh
 
-BRANCH=${1}
-WORK_DIR=${2:-$SCRIPT_DIR}
+if [ -z "$1" ]; then
+  echo "Directory to download the bundle or directory containing the release bundle extracted"
+  exit 1
+fi
+RELEASE_BUNDLE_DOWNLOAD_DIR="$1"
 
-SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
-SCANNER_HOME="$WORK_DIR/scanner_home"
-SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
-VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
+if [ -z "$2" ]; then
+  echo "Directory to place the scaner"
+  exit 1
+fi
+SCANNER_HOME="$2"
 
-RELEASE_TAR_BALL="$VERRAZZANO_PREFIX-lite.zip"
-RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
-DIR_TO_SCAN="$RELEASE_BUNDLE_DIR"
+if [ -z "$3" ]; then
+  echo "Directory to place the scan report"
+  exit 1
+fi
+SCAN_REPORT_DIR="$3"
 
-# Option to scan full bundle
+DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR"
+
+# When an environment variable BUNDLE_TO_SCAN is set to Full, the script scans the full bundle
+# The variable DIR_TO_SCAN is redefined as there will be a top level verrazzano-<major>.<minor>.<patch> directory inside the full bundle
 if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
-  RELEASE_TAR_BALL="$VERRAZZANO_PREFIX.zip"
-  DIR_TO_SCAN="$RELEASE_BUNDLE_DIR/$VERRAZZANO_PREFIX"
+  VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
+  DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/$VERRAZZANO_PREFIX"
 fi
 
-function download_release_tarball() {
-  cd $WORK_DIR
-  mkdir -p $RELEASE_BUNDLE_DIR
-  oci --region ${OCI_REGION} os object get \
-        --namespace ${OBJECT_STORAGE_NS} \
-        -bn ${OBJECT_STORAGE_BUCKET} \
-        --name "${BRANCH}/${RELEASE_TAR_BALL}" \
-        --file "$RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL}"
-}
+SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 
 function install_scanner() {
+  mkdir -p $SCANNER_HOME
   no_proxy="$no_proxy,${NO_PROXY_SUFFIX}"
   cd $SCANNER_HOME
   curl -O $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE
@@ -86,19 +84,15 @@ function scan_release_binaries() {
     rm -f $SCAN_REPORT
   fi
 
-  # Extract the release bundle to a directory, and scan that directory
-  cd $RELEASE_BUNDLE_DIR
-  unzip $RELEASE_TAR_BALL
-  rm $RELEASE_TAR_BALL
-
   cd $DIR_TO_SCAN
-  count_files=$(ls -1q *.* | wc -l)
   ls
+  count_files=$(ls -1q *.* | wc -l)
 
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
   # Also --REPORT option prints the output of the scan in the console, which is removed and redirected to a file
-  echo "Starting the scan of $DIR_TO_SCAN, it might take a longer duration. The output of the scan is being written to $SCAN_REPORT ..."
+  echo "Starting the scan of $DIR_TO_SCAN, it might take a longer duration."
+  echo "The output of the scan is being written to $SCAN_REPORT ..."
   ./uvscan $DIR_TO_SCAN --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
 
   # Extract only the last 25 lines from the scan report and create a file, which will be used for the validation
@@ -144,9 +138,6 @@ function scan_release_binaries() {
   fi
 }
 
-mkdir -p $SCANNER_HOME
-validate_oci_cli || exit 1
-download_release_tarball || exit 1
 install_scanner || exit 1
 update_virus_definition || exit 1
 scan_release_binaries || exit 1
