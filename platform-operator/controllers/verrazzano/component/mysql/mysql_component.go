@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -60,7 +62,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:       appendMySQLOverrides,
-			Dependencies:              []string{istio.ComponentName},
+			Dependencies:              []string{istio.ComponentName, mysqloperator.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}

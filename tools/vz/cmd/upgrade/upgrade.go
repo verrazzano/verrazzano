@@ -6,7 +6,9 @@ package upgrade
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -24,13 +26,14 @@ const (
 	CommandName = "upgrade"
 	helpShort   = "Upgrade Verrazzano"
 	helpLong    = `Upgrade the Verrazzano Platform Operator to the specified version and update all of the currently installed components`
-	helpExample = `
+)
+
+var helpExample = fmt.Sprintf(`
 # Upgrade to the latest version of Verrazzano and wait for the command to complete.  Stream the logs to the console until the upgrade completes.
 vz upgrade
 
-# Upgrade to Verrazzano v1.3.0, stream the logs to the console and timeout after 20m
-vz upgrade --version v1.3.0 --timeout 20m`
-)
+# Upgrade to Verrazzano v%[1]s, stream the logs to the console and timeout after 20m
+vz upgrade --version v%[1]s --timeout 20m`, version.GetCLIVersion())
 
 var logsEnum = cmdhelpers.LogFormatSimple
 
@@ -133,7 +136,12 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		vz, err = helpers.GetVerrazzanoResource(client, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
 		if err == nil {
 			vz.Spec.Version = version
-			err = client.Update(context.TODO(), vz)
+			vzV1Alpha1 := &v1alpha1.Verrazzano{}
+			err = vzV1Alpha1.ConvertFrom(vz) // upgrade version may not support v1beta1
+			if err == nil {
+				err = client.Update(context.TODO(), vz)
+			}
+
 		}
 		if err != nil {
 			if retry == 5 {

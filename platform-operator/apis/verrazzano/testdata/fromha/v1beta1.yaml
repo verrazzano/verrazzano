@@ -66,6 +66,11 @@ spec:
       overrides:
         - values:
             replicas: 2
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 3
+              routerInstances: 2
     kiali:
       overrides:
         - values:

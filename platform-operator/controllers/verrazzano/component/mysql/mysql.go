@@ -196,13 +196,20 @@ func postInstall(ctx spi.ComponentContext) error {
 
 // generateVolumeSourceOverrides generates the appropriate persistence overrides given the component context
 func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	var err error
 	convertedVZ := v1beta1.Verrazzano{}
-	if err := common.ConvertVerrazzanoCR(compContext.EffectiveCR(), &convertedVZ); err != nil {
+	if err = common.ConvertVerrazzanoCR(compContext.EffectiveCR(), &convertedVZ); err != nil {
 		return nil, err
 	}
-	kvs, err := doGenerateVolumeSourceOverrides(&convertedVZ, kvs)
-	if err != nil {
-		return kvs, err
+
+	mySQLVolumeSource := getMySQLVolumeSource(&convertedVZ)
+	if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
+		compContext.Log().Info("EmptyDir currently not supported for MySQL server.  A default persistent volume will be used.")
+	} else {
+		kvs, err = doGenerateVolumeSourceOverrides(&convertedVZ, kvs)
+		if err != nil {
+			return kvs, err
+		}
 	}
 
 	return kvs, nil
@@ -211,9 +218,6 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 // doGenerateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
 func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	mySQLVolumeSource := getMySQLVolumeSource(effectiveCR)
-	if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
-		return kvs, fmt.Errorf("volume source of EmptyDir not supported for MySQL")
-	}
 
 	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
