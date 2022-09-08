@@ -141,27 +141,43 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
 
+	secretSet := false
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
-		if isLegacyDatabase(compContext) {
+		var err error
+		if isLegacyDatabaseUpgrade(compContext) {
+			secretName := types.NamespacedName{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
+			}
+			kvs, err = appendMySQLSecret(compContext, secretName, "mysql-root-password", kvs)
+			if err != nil {
+				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+			}
+			secretSet = true
 			userPwd, err := getLegacyUserSecret(compContext)
 			if err != nil {
 				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
-			// persist the user password in the cluster secret
+			// add user settings to enable persistence in cluster secret
 			kvs = append(kvs, bom.KeyValue{Key: helmUserPwd, Value: string(userPwd)})
 			kvs = append(kvs, bom.KeyValue{Key: helmUserName, Value: keycloak.ComponentName})
-
 			mySQLVolumeSource := getMySQLVolumeSource(compContext.EffectiveCR())
 			// check for ephemeral storage
-			if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
+			compContext.Log().Infof("MySQL volume source: %v", mySQLVolumeSource)
+			if mySQLVolumeSource == nil || mySQLVolumeSource.EmptyDir != nil {
 				// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
 				// provide the sql initialization file
-				mySQLInitFile, err := createMySQLInitFile(compContext, userPwd)
+				kvs, err = createDatabaseInitializationValues(compContext, userPwd, kvs)
 				if err != nil {
 					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 				}
-				kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
-				kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
+			}
+
+		}
+		if isLegacyPersistentDatabase(compContext) {
+			kvs, err = appendLegacyUpgradePersistenceValues(kvs)
+			if err != nil {
+				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
 		}
 	}
@@ -174,16 +190,22 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		// persist the user password in the cluster secret
 		kvs = append(kvs, bom.KeyValue{Key: helmUserPwd, Value: string(userPwd)})
 		kvs = append(kvs, bom.KeyValue{Key: helmUserName, Value: keycloak.ComponentName})
-		mySQLInitFile, err := createMySQLInitFile(compContext, []byte(userPwd))
+		kvs, err = createDatabaseInitializationValues(compContext, []byte(userPwd), kvs)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
-		kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
-		kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
 	}
-	kvs, err := appendMySQLSecret(compContext, kvs)
-	if err != nil {
-		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+
+	var err error
+	if !secretSet {
+		secretName := types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      rootSec,
+		}
+		kvs, err = appendMySQLSecret(compContext, secretName, mySQLRootKey, kvs)
+		if err != nil {
+			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		}
 	}
 
 	// generate the MySQl PV overrides
@@ -192,9 +214,6 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		compContext.Log().Error(err)
 		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
-
-	// setup helm values for a legacy database upgrade
-	kvs, err = appendLegacyUpgradeValues(compContext, kvs)
 
 	// Convert MySQL install-args to helm overrides
 	kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
@@ -298,29 +317,27 @@ func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.Ke
 	return kvs, nil
 }
 
-// doGenerateVolumeSourceOverrides appends the helm values necessary to support a legacy database upgrade
-func appendLegacyUpgradeValues(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	if isLegacyDatabase(compContext) && compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
-		var err error
-		kvs, err = appendCustomImageOverrides(kvs)
-		if err != nil {
-			return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-		}
-		kvs = append(kvs, bom.KeyValue{
-			Key:       "legacyUpgrade.claimName",
-			Value:     "dump-claim",
-			SetString: true,
-		})
-		kvs = append(kvs, bom.KeyValue{
-			Key:       "legacyUpgrade.dumpDir",
-			Value:     "dump",
-			SetString: true,
-		})
+// appendLegacyUpgradePersistenceValues appends the helm values necessary to support a legacy persistent database upgrade
+func appendLegacyUpgradePersistenceValues(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	var err error
+	kvs, err = appendCustomImageOverrides(kvs)
+	if err != nil {
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
+	kvs = append(kvs, bom.KeyValue{
+		Key:       "legacyUpgrade.claimName",
+		Value:     "dump-claim",
+		SetString: true,
+	})
+	kvs = append(kvs, bom.KeyValue{
+		Key:       "legacyUpgrade.dumpDir",
+		Value:     "dump",
+		SetString: true,
+	})
 	return kvs, nil
 }
 
-func isLegacyDatabase (compContext spi.ComponentContext) bool {
+func isLegacyDatabaseUpgrade(compContext spi.ComponentContext) bool {
 	// get the current MySQL deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -331,10 +348,26 @@ func isLegacyDatabase (compContext spi.ComponentContext) bool {
 	compContext.Log().Debugf("Looking for deployment %s", ComponentName)
 	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName} ,deployment)
 	if err != nil {
+		compContext.Log().Infof("No legacy database found")
 		return false
 	}
 
 	return true
+}
+
+func isLegacyPersistentDatabase(compContext spi.ComponentContext) bool {
+	mySQLVolumeSource := getMySQLVolumeSource(compContext.EffectiveCR())
+	if mySQLVolumeSource != nil {
+		if mySQLVolumeSource.EmptyDir != nil {
+			compContext.Log().Infof("Legacy database detected with ephemeral storage")
+			return false
+		} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
+			compContext.Log().Infof("Legacy database detected with persistent storage")
+			return true
+		}
+	}
+
+	return false
 }
 
 func getMySQLVolumeSource(effectiveCR *vzapi.Verrazzano) *v1.VolumeSource {
@@ -355,7 +388,7 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
-	imageOverrides, err := bomFile.BuildImageOverrides("mysql")
+	imageOverrides, err := bomFile.BuildImageOverrides("mysql-upgrade")
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
@@ -389,19 +422,15 @@ func GetOverrides(object runtime.Object) interface{} {
 	return []vzapi.Overrides{}
 }
 
-func appendMySQLSecret(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func appendMySQLSecret(compContext spi.ComponentContext, secretName types.NamespacedName, rootKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	rootSecret := &v1.Secret{}
-	nsName := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      rootSec,
-	}
 	// use self signed
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "tls.useSelfSigned",
 		Value: "true",
 	})
 	// Get the mysql root secret
-	err := compContext.Client().Get(context.TODO(), nsName, rootSecret)
+	err := compContext.Client().Get(context.TODO(), secretName, rootSecret)
 	if err != nil {
 		// A secret is not expected to be found the first time around (i.e. it's an install and not an update scenario).
 		// So do not return an error in this case.
@@ -419,12 +448,12 @@ func appendMySQLSecret(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]
 			return kvs, nil
 		}
 		// Return an error for upgrade or update
-		return []bom.KeyValue{}, compContext.Log().ErrorfNewErr("Failed getting MySQL userSecret: %v", err)
+		return []bom.KeyValue{}, compContext.Log().ErrorfNewErr("Failed getting MySQL root secret: %v", err)
 	}
 	// Force mysql to use the initial password and root password during the upgrade or update, by specifying as helm overrides
 	kvs = append(kvs, bom.KeyValue{
 		Key:   helmRootPwd,
-		Value: string(rootSecret.Data[mySQLRootKey]),
+		Value: string(rootSecret.Data[rootKey]),
 	})
 	return kvs, nil
 }
@@ -537,4 +566,16 @@ func createKeycloakDBSecret(ctx spi.ComponentContext) (string, error) {
 		return "", err
 	}
 	return password, nil
+}
+
+func createDatabaseInitializationValues(compContext spi.ComponentContext, userPwd []byte, kvs []bom.KeyValue)([]bom.KeyValue, error){
+	compContext.Log().Info("Adding database initialization values to MySQL helm values")
+	mySQLInitFile, err := createMySQLInitFile(compContext, userPwd)
+	if err != nil {
+		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
+	kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
+	kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
+
+	return kvs, nil
 }
