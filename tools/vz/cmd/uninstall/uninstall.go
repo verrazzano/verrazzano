@@ -7,7 +7,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"io"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"regexp"
 	"time"
 
@@ -127,7 +129,18 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// Delete the Verrazzano custom resource.
 	err = client.Delete(context.TODO(), vz)
 	if err != nil {
-		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
+		// Try to delete the resource as v1alpha1 if the v1beta1 API version did not match
+		if meta.IsNoMatchError(err) {
+			vzV1Alpha1 := &v1alpha1.Verrazzano{}
+			err = vzV1Alpha1.ConvertFrom(vz)
+			if err != nil {
+				return failedToUninstallErr(err)
+			}
+			if err := client.Delete(context.TODO(), vzV1Alpha1); err != nil {
+				return failedToUninstallErr(err)
+			}
+		}
+		return failedToUninstallErr(err)
 	}
 	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
 
@@ -408,4 +421,8 @@ func deleteClusterRole(client client.Client, name string) error {
 		return fmt.Errorf("Failed to delete ClusterRole resource %s: %s", name, err.Error())
 	}
 	return nil
+}
+
+func failedToUninstallErr(err error) error {
+	return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
 }
