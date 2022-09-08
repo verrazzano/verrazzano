@@ -101,7 +101,7 @@ func overlayVerrazzano(gv schema.GroupVersion, baseYAML string, overlayYAML stri
 	}
 
 	// Merge the two json representations
-	mergedJSON, err := strategicpatch.StrategicMergePatch(baseJSON, overlayJSON, helpers.NewVerrazzanoForVersion(gv)())
+	mergedJSON, err := strategicpatch.StrategicMergePatch(baseJSON, overlayJSON, helpers.NewVerrazzanoForGroupVersion(gv)())
 	if err != nil {
 		return "", fmt.Errorf("Failed to merge yaml: %s\n base object:\n%s\n override object:\n%s", err.Error(), baseJSON, overlayJSON)
 	}
