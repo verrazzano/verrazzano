@@ -355,49 +355,6 @@ pipeline {
             }
         }
 
-        stage('Initiate opensearch backup hook tests') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
-            }
-            steps {
-                waitForPodsToBeUp("verrazzano-system")
-                runGinkgoRandomize('backup/opensearch')
-                println("Wait for pods in verrazzano-system to be ready")
-                waitForPodsToBeUp("verrazzano-system")
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('opensearch-backup-restore-cluster-dump')
-                    }
-                }
-            }
-        }
-
-        stage('Initiate rancher backup operator tests') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
-            }
-            steps {
-                runGinkgoRandomize('backup/rancher')
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('rancher-backup-restore-cluster-dump')
-                    }
-                }
-            }
-        }
-
         stage('Initiate Mysql backup and restore tests') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
