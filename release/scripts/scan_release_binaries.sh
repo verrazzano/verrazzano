@@ -17,7 +17,7 @@ usage() {
     $(basename $0) <directory containing the release artifacts> <directory to download the scanner> <directory to place the scan report>
 
   Example:
-    $(basename $0) release_bundle_dir scanner_home scan_report_dir "true"
+    $(basename $0) release_bundle_dir scanner_home scan_report_dir
 
   The script expects the OCI CLI is installed. It also expects the following environment variables -
     RELEASE_VERSION - release version (major.minor.patch format, e.g. 1.0.1)
@@ -51,6 +51,17 @@ if [ -z "$3" ]; then
   exit 1
 fi
 SCAN_REPORT_DIR="$3"
+
+DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR"
+
+# When an environment variable BUNDLE_TO_SCAN is set to Full, the script scans the full bundle
+# The variable DIR_TO_SCAN is redefined as there will be a top level verrazzano-<major>.<minor>.<patch> directory inside the full bundle
+if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
+  VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
+  DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/$VERRAZZANO_PREFIX"
+fi
+
+SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 
 function install_scanner() {
   mkdir -p $SCANNER_HOME
@@ -126,15 +137,6 @@ function scan_release_binaries() {
     return 1
   fi
 }
-
-SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
-DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR"
-
-# Option to scan full bundle
-if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
-  VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
-  DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/$VERRAZZANO_PREFIX"
-fi
 
 install_scanner || exit 1
 update_virus_definition || exit 1
