@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
+	"os"
 )
 
 const SLASH = "/"
@@ -29,20 +30,20 @@ var opensourcefileslistbydir = map[string][]string{
 	"k8s":                          {"verrazzano-platform-operator.yaml"},
 }
 
-var openSourceFilePath = "/Users/sdosapat/Downloads/distribution-validation/new-zips/open-source-store-room"
-var linux_extracted = "/Users/sdosapat/Downloads/distribution-validation/new-zips/open-source-store-room/verrazzano-1.4.0"
+var _ = Describe("Verify VZ distribution", func() {
+	Context("When provided Lite ", func() {
 
-var _ = Describe("Verify linux dist", func() {
-	Context("linux extracted", func() {
-		It("linux verify", func() {
-			verifyDisByDir(linux_extracted+opensourcepaths["top"], "top")
-			verifyDisByDir(linux_extracted+opensourcepaths["bin"], "bin")
-			verifyDisByDir(linux_extracted+opensourcepaths["manifests"], "manifests")
-			verifyDisByDir(linux_extracted+opensourcepaths["charts"], "charts")
-			verifyDisByDir(linux_extracted+opensourcepaths["verrazzano-platform-operator"], "verrazzano-platform-operator")
-			verifyDisByDir(linux_extracted+opensourcepaths["crds"], "crds")
-			verifyDisByDir(linux_extracted+opensourcepaths["templates"], "templates")
-			verifyDisByDir(linux_extracted+opensourcepaths["k8s"], "k8s")
+		generatedPath := os.Getenv("TARBALL_DIR") ///home/opc/jenkins/workspace/sapat_vz-distribution-validation/vz-tarball/verrazzano-1.4.0
+
+		It("Verify Lite bundle", func() {
+			verifyDisByDir(generatedPath+opensourcepaths["top"], "top")
+			verifyDisByDir(generatedPath+opensourcepaths["bin"], "bin")
+			verifyDisByDir(generatedPath+opensourcepaths["manifests"], "manifests")
+			verifyDisByDir(generatedPath+opensourcepaths["charts"], "charts")
+			verifyDisByDir(generatedPath+opensourcepaths["verrazzano-platform-operator"], "verrazzano-platform-operator")
+			verifyDisByDir(generatedPath+opensourcepaths["crds"], "crds")
+			verifyDisByDir(generatedPath+opensourcepaths["templates"], "templates")
+			verifyDisByDir(generatedPath+opensourcepaths["k8s"], "k8s")
 		})
 	})
 })
