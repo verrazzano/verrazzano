@@ -145,7 +145,7 @@ func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) e
 	}
 	if installed {
 		spiCtx.Log().Progressf("MySQL operator uninstall is waiting for MySQL to be uninstalled")
-		return ctrlerrors.RetryableError{}
+		return ctrlerrors.RetryableError{Source: ComponentName}
 	}
 
 	// MySQL is not installed, safe to uninstall MySQL operator
