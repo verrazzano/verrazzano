@@ -173,7 +173,6 @@ func (d opensearchDashboardsComponent) ValidateUpdate(old *vzapi.Verrazzano, new
 	if err := d.isOpenSearchDashboardEnabled(old, new); err != nil {
 		return err
 	}
-	// Reject any other edits except InstallArgs
 	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
 	if err := common.CompareStorageOverrides(old, new, ComponentJSONName); err != nil {
 		return err
@@ -193,6 +192,14 @@ func (d opensearchDashboardsComponent) ValidateInstallV1Beta1(vz *installv1beta1
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (d opensearchDashboardsComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	// Do not allow disabling active components
+	if err := d.isOpenSearchDashboardEnabled(old, new); err != nil {
+		return err
+	}
+	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
+	if err := common.CompareStorageOverridesV1Beta1(old, new, ComponentJSONName); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -201,7 +208,7 @@ func (d opensearchDashboardsComponent) Name() string {
 	return ComponentName
 }
 
-func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old runtime.Object, new runtime.Object) error {
 	// Do not allow disabling of any component post-install for now
 	if vzconfig.IsOpenSearchDashboardsEnabled(old) && !vzconfig.IsOpenSearchDashboardsEnabled(new) {
 		return fmt.Errorf("Disabling component OpenSearch-Dashboards not allowed")
