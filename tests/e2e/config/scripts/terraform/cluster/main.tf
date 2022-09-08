@@ -58,3 +58,7 @@ module "oke" {
     oci.home = oci.home
   }
 }
+
+output "oke_cluster_id" {
+  value = module.oke.cluster_id
+}

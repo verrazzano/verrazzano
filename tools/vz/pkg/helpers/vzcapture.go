@@ -14,7 +14,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzoamapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"io"
 	corev1 "k8s.io/api/core/v1"
@@ -129,7 +129,7 @@ func GetPodList(client clipkg.Client, appLabel, appName, namespace string) ([]co
 }
 
 // CaptureVZResource captures Verrazzano resources as a JSON file
-func CaptureVZResource(captureDir string, vz vzapi.VerrazzanoList, vzHelper VZHelper) error {
+func CaptureVZResource(captureDir string, vz v1beta1.VerrazzanoList, vzHelper VZHelper) error {
 	var vzRes = filepath.Join(captureDir, constants.VzResource)
 	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {

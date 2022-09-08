@@ -5,8 +5,10 @@ package opensearch
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 )
 
@@ -75,23 +77,6 @@ func TestValidateNoDuplicatedConfiguration(t *testing.T) {
 			false,
 		},
 		{
-			"duplication when component has InstallArgs with the same name",
-			createVZ(&vzapi.ElasticsearchComponent{
-				ESInstallArgs: []vzapi.InstallArgs{
-					{
-						Name: "a",
-					},
-					{
-						Name: "b",
-					},
-					{
-						Name: "a",
-					},
-				},
-			}),
-			true,
-		},
-		{
 			"duplication when component has Node groups with the same name",
 			createVZ(&vzapi.ElasticsearchComponent{
 				Nodes: []vzapi.OpenSearchNode{
@@ -107,7 +92,9 @@ func TestValidateNoDuplicatedConfiguration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateNoDuplicatedConfiguration(tt.vz); (err != nil) != tt.hasError {
+			v1beta1vz := &v1beta1.Verrazzano{}
+			assert.NoError(t, tt.vz.ConvertTo(v1beta1vz))
+			if err := validateNoDuplicatedConfiguration(v1beta1vz); (err != nil) != tt.hasError {
 				t.Errorf("validateNoDuplicatedConfiguration() error = %v, hasError: %v", err, tt.hasError)
 			}
 		})
