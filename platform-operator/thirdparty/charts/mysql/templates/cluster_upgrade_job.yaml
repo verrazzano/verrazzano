@@ -5,6 +5,9 @@ kind: Job
 metadata:
   name: load-dump
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: mysql
+    component: restore-keycloak-db
 spec:
   template:
     spec:
@@ -13,7 +16,7 @@ spec:
             - bash
             - -c
             - chown -R 27:27 /var/lib/dump
-          image: {{ if .Values.legacyUpgrade.registry }}{{ .Values.legacyUpgrade.registry }}/{{- end }}{{- if .Values.legacyUpgrade.repository }}{{ .Values.legacyUpgrade.repository }}/{{ end }}{{ .Values.legacyUpgrade.initContainer.image.name }}:{{ .Values.legacyUpgrade.initContainer.image.tag | default .Chart.AppVersion }}
+          image: {{ .Values.legacyUpgrade.initContainer.image }}
           imagePullPolicy: IfNotPresent
           name: fixdumpdir
           resources: {}
@@ -34,7 +37,7 @@ spec:
             - -c
             - >-
               while ! mysqladmin ping -h"{{ $cluster_name }}.{{ .Release.Namespace }}.svc.cluster.local" --silent; do sleep 1; done &&
-              mysqlsh -u root -p{{ .Values.credentials.root.password }} -h {{ $cluster_name }}.{{ .Release.Namespace }}.svc.cluster.local -e 'util.loadDump("/var/lib/dump/dump", {includeSchemas: ["keycloak"], includeUsers: ["keycloak"], loadUsers: true})'
+              mysqlsh -u root -p{{ .Values.credentials.root.password }} -h {{ $cluster_name }}.{{ .Release.Namespace }}.svc.cluster.local -e 'util.loadDump("/var/lib/dump/{{ .Values.legacyUpgrade.dumpDir }}", {includeSchemas: ["keycloak"], includeUsers: ["keycloak"], loadUsers: true})'
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -43,7 +46,7 @@ spec:
                   name: {{ $cluster_name }}-cluster-secret
             - name: MYSQL_HOST
               value: {{ $cluster_name }}
-          image: {{ if .Values.legacyUpgrade.registry }}{{ .Values.legacyUpgrade.registry }}/{{- end }}{{- if .Values.legacyUpgrade.repository }}{{ .Values.legacyUpgrade.repository }}/{{ end }}{{ .Values.legacyUpgrade.container.image.name }}:{{ .Values.legacyUpgrade.container.image.tag | default .Chart.AppVersion }}
+          image: {{ .Values.legacyUpgrade.container.image }}
           imagePullPolicy: IfNotPresent
           name: mysqlsh-load-dump
           resources: {}
