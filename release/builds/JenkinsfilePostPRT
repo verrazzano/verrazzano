@@ -124,7 +124,7 @@ pipeline {
                     timeout(time: 90, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR} ${SCANNER_HOME} ${SCAN_REPORT_DIR} "true"
+                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR} ${SCANNER_HOME} ${SCAN_REPORT_DIR}
                         """
                    }
                 }

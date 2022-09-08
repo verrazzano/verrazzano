@@ -47,6 +47,10 @@ pipeline {
         SCANNER_HOME = "${WORKSPACE}/scanner_home"
         SCAN_REPORT_DIR = "${WORKSPACE}/scan_report_dir"
         RELEASE_VERSION = "${params.RELEASE_VERSION}"
+
+        VERRAZZANO_RELEASE_PREFIX = "verrazzano-${RELEASE_VERSION}"
+        VERRAZZANO_LITE_BUNDLE = "${VERRAZZANO_RELEASE_PREFIX}-lite.zip"
+        VERRAZZANO_FULL_BUNDLE = "${VERRAZZANO_RELEASE_PREFIX}.zip"
     }
 
     stages {
@@ -74,6 +78,22 @@ pipeline {
             }
         }
 
+        stage('Download Release Binaries') {
+            steps {
+                script {
+                    sh """
+                        mkdir -p ${RELEASE_BINARIES_DIR}
+                        cd ${WORKSPACE}/release/scripts
+                        if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
+                            ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${RELEASE_BINARIES_DIR}
+                        else
+                            ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${RELEASE_BINARIES_DIR}
+                        fi
+                    """
+                }
+            }
+        }
+
         stage('Scan Release Binaries') {
             environment {
                 SCANNER_ARCHIVE_LOCATION = credentials('scanner-archive-location')
@@ -87,7 +107,11 @@ pipeline {
                     timeout(time: 240, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR} ${SCANNER_HOME} ${SCAN_REPORT_DIR} "false" ${params.RELEASE_BUNDLE}
+                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR} ${SCANNER_HOME} ${SCAN_REPORT_DIR}
+                            if [ "${BUNDLE_TO_SCAN}" == "Lite" ];then
+                              echo "Listing the contents directory containing release artifacts ..."
+                              ls ${RELEASE_BINARIES_DIR}
+                            fi
                         """
                    }
                 }
