@@ -5,6 +5,8 @@
 #
 # Downloads the operator.yaml and the zip file containing the analysis tool.
 
+set -e
+
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
 
@@ -51,16 +53,16 @@ function get_vz_release_artifacts() {
             --namespace ${OBJECT_STORAGE_NS} \
             --bucket-name ${OCI_OS_COMMIT_BUCKET} \
             --name "${_folder}/${_file}.sha256" \
-            --file "${_file}.256"
+            --file "${_file}.sha256"
 
     SHA256_CMD="sha256sum -c"
     if [ "$(uname)" == "Darwin" ]; then
       SHA256_CMD="shasum -a 256 -c"
     fi
-    ${SHA_CMD} ${_file}.256
+    ${SHA256_CMD} ${_file}.sha256
     unzip ${_file}
     rm -f ${_file}
-    rm -f ${_file}.256
+    rm -f ${_file}.sha256
     echo "Listing of $RELEASE_BINARIES_DIR"
     ls
 }

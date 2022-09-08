@@ -40,8 +40,6 @@ fi
 # those in feature branches. This causes problems in some situations, so we have 2 variants for the branch names being used here:
 #      BRANCH_NAME may be a path with /
 #      CLEAN_BRANCH_NAME has the / replaced with %2F so it is not treated as a path
-
-# Once we stop creating the old bundle, we don't need to push these artifacts to ${CLEAN_BRANCH_NAME}-last-clean-periodic-test
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/operator.yaml --file operator.yaml
 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/operator.yaml --file operator.yaml
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/vz-linux-amd64.tar.gz --file vz-linux-amd64.tar.gz
@@ -80,4 +78,4 @@ ci/scripts/generate_product_zip.sh ${GIT_COMMIT_USED} ${SHORT_COMMIT_HASH_ENV} $
 #
 echo "Creating Verrazzano Release Distribution bundles"
 cd ${WORKSPACE}
-ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${DEVELOPENT_VERSION} ${SHORT_COMMIT_HASH_ENV}
+ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${local_bom} ${DEVELOPENT_VERSION}

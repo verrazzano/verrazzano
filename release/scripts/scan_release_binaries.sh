@@ -14,10 +14,12 @@ usage() {
   Performs malware scan on release binaries.
 
   Usage:
-    $(basename $0) <release branch> <directory where the release artifacts need to be downloaded> <flat to indicate whether to scan already downloaded bundle> <directory to place the scan report, which is optional>
+    $(basename $0) <directory containing the release artifacts> <directory to download the scanner> <directory to place the scan report> <flag to indicate whether to scan already downloaded bundle> <release distribution, optional>
 
   Example:
-    $(basename $0) release-1.0 release_bundle_dir true
+    $(basename $0) release_bundle_dir scanner_home scan_report_dir "true"
+
+  When the optional parameter release distribution is specified, the script expects the release distribution in bucket set for OBJECT_STORAGE_BUCKET
 
   The script expects the OCI CLI is installed. It also expects the following environment variables -
     RELEASE_VERSION - release version (major.minor.patch format, e.g. 1.0.1)
@@ -34,68 +36,57 @@ EOM
 
 [ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OBJECT_STORAGE_BUCKET" ] ||
 [ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] || [ -z "$NO_PROXY_SUFFIX" ] ||
-[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ "$1" == "-h" ] && { usage; }
 
 . $SCRIPT_DIR/common.sh
 
 if [ -z "$1" ]; then
-  echo "Branch from where to download the release bundle, must be specified"
+  echo "Directory to download the bundle or directory containing the release bundle extracted"
   exit 1
 fi
-BRANCH="$1"
+RELEASE_BUNDLE_DOWNLOAD_DIR="$1"
 
 if [ -z "$2" ]; then
-  echo "Work directory must be specified"
+  echo "Directory to place the scaner"
   exit 1
 fi
-WORK_DIR="$2"
+SCANNER_HOME="$2"
 
 if [ -z "$3" ]; then
-  echo "A flag to indicate whether to scan the release bundle which is already downloaded and extracted"
+  echo "Directory to place the scan report"
   exit 1
 fi
-USE_DOWNLOADED_BUNDLE="$3"
+SCAN_REPORT_DIR="$3"
 
-DEFAULT_SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
-SCAN_REPORT_DIR=${4:-$DEFAULT_SCAN_REPORT_DIR}
-
-SCANNER_HOME="$WORK_DIR/scanner_home"
-SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
-SCAN_SUMMARY_REPORT="${SCAN_REPORT_DIR}/scan_summary.out"
-
-VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
-
-RELEASE_TAR_BALL="$VERRAZZANO_PREFIX-lite.zip"
-RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
-DIR_TO_SCAN="$RELEASE_BUNDLE_DIR"
-
-# Option to scan full bundle
-if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
-  RELEASE_TAR_BALL="$VERRAZZANO_PREFIX.zip"
-  DIR_TO_SCAN="$RELEASE_BUNDLE_DIR/$VERRAZZANO_PREFIX"
+if [ -z "$4" ]; then
+  echo "A boolean to indicate whether to scan the release bundle which is already downloaded and extracted"
+  exit 1
 fi
+USE_DOWNLOADED_BUNDLE="$4"
+
+RELEASE_BUNDLE_TO_SCAN=${5:-""}
 
 function download_release_tarball() {
-  cd $WORK_DIR
-  mkdir -p $RELEASE_BUNDLE_DIR
+  mkdir -p $RELEASE_BUNDLE_DOWNLOAD_DIR
+  cd ${RELEASE_BUNDLE_DOWNLOAD_DIR}
   oci --region ${OCI_REGION} os object get \
         --namespace ${OBJECT_STORAGE_NS} \
         -bn ${OBJECT_STORAGE_BUCKET} \
-        --name "${BRANCH}/${RELEASE_TAR_BALL}" \
-        --file "$RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL}"
-  SHA256_CMD="sha256sum -c"
-  if [ "$(uname)" == "Darwin" ]; then
-    SHA256_CMD="shasum -a 256 -c"
-  fi
-  ${SHA_CMD} ${_file}.256
-  unzip ${_file}
-  rm -f ${_file}
-  rm -f ${_file}.256
+        --name "${RELEASE_BUNDLE_TO_SCAN}" \
+        --file "$RELEASE_BUNDLE_DOWNLOAD_DIR/${RELEASE_TAR_BALL}"
+
+  # Extract the release bundle to a directory, and scan that directory
   unzip $RELEASE_TAR_BALL
   rm $RELEASE_TAR_BALL
+  echo "Listing ${RELEASE_BUNDLE_DOWNLOAD_DIR}"
+  ls
+
+  echo "Listing directory to scan "
+  ls ${DIR_TO_SCAN}
 }
 
 function install_scanner() {
+  mkdir -p $SCANNER_HOME
   no_proxy="$no_proxy,${NO_PROXY_SUFFIX}"
   cd $SCANNER_HOME
   curl -O $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE
@@ -116,20 +107,22 @@ function scan_release_binaries() {
   fi
 
   cd $DIR_TO_SCAN
-  count_files=$(ls -1q *.* | wc -l)
   ls
+  count_files=$(ls -1q *.* | wc -l)
 
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
   # Also --REPORT option prints the output of the scan in the console, which is removed and redirected to a file
-  echo "Starting the scan of $DIR_TO_SCAN, it might take a longer duration. The output of the scan is being written to $SCAN_REPORT ..."
+  echo "Starting the scan of $DIR_TO_SCAN, it might take a longer duration."
+  echo "The output of the scan is being written to $SCAN_REPORT ..."
   ./uvscan $DIR_TO_SCAN --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
 
   # Extract only the last 25 lines from the scan report and create a file, which will be used for the validation
-  if [ -e "${SCAN_SUMMARY_REPORT}" ]; then
-    rm -f $SCAN_SUMMARY_REPORT
+  local scan_summary="${SCAN_REPORT_DIR}/scan_summary.out"
+  if [ -e "${scan_summary}" ]; then
+    rm -f $scan_summary
   fi
-  tail -25 ${SCAN_REPORT} > ${SCAN_SUMMARY_REPORT}
+  tail -25 ${SCAN_REPORT} > ${scan_summary}
 
   # The following set of lines from the summary in the scan report is used here for validation.
   declare -a expectedLines=("Total files:...................     $count_files"
@@ -156,8 +149,10 @@ function scan_release_binaries() {
         *)
       esac
     done
-  done < "$SCAN_SUMMARY_REPORT"
+  done < "$scan_summary"
   echo "Count of expected lines in the scan summary: ${result_count}"
+  echo "Listing ${RELEASE_BUNDLE_DOWNLOAD_DIR} for release artifacts"
+  ls ${RELEASE_BUNDLE_DOWNLOAD_DIR}
   if [ "$result_count" == "$array_count" ];then
     echo "Found all the expected lines in the summary of the scan report."
     return 0
@@ -167,7 +162,27 @@ function scan_release_binaries() {
   fi
 }
 
-mkdir -p $SCANNER_HOME
+SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
+VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
+
+RELEASE_TAR_BALL="$VERRAZZANO_PREFIX-lite.zip"
+
+DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR"
+
+if [[ "${USE_DOWNLOADED_BUNDLE}" != "true" ]] &&  [[ "${RELEASE_BUNDLE_TO_SCAN}" == "" ]]; then
+  echo "Specify a value for RELEASE_BUNDLE_TO_SCAN"
+  exit 1
+fi
+
+# Option to scan full bundle
+if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
+  DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/$VERRAZZANO_PREFIX"
+  RELEASE_TAR_BALL="$VERRAZZANO_PREFIX.zip"
+fi
+
+echo "RELEASE_TAR_BALL $RELEASE_TAR_BALL"
+echo "Directory to scan ${DIR_TO_SCAN}"
+
 validate_oci_cli || exit 1
 
 if [[ "${USE_DOWNLOADED_BUNDLE}" == "false" ]]; then
