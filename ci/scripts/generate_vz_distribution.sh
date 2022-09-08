@@ -143,6 +143,43 @@ captureBundleContents() {
   rm ${generatedDir}/${textFile}
 }
 
+generateReadmeFile() {
+  README_DIR=$1
+  temp_hugo_dir="temp_hugo_dir"
+  echo 'Generating HTML files from markdown'
+
+  # Create a hugo new site
+  hugo new site ${temp_hugo_dir}
+  cd ${temp_hugo_dir}
+
+  # Create a new hugo content and copy contents
+  hugo new README.md
+  cat ${README_DIR} >> content/README.md
+
+  # Create a new simple theme and add to config
+  hugo new theme simple-theme
+  echo "theme = 'simple-theme'" >> config.toml
+
+  # Change the layout file to display the contents
+  cat <<EOF >> themes/simple-theme/layouts/_default/single.html
+  <!DOCTYPE html>
+  <html>
+      <body>
+          {{ .Content }}
+      </body>
+  </html>
+EOF
+
+  # Run the hugo command to generate the static pages; -D required for draft:true
+  hugo --environment local -D
+
+  # Copy the generated static html file into the distribution
+  cp public/readme/index.html ${distDir}/README.html
+
+  cd ..
+  rm -rf ${temp_hugo_dir}
+}
+
 buildArchLiteBundle() {
   local vzCLI=$1
   local rootDir=$2
@@ -156,6 +193,9 @@ buildArchLiteBundle() {
 
   # Copy readme
   cp ${VZ_REPO_ROOT}/release/docs/README_LITE.md ${distDir}/README.md
+
+  # Generate readme html from hugo
+  generateReadmeFile ${VZ_REPO_ROOT}/release/docs/README_LITE.md
 
   # Build distribution for the given architecture
   tar -czf ${generatedDir}/${archLiteBundle} -C ${rootDir} .
@@ -240,6 +280,8 @@ generateVZFullDistribution() {
   # Create and upload the final distribution zip file and upload
   echo "Create ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} and upload ..."
   cp ${VZ_REPO_ROOT}/release/docs/README_FULL.md ${distDir}/README.md
+  # Generate readme html from hugo
+  generateReadmeFile ${VZ_REPO_ROOT}/release/docs/README_FULL.md
   cd ${rootDir}
   zip -r ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} *
   oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
