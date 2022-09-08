@@ -35,6 +35,7 @@ pipeline {
 
         OBJECT_STORAGE_NS = credentials('oci-os-namespace')
         OBJECT_STORAGE_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_REGION="us-phoenix-1"
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')

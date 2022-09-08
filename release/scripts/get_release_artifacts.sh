@@ -28,7 +28,7 @@ EOM
     exit 0
 }
 
-[ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
 
 BRANCH=$1
 RELEASE_COMMIT_SHORT=$2
