@@ -122,6 +122,8 @@ pipeline {
         OCR_CREDS=credentials('ocr-pull-and-push-account')
         NETRC_FILE=credentials('netrc')
         GITHUB_PKGS_CREDS=credentials('github-packages-credentials-rw')
+        WEBLOGIC_PSW=credentials('weblogic-example-domain-password') // needed by install_todo.sh OAM example test
+        DATABASE_PSW=credentials('todo-mysql-password') // needed by install_todo.sh OAM example test
         IMAGE_PULL_SECRET='verrazzano-container-registry'
 
         // Verrazzano variables
