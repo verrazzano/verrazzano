@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -25,13 +26,14 @@ const (
 	CommandName = "upgrade"
 	helpShort   = "Upgrade Verrazzano"
 	helpLong    = `Upgrade the Verrazzano Platform Operator to the specified version and update all of the currently installed components`
-	helpExample = `
+)
+
+var helpExample = fmt.Sprintf(`
 # Upgrade to the latest version of Verrazzano and wait for the command to complete.  Stream the logs to the console until the upgrade completes.
 vz upgrade
 
-# Upgrade to Verrazzano v1.3.0, stream the logs to the console and timeout after 20m
-vz upgrade --version v1.3.0 --timeout 20m`
-)
+# Upgrade to Verrazzano v%[1]s, stream the logs to the console and timeout after 20m
+vz upgrade --version v%[1]s --timeout 20m`, version.GetCLIVersion())
 
 var logsEnum = cmdhelpers.LogFormatSimple
 
