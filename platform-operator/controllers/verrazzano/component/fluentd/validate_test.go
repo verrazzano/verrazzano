@@ -90,7 +90,7 @@ func TestValidateExternalES(t *testing.T) {
 			Spec: v1beta1.VerrazzanoSpec{
 				Components: v1beta1.ComponentSpec{
 					Fluentd: &v1beta1.FluentdComponent{
-						OpenSearchURL: missing,
+						OpenSearchSecret: missing,
 					},
 				},
 			},

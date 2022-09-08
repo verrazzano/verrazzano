@@ -74,13 +74,13 @@ func validateLogCollector(fluentd *v1beta1.FluentdComponent) error {
 }
 
 func validateLogCollectorSecret(fluentd *v1beta1.FluentdComponent) error {
-	if len(fluentd.OpenSearchURL) > 0 && fluentd.OpenSearchURL != globalconst.VerrazzanoESInternal {
+	if len(fluentd.OpenSearchSecret) > 0 && fluentd.OpenSearchSecret != globalconst.VerrazzanoESInternal {
 		cli, err := getControllerRuntimeClient()
 		if err != nil {
 			return err
 		}
 		secret := &corev1.Secret{}
-		if err := getInstallSecret(cli, fluentd.OpenSearchURL, secret); err != nil {
+		if err := getInstallSecret(cli, fluentd.OpenSearchSecret, secret); err != nil {
 			return err
 		}
 		if err := validateEntryExist(secret, esUsernameKey); err != nil {

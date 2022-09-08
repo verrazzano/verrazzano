@@ -292,20 +292,20 @@ func TestValidateUpdateBeta(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		//{
-		//	name: "change-fluentd-es-url",
-		//	old:  &v1beta1.Verrazzano{},
-		//	new: &v1beta1.Verrazzano{
-		//		Spec: v1beta1.VerrazzanoSpec{
-		//			Components: v1beta1.ComponentSpec{
-		//				Fluentd: &v1beta1.FluentdComponent{
-		//					OpenSearchURL: "url",
-		//				},
-		//			},
-		//		},
-		//	},
-		//	wantErr: false,
-		//},
+		{
+			name: "change-fluentd-es-url",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							OpenSearchURL: "url",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
 		{
 			name: "change-fluentd-extravolume",
 			old:  &v1beta1.Verrazzano{},
