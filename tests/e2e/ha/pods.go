@@ -16,16 +16,16 @@ import (
 
 func EventuallyPodsReady(log *zap.SugaredLogger, cs *kubernetes.Clientset) {
 	var pods *corev1.PodList
-	gomega.Eventually(func() bool {
+	gomega.Eventually(func() (string, error) {
 		var err error
 		pods, err = cs.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			log.Info("Failed to get pods: %v", err)
-			return false
+			return "", err
 		}
 
 		// Assume all pods are ready.  If debug enabled, log status of each pod that is not ready yet
-		returnValue := true
+		notReadyPod := ""
 		for _, pod := range pods.Items {
 			// Skips helm-operation-* pods in cattle-system since they sometimes have a status of error during install.
 			if pod.Namespace == "cattle-system" && strings.Contains(pod.Name, "helm-operation-") {
@@ -33,12 +33,12 @@ func EventuallyPodsReady(log *zap.SugaredLogger, cs *kubernetes.Clientset) {
 			}
 			if !IsPodReadyOrCompleted(pod) {
 				log.Debugf("Pod [%s] in namespace [%s] not ready or completed [%s]", pod.Name, pod.Namespace, string(pod.Status.Phase))
-				returnValue = false
+				notReadyPod = pod.Namespace + "/" + pod.Name
 			}
 		}
-		return returnValue
+		return notReadyPod, nil
 
-	}, WaitTimeout, PollingInterval).Should(gomega.BeTrue())
+	}, longWaitTimeout, longPollingInterval).Should(gomega.BeEmpty())
 }
 
 func IsPodReadyOrCompleted(pod corev1.Pod) bool {
