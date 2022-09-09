@@ -84,36 +84,3 @@ when the custom resource is deleted.
     ```
     make docker-push
     ```  
-
-## Running KIND-based integration tests
-  ```
-  make build  
-  make docker-build  
-  make integ-test
-  ```  
-
-## Installing the OAM runtime and the Verrazzano application operator
-
-> **NOTE**: These are temporary install and uninstall scripts that will be removed before this repo is made public.
-
-The `installer` directory has scripts that will
-install and uninstall both the OAM runtime and the Verrazzano application operator, along
-with the custom Verrazzano application operator CRDs (for example, traits).
-
-First, create the GitHub packages secret in the `verrazzano-system` namespace:
-
-```
-kubectl create ns verrazzano-system
-kubectl create secret -n verrazzano-system  docker-registry github-packages --docker-username=<user@foo.com> --docker-password=<xyz> --docker-server=ghcr.io
-```
-
-To install, set the `env` var for the application operator image, then run the install script.  For example:
-```
-export VERRAZZANO_APP_OP_IMAGE=<docker-image-name>:<docker-image-tag>
-./installer/install.sh
-```
-
-To uninstall, run the following:
-```
-./installer/uninstall.sh
-```
