@@ -137,12 +137,13 @@ func getVerrazzanoHTTPClientWithRetries(kubeconfigPath string) (*retryablehttp.C
 	var httpClient *retryablehttp.Client
 	var err error
 
-	for i := 1; i <= 5; i++ {
+	// this will retry for a max of 4 minutes
+	for i := 1; i <= 15; i++ {
 		httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 		if err == nil {
 			break
 		}
-		time.Sleep(time.Duration(i) * time.Second)
+		time.Sleep(2 * time.Duration(i) * time.Second)
 	}
 	if err != nil {
 		return nil, err
