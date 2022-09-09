@@ -48,6 +48,10 @@ var _ spi.Component = mysqlComponent{}
 
 // NewComponent returns a new MySQL component
 func NewComponent() spi.Component {
+
+	// Cannot include mysqloperatorcomponent because of import cycle
+	const MySQLOperatorComponentName = "mysql-operator"
+
 	return mysqlComponent{
 		helm.HelmComponent{
 			ReleaseName:               ComponentName,
@@ -60,7 +64,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:       appendMySQLOverrides,
-			Dependencies:              []string{istio.ComponentName},
+			Dependencies:              []string{istio.ComponentName, MySQLOperatorComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}

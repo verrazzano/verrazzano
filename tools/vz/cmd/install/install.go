@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"strings"
@@ -28,15 +29,17 @@ const (
 	CommandName = "install"
 	helpShort   = "Install Verrazzano"
 	helpLong    = `Install the Verrazzano Platform Operator and install the Verrazzano components specified by the Verrazzano CR provided on the command line`
-	helpExample = `
+)
+
+var helpExample = fmt.Sprintf(`
 # Install the latest version of Verrazzano using the prod profile. Stream the logs to the console until the install completes.
 vz install
 
-# Install version 1.3.0 using a dev profile, timeout the command after 20 minutes.
-vz install --version v1.3.0 --set profile=dev --timeout 20m
+# Install version %[1]s using a dev profile, timeout the command after 20 minutes.
+vz install --version v%[1]s --set profile=dev --timeout 20m
 
-# Install version 1.3.0 using a dev profile with kiali disabled and wait for the install to complete.
-vz install --version v1.3.0 --set profile=dev --set components.kiali.enabled=false
+# Install version %[1]s using a dev profile with kiali disabled and wait for the install to complete.
+vz install --version v%[1]s --set profile=dev --set components.kiali.enabled=false
 
 # Install the latest version of Verrazzano using CR overlays and explicit value sets.  Output the logs in json format.
 # The overlay files can be a comma-separated list or a series of -f options.  Both formats are shown.
@@ -50,8 +53,7 @@ kind: Verrazzano
 metadata:
   namespace: default
   name: example-verrazzano
-EOF`
-)
+EOF`, version.GetCLIVersion())
 
 var logsEnum = cmdhelpers.LogFormatSimple
 
@@ -88,12 +90,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return fmt.Errorf("Command validation failed: %s", err.Error())
 	}
 
-	// Get the verrazzano install resource to be created
-	vz, err := getVerrazzanoYAML(cmd, vzHelper)
-	if err != nil {
-		return err
-	}
-
 	// Get the timeout value for the install command
 	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
 	if err != nil {
@@ -126,6 +122,12 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
+	}
+
+	// Get the verrazzano install resource to be created
+	vz, err := getVerrazzanoYAML(cmd, vzHelper, version)
+	if err != nil {
+		return err
 	}
 
 	// Apply the Verrazzano operator.yaml.
@@ -164,7 +166,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
-func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz clipkg.Object, err error) {
+func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version string) (vz clipkg.Object, err error) {
 	// Get the list yaml filenames specified
 	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
 	if err != nil {
@@ -182,11 +184,10 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz clipkg
 	// in the default namespace using the prod profile.
 	var gv schema.GroupVersion
 	if len(filenames) == 0 {
-		vz, err = helpers.NewDefaultVerrazzano()
+		gv, vz, err = helpers.NewVerrazzanoForVZVersion(version)
 		if err != nil {
 			return nil, err
 		}
-		gv = v1beta1.SchemeGroupVersion
 	} else {
 		// Merge the yaml files passed on the command line
 		obj, err := cmdhelpers.MergeYAMLFiles(filenames, os.Stdin)

@@ -40,7 +40,7 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	assert.Equal(t, "", errBuf.String())
 
 	// Verify the vz resource is as expected
-	vz := v1beta1.Verrazzano{}
+	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 }
@@ -111,7 +111,7 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	assert.Equal(t, "", errBuf.String())
 
 	// Verify the vz resource is as expected
-	vz := v1beta1.Verrazzano{}
+	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 }
@@ -216,10 +216,10 @@ func TestInstallCmdSets(t *testing.T) {
 	assert.Equal(t, "", errBuf.String())
 
 	// Verify the vz resource is as expected
-	vz := v1beta1.Verrazzano{}
+	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
-	assert.Equal(t, v1beta1.Dev, vz.Spec.Profile)
+	assert.Equal(t, v1alpha1.Dev, vz.Spec.Profile)
 	assert.Equal(t, "test", vz.Spec.EnvironmentName)
 }
 
@@ -292,7 +292,7 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify the vz resource is as expected
-	vz := v1beta1.Verrazzano{}
+	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 }
