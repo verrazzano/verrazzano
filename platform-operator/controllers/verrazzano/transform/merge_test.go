@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	mergeProfiles "github.com/verrazzano/verrazzano/pkg/profiles"
+	vzprofiles "github.com/verrazzano/verrazzano/pkg/profiles"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -99,7 +99,7 @@ func TestMergeProfiles(t *testing.T) {
 			assert.NoError(t, err, readProfileErrorMsg)
 
 			// Merge the profiles
-			mergedCR, err := mergeProfiles.MergeProfiles(actualCR, test.profiles...)
+			mergedCR, err := vzprofiles.MergeProfiles(actualCR, test.profiles...)
 			assert.NoError(t, err, mergeProfileErrorMsg)
 
 			// Create VerrazzanoSpec from mergedCR profile
@@ -120,7 +120,7 @@ func TestAppendComponentOverrides(t *testing.T) {
 	assert.NoError(t, err)
 	profile, err := readProfile(profileCustomSpecFilePath)
 	assert.NoError(t, err)
-	mergeProfiles.AppendComponentOverrides(actual, profile)
+	vzprofiles.AppendComponentOverrides(actual, profile)
 	merged, err := readProfile(mergedSpecFilePath)
 	assert.NoError(t, err)
 	assert.Equal(t, merged, actual)
@@ -139,7 +139,7 @@ func TestMergeProfilesForV1beta1(t *testing.T) {
 			assert.NoError(t, err, readProfileErrorMsg)
 
 			// Merge the profiles
-			mergedCR, err := mergeProfiles.MergeProfilesForV1beta1(actualCR, test.profiles...)
+			mergedCR, err := vzprofiles.MergeProfilesForV1beta1(actualCR, test.profiles...)
 			assert.NoError(t, err, mergeProfileErrorMsg)
 
 			// Create VerrazzanoSpec from mergedCR profile
@@ -160,7 +160,7 @@ func TestAppendComponentOverridesForV1beta1(t *testing.T) {
 	assert.NoError(t, err)
 	profile, err := readProfileForV1beta1(profileCustomSpecFilePath)
 	assert.NoError(t, err)
-	mergeProfiles.AppendComponentOverridesV1beta1(actual, profile)
+	vzprofiles.AppendComponentOverridesV1beta1(actual, profile)
 	merged, err := readProfileForV1beta1(mergedSpecFilePath)
 	assert.NoError(t, err)
 	assert.Equal(t, merged, actual)

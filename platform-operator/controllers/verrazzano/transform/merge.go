@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	mergeProfiles "github.com/verrazzano/verrazzano/pkg/profiles"
+	vzprofiles "github.com/verrazzano/verrazzano/pkg/profiles"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -35,7 +35,7 @@ func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error)
 		profileFiles = append(profileFiles, config.GetProfile(actualCR.GroupVersionKind().GroupVersion(), profile))
 	}
 	// Merge the profile files into an effective profile YAML string
-	effectiveCR, err := mergeProfiles.MergeProfiles(actualCR, profileFiles...)
+	effectiveCR, err := vzprofiles.MergeProfiles(actualCR, profileFiles...)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 		profileFiles = append(profileFiles, config.GetProfile(actualCR.GroupVersionKind().GroupVersion(), profile))
 	}
 	// Merge the profile files into an effective profile YAML string
-	effectiveCR, err := mergeProfiles.MergeProfilesForV1beta1(actualCR, profileFiles...)
+	effectiveCR, err := vzprofiles.MergeProfilesForV1beta1(actualCR, profileFiles...)
 	if err != nil {
 		return nil, err
 	}
