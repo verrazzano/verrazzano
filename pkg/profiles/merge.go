@@ -1,3 +1,6 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package profiles
 
 import (
@@ -149,7 +152,7 @@ func appendProfileComponentOverridesV1beta1(profileFiles ...string) ([]string, e
 	return profileStrings, nil
 }
 
-//AppendComponentOverrides copies the profile overrides of v1alpha1.Verrazzano over to the actual overrides. Any component that has overrides should be included here.
+// AppendComponentOverrides copies the profile overrides of v1alpha1.Verrazzano over to the actual overrides. Any component that has overrides should be included here.
 // Because overrides lacks a proper merge key, a strategic merge will replace the array instead of merging it. This function stops that replacement from occurring.
 // The profile CR overrides must be appended to the actual CR overrides to preserve the precedence order in the way HelmComponent consumes them.
 func AppendComponentOverrides(actual, profile *v1alpha1.Verrazzano) {
@@ -287,7 +290,7 @@ func AppendComponentOverrides(actual, profile *v1alpha1.Verrazzano) {
 	}
 }
 
-//AppendComponentOverridesV1beta1 copies the profile overrides of v1beta1.Verrazzano over to the actual overrides. Any component that has overrides should be included here.
+// AppendComponentOverridesV1beta1 copies the profile overrides of v1beta1.Verrazzano over to the actual overrides. Any component that has overrides should be included here.
 // Because overrides lacks a proper merge key, a strategic merge will replace the array instead of merging it. This function stops that replacement from occurring.
 // The profile CR overrides must be appended to the actual CR overrides to preserve the precedence order in the way HelmComponent consumes them.
 func AppendComponentOverridesV1beta1(actual, profile *v1beta1.Verrazzano) {
@@ -425,12 +428,12 @@ func AppendComponentOverridesV1beta1(actual, profile *v1beta1.Verrazzano) {
 	}
 }
 
-////mergeOverrides merges the various profiles overrides of v1beta1.Verrazzano into the actual overrides
+// mergeOverrides merges the various profiles overrides of v1beta1.Verrazzano into the actual overrides
 func mergeOverrides(actual, profile []v1alpha1.Overrides) []v1alpha1.Overrides {
 	return append(actual, profile...)
 }
 
-//mergeOverridesV1beta1 merges the various profiles overrides of v1beta1.Verrazzano into the actual overrides
+// mergeOverridesV1beta1 merges the various profiles overrides of v1beta1.Verrazzano into the actual overrides
 func mergeOverridesV1beta1(actual, profile []v1beta1.Overrides) []v1beta1.Overrides {
 	return append(actual, profile...)
 }
