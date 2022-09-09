@@ -429,7 +429,7 @@ type VeleroPodVolumeRestores struct {
 	} `json:"status"`
 }
 
-type MySqlInnoDB struct {
+type MySQLInnoDB struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 	Metadata   struct {

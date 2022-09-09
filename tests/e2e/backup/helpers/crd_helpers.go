@@ -315,7 +315,7 @@ func GetRancherRestore(restoreName string, log *zap.SugaredLogger) (*RancherRest
 }
 
 // GetInnoDBCluster Retrieves InnoDB Cluster object from the cluster
-func GetInnoDBCluster(namespace, innodbName string, log *zap.SugaredLogger) (*MySqlInnoDB, error) {
+func GetInnoDBCluster(namespace, innodbName string, log *zap.SugaredLogger) (*MySQLInnoDB, error) {
 	innoDBFetched, err := getUnstructuredData("mysql.oracle.com", "v2", "innodbclusters", innodbName, namespace, "mysql-innodb", log)
 	if err != nil {
 		log.Errorf("Unable to fetch innoDB  '%s' due to '%v'", innodbName, zap.Error(err))
@@ -326,7 +326,7 @@ func GetInnoDBCluster(namespace, innodbName string, log *zap.SugaredLogger) (*My
 		log.Infof("No innoDB cluster with name '%s' in namespace '%s' was detected", innodbName, namespace)
 	}
 
-	var innoDB MySqlInnoDB
+	var innoDB MySQLInnoDB
 	bdata, err := json.Marshal(innoDBFetched)
 	if err != nil {
 		log.Errorf("Json marshalling error %v", zap.Error(err))
