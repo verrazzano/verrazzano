@@ -6,6 +6,7 @@ package install
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -124,11 +125,27 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 	}
 
-	// Check to make sure we don't already have vz installed.
-	oldvz, _ := helpers.FindVerrazzanoResource(client)
-	if oldvz != nil {
-		if oldvz.Status.State != v1beta1.VzStateReconciling && oldvz.Status.Version != version {
+	// Check to see if we have a vz resource already deployed
+	existingvz, _ := helpers.FindVerrazzanoResource(client)
+	if existingvz != nil {
+		// Allow install command to continue if an install is in progress and the same version is specified.
+		// For example, control-C was entered and the install command is run again.
+		// Note: "Installing" is a state that was used in pre 1.4.0 installs.
+		if existingvz.Status.State != v1beta1.VzStateReconciling && existingvz.Status.State != "Installing" {
 			return fmt.Errorf("Only one install of Verrazzano is allowed")
+		}
+		if version != "" {
+			installVersion, err := semver.NewSemVersion(version)
+			if err != nil {
+				return fmt.Errorf("Failed creating semantic version from install version %s: %s", version, err.Error())
+			}
+			vzVersion, err := semver.NewSemVersion(existingvz.Status.Version)
+			if err != nil {
+				return fmt.Errorf("Failed creating semantic version from Verrazzano resource version %s: %s", existingvz.Status.Version, err.Error())
+			}
+			if !installVersion.IsEqualTo(vzVersion) {
+				return fmt.Errorf("Unable to install version %s, install of version %s is in progress", version, existingvz.Status.Version)
+			}
 		}
 	}
 
