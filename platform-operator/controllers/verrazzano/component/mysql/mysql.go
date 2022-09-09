@@ -89,7 +89,7 @@ var (
 		"persistence.storageClass": "datadirVolumeClaimTemplate.storageClassName",
 	}
 	// maskPw will mask passwords in strings with '******'
-	maskPw = vzpassword.MaskFunction("password ")
+	maskPw = vzpassword.MaskFunction("-p")
 	// Set to true during unit testing
 	unitTesting bool
 )
@@ -679,10 +679,10 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 
 	// ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
-	execCmd := []string{"bash", "-c", sqlCmd}
+	execCmd := []string{sqlCmd}
 	// util.dumpInstance() Cmd
 	sqlShCmd := fmt.Sprintf(mySQLShCommands, rootPwd)
-	execShCmd := []string{"bash", "-c", sqlShCmd}
+	execShCmd := []string{sqlShCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
