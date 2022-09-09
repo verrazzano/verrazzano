@@ -33,7 +33,7 @@ else
   ls ${VERRAZZANO_IMAGES_DIRECTORY}
 fi
 
-BOM_FILE=${WORKSPACE}/tar-files/verrazzano-bom.json
+BOM_FILE=${WORKSPACE}/verrazzano-bom.json
 
 if [ ! -f "${BOM_FILE}" ]; then
   echo "There is no verrazzano-bom.json from this run, so we can't push anything to OCIR"

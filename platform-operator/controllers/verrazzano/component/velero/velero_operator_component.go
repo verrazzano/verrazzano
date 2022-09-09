@@ -6,6 +6,8 @@ package velero
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -19,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 const (
@@ -146,6 +147,15 @@ func (v veleroHelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzan
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (v veleroHelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	if v.IsEnabled(old) && !v.IsEnabled(new) {
+		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
+	}
+	// Validate install overrides
+	if new.Spec.Components.Velero != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(new.Spec.Components.Velero.ValueOverrides); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

@@ -8,29 +8,29 @@ import (
 	"fmt"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -160,8 +160,12 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 			}
 			// add user settings to enable persistence in cluster secret
 			kvs = append(kvs, bom.KeyValue{Key: helmUserPwd, Value: string(userPwd)})
-			kvs = append(kvs, bom.KeyValue{Key: helmUserName, Value: keycloak.ComponentName})
-			mySQLVolumeSource := getMySQLVolumeSource(compContext.EffectiveCR())
+			kvs = append(kvs, bom.KeyValue{Key: helmUserName, Value: mySQLUsername})
+
+			mySQLVolumeSource, err := getVolumeSource(compContext.EffectiveCR())
+			if err != nil {
+				return []bom.KeyValue{}, err
+			}
 			// check for ephemeral storage
 			compContext.Log().Infof("MySQL volume source: %v", mySQLVolumeSource)
 			if mySQLVolumeSource == nil || mySQLVolumeSource.EmptyDir != nil {
@@ -183,13 +187,13 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
-		userPwd, err := createKeycloakDBSecret(compContext)
+		userPwd, err := createKeycloakDBSecret()
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 		// persist the user password in the cluster secret
-		kvs = append(kvs, bom.KeyValue{Key: helmUserPwd, Value: string(userPwd)})
-		kvs = append(kvs, bom.KeyValue{Key: helmUserName, Value: keycloak.ComponentName})
+		kvs = append(kvs, bom.KeyValue{Key: helmUserPwd, Value: userPwd})
+		kvs = append(kvs, bom.KeyValue{Key: helmUserName, Value: mySQLUsername})
 		kvs, err = createDatabaseInitializationValues(compContext, []byte(userPwd), kvs)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -257,18 +261,17 @@ func postInstall(ctx spi.ComponentContext) error {
 
 // generateVolumeSourceOverrides generates the appropriate persistence overrides given the component context
 func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	mySQLVolumeSource := getMySQLVolumeSource(compContext.EffectiveCR())
-	// No volumes to process, return what we have
-	if mySQLVolumeSource == nil {
-		return kvs, nil
+	var err error
+	convertedVZ := v1beta1.Verrazzano{}
+	if err = common.ConvertVerrazzanoCR(compContext.EffectiveCR(), &convertedVZ); err != nil {
+		return nil, err
 	}
 
-	if mySQLVolumeSource.EmptyDir != nil {
-		// EmptyDir currently not support with mysql operator
+	mySQLVolumeSource := getMySQLVolumeSource(&convertedVZ)
+	if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
 		compContext.Log().Info("EmptyDir currently not supported for MySQL server.  A default persistent volume will be used.")
 	} else {
-		var err error
-		kvs, err = doGenerateVolumeSourceOverrides(compContext.EffectiveCR(), kvs)
+		kvs, err = doGenerateVolumeSourceOverrides(&convertedVZ, kvs)
 		if err != nil {
 			return kvs, err
 		}
@@ -278,13 +281,13 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 }
 
 // doGenerateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
-func doGenerateVolumeSourceOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	mySQLVolumeSource := getMySQLVolumeSource(effectiveCR)
 
 	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
-		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR)
 		if !found {
 			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
@@ -356,7 +359,10 @@ func isLegacyDatabaseUpgrade(compContext spi.ComponentContext) bool {
 }
 
 func isLegacyPersistentDatabase(compContext spi.ComponentContext) bool {
-	mySQLVolumeSource := getMySQLVolumeSource(compContext.EffectiveCR())
+	mySQLVolumeSource, err := getVolumeSource(compContext.EffectiveCR())
+	if err != nil {
+		return false
+	}
 	if mySQLVolumeSource != nil {
 		if mySQLVolumeSource.EmptyDir != nil {
 			compContext.Log().Infof("Legacy database detected with ephemeral storage")
@@ -370,7 +376,16 @@ func isLegacyPersistentDatabase(compContext spi.ComponentContext) bool {
 	return false
 }
 
-func getMySQLVolumeSource(effectiveCR *vzapi.Verrazzano) *v1.VolumeSource {
+func getVolumeSource(effectiveCr *vzapi.Verrazzano) (*v1.VolumeSource, error) {
+	convertedVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(effectiveCr, &convertedVZ); err != nil {
+		return nil, err
+	}
+	return getMySQLVolumeSource(&convertedVZ), nil
+}
+
+// getMySQLVolumeSourceV1beta1 returns the volume source from v1beta1.Verrazzano
+func getMySQLVolumeSource(effectiveCR *v1beta1.Verrazzano) *v1.VolumeSource {
 	var mySQLVolumeSource *v1.VolumeSource
 	if effectiveCR.Spec.Components.Keycloak != nil {
 		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
@@ -466,7 +481,10 @@ func preUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	// following steps are only needed for persistent storage
-	mySQLVolumeSource := getMySQLVolumeSource(ctx.EffectiveCR())
+	mySQLVolumeSource, err := getVolumeSource(ctx.EffectiveCR())
+	if err != nil {
+		return err
+	}
 	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
 		deploymentPvc := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
 		err := common.RetainPersistentVolume(ctx, deploymentPvc, ComponentName)
@@ -513,7 +531,10 @@ func postUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL post upgrade dry run")
 		return nil
 	}
-	mySQLVolumeSource := getMySQLVolumeSource(ctx.EffectiveCR())
+	mySQLVolumeSource, err := getVolumeSource(ctx.EffectiveCR())
+	if err != nil {
+		return err
+	}
 	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
 		return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
 	}
@@ -560,7 +581,7 @@ func getLegacyUserSecret(ctx spi.ComponentContext) ([]byte, error) {
 }
 
 // createKeycloakDBSecret creates or updates a secret containing the password used by keycloak to access the DB
-func createKeycloakDBSecret(ctx spi.ComponentContext) (string, error) {
+func createKeycloakDBSecret() (string, error) {
 	password, err := vzpassword.GeneratePassword(12)
 	if err != nil {
 		return "", err

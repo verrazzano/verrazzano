@@ -6,6 +6,9 @@ package mcagent
 import (
 	"bytes"
 	"context"
+	"text/template"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
@@ -17,7 +20,6 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
-	"text/template"
 )
 
 const (
@@ -35,10 +37,11 @@ const (
 
 // jaegerData needed for template rendering
 type jaegerData struct {
-	ClusterName   string
-	OpenSearchURL string
-	SecretName    string
-	MutualTLS     bool
+	ClusterName     string
+	OpenSearchURL   string
+	SecretName      string
+	MutualTLS       bool
+	IsForceRecreate bool
 }
 
 // A template to define Jaeger CR for creating a Jaeger instance in managed cluster.
@@ -52,6 +55,9 @@ spec:
   annotations:
     sidecar.istio.io/inject: "true"
     proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+{{if .IsForceRecreate}}
+    verrazzano.io/recreatedAt: "{{now.UnixMilli}}"
+{{end}}
   ingress:
     enabled: false
   strategy: production
@@ -89,7 +95,7 @@ spec:
 `
 
 // Creates or Updates Jaeger CR
-func (s *Syncer) configureJaegerCR() {
+func (s *Syncer) configureJaegerCR(forceUpdateCR bool) {
 	// Skip the creation of Jaeger instance if Jaeger Operator is not installed
 	if !s.isJaegerOperatorConfigured() {
 		return
@@ -124,14 +130,16 @@ func (s *Syncer) configureJaegerCR() {
 	}
 	clusterName = string(sec.Data[constants.ClusterNameData])
 	// use template to populate Jaeger spec data
-	jaegerTemplate, err := template.New("jaeger").Parse(jaegerManagedClusterCRTemplate)
+	jaegerTemplate, err := template.New("jaeger").Funcs(template.FuncMap{
+		"now": time.Now,
+	}).Parse(jaegerManagedClusterCRTemplate)
 	if err != nil {
 		s.Log.Errorf("Failed to create the Jaeger template: %v", err)
 		return
 	}
 	var b bytes.Buffer
 	err = jaegerTemplate.Execute(&b, jaegerData{ClusterName: clusterName, OpenSearchURL: osURL,
-		SecretName: mcconstants.JaegerManagedClusterSecretName, MutualTLS: mutualTLS})
+		SecretName: mcconstants.JaegerManagedClusterSecretName, MutualTLS: mutualTLS, IsForceRecreate: forceUpdateCR})
 	if err != nil {
 		s.Log.Errorf("Failed to execute the Jaeger template: %v", err)
 		return
