@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"reflect"
 
-	corev1 "k8s.io/api/core/v1"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func CompareInstallArgs(old []vzapi.InstallArgs, new []vzapi.InstallArgs, exceptions ...string) error {

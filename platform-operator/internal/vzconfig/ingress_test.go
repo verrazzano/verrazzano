@@ -446,28 +446,38 @@ func TestFindVolumeTemplate(t *testing.T) {
 			},
 		},
 	}
+
+	vz := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			VolumeClaimSpecTemplates: specTemplateList,
+		},
+	}
 	// Test boundary conditions
-	invalidName, found := FindVolumeTemplate("blah", specTemplateList)
+	invalidName, found := FindVolumeTemplate("blah", &vz)
 	assert.Nil(t, invalidName)
 	assert.False(t, found)
-	emptyName, found2 := FindVolumeTemplate("", specTemplateList)
+	emptyName, found2 := FindVolumeTemplate("", &vz)
 	assert.Nil(t, emptyName)
 	assert.False(t, found2)
 	nilList, found3 := FindVolumeTemplate("default", nil)
 	assert.Nil(t, nilList)
 	assert.False(t, found3)
-	emptyList, found4 := FindVolumeTemplate("default", []vzapi.VolumeClaimSpecTemplate{})
+	emptyList, found4 := FindVolumeTemplate("default", &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{},
+		},
+	})
 	assert.Nil(t, emptyList)
 	assert.False(t, found4)
 
 	// Test normal behavior
-	defTemplate, found := FindVolumeTemplate("default", specTemplateList)
+	defTemplate, found := FindVolumeTemplate("default", &vz)
 	assert.True(t, found)
 	assert.Equal(t, "defVolume", defTemplate.VolumeName)
-	temp1, found := FindVolumeTemplate("template1", specTemplateList)
+	temp1, found := FindVolumeTemplate("template1", &vz)
 	assert.True(t, found)
 	assert.Equal(t, "temp1Volume", temp1.VolumeName)
-	temp2, found := FindVolumeTemplate("template2", specTemplateList)
+	temp2, found := FindVolumeTemplate("template2", &vz)
 	assert.True(t, found)
 	assert.Equal(t, "temp2Volume", temp2.VolumeName)
 }

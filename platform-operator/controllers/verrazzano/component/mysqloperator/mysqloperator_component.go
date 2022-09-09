@@ -6,20 +6,22 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strconv"
+
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
-	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpocons "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,9 +53,10 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+			ImagePullSecretKeyname:    "image.pullSecrets.secretName",
 			MinVerrazzanoVersion:      vpocons.VerrazzanoVersion1_4_0,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
+			AppendOverridesFunc:       AppendOverrides,
 			Dependencies:              []string{},
 			GetInstallOverridesFunc:   getOverrides,
 			InstallBeforeUpgrade:      true,
@@ -125,11 +128,32 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (c mysqlOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return c.validateMySQLOperator(vz)
+	convertedVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(vz, &convertedVZ); err != nil {
+		return err
+	}
+	return c.validateMySQLOperator(&convertedVZ)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c mysqlOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
+	}
+	convertedVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(new, &convertedVZ); err != nil {
+		return err
+	}
+	return c.validateMySQLOperator(&convertedVZ)
+}
+
+// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
+func (c mysqlOperatorComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	return c.validateMySQLOperator(vz)
+}
+
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c mysqlOperatorComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
