@@ -5,22 +5,24 @@ package helpers
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/yaml"
 )
 
-var vzMergeStruct vzapi.Verrazzano
-
 // MergeYAMLFiles parses the given slice of filenames containing yaml and
 // merges them into a single verrazzano yaml and then returned as a vz resource.
-func MergeYAMLFiles(filenames []string, stdinReader io.Reader) (*vzapi.Verrazzano, error) {
+func MergeYAMLFiles(filenames []string, stdinReader io.Reader) (*unstructured.Unstructured, error) {
 	var vzYAML string
 	var stdin bool
+	var gv = &schema.GroupVersion{}
 	for _, filename := range filenames {
 		var readBytes []byte
 		var err error
@@ -37,22 +39,25 @@ func MergeYAMLFiles(filenames []string, stdinReader io.Reader) (*vzapi.Verrazzan
 		if err != nil {
 			return nil, err
 		}
-		vzYAML, err = overlayVerrazzano(vzYAML, string(readBytes))
+		if err := checkGroupVersion(readBytes, gv); err != nil {
+			return nil, err
+		}
+		vzYAML, err = overlayVerrazzano(*gv, vzYAML, string(readBytes))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	vz := &vzapi.Verrazzano{}
+	vz := &unstructured.Unstructured{}
 	err := yaml.Unmarshal([]byte(vzYAML), &vz)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
 	}
-	if vz.Namespace == "" {
-		vz.Namespace = "default"
+	if vz.GetNamespace() == "" {
+		vz.SetNamespace("default")
 	}
-	if vz.Name == "" {
-		vz.Name = "verrazzano"
+	if vz.GetName() == "" {
+		vz.SetName("verrazzano")
 	}
 
 	return vz, nil
@@ -60,25 +65,26 @@ func MergeYAMLFiles(filenames []string, stdinReader io.Reader) (*vzapi.Verrazzan
 
 // MergeSetFlags merges yaml representing a set flag passed on the command line with a
 // verrazano install resource.  A merged verrazzano install resource is returned.
-func MergeSetFlags(vz *vzapi.Verrazzano, overlayYAML string) (*vzapi.Verrazzano, error) {
+func MergeSetFlags(gv schema.GroupVersion, vz clipkg.Object, overlayYAML string) (clipkg.Object, error) {
 	baseYAML, err := yaml.Marshal(vz)
 	if err != nil {
 		return vz, err
 	}
-	vzYAML, err := overlayVerrazzano(string(baseYAML), overlayYAML)
+	vzYAML, err := overlayVerrazzano(gv, string(baseYAML), overlayYAML)
 	if err != nil {
 		return vz, err
 	}
 
-	err = yaml.Unmarshal([]byte(vzYAML), &vz)
+	obj := &unstructured.Unstructured{}
+	err = yaml.Unmarshal([]byte(vzYAML), obj)
 	if err != nil {
-		return vz, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
+		return obj, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
 	}
-	return vz, nil
+	return obj, nil
 }
 
 // overlayVerrazzano overlays over base using JSON strategic merge.
-func overlayVerrazzano(baseYAML string, overlayYAML string) (string, error) {
+func overlayVerrazzano(gv schema.GroupVersion, baseYAML string, overlayYAML string) (string, error) {
 	if strings.TrimSpace(baseYAML) == "" {
 		return overlayYAML, nil
 	}
@@ -95,7 +101,7 @@ func overlayVerrazzano(baseYAML string, overlayYAML string) (string, error) {
 	}
 
 	// Merge the two json representations
-	mergedJSON, err := strategicpatch.StrategicMergePatch(baseJSON, overlayJSON, &vzMergeStruct)
+	mergedJSON, err := strategicpatch.StrategicMergePatch(baseJSON, overlayJSON, helpers.NewVerrazzanoForGroupVersion(gv)())
 	if err != nil {
 		return "", fmt.Errorf("Failed to merge yaml: %s\n base object:\n%s\n override object:\n%s", err.Error(), baseJSON, overlayJSON)
 	}
@@ -106,4 +112,21 @@ func overlayVerrazzano(baseYAML string, overlayYAML string) (string, error) {
 	}
 
 	return string(mergedYAML), nil
+}
+
+func checkGroupVersion(readBytes []byte, gv *schema.GroupVersion) error {
+	obj := &unstructured.Unstructured{}
+	if err := yaml.Unmarshal(readBytes, obj); err != nil {
+		// allow merge of unknown objects
+		return nil
+	}
+	ogv := obj.GroupVersionKind().GroupVersion()
+	if gv.Version == "" {
+		*gv = ogv
+	} else {
+		if ogv != *gv {
+			return fmt.Errorf("cannot merge objects with different group versions: %v != %v", *gv, ogv)
+		}
+	}
+	return nil
 }

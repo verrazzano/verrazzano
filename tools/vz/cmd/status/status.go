@@ -5,6 +5,7 @@ package status
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -52,8 +53,8 @@ Verrazzano Status
 {{- if .kiali_url}}
     Kiali URL: {{.kiali_url}}
 {{- end}}
-{{- if .kibana_url}}
-    Kibana URL: {{.kibana_url}}
+{{- if .osd_url}}
+    Opensearch Dashboards URL: {{.osd_url}}
 {{- end}}
 {{- if .os_url}}
     OpenSearch URL: {{.os_url}}
@@ -170,7 +171,11 @@ func runCmdStatus(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		"verrazzano_namespace": vz.Namespace,
 		"verrazzano_version":   vz.Status.Version,
 		"verrazzano_state":     string(vz.Status.State),
-		"install_profile":      string(vz.Spec.Profile),
+	}
+	if vz.Spec.Profile == "" {
+		templateValues["install_profile"] = string(vzapi.Prod)
+	} else {
+		templateValues["install_profile"] = string(vz.Spec.Profile)
 	}
 	addAccessEndpoints(vz.Status.VerrazzanoInstance, templateValues)
 	addComponents(vz.Status.Components, templateValues)
@@ -184,7 +189,7 @@ func runCmdStatus(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 }
 
 // addAccessEndpoints - add access endpoints to the display output
-func addAccessEndpoints(instance *vzapi.InstanceInfo, values map[string]string) {
+func addAccessEndpoints(instance *v1beta1.InstanceInfo, values map[string]string) {
 	if instance != nil {
 		if instance.ConsoleURL != nil {
 			values["console_url"] = *instance.ConsoleURL
@@ -195,11 +200,11 @@ func addAccessEndpoints(instance *vzapi.InstanceInfo, values map[string]string) 
 		if instance.RancherURL != nil {
 			values["rancher_url"] = *instance.RancherURL
 		}
-		if instance.ElasticURL != nil {
-			values["os_url"] = *instance.ElasticURL
+		if instance.OpenSearchURL != nil {
+			values["os_url"] = *instance.OpenSearchURL
 		}
-		if instance.KibanaURL != nil {
-			values["kibana_url"] = *instance.KibanaURL
+		if instance.OpenSearchURL != nil {
+			values["osd_url"] = *instance.OpenSearchDashboardsURL
 		}
 		if instance.GrafanaURL != nil {
 			values["grafana_url"] = *instance.GrafanaURL
@@ -217,7 +222,7 @@ func addAccessEndpoints(instance *vzapi.InstanceInfo, values map[string]string) 
 }
 
 // addComponents - add the component status information
-func addComponents(components vzapi.ComponentStatusMap, values map[string]string) {
+func addComponents(components v1beta1.ComponentStatusMap, values map[string]string) {
 	if componentOutputEnabled {
 		for _, component := range components {
 			// Generate key/value for output template - remove dashes from component name, not a valid template character

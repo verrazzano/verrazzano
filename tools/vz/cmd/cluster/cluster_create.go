@@ -16,7 +16,7 @@ import (
 const (
 	createSubCommandName = "create"
 	createHelpShort      = "Verrazzano cluster create"
-	createHelpLong       = `The command 'cluster create' provisions a new local cluster with the given name (defaults to "` + constants.ClusterNameFlagDefault + `")`
+	createHelpLong       = `Creates a new local cluster`
 	createHelpExample    = `vz cluster create --name mycluster`
 )
 

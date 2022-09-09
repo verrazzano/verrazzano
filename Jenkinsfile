@@ -106,6 +106,7 @@ pipeline {
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_OS_REGION="us-phoenix-1"
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
@@ -195,6 +196,19 @@ pipeline {
                 }
                 success {
                     archiveArtifacts artifacts: "generated-operator.yaml", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Check Repo Clean') {
+            steps {
+                checkRepoClean()
+            }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
                 }
             }
         }
@@ -481,12 +495,8 @@ pipeline {
                 stage("Build Product Zip") {
                     steps {
                         script {
-                            tarfilePrefix="verrazzano_${VERRAZZANO_DEV_VERSION}"
-                            storeLocation="${env.BRANCH_NAME}/${tarfilePrefix}.zip"
-                            generatedBOM="$WORKSPACE/generated-verrazzano-bom.json"
-                            echo "Building zipfile, prefix: ${tarfilePrefix}, location:  ${storeLocation}"
                             sh """
-                                ci/scripts/generate_product_zip.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${env.BRANCH_NAME} ${tarfilePrefix} ${generatedBOM}
+                                ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
                             """
                         }
                     }
@@ -494,11 +504,14 @@ pipeline {
                 stage("Private Registry Test") {
                     steps {
                         script {
+                            tarfilePrefix="verrazzano-${VERRAZZANO_DEV_VERSION}-lite"
+                            storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${tarfilePrefix}.zip"
                             echo "Starting private registry test for ${storeLocation}, file prefix ${tarfilePrefix}"
                             build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'DISTRIBUTION_VARIANT', value: 'Lite'),
                                     string(name: 'ZIPFILE_LOCATION', value: storeLocation)
                                 ], wait: true
                         }
@@ -513,6 +526,8 @@ pipeline {
                         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
                         OCI_CLI_REGION = "us-ashburn-1"
                         OCI_REGION = "${env.OCI_CLI_REGION}"
+                        // Directory containing the Verrazzano image tar files
+                        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
                     }
                     when {
                         expression{params.PUSH_TO_OCIR == true}
@@ -603,15 +618,21 @@ def buildVerrazzanoCLI(dockerImageTag) {
     """
 }
 
-// Called in Stage Build steps
-// Makes target docker push for application/platform operator and analysis
-def buildImages(dockerImageTag) {
+def checkRepoClean() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
         echo 'Check for forgotten manifest/generate actions...'
         (cd platform-operator; make check-repo-clean)
         (cd application-operator; make check-repo-clean)
         (cd image-patch-operator; make check-repo-clean)
+    """
+}
+
+// Called in Stage Build steps
+// Makes target docker push for application/platform operator and analysis
+def buildImages(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
         echo 'Now build...'
         make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json

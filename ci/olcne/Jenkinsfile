@@ -1,9 +1,8 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// This pipeline is configured to test Verrazzano using OLCNE environment
-// -> Setup Kubernetes in OLCNE environment
-// -> Install oci-ccm module in OLCNE environment
+// This pipeline is configured to test Verrazzano using OCNE environment
+// -> Setup OCNE environment with Kubernetes, Helm and OCI CCM modules
 // -> Install Verrazzano
 // -> Deploy Verrazzano test applications
 // -> Run validations
@@ -11,15 +10,16 @@
 // -> Uninstall Verrazzano
 // -> Cleanup resources
 
-def testEnvironments=["OLCNE"]
-def agentLabel=env.JOB_NAME.contains('-olcne') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def testEnvironments=["OCNE"]
+def agentLabel=env.JOB_NAME.contains('-ocne') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions=["us-ashburn-1"]
-def availableDomains=["hXgQ:US-ASHBURN-AD-1"]
+def availableDomains=["hXgQ:US-ASHBURN-AD-1", "hXgQ:US-ASHBURN-AD-2", "hXgQ:US-ASHBURN-AD-3"]
+Collections.shuffle(availableDomains)
 def kubernetesVersions=[ "v1.22.5", "v1.21.5", "v1.20.8" ]
-def olcneVersions=[ "1.5", "1.4", "1.3"]
+def ocneVersions=[ "1.5"]
 def osVersions=['8', '7']
-def uniquePrefix=UUID.randomUUID().toString().substring(0,6).replace('-','')
+def uniquePrefix=UUID.randomUUID().toString().substring(0,4).replace('-','')
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS=false
 
 pipeline {
@@ -48,32 +48,32 @@ pipeline {
             name: 'K8S_VERSION',
             description: 'Kubernetes Version for the cluster',
             choices: kubernetesVersions)
-        // OLCNE configuration
+        // OCNE configuration
         choice (
-            name: 'OLCNE_VERSION',
-            description: 'OLCNE Version',
-            choices: olcneVersions)
+            name: 'OCNE_VERSION',
+            description: 'OCNE Version',
+            choices: ocneVersions)
         choice (
-            name: 'OLCNE_CLUSTER_REGION',
-            description: 'OCI region to launch OLCNE clusters in.',
+            name: 'OCNE_CLUSTER_REGION',
+            description: 'OCI region to launch OCNE clusters in.',
             choices: availableRegions)
         choice (
-            name: 'OLCNE_CLUSTER_AVAILABILITY_DOMAIN',
+            name: 'OCNE_CLUSTER_AVAILABILITY_DOMAIN',
             description: 'Availability domain for the cluster region.',
             choices: availableDomains)
         string (
             name: "CONTROL_PLANE_NODE_COUNT",
             defaultValue: '1',
-            description: 'Number of OLCNE control plane nodes',
+            description: 'Number of OCNE control plane nodes',
             trim: true)
         string (
             name: "WORKER_NODE_COUNT",
             defaultValue: '3',
-            description: 'Number of OLCNE worker nodes',
+            description: 'Number of OCNE worker nodes',
             trim: true)
         choice (
-            name: "OLCNE_OS_VERSION",
-            description: 'OracleLinux OS version for OLCNE nodes',
+            name: "OCNE_OS_VERSION",
+            description: 'OracleLinux OS version for OCNE nodes',
             choices: osVersions)
         string (
             name: "INSTALL_PROFILE",
@@ -118,7 +118,6 @@ pipeline {
     environment {
         // Repositories and credentials
         GHCR_REPO='ghcr.io'
-        OCIR_PHX_REPO='phx.ocir.io'
         OCR_REPO='container-registry.oracle.com'
         OCR_CREDS=credentials('ocr-pull-and-push-account')
         NETRC_FILE=credentials('netrc')
@@ -130,23 +129,18 @@ pipeline {
         // Verrazzano variables
         TEST_ENV="${params.TEST_ENV}"
         VZ_ENVIRONMENT_NAME="${params.TEST_ENV.toLowerCase()}"
-        BRANCH_NAME_PREFIX="${env.BRANCH_NAME.equals('master') ? 'vz' : env.BRANCH_NAME.substring(0, 2)}"
-        CLUSTER_NAME="$BRANCH_NAME_PREFIX" + "$uniquePrefix"
-        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+        VZ_PLATFORM_OPERTOR_YAML="$WORKSPACE/platform-operator.yaml"
+        CLUSTER_NAME="ocne-" + "$uniquePrefix"
         INSTALL_PROFILE="${params.INSTALL_PROFILE}"
         GOPATH="$HOME/go"
         GO_REPO_PATH="$GOPATH/src/github.com/verrazzano"
-        TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-olcne"
-        KUBECONFIG="$WORKSPACE/test_kubeconfig"
+        TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-ocne"
+        KUBECONFIG="$WORKSPACE/kubeconfig"
         VZ_COMMAND="$GO_REPO_PATH/vz"
-        OLCNE_DUMP_DIR="$WORKSPACE/olcne"
-        VERRAZZANO_KUBECONFIG="$KUBECONFIG"
-        INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
-        // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
-        OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
-        // TODO: Update the default branch to be used for terraform-oci-olcne
-        // OLCNE_BRANCH_TO_USE="origin/release/$OLCNE_VERSION"
-        OLCNE_BRANCH_TO_USE="origin/feature/VZ-6040"
+        OCNE_DUMP_DIR="$WORKSPACE/$VZ_ENVIRONMENT_NAME"
+        INSTALL_CONFIG_FILE_OCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocne.yaml"
+        OCNE_TERRAFORM_GIT_URL=credentials("gitlab_ocne_tf_url")
+        OCNE_BRANCH_TO_USE="origin/release/${params.OCNE_VERSION}"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"
 
         // Terraform variables
@@ -155,38 +149,36 @@ pipeline {
         TF_VAR_user_id=credentials('oci-user-ocid')
         TF_VAR_fingerprint=credentials('oci-api-key-fingerprint')
         TF_VAR_api_private_key_path=credentials('oci-api-key')
-        TF_VAR_region="${params.OLCNE_CLUSTER_REGION}"
-        TF_VAR_availability_domain_id="${params.OLCNE_CLUSTER_AVAILABILITY_DOMAIN}"
+        TF_VAR_region="${params.OCNE_CLUSTER_REGION}"
+        TF_VAR_availability_domain_id="${params.OCNE_CLUSTER_AVAILABILITY_DOMAIN}"
         TF_VAR_deploy_networking="true"
         TF_VAR_bastion_enabled="true"
-        TF_VAR_bastion_private_key_path="$OLCNE_DUMP_DIR/id_rsa"
+        TF_VAR_bastion_private_key_path="$OCNE_DUMP_DIR/id_rsa"
         TF_VAR_prefix="$CLUSTER_NAME"
         TF_VAR_use_vault="false"
-        TF_VAR_ssh_public_key_path="$OLCNE_DUMP_DIR/id_rsa.pub"
-        TF_VAR_ssh_private_key_path="$OLCNE_DUMP_DIR/id_rsa"
+        TF_VAR_ssh_public_key_path="$OCNE_DUMP_DIR/id_rsa.pub"
+        TF_VAR_ssh_private_key_path="$OCNE_DUMP_DIR/id_rsa"
         TF_VAR_worker_node_count="${params.WORKER_NODE_COUNT}"
         TF_VAR_control_plane_node_count="${params.CONTROL_PLANE_NODE_COUNT}"
-        TF_VAR_os_version="${params.OLCNE_OS_VERSION}"
+        TF_VAR_os_version="${params.OCNE_OS_VERSION}"
         TF_VAR_environment_name="myenvironment"
         TF_VAR_kubernetes_name="mycluster"
+        TF_VAR_kubernetes_extra_args="--restrict-service-externalip=false"
+        TF_VAR_deploy_helm_module="true"
         TF_VAR_helm_name="myhelm"
+        TF_VAR_deploy_oci_ccm_module="true"
         TF_VAR_oci_ccm_name="myoci"
-        TF_VAR_olcne_version="${params.OLCNE_VERSION}"
+        TF_VAR_olcne_version="${params.OCNE_VERSION}"
         TF_VAR_s3_bucket_access_key=credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key=credentials('oci-s3-bucket-secret-key')
 
         // OCI variables
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING='True'
-        OCI_CLI_REGION="${params.OLCNE_CLUSTER_REGION}"
+        OCI_CLI_REGION="${params.OCNE_CLUSTER_REGION}"
         OCI_CLI_TENANCY=credentials('oci-tenancy')
         OCI_CLI_USER=credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT=credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE=credentials('oci-api-key')
-        // OCI_DNS_COMPARTMENT_OCID and OCI_PRIVATE_KEY_FILE are needed for setting up DNS zone in OCI
-        OCI_DNS_COMPARTMENT_OCID=credentials('oci-dns-compartment')
-        OCI_DNS_SCOPE="${params.OCI_DNS_SCOPE}"
-        OCI_DNS_ZONE_SUBDOMAIN_NAME="$CLUSTER_NAME"
-        OCI_DNS_ZONE_NAME="${OCI_DNS_ZONE_SUBDOMAIN_NAME}.v8o.io"
 
         // used for cluster dump
         TEST_DUMP_ROOT="$WORKSPACE/test-cluster-snapshots"
@@ -257,32 +249,32 @@ pipeline {
                     """
 
                     script {
-                        echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
+                        echo "[INFO] ${params.OCNE_CLUSTER_REGION}"
                         echo "[INFO] agentlabel: $agentLabel"
                         echo "[INFO] $NODE_LABELS"
                         SHORT_COMMIT_HASH=sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                         // update the description with some meaningful info
                         setDisplayName()
-                        currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OLCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
-                        // derive the prefix for the OLCNE cluster
-                        OLCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
+                        currentBuild.description=SHORT_COMMIT_HASH + " : " + params.OCNE_CLUSTER_REGION + " : " + params.K8S_VERSION
+                        // derive the prefix for the OCNE cluster
+                        OCNE_CLUSTER_PREFIX=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                         // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                         env.K8S_VERSION_LABEL=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.K8S_VERSION}").trim()
                     }
 
-                    echo "[INFO] SCM checkout of $OLCNE_TERRAFORM_GIT_URL $OLCNE_BRANCH_TO_USE"
+                    echo "[INFO] SCM checkout of $OCNE_TERRAFORM_GIT_URL $OCNE_BRANCH_TO_USE"
                     def scmInfo=checkout([
                         $class: 'GitSCM',
-                        branches: [[name: env.OLCNE_BRANCH_TO_USE]],
+                        branches: [[name: env.OCNE_BRANCH_TO_USE]],
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [],
                         submoduleCfg: [],
-                        userRemoteConfigs: [[url: env.OLCNE_TERRAFORM_GIT_URL, credentialsId: 'gitlab_ocne_tf_rw']]])
+                        userRemoteConfigs: [[url: env.OCNE_TERRAFORM_GIT_URL, credentialsId: 'gitlab_ocne_tf_rw']]])
                     env.TF_GIT_COMMIT=scmInfo.GIT_COMMIT
                     env.TF_GIT_BRANCH=scmInfo.GIT_BRANCH
                     // If the commit we were handed is not what the SCM says we are using, fail
-                    if (!env.TF_GIT_BRANCH.equals(env.OLCNE_BRANCH_TO_USE)) {
-                        echo "[ERROR] SCM didn't checkout the branch we expected. Expected: ${env.OLCNE_BRANCH_TO_USE}, Found: ${scmInfo.GIT_BRANCH}"
+                    if (!env.TF_GIT_BRANCH.equals(env.OCNE_BRANCH_TO_USE)) {
+                        echo "[ERROR] SCM didn't checkout the branch we expected. Expected: ${env.OCNE_BRANCH_TO_USE}, Found: ${scmInfo.GIT_BRANCH}"
                         exit 1
                     }
                     echo "[INFO] SCM checkout of ${env.TF_GIT_BRANCH} at ${env.TF_GIT_COMMIT}"
@@ -298,7 +290,7 @@ pipeline {
                     sh """
                         sudo yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/x86_64
                         sudo yum install -y terraform
-                        mkdir -p $OLCNE_DUMP_DIR
+                        mkdir -p $OCNE_DUMP_DIR
                         ssh-keygen -t rsa -b 4096 -q -N "" -f $TF_VAR_ssh_private_key_path
                         chmod 600 $TF_VAR_ssh_private_key_path
                     """
@@ -313,18 +305,18 @@ pipeline {
                             echo "Downloading VZ CLI from object storage"
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                             tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                            ${GO_REPO_PATH}/vz version
+                            $VZ_COMMAND version
                         """
                     }
                 }
             }
         }
 
-        stage("Create OLCNE cluster") {
+        stage("Create OCNE cluster") {
             steps {
                 script {
-                    echo "[INFO] Creating OLCNE cluster"
-                    createOLCNECluster()
+                    echo "[INFO] Creating OCNE cluster"
+                    createOCNECluster()
                 }
             }
         }
@@ -356,28 +348,28 @@ pipeline {
             }
         }
 
-        stage("Update OLCNE configuration") {
+        stage("Update OCI-CCM StorageClass") {
             steps {
                 script {
-                    echo "[INFO] Enable External IP access"
-                    updateOLCNEConfig()
+                    echo "[INFO] Update OCI-CCM StorageClass"
+                    updateStorageClass()
                 }
             }
         }
 
-        stage("Install Verrazzano Platform Operator") {
+        stage("Download Verrazzano Platform Operator") {
             environment {
                 OCI_CLI_AUTH="instance_principal"
             }
             steps {
                 script {
-                    echo "[INFO] Installing Verrazzano Platform Operator"
-                    installVerrazzanoPlatformOperator()
+                    echo "[INFO] Download Verrazzano Platform Operator"
+                    downloadVerrazzanoPlatformOperator()
                 }
             }
             post {
                 always {
-                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "$VZ_PLATFORM_OPERTOR_YAML", allowEmptyArchive: true
                 }
             }
         }
@@ -396,15 +388,6 @@ pipeline {
                         VZ_TEST_METRIC=metricJobName('')
                         metricTimerStart("${VZ_TEST_METRIC}")
                     }
-                }
-            }
-        }
-
-        stage("Update Load Balancer config") {
-            steps {
-                script {
-                    echo "[INFO] Update Load Balancer health check configuration"
-                    updateLoadBalancerHealthCheck()
                 }
             }
         }
@@ -455,7 +438,7 @@ pipeline {
         always {
             script {
                 if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
-                    dumpK8sCluster('olcne-acceptance-tests-cluster-snapshot')
+                    dumpK8sCluster('ocne-acceptance-tests-cluster-snapshot')
                 }
             }
 
@@ -467,7 +450,7 @@ pipeline {
             dumpVerrazzanoApplicationOperatorLogs()
             dumpVerrazzanoApiLogs()
 
-            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*full-cluster*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/olcne/**", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/*cluster-snapshot*/**,**/test-cluster-snapshots/**/,**/${TEST_REPORT},**/ocne/**", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
@@ -519,9 +502,13 @@ pipeline {
                             echo "Failed to delete Verrazzano"
                         }
                     }
-                    if (env.createdOLCNECluster && env.createdOLCNECluster == "true") {
-                        echo "[INFO] Deleting OLCNE Cluster"
-                        deleteOLCNECluster()
+                    if (env.createdOCNECluster && env.createdOCNECluster == "true") {
+                        try {
+                            echo "[INFO] Deleting OCNE Cluster"
+                            deleteOCNECluster()
+                        } catch (error) {
+                            echo "Failed to delete OCNE Cluster"
+                        }
                     }
                 }
             }
@@ -540,8 +527,6 @@ def generateAllAcceptanceTestStages(dumpRoot, skipDeploy='false', skipUndeploy='
 
 def generateVerifyInstallStages(dumpRoot) {
     return [
-        // TODO: Update the list to include tests for subsequent VZ releases
-        // Currently supported Verrazzano version = 1.3
         "verify-install keycloak": {
             runGinkgoRandomize('verify-install/keycloak', "${dumpRoot}/verify-install-keycloak")
         },
@@ -808,7 +793,7 @@ def getMetricLabels() {
              'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
              'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\",' +
              'kubernetes_version=\\"' + "${params.K8S_VERSION}"+'\\",' +
-             'test_env=\\"' + "olcne"+'\\"'
+             'test_env=\\"' + "ocne"+'\\"'
     return labels
 }
 
@@ -825,13 +810,6 @@ def metricTimerEnd(metricName, status) {
         long x=env."${timerStartName}" as long;
         long y=env."${timerEndName}" as long;
         def dur=(y-x)
-
-        // OCI-Telemetry
-        // labels='\\"number\\"=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-        //          '\\"commit_sha\\"=\\"' + "${env.GIT_COMMIT}"+'\\",' +
-        //          '\\"test_env\\"=\\"' + "$testEnv"+'\\"'
-        // OCI_MET=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/oci_metric_emit.sh ${OCI_TELEMETRY_URL} ${OCI_COMPARTMENT_ID} ${OCI_METRICS_NAMESPACE} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
-
         labels=getMetricLabels()
         withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
             EMIT=sh(returnStdout: true, script: "$GO_REPO_PATH/verrazzano/ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
@@ -898,32 +876,33 @@ def emitJobMetrics() {
     runGinkgo('jobmetrics')
 }
 
-def createOLCNECluster() {
-    env.createdOLCNECluster="true"
+def createOCNECluster() {
+    env.createdOCNECluster="true"
     sh """
         cd $TF_REPO_PATH
         terraform init -input=false
         terraform plan -input=false -out=tfplan -no-color
         terraform apply -input=false -no-color -auto-approve tfplan
+        terraform output > $OCNE_DUMP_DIR/terraform.out
     """
     env.API_SERVER_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw apiserver_ip """).trim()
-    sh 'echo "API_SERVER_IP: $API_SERVER_IP" > $OLCNE_DUMP_DIR/tf.out'
+    sh 'echo "API_SERVER_IP: $API_SERVER_IP"'
     env.WORKER_NODES_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -json worker_nodes""").replaceAll(/["\[\]]/, "").replaceAll(",", " ").trim()
-    sh 'echo "WORKER_NODES_IP: $WORKER_NODES_IP" >> $OLCNE_DUMP_DIR/tf.out'
+    sh 'echo "WORKER_NODES_IP: $WORKER_NODES_IP"'
     env.CONTROL_PLANE_NODES_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -json control_plane_nodes """).replaceAll(/["\[\]]/, "").replaceAll(",", " ").trim()
-    sh 'echo "CONTROL_PLANE_NODES_IP: $CONTROL_PLANE_NODES_IP" >> $OLCNE_DUMP_DIR/tf.out'
+    sh 'echo "CONTROL_PLANE_NODES_IP: $CONTROL_PLANE_NODES_IP"'
     env.VCN_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw vcn_id """).trim()
-    sh 'echo "VCN_OCID: $VCN_OCID" >> $OLCNE_DUMP_DIR/tf.out'
+    sh 'echo "VCN_OCID: $VCN_OCID"'
     env.VCN_CIDR=sh(returnStdout: true, script: """ oci network vcn get --vcn-id "$VCN_OCID" | jq -r '.data."cidr-block"' """).trim()
-    sh 'echo "VCN_CIDR: $VCN_CIDR" >> $OLCNE_DUMP_DIR/tf.out'
+    sh 'echo "VCN_CIDR: $VCN_CIDR"'
     env.NODE_SUBNET_OCID=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw subnet_id """).trim()
-    sh 'echo "NODE_SUBNET_OCID: $NODE_SUBNET_OCID" >> $OLCNE_DUMP_DIR/tf.out'
+    sh 'echo "NODE_SUBNET_OCID: $NODE_SUBNET_OCID"'
     env.BASTION_SUBNET_OCID=sh(returnStdout: true, script: """ oci network subnet list -c "$TF_VAR_compartment_id" --vcn-id "$VCN_OCID" --display-name "$TF_VAR_prefix-bastion" | jq -r '.data[0].id' """).trim()
-    sh 'echo "BASTION_SUBNET_OCID: $BASTION_SUBNET_OCID" >> $OLCNE_DUMP_DIR/tf.out'
+    sh 'echo "BASTION_SUBNET_OCID: $BASTION_SUBNET_OCID"'
     env.BASTION_IP=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_public_ip """).trim()
-    sh 'echo "BASTION_IP: $BASTION_IP" >> $OLCNE_DUMP_DIR/tf.out'
+    sh 'echo "BASTION_IP: $BASTION_IP"'
     env.BASTION_USER=sh(returnStdout: true, script: """ cd $TF_REPO_PATH && terraform output -raw bastion_user """).trim()
-    sh 'echo "BASTION_USER: $BASTION_USER" >> $OLCNE_DUMP_DIR/tf.out'
+    sh 'echo "BASTION_USER: $BASTION_USER"'
 }
 
 def setupSSH() {
@@ -948,29 +927,21 @@ def setupSSH() {
 def setupKubeconfig() {
     sh """
         scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" opc@"$API_SERVER_IP":/home/opc/.kube/config "$KUBECONFIG"
-        cat "$KUBECONFIG"
         yq -i 'del(.clusters[0].cluster."certificate-authority-data")' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster.server = "https://127.0.0.1:6443"' "$KUBECONFIG"
         yq -i eval '.clusters[0].cluster."insecure-skip-tls-verify" = true' "$KUBECONFIG"
-        cp "$KUBECONFIG" $OLCNE_DUMP_DIR/kubeconfig
-        cat "$KUBECONFIG"
+        cp "$KUBECONFIG" $OCNE_DUMP_DIR/kubeconfig
         kubectl get nodes
     """
 }
 
-def updateOLCNEConfig() {
+def updateStorageClass() {
     env.CONTROL_PLANE_IP=CONTROL_PLANE_NODES_IP.split(" ")[0]
     echo CONTROL_PLANE_IP
     sh """
-        # TODO: This will no longer be required after terraform-oci-olcne repository supports OCI CCM module
-        scp -o StrictHostKeyChecking=no -i "$TF_VAR_ssh_private_key_path" "$TF_VAR_api_private_key_path" opc@"$CONTROL_PLANE_IP":/home/opc/oci_api_key.pem
-        $GO_REPO_PATH/verrazzano/ci/scripts/update_olcne_config.sh
-
-        # TODO: This MIGHT not be required for OLCNE > 1.5 releases
-        # Add annotation to the storageclass created by OLCNE oci-ccm module
-        kubectl get storageclass oci-bv -o yaml > "$WORKSPACE/oci-bv.yaml"
-        yq -i eval '.metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true"' "$WORKSPACE/oci-bv.yaml"
-        kubectl replace -f "$WORKSPACE/oci-bv.yaml"
+        # Add annotation to the storageclass created by OCNE oci-ccm module
+        kubectl annotate storageclass oci-bv "storageclass.kubernetes.io/is-default-class"="true"
+        # Create a CSI Driver
         cat << EOF | kubectl apply -f -
             apiVersion: storage.k8s.io/v1
             kind: CSIDriver
@@ -987,50 +958,29 @@ def createImagePullSecrets() {
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW"
         $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "$OCR_REPO" "$OCR_CREDS_USR" "$OCR_CREDS_PSW"
+        kubectl create namespace verrazzano-install
+        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
     """
 }
 
-def installVerrazzanoPlatformOperator() {
+def downloadVerrazzanoPlatformOperator() {
     sh """
         oci --region us-phoenix-1 os object get \
-        --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
-        --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
-        --file $WORKSPACE/downloaded-operator.yaml
-
-        cp $WORKSPACE/downloaded-operator.yaml $WORKSPACE/acceptance-test-operator.yaml
-
-        # Install the verrazzano-platform-operator
-        kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
-
-        # make sure ns exists
-        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-
-        # create secret in verrazzano-install ns
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
-
-        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-        # make sure ns exists
-        chmod +x $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-        kubectl get ns
-
-        # create secret in verrazzano-install ns
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/create-image-pull-secret.sh "$IMAGE_PULL_SECRET" "$GHCR_REPO" "$GITHUB_PKGS_CREDS_USR" "$GITHUB_PKGS_CREDS_PSW" "verrazzano-install"
+           --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_COMMIT_BUCKET" \
+           --name "ephemeral/${env.BRANCH_NAME}/$SHORT_COMMIT_HASH/operator.yaml" \
+           --file $VZ_PLATFORM_OPERTOR_YAML
     """
 }
 
 def installVerrazzano() {
     env.installedVZ="true"
     sh """
-        yq -i eval '.spec.environmentName = "$VZ_ENVIRONMENT_NAME"' "$INSTALL_CONFIG_FILE_OLCNE"
-        yq -i eval '.spec.profile = "$INSTALL_PROFILE"' "$INSTALL_CONFIG_FILE_OLCNE"
-        cat "$INSTALL_CONFIG_FILE_OLCNE"
+        # Install Verrazzano
+        $VZ_COMMAND install -f $INSTALL_CONFIG_FILE_OCNE --set profile="$INSTALL_PROFILE" --set environmentName="$VZ_ENVIRONMENT_NAME" --operator-file="$VZ_PLATFORM_OPERTOR_YAML"
+        $VZ_COMMAND status
 
-        # apply config to create cluster
-        kubectl apply -f $INSTALL_CONFIG_FILE_OLCNE
-        # wait for Verrazzano install to complete
-        $GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+        # Print out the namespaces
+        kubectl get namespaces
 
         # Print out the username and passwords
         echo "Verrazzano username: verrazzano"
@@ -1042,22 +992,13 @@ def installVerrazzano() {
     """
 }
 
-def updateLoadBalancerHealthCheck() {
-    // TODO: This function will not be required if OCI CCM supports configuring health check protocol and port
-    sh '''
-        LB_MGMT_IP=$(kubectl get service ingress-controller-ingress-nginx-controller -n ingress-nginx -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
-        LB_APP_IP=$(kubectl get service  istio-ingressgateway  -n  istio-system -o yaml | yq eval '.status.loadBalancer.ingress[0].ip' -)
-        $GO_REPO_PATH/verrazzano/ci/scripts/update_lb_health_check.sh "$LB_MGMT_IP $LB_APP_IP"
-    '''
-}
-
 def deleteVerrazzano() {
-    sh '''
-        kubectl delete verrazzano $(kubectl  get vz -o jsonpath="{.items[0].metadata.name}") --wait=true
-    '''
+    sh """
+        $VZ_COMMAND uninstall --wait
+    """
 }
 
-def deleteOLCNECluster() {
+def deleteOCNECluster() {
     sh '''
         cd $TF_REPO_PATH
         terraform destroy -auto-approve

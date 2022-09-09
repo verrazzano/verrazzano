@@ -44,7 +44,7 @@ Options:
  -b <path>              Bill of materials (BOM) of Verrazzano components; if not specified, defaults to ./verrazzano-bom.json
  -l <archive-dir>       Use the specified imagesDir to load local Docker image tarballs from instead of pulling from
  -i <component>         Include the specified component in the operation (can be repeated for multiple components)
- -f <tarfile>           The name of the tar file to create for downloading and saving Verrazzano images
+ -f <tarfile_dir>           The name of the directory that will be used to save Docker image tarballs locally
  -e <component>         Exclude the specified component from the operation (can be repeated for multiple components)
  -c                     Clean all local images/tags
  -z                     Incrementally clean each local image after it has been successfully pushed
@@ -82,8 +82,8 @@ Examples:
   # Processes *only* the images for the Verrazzano components cert-manager and istio
   $0 -t myreg.io -r 'myrepo/user1' -b /path/to/my-bom.json -i cert-manager -i istio
 
-  # Pull and create a compressed tar file of all Verrazzano images, using /tmp/vzimages as the temporary image save location
-  $0 -f /tmp/myvzimages.tar.gz -l /tmp/vzimages
+  # Pull and save Verrazzano images locally as tarfiles to the specified location
+  $0 -f /tmp/myvzimages -b /path/to/my-bom.json
 """
   exit ${ec}
 }
@@ -182,7 +182,7 @@ function check() {
     fi
   fi
 
-  if [ -z "${TO_REGISTRY}" ] && [ -z "${TARBALL}" ]; then
+  if [ -z "${TO_REGISTRY}" ] && [ -z "${TARDIR}" ]; then
     echo "Target registry not specified!"
     usage 1
   fi
@@ -362,8 +362,7 @@ function process_images_from_bom() {
 
 # Main driver for pulling/saving images based on the Verrazzano bill of materials (BOM)
 function pull_and_save_images() {
-  tarFile=$1
-  imagesDir=$2
+  imagesDir=$1
 
   echo "Creating Verrazzano images tar file ${tarfile}, using ${imagesDir} to store images locally"
 
@@ -409,12 +408,6 @@ function pull_and_save_images() {
       done
     done
   done
-  echo "Creating tar file $tarFile..."
-  if [ "${DRY_RUN}" != "true" ]; then
-    tar -czf $tarFile -C $imagesDir .
-  else
-    echo "Dry run, skipping tar file creation"
-  fi
 }
 
 output_bom_components() {
@@ -427,8 +420,8 @@ $(list_components)
 
 # Main fn
 function main() {
-  if [ -n "${TARBALL}" ]; then
-    pull_and_save_images ${TARBALL} ${IMAGES_DIR}
+  if [ -n "${TARDIR}" ]; then
+    pull_and_save_images ${TARDIR}
   elif [ "$USELOCAL" != "0" ]; then
     process_local_archives
   else
@@ -458,7 +451,7 @@ while getopts 'hzcdom:b:t:f:r:l:i:e:' opt; do
     EXCLUDE_COMPONENTS="${EXCLUDE_COMPONENTS} ${OPTARG}"
     ;;
   f)
-    TARBALL=$OPTARG
+    TARDIR=$OPTARG
     ;;
   i)
     echo "Include component: ${OPTARG}"

@@ -6,12 +6,14 @@ package install
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -27,15 +29,17 @@ const (
 	CommandName = "install"
 	helpShort   = "Install Verrazzano"
 	helpLong    = `Install the Verrazzano Platform Operator and install the Verrazzano components specified by the Verrazzano CR provided on the command line`
-	helpExample = `
+)
+
+var helpExample = fmt.Sprintf(`
 # Install the latest version of Verrazzano using the prod profile. Stream the logs to the console until the install completes.
 vz install
 
-# Install version 1.3.0 using a dev profile, timeout the command after 20 minutes.
-vz install --version v1.3.0 --set profile=dev --timeout 20m
+# Install version %[1]s using a dev profile, timeout the command after 20 minutes.
+vz install --version v%[1]s --set profile=dev --timeout 20m
 
-# Install version 1.3.0 using a dev profile with kiali disabled and wait for the install to complete.
-vz install --version v1.3.0 --set profile=dev --set components.kiali.enabled=false
+# Install version %[1]s using a dev profile with kiali disabled and wait for the install to complete.
+vz install --version v%[1]s --set profile=dev --set components.kiali.enabled=false
 
 # Install the latest version of Verrazzano using CR overlays and explicit value sets.  Output the logs in json format.
 # The overlay files can be a comma-separated list or a series of -f options.  Both formats are shown.
@@ -49,8 +53,7 @@ kind: Verrazzano
 metadata:
   namespace: default
   name: example-verrazzano
-EOF`
-)
+EOF`, version.GetCLIVersion())
 
 var logsEnum = cmdhelpers.LogFormatSimple
 
@@ -87,12 +90,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return fmt.Errorf("Command validation failed: %s", err.Error())
 	}
 
-	// Get the verrazzano install resource to be created
-	vz, err := getVerrazzanoYAML(cmd, vzHelper)
-	if err != nil {
-		return err
-	}
-
 	// Get the timeout value for the install command
 	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
 	if err != nil {
@@ -127,6 +124,12 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 	}
 
+	// Get the verrazzano install resource to be created
+	vz, err := getVerrazzanoYAML(cmd, vzHelper, version)
+	if err != nil {
+		return err
+	}
+
 	// Apply the Verrazzano operator.yaml.
 	lastTransitionTime := metav1.Now()
 	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
@@ -135,7 +138,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the platform operator to be ready before we create the Verrazzano resource.
-	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, vzapi.CondInstallComplete, lastTransitionTime)
+	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, lastTransitionTime)
 	if err != nil {
 		return err
 	}
@@ -159,11 +162,11 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the Verrazzano install to complete
-	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
+	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.GetNamespace(), Name: vz.GetName()}, timeout, logFormat)
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
-func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi.Verrazzano, err error) {
+func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version string) (vz clipkg.Object, err error) {
 	// Get the list yaml filenames specified
 	filenames, err := cmd.PersistentFlags().GetStringSlice(constants.FilenameFlag)
 	if err != nil {
@@ -179,20 +182,20 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 	// If no yamls files were passed on the command line then create a minimal verrazzano
 	// resource.  The minimal resource is used to create a resource called verrazzano
 	// in the default namespace using the prod profile.
+	var gv schema.GroupVersion
 	if len(filenames) == 0 {
-		vz = &vzapi.Verrazzano{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "verrazzano",
-			},
-		}
-	} else {
-		// Merge the yaml files passed on the command line
-		vz, err = cmdhelpers.MergeYAMLFiles(filenames, os.Stdin)
+		gv, vz, err = helpers.NewVerrazzanoForVZVersion(version)
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		// Merge the yaml files passed on the command line
+		obj, err := cmdhelpers.MergeYAMLFiles(filenames, os.Stdin)
+		if err != nil {
+			return nil, err
+		}
+		gv = obj.GroupVersionKind().GroupVersion()
+		vz = obj
 	}
 
 	// Generate yaml for the set flags passed on the command line
@@ -203,7 +206,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper) (vz *vzapi
 
 	// Merge the set flags passed on the command line. The set flags take precedence over
 	// the yaml files passed on the command line.
-	vz, err = cmdhelpers.MergeSetFlags(vz, outYAML)
+	vz, err = cmdhelpers.MergeSetFlags(gv, vz, outYAML)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +283,7 @@ func getSetArguments(cmd *cobra.Command, vzHelper helpers.VZHelper) (map[string]
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
 // the ongoing Verrazzano install.
 func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
-	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, vzapi.CondInstallComplete)
+	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, v1beta1.CondInstallComplete)
 }
 
 // validateCmd - validate the command line options
