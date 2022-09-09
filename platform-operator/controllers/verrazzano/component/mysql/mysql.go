@@ -492,60 +492,71 @@ func preUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL pre upgrade dry run")
 		return nil
 	}
-
-	// following steps are only needed for persistent storage
-	mySQLVolumeSource, err := getVolumeSource(ctx.EffectiveCR())
-	ctx.Log().Infof("Current value for MySQLVolumeSource: %v", mySQLVolumeSource)
+	//
+	//// following steps are only needed for persistent storage
+	//mySQLVolumeSource, err := getVolumeSource(ctx.EffectiveCR())
+	//ctx.Log().Infof("Current value for MySQLVolumeSource: %v", mySQLVolumeSource)
+	//if err != nil {
+	//	return err
+	//}
+	//if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
+	// get the current MySQL deployment
+	deployment, err := getMySQLDeployment(ctx)
 	if err != nil {
 		return err
 	}
-	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
-		// get the current MySQL deployment
-		deployment, err := getMySQLDeployment(ctx)
+	// vz > 1.3 uses statefulsets, not deployments
+	// no migration is needed if vz >= 1.4
+	if deployment != nil {
+		ctx.Log().Infof("Deployment != nil %s", ComponentName)
+		// change the ReclaimPolicy of the PV to Reclaim
+		mysqlPVC := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
+		pvc := &v1.PersistentVolumeClaim{}
+
+		if err := ctx.Client().Get(context.TODO(), mysqlPVC, pvc); err != nil {
+			// no pvc so just log it and there's nothing left to do
+			if errors.IsNotFound(err) {
+				ctx.Log().Debugf("Did not find pvc %s. No database data migration required.", mysqlPVC)
+				return nil
+			}
+			return err
+		}
+
+		err := common.RetainPersistentVolume(ctx, pvc, ComponentName)
 		if err != nil {
 			return err
 		}
-		// vz > 1.3 uses statefulsets, not deployments
-		// no migration is needed if vz >= 1.4
-		if deployment != nil {
-			ctx.Log().Infof("Deployment != nil %s", ComponentName)
-			// change the ReclaimPolicy of the PV to Reclaim
-			mysqlPVC := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
-			err := common.RetainPersistentVolume(ctx, mysqlPVC, ComponentName)
-			if err != nil {
-				return err
-			}
-			if !unitTesting { // perform instance dump of MySQL
-				ctx.Log().Infof("Performing dump %s", ComponentName)
-				if err := dumpDatabase(ctx); err != nil {
-					ctx.Log().Debugf("Unable to perform dump of database %s", ComponentName)
-					return err
-				}
-			}
-			// delete the deployment to free up the pv/pvc
-			ctx.Log().Debugf("Deleting deployment %s", ComponentName)
-			if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
-				if !errors.IsNotFound(err) {
-					ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
-					return err
-				}
-			} else {
-				ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
-			}
-
-			ctx.Log().Debugf("Deleting PVC %v", mysqlPVC)
-			if err := common.DeleteExistingVolumeClaim(ctx, mysqlPVC); err != nil {
-				ctx.Log().Debugf("Unable to delete existing PVC %v", mysqlPVC)
-				return err
-			}
-
-			ctx.Log().Debugf("Updating PV/PVC %v", mysqlPVC)
-			if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
-				ctx.Log().Debugf("Unable to update PV/PVC")
+		if !unitTesting { // perform instance dump of MySQL
+			ctx.Log().Infof("Performing dump %s", ComponentName)
+			if err := dumpDatabase(ctx); err != nil {
+				ctx.Log().Debugf("Unable to perform dump of database %s", ComponentName)
 				return err
 			}
 		}
+		// delete the deployment to free up the pv/pvc
+		ctx.Log().Debugf("Deleting deployment %s", ComponentName)
+		if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
+			if !errors.IsNotFound(err) {
+				ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
+				return err
+			}
+		} else {
+			ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
+		}
+
+		ctx.Log().Debugf("Deleting PVC %v", mysqlPVC)
+		if err := common.DeleteExistingVolumeClaim(ctx, mysqlPVC); err != nil {
+			ctx.Log().Debugf("Unable to delete existing PVC %v", mysqlPVC)
+			return err
+		}
+
+		ctx.Log().Debugf("Updating PV/PVC %v", mysqlPVC)
+		if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
+			ctx.Log().Debugf("Unable to update PV/PVC")
+			return err
+		}
 	}
+	//}
 	return nil
 }
 

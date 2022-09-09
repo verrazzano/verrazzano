@@ -18,19 +18,8 @@ import (
 
 // RetainPersistentVolume locates the persistent volume associated with the provided pvc
 // and sets the reclaim policy to "retain" so that it can be migrated to the new deployment/statefulset.
-func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedName, componentName string) error {
-	pvc := &v1.PersistentVolumeClaim{}
-
-	if err := ctx.Client().Get(context.TODO(), pvcName, pvc); err != nil {
-		// no pvc so just log it and there's nothing left to do
-		if errors.IsNotFound(err) {
-			ctx.Log().Debugf("Did not find pvc %s", pvcName)
-			return nil
-		}
-		return err
-	}
-
-	ctx.Log().Infof("Updating persistent volume associated with pvc %s so that the volume can be migrated", pvcName)
+func RetainPersistentVolume(ctx spi.ComponentContext, pvc *v1.PersistentVolumeClaim, componentName string) error {
+	ctx.Log().Infof("Updating persistent volume associated with pvc %s so that the volume can be migrated", pvc.Name)
 
 	pvName := pvc.Spec.VolumeName
 	pv := &v1.PersistentVolume{
