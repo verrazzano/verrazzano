@@ -92,7 +92,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 		return false
 	}
 
-	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+	httpClient, err := getVerrazzanoHTTPClientWithRetries(kubeconfigPath)
 	if err != nil {
 		t.Logs.Errorf("Unexpected error while getting new httpClient=%v", err)
 		return false
@@ -125,17 +125,27 @@ func appEndpointAccessible(url string, hostname string) bool {
 		t.Logs.Errorf("Unexpected status code=%v", resp.StatusCode)
 		return false
 	}
-	// HTTP Server headers should never be returned.
-	for headerName, headerValues := range resp.Header {
-		if strings.EqualFold(headerName, "Server") {
-			t.Logs.Errorf("Unexpected Server header=%v", headerValues)
-			return false
-		}
-	}
 	bodyStr := string(bodyRaw)
 	if !strings.Contains(bodyStr, "Hello World") {
 		t.Logs.Errorf("Unexpected response body=%v", bodyStr)
 		return false
 	}
 	return true
+}
+
+func getVerrazzanoHTTPClientWithRetries(kubeconfigPath string) (*retryablehttp.Client, error) {
+	var httpClient *retryablehttp.Client
+	var err error
+
+	for i := 1; i <= 5; i++ {
+		httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Duration(i) * time.Second)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return httpClient, nil
 }

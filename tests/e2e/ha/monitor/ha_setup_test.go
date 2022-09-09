@@ -27,7 +27,7 @@ type config struct {
 
 var web = config{}
 
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 	web.api = pkg.EventuallyGetAPIEndpoint(kubeconfigPath)

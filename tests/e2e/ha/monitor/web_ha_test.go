@@ -11,8 +11,7 @@ import (
 
 var clusterDump = pkg.NewClusterDumpWrapper()
 
-var _ = clusterDump.BeforeSuite(func() {}) // Needed to initialize cluster dump flags
-var _ = clusterDump.AfterEach(func() {})   // Dump cluster if spec fails
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 
 var _ = t.Describe("Web Access", Label("f:platform-lcm:ha"), func() {
 	t.Context("Prometheus", func() {
