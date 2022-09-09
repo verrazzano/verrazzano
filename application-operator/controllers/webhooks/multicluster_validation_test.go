@@ -4,15 +4,12 @@
 package webhooks
 
 import (
-	"context"
 	"encoding/json"
-	admissionv1 "k8s.io/api/admission/v1"
-	"testing"
 
-	"github.com/stretchr/testify/assert"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -105,71 +102,4 @@ func newScheme() *runtime.Scheme {
 	}, &corev1.Secret{}, &corev1.SecretList{})
 	_ = v1alpha1.AddToScheme(scheme)
 	return scheme
-}
-
-// TestValidateNamespaceInProject tests the function validateNamespaceInProject
-// GIVEN a call to validateNamespaceInProject
-// WHEN called with various namespaces
-// THEN the validation should succeed or fail based on what is found in created verrazzanoproject resources
-func TestValidateNamespaceInProject(t *testing.T) {
-	asrt := assert.New(t)
-	v := newMultiClusterApplicationConfigurationValidator()
-
-	// No verrazzanoproject resources exist so failure is expected
-	err := validateNamespaceInProject(v.client, "application-ns")
-	asrt.EqualError(err, "namespace application-ns not specified in any verrazzanoproject resources - no verrazzanoproject resources found")
-
-	// Create a verrazzanoproject resource with namespaces application-ns1 and application-ns2
-	vp1 := v1alpha12.VerrazzanoProject{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-verrazzanoproject-name1",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-		Spec: v1alpha12.VerrazzanoProjectSpec{
-			Template: v1alpha12.ProjectTemplate{
-				Namespaces: []v1alpha12.NamespaceTemplate{
-					{
-						Metadata: metav1.ObjectMeta{
-							Name: "application-ns1",
-						},
-					},
-					{
-						Metadata: metav1.ObjectMeta{
-							Name: "application-ns2",
-						},
-					},
-				},
-			},
-		},
-	}
-	asrt.NoError(v.client.Create(context.TODO(), &vp1))
-
-	// Create a verrazzanoproject resource with namespace application-ns3
-	vp2 := v1alpha12.VerrazzanoProject{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-verrazzanoproject-name2",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-		Spec: v1alpha12.VerrazzanoProjectSpec{
-			Template: v1alpha12.ProjectTemplate{
-				Namespaces: []v1alpha12.NamespaceTemplate{
-					{
-						Metadata: metav1.ObjectMeta{
-							Name: "application-ns3",
-						},
-					},
-				},
-			},
-		},
-	}
-	asrt.NoError(v.client.Create(context.TODO(), &vp2))
-
-	// Namespace does not exist in a verrazzanoproject so failure is expected
-	err = validateNamespaceInProject(v.client, "application-ns")
-	asrt.EqualError(err, "namespace application-ns not specified in any verrazzanoproject resources")
-
-	// Namespaces are found in a verrazzanoproject so success is expected
-	asrt.NoError(validateNamespaceInProject(v.client, "application-ns1"))
-	asrt.NoError(validateNamespaceInProject(v.client, "application-ns2"))
-	asrt.NoError(validateNamespaceInProject(v.client, "application-ns3"))
 }
