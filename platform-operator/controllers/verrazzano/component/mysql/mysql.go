@@ -74,9 +74,9 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   DEPLOYMENT_ID varchar(10) DEFAULT NULL,
   PRIMARY KEY (ID,AUTHOR,FILENAME)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
-	mySQLDbCommands = `'mysql -uroot -p%s -e "USE keycloak;
-ALTER TABLE DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"'`
-	mySQLShCommands = `'mysqlsh -uroot -p%s -e "util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})"'`
+	mySQLDbCommands = `mysql -uroot -p%s -e "USE keycloak;
+ALTER TABLE DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"`
+	mySQLShCommands = `mysqlsh -uroot -p%s -e 'util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})'`
 )
 
 var (
@@ -667,10 +667,10 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 
 	// ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
-	execCmd := []string{"bash", "-c", sqlCmd}
+	execCmd := []string{sqlCmd}
 	// util.dumpInstance() Cmd
 	sqlShCmd := fmt.Sprintf(mySQLShCommands, rootPwd)
-	execShCmd := []string{"bash", "-c", sqlShCmd}
+	execShCmd := []string{sqlShCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
@@ -679,16 +679,16 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
+	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
 	if err != nil {
-		errorMsg := maskPw(fmt.Sprintf("Failed logging into mysql: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, err))
+		errorMsg := maskPw(fmt.Sprintf("Failed updating table, err = %v", err))
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Infof("Successfully updated MySQL Primary Key %s", ComponentName)
-	stdOut, stdErr, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execShCmd)
+	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execShCmd)
 	if err != nil {
-		errorMsg := maskPw(fmt.Sprintf("Failed logging into mysql: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, err))
+		errorMsg := maskPw(fmt.Sprintf("Failed executing database dump, err = %v", err))
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
