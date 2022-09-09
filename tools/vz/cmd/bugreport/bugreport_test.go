@@ -382,6 +382,7 @@ func installVZ(t *testing.T, c client.WithWatch) {
 	cmd := installcmd.NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 
 	// Run install command
 	err := cmd.Execute()

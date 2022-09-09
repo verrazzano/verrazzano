@@ -56,11 +56,6 @@ func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admissi
 				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Denied(err.Error())
 			}
-			err = validateNamespaceInProject(v.client, mccm.Namespace)
-			if err != nil {
-				errorCounterMetricObject.Inc(zapLogForMetrics, err)
-				return admission.Denied(err.Error())
-			}
 		}
 	}
 	counterMetricObject.Inc(zapLogForMetrics, err)
