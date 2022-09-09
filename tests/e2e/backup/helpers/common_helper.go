@@ -389,3 +389,30 @@ func DisplayHookLogs(log *zap.SugaredLogger) error {
 	log.Infof(stdout)
 	return nil
 }
+
+func ScaleDeployment(namespace, deploymentName string, replicaCount int32, log *zap.SugaredLogger) error {
+
+	log.Infof("Scaling deployment '%s' in namespace '%s", deploymentName, namespace)
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	depScale, err := clientset.AppsV1().Deployments(namespace).GetScale(context.TODO(), deploymentName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	depPatchScale := *depScale
+	depPatchScale.Spec.Replicas = replicaCount
+
+	_, err = clientset.AppsV1().Deployments(namespace).UpdateScale(context.TODO(), deploymentName, &depPatchScale, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Successfully scaled deployment '%s' in namespace '%s' to '%v' replicas ", deploymentName, namespace, replicaCount)
+	return nil
+
+}

@@ -429,6 +429,106 @@ type VeleroPodVolumeRestores struct {
 	} `json:"status"`
 }
 
+type MySqlInnoDB struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Metadata   struct {
+		Annotations struct {
+			KopfZalandoOrgLastHandledConfiguration string `json:"kopf.zalando.org/last-handled-configuration"`
+			MetaHelmShReleaseName                  string `json:"meta.helm.sh/release-name"`
+			MetaHelmShReleaseNamespace             string `json:"meta.helm.sh/release-namespace"`
+			MysqlOracleComClusterInfo              string `json:"mysql.oracle.com/cluster-info"`
+			MysqlOracleComMysqlOperatorVersion     string `json:"mysql.oracle.com/mysql-operator-version"`
+		} `json:"annotations"`
+		CreationTimestamp time.Time `json:"creationTimestamp"`
+		Finalizers        []string  `json:"finalizers"`
+		Generation        int       `json:"generation"`
+		Labels            struct {
+			AppKubernetesIoManagedBy string `json:"app.kubernetes.io/managed-by"`
+			VeleroIoBackupName       string `json:"velero.io/backup-name"`
+			VeleroIoRestoreName      string `json:"velero.io/restore-name"`
+		} `json:"labels"`
+		Name            string `json:"name"`
+		Namespace       string `json:"namespace"`
+		ResourceVersion string `json:"resourceVersion"`
+		UID             string `json:"uid"`
+	} `json:"metadata"`
+	Spec struct {
+		BaseServerID    int    `json:"baseServerId"`
+		ImagePullPolicy string `json:"imagePullPolicy"`
+		Instances       int    `json:"instances"`
+		PodSpec         struct {
+			Affinity struct {
+				PodAntiAffinity struct {
+					PreferredDuringSchedulingIgnoredDuringExecution []struct {
+						PodAffinityTerm struct {
+							LabelSelector struct {
+								MatchLabels struct {
+									AppKubernetesIoInstance string `json:"app.kubernetes.io/instance"`
+									AppKubernetesIoName     string `json:"app.kubernetes.io/name"`
+								} `json:"matchLabels"`
+							} `json:"labelSelector"`
+							TopologyKey string `json:"topologyKey"`
+						} `json:"podAffinityTerm"`
+						Weight int `json:"weight"`
+					} `json:"preferredDuringSchedulingIgnoredDuringExecution"`
+				} `json:"podAntiAffinity"`
+			} `json:"affinity"`
+			Containers []struct {
+				Env []struct {
+					Name      string `json:"name"`
+					ValueFrom struct {
+						Optional     bool `json:"optional"`
+						SecretKeyRef struct {
+							Key  string `json:"key"`
+							Name string `json:"name"`
+						} `json:"secretKeyRef"`
+					} `json:"valueFrom"`
+				} `json:"env"`
+				Name         string `json:"name"`
+				VolumeMounts []struct {
+					MountPath string `json:"mountPath"`
+					Name      string `json:"name"`
+					SubPath   string `json:"subPath"`
+				} `json:"volumeMounts"`
+			} `json:"containers"`
+			InitContainers []struct {
+				Name         string `json:"name"`
+				VolumeMounts []struct {
+					MountPath string `json:"mountPath"`
+					Name      string `json:"name"`
+					SubPath   string `json:"subPath"`
+				} `json:"volumeMounts"`
+			} `json:"initContainers"`
+			Volumes []struct {
+				ConfigMap struct {
+					DefaultMode int `json:"defaultMode"`
+					Items       []struct {
+						Key  string `json:"key"`
+						Path string `json:"path"`
+					} `json:"items"`
+					Name string `json:"name"`
+				} `json:"configMap"`
+				Name string `json:"name"`
+			} `json:"volumes"`
+		} `json:"podSpec"`
+		Router struct {
+			Instances int `json:"instances"`
+		} `json:"router"`
+		SecretName         string `json:"secretName"`
+		ServiceAccountName string `json:"serviceAccountName"`
+		TLSUseSelfSigned   bool   `json:"tlsUseSelfSigned"`
+		Version            string `json:"version"`
+	} `json:"spec"`
+	Status struct {
+		Cluster struct {
+			LastProbeTime   time.Time `json:"lastProbeTime"`
+			OnlineInstances int       `json:"onlineInstances"`
+			Status          string    `json:"status"`
+		} `json:"cluster"`
+	} `json:"status"`
+}
+
 // Variables used across backup components
 var (
 	VeleroNameSpace             string

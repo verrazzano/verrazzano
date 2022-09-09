@@ -180,6 +180,18 @@ func DisplayResticInfo(operation string) error {
 
 }
 
+// CheckInnoDbState fetches the state if ics cluster
+func CheckInnoDbState(state string) bool {
+	ics, err := common.GetInnoDBCluster(constants.KeycloakNamespace, "mysql", t.Logs)
+	if err != nil {
+		return false
+	}
+	if strings.ToLower(ics.Status.Cluster.Status) == strings.ToLower(state) {
+		return true
+	}
+	return false
+}
+
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
 func WhenVeleroInstalledIt(description string, f func()) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -296,7 +308,13 @@ var _ = t.Describe("MySQL Backup and Restore,", Label("f:platform-verrazzano.mys
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 
-		WhenVeleroInstalledIt("Delete mysql infrastructure", func() {
+		WhenVeleroInstalledIt("Delete innodb cluster", func() {
+			Eventually(func() error {
+				return common.CrdPruner("mysql.oracle.com", "v2", "ics", "mysql", constants.KeycloakNamespace, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+
+		WhenVeleroInstalledIt("Delete keycloak namespace", func() {
 			Eventually(func() error {
 				return common.DeleteNamespace(constants.KeycloakNamespace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil())
@@ -323,6 +341,32 @@ var _ = t.Describe("MySQL Backup and Restore,", Label("f:platform-verrazzano.mys
 
 	})
 
+	t.Context("Flap mysql-operator", func() {
+		WhenVeleroInstalledIt("scaling down of mysql operator", func() {
+			Eventually(func() error {
+				return common.ScaleDeployment("mysql-operator", "mysql-operator", 0, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+
+		WhenVeleroInstalledIt("mysql-operator pod down", func() {
+			Eventually(func() bool {
+				return checkPodsNotRunning("mysql-operator", []string{"mysql-operator"})
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		WhenVeleroInstalledIt("scaling up of mysql operator", func() {
+			Eventually(func() error {
+				return common.ScaleDeployment("mysql-operator", "mysql-operator", 1, t.Logs)
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+
+		WhenVeleroInstalledIt("mysql-operator pod up", func() {
+			Eventually(func() bool {
+				return checkPodsRunning("mysql-operator", []string{"mysql-operator"})
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
 	t.Context("MySQL Data and Infra verification", func() {
 		WhenVeleroInstalledIt("After restore is complete wait for keycloak and mysql pods to come up", func() {
 			Eventually(func() bool {
@@ -340,5 +384,10 @@ var _ = t.Describe("MySQL Backup and Restore,", Label("f:platform-verrazzano.mys
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
+		WhenVeleroInstalledIt("InnoDB state should be 'INITIALIZING'", func() {
+			Eventually(func() bool {
+				return CheckInnoDbState("INITIALIZING")
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
 	})
 })

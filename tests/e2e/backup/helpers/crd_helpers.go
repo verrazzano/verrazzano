@@ -45,6 +45,12 @@ func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, 
 
 	if nameSpaceName != "" {
 		log.Infof("Fetching '%s' '%s' '%s' in namespace '%s'", component, resource, resourceName, nameSpaceName)
+		log.Infof("Group = %v", group)
+		log.Infof("Version = %v", version)
+		log.Infof("Resource = %v", resource)
+		log.Infof("Namespace = %v", nameSpaceName)
+		log.Infof("ResourceName = %v", resourceName)
+
 		dataFetched, err = dclient.Resource(gvr).Namespace(nameSpaceName).Get(context.TODO(), resourceName, metav1.GetOptions{})
 	} else {
 		log.Infof("Fetching '%s' '%s' '%s'", component, resource, resourceName)
@@ -57,7 +63,7 @@ func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, 
 	return dataFetched, nil
 }
 
-// getUnstructuredData common utility to fetch list of unstructured data
+// getUnstructuredDataList common utility to fetch list of unstructured data
 func getUnstructuredDataList(group, version, resource, nameSpaceName, component string, log *zap.SugaredLogger) (*unstructured.UnstructuredList, error) {
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
@@ -314,6 +320,33 @@ func GetRancherRestore(restoreName string, log *zap.SugaredLogger) (*RancherRest
 	return &restore, nil
 }
 
+// GetInnoDBCluster Retrieves InnoDB Cluster object from the cluster
+func GetInnoDBCluster(namespace, innodbName string, log *zap.SugaredLogger) (*MySqlInnoDB, error) {
+	innoDBFetched, err := getUnstructuredData("mysql.oracle.com", "v2", "innodbclusters", innodbName, namespace, "mysql-innodb", log)
+	if err != nil {
+		log.Errorf("Unable to fetch innoDB  '%s' due to '%v'", innodbName, zap.Error(err))
+		return nil, err
+	}
+
+	if innoDBFetched == nil {
+		log.Infof("No innoDB cluster with name '%s' in namespace '%s' was detected", innodbName, namespace)
+	}
+
+	var innoDB MySqlInnoDB
+	bdata, err := json.Marshal(innoDBFetched)
+	if err != nil {
+		log.Errorf("Json marshalling error %v", zap.Error(err))
+		return nil, err
+	}
+	err = json.Unmarshal(bdata, &innoDB)
+	if err != nil {
+		log.Errorf("Json unmarshall error %v", zap.Error(err))
+		return nil, err
+	}
+
+	return &innoDB, nil
+}
+
 // TrackOperationProgress used to track operation status for a given gvr
 func TrackOperationProgress(operator, operation, objectName, namespace string, log *zap.SugaredLogger) error {
 	var response string
@@ -429,7 +462,7 @@ func CrdPruner(group, version, resource, resourceName, nameSpaceName string, log
 		Resource: resource,
 	}
 
-	if strings.Contains(group, "velero") {
+	if strings.Contains(group, "velero") || strings.Contains(group, "mysql") {
 		err = dclient.Resource(gvr).Namespace(nameSpaceName).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
 		if err != nil {
 			if !k8serror.IsNotFound(err) {

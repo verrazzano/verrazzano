@@ -198,7 +198,7 @@ spec:
           - keycloak
         labelSelector:
           matchLabels:
-            app: mysql
+            tier: mysql
         pre:
           - 
             exec:
@@ -230,7 +230,7 @@ spec:
           - keycloak
         labelSelector:
           matchLabels:
-            app: mysql
+            tier: mysql
         postHooks:
           - exec:
               container: mysql
