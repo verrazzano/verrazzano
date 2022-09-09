@@ -5,11 +5,13 @@ package nginx
 
 import (
 	"context"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/test/ip"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -20,6 +22,27 @@ import (
 )
 
 var testExternalIP = ip.RandomIP()
+
+const (
+	invalidExternalIPOverrideJSON = `
+{
+	"controller": {
+		"service": {
+			"externalIPs": ["1231"]
+		}
+	}
+}
+`
+	validExternalIPOverrideJSON = `
+{
+	"controller": {
+		"service": {
+			"externalIPs": ["1.1.1.1"]
+		}
+	}
+}
+`
+)
 
 func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
@@ -158,6 +181,155 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
+func Test_nginxComponent_ValidateUpdateV1Beta1(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name    string
+		old     *v1beta1.Verrazzano
+		new     *v1beta1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "enable",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-type-to-nodeport-without-externalIPs",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Type: v1beta1.NodePort,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-type-to-nodeport-with-externalIPs-valid",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Type: v1beta1.NodePort,
+							InstallOverrides: v1beta1.InstallOverrides{
+								ValueOverrides: []v1beta1.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(validExternalIPOverrideJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-type-to-nodeport-with-externalIPs-invalid",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Type: v1beta1.NodePort,
+							InstallOverrides: v1beta1.InstallOverrides{
+								ValueOverrides: []v1beta1.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(invalidExternalIPOverrideJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-type-from-nodeport",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Type: v1beta1.NodePort,
+						},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Type: v1beta1.LoadBalancer,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-ports",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Ports: []corev1.ServicePort{{Name: "https2", NodePort: 30057}},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "no change",
+			old:     &v1beta1.Verrazzano{},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func Test_nginxComponent_ValidateInstall(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -281,10 +453,85 @@ func Test_nginxComponent_ValidateInstall(t *testing.T) {
 	}
 }
 
+func Test_nginxComponent_ValidateInstallV1Beta1(t *testing.T) {
+	tests := []struct {
+		name    string
+		vz      *v1beta1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "NginxInstallOverridesEmpty",
+			vz: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Type: v1beta1.NodePort,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "NginxInstallOverridesInvalid",
+			vz: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Type: v1beta1.NodePort,
+							InstallOverrides: v1beta1.InstallOverrides{
+								ValueOverrides: []v1beta1.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(invalidExternalIPOverrideJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "NginxInstallOverridesValid",
+			vz: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						IngressNGINX: &v1beta1.IngressNginxComponent{
+							Type: v1beta1.NodePort,
+							InstallOverrides: v1beta1.InstallOverrides{
+								ValueOverrides: []v1beta1.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(validExternalIPOverrideJSON),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateInstallV1Beta1(tt.vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 // TestPostUninstall tests the PostUninstall function
 // GIVEN a call to PostUninstall
-//  WHEN the ingress-nginx namespace exists with a finalizer
-//  THEN true is returned and ingress-nginx namespace is deleted
+//
+//	WHEN the ingress-nginx namespace exists with a finalizer
+//	THEN true is returned and ingress-nginx namespace is deleted
 func TestPostUninstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Namespace{
