@@ -44,6 +44,7 @@ const (
 	secretName            = "mysql"
 	secretKey             = "mysql-password"
 	mySQLUsername         = "keycloak"
+	preUpgradeKey         = "mysql-root-password"
 	rootPasswordKey       = "rootPassword"
 	statefulsetClaimName  = "dump-claim"
 	mySQLInitFilePrefix   = "init-mysql-"
@@ -671,10 +672,10 @@ func getMySQLDeployment(ctx spi.ComponentContext) (*appsv1.Deployment, error) {
 func dumpDatabase(ctx spi.ComponentContext) error {
 	// retrieve root password for mysql
 	rootSecret := v1.Secret{}
-	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: rootSec}, &rootSecret); err != nil {
+	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: secretName}, &rootSecret); err != nil {
 		return err
 	}
-	rootPwd := rootSecret.Data[rootPasswordKey]
+	rootPwd := rootSecret.Data[preUpgradeKey]
 
 	// ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
