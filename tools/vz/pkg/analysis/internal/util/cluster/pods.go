@@ -5,6 +5,7 @@
 package cluster
 
 import (
+	"bytes"
 	encjson "encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
@@ -17,6 +18,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"text/template"
 )
 
 // podListMap holds podLists which have been read in already
@@ -98,14 +100,18 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 	return reported, nil
 }
 
-// IsContainerNotReady will return true if the are PodConditions indicate the ContainersNotReady
+// IsPodReadyOrCompleted will return true if the Pod has containers that are neither Ready nor Completed
 // TODO: Extend for transition time correlation (ie: change from bool to struct)
-func IsContainerNotReady(conditions []corev1.PodCondition) bool {
-	for _, condition := range conditions {
-		if condition.Status == "True" || !(condition.Type == "Ready" || condition.Type == "ContainersReady") {
-			continue
+func IsPodReadyOrCompleted(podStatus corev1.PodStatus) bool {
+	for _, containerStatus := range podStatus.ContainerStatuses {
+		state := containerStatus.State
+		if state.Terminated != nil && state.Terminated.Reason != "Completed" {
+			return true
 		}
-		if condition.Reason == "ContainersNotReady" {
+		if state.Running != nil && !containerStatus.Ready {
+			return true
+		}
+		if state.Waiting != nil {
 			return true
 		}
 	}
@@ -313,7 +319,7 @@ func IsPodProblematic(pod corev1.Pod) bool {
 	if pod.Status.Phase == corev1.PodRunning ||
 		pod.Status.Phase == corev1.PodSucceeded {
 		// The Pod indicates it is Running/Succeeded, check if there are containers that are not ready
-		return IsContainerNotReady(pod.Status.Conditions)
+		return IsPodReadyOrCompleted(pod.Status)
 	}
 	return true
 }
@@ -391,8 +397,12 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			}
 
 			for _, condition := range pod.Status.Conditions {
-				messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
-					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
+				message, err := podConditionMessage(pod.Name, pod.Namespace, condition)
+				if err != nil {
+					log.Debugf("Failed to create pod condition message: %v", err)
+					continue
+				}
+				messages = append(messages, message)
 			}
 			// TODO: Time correlation for search
 
@@ -443,4 +453,32 @@ func putPodListIfNotPresent(path string, podList *corev1.PodList) {
 		podListMap[path] = podList
 	}
 	podCacheMutex.Unlock()
+}
+
+const podConditionMessageTmpl = "Namespace {{.namespace}}, Pod {{.name}}{{- if .type }}, ConditionType {{.type}}{{- end}}{{- if .status}}, Status {{.status}}{{- end}}{{- if .reason}}, Reason {{.reason}}{{- end }}{{- if .message}}, Message {{.message}}{{- end }}"
+
+func podConditionMessage(name, namespace string, condition corev1.PodCondition) (string, error) {
+	vals := map[string]interface{}{}
+	addKV := func(k, v string) {
+		if v != "" {
+			vals[k] = v
+		}
+	}
+	addKV("message", condition.Message)
+	addKV("reason", condition.Reason)
+	addKV("status", string(condition.Status))
+	addKV("type", string(condition.Type))
+	vals["name"] = name
+	vals["namespace"] = namespace
+	tmpl, err := template.New("podConditionMessage").
+		Parse(podConditionMessageTmpl)
+	if err != nil {
+		return "", err
+	}
+
+	buffer := &bytes.Buffer{}
+	if err = tmpl.Execute(buffer, vals); err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
 }

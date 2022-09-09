@@ -315,6 +315,9 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 		return err
 	}
 
+	if len(allPodFiles) < 1 {
+		return fmt.Errorf("Failed to find Verrazzano Platform Operator pod.")
+	}
 	// We should get only one pod file, use the first element rather than going through the slice
 	vpoLog := allPodFiles[0]
 	messages := make(StringSlice, 1)
