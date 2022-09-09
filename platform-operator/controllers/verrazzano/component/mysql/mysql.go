@@ -75,8 +75,8 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   PRIMARY KEY (ID,AUTHOR,FILENAME)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
 	mySQLDbCommands = `'mysql -uroot -p%s -e "USE keycloak;
-ALTER TABLE DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"''`
-	mySQLShCommands = `'mysqlsh -uroot -p%s -e "util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})"''`
+ALTER TABLE DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"'`
+	mySQLShCommands = `'mysqlsh -uroot -p%s -e "util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})"'`
 )
 
 var (
