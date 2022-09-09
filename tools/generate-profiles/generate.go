@@ -16,6 +16,7 @@ var (
 	profileType    string
 	outputLocation string
 	verrazzanoDir  string
+	help           bool
 )
 
 const (
@@ -28,8 +29,20 @@ metadata:
   name: verrazzano
   namespace: default`
 
+const info = `Utility tool to generate the standard profiles: prod, dev and managed cluster
+
+Options:
+	--output-dir	The output directory where the generated profile files will be saved. Defaults to current working directory.
+	--profile       The type of profile file to be generated. Defaults to prod.
+	--help          Get info about utility and usage.
+
+Example:
+	export VERRAZZANO_ROOT=<local-verrazzano-repo-path>
+	go run ${VERRAZZANO_ROOT}/tools/generate-profiles/generate.go --profile dev --output-dir ${HOME}
+`
+
 func main() {
-	defaultDir, err := os.UserHomeDir()
+	defaultDir, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,9 +52,16 @@ func main() {
 		log.Fatal("VERRAZZANO_ROOT environment variable not specified")
 	}
 
-	flag.StringVar(&outputLocation, "output-dir", defaultDir, "The directory path where the profile artifact will be generated")
+	flag.StringVar(&outputLocation, "output-dir", defaultDir, "The directory path where the profile artifact will be generated, defaults to current working directory")
 	flag.StringVar(&profileType, "profile", string(v1beta1.Prod), "Profile type to be generated, defaults to prod")
+	flag.BoolVar(&help, "help", false, "Get information about the usage/utility of the tool")
 	flag.Parse()
+
+	if help {
+		fmt.Println(info)
+		os.Exit(0)
+	}
+
 	OLInfo, err := os.Stat(outputLocation)
 	if err != nil {
 		log.Fatal(err)
