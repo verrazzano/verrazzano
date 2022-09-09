@@ -6,6 +6,7 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"path/filepath"
 	"strconv"
 
@@ -116,6 +117,38 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 	}); err != nil {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
+	return nil
+}
+
+// PreUninstall waits until MySQL has been uninstalled. This is needed since the pods have finalizers
+// that are processed by the MySQL operator
+func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) error {
+	// Keycloak enabled determines if MySQL is enabled
+	if !vzconfig.IsKeycloakEnabled(compContext.EffectiveCR()) {
+		return nil
+	}
+
+	// Create a component context for mysql
+	spiCtx, err := spi.NewContext(compContext.Log(), compContext.Client(), compContext.ActualCR(), compContext.ActualCRV1Beta1(), compContext.IsDryRun())
+	if err != nil {
+		spiCtx.Log().Errorf("Failed to create component context: %v", err)
+		return err
+	}
+	mySQLContext := spiCtx.Init(mysql.ComponentName).Operation(vpocons.UninstallOperation)
+
+	// Check if MySQL is installed
+	mySQLComp := mysql.NewComponent()
+	installed, err := mySQLComp.IsInstalled(mySQLContext)
+	if err != nil {
+		spiCtx.Log().Errorf("Failed to check if MySQL is installed: %v", err)
+		return err
+	}
+	if installed {
+		spiCtx.Log().Progressf("MySQL operator uninstall is waiting for MySQL to be uninstalled")
+		return ctrlerrors.RetryableError{Source: ComponentName}
+	}
+
+	// MySQL is not installed, safe to uninstall MySQL operator
 	return nil
 }
 
