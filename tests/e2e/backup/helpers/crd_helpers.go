@@ -45,12 +45,6 @@ func getUnstructuredData(group, version, resource, resourceName, nameSpaceName, 
 
 	if nameSpaceName != "" {
 		log.Infof("Fetching '%s' '%s' '%s' in namespace '%s'", component, resource, resourceName, nameSpaceName)
-		log.Infof("Group = %v", group)
-		log.Infof("Version = %v", version)
-		log.Infof("Resource = %v", resource)
-		log.Infof("Namespace = %v", nameSpaceName)
-		log.Infof("ResourceName = %v", resourceName)
-
 		dataFetched, err = dclient.Resource(gvr).Namespace(nameSpaceName).Get(context.TODO(), resourceName, metav1.GetOptions{})
 	} else {
 		log.Infof("Fetching '%s' '%s' '%s'", component, resource, resourceName)
