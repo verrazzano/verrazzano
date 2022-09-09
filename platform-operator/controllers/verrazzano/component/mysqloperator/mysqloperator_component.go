@@ -123,7 +123,7 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 	return nil
 }
 
-// PreUninstall waits until MySQL pods in Keycloak are gone. This is needed since the pods have finalizers
+// PreUninstall waits until MySQL pods in the Keycloak namespace are gone. This is needed since the pods have finalizers
 // that are processed by the MySQL operator
 func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) error {
 	const (
