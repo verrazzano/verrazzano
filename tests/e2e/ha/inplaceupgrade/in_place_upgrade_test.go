@@ -122,7 +122,7 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 				// cordon and drain the node - this function is implemented in kubectl itself and is not available
 				// using a k8s client
 				t.Logs.Infof("Draining node: %s", node.Name)
-				out, err := exec.Command("kubectl", "drain", "--ignore-daemonsets", "--delete-emptydir-data", "--force", node.Name).Output() //nolint:gosec //#nosec G204
+				out, err := exec.Command("kubectl", "drain", "--ignore-daemonsets", "--delete-emptydir-data", "--force", "--skip-wait-for-delete-timeout=600", node.Name).Output() //nolint:gosec //#nosec G204
 				Expect(err).ShouldNot(HaveOccurred())
 				t.Logs.Infof("Output from kubectl drain command: %s", out)
 
