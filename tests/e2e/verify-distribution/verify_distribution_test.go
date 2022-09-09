@@ -1,6 +1,7 @@
 package verify_distribution_test
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
@@ -59,6 +60,7 @@ func verifyDisByDir(inputDir string, key string) {
 		filesList = append(filesList, each.Name())
 	}
 	Expect(compareSlices(filesList, opensourcefileslistbydir[key])).To(BeTrue())
+	fmt.Printf("All files found for %s \n", key)
 }
 
 func compareSlices(slice1 []string, slice2 []string) bool {

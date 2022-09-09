@@ -297,6 +297,14 @@ pipeline {
                     }
                 }
             }
+
+            stages {
+                stage('verify-distribution') {
+                    steps {
+                        runGinkgoRandomize('verify-distribution')
+                    }
+                }
+            }
         }
         stage('Upload Verrazzano Images') {
              environment {
