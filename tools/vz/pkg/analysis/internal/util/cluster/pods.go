@@ -100,22 +100,22 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 	return reported, nil
 }
 
-// IsPodNotReadyNorCompleted will return true if the Pod has containers that are neither Ready nor Completed
+// IsPodReadyOrCompleted will return true if the Pod has containers that are neither Ready nor Completed
 // TODO: Extend for transition time correlation (ie: change from bool to struct)
-func IsPodNotReadyNorCompleted(podStatus corev1.PodStatus) bool {
+func IsPodReadyOrCompleted(podStatus corev1.PodStatus) bool {
 	for _, containerStatus := range podStatus.ContainerStatuses {
 		state := containerStatus.State
 		if state.Terminated != nil && state.Terminated.Reason != "Completed" {
-			return true
+			return false
 		}
 		if state.Running != nil && !containerStatus.Ready {
-			return true
+			return false
 		}
 		if state.Waiting != nil {
-			return true
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // This is evolving as we add more cases in podContainerIssues
@@ -319,7 +319,7 @@ func IsPodProblematic(pod corev1.Pod) bool {
 	if pod.Status.Phase == corev1.PodRunning ||
 		pod.Status.Phase == corev1.PodSucceeded {
 		// The Pod indicates it is Running/Succeeded, check if there are containers that are not ready
-		return IsPodNotReadyNorCompleted(pod.Status)
+		return !IsPodReadyOrCompleted(pod.Status)
 	}
 	return true
 }
