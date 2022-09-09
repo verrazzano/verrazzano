@@ -124,6 +124,14 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 	}
 
+	// Check to make sure we don't already have vz installed.
+	oldvz, _ := helpers.FindVerrazzanoResource(client)
+	if oldvz != nil {
+		if oldvz.Status.State != v1beta1.VzStateReconciling && oldvz.Status.Version != version {
+			return fmt.Errorf("Only one install of Verrazzano is allowed")
+		}
+	}
+
 	// Get the verrazzano install resource to be created
 	vz, err := getVerrazzanoYAML(cmd, vzHelper, version)
 	if err != nil {
