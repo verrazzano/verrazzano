@@ -40,7 +40,7 @@ and some that were written specifically to pull together all the pieces to make 
 | Prometheus Adapter           | 0.9.1   | Provides metrics in support of pod autoscaling.                                          |
 | Prometheus Operator          | 0.55.1  | Provides management for Prometheus monitoring tools.                                     |
 | Prometheus Pushgateway       | 1.4.2   | Allows ephemeral and batch jobs to expose their metrics to Prometheus.                   |
-| Rancher                      | 2.6.7   | Manages multiple Kubernetes clusters.                                                    |
+| Rancher                      | 2.6.8   | Manages multiple Kubernetes clusters.                                                    |
 | WebLogic Kubernetes Operator | 3.4.3   | Assists with deploying and managing WebLogic domains.                                    |
 
 ## Distribution layout
