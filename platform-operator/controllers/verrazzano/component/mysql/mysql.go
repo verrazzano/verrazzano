@@ -492,15 +492,6 @@ func preUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL pre upgrade dry run")
 		return nil
 	}
-	//
-	//// following steps are only needed for persistent storage
-	//mySQLVolumeSource, err := getVolumeSource(ctx.EffectiveCR())
-	//ctx.Log().Infof("Current value for MySQLVolumeSource: %v", mySQLVolumeSource)
-	//if err != nil {
-	//	return err
-	//}
-	//if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
-	// get the current MySQL deployment
 	deployment, err := getMySQLDeployment(ctx)
 	if err != nil {
 		return err
@@ -508,7 +499,6 @@ func preUpgrade(ctx spi.ComponentContext) error {
 	// vz > 1.3 uses statefulsets, not deployments
 	// no migration is needed if vz >= 1.4
 	if deployment != nil {
-		ctx.Log().Infof("Deployment != nil %s", ComponentName)
 		// change the ReclaimPolicy of the PV to Reclaim
 		mysqlPVC := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
 		pvc := &v1.PersistentVolumeClaim{}
@@ -527,7 +517,6 @@ func preUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 		if !unitTesting { // perform instance dump of MySQL
-			ctx.Log().Infof("Performing dump %s", ComponentName)
 			if err := dumpDatabase(ctx); err != nil {
 				ctx.Log().Debugf("Unable to perform dump of database %s", ComponentName)
 				return err
@@ -696,6 +685,7 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
+	ctx.Log().Infof("Successfully updated MySQL Primary Key %s", ComponentName)
 	stdOut, stdErr, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execShCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed logging into mysql: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, err))
