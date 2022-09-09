@@ -43,7 +43,7 @@ def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
     options {
-        timeout(time: 6, unit: 'HOURS')
+        timeout(time: 9, unit: 'HOURS')
         skipDefaultCheckout true
         disableConcurrentBuilds()
         timestamps ()
