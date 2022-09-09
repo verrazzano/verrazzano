@@ -495,6 +495,7 @@ func preUpgrade(ctx spi.ComponentContext) error {
 
 	// following steps are only needed for persistent storage
 	mySQLVolumeSource, err := getVolumeSource(ctx.EffectiveCR())
+	ctx.Log().Infof("Current value for MySQLVolumeSource: %v", mySQLVolumeSource)
 	if err != nil {
 		return err
 	}
