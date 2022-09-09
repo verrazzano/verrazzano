@@ -145,6 +145,7 @@ captureBundleContents() {
 
 generateHTML() {
   README_FILE=$1
+  distDir=$2
   temp_hugo_dir="temp_hugo_dir"
   echo 'Generating HTML files from markdown'
 
@@ -195,7 +196,7 @@ buildArchLiteBundle() {
   cp ${VZ_REPO_ROOT}/release/docs/README_LITE.md ${distDir}/README.md
 
   # Generate readme html from hugo
-  generateHTML ${VZ_REPO_ROOT}/release/docs/README_LITE.md
+  generateHTML ${VZ_REPO_ROOT}/release/docs/README_LITE.md ${distDir}
 
   # Build distribution for the given architecture
   tar -czf ${generatedDir}/${archLiteBundle} -C ${rootDir} .
@@ -281,7 +282,7 @@ generateVZFullDistribution() {
   echo "Create ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} and upload ..."
   cp ${VZ_REPO_ROOT}/release/docs/README_FULL.md ${distDir}/README.md
   # Generate readme html from hugo
-  generateHTML ${VZ_REPO_ROOT}/release/docs/README_FULL.md
+  generateHTML ${VZ_REPO_ROOT}/release/docs/README_FULL.md ${distDir}
   cd ${rootDir}
   zip -r ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} *
   oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
