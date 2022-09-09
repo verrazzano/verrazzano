@@ -177,7 +177,26 @@ spec:
                             weight: 100
     keycloak:
       enabled: true
-      mysql: { }
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 1
+              routerInstances: 0
+              image:
+                pullPolicy: IfNotPresent
+                pullSecrets:
+                  enabled: false
+              podSpec:
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - weight: 100
+                        podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
+                              app.kubernetes.io/name: mysql-innodbcluster-mysql-server
+                          topologyKey: kubernetes.io/hostname
       overrides:
         - values:
             affinity: |
