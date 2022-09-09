@@ -75,8 +75,7 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   PRIMARY KEY (ID,AUTHOR,FILENAME)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
 	mySQLDbCommands = `mysql -uroot -p%s -e "USE keycloak;
-ALTER TABLE DATABASECHANGELOG;
-ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"`
+ALTER TABLE DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"`
 	mySQLShCommands = `mysqlsh -uroot -p%s -e "util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})"`
 )
 
@@ -679,10 +678,10 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 
 	// ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
-	execCmd := []string{sqlCmd}
+	execCmd := []string{"bash", "-c", sqlCmd}
 	// util.dumpInstance() Cmd
 	sqlShCmd := fmt.Sprintf(mySQLShCommands, rootPwd)
-	execShCmd := []string{sqlShCmd}
+	execShCmd := []string{"bash", "-c", sqlShCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
