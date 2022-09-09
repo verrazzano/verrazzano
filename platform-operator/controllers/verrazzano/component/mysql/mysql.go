@@ -44,8 +44,7 @@ const (
 	secretName            = "mysql"
 	secretKey             = "mysql-password"
 	mySQLUsername         = "keycloak"
-	preUpgradeKey         = "mysql-root-password"
-	rootPasswordKey       = "rootPassword"
+	rootPasswordKey       = "mysql-root-password"
 	statefulsetClaimName  = "dump-claim"
 	mySQLInitFilePrefix   = "init-mysql-"
 	dbLoadJobName         = "load-dump"
@@ -663,14 +662,14 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: secretName}, &rootSecret); err != nil {
 		return err
 	}
-	rootPwd := rootSecret.Data[preUpgradeKey]
+	rootPwd := rootSecret.Data[rootPasswordKey]
 
 	// ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
-	execCmd := []string{sqlCmd}
+	execCmd := []string{"bash", "-c", sqlCmd}
 	// util.dumpInstance() Cmd
 	sqlShCmd := fmt.Sprintf(mySQLShCommands, rootPwd)
-	execShCmd := []string{sqlShCmd}
+	execShCmd := []string{"bash", "-c", sqlShCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
