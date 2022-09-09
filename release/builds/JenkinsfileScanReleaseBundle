@@ -145,14 +145,18 @@ pipeline {
 }
 
 def captureDistributionURLs() {
-    sh """
-        baseUrl="https://objectstorage.${OCI_REGION}.oraclecloud.com/n/${OBJECT_STORAGE_NS}/b/${OBJECT_STORAGE_BUCKET}/o/{BRANCH_NAME}-last-clean-periodic-test/"
-        vzLiteBundle="${baseUrl}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
-        vzFullBundle="${baseUrl}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
-        cat <<EOF > ${WORKSPACE}/${verrazzanoDistributionsFile}
-        1. Verrazzano Lite Distribution: ${vzLiteBundle}
-        2. Verrazzano Full Distribution: ${vzFullBundle}
-        EOF
-    """
+    script {
+        BASE_URL="https://objectstorage.${OCI_REGION}.oraclecloud.com/n/${OBJECT_STORAGE_NS}/b/${OBJECT_STORAGE_BUCKET}/o/{BRANCH_NAME}-last-clean-periodic-test/"
+        sh """
+            vzLiteBundle="${BASE_URL}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
+            vzFullBundle="${BASE_URL}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+            cat <<EOF > ${WORKSPACE}/${verrazzanoDistributionsFile}
+            1. Verrazzano Lite Distribution: ${vzLiteBundle}
+            2. Verrazzano Full Distribution: ${vzFullBundle}
+            EOF
+        """
+    }
+}
+
 }
 
