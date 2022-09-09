@@ -41,6 +41,9 @@ def periodicsUpToDate              = false // If true, indicates that the period
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
 
+// File containing the links to download the Verrazzano distributions
+def verrazzanoDistributionsFile = "verrazzano_distributions.txt"
+
 pipeline {
     options {
         timeout(time: 6, unit: 'HOURS')
@@ -542,6 +545,13 @@ pipeline {
                             ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
                         """
                     }
+                    post {
+                        success {
+                          script {
+                             captureDistributionURLs()
+                          }
+                        }
+                    }
                 }
 
                 stage('Private Registry Tests') {
@@ -643,7 +653,7 @@ pipeline {
                     println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
                 }
             }
-            archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile},**/${verrazzanoDistributionsFile}", allowEmptyArchive: true
         }
         failure {
             script {
@@ -974,4 +984,16 @@ def getLatestReleaseVersion() {
     list gitTags = extractReleaseTags(releaseTags)
     echo "gitTags = ${gitTags}"
     return gitTags.pop()
+}
+
+def captureDistributionURLs() {
+    sh """
+        baseUrl="https://objectstorage.${OCI_OS_REGION}.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/{BRANCH_NAME}-last-clean-periodic-test/"
+        vzLiteBundle="${baseUrl}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
+        vzFullBundle="${baseUrl}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+        cat <<EOF > ${WORKSPACE}/${verrazzanoDistributionsFile}
+        1. Verrazzano Lite Distribution: ${vzLiteBundle}
+        2. Verrazzano Full Distribution: ${vzFullBundle}
+        EOF
+    """
 }

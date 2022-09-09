@@ -1,6 +1,11 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+// File containing the links to download the Verrazzano distributions
+def verrazzanoDistributionsFile = "verrazzano_distributions.txt"
+
+def verrazzanoPrefix="verrazzano-"
+
 pipeline {
     options {
         skipDefaultCheckout true
@@ -96,6 +101,13 @@ pipeline {
                     """
                 }
             }
+            post {
+                success {
+                  script {
+                     captureDistributionURLs()
+                  }
+                }
+            }
         }
 
         stage('Scan Release Binaries') {
@@ -124,11 +136,23 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: "**/scan_report*.out,**/scan_summary*.out,", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/scan_report*.out,**/scan_summary*.out,**/${verrazzanoDistributionsFile}", allowEmptyArchive: true
         }
         cleanup {
             deleteDir()
         }
     }
+}
+
+def captureDistributionURLs() {
+    sh """
+        baseUrl="https://objectstorage.${OCI_REGION}.oraclecloud.com/n/${OBJECT_STORAGE_NS}/b/${OBJECT_STORAGE_BUCKET}/o/{BRANCH_NAME}-last-clean-periodic-test/"
+        vzLiteBundle="${baseUrl}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
+        vzFullBundle="${baseUrl}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+        cat <<EOF > ${WORKSPACE}/${verrazzanoDistributionsFile}
+        1. Verrazzano Lite Distribution: ${vzLiteBundle}
+        2. Verrazzano Full Distribution: ${vzFullBundle}
+        EOF
+    """
 }
 
