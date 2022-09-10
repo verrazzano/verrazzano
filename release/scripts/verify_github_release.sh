@@ -8,6 +8,7 @@ set -e
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
+. $SCRIPT_DIR/common-release.sh
 
 usage() {
     cat <<EOM
