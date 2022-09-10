@@ -46,7 +46,7 @@ def verrazzanoDistributionsFile = "verrazzano_distributions.html"
 
 pipeline {
     options {
-        timeout(time: 6, unit: 'HOURS')
+        timeout(time: 9, unit: 'HOURS')
         skipDefaultCheckout true
         disableConcurrentBuilds()
         timestamps ()

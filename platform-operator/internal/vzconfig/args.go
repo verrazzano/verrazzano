@@ -9,6 +9,7 @@ import (
 	"net"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
 // CheckExternalIPsArgs method goes through the key-value pair to detect the presence of the
@@ -42,6 +43,24 @@ func CheckExternalIPsArgs(installArgs []vzapi.InstallArgs, overrides []vzapi.Ove
 	}
 	if !keyPresent {
 		return fmt.Errorf("Key \"%v\" not found for component \"%v\" for type NodePort", argsKeyName, compName)
+	}
+	return nil
+}
+
+// CheckExternalIPsOverridesArgs method goes through the key-value pair to detect the presence of the
+// specific key for the corresponding component that holds the external IP address
+// It also checks whether IP addresses are valid and provided in a List format
+func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, compName string) error {
+	for _, override := range overrides {
+		o, err := gabs.ParseJSON(override.Values.Raw)
+		if err != nil {
+			return err
+		}
+		if container := o.Path(jsonPath); container != nil {
+			if err := validateExternalIP([]string{container.Data().(string)}, jsonPath, compName); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
