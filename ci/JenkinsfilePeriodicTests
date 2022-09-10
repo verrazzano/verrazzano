@@ -542,7 +542,8 @@ pipeline {
                 stage("Upload Periodic Run Artifacts") {
                     steps {
                         sh """
-                            ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
+                            echo "Temporary change"
+                            # ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
                         """
                     }
                     post {
