@@ -1004,7 +1004,6 @@ def captureDistributionURLs() {
 		    <li><a href="${LITE_BUNDLE}">Verrazzano Lite Distribution</a></li>
 		    <li><a href="${FULL_BUNDLE}">Verrazzano Full Distribution</a></li>
 		  </ul>
-		  The release distributions are built with commit - <b>${LAST_CLEAN_PERIODIC_COMMIT}</b>
       </body>
 </html>
 EOF
