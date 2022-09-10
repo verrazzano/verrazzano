@@ -42,7 +42,7 @@ def periodicsUpToDate              = false // If true, indicates that the period
 def branchSpecificSchedule = getCronSchedule()
 
 // File containing the links to download the Verrazzano distributions
-def verrazzanoDistributionsFile = "verrazzano_distributions.txt"
+def verrazzanoDistributionsFile = "verrazzano_distributions.html"
 
 pipeline {
     options {
@@ -986,14 +986,26 @@ def getLatestReleaseVersion() {
     return gitTags.pop()
 }
 
+// Create a html file containing the links to the Verrazzano distributions
 def captureDistributionURLs() {
-    sh """
-        baseUrl="https://objectstorage.${OCI_OS_REGION}.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/{BRANCH_NAME}-last-clean-periodic-test/"
-        vzLiteBundle="${baseUrl}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
-        vzFullBundle="${baseUrl}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
-        cat <<EOF > ${WORKSPACE}/${verrazzanoDistributionsFile}
-        1. Verrazzano Lite Distribution: ${vzLiteBundle}
-        2. Verrazzano Full Distribution: ${vzFullBundle}
-        EOF
-    """
+    script {
+        BASE_URL="https://objectstorage.${OCI_OS_REGION}.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${env.BRANCH_NAME}-last-clean-periodic-test"
+        LITE_BUNDLE="${BASE_URL}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
+        FULL_BUNDLE="${BASE_URL}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+        sh """
+            cat <<EOF > ${WORKSPACE}/${verrazzanoDistributionsFile}
+<!DOCTYPE html>
+<html>
+      <body>
+          <b>Verrazzano Release Distributions</b>
+		  <ul>
+		    <li><a href="${LITE_BUNDLE}">Verrazzano Lite Distribution</a></li>
+		    <li><a href="${FULL_BUNDLE}">Verrazzano Full Distribution</a></li>
+		  </ul>
+		  The release distributions are built with commit - <b>${LAST_CLEAN_PERIODIC_COMMIT}</b>
+      </body>
+</html>
+EOF
+        """
+    }
 }
