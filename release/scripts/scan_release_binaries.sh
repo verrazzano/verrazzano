@@ -19,7 +19,7 @@ usage() {
   Example:
     $(basename $0) release_bundle_dir scanner_home scan_report_dir
 
-  The script expects the OCI CLI is installed. It also expects the following environment variables -
+  The script expects the following environment variables -
     RELEASE_VERSION - release version (major.minor.patch format, e.g. 1.0.1)
     SCANNER_ARCHIVE_LOCATION - command line scanner
     SCANNER_ARCHIVE_FILE - scanner archive
