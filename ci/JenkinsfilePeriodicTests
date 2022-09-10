@@ -42,6 +42,7 @@ def periodicsUpToDate              = false // If true, indicates that the period
 def branchSpecificSchedule = getCronSchedule()
 
 // File containing the links to download the Verrazzano distributions
+@Field
 def verrazzanoDistributionsFile = "verrazzano_distributions.html"
 
 pipeline {
