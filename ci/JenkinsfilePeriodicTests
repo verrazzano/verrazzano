@@ -617,6 +617,9 @@ pipeline {
                 }
 
                 stage('Update Last Clean Periodic Test') {
+                    environment {
+                        GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+                    }
                     steps {
                         script {
                             sh """
