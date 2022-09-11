@@ -626,7 +626,13 @@ pipeline {
                             sh """
                                 ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION}
                             """
-                            captureDistributionURLs()
+                        }
+                    }
+                    post {
+                        success {
+                            script {
+                                captureDistributionURLs()
+                            }
                         }
                     }
                 }
