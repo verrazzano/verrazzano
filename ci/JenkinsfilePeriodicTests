@@ -548,17 +548,6 @@ pipeline {
                     }
                 }
 
-                stage('Update Last Clean Periodic Test') {
-                    steps {
-                        script {
-                            sh """
-                                ci/scripts/update_last_clean_periodic_test.sh ${VERRAZZANO_DEV_VERSION}
-                            """
-                            captureDistributionURLs()
-                        }
-                    }
-                }
-
                 stage('Private Registry Tests') {
                     when {
                         allOf {
@@ -631,7 +620,6 @@ pipeline {
                     }
                 }
 
-                /*
                 stage('Update Last Clean Periodic Test') {
                     steps {
                         script {
@@ -642,7 +630,6 @@ pipeline {
                         }
                     }
                 }
-                */
             }
         }
     }
