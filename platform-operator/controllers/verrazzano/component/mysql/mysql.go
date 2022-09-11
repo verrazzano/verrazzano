@@ -48,8 +48,12 @@ const (
 	statefulsetClaimName  = "dump-claim"
 	mySQLInitFilePrefix   = "init-mysql-"
 	dbLoadJobName         = "load-dump"
+	deploymentFoundStage  = "deployment-found"
+	databaseDumpedStage   = "database-dumped"
+	pvcDeletedStage       = "pvc-deleted"
 	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
 	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
+	dbMigrationSecret     = "db-migration"
 	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
 	initDbScript          = `CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
@@ -73,9 +77,13 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   DEPLOYMENT_ID varchar(10) DEFAULT NULL,
   PRIMARY KEY (ID,AUTHOR,FILENAME)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
-	mySQLDbCommands = `mysql -uroot -p%s -e "USE keycloak;
-ALTER TABLE DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"`
-	mySQLShCommands = `mysqlsh -uroot -p%s -e 'util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})'`
+	mySQLDbCommands = `mysql -uroot -p%s -e "USE keycloak; 
+ALTER TABLE DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"
+`
+	mySQLShCommands = `mysqlsh -uroot -p%s --js <<EOF
+util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})
+EOF
+`
 )
 
 var (
@@ -156,6 +164,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	secretSet := false
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
 		var err error
+		var userPwd [] byte
 		if isLegacyDatabaseUpgrade(compContext) {
 			secretName := types.NamespacedName{
 				Namespace: ComponentNamespace,
@@ -166,32 +175,23 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
 			secretSet = true
-			userPwd, err := getLegacyUserSecret(compContext)
+			userPwd, err = getLegacyUserSecret(compContext)
 			if err != nil {
 				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
 			// add user settings to enable persistence in cluster secret
 			kvs = append(kvs, bom.KeyValue{Key: helmUserPwd, Value: string(userPwd)})
 			kvs = append(kvs, bom.KeyValue{Key: helmUserName, Value: mySQLUsername})
-
-			mySQLVolumeSource, err := getVolumeSource(compContext.EffectiveCR())
-			if err != nil {
-				return []bom.KeyValue{}, err
-			}
-			// check for ephemeral storage
-			compContext.Log().Infof("MySQL volume source: %v", mySQLVolumeSource)
-			if mySQLVolumeSource == nil || mySQLVolumeSource.EmptyDir != nil {
-				// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
-				// provide the sql initialization file
-				kvs, err = createDatabaseInitializationValues(compContext, userPwd, kvs)
-				if err != nil {
-					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-				}
-			}
-
 		}
 		if isLegacyPersistentDatabase(compContext) {
 			kvs, err = appendLegacyUpgradePersistenceValues(kvs)
+			if err != nil {
+				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+			}
+		} else {
+			// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
+			// provide the sql initialization file
+			kvs, err = createDatabaseInitializationValues(compContext, userPwd, kvs)
 			if err != nil {
 				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
@@ -301,7 +301,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
 		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR)
 		if !found {
-			return kvs, fmt.Errorf("failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
 		storageClass := storageSpec.StorageClassName
 		if storageClass != nil && len(*storageClass) > 0 {
@@ -353,47 +353,77 @@ func appendLegacyUpgradePersistenceValues(kvs []bom.KeyValue) ([]bom.KeyValue, e
 }
 
 func isLegacyDatabaseUpgrade(compContext spi.ComponentContext) bool {
-	// get the current MySQL deployment
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
-	compContext.Log().Debugf("Looking for deployment %s", ComponentName)
-	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment)
-	if err != nil {
-		compContext.Log().Infof("No legacy database found")
-		return false
+	deploymentFound := isDatabaseMigrationStageCompleted(compContext, deploymentFoundStage)
+	compContext.Log().Infof("is legacy upgrade based on secret: %s", deploymentFound)
+	if !deploymentFound {
+		// get the current MySQL deployment
+		deployment := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+			},
+		}
+		compContext.Log().Debugf("Looking for deployment %s", ComponentName)
+		err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment)
+		if err != nil {
+			compContext.Log().Infof("No legacy database deployment found")
+			return false
+		}
+
+		err = updateDBMigrationInProgressSecret(compContext, deploymentFoundStage)
+		if err != nil {
+			return false
+		}
+
+		return true
 	}
 
 	return true
 }
 
-func isLegacyPersistentDatabase(compContext spi.ComponentContext) bool {
-	mySQLVolumeSource, err := getVolumeSource(compContext.EffectiveCR())
+func isDatabaseMigrationStageCompleted(ctx spi.ComponentContext, stage string) bool {
+	secret := &v1.Secret{}
+	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: ComponentNamespace,
+		Name:      dbMigrationSecret,
+	}, secret)
 	if err != nil {
 		return false
 	}
-	if mySQLVolumeSource != nil {
-		if mySQLVolumeSource.EmptyDir != nil {
-			compContext.Log().Infof("Legacy database detected with ephemeral storage")
-			return false
-		} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
-			compContext.Log().Infof("Legacy database detected with persistent storage")
-			return true
-		}
-	}
-
-	return false
+	_, ok := secret.Data[stage]
+	ctx.Log().Infof("Database migration stage %s completed: %s", stage, ok)
+	return ok
 }
 
-func getVolumeSource(effectiveCr *vzapi.Verrazzano) (*v1.VolumeSource, error) {
-	convertedVZ := v1beta1.Verrazzano{}
-	if err := common.ConvertVerrazzanoCR(effectiveCr, &convertedVZ); err != nil {
-		return nil, err
+// updateDBMigrationInProgressSecret creates a secret that indicates an in-progress DB migration
+func updateDBMigrationInProgressSecret(ctx spi.ComponentContext, stage string) error {
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: dbMigrationSecret, Namespace: ComponentNamespace},
 	}
-	return getMySQLVolumeSource(&convertedVZ), nil
+	// If the secret doesn't exist, create it
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
+		// Build the secret data
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
+		}
+		secret.Data[stage] = []byte("true")
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func isLegacyPersistentDatabase(compContext spi.ComponentContext) bool {
+	if isDatabaseMigrationStageCompleted(compContext, pvcDeletedStage) {
+		return true
+	}
+	pvc := &v1.PersistentVolumeClaim{}
+	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, pvc)
+	return err == nil
 }
 
 // getMySQLVolumeSourceV1beta1 returns the volume source from v1beta1.Verrazzano
@@ -491,60 +521,65 @@ func preUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL pre upgrade dry run")
 		return nil
 	}
-	deployment, err := getMySQLDeployment(ctx)
-	if err != nil {
-		return err
-	}
 	// vz > 1.3 uses statefulsets, not deployments
 	// no migration is needed if vz >= 1.4
-	if deployment != nil {
+	if isLegacyDatabaseUpgrade(ctx) {
 		// change the ReclaimPolicy of the PV to Reclaim
 		mysqlPVC := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
-		pvc := &v1.PersistentVolumeClaim{}
+		if !isDatabaseMigrationStageCompleted(ctx, pvcDeletedStage) {
+			pvc := &v1.PersistentVolumeClaim{}
 
-		if err := ctx.Client().Get(context.TODO(), mysqlPVC, pvc); err != nil {
-			// no pvc so just log it and there's nothing left to do
-			if errors.IsNotFound(err) {
-				ctx.Log().Debugf("Did not find pvc %s. No database data migration required.", mysqlPVC)
-				return nil
+			if err := ctx.Client().Get(context.TODO(), mysqlPVC, pvc); err != nil {
+				// no pvc so just log it and there's nothing left to do
+				if errors.IsNotFound(err) {
+					ctx.Log().Debugf("Did not find pvc %s. No database data migration required.", mysqlPVC)
+					return nil
+				}
+				return err
 			}
-			return err
-		}
+			err := common.RetainPersistentVolume(ctx, pvc, ComponentName)
+			if err != nil {
+				return err
+			}
+			if !unitTesting { // perform instance dump of MySQL
+				if err := dumpDatabase(ctx); err != nil {
+					ctx.Log().Debugf("Unable to perform dump of database %s", ComponentName)
+					return err
+				}
+			}
+			// delete the deployment to free up the pv/pvc
+			deployment := &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: ComponentNamespace,
+					Name:      ComponentName,
+				},
+			}
+			ctx.Log().Infof("Deleting deployment %s", ComponentName)
+			if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
+				if !errors.IsNotFound(err) {
+					ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
+					return err
+				}
+			} else {
+				ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
+			}
 
-		err := common.RetainPersistentVolume(ctx, pvc, ComponentName)
-		if err != nil {
-			return err
-		}
-		if !unitTesting { // perform instance dump of MySQL
-			if err := dumpDatabase(ctx); err != nil {
-				ctx.Log().Debugf("Unable to perform dump of database %s", ComponentName)
+			ctx.Log().Infof("Deleting PVC %v", mysqlPVC)
+			if err := common.DeleteExistingVolumeClaim(ctx, mysqlPVC); err != nil {
+				ctx.Log().Debugf("Unable to delete existing PVC %v", mysqlPVC)
+				return err
+			}
+			err = updateDBMigrationInProgressSecret(ctx, pvcDeletedStage)
+			if err != nil {
 				return err
 			}
 		}
-		// delete the deployment to free up the pv/pvc
-		ctx.Log().Debugf("Deleting deployment %s", ComponentName)
-		if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
-			if !errors.IsNotFound(err) {
-				ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
-				return err
-			}
-		} else {
-			ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
-		}
-
-		ctx.Log().Debugf("Deleting PVC %v", mysqlPVC)
-		if err := common.DeleteExistingVolumeClaim(ctx, mysqlPVC); err != nil {
-			ctx.Log().Debugf("Unable to delete existing PVC %v", mysqlPVC)
-			return err
-		}
-
-		ctx.Log().Debugf("Updating PV/PVC %v", mysqlPVC)
+		ctx.Log().Infof("Updating PV/PVC %v", mysqlPVC)
 		if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
-			ctx.Log().Debugf("Unable to update PV/PVC")
+			ctx.Log().Infof("Unable to update PV/PVC")
 			return err
 		}
 	}
-	//}
 	return nil
 }
 
@@ -554,14 +589,32 @@ func postUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL post upgrade dry run")
 		return nil
 	}
-	mySQLVolumeSource, err := getVolumeSource(ctx.EffectiveCR())
-	if err != nil {
+	// delete db migration secret if it exists
+	//migrationSecret := &v1.Secret{
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Namespace: ComponentNamespace,
+	//		Name:      dbMigrationSecret,
+	//	},
+	//}
+	//
+	//if err := ctx.Client().Delete(context.TODO(), migrationSecret); err != nil {
+	//	if !errors.IsNotFound(err) {
+	//		return err
+	//	}
+	//} else {
+	//	ctx.Log().Debugf("Secret %v deleted", migrationSecret.ObjectMeta)
+	//}
+
+	// check to see if the PV was mounted for data migration
+	pvc := &v1.PersistentVolumeClaim{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: "dump-claim"}, pvc)
+	if err != nil && errors.IsNotFound(err){
+		return nil
+	} else {
 		return err
 	}
-	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
-		return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
-	}
-	return nil
+
+	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
 }
 
 // convertOldInstallArgs changes persistence.* install args to primary.persistence.* to keep compatibility with the new chart
@@ -640,23 +693,11 @@ func getMySQLPod(ctx spi.ComponentContext) (*v1.Pod, error) {
 	return &mysqlPods.Items[0], nil
 }
 
-// getMySQLDeployment returns the deployment if it exists
-func getMySQLDeployment(ctx spi.ComponentContext) (*appsv1.Deployment, error) {
-	mysqlDeployment := &appsv1.Deployment{}
-	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: ComponentNamespace,
-		Name:      ComponentName,
-	}, mysqlDeployment); err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, ctx.Log().ErrorfNewErr("Failed getting mysql deployment: %v", err)
-	}
-	return mysqlDeployment, nil
-}
-
 // dumpDatabase uses the mySQL Shell utility to dump the instance to its mounted PV
 func dumpDatabase(ctx spi.ComponentContext) error {
+	if isDatabaseMigrationStageCompleted(ctx, databaseDumpedStage) {
+		return nil
+	}
 	// retrieve root password for mysql
 	rootSecret := v1.Secret{}
 	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: secretName}, &rootSecret); err != nil {
@@ -684,13 +725,19 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Infof("Successfully updated MySQL Primary Key %s", ComponentName)
+	ctx.Log().Info("Successfully updated keycloak table primary key")
 	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execShCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed executing database dump, err = %v", err))
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
+	ctx.Log().Info("Successfully persisted database dump")
+	err = updateDBMigrationInProgressSecret(ctx, databaseDumpedStage)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

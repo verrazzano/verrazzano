@@ -389,6 +389,7 @@
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
+              "repository": "oracle",
               "image": "oraclelinux",
               "tag": "7-slim",
               "helmFullImageKey": "legacyUpgrade.initContainer.image"
