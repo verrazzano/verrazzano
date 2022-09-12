@@ -49,6 +49,7 @@ func IsShutdownSignalSet(cs *kubernetes.Clientset) bool {
 // test is only run one time.
 func RunningUntilShutdownIt(t *framework.TestFramework, description string, clientset *kubernetes.Clientset, runContinuous bool, test func()) {
 	t.It(description, func() {
+		gomega.Expect(clientset).ToNot(gomega.BeNil())
 		for {
 			test()
 			// break out of the loop if we are not running the suite continuously,
