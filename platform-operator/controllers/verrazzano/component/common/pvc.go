@@ -83,7 +83,7 @@ func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.Namespac
 	return nil
 }
 
-// DeleteExistingVolumeClaims removes a persistent volume claim in order to allow the pv to be reclaimed by a new PVC.
+// DeleteExistingVolumeClaim removes a persistent volume claim in order to allow the pv to be reclaimed by a new PVC.
 func DeleteExistingVolumeClaim(ctx spi.ComponentContext, pvcName types.NamespacedName) error {
 	ctx.Log().Debugf("Removing PVC %v", pvcName)
 

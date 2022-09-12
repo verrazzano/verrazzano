@@ -303,6 +303,14 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"temp": []byte("false")}
+			return nil
+		})
+	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
 			dep.Name = name.Name
@@ -310,16 +318,33 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
-			pvc.Spec.VolumeName = "volumeName"
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Secret"}, name.Name)
+		})
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
+			assert.Equal(t, dbMigrationSecret, secret.Name)
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: "volumeName"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			pvc.Spec.VolumeName = DeploymentPersistentVolumeClaim
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pv *v1.PersistentVolume) error {
-			pv.Name = "volumeName"
-			pv.Spec.PersistentVolumeReclaimPolicy = v1.PersistentVolumeReclaimDelete
+			pv.Name = DeploymentPersistentVolumeClaim
 			return nil
 		})
 	mock.EXPECT().
@@ -329,6 +354,49 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 			assert.Equal(t, v1.PersistentVolumeReclaimRetain, pv.Spec.PersistentVolumeReclaimPolicy)
 			return nil
 		})
+	//mock.EXPECT().
+	//	Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+	//	DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+	//		dep.Name = name.Name
+	//		dep.Namespace = name.Namespace
+	//		return nil
+	//	})
+	//mock.EXPECT().
+	//	Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+	//	DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+	//		dep.Name = name.Name
+	//		dep.Namespace = name.Namespace
+	//		return nil
+	//	})
+	//mock.EXPECT().
+	//	List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+	//	DoAndReturn(func(ctx context.Context, list *v1.PodList, opts ...client.ListOption) error {
+	//		pod := v1.Pod{
+	//			ObjectMeta: metav1.ObjectMeta{
+	//				Namespace: ComponentNamespace,
+	//				Name:      ComponentName,
+	//				Labels: map[string]string{
+	//					"app":     ComponentName,
+	//					"release": ComponentName,
+	//				},
+	//			},
+	//		}
+	//		list.Items = []v1.Pod{pod}
+	//		return nil
+	//	})
+	//mock.EXPECT().
+	//	Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+	//	DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+	//		dep.Name = name.Name
+	//		dep.Namespace = name.Namespace
+	//		return nil
+	//	})
+	//mock.EXPECT().
+	//	Update(gomock.Any(), gomock.Not(gomock.Nil())).
+	//	DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
+	//		assert.Equal(t, dbMigrationSecret, secret.Name)
+	//		return nil
+	//	})
 	mock.EXPECT().
 		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.DeleteOption) error {
@@ -340,6 +408,19 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.DeleteOption) error {
 			assert.Equal(t, ComponentName, pvc.Name)
 			assert.Equal(t, ComponentNamespace, pvc.Namespace)
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
+			assert.Equal(t, dbMigrationSecret, secret.Name)
 			return nil
 		})
 	mock.EXPECT().
