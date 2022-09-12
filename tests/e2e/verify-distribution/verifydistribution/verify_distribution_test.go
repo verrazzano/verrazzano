@@ -14,6 +14,7 @@ import (
 const SLASH = "/"
 
 var variant string
+var vzDevVersion string
 
 var allPaths = map[string]string{
 	"top":                          "",
@@ -56,12 +57,35 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Verify VZ distribution", func() {
 
 	variant = os.Getenv("DISTRIBUTION_VARIANT")
-	generatedPath := os.Getenv("TARBALL_DIR") ///home/opc/jenkins/workspace/sapat_vz-distribution-validation/vz-tarball/verrazzano-1.4.0
+	generatedPath := os.Getenv("TARBALL_DIR")
 
 	if variant == "Lite" {
 		t.Describe("When provided Lite ", func() {
 
-			t.It("Verify Lite bundle", func() {
+			tarball_root_dir := os.Getenv("TARBALL_ROOT_DIR")
+			vzDevVersion = os.Getenv("VERRAZZANO_DEV_VERSION")
+			var liteBundleZipContens = []string{
+				"operator.yaml", "operator.yaml.sha256", "verrazzano-" + vzDevVersion,
+				"verrazzano-" + vzDevVersion + "-darwin-amd64.tar.gz", "verrazzano-" + vzDevVersion + "-darwin-amd64.tar.gz.sha256",
+				"verrazzano-" + vzDevVersion + "-darwin-arm64.tar.gz", "verrazzano-" + vzDevVersion + "-darwin-arm64.tar.gz.sha256",
+				"verrazzano-" + vzDevVersion + "-linux-amd64.tar.gz", "verrazzano-" + vzDevVersion + "-linux-amd64.tar.gz.sha256",
+				"verrazzano-" + vzDevVersion + "-linux-arm64.tar.gz", "verrazzano-" + vzDevVersion + "-linux-arm64.tar.gz.sha256",
+				"verrazzano-" + vzDevVersion + "-lite.zip",
+			}
+			t.It("Verify lite bundle zip contents", func() {
+				filesList := []string{}
+				filesInfo, err := ioutil.ReadDir(tarball_root_dir)
+				if err != nil {
+					println(err.Error())
+				}
+				gomega.Expect(err).To(gomega.BeNil())
+				for _, each := range filesInfo {
+					filesList = append(filesList, each.Name())
+				}
+				gomega.Expect(compareSlices(filesList, liteBundleZipContens)).To(gomega.BeTrue())
+			})
+
+			t.It("Verify Lite bundle extracted contents", func() {
 				verifyDistributionByDirectory(generatedPath+allPaths["top"], "top")
 				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin")
 				verifyDistributionByDirectory(generatedPath+allPaths["manifests"], "manifests")
@@ -74,9 +98,6 @@ var _ = t.Describe("Verify VZ distribution", func() {
 		})
 	} else {
 		t.Describe("When provided full bundle", func() {
-
-			// generatedPath := os.Getenv("TARBALL_DIR") //+ "verrazzano-1.4.0"
-
 			t.It("Verify Full Bundle", func() {
 				verifyDistributionByDirectory(generatedPath+allPaths["top"], "top")
 				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin")
@@ -101,7 +122,6 @@ func verifyDistributionByDirectory(inputDir string, key string) {
 	gomega.Expect(err).To(gomega.BeNil())
 	for _, each := range filesInfo {
 		filesList = append(filesList, each.Name())
-		println(each.Name())
 	}
 	if variant == "Lite" {
 		gomega.Expect(compareSlices(filesList, opensourcefileslistbydir[key])).To(gomega.BeTrue())
@@ -113,10 +133,12 @@ func verifyDistributionByDirectory(inputDir string, key string) {
 
 func compareSlices(slice1 []string, slice2 []string) bool {
 	if len(slice1) != len(slice2) {
+		fmt.Printf("Length mismatched for %s and %s", slice1, slice2)
 		return false
 	}
 	for i, v := range slice1 {
 		if v != slice2[i] {
+			fmt.Printf("%s != %s", v, slice2[i])
 			return false
 		}
 	}
