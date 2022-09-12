@@ -345,6 +345,7 @@ cd ${WORKSPACE}
 
 # Build Verrazzano lite distribution bundles
 createDistributionLayout "${VZ_LITE_ROOT}" "${DISTRIBUTION_PREFIX}"
+includeProfiles "${VZ_LITE_ROOT}" "${DISTRIBUTION_PREFIX}"
 generateVZLiteDistribution "${VZ_LITE_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_LITE_GENERATED}"
 
 # Build Verrazzano full distribution bundle
