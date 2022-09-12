@@ -26,15 +26,20 @@ const (
 )
 
 var (
-	t              = framework.NewTestFramework("ha-helidon")
-	clusterDump    = pkg.NewClusterDumpWrapper(namespace)
-	clientset      = k8sutil.GetKubernetesClientsetOrDie()
-	kubeconfigPath = ""
+	t           = framework.NewTestFramework("ha-helidon")
+	clusterDump = pkg.NewClusterDumpWrapper(namespace)
+	clientset   = k8sutil.GetKubernetesClientsetOrDie()
+
+	kubeconfigPath string
+	httpClient     *retryablehttp.Client
 )
 
 var _ = clusterDump.BeforeSuite(func() {
 	var err error
 	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
+	Expect(err).ToNot(HaveOccurred())
+
+	httpClient, err = getVerrazzanoHTTPClientWithRetries(kubeconfigPath)
 	Expect(err).ToNot(HaveOccurred())
 })
 
@@ -75,11 +80,6 @@ func appEndpointAccessible(url string, hostname string) bool {
 		return false
 	}
 
-	httpClient, err := getVerrazzanoHTTPClientWithRetries(kubeconfigPath)
-	if err != nil {
-		t.Logs.Errorf("Unexpected error while getting new httpClient=%v", err)
-		return false
-	}
 	req.Host = hostname
 	req.Close = true
 	resp, err := httpClient.Do(req)
@@ -128,18 +128,16 @@ func readResponseBody(resp *http.Response) (string, error) {
 }
 
 // getVerrazzanoHTTPClientWithRetries gets a retryable HTTP client configured with the Verrazzano CA cert.
-// Since this makes k8s calls that result in VPO webhook calls, we need to retry long enough to allow
-// the VPO to be migrated to another node, which can take several minutes.
 func getVerrazzanoHTTPClientWithRetries(kubeconfigPath string) (*retryablehttp.Client, error) {
 	var httpClient *retryablehttp.Client
 	var err error
 
-	for i := 1; i <= 25; i++ {
+	for i := 1; i <= 5; i++ {
 		httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 		if err == nil {
 			break
 		}
-		time.Sleep(2 * time.Duration(i) * time.Second)
+		time.Sleep(time.Duration(i) * time.Second)
 	}
 	if err != nil {
 		return nil, err
