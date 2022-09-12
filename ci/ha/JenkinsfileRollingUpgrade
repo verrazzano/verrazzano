@@ -411,7 +411,7 @@ pipeline {
                     }
                 }
 
-                stage('Parallel HA Tests and Rolling Update') {
+                stage('Parallel HA Tests and K8s Upgrade') {
                     when {
                         expression { TESTS_FAILED == false }
                     }
@@ -419,7 +419,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ha-tests"
                     }
                     parallel {
-                        stage('Rolling Update') {
+                        stage('K8s In-place Upgrade') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/inplaceupgrade"
                                 OKE_CLUSTER_ID="${OKE_CLUSTER_ID}"
