@@ -63,7 +63,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsCertManagerEnabled(effectiveCR.(*v1alpha1.Verrazzano))
+	return vzconfig.IsCertManagerEnabled(effectiveCR)
 }
 
 // IsReady component check
@@ -105,7 +105,7 @@ func (c certManagerComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(vz) {
-		_, err := validateConfiguration(vz)
+		_, err := validateConfiguration(vz.Spec.Components.CertManager)
 		return err
 	}
 	return c.HelmComponent.ValidateInstallV1Beta1(vz)
@@ -117,7 +117,7 @@ func (c certManagerComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	if _, err := validateConfiguration(new); err != nil {
+	if _, err := validateConfiguration(new.Spec.Components.CertManager); err != nil {
 		return err
 	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
