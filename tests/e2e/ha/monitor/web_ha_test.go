@@ -16,12 +16,6 @@ var _ = t.Describe("Web Access", Label("f:platform-lcm:ha"), func() {
 		})
 	})
 
-	t.Context("Grafana", func() {
-		RunningUntilShutdownIt("can access Grafana endpoint", func() {
-			Expect(pkg.VerifyGrafanaComponent(t.Logs, nil, web.httpClient, web.users.verrazzano)).To(BeTrue())
-		})
-	})
-
 	t.Context("OpenSearch", func() {
 		RunningUntilShutdownIt("can access OpenSearch endpoint", func() {
 			Expect(pkg.VerifyOpenSearchComponent(t.Logs, nil, web.httpClient, web.users.verrazzano)).To(BeTrue())

@@ -110,7 +110,6 @@ includeCommonFiles() {
   # Copy operator.yaml and charts
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${distDir}/manifests/k8s/verrazzano-platform-operator.yaml
   cp -r ${VZ_REPO_ROOT}/platform-operator/helm_config/charts/verrazzano-platform-operator ${distDir}/manifests/charts
-  rm -f ${distDir}/manifests/charts/verrazzano-platform-operator/.helmignore || true
 
   # Copy profiles
   # copyProfiles ${distributionDirectory}/manifests/profiles
@@ -148,8 +147,9 @@ buildArchLiteBundle() {
   local rootDir=$2
   local distDir=$3
   local generatedDir=$4
-  local archLiteBundle=$5
-  local textFile=$6
+  local devVersion=$5
+  local archLiteBundle=$6
+  local textFile=$7
 
   # Extract the CLI for the given architecture
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${vzCLI} -C ${distDir}/bin
@@ -158,7 +158,8 @@ buildArchLiteBundle() {
   cp ${VZ_REPO_ROOT}/release/docs/README_LITE.md ${distDir}/README.md
 
   # Build distribution for the given architecture
-  tar -czf ${generatedDir}/${archLiteBundle} -C ${rootDir} .
+  cd ${rootDir}
+  tar -czf ${generatedDir}/${archLiteBundle} ${devVersion}
 
   # Capture the contents of the bundle in a text file
   captureBundleContents ${rootDir} ${generatedDir} ${textFile}
@@ -179,16 +180,16 @@ generateVZLiteDistribution() {
   includeCommonFiles $distDir
 
   echo "Build distribution for Linux AMD64 architecture ..."
-  buildArchLiteBundle ${VZ_CLI_LINUX_AMD64_TARGZ} ${rootDir} ${distDir} ${generatedDir} ${VZ_LINUX_AMD64_TARGZ} ${LITE_LINUX_AMD64_BUNDLE_CONTENTS}
+  buildArchLiteBundle ${VZ_CLI_LINUX_AMD64_TARGZ} ${rootDir} ${distDir} ${generatedDir} ${devVersion} ${VZ_LINUX_AMD64_TARGZ} ${LITE_LINUX_AMD64_BUNDLE_CONTENTS}
 
   echo "Build distribution for Linux ARM64 architecture ..."
-  buildArchLiteBundle ${VZ_CLI_LINUX_ARM64_TARGZ} ${rootDir} ${distDir} ${generatedDir} ${VZ_LINUX_ARM64_TARGZ} ${LITE_LINUX_ARM64_BUNDLE_CONTENTS}
+  buildArchLiteBundle ${VZ_CLI_LINUX_ARM64_TARGZ} ${rootDir} ${distDir} ${generatedDir} ${devVersion} ${VZ_LINUX_ARM64_TARGZ} ${LITE_LINUX_ARM64_BUNDLE_CONTENTS}
 
   echo "Build distribution for Darwin AMD64 architecture ..."
-  buildArchLiteBundle ${VZ_CLI_DARWIN_AMD64_TARGZ} ${rootDir} ${distDir} ${generatedDir} ${VZ_DARWIN_AMD64_TARGZ} ${LITE_DARWIN_AMD64_BUNDLE_CONTENTS}
+  buildArchLiteBundle ${VZ_CLI_DARWIN_AMD64_TARGZ} ${rootDir} ${distDir} ${generatedDir} ${devVersion} ${VZ_DARWIN_AMD64_TARGZ} ${LITE_DARWIN_AMD64_BUNDLE_CONTENTS}
 
   echo "Build distribution for Darwin ARM64 architecture ..."
-  buildArchLiteBundle ${VZ_CLI_DARWIN_ARM64_TARGZ} ${rootDir} ${distDir} ${generatedDir} ${VZ_DARWIN_ARM64_TARGZ} ${LITE_DARWIN_ARM64_BUNDLE_CONTENTS}
+  buildArchLiteBundle ${VZ_CLI_DARWIN_ARM64_TARGZ} ${rootDir} ${distDir} ${generatedDir} ${devVersion} ${VZ_DARWIN_ARM64_TARGZ} ${LITE_DARWIN_ARM64_BUNDLE_CONTENTS}
 
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${generatedDir}/operator.yaml
 
@@ -232,14 +233,10 @@ generateVZFullDistribution() {
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${distDir}/bin/darwin-amd64
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${distDir}/bin/darwin-arm64
 
-  # Move the tar files to images directory
-  # mv ${WORKSPACE}/tar-files/*.tar ${rootDir}/images/
-
-  captureBundleContents ${rootDir} ${generatedDir} ${FULL_BUNDLE_CONTENTS}
-
   # Create and upload the final distribution zip file and upload
   echo "Create ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} and upload ..."
   cp ${VZ_REPO_ROOT}/release/docs/README_FULL.md ${distDir}/README.md
+  captureBundleContents ${rootDir} ${generatedDir} ${FULL_BUNDLE_CONTENTS}
   cd ${rootDir}
   zip -r ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} *
   oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
@@ -251,12 +248,14 @@ generateVZFullDistribution() {
   echo "Successfully uploaded ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}"
 }
 
-createImagesTarFiles() {
+# Download the tar files for the images defined in verrazzano-bom.json, and include them in full bundle
+includeImageTarFiles() {
   local rootDir=$1
   local devVersion=$2
   local distDir=${rootDir}/${devVersion}/images
   ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${distDir} -b ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json
 }
+
 # Clean-up workspace after uploading the distribution bundles
 cleanupWorkspace() {
   rm -rf ${VZ_DISTRIBUTION_COMMON}
@@ -331,7 +330,7 @@ generateVZLiteDistribution "${VZ_LITE_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_LITE
 
 # Build Verrazzano full distribution bundle
 createDistributionLayout "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
-createImagesTarFiles "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
+includeImageTarFiles "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
 generateVZFullDistribution "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_FULL_GENERATED}"
 
 # Delete the directories created under WORKSPACE
