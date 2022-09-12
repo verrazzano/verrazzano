@@ -56,7 +56,7 @@ func isDatabaseMigrationStageCompleted(ctx spi.ComponentContext, stage string) b
 		return false
 	}
 	_, ok := secret.Data[stage]
-	ctx.Log().Infof("Database migration stage %s completed: %s", stage, ok)
+	ctx.Log().Debugf("Database migration stage %s completed: %s", stage, ok)
 	return ok
 }
 
@@ -95,7 +95,7 @@ func isLegacyPersistentDatabase(compContext spi.ComponentContext) bool {
 // isLegacyDatabaseUpgrade indicates whether the MySQL database being upgraded is from a legacy version
 func isLegacyDatabaseUpgrade(compContext spi.ComponentContext) bool {
 	deploymentFound := isDatabaseMigrationStageCompleted(compContext, deploymentFoundStage)
-	compContext.Log().Infof("is legacy upgrade based on secret: %s", deploymentFound)
+	compContext.Log().Debugf("is legacy upgrade based on secret: %s", deploymentFound)
 	if !deploymentFound {
 		// get the current MySQL deployment
 		deployment := &appsv1.Deployment{
@@ -145,6 +145,7 @@ func appendLegacyUpgradePersistenceValues(kvs []bom.KeyValue) ([]bom.KeyValue, e
 // handleLegacyDatabasePreUpgrade performs the steps required to prepare a database migration
 func handleLegacyDatabasePreUpgrade(ctx spi.ComponentContext) error {
 	mysqlPVC := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
+	ctx.Log().Once("Performing pre-upgrade steps required for legacy database")
 	if !isDatabaseMigrationStageCompleted(ctx, pvcDeletedStage) {
 		pvc := &v1.PersistentVolumeClaim{}
 
@@ -173,7 +174,7 @@ func handleLegacyDatabasePreUpgrade(ctx spi.ComponentContext) error {
 				Name:      ComponentName,
 			},
 		}
-		ctx.Log().Infof("Deleting deployment %s", ComponentName)
+		ctx.Log().Debugf("Deleting deployment %s", ComponentName)
 		if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
 			if !errors.IsNotFound(err) {
 				ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
@@ -183,7 +184,7 @@ func handleLegacyDatabasePreUpgrade(ctx spi.ComponentContext) error {
 			ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
 		}
 
-		ctx.Log().Infof("Deleting PVC %v", mysqlPVC)
+		ctx.Log().Debugf("Deleting PVC %v", mysqlPVC)
 		if err := common.DeleteExistingVolumeClaim(ctx, mysqlPVC); err != nil {
 			ctx.Log().Debugf("Unable to delete existing PVC %v", mysqlPVC)
 			return err
@@ -193,9 +194,9 @@ func handleLegacyDatabasePreUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-	ctx.Log().Infof("Updating PV/PVC %v", mysqlPVC)
+	ctx.Log().Debugf("Updating PV/PVC %v", mysqlPVC)
 	if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
-		ctx.Log().Infof("Unable to update PV/PVC")
+		ctx.Log().Errorf("Unable to update PV/PVC")
 		return err
 	}
 
@@ -225,7 +226,7 @@ func getMySQLPod(ctx spi.ComponentContext) (*v1.Pod, error) {
 		return nil, err
 	}
 	// return one of the pods
-	ctx.Log().Infof("Returning pod %s for mysql setup", mysqlPods.Items[0].Name)
+	ctx.Log().Debugf("Returning pod %s for mysql setup", mysqlPods.Items[0].Name)
 	return &mysqlPods.Items[0], nil
 }
 
@@ -276,14 +277,14 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Info("Successfully updated keycloak table primary key")
+	ctx.Log().Debug("Successfully updated keycloak table primary key")
 	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execShCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed executing database dump, err = %v", err))
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Info("Successfully persisted database dump")
+	ctx.Log().Debug("Successfully persisted database dump")
 	err = updateDBMigrationInProgressSecret(ctx, databaseDumpedStage)
 	if err != nil {
 		return err

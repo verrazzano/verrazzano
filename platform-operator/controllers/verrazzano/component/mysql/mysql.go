@@ -468,7 +468,7 @@ func createKeycloakDBSecret() (string, error) {
 }
 
 func appendDatabaseInitializationValues(compContext spi.ComponentContext, userPwd []byte, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	compContext.Log().Info("Adding database initialization values to MySQL helm values")
+	compContext.Log().Debug("Adding database initialization values to MySQL helm values")
 	mySQLInitFile, err := createMySQLInitFile(compContext, userPwd)
 	if err != nil {
 		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
