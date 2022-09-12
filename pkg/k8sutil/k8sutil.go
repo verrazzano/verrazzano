@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	certmanagerv1 "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -340,4 +341,34 @@ func GetURLForIngress(client client.Client, name string, namespace string, schem
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", name, namespace, err)
 	}
 	return fmt.Sprintf("%s://%s", scheme, ingress.Spec.Rules[0].Host), nil
+}
+
+// GetRunningPodForLabel returns the reference of a running pod that matches the given label
+func GetRunningPodForLabel(c client.Client, label string, namespace string, log ...vzlog.VerrazzanoLogger) (*v1.Pod, error) {
+	var logger vzlog.VerrazzanoLogger
+	if len(log) > 0 {
+		logger = log[0]
+	} else {
+		logger = vzlog.DefaultLogger()
+	}
+
+	pods := &v1.PodList{}
+	labelPair := strings.Split(label, "=")
+	err := c.List(context.Background(), pods, client.MatchingLabels{labelPair[0]: labelPair[1]})
+
+	if err != nil {
+		return nil, logger.ErrorfThrottledNewErr("Failed getting running pods for label %s in namespace %s, error: %v", label, namespace, err.Error())
+	}
+
+	if !(len(pods.Items) > 0) {
+		return nil, logger.ErrorfThrottledNewErr("Invalid running pod list for label %s in namespace %s", label, namespace)
+	}
+
+	for _, pod := range pods.Items {
+		if pod.Status.Phase == v1.PodRunning {
+			return &pod, nil
+		}
+	}
+
+	return nil, logger.ErrorfThrottledNewErr("No running pod for label %s in namespace %s", label, namespace)
 }
