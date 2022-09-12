@@ -221,7 +221,8 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 		return err
 	}
 	// Obtain the CA Common Name for comparison
-	issuerCNs, err := findIssuerCommonName(compContext.EffectiveCRV1Beta1().Spec.Components.CertManager.Certificate, isCAConfig)
+	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
+	issuerCNs, err := findIssuerCommonName(comp.Certificate, isCAConfig)
 	if err != nil {
 		return err
 	}
@@ -479,31 +480,31 @@ func createSnippetWithPadding(padding string) []byte {
 
 // Check if cert-type is CA, if not it is assumed to be Acme
 func isCA(compContext spi.ComponentContext) (bool, error) {
-	return validateConfiguration(compContext.EffectiveCRV1Beta1())
+	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
+	return validateConfiguration(comp)
 }
 
 // validateConfiguration Checks if the configuration is valid and is a CA configuration
 // - returns true if it is a CA configuration, false if not
 // - returns an error if both CA and ACME settings are configured
-func validateConfiguration(cr *v1beta1.Verrazzano) (isCA bool, err error) {
-	components := cr.Spec.Components
-	if components.CertManager == nil {
+func validateConfiguration(comp *v1beta1.CertManagerComponent) (isCA bool, err error) {
+	if comp == nil {
 		// Is default CA configuration
 		return true, nil
 	}
 	// Check if Ca or Acme is empty
-	caNotEmpty := components.CertManager.Certificate.CA != v1beta1.CA{}
-	acmeNotEmpty := components.CertManager.Certificate.Acme != v1beta1.Acme{}
+	caNotEmpty := comp.Certificate.CA != v1beta1.CA{}
+	acmeNotEmpty := comp.Certificate.Acme != v1beta1.Acme{}
 	if caNotEmpty && acmeNotEmpty {
 		return false, errors.New("Certificate object Acme and CA cannot be simultaneously populated")
 	}
 	if caNotEmpty {
-		if err := validateCAConfiguration(components.CertManager.Certificate.CA); err != nil {
+		if err := validateCAConfiguration(comp.Certificate.CA); err != nil {
 			return true, err
 		}
 		return true, nil
 	} else if acmeNotEmpty {
-		if err := validateAcmeConfiguration(components.CertManager.Certificate.Acme); err != nil {
+		if err := validateAcmeConfiguration(comp.Certificate.Acme); err != nil {
 			return false, err
 		}
 		return false, nil
