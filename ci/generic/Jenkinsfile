@@ -48,6 +48,10 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: '',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         string (name: 'CONSOLE_REPO_BRANCH',
@@ -94,7 +98,7 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
         TEST_ROOT = "${WORKSPACE}/tests/e2e"
         TEST_SCRIPTS_DIR = "${TEST_ROOT}/config/scripts"
-        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/v1beta1/install-verrazzano-kind.yaml"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
@@ -143,6 +147,7 @@ pipeline {
             post {
                 always {
                     script {
+                        setVZCRDVersionForInstallation()
                         // TODO: need to capture the metrics after the initial install?
                         VZ_TEST_METRIC = metricJobName('')
                         metricTimerStart("${VZ_TEST_METRIC}")
@@ -534,4 +539,10 @@ def dumpK8sCluster(dumpDirectory) {
     sh """
         ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
+}
+
+def setVZCRDVersionForInstallation(){
+    if(params.CRD_API_VERSION == "v1alpha1"){
+        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/v1alpha1/install-verrazzano-kind.yaml"
+    }
 }

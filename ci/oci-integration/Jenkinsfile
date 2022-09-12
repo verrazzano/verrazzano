@@ -52,6 +52,10 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -127,7 +131,7 @@ pipeline {
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
         INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/v1beta1/install-verrazzano-kind-no-persistence.yaml"
 
         VZ_ENVIRONMENT_NAME = "default"
 
@@ -208,6 +212,7 @@ pipeline {
                 """
 
                 script {
+                    setVZCRDVersionForInstallation()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     setDisplayName()
@@ -831,4 +836,10 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgo('jobmetrics')
+}
+
+def setVZCRDVersionForInstallation(){
+    if(params.CRD_API_VERSION == "v1alpha1"){
+        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/v1alpha1/install-verrazzano-kind-no-persistence.yaml"
+    }
 }

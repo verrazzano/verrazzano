@@ -43,6 +43,10 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         string (name: 'CONSOLE_REPO_BRANCH',
@@ -94,7 +98,7 @@ pipeline {
 
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
-        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/v1beta1/install-verrazzano-kind.yaml"
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
 
@@ -124,6 +128,7 @@ pipeline {
             post {
                 always {
                     script {
+                        setVZCRDVersionForInstallation()
                         // need to capture the metrics after the initial install?
                         VZ_TEST_METRIC = metricJobName('')
                         metricTimerStart("${VZ_TEST_METRIC}")
@@ -401,4 +406,10 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runMakeCommand('jobmetrics')
+}
+
+def setVZCRDVersionForInstallation(){
+    if(params.CRD_API_VERSION == "v1alpha1"){
+        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/v1alpha1/install-verrazzano-kind.yaml"
+    }
 }

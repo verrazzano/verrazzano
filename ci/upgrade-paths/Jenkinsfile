@@ -155,7 +155,7 @@ pipeline {
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
 
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-vz-prod-kind-upgrade.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-vz-prod-kind-upgrade.yaml"
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
@@ -1895,12 +1895,18 @@ def emitJobMetrics() {
 }
 
 def setVZConfigForInstallation(){
-    if(params.VZ_INSTALL_CONFIG == "dev-kind-persistence"){
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+    if(params.CRD_API_VERSION == "v1alpha1"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-vz-prod-kind-upgrade.yaml"
+    }
+    if(params.VZ_INSTALL_CONFIG == "dev-kind-persistence" && params.CRD_API_VERSION == "v1beta1"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-kind-with-persistence.yaml"
+        ADMIN_CLUSTER_PROFILE = "dev"
+        MANAGED_CLUSTER_PROFILE = "managed-cluster"
+    }else if(params.VZ_INSTALL_CONFIG == "dev-kind-persistence" && params.CRD_API_VERSION == "v1alpha1") {
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-verrazzano-kind-with-persistence.yaml"
         ADMIN_CLUSTER_PROFILE = "dev"
         MANAGED_CLUSTER_PROFILE = "managed-cluster"
     }
-
 }
 
 def isMultiCluster() {

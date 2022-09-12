@@ -44,6 +44,10 @@ pipeline {
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
@@ -88,7 +92,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/v1beta1/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -153,6 +157,7 @@ pipeline {
                 moveContentToGoRepoPath()
 
                 script {
+                    setVZCRDVersionForInstallation()
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -419,6 +424,7 @@ pipeline {
                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                 string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                string(name: 'CRD_API_VERSION', value: params.CRD_API_VERSION),
                                 booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
                                 booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
                                 booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
@@ -916,5 +922,11 @@ def metricBuildDuration() {
             METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
+    }
+}
+
+def setVZCRDVersionForInstallation(){
+    if(params.CRD_API_VERSION == "v1alpha1"){
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/v1alpha1/install-verrazzano-kind.yaml"
     }
 }
