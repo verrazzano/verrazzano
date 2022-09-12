@@ -94,7 +94,7 @@ The `wls-operator` folder was created by running the following commands:
 
 ```shell
 export WEBLOGIC_OPERATOR_CHART_REPO=https://oracle.github.io/weblogic-kubernetes-operator/charts
-export WEBLOGIC_OPERATOR_CHART_VERSION=3.3.0
+export WEBLOGIC_OPERATOR_CHART_VERSION=3.4.3
 rm -rf weblogic-operator
 helm repo add weblogic-operator ${WEBLOGIC_OPERATOR_CHART_REPO}
 helm repo update
