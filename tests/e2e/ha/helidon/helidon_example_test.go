@@ -77,7 +77,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 	req.Host = hostname
 	req.Close = true
 	resp, err := httpClient.Do(req)
-	if resp.Body != nil {
+	if resp != nil && resp.Body != nil {
 		defer resp.Body.Close()
 	}
 	if err != nil {
