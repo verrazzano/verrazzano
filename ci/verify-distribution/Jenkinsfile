@@ -248,6 +248,7 @@ pipeline {
         stage('Download and extract Tarball') {
              environment {
                  TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+                 VERRAZZANO_DEV_VERSION="${VERRAZZANO_DEV_VERSION}"
              }
             steps {
                 script {
