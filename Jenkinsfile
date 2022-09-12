@@ -270,6 +270,19 @@ pipeline {
                     }
                 }
 
+                stage('Build E2E Tests') {
+                    steps {
+                        buildE2ETests()
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                    }
+                }
+
                 stage('Unit Tests') {
                     when { not { buildingTag() } }
                     steps {
@@ -605,6 +618,14 @@ def buildVerrazzanoCLI(dockerImageTag) {
         make go-build DOCKER_IMAGE_TAG=${dockerImageTag}
         ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
         cp out/linux_amd64/vz ${GO_REPO_PATH}/vz
+    """
+}
+
+// Called in Build E2E stage
+def buildE2ETests() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        ginkgo build ./tests/e2e/...
     """
 }
 
