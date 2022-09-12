@@ -107,7 +107,7 @@ includeCommonFiles() {
   cp ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh ${distDir}/bin/vz-registry-image-helper.sh
   cp ${VZ_REPO_ROOT}/tools/scripts/bom_utils.sh ${distDir}/bin/bom_utils.sh
 
-  # Copy operator.yaml and charts
+  # Copy verrazzano-platform-operator.yaml and charts
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${distDir}/manifests/k8s/verrazzano-platform-operator.yaml
   cp -r ${VZ_REPO_ROOT}/platform-operator/helm_config/charts/verrazzano-platform-operator ${distDir}/manifests/charts
 
@@ -191,14 +191,14 @@ generateVZLiteDistribution() {
   echo "Build distribution for Darwin ARM64 architecture ..."
   buildArchLiteBundle ${VZ_CLI_DARWIN_ARM64_TARGZ} ${rootDir} ${distDir} ${generatedDir} ${devVersion} ${VZ_DARWIN_ARM64_TARGZ} ${LITE_DARWIN_ARM64_BUNDLE_CONTENTS}
 
-  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${generatedDir}/operator.yaml
+  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${generatedDir}/verrazzano-platform-operator.yaml
 
   cd ${generatedDir}
   sha256sum ${VZ_LINUX_AMD64_TARGZ} > ${VZ_LINUX_AMD64_TARGZ_SHA256}
   sha256sum ${VZ_LINUX_ARM64_TARGZ} > ${VZ_LINUX_ARM64_TARGZ_SHA256}
   sha256sum ${VZ_DARWIN_AMD64_TARGZ} > ${VZ_DARWIN_AMD64_TARGZ_SHA256}
   sha256sum ${VZ_DARWIN_ARM64_TARGZ} > ${VZ_DARWIN_ARM64_TARGZ_SHA256}
-  sha256sum operator.yaml > operator.yaml.sha256
+  sha256sum verrazzano-platform-operator.yaml > verrazzano-platform-operator.yaml.sha256
 
   captureBundleContents ${generatedDir} ${generatedDir} ${LITE_BUNDLE_CONTENTS}
 

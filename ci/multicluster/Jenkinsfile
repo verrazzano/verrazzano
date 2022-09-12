@@ -787,24 +787,27 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
 // Either download the specified release of the platform operator YAML, or create one
 // using the specific operator image provided by the user.
 def getVerrazzanoOperatorYaml() {
-    sh """
-        echo "Platform Operator Configuration"
-        cd ${GO_REPO_PATH}/verrazzano
-        if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-            if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
-                echo "Using the latest branch operator.yaml from object storage because upgrade is disabled for this job"
-                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+    script {
+        OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh ${params.VERSION_FOR_INSTALL}").trim()
+        sh """
+            echo "Platform Operator Configuration"
+            cd ${GO_REPO_PATH}/verrazzano
+            if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
+                    echo "Using the latest branch operator.yaml from object storage because upgrade is disabled for this job"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                else
+                    echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
+                    wget "${OPERATOR_YAML_FILE}" -O ${WORKSPACE}/downloaded-release-operator.yaml
+                    cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                fi
             else
-                echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
-                wget "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" -O ${WORKSPACE}/downloaded-release-operator.yaml
-                cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
+                env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
             fi
-        else
-            echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
-            env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
-        fi
-    """
+        """
+    }
 }
 
 // Install Verrazzano on each of the clusters
