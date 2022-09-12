@@ -317,6 +317,13 @@ pipeline {
                     // Validate that the E2E tests build successfully before launching downstream tests
                     // - do it here instead of the earlier stage so that it does not slow down the more important
                     //   operator and code validation steps
+                    when {
+                        allOf {
+                            not { buildingTag() }
+                            changeset "tests/e2e/**"
+                            changeset "pkg/**"
+                        }
+                    }
                     steps {
                         buildE2ETests()
                     }
