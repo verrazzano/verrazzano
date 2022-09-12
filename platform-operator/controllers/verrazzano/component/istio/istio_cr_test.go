@@ -559,6 +559,30 @@ var cr5 = &vzapi.IstioComponent{
 	},
 }
 
+var cr6 = &vzapi.IstioComponent{
+	Enabled: &enabled,
+	Ingress: prodIstioIngress,
+	Egress:  prodIstioEgress,
+	IstioInstallArgs: []vzapi.InstallArgs{
+		{
+			Name:  "meshConfig.enableTracing",
+			Value: "false",
+		},
+	},
+}
+
+var cr7 = &vzapi.IstioComponent{
+	Enabled: &enabled,
+	Ingress: prodIstioIngress,
+	Egress:  prodIstioEgress,
+	IstioInstallArgs: []vzapi.InstallArgs{
+		{
+			Name:  "meshConfig.defaultConfig.tracing.sampling",
+			Value: "100",
+		},
+	},
+}
+
 var cr4Yaml = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
@@ -677,6 +701,122 @@ spec:
       enableTracing: true
 `
 
+var cr6Yaml = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    egressGateways:
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - istio-egressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 2
+      name: istio-egressgateway
+    ingressGateways:
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - istio-ingressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 2
+        service:
+          ports:
+          - name: port1
+            nodePort: 32443
+            port: 8000
+            protocol: TCP
+            targetPort: 2000
+          type: NodePort
+      name: istio-ingressgateway
+  values:
+    meshConfig:
+      defaultConfig:
+        tracing:
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+          zipkin:
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
+      enableTracing: false
+`
+
+var cr7Yaml = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    egressGateways:
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - istio-egressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 2
+      name: istio-egressgateway
+    ingressGateways:
+    - enabled: true
+      k8s:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - istio-ingressgateway
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        replicaCount: 2
+        service:
+          ports:
+          - name: port1
+            nodePort: 32443
+            port: 8000
+            protocol: TCP
+            targetPort: 2000
+          type: NodePort
+      name: istio-ingressgateway
+  values:
+    meshConfig:
+      defaultConfig:
+        tracing:
+          sampling: 100
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+          zipkin:
+            address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
+`
+
 // TestBuildIstioOperatorYaml tests the BuildIstioOperatorYaml function
 // GIVEN an Verrazzano CR Istio component
 // WHEN BuildIstioOperatorYaml is called
@@ -711,6 +851,16 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 			testName: "When Jaeger Operator is enabled, with install args override, user provided tracing URL is used",
 			value:    cr5,
 			expected: cr5Yaml,
+		},
+		{
+			testName: "When Jaeger Operator is enabled, with install args override for enableTracing flag, then user provided value is used",
+			value:    cr6,
+			expected: cr6Yaml,
+		},
+		{
+			testName: "When Jaeger Operator is enabled, with install args override for sampling rate, then user provided value is used",
+			value:    cr7,
+			expected: cr7Yaml,
 		},
 	}
 	for _, test := range tests {
