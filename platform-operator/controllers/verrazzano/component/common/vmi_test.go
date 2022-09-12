@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profileDir = "../../../../manifests/profiles/v1alpha1"
+const profileDir = "../../../../manifests/profiles"
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
