@@ -6,7 +6,6 @@ package inplaceupgrade
 import (
 	"errors"
 	"fmt"
-	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
 	"os"
 	"os/exec"
 	"time"
