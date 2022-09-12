@@ -43,7 +43,7 @@ createDistributionLayout() {
   mkdir -p ${distDir}/bin
   mkdir -p ${distDir}/manifests/k8s
   mkdir -p ${distDir}/manifests/charts
-  #mkdir -p ${distDir}/manifests/profiles
+  mkdir -p ${distDir}/manifests/profiles
 
   if [ "${rootDir}" == "${VZ_FULL_ROOT}" ];then
      echo "Creating the directory to place images and CLIs for supported platforms for full distribution ..."
@@ -112,7 +112,7 @@ includeCommonFiles() {
   cp -r ${VZ_REPO_ROOT}/platform-operator/helm_config/charts/verrazzano-platform-operator ${distDir}/manifests/charts
 
   # Copy profiles
-  # copyProfiles ${distributionDirectory}/manifests/profiles
+  copyProfiles ${distributionDirectory}/manifests/profiles
 
   # Copy Bill Of Materials, containing the list of images
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json ${distDir}/manifests/verrazzano-bom.json
@@ -256,6 +256,25 @@ includeImageTarFiles() {
   ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${distDir} -b ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json
 }
 
+# generate profiles and remove cruft
+includeProfiles() {
+  local rootDir=$1
+  local devVersion=$2
+  local distDir=${rootDir}/${devVersion}/manifests/profiles
+  export VERRAZZANO_ROOT=${VZ_REPO_ROOT}
+  go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile prod --output-dir ${distDir}
+  go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile dev --output-dir ${distDir}
+  go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile managed-cluster --output-dir ${distDir}
+  sanitizeProfiles ${distDir}/prod.yaml
+  sanitizeProfiles ${distDir}/dev.yaml
+  sanitizeProfiles ${distDir}/managed-cluster.yaml
+}
+
+sanitizeProfiles() {
+  filePath=$1
+  yq eval -i 'del(.status, .metadata.creationTimestamp)' ${filePath}
+  cat ${filePath}
+}
 # Clean-up workspace after uploading the distribution bundles
 cleanupWorkspace() {
   rm -rf ${VZ_DISTRIBUTION_COMMON}
@@ -331,6 +350,7 @@ generateVZLiteDistribution "${VZ_LITE_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_LITE
 # Build Verrazzano full distribution bundle
 createDistributionLayout "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
 includeImageTarFiles "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
+includeProfiles "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
 generateVZFullDistribution "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_FULL_GENERATED}"
 
 # Delete the directories created under WORKSPACE
