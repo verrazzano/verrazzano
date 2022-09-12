@@ -273,7 +273,6 @@ includeProfiles() {
 sanitizeProfiles() {
   filePath=$1
   yq eval -i 'del(.status, .metadata.creationTimestamp)' ${filePath}
-  cat ${filePath}
 }
 # Clean-up workspace after uploading the distribution bundles
 cleanupWorkspace() {
