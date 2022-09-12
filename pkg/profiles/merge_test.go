@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package transform
+package profiles
 
 import (
 	"io/ioutil"
@@ -119,7 +119,7 @@ func TestAppendComponentOverrides(t *testing.T) {
 	assert.NoError(t, err)
 	profile, err := readProfile(profileCustomSpecFilePath)
 	assert.NoError(t, err)
-	appendComponentOverrides(actual, profile)
+	AppendComponentOverrides(actual, profile)
 	merged, err := readProfile(mergedSpecFilePath)
 	assert.NoError(t, err)
 	assert.Equal(t, merged, actual)
@@ -159,7 +159,7 @@ func TestAppendComponentOverridesForV1beta1(t *testing.T) {
 	assert.NoError(t, err)
 	profile, err := readProfileForV1beta1(profileCustomSpecFilePath)
 	assert.NoError(t, err)
-	appendComponentOverridesV1beta1(actual, profile)
+	AppendComponentOverridesV1beta1(actual, profile)
 	merged, err := readProfileForV1beta1(mergedSpecFilePath)
 	assert.NoError(t, err)
 	assert.Equal(t, merged, actual)
