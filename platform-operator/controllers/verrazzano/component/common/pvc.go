@@ -61,14 +61,14 @@ func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.Namespac
 	// find a volume that has been released but still has a claim for old deployment
 	for i := range pvs {
 		pv := pvs[i] // avoids "Implicit memory aliasing in for loop" linter complaint
-		ctx.Log().Infof("Update PV %s.  Current status: %s", pv.Name, pv.Status.Phase)
+		ctx.Log().Debugf("Update PV %s.  Current status: %s", pv.Name, pv.Status.Phase)
 		if pv.Status.Phase == v1.VolumeBound {
-			return ctx.Log().ErrorfNewErr("PV %s is still bound", pv.Namespace)
+			return ctx.Log().ErrorfNewErr("PV %s is still bound", pv.Name)
 		}
 
-		ctx.Log().Infof("Attempting to clear PV claim ref and create new PVC %s.  PV ClaimRef: %v, PVC: %v", newClaimName, pv.Spec.ClaimRef, pvcName)
+		ctx.Log().Debugf("Attempting to clear PV claim ref and create new PVC %s.  PV ClaimRef: %v, PVC: %v", newClaimName, pv.Spec.ClaimRef, pvcName)
 		if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace == pvcName.Namespace && pv.Spec.ClaimRef.Name == pvcName.Name {
-			ctx.Log().Infof("Removing old claim from persistent volume %s", pv.Name)
+			ctx.Log().Debugf("Removing old claim from persistent volume %s", pv.Name)
 			pv.Spec.ClaimRef = nil
 			if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
 				return ctx.Log().ErrorfNewErr("Failed removing claim from persistent volume %s: %v", pv.Name, err)
