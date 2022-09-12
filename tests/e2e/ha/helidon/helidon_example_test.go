@@ -16,8 +16,8 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/ha"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
 )
 
 const (
@@ -58,7 +58,7 @@ var _ = t.Describe("HA Hello Helidon app endpoint test", Label("f:app-lcm.helido
 			url = fmt.Sprintf("https://%s/greet", host)
 		})
 
-		ha.RunningUntilShutdownIt(t, "accesses /greet app URL", clientset, true, func() {
+		hacommon.RunningUntilShutdownIt(t, "accesses /greet app URL", clientset, true, func() {
 			Expect(appEndpointAccessible(url, host)).Should(BeTrue())
 			time.Sleep(time.Second)
 		})
