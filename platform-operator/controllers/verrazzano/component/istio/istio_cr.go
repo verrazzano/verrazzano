@@ -9,8 +9,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
 	"sigs.k8s.io/yaml"
 
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
@@ -22,12 +20,6 @@ const (
 	// Put external IPs into the IstioOperator YAML, which does support it
 	ExternalIPArg      = "gateways.istio-ingressgateway.externalIPs"
 	externalIPJsonPath = "spec.components.ingressGateways.0.k8s.service.externalIPs.0"
-
-	//meshConfigTracingAddress is the Jaeger collector address
-	meshConfigTracingAddress = "meshConfig.defaultConfig.tracing.zipkin.address"
-
-	//meshConfigTracingTLSMode is the TLS mode for Istio-Jaeger communication
-	meshConfigTracingTLSMode = "meshConfig.defaultConfig.tracing.tlsSettings.mode"
 
 	leftMargin      = 0
 	leftMarginExtIP = 12
@@ -94,20 +86,19 @@ type ReplicaData struct {
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
 // Transform the Verrazzano CR istioComponent provided by the user onto an IstioOperator formatted YAML
-func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *vzapi.IstioComponent) (string, error) {
+func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 
 	var externalIPYAMLTemplateValue = ""
 
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
-
-	// get any install args for Jaeger
-	jaegerArgs, err := configureJaeger(ctx)
+	// get istio overrides for Jaeger tracing
+	jaegerTracingYaml, err := configureJaegerTracing()
 	if err != nil {
 		return "", err
 	}
-
-	for _, arg := range append(jaegerArgs, comp.IstioInstallArgs...) {
+	expandedYamls = append(expandedYamls, jaegerTracingYaml)
+	for _, arg := range append([]vzapi.InstallArgs{}, comp.IstioInstallArgs...) {
 		values := arg.ValueList
 		if len(values) == 0 {
 			values = []string{arg.Value}

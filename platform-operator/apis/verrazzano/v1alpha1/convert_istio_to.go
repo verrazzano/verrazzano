@@ -9,10 +9,8 @@ import (
 	"bytes"
 	"fmt"
 
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"sigs.k8s.io/yaml"
 
 	"strings"
@@ -75,21 +73,7 @@ spec:
 {{ multiLineIndent 12 .IngressAffinity }}
 {{- end }}
 `
-const istioTracingTemplate = `
-apiVersion: install.istio.io/v1alpha1
-kind: IstioOperator
-spec:
-  values:
-    meshConfig:
-      defaultConfig:
-        tracing:
-          tlsSettings:
-			mode: "{{.TracingTLSMode}}"
-          zipkin:
-            address: "{{.JaegerCollectorUrl}}"
-      enablePrometheusMerge: false
-      enableTracing: true
-`
+
 const (
 	externalIPArg       = "gateways.istio-ingressgateway.externalIPs"
 	shortArgExternalIPs = "externalIPs"
@@ -107,11 +91,6 @@ type istioTemplateData struct {
 	IngressServiceType  string
 	IngressServicePorts string
 	ExternalIps         string
-}
-
-type istioTracingTemplateData struct {
-	JaegerCollectorURL string
-	TracingTLSMode     string
 }
 
 func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, error) {
@@ -153,13 +132,7 @@ func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, erro
 		return nil, err
 	}
 	expandedYamls = append(expandedYamls, gatewayYaml)
-
-	tracingYaml, err := configureJaegerTracing()
-	if err != nil {
-		return nil, err
-	}
-	expandedYamls = append(expandedYamls, tracingYaml)
-
+	
 	// Merge all the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
@@ -290,27 +263,4 @@ func configureEgressGateway(istioComponent *IstioComponent, data *istioTemplateD
 		}
 	}
 	return nil
-}
-
-func configureJaegerTracing() (string, error) {
-	collectorURL := fmt.Sprintf("%s-%s.%s.svc.cluster.local.:%d",
-		globalconst.JaegerInstanceName,
-		globalconst.JaegerCollectorComponentName,
-		constants.VerrazzanoMonitoringNamespace,
-		9411,
-	)
-	t, err := template.New("tracing_template").Parse(istioTracingTemplate)
-	if err != nil {
-		return "", err
-	}
-	var b bytes.Buffer
-	var data = istioTracingTemplateData{}
-	data.JaegerCollectorURL = collectorURL
-	data.TracingTLSMode = "ISTIO_MUTUAL"
-
-	err = t.Execute(&b, &data)
-	if err != nil {
-		return "", err
-	}
-	return b.String(), nil
 }

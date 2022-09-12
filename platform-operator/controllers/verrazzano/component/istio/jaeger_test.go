@@ -4,6 +4,8 @@
 package istio
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -11,7 +13,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var testZipkinNamespace = "foo"
@@ -36,6 +37,20 @@ var testZipkinService = corev1.Service{
 		},
 	},
 }
+
+var expectedYaml = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  values:
+    meshConfig:
+      defaultConfig:
+        tracing:
+          tlsSettings:
+            mode: "ISTIO_MUTUAL"
+          zipkin:
+            address: "jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411"
+`
 
 func TestConfigureJaeger(t *testing.T) {
 	ctxNoService := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), jaegerEnabledCR, nil, false)
@@ -68,9 +83,9 @@ func TestConfigureJaeger(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args, err := configureJaeger(tt.ctx)
+			yamlString, err := configureJaegerTracing()
 			assert.NoError(t, err)
-			assert.Len(t, args, tt.numArgs)
+			assert.YAMLEq(t, expectedYaml, yamlString)
 		})
 	}
 }

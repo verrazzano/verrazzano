@@ -7,12 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	corev1 "k8s.io/api/core/v1"
@@ -686,60 +682,41 @@ spec:
 // WHEN BuildIstioOperatorYaml is called
 // THEN ensure that the result is correct.
 func TestBuildIstioOperatorYaml(t *testing.T) {
-	fakeCtx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, nil, false)
-	collectorLabels := map[string]string{
-		constants.KubernetesAppLabel: constants.JaegerCollectorService,
-	}
-	clientForJaeger := fake.NewClientBuilder().WithScheme(testScheme).
-		WithObjects(&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: testZipkinNamespace,
-				Name:      "jaeger-collector-headless",
-				Labels:    collectorLabels,
-			},
-		},
-			&testZipkinService).Build()
 	tests := []struct {
 		testName string
 		value    *vzapi.IstioComponent
 		expected string
-		ctx      spi.ComponentContext
 	}{
 		{
 			testName: "Default Prod Profile Install",
 			value:    &cr1,
 			expected: cr1Yaml,
-			ctx:      fakeCtx,
 		},
 		{
 			testName: "Default Dev and Managed-Cluster Profile Install",
 			value:    &cr2,
 			expected: cr2Yaml,
-			ctx:      fakeCtx,
 		},
 		{
 			testName: "Override Affinity and Replica",
 			value:    &cr3,
 			expected: cr3Yaml,
-			ctx:      fakeCtx,
 		},
 		{
 			testName: "When Jaeger Operator is enabled, without install args override default tracing URL is used",
 			value:    cr4,
 			expected: cr4Yaml,
-			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, nil, false),
 		},
 		{
 			testName: "When Jaeger Operator is enabled, with install args override, user provided tracing URL is used",
 			value:    cr5,
 			expected: cr5Yaml,
-			ctx:      spi.NewFakeContext(clientForJaeger, jaegerEnabledCR, nil, false),
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			a := assert.New(t)
-			s, err := BuildIstioOperatorYaml(test.ctx, test.value)
+			s, err := BuildIstioOperatorYaml(test.value)
 			fmt.Println(s)
 			a.NoError(err, s, "error merging yamls")
 			a.YAMLEq(test.expected, s, "Result does not match expected value")

@@ -272,7 +272,7 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
 		// create operator YAML
-		istioOperatorYaml, err := BuildIstioOperatorYaml(compContext, cr.Spec.Components.Istio)
+		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio)
 		if err != nil {
 			return files, log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
