@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
@@ -26,8 +27,9 @@ import (
 )
 
 const (
-	clusterIDEnvVar = "OKE_CLUSTER_ID"
-	ociRegionEnvVar = "OCI_CLI_REGION"
+	clusterIDEnvVar   = "OKE_CLUSTER_ID"
+	ociRegionEnvVar   = "OCI_CLI_REGION"
+	skipUpgradeEnvVar = "SKIP_KUBERNETES_UPGRADE"
 
 	waitTimeout     = 20 * time.Minute
 	pollingInterval = 30 * time.Second
@@ -37,9 +39,10 @@ var clientset = k8sutil.GetKubernetesClientsetOrDie()
 var t = framework.NewTestFramework("in_place_upgrade")
 
 var (
-	failed    bool
-	region    string
-	clusterID string
+	failed                    bool
+	region                    string
+	clusterID                 string
+	skipClusterVersionUpgrade bool
 
 	okeClient     ocice.ContainerEngineClient
 	computeClient ocicore.ComputeClient
@@ -52,6 +55,13 @@ var _ = t.AfterEach(func() {
 var _ = t.BeforeSuite(func() {
 	clusterID = os.Getenv(clusterIDEnvVar)
 	region = os.Getenv(ociRegionEnvVar)
+
+	if skipUpgradeVal, set := os.LookupEnv(skipUpgradeEnvVar); set {
+		var parseErr error
+		skipClusterVersionUpgrade, parseErr = strconv.ParseBool(skipUpgradeVal)
+		Expect(parseErr).ShouldNot(HaveOccurred(), fmt.Sprintf("Invalid value for %s: %s", skipUpgradeVal, skipUpgradeVal))
+	}
+
 	Expect(clusterID).ToNot(BeEmpty(), fmt.Sprintf("%s env var must be set", clusterIDEnvVar))
 	// region is optional so don't Expect
 
@@ -77,6 +87,11 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 	var upgradeVersion string
 
 	t.It("upgrades the control plane Kubernetes version", func() {
+		if skipClusterVersionUpgrade {
+			t.Logs.Infof("%s=%v, skipping cluster Control Plane upgrade", skipUpgradeEnvVar, skipClusterVersionUpgrade)
+			return
+		}
+
 		// first get the cluster details and find the available upgrade versions
 		var err error
 		clusterResponse, err = okeClient.GetCluster(context.Background(), ocice.GetClusterRequest{ClusterId: &clusterID})
@@ -97,6 +112,10 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 	})
 
 	t.It("upgrades the node pool Kubernetes version", func() {
+		if skipClusterVersionUpgrade {
+			t.Logs.Infof("%s=%v, skipping node pool upgrade", skipUpgradeEnvVar, skipClusterVersionUpgrade)
+			return
+		}
 		// first get the node pool, the cluster response struct does not have node pools so we have to list the node pools
 		// in the compartment and filter by the cluster id
 		nodePoolsResponse, err := okeClient.ListNodePools(context.Background(), ocice.ListNodePoolsRequest{CompartmentId: clusterResponse.CompartmentId, ClusterId: clusterResponse.Id})
@@ -144,6 +163,10 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 	})
 
 	t.It("validates the k8s version of each worker node in the node pool", func() {
+		if skipClusterVersionUpgrade {
+			t.Logs.Infof("%s=%v, skipping node pool verification", skipUpgradeEnvVar, skipClusterVersionUpgrade)
+			return
+		}
 		// get the nodes and check both the kube proxy and kubelet versions
 		nodes := hacommon.EventuallyGetNodes(clientset, t.Logs)
 		for _, node := range nodes.Items {
