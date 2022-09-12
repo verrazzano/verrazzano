@@ -852,7 +852,6 @@ func validationTests(t *testing.T, isUpdate bool) {
 			c := NewComponent()
 			getClientFunc = getTestClient(tt)
 			runValidationTest(t, tt, isUpdate, c)
-			//runValidatonBetaTest(t, tt, isUpdate, c)
 		})
 	}
 }
