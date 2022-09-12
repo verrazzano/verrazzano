@@ -6,6 +6,7 @@ package inplaceupgrade
 import (
 	"errors"
 	"fmt"
+	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
 	"os"
 	"os/exec"
 	"time"
@@ -18,7 +19,6 @@ import (
 	ocicore "github.com/oracle/oci-go-sdk/v53/core"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/ha"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,7 +68,7 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterSuite(func() {
 	// signal that the upgrade is done so the tests know to stop
-	ha.EventuallyCreateShutdownSignal(clientset, t.Logs)
+	hacommon.EventuallyCreateShutdownSignal(clientset, t.Logs)
 })
 
 var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
@@ -115,14 +115,14 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 
 	t.It("replaces each worker node in the node pool", func() {
 		// get the nodes
-		nodes := ha.EventuallyGetNodes(clientset, t.Logs)
+		nodes := hacommon.EventuallyGetNodes(clientset, t.Logs)
 		latestNodes := nodes
 		for _, node := range nodes.Items {
-			if !ha.IsControlPlaneNode(node) {
+			if !hacommon.IsControlPlaneNode(node) {
 				// cordon and drain the node - this function is implemented in kubectl itself and is not available
 				// using a k8s client
 				t.Logs.Infof("Draining node: %s", node.Name)
-				out, err := exec.Command("kubectl", "drain", "--ignore-daemonsets", "--delete-emptydir-data", "--force", node.Name).Output() //nolint:gosec //#nosec G204
+				out, err := exec.Command("kubectl", "drain", "--ignore-daemonsets", "--delete-emptydir-data", "--force", "--skip-wait-for-delete-timeout=600", node.Name).Output() //nolint:gosec //#nosec G204
 				Expect(err).ShouldNot(HaveOccurred())
 				t.Logs.Infof("Output from kubectl drain command: %s", out)
 
@@ -137,14 +137,14 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 
 				// wait for all pods to be ready before continuing to the next node
 				t.Logs.Infof("Waiting for all pods to be ready")
-				ha.EventuallyPodsReady(t.Logs, clientset)
+				hacommon.EventuallyPodsReady(t.Logs, clientset)
 			}
 		}
 	})
 
 	t.It("validates the k8s version of each worker node in the node pool", func() {
 		// get the nodes and check both the kube proxy and kubelet versions
-		nodes := ha.EventuallyGetNodes(clientset, t.Logs)
+		nodes := hacommon.EventuallyGetNodes(clientset, t.Logs)
 		for _, node := range nodes.Items {
 			Expect(node.Status.NodeInfo.KubeProxyVersion).To(Equal(upgradeVersion), "kube proxy version is incorrect")
 			Expect(node.Status.NodeInfo.KubeletVersion).To(Equal(upgradeVersion), "kubelet version is incorrect")
@@ -182,9 +182,9 @@ func waitForReplacementNode(existingNodes *corev1.NodeList) (*corev1.NodeList, e
 
 	Eventually(func() string {
 		t.Logs.Infof("Waiting for replacement worker node")
-		latestNodes = ha.EventuallyGetNodes(clientset, t.Logs)
+		latestNodes = hacommon.EventuallyGetNodes(clientset, t.Logs)
 		for _, node := range latestNodes.Items {
-			if !ha.IsControlPlaneNode(node) {
+			if !hacommon.IsControlPlaneNode(node) {
 				if !isExistingNode(node, existingNodes) {
 					replacement = node.Name
 					break
