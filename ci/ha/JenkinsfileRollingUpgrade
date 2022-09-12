@@ -420,7 +420,7 @@ pipeline {
                     parallel {
                         stage('Rolling Update') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/rollingupdate"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/inplaceupgrade"
                                 OKE_CLUSTER_ID="${OKE_CLUSTER_ID}"
                             }
                             steps {

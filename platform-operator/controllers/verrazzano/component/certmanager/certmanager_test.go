@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	profileDir    = "../../../../manifests/profiles/v1alpha1"
+	profileDir    = "../../../../manifests/profiles"
 	testNamespace = "testNamespace"
 	testBomFile   = "../../testdata/test_bom.json"
 )

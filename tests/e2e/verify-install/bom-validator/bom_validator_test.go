@@ -67,8 +67,8 @@ type knownIssues struct {
 // in the BOM file, possible Rancher bug that we are pursuing with the Rancher team
 var knownImageIssues = map[string]knownIssues{
 	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4", "v0.2.5", "v0.2.6"}, message: rancherWarningMessage},
-	"fleet-agent":     {alternateTags: []string{"v0.3.5", "v0.3.9", "v0.3.10"}, message: rancherWarningMessage},
-	"fleet":           {alternateTags: []string{"v0.3.5", "v0.3.9", "v0.3.10"}, message: rancherWarningMessage},
+	"fleet-agent":     {alternateTags: []string{"v0.3.5", "v0.3.9", "v0.3.10", "v0.3.11"}, message: rancherWarningMessage},
+	"fleet":           {alternateTags: []string{"v0.3.5", "v0.3.9", "v0.3.10", "v0.3.11"}, message: rancherWarningMessage},
 	"gitjob":          {alternateTags: []string{"v0.1.15", "v0.1.26", "v0.1.30"}, message: rancherWarningMessage},
 	"shell":           {alternateTags: []string{"v0.1.6", "v0.1.16"}, message: rancherWarningMessage},
 }

@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
+const profilesRelativePath = "../../../../manifests/profiles"
 
 var dnsComponents = vzapi.ComponentSpec{
 	DNS: &vzapi.DNSComponent{
@@ -308,7 +308,7 @@ func getBoolPtr(b bool) *bool {
 	return &b
 }
 
-func Test_opensearchComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
