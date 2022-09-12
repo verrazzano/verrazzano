@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -860,10 +861,25 @@ func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c s
 		if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 		}
+		v1beta1New := &v1beta1.Verrazzano{}
+		v1beta1Old := &v1beta1.Verrazzano{}
+		err := tt.new.ConvertTo(v1beta1New)
+		assert.NoError(t, err)
+		err = tt.old.ConvertTo(v1beta1Old)
+		assert.NoError(t, err)
+		if err := c.ValidateUpdateV1Beta1(v1beta1Old, v1beta1New); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+		}
 	} else {
 		wantErr := tt.name != "disable" && tt.wantErr // hack for disable validation, allowed on initial install but not on update
 		if err := c.ValidateInstall(tt.new); (err != nil) != wantErr {
-			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+		}
+		v1beta1Vz := &v1beta1.Verrazzano{}
+		err := tt.new.ConvertTo(v1beta1Vz)
+		assert.NoError(t, err)
+		if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 		}
 	}
 }
