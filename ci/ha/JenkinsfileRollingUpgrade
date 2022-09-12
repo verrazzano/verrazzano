@@ -445,6 +445,11 @@ pipeline {
                             steps {
                                 sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
                             }
+                            post {
+                                failure {
+                                    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+                                }
+                            }
                         }
                     }
                     post {
