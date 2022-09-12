@@ -6,6 +6,7 @@ package mysql
 import (
 	"context"
 	"fmt"
+	batchv1 "k8s.io/api/batch/v1"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -302,12 +303,13 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
+	// isLegacyDatabaseUpgrade
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"temp": []byte("false")}
+			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -320,31 +322,38 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
-			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Secret"}, name.Name)
-		})
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
-			assert.Equal(t, dbMigrationSecret, secret.Name)
-			return nil
-		})
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
 			return nil
 		})
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
-			pvc.Spec.VolumeName = DeploymentPersistentVolumeClaim
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
+			assert.Equal(t, dbMigrationSecret, secret.Name)
 			return nil
 		})
+	// handleLegacyDatabasePreUpgrade
+
+	// isDatabaseMigrationStageCompleted
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			return nil
+		})
+	// get PVC
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			pvc.Spec.VolumeName = "pv-name"
+			return nil
+		})
+	// RetainPersistentVolume
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: "pv-name"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pv *v1.PersistentVolume) error {
-			pv.Name = DeploymentPersistentVolumeClaim
 			return nil
 		})
 	mock.EXPECT().
@@ -354,55 +363,14 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 			assert.Equal(t, v1.PersistentVolumeReclaimRetain, pv.Spec.PersistentVolumeReclaimPolicy)
 			return nil
 		})
-	//mock.EXPECT().
-	//	Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-	//	DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
-	//		dep.Name = name.Name
-	//		dep.Namespace = name.Namespace
-	//		return nil
-	//	})
-	//mock.EXPECT().
-	//	Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-	//	DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
-	//		dep.Name = name.Name
-	//		dep.Namespace = name.Namespace
-	//		return nil
-	//	})
-	//mock.EXPECT().
-	//	List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-	//	DoAndReturn(func(ctx context.Context, list *v1.PodList, opts ...client.ListOption) error {
-	//		pod := v1.Pod{
-	//			ObjectMeta: metav1.ObjectMeta{
-	//				Namespace: ComponentNamespace,
-	//				Name:      ComponentName,
-	//				Labels: map[string]string{
-	//					"app":     ComponentName,
-	//					"release": ComponentName,
-	//				},
-	//			},
-	//		}
-	//		list.Items = []v1.Pod{pod}
-	//		return nil
-	//	})
-	//mock.EXPECT().
-	//	Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-	//	DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
-	//		dep.Name = name.Name
-	//		dep.Namespace = name.Namespace
-	//		return nil
-	//	})
-	//mock.EXPECT().
-	//	Update(gomock.Any(), gomock.Not(gomock.Nil())).
-	//	DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
-	//		assert.Equal(t, dbMigrationSecret, secret.Name)
-	//		return nil
-	//	})
+	// deleting the deployment
 	mock.EXPECT().
 		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment, opts ...client.DeleteOption) error {
 			assert.Equal(t, ComponentName, deployment.Name)
 			return nil
 		})
+	// DeleteExistingVolumeClaim
 	mock.EXPECT().
 		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.DeleteOption) error {
@@ -410,11 +378,12 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 			assert.Equal(t, ComponentNamespace, pvc.Namespace)
 			return nil
 		})
+	// updateDBMigrationInProgressSecret(ctx, pvcDeletedStage)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
-			dep.Name = name.Name
-			dep.Namespace = name.Namespace
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			secret.Name = name.Name
+			secret.Namespace = name.Namespace
 			return nil
 		})
 	mock.EXPECT().
@@ -423,6 +392,7 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 			assert.Equal(t, dbMigrationSecret, secret.Name)
 			return nil
 		})
+	// UpdateExistingVolumeClaims
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
@@ -450,6 +420,7 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 			assert.Nil(t, pv.Spec.ClaimRef)
 			return nil
 		})
+	// createPVCFromPV
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: statefulsetClaimName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
@@ -488,6 +459,53 @@ func TestPreUpgradeDevProfile(t *testing.T) {
 	}
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
+
+	// isLegacyDatabaseUpgrade
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
+			assert.Equal(t, dbMigrationSecret, secret.Name)
+			return nil
+		})
+	// handleLegacyDatabasePreUpgrade
+
+	// isDatabaseMigrationStageCompleted
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			return nil
+		})
+	// get PVC
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistenceVolumeClaim"}, name.Name)
+		})
 
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	err := preUpgrade(ctx)
@@ -531,6 +549,15 @@ func TestPreUpgradeForStatefulSetMySQL(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
+	// isLegacyDatabaseUpgrade
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			return nil
+		})
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
@@ -579,6 +606,27 @@ func TestPostUpgradeProdProfile(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
+	// cleanupDbMigrationJob
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbLoadJobName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
+			job.Name = dbLoadJobName
+			return nil
+		})
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, job *batchv1.Job, opts ...client.DeleteOption) error {
+			assert.Equal(t, dbLoadJobName, job.Name)
+			return nil
+		})
+	// deleteDbMigrationSecret
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.DeleteOption) error {
+			assert.Equal(t, dbMigrationSecret, secret.Name)
+			return nil
+		})
+	// ResetVolumeReclaimPolicy
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
@@ -636,6 +684,26 @@ func TestPostUpgradeDevProfile(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
+	// cleanupDbMigrationJob
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbLoadJobName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "batch", Resource: "Job"}, name.Name)
+		})
+	// deleteDbMigrationSecret
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.DeleteOption) error {
+			assert.Equal(t, dbMigrationSecret, secret.Name)
+			return nil
+		})
+	// ResetVolumeReclaimPolicy
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeList"}, "")
+		})
+
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	err := postUpgrade(ctx)
 	assert.NoError(t, err)
@@ -662,11 +730,37 @@ func TestAppendMySQLOverridesUpgradeLegacyDevProfile(t *testing.T) {
 
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
+
+	// isLegacyDatabaseUpgrade
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
 			return nil
 		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
+			assert.Equal(t, dbMigrationSecret, secret.Name)
+			return nil
+		})
+
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
@@ -684,10 +778,20 @@ func TestAppendMySQLOverridesUpgradeLegacyDevProfile(t *testing.T) {
 			return nil
 		})
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
 			return nil
-		}).AnyTimes()
+		})
+	// get PVC
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeClaim"}, name.Name)
+		})
+
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
@@ -716,10 +820,33 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
+	// isLegacyDatabaseUpgrade
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			return nil
+		})
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Deployment"}, name.Name)
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			return nil
+		})
+	// get PVC
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeClaim"}, name.Name)
 		})
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: rootSec}, gomock.Not(gomock.Nil())).
@@ -729,15 +856,11 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 			secret.Data[mySQLRootKey] = []byte("test-root-key")
 			return nil
 		})
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
-			return nil
-		}).AnyTimes()
+
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 }
 
@@ -777,10 +900,33 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 	}
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
+	// isLegacyDatabaseUpgrade
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			return nil
+		})
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Deployment"}, name.Name)
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			return nil
+		})
+	// get PVC
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeClaim"}, name.Name)
 		})
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: rootSec}, gomock.Not(gomock.Nil())).
@@ -798,7 +944,7 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 }
 

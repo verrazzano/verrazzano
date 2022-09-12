@@ -39,7 +39,7 @@ const (
 	secretName            = "mysql"
 	secretKey             = "mysql-password"
 	mySQLUsername         = "keycloak"
-	rootPasswordKey       = "mysql-root-password"
+	rootPasswordKey       = "mysql-root-password" //nolint:gosec //#gosec G101
 	statefulsetClaimName  = "dump-claim"
 	mySQLInitFilePrefix   = "init-mysql-"
 	dbLoadJobName         = "load-dump"
@@ -148,7 +148,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	secretSet := false
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
 		var err error
-		var userPwd [] byte
+		var userPwd []byte
 		if isLegacyDatabaseUpgrade(compContext) {
 			kvs, secretSet, err = appendLegacyUpgradeBaseValues(compContext, kvs)
 			if err != nil {
@@ -402,7 +402,6 @@ func preUpgrade(ctx spi.ComponentContext) error {
 	// vz > 1.3 uses statefulsets, not deployments
 	// no migration is needed if vz >= 1.4
 	if isLegacyDatabaseUpgrade(ctx) {
-		// change the ReclaimPolicy of the PV to Reclaim
 		if err := handleLegacyDatabasePreUpgrade(ctx); err != nil {
 			return err
 		}

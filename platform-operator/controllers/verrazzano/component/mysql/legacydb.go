@@ -112,11 +112,7 @@ func isLegacyDatabaseUpgrade(compContext spi.ComponentContext) bool {
 		}
 
 		err = updateDBMigrationInProgressSecret(compContext, deploymentFoundStage)
-		if err != nil {
-			return false
-		}
-
-		return true
+		return err == nil
 	}
 
 	return true
@@ -243,7 +239,6 @@ func getDbMigrationPod(ctx spi.ComponentContext) (*v1.Pod, error) {
 	// return one of the pods
 	return &dbMigrationPods.Items[0], nil
 }
-
 
 // dumpDatabase uses the mySQL Shell utility to dump the instance to its mounted PV
 func dumpDatabase(ctx spi.ComponentContext) error {
