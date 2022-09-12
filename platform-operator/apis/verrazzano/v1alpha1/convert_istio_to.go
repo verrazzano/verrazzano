@@ -132,7 +132,7 @@ func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, erro
 		return nil, err
 	}
 	expandedYamls = append(expandedYamls, gatewayYaml)
-	
+
 	// Merge all the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
