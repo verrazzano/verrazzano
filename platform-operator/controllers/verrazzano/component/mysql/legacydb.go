@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -228,6 +229,21 @@ func getMySQLPod(ctx spi.ComponentContext) (*v1.Pod, error) {
 	return &mysqlPods.Items[0], nil
 }
 
+// getDbMigrationPod returns the db migration pod that loads the legacy db into upgraded MySQL db
+func getDbMigrationPod(ctx spi.ComponentContext) (*v1.Pod, error) {
+	jobNameReq, _ := kblabels.NewRequirement("job-name", selection.Equals, []string{dbLoadJobName})
+	labelSelector := kblabels.NewSelector()
+	labelSelector = labelSelector.Add(*jobNameReq)
+	dbMigrationPods := v1.PodList{}
+	err := ctx.Client().List(context.TODO(), &dbMigrationPods, &client.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return nil, err
+	}
+	// return one of the pods
+	return &dbMigrationPods.Items[0], nil
+}
+
+
 // dumpDatabase uses the mySQL Shell utility to dump the instance to its mounted PV
 func dumpDatabase(ctx spi.ComponentContext) error {
 	if isDatabaseMigrationStageCompleted(ctx, databaseDumpedStage) {
@@ -294,4 +310,42 @@ func deleteDbMigrationSecret(ctx spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+// cleanupDbMigrationJob cleans up the db migration job and associated resources (pod)
+func cleanupDbMigrationJob(ctx spi.ComponentContext) error {
+	jobFound := &batchv1.Job{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, jobFound)
+	if err == nil {
+		propagationPolicy := metav1.DeletePropagationBackground
+		deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
+		err = ctx.Client().Delete(context.TODO(), jobFound, deleteOptions)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkDbMigrationJobCompletion checks whether a db migration job exists and it has completed
+func checkDbMigrationJobCompletion(ctx spi.ComponentContext) bool {
+	// check for existence of db restoration job.  If it exists, wait for its completion
+	ctx.Log().Progress("Checking status of keycloak DB restoration")
+	loadJob := &batchv1.Job{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, loadJob)
+	if err != nil {
+		return errors.IsNotFound(err)
+	}
+	// get the associated pod
+	dbMigrationPod, err := getDbMigrationPod(ctx)
+	if err != nil {
+		return false
+	}
+	for _, container := range dbMigrationPod.Status.ContainerStatuses {
+		if container.Name == dbLoadContainerName && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
+			return true
+		}
+	}
+
+	return false
 }

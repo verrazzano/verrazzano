@@ -21,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,6 +43,7 @@ const (
 	statefulsetClaimName  = "dump-claim"
 	mySQLInitFilePrefix   = "init-mysql-"
 	dbLoadJobName         = "load-dump"
+	dbLoadContainerName   = "mysqlsh-load-dump"
 	deploymentFoundStage  = "deployment-found"
 	databaseDumpedStage   = "database-dumped"
 	pvcDeletedStage       = "pvc-deleted"
@@ -137,20 +137,8 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 	if ready && routerReplicas > 0 {
 		ready = status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
 	}
-	if ready {
-		// check for existence of db restoration job.  If it exists, wait for its completion
-		loadJob := &batchv1.Job{}
-		err = ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, loadJob)
-		if err != nil {
-			return ready && errors.IsNotFound(err)
-		}
-		ctx.Log().Progress("Checking status of keycloak DB restoration")
-		if loadJob.Status.Succeeded == 1 {
-			return true
-		}
-	}
 
-	return ready
+	return ready && checkDbMigrationJobCompletion(ctx)
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides
@@ -428,10 +416,16 @@ func postUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL post upgrade dry run")
 		return nil
 	}
+	// cleanup db migration job if it exists
+	if err := cleanupDbMigrationJob(ctx); err != nil {
+		return err
+	}
+
 	//delete db migration secret if it exists
 	if err := deleteDbMigrationSecret(ctx); err != nil {
 		return err
 	}
+
 	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
 }
 
