@@ -62,14 +62,14 @@ var _ = t.Describe("Verify VZ distribution", func() {
 		t.Describe("When provided Lite ", func() {
 
 			t.It("Verify Lite bundle", func() {
-				verifyDisByDir(generatedPath+allPaths["top"], "top")
-				verifyDisByDir(generatedPath+allPaths["bin"], "bin")
-				verifyDisByDir(generatedPath+allPaths["manifests"], "manifests")
-				verifyDisByDir(generatedPath+allPaths["charts"], "charts")
-				verifyDisByDir(generatedPath+allPaths["verrazzano-platform-operator"], "verrazzano-platform-operator")
-				verifyDisByDir(generatedPath+allPaths["crds"], "crds")
-				verifyDisByDir(generatedPath+allPaths["templates"], "templates")
-				verifyDisByDir(generatedPath+allPaths["k8s"], "k8s")
+				verifyDistributionByDirectory(generatedPath+allPaths["top"], "top")
+				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin")
+				verifyDistributionByDirectory(generatedPath+allPaths["manifests"], "manifests")
+				verifyDistributionByDirectory(generatedPath+allPaths["charts"], "charts")
+				verifyDistributionByDirectory(generatedPath+allPaths["verrazzano-platform-operator"], "verrazzano-platform-operator")
+				verifyDistributionByDirectory(generatedPath+allPaths["crds"], "crds")
+				verifyDistributionByDirectory(generatedPath+allPaths["templates"], "templates")
+				verifyDistributionByDirectory(generatedPath+allPaths["k8s"], "k8s")
 			})
 		})
 	} else {
@@ -78,21 +78,21 @@ var _ = t.Describe("Verify VZ distribution", func() {
 			// generatedPath := os.Getenv("TARBALL_DIR") //+ "verrazzano-1.4.0"
 
 			t.It("Verify Full Bundle", func() {
-				verifyDisByDir(generatedPath+allPaths["top"], "top")
-				verifyDisByDir(generatedPath+allPaths["bin"], "bin")
-				verifyDisByDir(generatedPath+allPaths["manifests"], "manifests")
-				verifyDisByDir(generatedPath+allPaths["charts"], "charts")
-				verifyDisByDir(generatedPath+allPaths["verrazzano-platform-operator"], "verrazzano-platform-operator")
-				verifyDisByDir(generatedPath+allPaths["crds"], "crds")
-				verifyDisByDir(generatedPath+allPaths["templates"], "templates")
-				verifyDisByDir(generatedPath+allPaths["k8s"], "k8s")
+				verifyDistributionByDirectory(generatedPath+allPaths["top"], "top")
+				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin")
+				verifyDistributionByDirectory(generatedPath+allPaths["manifests"], "manifests")
+				verifyDistributionByDirectory(generatedPath+allPaths["charts"], "charts")
+				verifyDistributionByDirectory(generatedPath+allPaths["verrazzano-platform-operator"], "verrazzano-platform-operator")
+				verifyDistributionByDirectory(generatedPath+allPaths["crds"], "crds")
+				verifyDistributionByDirectory(generatedPath+allPaths["templates"], "templates")
+				verifyDistributionByDirectory(generatedPath+allPaths["k8s"], "k8s")
 			})
 		})
 	}
 
 })
 
-func verifyDisByDir(inputDir string, key string) {
+func verifyDistributionByDirectory(inputDir string, key string) {
 	filesList := []string{}
 	filesInfo, err := ioutil.ReadDir(inputDir)
 	if err != nil {
