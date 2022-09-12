@@ -20,7 +20,7 @@ import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/os"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -44,10 +44,10 @@ const (
 
 var enabled = true
 var notEnabled = false
-var fluentdEnabledCR = &vzapi.Verrazzano{
-	Spec: vzapi.VerrazzanoSpec{
-		Components: vzapi.ComponentSpec{
-			Fluentd: &vzapi.FluentdComponent{
+var fluentdEnabledCR = &v1alpha1.Verrazzano{
+	Spec: v1alpha1.VerrazzanoSpec{
+		Components: v1alpha1.ComponentSpec{
+			Fluentd: &v1alpha1.FluentdComponent{
 				Enabled: &enabled,
 			},
 		},
@@ -62,7 +62,7 @@ var vzEsInternalSecret = &corev1.Secret{
 }
 
 func init() {
-	_ = vzapi.AddToScheme(testScheme)
+	_ = v1alpha1.AddToScheme(testScheme)
 	_ = clientgoscheme.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
 }
@@ -73,31 +73,31 @@ func TestValidateUpdate(t *testing.T) {
 	defer func() { getControllerRuntimeClient = getClient }()
 	tests := []struct {
 		name    string
-		old     *vzapi.Verrazzano
-		new     *vzapi.Verrazzano
+		old     *v1alpha1.Verrazzano
+		new     *v1alpha1.Verrazzano
 		wantErr bool
 	}{
 		{
 			name: "enable",
-			old: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
+			old: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
 							Enabled: &disabled,
 						},
 					},
 				},
 			},
-			new:     &vzapi.Verrazzano{},
+			new:     &v1alpha1.Verrazzano{},
 			wantErr: false,
 		},
 		{
 			name: "disable",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
 							Enabled: &disabled,
 						},
 					},
@@ -107,17 +107,17 @@ func TestValidateUpdate(t *testing.T) {
 		},
 		{
 			name:    "no change",
-			old:     &vzapi.Verrazzano{},
-			new:     &vzapi.Verrazzano{},
+			old:     &v1alpha1.Verrazzano{},
+			new:     &v1alpha1.Verrazzano{},
 			wantErr: false,
 		},
 		{
 			name: "disable-fluentd",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{Enabled: &disabled},
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{Enabled: &disabled},
 					},
 				},
 			},
@@ -125,12 +125,12 @@ func TestValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-fluentd-oci",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							OCI: &vzapi.OciLoggingConfiguration{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
+							OCI: &v1alpha1.OciLoggingConfiguration{
 								APISecret: "secret",
 							},
 						},
@@ -141,11 +141,11 @@ func TestValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-fluentd-es-secret",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
 							ElasticsearchSecret: sec.Name,
 						},
 					},
@@ -155,11 +155,11 @@ func TestValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-fluentd-es-url",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
 							ElasticsearchURL: "url",
 						},
 					},
@@ -169,12 +169,12 @@ func TestValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "change-fluentd-extravolume",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "foo"}},
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
+							ExtraVolumeMounts: []v1alpha1.VolumeMount{{Source: "foo"}},
 						},
 					},
 				},
@@ -183,12 +183,12 @@ func TestValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "invalid-fluentd-extravolume",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/root/.oci"}},
+			old:  &v1alpha1.Verrazzano{},
+			new: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
+							ExtraVolumeMounts: []v1alpha1.VolumeMount{{Source: "/root/.oci"}},
 						},
 					},
 				},
@@ -202,6 +202,15 @@ func TestValidateUpdate(t *testing.T) {
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			v1beta1New := &v1beta1.Verrazzano{}
+			v1beta1Old := &v1beta1.Verrazzano{}
+			err := tt.new.ConvertTo(v1beta1New)
+			assert.NoError(t, err)
+			err = tt.old.ConvertTo(v1beta1Old)
+			assert.NoError(t, err)
+			if err := c.ValidateUpdateV1Beta1(v1beta1Old, v1beta1New); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }
@@ -209,15 +218,15 @@ func TestValidateUpdate(t *testing.T) {
 func TestValidateInstall(t *testing.T) {
 	tests := []struct {
 		name    string
-		vz      *vzapi.Verrazzano
+		vz      *v1alpha1.Verrazzano
 		wantErr bool
 	}{
 		{
 			name: "FluentdComponent empty",
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{},
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{},
 					},
 				},
 			},
@@ -225,10 +234,10 @@ func TestValidateInstall(t *testing.T) {
 		},
 		{
 			name: "FluentdComponent empty",
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
 							Enabled: &enabled,
 						},
 					},
@@ -238,11 +247,11 @@ func TestValidateInstall(t *testing.T) {
 		},
 		{
 			name: "oci and ext-es",
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							OCI:              &vzapi.OciLoggingConfiguration{},
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
+							OCI:              &v1alpha1.OciLoggingConfiguration{},
 							ElasticsearchURL: "https://url",
 						},
 					},
@@ -256,6 +265,12 @@ func TestValidateInstall(t *testing.T) {
 			c := NewComponent()
 			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			v1beta1Vz := &v1beta1.Verrazzano{}
+			err := tt.vz.ConvertTo(v1beta1Vz)
+			assert.NoError(t, err)
+			if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -279,7 +294,7 @@ func TestPostUpgrade(t *testing.T) {
 func TestPreInstall(t *testing.T) {
 	var tests = []struct {
 		name   string
-		spec   *vzapi.Verrazzano
+		spec   *v1alpha1.Verrazzano
 		client client.Client
 		err    error
 	}{
@@ -328,8 +343,8 @@ func TestGetOverrides(t *testing.T) {
 			},
 		},
 	}
-	oV1Alpha1 := vzapi.InstallOverrides{
-		ValueOverrides: []vzapi.Overrides{
+	oV1Alpha1 := v1alpha1.InstallOverrides{
+		ValueOverrides: []v1alpha1.Overrides{
 			{
 				ConfigMapRef: ref,
 			},
@@ -342,10 +357,10 @@ func TestGetOverrides(t *testing.T) {
 	}{
 		{
 			"overrides when component not nil, v1alpha1",
-			&vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
+			&v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
 							InstallOverrides: oV1Alpha1,
 						},
 					},
@@ -394,10 +409,10 @@ func createFakeClient(extraObjs ...client.Object) client.Client {
 //  THEN no error is returned
 func TestInstall(t *testing.T) {
 	c := createFakeClient()
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Fluentd: &vzapi.FluentdComponent{ElasticsearchSecret: vzapi.OciConfigSecretFile},
+	ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Fluentd: &v1alpha1.FluentdComponent{ElasticsearchSecret: v1alpha1.OciConfigSecretFile},
 			},
 		},
 	}, nil, false)
@@ -428,7 +443,7 @@ func TestPreUpgrade(t *testing.T) {
 
 	var tests = []struct {
 		name   string
-		spec   *vzapi.Verrazzano
+		spec   *v1alpha1.Verrazzano
 		client client.Client
 		err    error
 	}{
@@ -537,7 +552,7 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 	})
 	defer helmcli.SetDefaultRunner()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -553,7 +568,7 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	})
 	defer helmcli.SetDefaultRunner()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 }
 
@@ -589,7 +604,7 @@ func TestUninstallResources(t *testing.T) {
 		serviceAccount,
 	).Build()
 
-	err := NewComponent().Uninstall(spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false))
+	err := NewComponent().Uninstall(spi.NewFakeContext(c, &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 
 	// Assert that the resources have been deleted
@@ -612,14 +627,14 @@ func TestUninstallResources(t *testing.T) {
 }
 
 func getFakeComponentContext(c client.WithWatch) spi.ComponentContext {
-	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
+	ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
 			Version: "v1.4.0",
-			Components: vzapi.ComponentSpec{
-				Fluentd: &vzapi.FluentdComponent{ElasticsearchSecret: vzapi.OciConfigSecretFile},
+			Components: v1alpha1.ComponentSpec{
+				Fluentd: &v1alpha1.FluentdComponent{ElasticsearchSecret: v1alpha1.OciConfigSecretFile},
 			},
 		},
-		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
+		Status: v1alpha1.VerrazzanoStatus{Version: "1.1.0"},
 	}, nil, false)
 	return ctx
 }
