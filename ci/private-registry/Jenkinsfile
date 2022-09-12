@@ -547,7 +547,7 @@ pipeline {
                 script {
                     try {
                         sh """
-                            kubectl delete verrazzano my-verrazzano
+                            kubectl delete verrazzano verrazzano
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"
