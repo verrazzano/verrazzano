@@ -270,19 +270,6 @@ pipeline {
                     }
                 }
 
-                stage('Build E2E Tests') {
-                    steps {
-                        buildE2ETests()
-                    }
-                    post {
-                        failure {
-                            script {
-                                SKIP_TRIGGERED_TESTS = true
-                            }
-                        }
-                    }
-                }
-
                 stage('Unit Tests') {
                     when { not { buildingTag() } }
                     steps {
@@ -322,29 +309,48 @@ pipeline {
                     }
                 }
             }
-
         }
 
-        stage('Image Patch Operator') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    changeset "image-patch-operator/**"
-                }
-            }
-            steps {
-                buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
-                buildWITImage("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
+        stage ('Build Image Patch Operator and Validate E2E Tests') {
+            parallel {
+                stage('Build E2E Tests') {
+                    // Validate that the E2E tests build successfully before launching downstream tests
+                    // - do it here instead of the earlier stage so that it does not slow down the more important
+                    //   operator and code validation steps
+                    steps {
+                        buildE2ETests()
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
                     }
                 }
-                success {
-                    script {
-                        SCAN_IMAGE_PATCH_OPERATOR = true
+
+                stage('Image Patch Operator') {
+                    when {
+                        allOf {
+                            not { buildingTag() }
+                            changeset "image-patch-operator/**"
+                        }
+                    }
+                    steps {
+                        buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
+                        buildWITImage("${DOCKER_IMAGE_TAG}")
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                        success {
+                            script {
+                                SCAN_IMAGE_PATCH_OPERATOR = true
+                            }
+                        }
                     }
                 }
             }
