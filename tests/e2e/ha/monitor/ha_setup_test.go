@@ -8,14 +8,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"k8s.io/client-go/kubernetes"
 )
 
 // config for HA monitoring test suite
 type config struct {
 	api        *pkg.APIEndpoint
 	httpClient *retryablehttp.Client
-	clientset  *kubernetes.Clientset
 	hosts      struct {
 		rancher string
 		kiali   string
@@ -32,8 +30,7 @@ var _ = clusterDump.BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 	web.api = pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	web.httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
-	web.clientset = k8sutil.GetKubernetesClientsetOrDie()
 	web.users.verrazzano = pkg.EventuallyGetSystemVMICredentials()
 	web.hosts.rancher = pkg.EventuallyGetURLForIngress(t.Logs, web.api, "cattle-system", "rancher", "https")
-	web.hosts.kiali = pkg.EventuallyGetKialiHost(web.clientset)
+	web.hosts.kiali = pkg.EventuallyGetKialiHost(clientset)
 })
