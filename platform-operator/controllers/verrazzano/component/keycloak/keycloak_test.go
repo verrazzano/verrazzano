@@ -37,7 +37,7 @@ import (
 const (
 	testBomFilePath         = "../../testdata/test_bom.json"
 	testKeycloakIngressHost = "keycloak.test-env.192.132.111.122.nip.io"
-	profilesRelativePath    = "../../../../manifests/profiles/v1alpha1"
+	profilesRelativePath    = "../../../../manifests/profiles"
 )
 
 var testVZ = &vzapi.Verrazzano{

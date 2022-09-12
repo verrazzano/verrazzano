@@ -233,11 +233,10 @@ generateVZFullDistribution() {
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${distDir}/bin/darwin-amd64
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${distDir}/bin/darwin-arm64
 
-  captureBundleContents ${rootDir} ${generatedDir} ${FULL_BUNDLE_CONTENTS}
-
   # Create and upload the final distribution zip file and upload
   echo "Create ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} and upload ..."
   cp ${VZ_REPO_ROOT}/release/docs/README_FULL.md ${distDir}/README.md
+  captureBundleContents ${rootDir} ${generatedDir} ${FULL_BUNDLE_CONTENTS}
   cd ${rootDir}
   zip -r ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} *
   oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}

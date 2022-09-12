@@ -6,7 +6,10 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -123,6 +126,33 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 	}); err != nil {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
+	return nil
+}
+
+// PreUninstall waits until MySQL pods in the Keycloak namespace are gone. This is needed since the pods have finalizers
+// that are processed by the MySQL operator
+func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) error {
+	const (
+		labelKey   = "mysql.oracle.com/cluster"
+		labelVal   = "mysql"
+		keycloakNS = "keycloak"
+	)
+
+	// Find the MySQL pods in keycloak namespace, including the router pods
+	var podList corev1.PodList
+	req, _ := labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
+	selector := labels.NewSelector().Add(*req)
+	err := compContext.Client().List(context.TODO(), &podList, &client.ListOptions{Namespace: keycloakNS, LabelSelector: selector})
+	if err != nil {
+		compContext.Log().ErrorfNewErr("Failed to List MySQL pods in Keycloak namespace: %v", err)
+		return err
+	}
+	if len(podList.Items) > 0 {
+		compContext.Log().Progressf("MySQL operator uninstall is waiting for MySQL to be uninstalled")
+		return ctrlerrors.RetryableError{Source: ComponentName}
+	}
+
+	// MySQL is not installed, safe to uninstall MySQL operator
 	return nil
 }
 
