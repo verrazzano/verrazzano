@@ -16,8 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test"
 )
 
-xxx
-
 const (
 	AnalysisReport = "analysis.report"
 	BugReport      = "bug-report.tar.gz"
