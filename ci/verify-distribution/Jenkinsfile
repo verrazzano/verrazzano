@@ -295,7 +295,7 @@ pipeline {
                         }
                     }
                 }
-                env
+                sh 'env'
                 runGinkgoRandomize('verify-distribution')
             }
         }
