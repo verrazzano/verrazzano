@@ -6,7 +6,6 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"path/filepath"
@@ -134,15 +133,16 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 // that are processed by the MySQL operator
 func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) error {
 	const (
-		labelKey = "mysql.oracle.com/cluster"
-		labelVal = "mysql"
+		labelKey   = "mysql.oracle.com/cluster"
+		labelVal   = "mysql"
+		keycloakNS = "keycloak"
 	)
 
 	// Find the MySQL pods in keycloak namespace, including the router pods
 	var podList corev1.PodList
 	req, _ := labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
 	selector := labels.NewSelector().Add(*req)
-	err := compContext.Client().List(context.TODO(), &podList, &client.ListOptions{Namespace: keycloak.ComponentNamespace, LabelSelector: selector})
+	err := compContext.Client().List(context.TODO(), &podList, &client.ListOptions{Namespace: keycloakNS, LabelSelector: selector})
 	if err != nil {
 		compContext.Log().ErrorfNewErr("Failed to List MySQL pods in Keycloak namespace: %v", err)
 		return err
