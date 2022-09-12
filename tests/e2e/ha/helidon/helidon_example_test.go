@@ -30,17 +30,11 @@ var (
 	clusterDump = pkg.NewClusterDumpWrapper(namespace)
 	clientset   = k8sutil.GetKubernetesClientsetOrDie()
 
-	kubeconfigPath string
-	httpClient     *retryablehttp.Client
+	httpClient *retryablehttp.Client
 )
 
 var _ = clusterDump.BeforeSuite(func() {
-	var err error
-	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
-	Expect(err).ToNot(HaveOccurred())
-
-	httpClient, err = getVerrazzanoHTTPClientWithRetries(kubeconfigPath)
-	Expect(err).ToNot(HaveOccurred())
+	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 })
 
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
@@ -125,22 +119,4 @@ func readResponseBody(resp *http.Response) (string, error) {
 		body = string(bodyRaw)
 	}
 	return body, nil
-}
-
-// getVerrazzanoHTTPClientWithRetries gets a retryable HTTP client configured with the Verrazzano CA cert.
-func getVerrazzanoHTTPClientWithRetries(kubeconfigPath string) (*retryablehttp.Client, error) {
-	var httpClient *retryablehttp.Client
-	var err error
-
-	for i := 1; i <= 5; i++ {
-		httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
-		if err == nil {
-			break
-		}
-		time.Sleep(time.Duration(i) * time.Second)
-	}
-	if err != nil {
-		return nil, err
-	}
-	return httpClient, nil
 }
