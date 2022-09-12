@@ -202,144 +202,14 @@ func TestValidateUpdate(t *testing.T) {
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
-		})
-	}
-}
-
-func TestValidateUpdateBeta(t *testing.T) {
-	disabled := false
-	sec := getFakeSecret("TestValidateUpdate-es-sec")
-	defer func() { getControllerRuntimeClient = getClient }()
-	tests := []struct {
-		name    string
-		old     *v1beta1.Verrazzano
-		new     *v1beta1.Verrazzano
-		wantErr bool
-	}{
-		{
-			name: "enable",
-			old: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{
-							Enabled: &disabled,
-						},
-					},
-				},
-			},
-			new:     &v1beta1.Verrazzano{},
-			wantErr: false,
-		},
-		{
-			name: "disable",
-			old:  &v1beta1.Verrazzano{},
-			new: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{
-							Enabled: &disabled,
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name:    "no change",
-			old:     &v1beta1.Verrazzano{},
-			new:     &v1beta1.Verrazzano{},
-			wantErr: false,
-		},
-		{
-			name: "disable-fluentd",
-			old:  &v1beta1.Verrazzano{},
-			new: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{Enabled: &disabled},
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "change-fluentd-oci",
-			old:  &v1beta1.Verrazzano{},
-			new: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{
-							OCI: &v1beta1.OciLoggingConfiguration{
-								APISecret: "secret",
-							},
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "change-fluentd-es-secret",
-			old:  &v1beta1.Verrazzano{},
-			new: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{
-							OpenSearchSecret: sec.Name,
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "change-fluentd-es-url",
-			old:  &v1beta1.Verrazzano{},
-			new: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{
-							OpenSearchURL: "url",
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "change-fluentd-extravolume",
-			old:  &v1beta1.Verrazzano{},
-			new: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{
-							ExtraVolumeMounts: []v1beta1.VolumeMount{{Source: "foo"}},
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid-fluentd-extravolume",
-			old:  &v1beta1.Verrazzano{},
-			new: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{
-							ExtraVolumeMounts: []v1beta1.VolumeMount{{Source: "/root/.oci"}},
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent()
-			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			v1beta1New := &v1beta1.Verrazzano{}
+			v1beta1Old := &v1beta1.Verrazzano{}
+			err := tt.new.ConvertTo(v1beta1New)
+			assert.NoError(t, err)
+			err = tt.old.ConvertTo(v1beta1Old)
+			assert.NoError(t, err)
+			if err := c.ValidateUpdateV1Beta1(v1beta1Old, v1beta1New); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -396,60 +266,11 @@ func TestValidateInstall(t *testing.T) {
 			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
 			}
-		})
-	}
-}
-
-func TestValidateInstallBeta(t *testing.T) {
-	tests := []struct {
-		name    string
-		vz      *v1beta1.Verrazzano
-		wantErr bool
-	}{
-		{
-			name: "FluentdComponent empty",
-			vz: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "FluentdComponent empty",
-			vz: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{
-							Enabled: &enabled,
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "oci and ext-es",
-			vz: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						Fluentd: &v1beta1.FluentdComponent{
-							OCI:           &v1beta1.OciLoggingConfiguration{},
-							OpenSearchURL: "https://url",
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent()
-			if err := c.ValidateInstallV1Beta1(tt.vz); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+			v1beta1Vz := &v1beta1.Verrazzano{}
+			err := tt.vz.ConvertTo(v1beta1Vz)
+			assert.NoError(t, err)
+			if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
