@@ -129,13 +129,12 @@ func readResponseBody(resp *http.Response) (string, error) {
 
 // getVerrazzanoHTTPClientWithRetries gets a retryable HTTP client configured with the Verrazzano CA cert.
 // Since this makes k8s calls that result in VPO webhook calls, we need to retry long enough to allow
-// the VPO to be migrated to another node, which can take minutes.
+// the VPO to be migrated to another node, which can take several minutes.
 func getVerrazzanoHTTPClientWithRetries(kubeconfigPath string) (*retryablehttp.Client, error) {
 	var httpClient *retryablehttp.Client
 	var err error
 
-	// this will retry for a max of 4 minutes
-	for i := 1; i <= 15; i++ {
+	for i := 1; i <= 25; i++ {
 		httpClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 		if err == nil {
 			break
