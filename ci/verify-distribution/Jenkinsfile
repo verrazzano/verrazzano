@@ -309,6 +309,7 @@ pipeline {
                         sh """
                             # Generate components list and save to file
                             chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                            cd ${TARBALL_DIR}/manifests
                             sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -d -t ${ocirRegistry} -o -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -m ${TARBALL_ROOT_DIR}/componentsList.txt
 
                             # Create OCIR repos for the images in the tarballs in the test compartment
