@@ -4,6 +4,7 @@
 package authproxy
 
 import (
+	v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
@@ -41,6 +42,48 @@ func (u AuthProxyReplicasModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.AuthProxy.Kubernetes.Replicas = u.replicas
 }
 
+func (u AuthProxyReplicasModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+	if cr.Spec.Components.AuthProxy == nil {
+		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
+	}
+	if cr.Spec.Components.AuthProxy.Kubernetes == nil {
+		cr.Spec.Components.AuthProxy.Kubernetes = &v1beta1.AuthProxyKubernetesSection{}
+	}
+	cr.Spec.Components.AuthProxy.Kubernetes.Replicas = u.replicas
+}
+
+func (u AuthProxyPodPerNodeAffintyModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+	if cr.Spec.Components.AuthProxy == nil {
+		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
+	}
+	if cr.Spec.Components.AuthProxy.Kubernetes == nil {
+		cr.Spec.Components.AuthProxy.Kubernetes = &v1beta1.AuthProxyKubernetesSection{}
+	}
+	if cr.Spec.Components.AuthProxy.Kubernetes.Affinity == nil {
+		cr.Spec.Components.AuthProxy.Kubernetes.Affinity = &corev1.Affinity{}
+	}
+	if cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity == nil {
+		cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity = &corev1.PodAntiAffinity{}
+	}
+	list := cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+	list = append(list, corev1.PodAffinityTerm{
+		LabelSelector: &metav1.LabelSelector{
+			MatchLabels: nil,
+			MatchExpressions: []metav1.LabelSelectorRequirement{
+				{
+					Key:      authProxyLabelKey,
+					Operator: "In",
+					Values: []string{
+						authProxyLabelValue,
+					},
+				},
+			},
+		},
+		TopologyKey: "kubernetes.io/hostname",
+	})
+	cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = list
+}
+
 func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.AuthProxy == nil {
 		cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
@@ -75,6 +118,10 @@ func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 func (u AuthProxyDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
+}
+
+func (u AuthProxyDefaultModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+	cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
 }
 
 var t = framework.NewTestFramework("update authproxy")

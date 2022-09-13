@@ -27,8 +27,38 @@ type CRModifier interface {
 	ModifyCR(cr *vzapi.Verrazzano)
 }
 
+type CRModifierV1beta1 interface {
+	ModifyCRV1beta1(cr *vzapi.Verrazzano)
+}
+
 // GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
 func GetCR() *vzapi.Verrazzano {
+	// Wait for the CR to be Ready
+	gomega.Eventually(func() error {
+		cr, err := pkg.GetVerrazzano()
+		if err != nil {
+			return err
+		}
+		if cr.Status.State != vzapi.VzStateReady {
+			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+		}
+		return nil
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+
+	// Get the CR
+	cr, err := pkg.GetVerrazzano()
+	if err != nil {
+		ginkgov2.Fail(err.Error())
+	}
+	if cr == nil {
+		ginkgov2.Fail("CR is nil")
+	}
+
+	return cr
+}
+
+// GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
+func GetCRV1beta1() *vzapi.Verrazzano {
 	// Wait for the CR to be Ready
 	gomega.Eventually(func() error {
 		cr, err := pkg.GetVerrazzano()
@@ -75,6 +105,28 @@ func UpdateCR(m CRModifier) error {
 		ginkgov2.Fail(err.Error())
 	}
 	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
+	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
+	return err
+}
+
+func UpdateCRV1beta1(m CRModifierV1beta1) error {
+	// Get the CR
+	cr := GetCRV1beta1()
+
+	// Modify the CR
+	m.ModifyCRV1beta1(cr)
+
+	// Update the CR
+	var err error
+	config, err := k8sutil.GetKubeConfigGivenPath(defaultKubeConfigPath())
+	if err != nil {
+		ginkgov2.Fail(err.Error())
+	}
+	client, err := vpoClient.NewForConfig(config)
+	if err != nil {
+		ginkgov2.Fail(err.Error())
+	}
+	vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 	return err
 }
