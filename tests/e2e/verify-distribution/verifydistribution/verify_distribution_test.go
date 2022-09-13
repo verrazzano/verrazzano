@@ -51,7 +51,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 
 	variant = os.Getenv("DISTRIBUTION_VARIANT")
 	generatedPath := os.Getenv("TARBALL_DIR")
-	tarball_root_dir := os.Getenv("TARBALL_ROOT_DIR")
+	tarballRootDir := os.Getenv("TARBALL_ROOT_DIR")
 	repoPath := os.Getenv("GO_REPO_PATH")
 
 	if variant == "Lite" {
@@ -67,7 +67,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 			}
 			t.It("Verify lite bundle zip contents", func() {
 				filesList := []string{}
-				filesInfo, err := ioutil.ReadDir(tarball_root_dir)
+				filesInfo, err := ioutil.ReadDir(tarballRootDir)
 				if err != nil {
 					println(err.Error())
 				}
@@ -105,7 +105,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				regexTar := regexp.MustCompile(`.tar`)
 
 				componentsList := []string{}
-				file, err := os.OpenFile(tarball_root_dir+"/componentsList.txt", os.O_RDONLY, 0644)
+				file, err := os.OpenFile(tarballRootDir+"/componentsList.txt", os.O_RDONLY, 0644)
 				if err != nil {
 					println(err.Error())
 				}
