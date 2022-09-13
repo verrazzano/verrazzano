@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
-const profilesRelativePath = "../../../../../manifests/profiles/v1alpha1"
+const profilesRelativePath = "../../../../../manifests/profiles"
 
 // TestIsEnabled tests the IsEnabled function for the kube-state-metrics component
 func TestIsEnabled(t *testing.T) {

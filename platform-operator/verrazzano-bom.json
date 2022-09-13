@@ -103,12 +103,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.13.5-1-20220810173142-0bd9ab4d",
+              "tag": "1.14.3-20220830175311-bc31775b",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.13.5-1-20220810173142-0bd9ab4d",
+              "tag": "1.14.3-20220830175311-bc31775b",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -119,7 +119,7 @@
     },
     {
       "name": "rancher",
-      "version": "v2.6.7",
+      "version": "v2.6.8",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -127,13 +127,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.7-20220824100716-ffe385103",
+              "tag": "v2.6.8-20220908174532-46df1b595",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.7-20220824100716-ffe385103"
+              "tag": "v2.6.8-20220908174532-46df1b595"
             }
           ]
         },
@@ -156,11 +156,11 @@
             },
             {
               "image": "fleet-agent",
-              "tag": "v0.3.10"
+              "tag": "v0.3.11"
             },
             {
               "image": "fleet",
-              "tag": "v0.3.10"
+              "tag": "v0.3.11"
             },
             {
               "image": "gitjob",
@@ -184,7 +184,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.13.5-1-20220810173142-0bd9ab4d",
+              "tag": "1.14.3-20220830175311-bc31775b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -230,7 +230,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.13.5-1-20220810173142-0bd9ab4d",
+              "tag": "1.14.3-20220830175311-bc31775b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
