@@ -65,11 +65,11 @@ func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.Namespac
 		pv := pvs[i] // avoids "Implicit memory aliasing in for loop" linter complaint
 		ctx.Log().Debugf("Update PV %s.  Current status: %s", pv.Name, pv.Status.Phase)
 		if pv.Status.Phase == v1.VolumeBound {
-			ctx.Log().Progressf("Waiting for PV %s to be released")
+			ctx.Log().Progressf("Waiting for PV %s to be released", pv.Name)
 			return ctrlerrors.RetryableError{Source: componentName, Cause: fmt.Errorf("PV %s is still bound", pv.Name)}
 		}
 
-		ctx.Log().Debugf("Attempting to clear PV claim ref and create new PVC %s.  PV ClaimRef: %v, PVC: %v", newClaimName, pv.Spec.ClaimRef, pvcName)
+		ctx.Log().Infof("Attempting to clear PV claim ref and create new PVC %s.  PV ClaimRef: %v, PVC: %v", newClaimName, pv.Spec.ClaimRef, pvcName)
 		if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace == pvcName.Namespace && pv.Spec.ClaimRef.Name == pvcName.Name {
 			ctx.Log().Debugf("Removing old claim from persistent volume %s", pv.Name)
 			pv.Spec.ClaimRef = nil

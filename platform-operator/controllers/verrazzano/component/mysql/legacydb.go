@@ -193,7 +193,7 @@ func handleLegacyDatabasePreUpgrade(ctx spi.ComponentContext) error {
 	}
 	ctx.Log().Debugf("Updating PV/PVC %v", mysqlPVC)
 	if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
-		ctx.Log().Errorf("Unable to update PV/PVC")
+		ctx.Log().Debugf("Unable to update PV/PVC")
 		return err
 	}
 
