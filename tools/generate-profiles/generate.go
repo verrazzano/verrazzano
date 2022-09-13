@@ -3,8 +3,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"os"
 	"path/filepath"
@@ -111,7 +113,7 @@ func generateAndWrite(profileType string, outputLocation string, verrazzanoDir s
 }
 
 // generateProfile executes the actual logic to merge the profiles
-func generateProfile(profileType string, verrazzanoDir string) (*v1beta1.Verrazzano, error) {
+func generateProfile(profileType string, verrazzanoDir string) (*CRWrapper, error) {
 	cr := &v1beta1.Verrazzano{}
 	err := yaml.Unmarshal([]byte(defautlVerrazzano), cr)
 	if err != nil {
@@ -129,7 +131,8 @@ func generateProfile(profileType string, verrazzanoDir string) (*v1beta1.Verrazz
 	if err != nil {
 		return nil, err
 	}
-	return mergedCR, nil
+	wrappedCR := CRWrapper(*mergedCR)
+	return &wrappedCR, nil
 }
 
 func profileFilePath(verrazzanoDir string, cr *v1beta1.Verrazzano, profileType string) string {
@@ -145,4 +148,33 @@ func parseFlags(defaultDir string) {
 	flag.StringVar(&profileType, "profile", string(v1beta1.Prod), "Profile type to be generated, defaults to prod")
 	flag.BoolVar(&help, "help", false, "Get information about the usage/utility of the tool")
 	flag.Parse()
+}
+
+// Workaround to remove cruft. Certain empty fields that aren't required in the profile file (status, metadata.creationTimestamp etc)
+// were showing up because Go's json package's (used by k8s yaml package) default behaviour is to Marshal fields of struct type
+// even if they're empty.
+
+type CRWrapper v1beta1.Verrazzano
+
+type PseudoObjectMeta struct {
+	Name      string `json:"name,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+}
+
+func (cr *CRWrapper) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		v1.TypeMeta      `json:",inline"`
+		PseudoObjectMeta `json:"metadata,omitempty"`
+		Spec             v1beta1.VerrazzanoSpec `json:"spec,omitempty"`
+	}{
+		v1.TypeMeta{
+			Kind:       cr.Kind,
+			APIVersion: cr.APIVersion,
+		},
+		PseudoObjectMeta{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+		},
+		cr.Spec,
+	})
 }
