@@ -338,3 +338,24 @@ func TestGetURLForIngress(t *testing.T) {
 	_, err = k8sutil.GetURLForIngress(client, "test", "default", "https")
 	asserts.Error(err)
 }
+
+// TestGetRunningPodForLabel tests getting a running pod for a labe;
+// GIVEN a running pod  with a label in a namespace in a cluster
+//  WHEN GetRunningPodForLabel is called with that label and namespace
+//  THEN GetRunningPodForLabel return the pod
+func TestGetRunningPodForLabel(t *testing.T) {
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "name",
+			Labels:    map[string]string{"key": "value"},
+		},
+		Status: v1.PodStatus{
+			Phase: v1.PodRunning,
+		},
+	}
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(pod).Build()
+	pod, err := k8sutil.GetRunningPodForLabel(client, "key=value", pod.GetNamespace())
+	assert.Nil(t, err)
+	assert.Equal(t, "name", pod.Name)
+}
