@@ -20,8 +20,8 @@ import (
 const (
 	metricsVersion = "1.4.0"
 
-	longPollingInterval = 8 * time.Second
-	longWaitTimeout     = 10 * time.Minute
+	longPollingInterval = 10 * time.Second
+	longWaitTimeout     = 15 * time.Minute
 
 	// Constants for sample metrics of system components validated by the test
 	ingressControllerSuccess       = "nginx_ingress_controller_success"

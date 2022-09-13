@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package monitor
+package helidon
 
 import (
 	"flag"
@@ -9,17 +9,15 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 )
 
-var runContinuous bool
-var t = framework.NewTestFramework("monitor")
+var namespace string
 
 func init() {
-	flag.BoolVar(&runContinuous, "runContinuous", true, "run monitors continuously if set")
+	flag.StringVar(&namespace, "namespace", "ha-hello-helidon", "namespace is the app namespace")
 }
 
-func TestHAMonitor(t *testing.T) {
+func TestHAHelidonExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "HA Monitoring Suite")
+	ginkgo.RunSpecs(t, "HA Hello Helidon Suite")
 }

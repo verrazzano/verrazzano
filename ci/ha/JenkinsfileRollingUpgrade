@@ -115,6 +115,7 @@ pipeline {
         INSTALL_PROFILE = "prod"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+        HELIDON_TEST_NAMESPACE = "ha-hello-helidon"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
@@ -341,7 +342,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-install"
                     }
                     steps{
-                        runGinkgo('examples/helidon', '--namespace=hello-helidon --skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                        runGinkgo("examples/helidon", "--namespace=${HELIDON_TEST_NAMESPACE} --skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml")
                     }
                     post {
                         always {
@@ -410,7 +411,7 @@ pipeline {
                     }
                 }
 
-                stage('Parallel HA Tests and Rolling Update') {
+                stage('Parallel HA Tests and K8s Upgrade') {
                     when {
                         expression { TESTS_FAILED == false }
                     }
@@ -418,7 +419,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ha-tests"
                     }
                     parallel {
-                        stage('Rolling Update') {
+                        stage('K8s In-place Upgrade') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/inplaceupgrade"
                                 OKE_CLUSTER_ID="${OKE_CLUSTER_ID}"
@@ -430,6 +431,11 @@ pipeline {
                         stage('HA Tests') {
                             steps {
                                 runGinkgoRandomize('ha/monitor')
+                            }
+                        }
+                        stage('Access Hello Helidon') {
+                            steps {
+                                runGinkgo("ha/helidon", "--namespace=${HELIDON_TEST_NAMESPACE}")
                             }
                         }
                         stage ('console') {

@@ -10,19 +10,19 @@ import (
 	"os/exec"
 	"time"
 
-	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/oracle/oci-go-sdk/v53/common"
 	"github.com/oracle/oci-go-sdk/v53/common/auth"
 	ocice "github.com/oracle/oci-go-sdk/v53/containerengine"
 	ocicore "github.com/oracle/oci-go-sdk/v53/core"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
 )
 
 const (
