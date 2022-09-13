@@ -296,12 +296,12 @@ pipeline {
                         }
                     }
                 }
-                runGinkgoRandomize('verify-distribution')
             }
         }
         stage('Upload Verrazzano Images') {
              environment {
                  TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+                 VERRAZZANO_DEV_VERSION="${VERRAZZANO_DEV_VERSION}"
              }
             steps {
                 script {
@@ -314,6 +314,7 @@ pipeline {
                             cd ${TARBALL_DIR}
                             chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
                             ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
+                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -d -t ${ocirRegistry} -o -b ${TARBALL_DIR}/manifests/verrazzano-bom.json > /tmp/componentsList.txt
                         """
                     } else {
                         sh """
@@ -331,6 +332,7 @@ pipeline {
                         """
                     }
                 }
+                runGinkgoRandomize('verify-distribution')
             }
         }
         stage('Acceptance Tests') {

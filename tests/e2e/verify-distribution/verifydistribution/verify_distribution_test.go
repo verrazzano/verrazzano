@@ -109,6 +109,33 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				verifyDistributionByDirectory(generatedPath+allPaths["k8s"], "k8s")
 			})
 		})
+
+		t.Describe("Verify the images of Full bundle", func() {
+			t.It("Verify images", func() {
+				componentsList := []string{}
+				componentsInfo, err := ioutil.ReadDir("/tmp/componentsList.txt")
+				if err != nil {
+					println(err.Error())
+				}
+				gomega.Expect(err).To(gomega.BeNil())
+				for _, each := range componentsInfo {
+					componentsList = append(componentsList, each.Name())
+				}
+				fmt.Println("Components list: ", componentsList)
+
+				imagesList := []string{}
+				imagesInfo, err2 := ioutil.ReadDir(generatedPath + "/images")
+				if err2 != nil {
+					println(err2.Error())
+				}
+				gomega.Expect(err2).To(gomega.BeNil())
+				for _, each := range imagesInfo {
+					imagesList = append(imagesList, each.Name())
+				}
+
+				gomega.Expect(compareSlices(componentsList, imagesList)).To(gomega.BeTrue())
+			})
+		})
 	}
 
 })
