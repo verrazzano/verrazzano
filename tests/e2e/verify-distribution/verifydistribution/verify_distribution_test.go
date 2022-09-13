@@ -58,11 +58,11 @@ var _ = t.Describe("Verify VZ distribution", func() {
 
 	variant = os.Getenv("DISTRIBUTION_VARIANT")
 	generatedPath := os.Getenv("TARBALL_DIR")
+	tarball_root_dir := os.Getenv("TARBALL_ROOT_DIR")
 
 	if variant == "Lite" {
 		t.Describe("When provided Lite ", func() {
 
-			tarball_root_dir := os.Getenv("TARBALL_ROOT_DIR")
 			vzDevVersion = os.Getenv("VERRAZZANO_DEV_VERSION")
 			var liteBundleZipContens = []string{
 				"operator.yaml", "operator.yaml.sha256", "verrazzano-" + vzDevVersion,
@@ -113,7 +113,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 		t.Describe("Verify the images of Full bundle", func() {
 			t.It("Verify images", func() {
 				componentsList := []string{}
-				componentsInfo, err := ioutil.ReadDir("/tmp/componentsList.txt")
+				componentsInfo, err := ioutil.ReadDir(tarball_root_dir + "/componentsList.txt")
 				if err != nil {
 					println(err.Error())
 				}

@@ -307,6 +307,9 @@ pipeline {
                 script {
                     if (params.DISTRIBUTION_VARIANT == "Full") {
                         sh """
+                            # Generate components list and save to file
+                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -d -t ${ocirRegistry} -o -b ${TARBALL_DIR}/manifests/verrazzano-bom.json > ${TARBALL_ROOT_DIR}/componentsList.txt
+
                             # Create OCIR repos for the images in the tarballs in the test compartment
                             sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
                             echo "Upload OCIR region: $ocirRegion"
@@ -314,7 +317,6 @@ pipeline {
                             cd ${TARBALL_DIR}
                             chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
                             ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
-                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -d -t ${ocirRegistry} -o -b ${TARBALL_DIR}/manifests/verrazzano-bom.json > /tmp/componentsList.txt
                         """
                     } else {
                         sh """
