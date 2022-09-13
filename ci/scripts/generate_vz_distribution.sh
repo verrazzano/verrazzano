@@ -43,7 +43,7 @@ createDistributionLayout() {
   mkdir -p ${distDir}/bin
   mkdir -p ${distDir}/manifests/k8s
   mkdir -p ${distDir}/manifests/charts
-  #mkdir -p ${distDir}/manifests/profiles
+  mkdir -p ${distDir}/manifests/profiles
 
   if [ "${rootDir}" == "${VZ_FULL_ROOT}" ];then
      echo "Creating the directory to place images and CLIs for supported platforms for full distribution ..."
@@ -107,12 +107,12 @@ includeCommonFiles() {
   cp ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh ${distDir}/bin/vz-registry-image-helper.sh
   cp ${VZ_REPO_ROOT}/tools/scripts/bom_utils.sh ${distDir}/bin/bom_utils.sh
 
-  # Copy operator.yaml and charts
+  # Copy verrazzano-platform-operator.yaml and charts
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${distDir}/manifests/k8s/verrazzano-platform-operator.yaml
   cp -r ${VZ_REPO_ROOT}/platform-operator/helm_config/charts/verrazzano-platform-operator ${distDir}/manifests/charts
 
   # Copy profiles
-  # copyProfiles ${distributionDirectory}/manifests/profiles
+  copyProfiles ${distributionDirectory}/manifests/profiles
 
   # Copy Bill Of Materials, containing the list of images
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json ${distDir}/manifests/verrazzano-bom.json
@@ -191,14 +191,14 @@ generateVZLiteDistribution() {
   echo "Build distribution for Darwin ARM64 architecture ..."
   buildArchLiteBundle ${VZ_CLI_DARWIN_ARM64_TARGZ} ${rootDir} ${distDir} ${generatedDir} ${devVersion} ${VZ_DARWIN_ARM64_TARGZ} ${LITE_DARWIN_ARM64_BUNDLE_CONTENTS}
 
-  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${generatedDir}/operator.yaml
+  cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${generatedDir}/verrazzano-platform-operator.yaml
 
   cd ${generatedDir}
   sha256sum ${VZ_LINUX_AMD64_TARGZ} > ${VZ_LINUX_AMD64_TARGZ_SHA256}
   sha256sum ${VZ_LINUX_ARM64_TARGZ} > ${VZ_LINUX_ARM64_TARGZ_SHA256}
   sha256sum ${VZ_DARWIN_AMD64_TARGZ} > ${VZ_DARWIN_AMD64_TARGZ_SHA256}
   sha256sum ${VZ_DARWIN_ARM64_TARGZ} > ${VZ_DARWIN_ARM64_TARGZ_SHA256}
-  sha256sum operator.yaml > operator.yaml.sha256
+  sha256sum verrazzano-platform-operator.yaml > verrazzano-platform-operator.yaml.sha256
 
   captureBundleContents ${generatedDir} ${generatedDir} ${LITE_BUNDLE_CONTENTS}
 
@@ -233,11 +233,10 @@ generateVZFullDistribution() {
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_AMD64_TARGZ} -C ${distDir}/bin/darwin-amd64
   tar xzf ${VZ_DISTRIBUTION_COMMON}/${VZ_CLI_DARWIN_ARM64_TARGZ} -C ${distDir}/bin/darwin-arm64
 
-  captureBundleContents ${rootDir} ${generatedDir} ${FULL_BUNDLE_CONTENTS}
-
   # Create and upload the final distribution zip file and upload
   echo "Create ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} and upload ..."
   cp ${VZ_REPO_ROOT}/release/docs/README_FULL.md ${distDir}/README.md
+  captureBundleContents ${rootDir} ${generatedDir} ${FULL_BUNDLE_CONTENTS}
   cd ${rootDir}
   zip -r ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} *
   oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/${VZ_FULL_RELEASE_BUNDLE} --file ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE}
@@ -257,6 +256,24 @@ includeImageTarFiles() {
   ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh -f ${distDir} -b ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json
 }
 
+# generate profiles and remove cruft
+includeProfiles() {
+  local rootDir=$1
+  local devVersion=$2
+  local distDir=${rootDir}/${devVersion}/manifests/profiles
+  export VERRAZZANO_ROOT=${VZ_REPO_ROOT}
+  go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile prod --output-dir ${distDir}
+  go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile dev --output-dir ${distDir}
+  go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile managed-cluster --output-dir ${distDir}
+  sanitizeProfiles ${distDir}/prod.yaml
+  sanitizeProfiles ${distDir}/dev.yaml
+  sanitizeProfiles ${distDir}/managed-cluster.yaml
+}
+
+sanitizeProfiles() {
+  filePath=$1
+  yq eval -i 'del(.status, .metadata.creationTimestamp)' ${filePath}
+}
 # Clean-up workspace after uploading the distribution bundles
 cleanupWorkspace() {
   rm -rf ${VZ_DISTRIBUTION_COMMON}
@@ -327,11 +344,13 @@ cd ${WORKSPACE}
 
 # Build Verrazzano lite distribution bundles
 createDistributionLayout "${VZ_LITE_ROOT}" "${DISTRIBUTION_PREFIX}"
+includeProfiles "${VZ_LITE_ROOT}" "${DISTRIBUTION_PREFIX}"
 generateVZLiteDistribution "${VZ_LITE_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_LITE_GENERATED}"
 
 # Build Verrazzano full distribution bundle
 createDistributionLayout "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
 includeImageTarFiles "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
+includeProfiles "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}"
 generateVZFullDistribution "${VZ_FULL_ROOT}" "${DISTRIBUTION_PREFIX}" "${VZ_FULL_GENERATED}"
 
 # Delete the directories created under WORKSPACE

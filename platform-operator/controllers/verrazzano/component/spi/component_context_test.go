@@ -41,7 +41,7 @@ func init() {
 // WHEN I call NewContext
 // THEN the correct correct context is created with the proper merge of the profile and user overrides
 func TestContextProfilesMerge(t *testing.T) {
-	config.TestProfilesDir = "../../../../manifests/profiles/v1alpha1"
+	config.TestProfilesDir = "../../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	tests := []struct {

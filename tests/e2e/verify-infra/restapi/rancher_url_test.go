@@ -18,6 +18,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -211,6 +214,21 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					}, waitTimeout, pollingInterval).Should(Equal(true), "RoleTemplate not found")
 					metrics.Emit(t.Metrics.With("get_roletemplate_elapsed_time", time.Since(start).Milliseconds()))
 
+					start = time.Now()
+					t.Logs.Info("Verify ui-pl setting")
+					Eventually(func() (bool, error) {
+						clusterData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKSetting)).Get(context.Background(), rancher.SettingUIPL, v1.GetOptions{})
+						if err != nil {
+							t.Logs.Error(fmt.Sprintf("Error getting ui-pl setting: %v", err))
+							return false, err
+						}
+						value := clusterData.UnstructuredContent()["value"].(string)
+						return rancher.SettingUIPLValueVerrazzano == value, nil
+					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher ui-pl setting not updated")
+					metrics.Emit(t.Metrics.With("get_uipl_setting_elapsed_time", time.Since(start).Milliseconds()))
+					verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightLogoFilePath, k8sClient)
+					verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkLogoFilePath, k8sClient)
+
 				}
 			}
 		})
@@ -218,3 +236,58 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 })
 
 var _ = t.AfterEach(func() {})
+
+// verifyUILogoSetting verifies the value of ui logo related rancher setting
+// GIVEN a Verrazzano installation with ui settings (ui-logo-dark and ui-logo-light) populated
+// AND corresponding actual logo files present in specified path in a running rancher pod
+//  WHEN value of the base64 encoded logo file is extracted from the setting CR specified by settingName
+//  AND compared with base64 encoded value of corresponding actual logo file present in running rancher pod
+//  THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
+func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dynamic.Interface) {
+	start := time.Now()
+	t.Logs.Infof("Verify %s setting", settingName)
+	Eventually(func() (bool, error) {
+		clusterData, err := dynamicClient.Resource(pkg.GvkToGvr(rancher.GVKSetting)).Get(context.Background(), settingName, v1.GetOptions{})
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error getting %s setting: %v", settingName, err))
+			return false, err
+		}
+
+		value := clusterData.UnstructuredContent()["value"].(string)
+		logoSVG := strings.Split(value, rancher.SettingUILogoValueprefix)[1]
+		cfg, err := k8sutil.GetKubeConfig()
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error getting client config to verify value of %s setting: %v", settingName, err))
+			return false, err
+		}
+
+		c, err := client.New(cfg, client.Options{})
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error getting client to verify value of %s setting: %v", settingName, err))
+			return false, err
+		}
+
+		pod, err := k8sutil.GetRunningPodForLabel(c, "app=rancher", "cattle-system")
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error getting running rancher pod to verify value of %s setting: %v", settingName, err))
+			return false, err
+		}
+
+		k8sClient, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error getting kube client to verify value of %s setting: %v", settingName, err))
+			return false, err
+		}
+
+		logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
+		stdout, stderr, err := k8sutil.ExecPod(k8sClient, cfg, pod, "rancher", logoCommand)
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod to verify value of %s setting: %v, stderr: %v", settingName, err, stderr))
+			return false, err
+		}
+
+		return stdout == string(logoSVG), nil
+	}, waitTimeout, pollingInterval).Should(Equal(true), fmt.Sprintf("rancher UI setting %s value does not match logo path %s", settingName, logoPath))
+	metrics.Emit(t.Metrics.With("get_ui_setting_elapsed_time", time.Since(start).Milliseconds()))
+
+}

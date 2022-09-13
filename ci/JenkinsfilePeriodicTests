@@ -41,6 +41,10 @@ def periodicsUpToDate              = false // If true, indicates that the period
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
 
+// File containing the links to download the Verrazzano distributions
+@Field
+def verrazzanoDistributionsFile = "verrazzano_distributions.html"
+
 pipeline {
     options {
         timeout(time: 9, unit: 'HOURS')
@@ -617,6 +621,9 @@ pipeline {
                 }
 
                 stage('Update Last Clean Periodic Test') {
+                    environment {
+                        GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+                    }
                     steps {
                         script {
                             sh """
@@ -624,8 +631,14 @@ pipeline {
                             """
                         }
                     }
+                    post {
+                        success {
+                            script {
+                                captureDistributionURLs()
+                            }
+                        }
+                    }
                 }
-
             }
         }
     }
@@ -643,7 +656,7 @@ pipeline {
                     println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
                 }
             }
-            archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile},**/${verrazzanoDistributionsFile}", allowEmptyArchive: true
         }
         failure {
             script {
@@ -974,4 +987,28 @@ def getLatestReleaseVersion() {
     list gitTags = extractReleaseTags(releaseTags)
     echo "gitTags = ${gitTags}"
     return gitTags.pop()
+}
+
+// Create a html file containing the links to the Verrazzano distributions
+def captureDistributionURLs() {
+    script {
+        def BRANCH_IN_OS = "${env.BRANCH_NAME.replace("/", "%252F")}"
+        BASE_URL="https://objectstorage.${OCI_OS_REGION}.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${BRANCH_IN_OS}-last-clean-periodic-test"
+        LITE_BUNDLE="${BASE_URL}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
+        FULL_BUNDLE="${BASE_URL}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+        sh """
+            cat <<EOF > ${WORKSPACE}/${verrazzanoDistributionsFile}
+<!DOCTYPE html>
+<html>
+      <body>
+          <b>Verrazzano Release Distributions</b>
+		  <ul>
+		    <li><a href="${LITE_BUNDLE}">Verrazzano Lite Distribution</a></li>
+		    <li><a href="${FULL_BUNDLE}">Verrazzano Full Distribution</a></li>
+		  </ul>
+      </body>
+</html>
+EOF
+        """
+    }
 }

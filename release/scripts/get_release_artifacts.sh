@@ -3,7 +3,7 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-# Downloads the operator.yaml and the zip file containing the analysis tool.
+# Downloads the verrazzano-platform-operator.yaml, the Verrazzano distributions for AMD64 and ARM64 architectures.
 
 set -e
 
@@ -12,7 +12,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 usage() {
     cat <<EOM
-  Downloads the operator.yaml, the Verrazzano distributions for AMD64 and ARM64 architectures.
+  Downloads the verrazzano-platform-operator.yaml, the Verrazzano distributions for AMD64 and ARM64 architectures.
 
   Usage:
     $(basename $0) <release branch> <short hash of commit to release> <release bundle> <directory where the release artifacts need to be downloaded, defaults to the current directory>
@@ -64,6 +64,9 @@ function get_vz_release_artifacts() {
     rm -f ${_file}
     rm -f ${_file}.sha256
 }
+
+# Validate OCI CLI
+validate_oci_cli || exit 1
 
 mkdir -p $RELEASE_BINARIES_DIR
 
