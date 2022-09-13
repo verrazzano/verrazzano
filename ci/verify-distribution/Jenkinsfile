@@ -292,10 +292,16 @@ pipeline {
                                 mv ${TARBALL_DIR}/bin/linux-amd64/vz ${GO_REPO_PATH}/vz
                                 chmod +x ${GO_REPO_PATH}/vz
                                 ${GO_REPO_PATH}/vz version
+
+                                # Generate components list and save to file
+                                chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                                cd ${TARBALL_DIR}/manifests
+                                sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -d -t ${ocirRegistry} -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -m ${TARBALL_ROOT_DIR}/componentsList.txt
                             """
                         }
                     }
                 }
+                runGinkgoRandomize('verify-distribution')
             }
         }
         stage('Upload Verrazzano Images') {
@@ -307,11 +313,6 @@ pipeline {
                 script {
                     if (params.DISTRIBUTION_VARIANT == "Full") {
                         sh """
-                            # Generate components list and save to file
-                            chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
-                            cd ${TARBALL_DIR}/manifests
-                            sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -d -t ${ocirRegistry} -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -m ${TARBALL_ROOT_DIR}/componentsList.txt
-
                             # Create OCIR repos for the images in the tarballs in the test compartment
                             sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
                             echo "Upload OCIR region: $ocirRegion"
@@ -335,7 +336,6 @@ pipeline {
                         """
                     }
                 }
-                runGinkgoRandomize('verify-distribution')
             }
         }
         stage('Acceptance Tests') {
