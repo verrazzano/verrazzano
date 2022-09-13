@@ -296,6 +296,7 @@ pipeline {
                         }
                     }
                 }
+                runGinkgoRandomize('verify-distribution')
             }
         }
         stage('Upload Verrazzano Images') {
@@ -334,7 +335,6 @@ pipeline {
                         """
                     }
                 }
-                runGinkgoRandomize('verify-distribution')
             }
         }
         stage('Acceptance Tests') {
