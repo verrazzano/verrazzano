@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -1003,6 +1004,74 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.NotZero(result.RequeueAfter)
+}
+
+// Test_appendConditionIfNecessary tests whether conditions are appended or updated correctly
+// GIVEN a list of conditions
+// WHEN the new condition already exists,
+// THEN it should be updated and duplicates removed
+// OTHERWISE it should be appended to the list of conditions
+func Test_appendConditionIfNecessary(t *testing.T) {
+	asserts := assert.New(t)
+	tests := []struct {
+		name                string
+		conditions          []vzapi.Condition
+		expectNumConditions int
+	}{
+		{
+			name:                "no existing conditions",
+			conditions:          []vzapi.Condition{},
+			expectNumConditions: 1,
+		},
+		{
+			name: "one InstallStarted condition",
+			conditions: []vzapi.Condition{
+				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+			},
+			expectNumConditions: 1,
+		},
+		{
+			name: "multiple InstallStarted conditions",
+			conditions: []vzapi.Condition{
+				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some other time"},
+			},
+			expectNumConditions: 1,
+		},
+		{
+			name: "one some other condition",
+			conditions: []vzapi.Condition{
+				vzapi.Condition{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+			},
+			expectNumConditions: 2,
+		},
+		{
+			name: "multiple conditions with InstallStarted dupes",
+			conditions: []vzapi.Condition{
+				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+				vzapi.Condition{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time2"},
+				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some other time"},
+				vzapi.Condition{Type: vzapi.CondPreInstall, Status: corev1.ConditionFalse, LastTransitionTime: "some time preinstall"},
+				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionTrue, LastTransitionTime: "yet another time"},
+			},
+			expectNumConditions: 3,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			unitTesting = true
+			newCondition := vzapi.Condition{Status: corev1.ConditionTrue, Type: vzapi.CondInstallStarted, LastTransitionTime: "updatedtime"}
+			updatedConditions := appendConditionIfNecessary(vzlog.DefaultLogger(), "my-vz", tt.conditions, newCondition)
+			asserts.Equal(tt.expectNumConditions, len(updatedConditions))
+			// find the install started condition and make sure its values are what we set it to
+			for _, cond := range updatedConditions {
+				if cond.Type == vzapi.CondInstallStarted {
+					asserts.Equal("updatedtime", cond.LastTransitionTime)
+					asserts.Equal(corev1.ConditionTrue, cond.Status)
+				}
+			}
+		})
+	}
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing

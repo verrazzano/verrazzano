@@ -705,14 +705,25 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 }
 
 func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string, conditions []installv1alpha1.Condition, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
+	found := false
+	var newConditionsList []installv1alpha1.Condition
 	for i, existingCondition := range conditions {
 		if existingCondition.Type == newCondition.Type {
-			conditions[i] = newCondition
-			return conditions
+			if !found {
+				// If there are duplicates from a legacy VZ resource, only copy the new condition, not
+				// any of the existing ones.
+				newConditionsList = append(newConditionsList, newCondition)
+				found = true
+			}
+		} else {
+			newConditionsList = append(newConditionsList, conditions[i])
 		}
 	}
 	log.Debugf("Adding %s resource newCondition: %v", resourceName, newCondition.Type)
-	return append(conditions, newCondition)
+	if !found {
+		newConditionsList = append(newConditionsList, newCondition)
+	}
+	return newConditionsList
 }
 
 func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.CompStateType {
