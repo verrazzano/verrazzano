@@ -5,11 +5,13 @@ package verifydistribution
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 )
@@ -20,37 +22,25 @@ var variant string
 var vzDevVersion string
 
 var allPaths = map[string]string{
-	"top":                          "",
-	"bin":                          SLASH + "bin",
-	"images":                       SLASH + "images",
-	"manifests":                    SLASH + "manifests",
-	"charts":                       SLASH + "manifests" + SLASH + "charts",
-	"verrazzano-platform-operator": SLASH + "manifests" + SLASH + "charts" + SLASH + "verrazzano-platform-operator",
-	"crds":                         SLASH + "manifests" + SLASH + "charts" + SLASH + "verrazzano-platform-operator" + SLASH + "crds",
-	"templates":                    SLASH + "manifests" + SLASH + "charts" + SLASH + "verrazzano-platform-operator" + SLASH + "templates",
-	"k8s":                          SLASH + "manifests" + SLASH + "k8s",
+	"top":       "",
+	"bin":       SLASH + "bin",
+	"images":    SLASH + "images",
+	"manifests": SLASH + "manifests",
+	"k8s":       SLASH + "manifests" + SLASH + "k8s",
 }
 
 var opensourcefileslistbydir = map[string][]string{
-	"top":                          {"LICENSE", "README.md", "bin", "manifests"},
-	"bin":                          {"bom_utils.sh", "vz", "vz-registry-image-helper.sh"},
-	"manifests":                    {"charts", "k8s", "verrazzano-bom.json"},
-	"charts":                       {"verrazzano-platform-operator"},
-	"verrazzano-platform-operator": {".helmignore", "Chart.yaml", "NOTES.txt", "crds", "templates", "values.yaml"},
-	"crds":                         {"clusters.verrazzano.io_verrazzanomanagedclusters.yaml", "install.verrazzano.io_verrazzanos.yaml"},
-	"templates":                    {"clusterrole.yaml", "clusterrolebinding.yaml", "deployment.yaml", "namespace.yaml", "service.yaml", "serviceaccount.yaml", "validatingwebhookconfiguration.yaml"},
-	"k8s":                          {"verrazzano-platform-operator.yaml"},
+	"top":       {"LICENSE", "README.md", "bin", "manifests"},
+	"bin":       {"bom_utils.sh", "vz", "vz-registry-image-helper.sh"},
+	"manifests": {"charts", "k8s", "verrazzano-bom.json"},
+	"k8s":       {"verrazzano-platform-operator.yaml"},
 }
 
 var fullBundleFileslistbydir = map[string][]string{
-	"top":                          {"LICENSE", "README.md", "bin", "images", "manifests"},
-	"bin":                          {"bom_utils.sh", "darwin-amd64", "darwin-arm64", "linux-amd64", "linux-arm64", "vz-registry-image-helper.sh"},
-	"manifests":                    {"charts", "k8s", "verrazzano-bom.json"},
-	"charts":                       {"verrazzano-platform-operator"},
-	"verrazzano-platform-operator": {".helmignore", "Chart.yaml", "NOTES.txt", "crds", "templates", "values.yaml"},
-	"crds":                         {"clusters.verrazzano.io_verrazzanomanagedclusters.yaml", "install.verrazzano.io_verrazzanos.yaml"},
-	"templates":                    {"clusterrole.yaml", "clusterrolebinding.yaml", "deployment.yaml", "namespace.yaml", "service.yaml", "serviceaccount.yaml", "validatingwebhookconfiguration.yaml"},
-	"k8s":                          {"verrazzano-platform-operator.yaml"},
+	"top":       {"LICENSE", "README.md", "bin", "images", "manifests"},
+	"bin":       {"bom_utils.sh", "darwin-amd64", "darwin-arm64", "linux-amd64", "linux-arm64", "vz-registry-image-helper.sh"},
+	"manifests": {"charts", "k8s", "verrazzano-bom.json"},
+	"k8s":       {"verrazzano-platform-operator.yaml"},
 }
 
 var t = framework.NewTestFramework("verifydistribution")
@@ -62,6 +52,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 	variant = os.Getenv("DISTRIBUTION_VARIANT")
 	generatedPath := os.Getenv("TARBALL_DIR")
 	tarball_root_dir := os.Getenv("TARBALL_ROOT_DIR")
+	repoPath := os.Getenv("GO_REPO_PATH")
 
 	if variant == "Lite" {
 		t.Describe("When provided Lite ", func() {
@@ -73,7 +64,6 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				"verrazzano-" + vzDevVersion + "-darwin-arm64.tar.gz", "verrazzano-" + vzDevVersion + "-darwin-arm64.tar.gz.sha256",
 				"verrazzano-" + vzDevVersion + "-linux-amd64.tar.gz", "verrazzano-" + vzDevVersion + "-linux-amd64.tar.gz.sha256",
 				"verrazzano-" + vzDevVersion + "-linux-arm64.tar.gz", "verrazzano-" + vzDevVersion + "-linux-arm64.tar.gz.sha256",
-				//"verrazzano-" + vzDevVersion + "-lite.zip",
 			}
 			t.It("Verify lite bundle zip contents", func() {
 				filesList := []string{}
@@ -92,10 +82,6 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				verifyDistributionByDirectory(generatedPath+allPaths["top"], "top", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["manifests"], "manifests", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["charts"], "charts", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["verrazzano-platform-operator"], "verrazzano-platform-operator", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["crds"], "crds", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["templates"], "templates", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["k8s"], "k8s", variant)
 			})
 		})
@@ -105,10 +91,6 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				verifyDistributionByDirectory(generatedPath+allPaths["top"], "top", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["manifests"], "manifests", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["charts"], "charts", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["verrazzano-platform-operator"], "verrazzano-platform-operator", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["crds"], "crds", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["templates"], "templates", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["k8s"], "k8s", variant)
 			})
 		})
@@ -137,7 +119,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					componentsList = append(componentsList, eachName)
 				}
 				componentsList = RemoveDuplicate(componentsList)
-				fmt.Println("Components list: ", componentsList)
+				//fmt.Println("Components list: ", componentsList)
 
 				imagesList := []string{}
 				imagesInfo, err2 := ioutil.ReadDir(generatedPath + allPaths["images"])
@@ -152,17 +134,63 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					eachName = regexTar.ReplaceAllString(eachName, "")
 					imagesList = append(imagesList, eachName)
 				}
-				fmt.Println("Images list: ", imagesList)
+				//fmt.Println("Images list: ", imagesList)
 
-				sort.Strings(componentsList)
-				sort.Strings(imagesList)
 				gomega.Expect(compareSlices(componentsList, imagesList)).To(gomega.BeTrue())
 			})
 		})
 	}
 
+	t.Describe("Verify charts for common", func() {
+		t.It("Verify charts for both Lite and Full bundle", func() {
+			var re1 = regexp.MustCompile(".*/verrazzano-platform-operator/")
+			sourcesLocation := repoPath + "/verrazzano/platform-operator/helm_config/charts/verrazzano-platform-operator/"
+			sourcesFilesList, _ := GetMatchingFiles(sourcesLocation, regexp.MustCompile(".*"))
+			sourcesFilesFilteredList := []string{}
+			for _, each := range sourcesFilesList {
+				eachName := re1.ReplaceAllString(each, "")
+				sourcesFilesFilteredList = append(sourcesFilesFilteredList, eachName)
+			}
+			chartsLocationZip := generatedPath + "/manifests/charts/verrazzano-platform-operator/"
+			chartsFilesList, _ := GetMatchingFiles(chartsLocationZip, regexp.MustCompile(".*"))
+			chartsFilesListFiltered := []string{}
+			for _, each := range chartsFilesList {
+				eachName := re1.ReplaceAllString(each, "")
+				chartsFilesListFiltered = append(chartsFilesListFiltered, eachName)
+			}
+			gomega.Expect(compareSlices(sourcesFilesFilteredList, chartsFilesListFiltered)).To(gomega.BeTrue())
+		})
+	})
 })
 
+// GetMatchingFiles returns the filenames for files that match a regular expression.
+func GetMatchingFiles(rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
+	if len(rootDirectory) == 0 {
+		return nil, errors.New("GetMatchingFiles requires a rootDirectory")
+	}
+
+	if fileMatchRe == nil {
+		return nil, fmt.Errorf("GetMatchingFiles requires a regular expression")
+	}
+
+	walkFunc := func(fileName string, fileInfo os.FileInfo, err error) error {
+		if !fileMatchRe.MatchString(fileName) {
+			return nil
+		}
+		if !fileInfo.IsDir() {
+			fileMatches = append(fileMatches, fileName)
+		}
+		return nil
+	}
+
+	err = filepath.Walk(rootDirectory, walkFunc)
+	if err != nil {
+		return nil, err
+	}
+	return fileMatches, err
+}
+
+// verifyDistributionByDirectory verifies the contents of inputDir with Values from map
 func verifyDistributionByDirectory(inputDir string, key string, variant string) {
 	filesList := []string{}
 	filesInfo, err := ioutil.ReadDir(inputDir)
@@ -182,6 +210,7 @@ func verifyDistributionByDirectory(inputDir string, key string, variant string) 
 	fmt.Printf("All files found for %s \n", key)
 }
 
+// compareSlices compares 2 string slices after sorting
 func compareSlices(slice1 []string, slice2 []string) bool {
 	sort.Strings(slice1)
 	sort.Strings(slice2)
@@ -192,7 +221,7 @@ func compareSlices(slice1 []string, slice2 []string) bool {
 	}
 	for i, v := range slice1 {
 		if v != slice2[i] {
-			fmt.Printf("%s != %s", v, slice2[i])
+			fmt.Printf("%s != %s", slice1, slice2)
 			return false
 		}
 	}
