@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -141,7 +142,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					imagesList = append(imagesList, eachName)
 				}
 				println(imagesList)
-				//gomega.Expect(compareSlices(componentsList, imagesList)).To(gomega.BeTrue())
+				gomega.Expect(compareSlices(componentsList, imagesList)).To(gomega.BeTrue())
 			})
 		})
 	}
@@ -167,6 +168,9 @@ func verifyDistributionByDirectory(inputDir string, key string) {
 }
 
 func compareSlices(slice1 []string, slice2 []string) bool {
+	sort.Strings(slice1)
+	sort.Strings(slice2)
+
 	if len(slice1) != len(slice2) {
 		fmt.Printf("Length mismatched for %s and %s", slice1, slice2)
 		return false
