@@ -296,7 +296,6 @@ pipeline {
                         }
                     }
                 }
-                ls "${TARBALL_ROOT_DIR}"
                 runGinkgoRandomize('verify-distribution')
             }
         }
