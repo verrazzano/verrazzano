@@ -11,6 +11,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzconstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	"io"
 	adminv1 "k8s.io/api/admissionregistration/v1"
@@ -228,4 +230,21 @@ func checkListLength(length int) error {
 		return fmt.Errorf("Expected to only find one Verrazzano resource, but found %d", length)
 	}
 	return nil
+}
+
+// GetOperatorYaml returns Kubernetes manifests to deploy the Verrazzano platform operator
+// The return value is operator.yaml for releases earlier than 1.4.0 and verrazzano-platform-operator.yaml from release 1.4.0 onwards
+func GetOperatorYaml(version string) (string, error) {
+	vzVersion, err := semver.NewSemVersion(version)
+	if err != nil {
+		return "", fmt.Errorf("invalid Verrazzano version: %v", err.Error())
+	}
+	ver140, _ := semver.NewSemVersion("v" + vpoconstants.VerrazzanoVersion1_4_0)
+	var url string
+	if vzVersion.IsGreaterThanOrEqualTo(ver140) {
+		url = fmt.Sprintf(vzconstants.VerrazzanoPlatformOperatorURL, version)
+	} else {
+		url = fmt.Sprintf(vzconstants.VerrazzanoOperatorURL, version)
+	}
+	return url, nil
 }

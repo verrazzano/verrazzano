@@ -20,7 +20,6 @@ import (
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	clik8sutil "github.com/verrazzano/verrazzano/tools/vz/pkg/k8sutil"
@@ -92,7 +91,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 			internalFilename = operatorFile
 		}
 	} else {
-		url, err = getOperatorYaml(version)
+		url, err = helpers.GetOperatorYaml(version)
 		if err != nil {
 			return err
 		}
@@ -334,20 +333,4 @@ func getOperationString(condType v1beta1.ConditionType) string {
 		operation = "upgrade"
 	}
 	return operation
-}
-
-// returns operator.yaml for releases earlier than 1.4.0 and verrazzano-platform-operator.yaml from release 1.4.0 onwards
-func getOperatorYaml(version string) (string, error) {
-	vzVersion, err := semver.NewSemVersion(version)
-	if err != nil {
-		return "", fmt.Errorf("invalid Verrazzano version: %v", err.Error())
-	}
-	ver140, _ := semver.NewSemVersion("v" + vpoconstants.VerrazzanoVersion1_4_0)
-	var url string
-	if vzVersion.IsGreaterThanOrEqualTo(ver140) {
-		url = fmt.Sprintf(constants.VerrazzanoPlatformOperatorURL, version)
-	} else {
-		url = fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
-	}
-	return url, nil
 }
