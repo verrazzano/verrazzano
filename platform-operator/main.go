@@ -196,6 +196,7 @@ func main() {
 	}
 
 	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
+	installv1beta1.SetComponentValidator(validator.ComponentValidatorImpl{})
 
 	metricsexporter.StartMetricsServer(log)
 
