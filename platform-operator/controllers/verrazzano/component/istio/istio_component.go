@@ -6,9 +6,8 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	"strings"
 
@@ -18,8 +17,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -27,6 +29,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -47,7 +50,7 @@ const IstioIngressgatewayDeployment = "istio-ingressgateway"
 const IstioEgressgatewayDeployment = "istio-egressgateway"
 
 // IstioNamespace is the default Istio namespace
-const IstioNamespace = "istio-system"
+const IstioNamespace = constants.IstioSystemNamespace
 
 // IstioCoreDNSReleaseName is the name of the istiocoredns release
 const IstioCoreDNSReleaseName = "istiocoredns"
@@ -250,6 +253,9 @@ func (i istioComponent) Name() string {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	if err := checkExistingIstio(vz); err != nil {
+		return err
+	}
 	// Validate install overrides
 	if vz.Spec.Components.Istio != nil {
 		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.Istio.ValueOverrides); err != nil {
@@ -291,6 +297,9 @@ func (i istioComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, ne
 
 // ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i istioComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	if err := checkExistingIstio(vz); err != nil {
+		return err
+	}
 	if vz.Spec.Components.Istio != nil {
 		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.Istio.ValueOverrides); err != nil {
 			return err
@@ -561,4 +570,36 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 		}
 	}
 	return kvs, nil
+}
+
+func checkExistingIstio(vz runtime.Object) error {
+	if !vzconfig.IsIstioEnabled(vz) {
+		return nil
+	}
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
+	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil && !kerrs.IsNotFound(err) {
+		return err
+	}
+	if err = checkNS(ns.Items); err != nil {
+		return err
+	}
+	return nil
+}
+
+func checkNS(ns []v1.Namespace) error {
+	for _, n := range ns {
+		if n.Namespace == IstioNamespace || n.Name == IstioNamespace {
+			for l := range n.Labels {
+				if l == vzNsLabel {
+					return nil
+				}
+			}
+			return fmt.Errorf("existing namespace %s without %s label", IstioNamespace, vzNsLabel)
+		}
+	}
+	return nil
 }
