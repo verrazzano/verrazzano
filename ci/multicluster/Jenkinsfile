@@ -788,6 +788,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
 // using the specific operator image provided by the user.
 def getVerrazzanoOperatorYaml() {
     script {
+        OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh ${params.VERSION_FOR_INSTALL}").trim()
         sh """
             echo "Platform Operator Configuration"
             cd ${GO_REPO_PATH}/verrazzano
@@ -797,8 +798,7 @@ def getVerrazzanoOperatorYaml() {
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                 else
-                    echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
-                    OPERATOR_YAML_FILE="$(sh ci/scripts/derive_operator_yaml.sh ${params.VERSION_FOR_INSTALL})"
+                    echo "Downloading ${OPERATOR_YAML_FILE} for release ${params.VERSION_FOR_INSTALL}"
                     wget "${OPERATOR_YAML_FILE}" -O ${WORKSPACE}/downloaded-release-operator.yaml
                     cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                 fi
