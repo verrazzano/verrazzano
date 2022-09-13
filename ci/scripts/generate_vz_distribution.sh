@@ -236,6 +236,8 @@ generateVZFullDistribution() {
   # Create and upload the final distribution zip file and upload
   echo "Create ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} and upload ..."
   cp ${VZ_REPO_ROOT}/release/docs/README_FULL.md ${distDir}/README.md
+  cp ${VZ_REPO_ROOT}/release/docs/README_FULL.html ${distDir}/README.html
+
   captureBundleContents ${rootDir} ${generatedDir} ${FULL_BUNDLE_CONTENTS}
   cd ${rootDir}
   zip -r ${generatedDir}/${VZ_FULL_RELEASE_BUNDLE} *
