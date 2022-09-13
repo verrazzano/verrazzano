@@ -102,8 +102,8 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
-        INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-ocidns.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
         OCI_DNS_ZONE_SUFFIX=credentials('oci-dns-zone')
         OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"

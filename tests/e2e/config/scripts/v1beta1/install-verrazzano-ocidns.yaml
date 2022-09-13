@@ -14,7 +14,7 @@ spec:
         dnsZoneOCID: dnsZoneOcid
         dnsZoneName: my.dns.zone.name
         dnsScope: GLOBAL
-    ingress:
+    ingressNGINX:
       type: LoadBalancer
     fluentd:
       extraVolumeMounts:

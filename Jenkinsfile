@@ -92,7 +92,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/v1beta1/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -157,7 +157,6 @@ pipeline {
                 moveContentToGoRepoPath()
 
                 script {
-                    setVZCRDVersionForInstallation()
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -922,11 +921,5 @@ def metricBuildDuration() {
             METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
-    }
-}
-
-def setVZCRDVersionForInstallation(){
-    if(params.CRD_API_VERSION == "v1alpha1"){
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/v1alpha1/install-verrazzano-kind.yaml"
     }
 }
