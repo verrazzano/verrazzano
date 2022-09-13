@@ -6,7 +6,6 @@ package mysql
 import (
 	"context"
 	"fmt"
-	batchv1 "k8s.io/api/batch/v1"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -18,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
