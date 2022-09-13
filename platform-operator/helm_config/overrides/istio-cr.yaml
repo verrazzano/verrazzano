@@ -15,11 +15,7 @@ spec:
   values:
     global:
       hub: ghcr.io/verrazzano
-      tag: 1.13.2
-      arch:
-        amd64: 2
-        s390x: 2
-        ppc64le: 2
+      tag: 1.14.3
       multiCluster:
         enabled: false
       istioNamespace: istio-system
