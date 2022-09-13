@@ -5,6 +5,8 @@ package common
 
 import (
 	"context"
+	"fmt"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
@@ -63,7 +65,8 @@ func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.Namespac
 		pv := pvs[i] // avoids "Implicit memory aliasing in for loop" linter complaint
 		ctx.Log().Debugf("Update PV %s.  Current status: %s", pv.Name, pv.Status.Phase)
 		if pv.Status.Phase == v1.VolumeBound {
-			return ctx.Log().ErrorfNewErr("PV %s is still bound", pv.Name)
+			ctx.Log().Progressf("Waiting for PV %s to be released")
+			return ctrlerrors.RetryableError{Source: componentName, Cause: fmt.Errorf("PV %s is still bound", pv.Name)}
 		}
 
 		ctx.Log().Debugf("Attempting to clear PV claim ref and create new PVC %s.  PV ClaimRef: %v, PVC: %v", newClaimName, pv.Spec.ClaimRef, pvcName)

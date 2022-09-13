@@ -214,6 +214,13 @@ spec:
         - protocol: TCP
           port: 7600
     - from:
+      - podSelector:
+          matchLabels:
+            component: restore-keycloak-db
+      ports:
+        - protocol: TCP
+          port: 3306
+    - from:
       - namespaceSelector:
           matchLabels:
             verrazzano.io/namespace: verrazzano-monitoring
