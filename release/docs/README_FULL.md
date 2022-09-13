@@ -39,7 +39,7 @@ The Verrazzano distribution includes the following artifacts:
     * `profiles/`
       * `dev.yaml`: The standard `dev` profile to install Verrazzano.
       * `prod.yaml`: The standard `prod` profile to install Verrazzano.
-      * `managed-cluster`: The standard `managed-cluster` profile to install Verrazzano 
+      * `managed-cluster.yaml`: The standard `managed-cluster` profile to install Verrazzano 
   * `images/`:  Verrazzano Enterprise Container Platform archives for private registry install.
 
 ## Install Verrazzano 

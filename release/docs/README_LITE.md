@@ -36,7 +36,7 @@ The layout of the Verrazzano distribution is as follows:
      * `profiles/`
        * `dev.yaml`: The standard `dev` profile to install Verrazzano.
        * `prod.yaml`: The standard `prod` profile to install Verrazzano.
-       * `managed-cluster`: The standard `managed-cluster` profile to install Verrazzano
+       * `managed-cluster.yaml`: The standard `managed-cluster` profile to install Verrazzano
 
 ## Install Verrazzano
 
