@@ -1026,33 +1026,33 @@ func Test_appendConditionIfNecessary(t *testing.T) {
 		{
 			name: "one InstallStarted condition",
 			conditions: []vzapi.Condition{
-				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
 			},
 			expectNumConditions: 1,
 		},
 		{
 			name: "multiple InstallStarted conditions",
 			conditions: []vzapi.Condition{
-				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
-				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some other time"},
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some other time"},
 			},
 			expectNumConditions: 1,
 		},
 		{
 			name: "one some other condition",
 			conditions: []vzapi.Condition{
-				vzapi.Condition{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+				{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
 			},
 			expectNumConditions: 2,
 		},
 		{
 			name: "multiple conditions with InstallStarted dupes",
 			conditions: []vzapi.Condition{
-				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
-				vzapi.Condition{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time2"},
-				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some other time"},
-				vzapi.Condition{Type: vzapi.CondPreInstall, Status: corev1.ConditionFalse, LastTransitionTime: "some time preinstall"},
-				vzapi.Condition{Type: vzapi.CondInstallStarted, Status: corev1.ConditionTrue, LastTransitionTime: "yet another time"},
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+				{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time2"},
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some other time"},
+				{Type: vzapi.CondPreInstall, Status: corev1.ConditionFalse, LastTransitionTime: "some time preinstall"},
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionTrue, LastTransitionTime: "yet another time"},
 			},
 			expectNumConditions: 3,
 		},
