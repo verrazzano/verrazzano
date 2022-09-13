@@ -29,7 +29,7 @@ spec:
       enabled: true
     prometheusNodeExporter:
       enabled: true
-    elasticsearch:
+    opensearch:
       enabled: true
       policies:
       - policyName: "verrazzano-system"
