@@ -548,7 +548,7 @@ pipeline {
                     }
                 }
 
-                stage('Private Registry Tests') {
+                stage('Private Registry Tests - OCIR') {
                     when {
                         allOf {
                             not { buildingTag() }
@@ -559,7 +559,7 @@ pipeline {
                         }
                     }
                     parallel {
-                        stage('Verrazzano Lite Distribution') {
+                        stage('Private Registry - Lite Distribution') {
                             steps {
                                 retry(count: JOB_PROMOTION_RETRIES) {
                                     script {
@@ -573,7 +573,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Verrazzano Full Distribution') {
+                        stage('Private Registry - Full Distribution') {
                             steps {
                                 retry(count: JOB_PROMOTION_RETRIES) {
                                     script {
