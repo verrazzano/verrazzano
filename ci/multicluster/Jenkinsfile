@@ -798,7 +798,7 @@ def getVerrazzanoOperatorYaml() {
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                 else
                     echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
-                    OPERATOR_YAML_FILE=$(sh ci/scripts/derive_operator_yaml.sh ${params.VERSION_FOR_INSTALL}).trim()
+                    OPERATOR_YAML_FILE="$(sh ci/scripts/derive_operator_yaml.sh ${params.VERSION_FOR_INSTALL})"
                     wget "${OPERATOR_YAML_FILE}" -O ${WORKSPACE}/downloaded-release-operator.yaml
                     cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                 fi
