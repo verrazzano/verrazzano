@@ -4,7 +4,7 @@
 package fluentd
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,19 +18,19 @@ func TestValidateFluentd(t *testing.T) {
 	homevar := "/home/var_log"
 	tests := []struct {
 		name    string
-		vz      *vzapi.Verrazzano
+		vz      *v1beta1.Verrazzano
 		wantErr bool
 	}{{
 		name:    "default",
-		vz:      &vzapi.Verrazzano{},
+		vz:      &v1beta1.Verrazzano{},
 		wantErr: false,
 	}, {
 		name: varlog,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: varlog}},
+		vz: &v1beta1.Verrazzano{
+			Spec: v1beta1.VerrazzanoSpec{
+				Components: v1beta1.ComponentSpec{
+					Fluentd: &v1beta1.FluentdComponent{
+						ExtraVolumeMounts: []v1beta1.VolumeMount{{Source: varlog}},
 					},
 				},
 			},
@@ -38,11 +38,11 @@ func TestValidateFluentd(t *testing.T) {
 		wantErr: true,
 	}, {
 		name: homevar,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ExtraVolumeMounts: []vzapi.VolumeMount{{Source: varlog, Destination: homevar}},
+		vz: &v1beta1.Verrazzano{
+			Spec: v1beta1.VerrazzanoSpec{
+				Components: v1beta1.ComponentSpec{
+					Fluentd: &v1beta1.FluentdComponent{
+						ExtraVolumeMounts: []v1beta1.VolumeMount{{Source: varlog, Destination: homevar}},
 					},
 				},
 			},
@@ -50,12 +50,12 @@ func TestValidateFluentd(t *testing.T) {
 		wantErr: false,
 	}, {
 		name: "oci and ext-es",
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						OCI:              &vzapi.OciLoggingConfiguration{},
-						ElasticsearchURL: "https://url",
+		vz: &v1beta1.Verrazzano{
+			Spec: v1beta1.VerrazzanoSpec{
+				Components: v1beta1.ComponentSpec{
+					Fluentd: &v1beta1.FluentdComponent{
+						OCI:           &v1beta1.OciLoggingConfiguration{},
+						OpenSearchURL: "https://url",
 					},
 				},
 			},
@@ -78,19 +78,19 @@ func TestValidateExternalES(t *testing.T) {
 	defer func() { getControllerRuntimeClient = getClient }()
 	tests := []struct {
 		name    string
-		vz      *vzapi.Verrazzano
+		vz      *v1beta1.Verrazzano
 		wantErr bool
 	}{{
 		name:    "default",
-		vz:      &vzapi.Verrazzano{},
+		vz:      &v1beta1.Verrazzano{},
 		wantErr: false,
 	}, {
 		name: missing,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ElasticsearchSecret: missing,
+		vz: &v1beta1.Verrazzano{
+			Spec: v1beta1.VerrazzanoSpec{
+				Components: v1beta1.ComponentSpec{
+					Fluentd: &v1beta1.FluentdComponent{
+						OpenSearchSecret: missing,
 					},
 				},
 			},
@@ -98,11 +98,11 @@ func TestValidateExternalES(t *testing.T) {
 		wantErr: true,
 	}, {
 		name: secName,
-		vz: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					Fluentd: &vzapi.FluentdComponent{
-						ElasticsearchSecret: secName,
+		vz: &v1beta1.Verrazzano{
+			Spec: v1beta1.VerrazzanoSpec{
+				Components: v1beta1.ComponentSpec{
+					Fluentd: &v1beta1.FluentdComponent{
+						OpenSearchSecret: secName,
 					},
 				},
 			},
