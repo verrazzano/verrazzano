@@ -113,7 +113,7 @@ pipeline {
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         UNINSTALL_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/uninstall-test"
-        INSTALL_CONFIG_FILE = "${GO_REPO_PATH}/verrazzano/platform-operator/config/samples/install-default.yaml"
+        INSTALL_CONFIG_FILE = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-default.yaml"
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
         DATABASE_PSW = credentials('todo-mysql-password')
 

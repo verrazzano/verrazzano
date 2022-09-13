@@ -98,7 +98,7 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
         TEST_ROOT = "${WORKSPACE}/tests/e2e"
         TEST_SCRIPTS_DIR = "${TEST_ROOT}/config/scripts"
-        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/v1beta1/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
@@ -147,7 +147,6 @@ pipeline {
             post {
                 always {
                     script {
-                        setVZCRDVersionForInstallation()
                         // TODO: need to capture the metrics after the initial install?
                         VZ_TEST_METRIC = metricJobName('')
                         metricTimerStart("${VZ_TEST_METRIC}")
@@ -539,10 +538,4 @@ def dumpK8sCluster(dumpDirectory) {
     sh """
         ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
-}
-
-def setVZCRDVersionForInstallation(){
-    if(params.CRD_API_VERSION == "v1alpha1"){
-        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/v1alpha1/install-verrazzano-kind.yaml"
-    }
 }

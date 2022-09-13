@@ -142,9 +142,9 @@ pipeline {
 
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
-        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/v1beta1/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/v1beta1/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/v1beta1/install-verrazzano-nodeport.yaml"
+        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-ocidns.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nodeport.yaml"
 
         //OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         OCI_DNS_ZONE_NAME="${params.DNS_SCOPE == 'PRIVATE' ? "z${zoneId}-private.v8o.io" : "z${zoneId}.v8o.io"}"
@@ -229,7 +229,6 @@ pipeline {
                 """
 
                 script {
-                    setVZCRDVersionForInstallation()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     setDisplayName()
@@ -850,12 +849,4 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgo('jobmetrics')
-}
-
-def setVZCRDVersionForInstallation(){
-    if(params.CRD_API_VERSION == "v1alpha1"){
-        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/v1alpha1/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/v1alpha1/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/v1alpha1/install-verrazzano-nodeport.yaml"
-    }
 }

@@ -98,7 +98,7 @@ pipeline {
 
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
-        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/v1beta1/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
 
@@ -128,7 +128,6 @@ pipeline {
             post {
                 always {
                     script {
-                        setVZCRDVersionForInstallation()
                         // need to capture the metrics after the initial install?
                         VZ_TEST_METRIC = metricJobName('')
                         metricTimerStart("${VZ_TEST_METRIC}")
@@ -406,10 +405,4 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runMakeCommand('jobmetrics')
-}
-
-def setVZCRDVersionForInstallation(){
-    if(params.CRD_API_VERSION == "v1alpha1"){
-        INSTALL_CONFIG_FILE_KIND = "${TEST_SCRIPTS_DIR}/v1alpha1/install-verrazzano-kind.yaml"
-    }
 }

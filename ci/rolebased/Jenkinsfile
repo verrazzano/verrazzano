@@ -65,7 +65,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/v1beta1/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -548,10 +548,4 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomize('jobmetrics')
-}
-
-def setVZCRDVersionForInstallation(){
-    if(params.CRD_API_VERSION == "v1alpha1"){
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/v1alpha1/install-verrazzano-kind.yaml"
-    }
 }
