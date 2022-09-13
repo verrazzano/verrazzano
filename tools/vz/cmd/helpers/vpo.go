@@ -91,7 +91,10 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 			internalFilename = operatorFile
 		}
 	} else {
-		url = fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
+		url, err = helpers.GetOperatorYaml(version)
+		if err != nil {
+			return err
+		}
 	}
 
 	const accessErrorMsg = "Failed to access the Verrazzano operator.yaml file %s: %s"

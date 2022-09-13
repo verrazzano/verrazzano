@@ -9,22 +9,24 @@ import (
 	"path/filepath"
 	"strconv"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpocons "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -96,6 +98,7 @@ func (c mysqlOperatorComponent) PreInstall(compContext spi.ComponentContext) err
 	if istio != nil && istio.IsInjectionEnabled() {
 		ns.Labels[constants.LabelIstioInjection] = "enabled"
 	}
+	ns.Labels["verrazzano.io/namespace"] = ComponentNamespace
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), cli, &ns, func() error {
 		return nil
 	}); err != nil {
@@ -123,6 +126,33 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 	}); err != nil {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
+	return nil
+}
+
+// PreUninstall waits until MySQL pods in the Keycloak namespace are gone. This is needed since the pods have finalizers
+// that are processed by the MySQL operator
+func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) error {
+	const (
+		labelKey   = "mysql.oracle.com/cluster"
+		labelVal   = "mysql"
+		keycloakNS = "keycloak"
+	)
+
+	// Find the MySQL pods in keycloak namespace, including the router pods
+	var podList corev1.PodList
+	req, _ := labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
+	selector := labels.NewSelector().Add(*req)
+	err := compContext.Client().List(context.TODO(), &podList, &client.ListOptions{Namespace: keycloakNS, LabelSelector: selector})
+	if err != nil {
+		compContext.Log().ErrorfNewErr("Failed to List MySQL pods in Keycloak namespace: %v", err)
+		return err
+	}
+	if len(podList.Items) > 0 {
+		compContext.Log().Progressf("MySQL operator uninstall is waiting for MySQL to be uninstalled")
+		return ctrlerrors.RetryableError{Source: ComponentName}
+	}
+
+	// MySQL is not installed, safe to uninstall MySQL operator
 	return nil
 }
 
