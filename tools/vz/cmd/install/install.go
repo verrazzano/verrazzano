@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"strings"
@@ -28,15 +29,17 @@ const (
 	CommandName = "install"
 	helpShort   = "Install Verrazzano"
 	helpLong    = `Install the Verrazzano Platform Operator and install the Verrazzano components specified by the Verrazzano CR provided on the command line`
-	helpExample = `
+)
+
+var helpExample = fmt.Sprintf(`
 # Install the latest version of Verrazzano using the prod profile. Stream the logs to the console until the install completes.
 vz install
 
-# Install version 1.3.0 using a dev profile, timeout the command after 20 minutes.
-vz install --version v1.3.0 --set profile=dev --timeout 20m
+# Install version %[1]s using a dev profile, timeout the command after 20 minutes.
+vz install --version v%[1]s --set profile=dev --timeout 20m
 
-# Install version 1.3.0 using a dev profile with kiali disabled and wait for the install to complete.
-vz install --version v1.3.0 --set profile=dev --set components.kiali.enabled=false
+# Install version %[1]s using a dev profile with kiali disabled and wait for the install to complete.
+vz install --version v%[1]s --set profile=dev --set components.kiali.enabled=false
 
 # Install the latest version of Verrazzano using CR overlays and explicit value sets.  Output the logs in json format.
 # The overlay files can be a comma-separated list or a series of -f options.  Both formats are shown.
@@ -50,8 +53,7 @@ kind: Verrazzano
 metadata:
   namespace: default
   name: example-verrazzano
-EOF`
-)
+EOF`, version.GetCLIVersion())
 
 var logsEnum = cmdhelpers.LogFormatSimple
 

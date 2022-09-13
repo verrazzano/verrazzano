@@ -6,7 +6,6 @@ package mysql
 import (
 	"context"
 	"fmt"
-	batchv1 "k8s.io/api/batch/v1"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -18,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -30,9 +30,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesDir = "../../../../manifests/profiles/v1alpha1"
 const (
-	profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
+	profilesDir  = "../../../../manifests/profiles"
+	notDepFound  = "not-deployment-found"
+	notPVCDelete = "not-pvc-deleted"
 )
 
 var crEnabled = vzapi.Verrazzano{
@@ -309,7 +310,7 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -340,7 +341,7 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	// get PVC
@@ -466,7 +467,7 @@ func TestPreUpgradeDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -497,7 +498,7 @@ func TestPreUpgradeDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	// get PVC
@@ -555,7 +556,7 @@ func TestPreUpgradeForStatefulSetMySQL(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -737,7 +738,7 @@ func TestAppendMySQLOverridesUpgradeLegacyDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -782,7 +783,7 @@ func TestAppendMySQLOverridesUpgradeLegacyDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	// get PVC
@@ -826,7 +827,7 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -839,7 +840,7 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	// get PVC
@@ -906,7 +907,7 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -919,7 +920,7 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	// get PVC
@@ -1169,7 +1170,7 @@ func TestIsMySQLNotReady(t *testing.T) {
 //  WHEN The Keycloak component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestIsEnabledNilKeycloak tests the IsEnabled function
@@ -1179,7 +1180,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilKeycloak(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -1189,7 +1190,7 @@ func TestIsEnabledNilKeycloak(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -1199,7 +1200,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -1209,7 +1210,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
@@ -1220,7 +1221,7 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.ManagedCluster
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestIsEnabledProdProfile tests the IsEnabled function
@@ -1231,7 +1232,7 @@ func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.Prod
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestIsEnabledDevProfile tests the IsEnabled function
@@ -1242,7 +1243,7 @@ func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.Dev
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestConvertOldInstallArgs tests the convertOldInstallArgs function

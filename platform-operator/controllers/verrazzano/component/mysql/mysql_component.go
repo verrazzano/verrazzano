@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -47,6 +46,10 @@ var _ spi.Component = mysqlComponent{}
 
 // NewComponent returns a new MySQL component
 func NewComponent() spi.Component {
+
+	// Cannot include mysqloperatorcomponent because of import cycle
+	const MySQLOperatorComponentName = "mysql-operator"
+
 	return mysqlComponent{
 		helm.HelmComponent{
 			ReleaseName:               ComponentName,
@@ -59,7 +62,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:       appendMySQLOverrides,
-			Dependencies:              []string{istio.ComponentName, mysqloperator.ComponentName},
+			Dependencies:              []string{istio.ComponentName, MySQLOperatorComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}

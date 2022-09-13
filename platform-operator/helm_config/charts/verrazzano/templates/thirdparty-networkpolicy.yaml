@@ -214,6 +214,15 @@ spec:
         - protocol: TCP
           port: 7600
     - from:
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: mysql-operator
+      ports:
+        - protocol: TCP
+          port: 3306
+        - protocol: TCP
+          port: 33060
+    - from:
       - podSelector:
           matchLabels:
             component: restore-keycloak-db
