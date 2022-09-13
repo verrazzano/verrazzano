@@ -130,7 +130,7 @@ pipeline {
 
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
-        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/v1beta1/install-verrazzano-nipio.yaml"
         INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/v1beta1/install-verrazzano-kind-no-persistence.yaml"
 
         VZ_ENVIRONMENT_NAME = "default"
@@ -841,5 +841,6 @@ def emitJobMetrics() {
 def setVZCRDVersionForInstallation(){
     if(params.CRD_API_VERSION == "v1alpha1"){
         INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/v1alpha1/install-verrazzano-kind-no-persistence.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/v1alpha1/install-verrazzano-nipio.yaml"
     }
 }
