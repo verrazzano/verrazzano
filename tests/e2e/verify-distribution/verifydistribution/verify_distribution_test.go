@@ -39,6 +39,7 @@ var opensourcefileslistbydir = map[string][]string{
 var fullBundleFileslistbydir = map[string][]string{
 	"top":       {"LICENSE", "README.md", "bin", "images", "manifests"},
 	"bin":       {"bom_utils.sh", "darwin-amd64", "darwin-arm64", "linux-amd64", "linux-arm64", "vz-registry-image-helper.sh"},
+	"vz":        {"vz"},
 	"manifests": {"charts", "k8s", "verrazzano-bom.json"},
 	"k8s":       {"verrazzano-platform-operator.yaml"},
 }
@@ -90,6 +91,12 @@ var _ = t.Describe("Verify VZ distribution", func() {
 			t.It("Verify Full Bundle", func() {
 				verifyDistributionByDirectory(generatedPath+allPaths["top"], "top", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin", variant)
+
+				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/darwin-amd64", "vz", variant)
+				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/darwin-arm64", "vz", variant)
+				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/linux-amd64", "vz", variant)
+				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/linux-arm64", "vz", variant)
+
 				verifyDistributionByDirectory(generatedPath+allPaths["manifests"], "manifests", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["k8s"], "k8s", variant)
 			})
@@ -119,7 +126,6 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					componentsList = append(componentsList, eachName)
 				}
 				componentsList = RemoveDuplicate(componentsList)
-				//fmt.Println("Components list: ", componentsList)
 
 				imagesList := []string{}
 				imagesInfo, err2 := ioutil.ReadDir(generatedPath + allPaths["images"])
@@ -134,7 +140,6 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					eachName = regexTar.ReplaceAllString(eachName, "")
 					imagesList = append(imagesList, eachName)
 				}
-				//fmt.Println("Images list: ", imagesList)
 
 				gomega.Expect(compareSlices(componentsList, imagesList)).To(gomega.BeTrue())
 			})
@@ -201,10 +206,11 @@ func verifyDistributionByDirectory(inputDir string, key string, variant string) 
 	for _, each := range filesInfo {
 		filesList = append(filesList, each.Name())
 	}
-	fmt.Println("Provided variant is: ", variant)
 	if variant == "Lite" {
+		fmt.Println("Provided variant is: ", variant)
 		gomega.Expect(compareSlices(filesList, opensourcefileslistbydir[key])).To(gomega.BeTrue())
 	} else {
+		fmt.Println("Provided variant is: Full")
 		gomega.Expect(compareSlices(filesList, fullBundleFileslistbydir[key])).To(gomega.BeTrue())
 	}
 	fmt.Printf("All files found for %s \n", key)
