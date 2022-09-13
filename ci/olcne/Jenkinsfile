@@ -75,6 +75,10 @@ pipeline {
             name: "OLCNE_OS_VERSION",
             description: 'OracleLinux OS version for OLCNE nodes',
             choices: osVersions)
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         string (
             name: "INSTALL_PROFILE",
             defaultValue: 'prod',
@@ -141,7 +145,7 @@ pipeline {
         VZ_COMMAND="$GO_REPO_PATH/vz"
         OLCNE_DUMP_DIR="$WORKSPACE/olcne"
         VERRAZZANO_KUBECONFIG="$KUBECONFIG"
-        INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-olcne.yaml"
+        INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-olcne.yaml"
         // TODO: Update the URL in Jenkins store after terraform-oci-olcne is migrated to Github
         OLCNE_TERRAFORM_GIT_URL=credentials("terraform-oci-olcne-url")
         // TODO: Update the default branch to be used for terraform-oci-olcne
@@ -257,6 +261,7 @@ pipeline {
                     """
 
                     script {
+                        setVZCRDVersionForInstallation()
                         echo "[INFO] ${params.OLCNE_CLUSTER_REGION}"
                         echo "[INFO] agentlabel: $agentLabel"
                         echo "[INFO] $NODE_LABELS"
@@ -1070,4 +1075,10 @@ def deleteOLCNECluster() {
             fi
         done
     '''
+}
+
+def setVZCRDVersionForInstallation(){
+    if(params.CRD_API_VERSION == "v1alpha1"){
+        INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/v1alpha1/install-verrazzano-olcne.yaml"
+    }
 }
