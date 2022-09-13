@@ -30,7 +30,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesDir = "../../../../manifests/profiles"
+const (
+	profilesDir = "../../../../manifests/profiles"
+	notDepFound = "not-deployment-found"
+)
 
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
@@ -306,7 +309,7 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -463,7 +466,7 @@ func TestPreUpgradeDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -552,7 +555,7 @@ func TestPreUpgradeForStatefulSetMySQL(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -734,7 +737,7 @@ func TestAppendMySQLOverridesUpgradeLegacyDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -823,7 +826,7 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
@@ -903,7 +906,7 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-deployment-found": []byte("false")}
+			dep.Data = map[string][]byte{notDepFound: []byte("false")}
 			return nil
 		})
 	mock.EXPECT().
