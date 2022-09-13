@@ -4,13 +4,14 @@
 package verifydistribution
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
-	"strings"
 )
 
 const SLASH = "/"
@@ -112,36 +113,49 @@ var _ = t.Describe("Verify VZ distribution", func() {
 			})
 		})
 
-		t.Describe("Verify the images of Full bundle", func() {
+		t.Describe("Verify that images matches with BOM file for the Full bundle", func() {
 			t.It("Verify images", func() {
+
+				regexRegistry := regexp.MustCompile(`.*.io/`)
+				regexSemi := regexp.MustCompile(`:`)
+				regexRegistry2 := regexp.MustCompile(`.*.io_`)
+				regexUndersc := regexp.MustCompile(`_`)
+				regexTar := regexp.MustCompile(`.tar`)
+
 				componentsList := []string{}
-				componentsInfo, err := ioutil.ReadDir(tarball_root_dir + "/componentsList.txt")
+				file, err := os.OpenFile(tarball_root_dir+"/componentsList.txt", os.O_RDONLY, 0644)
 				if err != nil {
 					println(err.Error())
 				}
 				gomega.Expect(err).To(gomega.BeNil())
-				for _, each := range componentsInfo {
-					eachName := each.Name()
-					eachName = strings.ReplaceAll(eachName, "*.io/", "")
-					eachName = strings.ReplaceAll(eachName, "/", "_")
-					eachName = strings.ReplaceAll(eachName, ":", "-")
+
+				scanner := bufio.NewScanner(file)
+				for scanner.Scan() {
+					eachName := scanner.Text()
+					eachName = regexRegistry.ReplaceAllString(eachName, "")
+					eachName = regexSemi.ReplaceAllString(eachName, "-")
 					componentsList = append(componentsList, eachName)
 				}
+				componentsList = RemoveDuplicate(componentsList)
 				fmt.Println("Components list: ", componentsList)
 
 				imagesList := []string{}
-				imagesInfo, err2 := ioutil.ReadDir(generatedPath + "/images")
+				imagesInfo, err2 := ioutil.ReadDir(generatedPath + allPaths["images"])
 				if err2 != nil {
 					println(err2.Error())
 				}
 				gomega.Expect(err2).To(gomega.BeNil())
 				for _, each := range imagesInfo {
 					eachName := each.Name()
-					eachName = strings.ReplaceAll(eachName, "*.io_", "")
-					eachName = strings.ReplaceAll(eachName, ".tar", "")
+					eachName = regexRegistry2.ReplaceAllString(eachName, "")
+					eachName = regexUndersc.ReplaceAllString(eachName, "/")
+					eachName = regexTar.ReplaceAllString(eachName, "")
 					imagesList = append(imagesList, eachName)
 				}
-				println(imagesList)
+				fmt.Println("Images list: ", imagesList)
+
+				sort.Strings(componentsList)
+				sort.Strings(imagesList)
 				gomega.Expect(compareSlices(componentsList, imagesList)).To(gomega.BeTrue())
 			})
 		})
@@ -182,4 +196,17 @@ func compareSlices(slice1 []string, slice2 []string) bool {
 		}
 	}
 	return true
+}
+
+// RemoveDuplicate removes duplicates from origSlice
+func RemoveDuplicate(origSlice []string) []string {
+	allKeys := make(map[string]bool)
+	returnSlice := []string{}
+	for _, item := range origSlice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			returnSlice = append(returnSlice, item)
+		}
+	}
+	return returnSlice
 }
