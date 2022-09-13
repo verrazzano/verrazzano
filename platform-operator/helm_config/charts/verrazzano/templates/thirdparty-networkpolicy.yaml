@@ -230,6 +230,13 @@ spec:
         - protocol: TCP
           port: 3306
     - from:
+      - podSelector:
+          matchLabels:
+            component: mysqlrouter
+      ports:
+        - protocol: TCP
+          port: 3306
+    - from:
       - namespaceSelector:
           matchLabels:
             verrazzano.io/namespace: verrazzano-monitoring
