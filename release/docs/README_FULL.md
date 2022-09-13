@@ -36,6 +36,10 @@ The Verrazzano distribution includes the following artifacts:
      * `k8s/verrazzano-platform-operator.yaml`: Kubernetes manifests to deploy the Verrazzano platform operator.
      * `charts/verrazzano-platform-operator/`: Verrazzano Platform Operator Helm chart.
      * `verrazzano-bom.json`: Bill of materials (BOM) containing the list of container images for Verrazzano and the components installed by Verrazzano.
+    * `profiles/`
+      * `dev.yaml`: The standard `dev` profile to install Verrazzano.
+      * `prod.yaml`: The standard `prod` profile to install Verrazzano.
+      * `managed-cluster`: The standard `managed-cluster` profile to install Verrazzano 
   * `images/`:  Verrazzano Enterprise Container Platform archives for private registry install.
 
 ## Install Verrazzano 
