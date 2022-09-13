@@ -31,8 +31,9 @@ import (
 )
 
 const (
-	profilesDir = "../../../../manifests/profiles"
-	notDepFound = "not-deployment-found"
+	profilesDir  = "../../../../manifests/profiles"
+	notDepFound  = "not-deployment-found"
+	notPVCDelete = "not-pvc-deleted"
 )
 
 var crEnabled = vzapi.Verrazzano{
@@ -340,7 +341,7 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	// get PVC
@@ -497,7 +498,7 @@ func TestPreUpgradeDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	// get PVC
@@ -782,7 +783,7 @@ func TestAppendMySQLOverridesUpgradeLegacyDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	// get PVC
@@ -839,7 +840,7 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	// get PVC
@@ -919,7 +920,7 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
 			dep.Name = name.Name
 			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{"not-pvc-deleted": []byte("false")}
+			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
 	// get PVC
