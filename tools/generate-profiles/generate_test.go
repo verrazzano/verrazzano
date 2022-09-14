@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"sigs.k8s.io/yaml"
+	"strings"
 	"testing"
 )
 
@@ -70,4 +72,21 @@ func TestValidProfileType(t *testing.T) {
 	assert := assert.New(t)
 	_, err := generateProfile("dev", vzDir)
 	assert.NoError(err)
+}
+
+// TestFieldsOmitted tests the following scenario
+// GIVEN a call to generate cr of a profileType
+// WHEN the profileType is found to be valid
+// THEN no error is returned and certain fields
+// that were omitted during serialization are not found
+func TestFieldsOmitted(t *testing.T) {
+	assert := assert.New(t)
+	cr, err := generateProfile("dev", vzDir)
+	assert.NoError(err)
+	crYaml, err := yaml.Marshal(cr)
+	assert.NoError(err)
+	assert.False(strings.Contains(string(crYaml), "status"))
+	assert.False(strings.Contains(string(crYaml), "creationTimestamp"))
+	assert.True(strings.Contains(string(crYaml), "spec"))
+	assert.True(strings.Contains(string(crYaml), "metadata"))
 }
