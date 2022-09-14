@@ -25,6 +25,7 @@ The Verrazzano distribution includes the following artifacts:
 
 * `verrazzano-<major>.<minor>.<patch>/`
   * `README.md`
+  * `README.html`
   * `LICENSE`: The Universal Permissive License (UPL).
   * `bin/`    
      * `linux-amd64/vz`: Verrazzano command-line interface for Linux AMD64 architecture.
