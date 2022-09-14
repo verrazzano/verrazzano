@@ -23,7 +23,7 @@ import (
 var installNGINXIngressControllerFailedRe = regexp.MustCompile(`Installing NGINX Ingress Controller.*\[FAILED\]`)
 var noIPForIngressControllerRegExp = regexp.MustCompile(`Failed getting DNS suffix: No IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer`)
 var errorSettingRancherTokenRegExp = regexp.MustCompile(`Failed setting Rancher access token.*no such host`)
-var noIPForIstioIngressReqExp = regexp.MustCompile(`Ingress external IP pending for component istio: No IP found for service istio-ingressgateway with type LoadBalancer`)
+var noIPForIstioIngressReqExp = regexp.MustCompile(`Ingress external IP pending for component istio: No IP found for service istio-ingressgateway with type *`)
 
 // I'm going with a more general pattern for limit reached as the supporting details should give the precise message
 // and the advice can be to refer to the supporting details on the limit that was exceeded. We can change it up
@@ -292,7 +292,7 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 				servFiles := make(StringSlice, 1)
 				servFiles[0] = report.GetRelatedServiceMessage(service.ObjectMeta.Name, service.ObjectMeta.Namespace)
 				// Reporting as an Ingress not found issue with the relevant Service data from the istio-system service file
-				issueReporter.AddKnownIssueMessagesFiles(report.IngressNoIPFound, clusterRoot, messages, servFiles)
+				issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressNoIP, clusterRoot, messages, servFiles)
 				issueReporter.Contribute(log, clusterRoot)
 			}
 		}
