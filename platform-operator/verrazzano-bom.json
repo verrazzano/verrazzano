@@ -103,12 +103,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.13.5-1-20220810173142-0bd9ab4d",
+              "tag": "1.14.3-20220830175311-bc31775b",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.13.5-1-20220810173142-0bd9ab4d",
+              "tag": "1.14.3-20220830175311-bc31775b",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -184,7 +184,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.13.5-1-20220810173142-0bd9ab4d",
+              "tag": "1.14.3-20220830175311-bc31775b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -230,7 +230,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.13.5-1-20220810173142-0bd9ab4d",
+              "tag": "1.14.3-20220830175311-bc31775b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -381,12 +381,18 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "mysql",
+          "name": "mysql-upgrade",
           "images": [
             {
               "image": "mysql-server",
               "tag": "8.0.30",
-              "helmFullImageKey": "image"
+              "helmFullImageKey": "legacyUpgrade.container.image"
+            },
+            {
+              "repository": "oracle",
+              "image": "oraclelinux",
+              "tag": "7-slim",
+              "helmFullImageKey": "legacyUpgrade.initContainer.image"
             }
           ]
         },

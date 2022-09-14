@@ -218,7 +218,7 @@ spec:
         overrides:
           - values:
               serverInstances: 1
-              routerInstances: 0
+              routerInstances: 1
               image:
                 pullPolicy: IfNotPresent
                 pullSecrets:

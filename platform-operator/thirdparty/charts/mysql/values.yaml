@@ -10,6 +10,9 @@ credentials:
     user: root
 #    password: sakila
     host: "%"
+#  user:
+#    name:
+#    password:
 
 tls:
   useSelfSigned: false
@@ -51,7 +54,6 @@ baseServerId: 1000
 #    donorUrl:
 #    rootUser:
 #    credentials:
-
 
 #backupProfiles:
 #- name: dump-instance-profile-pvc
@@ -108,16 +110,9 @@ configurationFilesPath: /etc/mysql/conf.d/
 # configurationFiles: {}
 
 #legacyUpgrade:
-#  registry:
-#  repository: mysql
-#  pullPolicy: IfNotPresent
 #  initContainer:
 #    image:
-#      name: mysql-operator
-#      tag: ""
 #  container:
 #    image:
-#      name: mysql-server
-#      tag: ""
 #  claimName: dump-claim
-#  dumpDir:  /var/lib/mysql/dump
+#  dumpDir: dump
