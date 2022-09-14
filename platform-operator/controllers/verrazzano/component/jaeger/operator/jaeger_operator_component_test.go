@@ -528,6 +528,38 @@ func TestValidateInstall(t *testing.T) {
 			},
 			expectError: false,
 		},
+		// GIVEN a Verrazzano CR with Jaeger Component enabled and multiple overrides specified for one list value
+		// WHEN we call the ValidateInstall function
+		// THEN an error is returned.
+		{
+			name: "test jaeger operator override allowed value",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: &trueValue,
+								ValueOverrides: []vzapi.Overrides{
+									{
+										Values: &apiextensionsv1.JSON{
+											Raw: []byte(validOverrideJSON),
+										},
+										ConfigMapRef: &corev1.ConfigMapKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "overrideConfigMapSecretName",
+											},
+											Key: "Key",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		},
 	}
 	c := jaegerOperatorComponent{}
 	for _, tt := range tests {
