@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -28,11 +28,11 @@ source $SCRIPT_DIR/bom_utils.sh
 
 function list_images() {
   local components=($(list_components))
-  local global_registry=$(get_registry)
+  local global_registry=$(get_bom_global_registry)
   for component in "${components[@]}"; do
     local sub_components=$(list_subcomponent_names ${component})
     for subcomponent in ${sub_components}; do
-      local override_registry=$(get_subcomponent_registry ${component} ${subcomponent})
+      local override_registry=$(resolve_subcomponent_registry_from_bom ${component} ${subcomponent})
       local from_repository=$(get_subcomponent_repo ${component} ${subcomponent})
       if [[ "$REPOS" == *"$from_repository"* ]]; then
         local image_names=$(list_subcomponent_images ${component} ${subcomponent})
