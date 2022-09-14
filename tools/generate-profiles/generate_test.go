@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"os"
 	"sigs.k8s.io/yaml"
 	"strings"
@@ -80,6 +81,8 @@ func TestValidProfileType(t *testing.T) {
 // THEN no error is returned and certain fields
 // that were omitted during serialization are not found
 func TestFieldsOmitted(t *testing.T) {
+	// Expect certain fields to be missing if yaml.Marshal
+	// is called on the cr Alias type
 	assert := assert.New(t)
 	cr, err := generateProfile("dev", vzDir)
 	assert.NoError(err)
@@ -89,4 +92,12 @@ func TestFieldsOmitted(t *testing.T) {
 	assert.False(strings.Contains(string(crYaml), "creationTimestamp"))
 	assert.True(strings.Contains(string(crYaml), "spec"))
 	assert.True(strings.Contains(string(crYaml), "metadata"))
+
+	// When yaml.Marshal method is called on an object if type v1beta1.Verrazzano
+	// then expect status and creationTimestamp to show up
+	vzCR := v1beta1.Verrazzano(*cr)
+	vzCRYaml, err := yaml.Marshal(&vzCR)
+	assert.NoError(err)
+	assert.True(strings.Contains(string(vzCRYaml), "status"))
+	assert.True(strings.Contains(string(vzCRYaml), "creationTimestamp"))
 }

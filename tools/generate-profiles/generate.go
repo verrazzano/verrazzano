@@ -154,6 +154,7 @@ func parseFlags(defaultDir string) {
 // were showing up because Go's json package's (used by k8s yaml package) default behaviour is to Marshal fields of struct type
 // even if they're empty.
 
+// Alias to extend custom Marshalling
 type CRWrapper v1beta1.Verrazzano
 
 type PseudoObjectMeta struct {
