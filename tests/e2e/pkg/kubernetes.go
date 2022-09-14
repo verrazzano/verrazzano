@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"net/http"
 	"os"
 	"strings"
@@ -532,6 +533,31 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 	return &vz, nil
 }
 
+// GetVerrazzanoInstallResourceInClusterV1beta1 returns the installed Verrazzano CR in the given cluster
+// (there should only be 1 per cluster)
+func GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath string) (*v1beta1.Verrazzano, error) {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	client, err := vpoClient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	vzClient := client.VerrazzanoV1beta1().Verrazzanos("")
+	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
+
+	if err != nil {
+		return nil, fmt.Errorf("error listing out Verrazzano instances: %v", err)
+	}
+	numVzs := len(vzList.Items)
+	if numVzs == 0 {
+		return nil, fmt.Errorf("did not find installed Verrazzano instance")
+	}
+	vz := vzList.Items[0]
+	return &vz, nil
+}
+
 // IsDevProfile returns true if the deployed resource is a 'dev' profile
 func IsDevProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -558,6 +584,20 @@ func GetVerrazzano() (*v1alpha1.Verrazzano, error) {
 		return nil, err
 	}
 	cr, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return cr, nil
+}
+
+// GetVerrazzano returns the installed Verrazzano
+func GetVerrazzanoV1beta1() (*v1beta1.Verrazzano, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return nil, err
+	}
+	cr, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}

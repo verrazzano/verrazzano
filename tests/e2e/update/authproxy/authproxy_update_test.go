@@ -26,10 +26,20 @@ type AuthProxyReplicasModifier struct {
 	replicas uint32
 }
 
+type AuthProxyReplicasModifierV1beta1 struct {
+	replicas uint32
+}
+
+type AuthProxyPodPerNodeAffintyModifierV1beta1 struct {
+}
+
 type AuthProxyPodPerNodeAffintyModifier struct {
 }
 
 type AuthProxyDefaultModifier struct {
+}
+
+type AuthProxyDefaultModifierV1beta1 struct {
 }
 
 func (u AuthProxyReplicasModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -42,7 +52,7 @@ func (u AuthProxyReplicasModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.AuthProxy.Kubernetes.Replicas = u.replicas
 }
 
-func (u AuthProxyReplicasModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+func (u AuthProxyReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	if cr.Spec.Components.AuthProxy == nil {
 		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
 	}
@@ -52,7 +62,7 @@ func (u AuthProxyReplicasModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	cr.Spec.Components.AuthProxy.Kubernetes.Replicas = u.replicas
 }
 
-func (u AuthProxyPodPerNodeAffintyModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	if cr.Spec.Components.AuthProxy == nil {
 		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
 	}
@@ -120,7 +130,7 @@ func (u AuthProxyDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
 }
 
-func (u AuthProxyDefaultModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+func (u AuthProxyDefaultModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
 }
 
@@ -168,6 +178,19 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 		t.It("authproxy explicit replicas", func() {
 			m := AuthProxyReplicasModifier{replicas: nodeCount}
 			err := update.UpdateCR(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			expectedRunning := nodeCount
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+		})
+	})
+
+	t.Describe("verrazzano-authproxy update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
+		t.It("authproxy explicit replicas", func() {
+			m := AuthProxyReplicasModifierV1beta1{replicas: nodeCount}
+			err := update.UpdateCRV1beta1(m)
 			if err != nil {
 				Fail(err.Error())
 			}

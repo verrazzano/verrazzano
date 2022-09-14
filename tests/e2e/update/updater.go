@@ -6,6 +6,7 @@ package update
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"time"
 
 	ginkgov2 "github.com/onsi/ginkgo/v2"
@@ -28,7 +29,7 @@ type CRModifier interface {
 }
 
 type CRModifierV1beta1 interface {
-	ModifyCRV1beta1(cr *vzapi.Verrazzano)
+	ModifyCRV1beta1(cr *v1beta1.Verrazzano)
 }
 
 // GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
@@ -58,21 +59,21 @@ func GetCR() *vzapi.Verrazzano {
 }
 
 // GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
-func GetCRV1beta1() *vzapi.Verrazzano {
+func GetCRV1beta1() *v1beta1.Verrazzano {
 	// Wait for the CR to be Ready
 	gomega.Eventually(func() error {
-		cr, err := pkg.GetVerrazzano()
+		cr, err := pkg.GetVerrazzanoV1beta1()
 		if err != nil {
 			return err
 		}
-		if cr.Status.State != vzapi.VzStateReady {
+		if cr.Status.State != v1beta1.VzStateReady {
 			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 		}
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 
 	// Get the CR
-	cr, err := pkg.GetVerrazzano()
+	cr, err := pkg.GetVerrazzanoV1beta1()
 	if err != nil {
 		ginkgov2.Fail(err.Error())
 	}
