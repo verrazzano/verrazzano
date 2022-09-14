@@ -381,12 +381,18 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "mysql",
+          "name": "mysql-upgrade",
           "images": [
             {
               "image": "mysql-server",
               "tag": "8.0.30",
-              "helmFullImageKey": "image"
+              "helmFullImageKey": "legacyUpgrade.container.image"
+            },
+            {
+              "repository": "oracle",
+              "image": "oraclelinux",
+              "tag": "7-slim",
+              "helmFullImageKey": "legacyUpgrade.initContainer.image"
             }
           ]
         },

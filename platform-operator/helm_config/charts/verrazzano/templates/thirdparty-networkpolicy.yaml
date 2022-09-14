@@ -212,16 +212,56 @@ spec:
         - protocol: TCP
           port: 3306
         - protocol: TCP
+          port: 33060
+        - protocol: TCP
+          port: 6446
+        - protocol: TCP
+          port: 6447
+        - protocol: TCP
+          port: 6448
+        - protocol: TCP
+          port: 6449
+        - protocol: TCP
           port: 7600
     - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: mysql-operator
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: mysql-operator
       ports:
         - protocol: TCP
           port: 3306
         - protocol: TCP
           port: 33060
+        - protocol: TCP
+          port: 33061
+    - from:
+      - podSelector:
+          matchLabels:
+            component: restore-keycloak-db
+      ports:
+        - protocol: TCP
+          port: 3306
+        - protocol: TCP
+          port: 33060
+        - protocol: TCP
+          port: 6446
+        - protocol: TCP
+          port: 6447
+        - protocol: TCP
+          port: 6448
+        - protocol: TCP
+          port: 6449
+    - from:
+      - podSelector:
+          matchLabels:
+            component: mysqlrouter
+      ports:
+        - protocol: TCP
+          port: 3306
+        - protocol: TCP
+          port: 33060
+        - protocol: TCP
+          port: 33061
     - from:
       - namespaceSelector:
           matchLabels:

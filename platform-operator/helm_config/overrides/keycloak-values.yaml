@@ -28,8 +28,8 @@ extraEnv: |
   - name: DB_PASSWORD
     valueFrom:
       secretKeyRef:
-        name: mysql
-        key: mysql-password
+        name: mysql-cluster-secret
+        key: userPassword
   - name: PROXY_ADDRESS_FORWARDING
     value: "true"
   - name: KEYCLOAK_USER
