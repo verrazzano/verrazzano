@@ -134,7 +134,7 @@ var knownIssues = map[string]Issue{
 	PodProblemsNotReported:    {Type: PodProblemsNotReported, Summary: "Problem pods were detected, however a specific root cause was not identified", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
 	ComponentsNotReady:        {Type: InstallFailure, Summary: "Verrazzano install failed, one or more components did not reach Ready state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
 	IngressNoIPFound:          {Type: IngressNoIPFound, Summary: "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoIPFound]}},
-	IstioIngressNoIP:          {Type: IngressNoIPFound, Summary: "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IstioIngressNoIP]}},
+	IstioIngressNoIP:          {Type: IstioIngressNoIP, Summary: "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IstioIngressNoIP]}},
 	IngressShapeInvalid:       {Type: IngressShapeInvalid, Summary: "Verrazzano install failed as the shape provided for NGINX Ingress Controller is invalid", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressShapeInvalid]}},
 }
 
