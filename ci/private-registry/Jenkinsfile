@@ -136,6 +136,8 @@ pipeline {
 
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         CLEAN_PERIODIC_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
+
+        DISTRIBUTION_VARIANT = "${params.DISTRIBUTION_VARIANT}"
     }
 
     stages {
@@ -291,12 +293,28 @@ pipeline {
                                 mv ${TARBALL_DIR}/bin/linux-amd64/vz ${GO_REPO_PATH}/vz
                                 chmod +x ${GO_REPO_PATH}/vz
                                 ${GO_REPO_PATH}/vz version
+
+                                # Generate components list and save to file
+                                chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                                cd ${TARBALL_DIR}/manifests
+                                sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -d -t ${ocirRegistry} -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -m ${TARBALL_ROOT_DIR}/componentsList.txt
                             """
                         }
                     }
                 }
             }
         }
+
+        stage('Verify Distribution') {
+            environment {
+                VERRAZZANO_DEV_VERSION="${VERRAZZANO_DEV_VERSION}"
+                TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+            }
+            steps {
+                runGinkgoRandomize('verify-distribution')
+            }
+        }
+
         stage('Upload Verrazzano Images') {
              environment {
                  TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
