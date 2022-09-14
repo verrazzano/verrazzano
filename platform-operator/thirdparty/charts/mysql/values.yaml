@@ -55,7 +55,6 @@ baseServerId: 1000
 #    rootUser:
 #    credentials:
 
-
 #backupProfiles:
 #- name: dump-instance-profile-pvc
 #  dumpInstance:
