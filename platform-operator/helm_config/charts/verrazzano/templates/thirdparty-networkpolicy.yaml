@@ -578,6 +578,12 @@ spec:
               tier: mysql
         - namespaceSelector:
             matchLabels:
+              verrazzano.io/namespace: mysql-operator
+          podSelector:
+            matchLabels:
+              app: mysql-operator
+        - namespaceSelector:
+            matchLabels:
               verrazzano.io/namespace: ingress-nginx
           podSelector:
             matchLabels:

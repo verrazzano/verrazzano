@@ -122,6 +122,7 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 		}
 		// Annotate using the generation so we don't restart twice
 		deployment.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = strconv.Itoa(int(deployment.Generation))
+		deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/namespace"] = ComponentNamespace
 		return nil
 	}); err != nil {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
