@@ -308,6 +308,11 @@ func GetRelatedPodMessage(pod, ns string) string {
 	return "Pod \"" + pod + "\" in namespace \"" + ns + "\""
 }
 
+// GetRelatedServiceMessage returns the message for an issue in a service, used for setting supporting data
+func GetRelatedServiceMessage(service, ns string) string {
+	return "Service \"" + service + "\" in namespace \"" + ns + "\""
+}
+
 // GetRelatedLogFromPodMessage returns the message to indicate the issue in the pod log, in a given namespace
 func GetRelatedLogFromPodMessage(podLog string) string {
 	splitStr := strings.Split(podLog, "/")
