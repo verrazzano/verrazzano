@@ -843,11 +843,11 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 	assert.Len(t, kvs, 0)
 }
 
-// TestAppendMySQLOverridesUpgradeProdProfile tests the appendMySQLOverrides function
+// TestAppendMySQLOverridesUpgradeLegacyProdProfile tests the appendMySQLOverrides function
 // GIVEN a call to appendMySQLOverrides during upgrade for a prod profile cluster
 // WHEN I pass in a VZ CR
 // THEN the correct overrides are returned
-func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
+func TestAppendMySQLOverridesUpgradeLegacyProdProfile(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
