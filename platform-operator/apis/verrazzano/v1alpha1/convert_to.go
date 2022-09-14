@@ -99,7 +99,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	if err != nil {
 		return v1beta1.ComponentSpec{}, err
 	}
-	istioComponent, err := convertIstioToV1Beta1(src.Istio)
+	istioComponent, err := ConvertIstioToV1Beta1(src.Istio)
 	if err != nil {
 		return v1beta1.ComponentSpec{}, err
 	}
@@ -499,7 +499,7 @@ func convertIngressNGINXToV1Beta1(src *IngressNginxComponent) (*v1beta1.IngressN
 	}, nil
 }
 
-func convertIstioToV1Beta1(src *IstioComponent) (*v1beta1.IstioComponent, error) {
+func ConvertIstioToV1Beta1(src *IstioComponent) (*v1beta1.IstioComponent, error) {
 	if src == nil {
 		return nil, nil
 	}

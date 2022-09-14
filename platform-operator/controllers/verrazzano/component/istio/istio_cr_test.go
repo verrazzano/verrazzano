@@ -866,7 +866,9 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			a := assert.New(t)
-			s, err := BuildIstioOperatorYaml(test.value)
+			convertedComp, err := vzapi.ConvertIstioToV1Beta1(test.value)
+			a.NoError(err, convertedComp, "error converting istio component")
+			s, err := BuildIstioOperatorYaml(convertedComp)
 			fmt.Println(s)
 			a.NoError(err, s, "error merging yamls")
 			a.YAMLEq(test.expected, s, "Result does not match expected value")

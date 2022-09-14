@@ -33,7 +33,7 @@ type istioTracingTemplateData struct {
 	TracingTLSMode     string
 }
 
-//configureJaeger configures Jaeger for Istio integration and returns install args for the Istio install.
+// configureJaegerTracing configures Jaeger for Istio integration and returns install args for the Istio install.
 // return Istio install args for the tracing endpoint and the Istio tracing TLS mode
 func configureJaegerTracing() (string, error) {
 	collectorURL := fmt.Sprintf("%s-%s.%s.svc.cluster.local.:%d",
