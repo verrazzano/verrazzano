@@ -256,15 +256,6 @@ includeProfiles() {
   go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile prod --output-dir ${distDir}
   go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile dev --output-dir ${distDir}
   go run ${VZ_REPO_ROOT}/tools/generate-profiles/generate.go --profile managed-cluster --output-dir ${distDir}
-  sanitizeProfiles ${distDir}/prod.yaml
-  sanitizeProfiles ${distDir}/dev.yaml
-  sanitizeProfiles ${distDir}/managed-cluster.yaml
-}
-
-# Remove status and metadata.creationTimestamp from the generated profiles
-sanitizeProfiles() {
-  filePath=$1
-  yq eval -i 'del(.status, .metadata.creationTimestamp)' ${filePath}
 }
 
 # Clean-up workspace after uploading the distribution bundles
