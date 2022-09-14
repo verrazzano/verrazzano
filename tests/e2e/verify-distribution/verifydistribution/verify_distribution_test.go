@@ -30,6 +30,7 @@ var allPaths = map[string]string{
 	"bin":       SLASH + "bin",
 	"images":    SLASH + "images",
 	"manifests": SLASH + "manifests",
+	"profiles":  SLASH + "manifests" + SLASH + "profiles",
 	"k8s":       SLASH + "manifests" + SLASH + "k8s",
 }
 
@@ -38,6 +39,7 @@ var opensourcefileslistbydir = map[string][]string{
 	"bin":       {"bom_utils.sh", "vz", "vz-registry-image-helper.sh"},
 	"manifests": {"charts", "k8s", "profiles", "verrazzano-bom.json"},
 	"k8s":       {"verrazzano-platform-operator.yaml"},
+	"profiles":  {"dev.yaml", "managed-cluster.yaml", "prod.yaml"},
 }
 
 var fullBundleFileslistbydir = map[string][]string{
@@ -87,6 +89,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["manifests"], "manifests", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["k8s"], "k8s", variant)
+				verifyDistributionByDirectory(generatedPath+allPaths["profiles"], "profiles", variant)
 			})
 		})
 	} else {
