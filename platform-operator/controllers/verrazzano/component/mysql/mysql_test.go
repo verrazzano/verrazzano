@@ -836,7 +836,6 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 			return errors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Deployment"}, name.Name)
 		})
 
-
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
