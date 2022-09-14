@@ -425,13 +425,6 @@ func isKeycloakAuthEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-func formatBool(isTrue bool, trueValue string, falseValue string) string {
-	if isTrue {
-		return trueValue
-	}
-	return falseValue
-}
-
 // configureUISettings configures Rancher setting ui-pl, ui-logo-light and ui-logo-dark.
 func configureUISettings(ctx spi.ComponentContext) error {
 	log := ctx.Log()
