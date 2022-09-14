@@ -12,8 +12,13 @@ CR_FILE=$2
 yq -i eval ".spec.version = \"v${VERSION}\"" ${CR_FILE}
 
 if version_ge $VERSION "1.3.0"; then
-  echo "$VERSION supports updates, testing update on upgrade scenario"
-  # Add some simple additional updates to validate update during an upgrade
-  yq -i eval '.spec.components.istio.ingress.kubernetes.replicas = 3' ${CR_FILE}
-  yq -i eval '.spec.components.istio.egress.kubernetes.replicas = 3' ${CR_FILE}
+  if [ "$CRD_API_VERSION" == "v1alpha1" ]; then
+    echo "$VERSION supports updates, testing update on upgrade scenario"
+    # Add some simple additional updates to validate update during an upgrade
+    yq -i eval '.spec.components.istio.ingress.kubernetes.replicas = 3' ${CR_FILE}
+    yq -i eval '.spec.components.istio.egress.kubernetes.replicas = 3' ${CR_FILE}
+  elif [ "$CRD_API_VERSION" == "v1beta1" ]; then
+    yq -i eval '.spec.components.istio.overrides.[0].values.ingressNGINX.spec.ingressGateways.k8s = 3' ${CR_FILE}
+    yq -i eval '.spec.components.istio.overrides.[0].values.egressga.replicas = 3' ${CR_FILE}
+  fi
 fi
