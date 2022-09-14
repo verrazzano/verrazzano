@@ -835,34 +835,12 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
 			return errors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Deployment"}, name.Name)
 		})
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
-			dep.Name = name.Name
-			dep.Namespace = name.Namespace
-			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
-			return nil
-		})
-	// get PVC
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
-			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeClaim"}, name.Name)
-		})
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: rootSec}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			secret.Name = rootSec
-			secret.Data = map[string][]byte{}
-			secret.Data[mySQLRootKey] = []byte("test-root-key")
-			return nil
-		})
+
 
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
-	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
+	assert.Len(t, kvs, 0)
 }
 
 // TestAppendMySQLOverridesUpgradeProdProfile tests the appendMySQLOverrides function
@@ -913,8 +891,35 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *appsv1.Deployment) error {
-			return errors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Deployment"}, name.Name)
+			return nil
 		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
+			dep.Name = name.Name
+			dep.Namespace = name.Namespace
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
+			assert.Equal(t, dbMigrationSecret, secret.Name)
+			return nil
+		})
+	// appendLegacyUpgradeBaseValues
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			secret.Data = map[string][]byte{rootPasswordKey: []byte("test-root-key")}
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			secret.Data = map[string][]byte{secretKey: []byte("test-user-key")}
+			return nil
+		})
+	// get PVC
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dep *v1.Secret) error {
@@ -923,18 +928,9 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 			dep.Data = map[string][]byte{notPVCDelete: []byte("false")}
 			return nil
 		})
-	// get PVC
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
-			return errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "PersistentVolumeClaim"}, name.Name)
-		})
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: rootSec}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			secret.Name = rootSec
-			secret.Data = map[string][]byte{}
-			secret.Data[mySQLRootKey] = []byte("test-root-key")
 			return nil
 		})
 	mock.EXPECT().
@@ -945,7 +941,7 @@ func TestAppendMySQLOverridesUpgradeProdProfile(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 7+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 }
 

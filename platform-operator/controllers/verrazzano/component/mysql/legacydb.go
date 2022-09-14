@@ -25,7 +25,7 @@ import (
 )
 
 // appendLegacyUpgradeBaseValues appends the MySQL helm values required for db migration
-func appendLegacyUpgradeBaseValues(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, bool, error) {
+func appendLegacyUpgradeBaseValues(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, []byte, error) {
 	var err error
 	secretName := types.NamespacedName{
 		Namespace: ComponentNamespace,
@@ -33,17 +33,17 @@ func appendLegacyUpgradeBaseValues(compContext spi.ComponentContext, kvs []bom.K
 	}
 	kvs, err = appendMySQLSecret(compContext, secretName, "mysql-root-password", kvs)
 	if err != nil {
-		return []bom.KeyValue{}, false, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return []bom.KeyValue{}, nil, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	userPwd, err := getLegacyUserSecret(compContext)
 	if err != nil {
-		return []bom.KeyValue{}, false, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return []bom.KeyValue{}, nil, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	// add user settings to enable persistence in cluster secret
 	kvs = append(kvs, bom.KeyValue{Key: helmUserPwd, Value: string(userPwd)})
 	kvs = append(kvs, bom.KeyValue{Key: helmUserName, Value: mySQLUsername})
 
-	return kvs, true, nil
+	return kvs, userPwd, nil
 }
 
 // isDatabaseMigrationStageCompleted indicates whether the given migration stage is completed

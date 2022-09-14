@@ -145,27 +145,26 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
 
-	secretSet := false
+	var err error
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
-		var err error
 		var userPwd []byte
 		if isLegacyDatabaseUpgrade(compContext) {
-			kvs, secretSet, err = appendLegacyUpgradeBaseValues(compContext, kvs)
+			kvs, userPwd, err = appendLegacyUpgradeBaseValues(compContext, kvs)
 			if err != nil {
 				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
-		}
-		if isLegacyPersistentDatabase(compContext) {
-			kvs, err = appendLegacyUpgradePersistenceValues(kvs)
-			if err != nil {
-				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-			}
-		} else {
-			// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
-			// provide the sql initialization file
-			kvs, err = appendDatabaseInitializationValues(compContext, userPwd, kvs)
-			if err != nil {
-				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+			if isLegacyPersistentDatabase(compContext) {
+				kvs, err = appendLegacyUpgradePersistenceValues(kvs)
+				if err != nil {
+					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+				}
+			} else {
+				// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
+				// provide the sql initialization file
+				kvs, err = appendDatabaseInitializationValues(compContext, userPwd, kvs)
+				if err != nil {
+					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+				}
 			}
 		}
 	}
@@ -182,10 +181,6 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
-	}
-
-	var err error
-	if !secretSet {
 		secretName := types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      rootSec,
