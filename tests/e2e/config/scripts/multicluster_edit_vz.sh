@@ -26,7 +26,13 @@ if [ "${CLUSTER_COUNT}" -gt 1 ] && [ "$CRD_API_VERSION" == "v1alpha1" ]; then
     yq -i eval '.spec.components.istio.istioInstallArgs[3].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' "${VZ_CR_FILE}"
     yq -i eval '.spec.components.istio.istioInstallArgs[4].name = "global.proxy.holdApplicationUntilProxyStarts"' ${VZ_CR_FILE}
     yq -i eval '.spec.components.istio.istioInstallArgs[4].value = "true"' ${VZ_CR_FILE}
+elif [ "${CLUSTER_COUNT}" -gt 1  ] && [ $CRD_API_VERSION == "v1beta1" ]; then
+  yq -i eval '.spec.components.istio.overrides.[0].values.apiVersion = "install.istio.io/v1alpha1"' ${VZ_CR_FILE}
+  yq -i eval '.spec.components.istio.overrides.[0].values.kind = "IstioOperator"' ${VZ_CR_FILE}
+  yq -i eval '.spec.components.istio.overrides.[0].values.spec.values.meshConfig.defaultConfig.tracing.sampling = "90"' ${VZ_CR_FILE}
+  yq -i eval '.spec.components.istio.overrides.[0].values.spec.values.meshConfig.defaultConfig.tracing.tlsSettings.mode = "ISTIO_MUTUAL"' ${VZ_CR_FILE}
+  yq -i eval '.spec.components.istio.overrides.[0].values.spec.values.meshConfig.defaultConfig.tracing.zipkin.address = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${VZ_CR_FILE}
+  yq -i eval '.spec.components.istio.overrides.[0].values.spec.values.meshConfig.enableTracing = "true"' ${VZ_CR_FILE}
 fi
-
 echo "VZ CR to be applied:"
 cat "${VZ_CR_FILE}"
