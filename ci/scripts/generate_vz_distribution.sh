@@ -111,19 +111,8 @@ includeCommonFiles() {
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${distDir}/manifests/k8s/verrazzano-platform-operator.yaml
   cp -r ${VZ_REPO_ROOT}/platform-operator/helm_config/charts/verrazzano-platform-operator ${distDir}/manifests/charts
 
-  # Copy profiles
-  copyProfiles ${distributionDirectory}/manifests/profiles
-
   # Copy Bill Of Materials, containing the list of images
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-bom.json ${distDir}/manifests/verrazzano-bom.json
-}
-
-# Copy profiles from the source repository to the directory from where the distribution bundles will be built
-copyProfiles() {
-  local profileDirectory=$1
-  echo "Copying profiles to ${profileDirectory} ..."
-
-  # Placeholder to copy profiles
 }
 
 # Create a text file containing the contents of the bundle
@@ -273,9 +262,6 @@ includeProfiles() {
 cleanupWorkspace() {
   rm -rf ${VZ_DISTRIBUTION_COMMON}
   rm -rf ${VZ_LITE_ROOT}
-  # Do not delete the generated files, which is required to push bundles to last_clean_periodic object
-  # rm -rf ${VZ_LITE_GENERATED}
-  # rm -rf ${VZ_FULL_GENERATED}
 }
 
 # List of files in storage
