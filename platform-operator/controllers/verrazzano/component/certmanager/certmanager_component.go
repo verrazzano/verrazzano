@@ -105,8 +105,9 @@ func (c certManagerComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(vz) {
-		_, err := validateConfiguration(vz.Spec.Components.CertManager)
-		return err
+		if _, err := validateConfiguration(vz.Spec.Components.CertManager); err != nil {
+			return err
+		}
 	}
 	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }

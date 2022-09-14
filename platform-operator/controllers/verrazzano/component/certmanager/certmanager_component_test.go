@@ -21,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -840,6 +841,72 @@ var tests = []validationTestStruct{
 					},
 				},
 			},
+		},
+		wantErr: true,
+	},
+	{
+		name: "singleOverride",
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Certificate: vzapi.Certificate{
+							CA: vzapi.CA{
+								SecretName:               secretName,
+								ClusterResourceNamespace: secretNamespace,
+							},
+						},
+						InstallOverrides: vzapi.InstallOverrides{
+							ValueOverrides: []vzapi.Overrides{
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte("certManagerCROverride"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		caSecret: &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
+		},
+		wantErr: false,
+	},
+	{
+		name: "multipleOverridesInOneListValue",
+		new: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Certificate: vzapi.Certificate{
+							CA: vzapi.CA{
+								SecretName:               secretName,
+								ClusterResourceNamespace: secretNamespace,
+							},
+						},
+						InstallOverrides: vzapi.InstallOverrides{
+							ValueOverrides: []vzapi.Overrides{
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte("certManagerCROverride"),
+									},
+									ConfigMapRef: &corev1.ConfigMapKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "overrideConfigMapSecretName",
+										},
+										Key: "Key",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		caSecret: &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
 		},
 		wantErr: true,
 	},
