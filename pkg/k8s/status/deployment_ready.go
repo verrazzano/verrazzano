@@ -54,7 +54,7 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 			podSelector = veleroPodSelector
 		}
 
-		if !podsReadyDeployment(log, client, namespacedName, podSelector, expectedReplicas, prefix) {
+		if !PodsReadyDeployment(log, client, namespacedName, podSelector, expectedReplicas, prefix) {
 			return false
 		}
 		log.Oncef("%s has enough replicas for deployment %v", prefix, namespacedName)
@@ -78,9 +78,9 @@ func DoDeploymentsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namesp
 	return true
 }
 
-// podsReadyDeployment checks for an expected number of pods to be using the latest replicaset revision and are
+// PodsReadyDeployment checks for an expected number of pods to be using the latest replicaset revision and are
 // running and ready
-func podsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
+func PodsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
 	pods := getPodsList(log, client, namespacedName, selector)
 	if pods == nil {
@@ -89,7 +89,9 @@ func podsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
-		log.Progressf("Found no pods with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
+		if log != nil {
+			log.Progressf("Found no pods with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
+		}
 		return false
 	}
 
@@ -100,7 +102,9 @@ func podsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 	for _, pod := range pods.Items {
 		// Log error and return if the pod-template-hash label is not found.  This should never happen.
 		if _, ok := pod.Labels[podTemplateHashLabel]; !ok {
-			log.Errorf("Failed to find pod label [pod-template-hash] for pod %s/%s", pod.Namespace, pod.Name)
+			if log != nil {
+				log.Errorf("Failed to find pod label [pod-template-hash] for pod %s/%s", pod.Namespace, pod.Name)
+			}
 			return false
 		}
 
@@ -114,13 +118,17 @@ func podsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 		rsName := fmt.Sprintf("%s-%s", namespacedName.Name, pod.Labels[podTemplateHashLabel])
 		err := client.Get(context.TODO(), types.NamespacedName{Namespace: namespacedName.Namespace, Name: rsName}, &rs)
 		if err != nil {
-			log.Errorf("Failed to get replicaset %s: %v", namespacedName, err)
+			if log != nil {
+				log.Errorf("Failed to get replicaset %s: %v", namespacedName, err)
+			}
 			return false
 		}
 
 		// Log error and return if the deployment.kubernetes.io/revision annotation is not found.  This should never happen.
 		if _, ok := rs.Annotations[deploymentRevisionAnnotation]; !ok {
-			log.Errorf("Failed to find pod annotation [deployment.kubernetes.io/revision] for pod %s/%s", pod.Namespace, pod.Name)
+			if log != nil {
+				log.Errorf("Failed to find pod annotation [deployment.kubernetes.io/revision] for pod %s/%s", pod.Namespace, pod.Name)
+			}
 			return false
 		}
 
@@ -140,8 +148,10 @@ func podsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 	}
 
 	if podsReady < expectedReplicas {
-		log.Progressf("%s is waiting for deployment %s pods to be %v. Current available pods are %v", prefix, namespacedName,
-			expectedReplicas, podsReady)
+		if log != nil {
+			log.Progressf("%s is waiting for deployment %s pods to be %v. Current available pods are %v", prefix, namespacedName,
+				expectedReplicas, podsReady)
+		}
 		return false
 	}
 

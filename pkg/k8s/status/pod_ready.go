@@ -5,7 +5,6 @@ package status
 
 import (
 	"context"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,14 +25,18 @@ const deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 func getPodsList(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector) *corev1.PodList {
 	labelSelector, err := metav1.LabelSelectorAsSelector(selector)
 	if err != nil {
-		log.Errorf("Failed to convert LabelSelector %v for %v: %v", selector, namespacedName, err)
+		if log != nil {
+			log.Errorf("Failed to convert LabelSelector %v for %v: %v", selector, namespacedName, err)
+		}
 		return nil
 	}
 	var pods corev1.PodList
 	err = client.List(context.TODO(), &pods,
 		&clipkg.ListOptions{Namespace: namespacedName.Namespace, LabelSelector: labelSelector})
 	if err != nil {
-		log.Errorf("Failed listing pods in namespace %s: %v", namespacedName.Namespace, err)
+		if log != nil {
+			log.Errorf("Failed listing pods in namespace %s: %v", namespacedName.Namespace, err)
+		}
 		return nil
 	}
 
@@ -48,14 +51,18 @@ func ensurePodsAreReady(log vzlog.VerrazzanoLogger, podsToCheck []corev1.Pod, ex
 		// Check that init containers are ready
 		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
 			if !initContainerStatus.Ready {
-				log.Progressf("%s is waiting for init container of pod %s to be ready", prefix, pod.Name)
+				if log != nil {
+					log.Progressf("%s is waiting for init container of pod %s to be ready", prefix, pod.Name)
+				}
 				return 0, false
 			}
 		}
 		// Check that containers are ready
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if !containerStatus.Ready {
-				log.Progressf("%s is waiting for container of pod %s to be ready", prefix, pod.Name)
+				if log != nil {
+					log.Progressf("%s is waiting for container of pod %s to be ready", prefix, pod.Name)
+				}
 				return 0, false
 			}
 		}

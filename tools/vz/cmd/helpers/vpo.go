@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"os"
 	"regexp"
@@ -19,10 +20,10 @@ import (
 
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	clik8sutil "github.com/verrazzano/verrazzano/tools/vz/pkg/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -141,7 +142,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 }
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
-func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType v1beta1.ConditionType, lastTransitionTime metav1.Time) (string, error) {
+func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType v1beta1.ConditionType) (string, error) {
 	// Provide the user with feedback while waiting for the verrazzano-platform-operator to be ready
 	feedbackChan := make(chan bool)
 	defer close(feedbackChan)
@@ -160,18 +161,11 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 		}
 	}(vzHelper.GetOutputStream())
 
-	deployments := []types.NamespacedName{
-		{
-			Name:      constants.VerrazzanoPlatformOperator,
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-		},
-	}
-
 	// Wait for the verrazzano-platform-operator pod to be found
 	seconds := 0
 	retryCount := 0
 	for {
-		ready, err := clik8sutil.DeploymentsAreReady(client, deployments, 1, lastTransitionTime)
+		ready, err := vpoIsReady(client)
 		if ready {
 			break
 		}
@@ -333,4 +327,29 @@ func getOperationString(condType v1beta1.ConditionType) string {
 		operation = "upgrade"
 	}
 	return operation
+}
+
+// vpoIsReady check that the named deployments have the minimum number of specified replicas ready and available
+func vpoIsReady(client clipkg.Client) (bool, error) {
+	var expectedReplicas int32 = 1
+	deployment := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: constants.VerrazzanoPlatformOperator, Namespace: vzconstants.VerrazzanoInstallNamespace}
+	if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("Failed getting deployment %s: %s", constants.VerrazzanoPlatformOperator, err.Error())
+	}
+	if deployment.Status.UpdatedReplicas < expectedReplicas {
+		return false, nil
+	}
+	if deployment.Status.AvailableReplicas < expectedReplicas {
+		return false, nil
+	}
+
+	if !status.PodsReadyDeployment(nil, client, namespacedName, deployment.Spec.Selector, expectedReplicas, constants.VerrazzanoPlatformOperator) {
+		return false, nil
+	}
+
+	return true, nil
 }
