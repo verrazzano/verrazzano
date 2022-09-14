@@ -41,7 +41,7 @@ var opensourcefileslistbydir = map[string][]string{
 }
 
 var fullBundleFileslistbydir = map[string][]string{
-	"top":       {"LICENSE", "README.md", "bin", "images", "manifests"},
+	"top":       {"LICENSE", "README.md", "README.html", "bin", "images", "manifests"},
 	"bin":       {"bom_utils.sh", "darwin-amd64", "darwin-arm64", "linux-amd64", "linux-arm64", "vz-registry-image-helper.sh"},
 	"vz":        {"vz"},
 	"manifests": {"charts", "k8s", "profiles", "verrazzano-bom.json"},
