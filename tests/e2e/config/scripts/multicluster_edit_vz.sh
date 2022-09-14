@@ -15,7 +15,7 @@ yq -i eval '.spec.components.kubeStateMetrics.enabled = true' "${VZ_CR_FILE}"
 yq -i eval '.spec.components.prometheusPushgateway.enabled = true' "${VZ_CR_FILE}"
 yq -i eval '.spec.components.jaegerOperator.enabled = true' "${VZ_CR_FILE}"
 # For managed clusters, enable Jaeger operator and update the istio tracing configuration
-if [ "${CLUSTER_COUNT}" -gt 1 ] ; then
+if [ "${CLUSTER_COUNT}" -gt 1 ] && [ "$CRD_API_VERSION" == "v1alpha1" ]; then
     yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.enableTracing"' "${VZ_CR_FILE}"
     yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "true"' "${VZ_CR_FILE}"
     yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.sampling"' "${VZ_CR_FILE}"
