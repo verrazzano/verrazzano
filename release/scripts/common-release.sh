@@ -13,8 +13,8 @@ if [ -z "$RELEASE_VERSION" ]; then
 fi
 
 # Release artifacts
-declare -a releaseArtifacts=("operator.yaml"
-                             "operator.yaml.sha256"
+declare -a releaseArtifacts=("verrazzano-platform-operator.yaml"
+                             "verrazzano-platform-operator.yaml.sha256"
                              "verrazzano-${RELEASE_VERSION}-darwin-amd64.tar.gz"
                              "verrazzano-${RELEASE_VERSION}-darwin-amd64.tar.gz.sha256"
                              "verrazzano-${RELEASE_VERSION}-darwin-arm64.tar.gz"

@@ -41,6 +41,9 @@ pipeline {
         choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
+        booleanParam (name: 'SKIP_KUBERNETES_UPGRADE',
+            description: 'Skip Kubernetes version upgrade (simulate upgrade, drain and replace worker nodes only)',
+            defaultValue: false)
         string (name: 'GIT_COMMIT_TO_USE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -444,6 +447,11 @@ pipeline {
                             }
                             steps {
                                 sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                            }
+                            post {
+                                failure {
+                                    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+                                }
                             }
                         }
                     }
