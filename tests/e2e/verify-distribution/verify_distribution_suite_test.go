@@ -12,5 +12,5 @@ import (
 
 func TestVerifyDistribution(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Verify Verrazzano Distribution Suite")
+	ginkgo.RunSpecs(t, "Test verify distribution suite")
 }

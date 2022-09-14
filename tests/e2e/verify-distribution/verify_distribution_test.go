@@ -16,11 +16,7 @@ import (
 	"sort"
 )
 
-const SLASH = string(filepath.Separator)
-
-const verrazzanoPrefix = "verrazzano-"
-
-const liteDistribution = "Lite"
+const SLASH = "/"
 
 var variant string
 var vzDevVersion string
@@ -50,6 +46,8 @@ var fullBundleFileslistbydir = map[string][]string{
 
 var t = framework.NewTestFramework("verifydistribution")
 
+var _ = t.AfterEach(func() {})
+
 var _ = t.Describe("Verify VZ distribution", func() {
 
 	variant = os.Getenv("DISTRIBUTION_VARIANT")
@@ -57,17 +55,16 @@ var _ = t.Describe("Verify VZ distribution", func() {
 	tarballRootDir := os.Getenv("TARBALL_ROOT_DIR")
 	repoPath := os.Getenv("GO_REPO_PATH")
 
-	if variant == liteDistribution {
+	if variant == "Lite" {
 		t.Describe("When provided Lite ", func() {
 
 			vzDevVersion = os.Getenv("VERRAZZANO_DEV_VERSION")
-			vzPrefix := verrazzanoPrefix + vzDevVersion
-			var liteBundleZipContents = []string{
-				"verrazzano-platform-operator.yaml", "verrazzano-platform-operator.yaml.sha256", vzPrefix,
-				vzPrefix + "-darwin-amd64.tar.gz", vzPrefix + "-darwin-amd64.tar.gz.sha256",
-				vzPrefix + "-darwin-arm64.tar.gz", vzPrefix + "-darwin-arm64.tar.gz.sha256",
-				vzPrefix + "-linux-amd64.tar.gz", vzPrefix + "-linux-amd64.tar.gz.sha256",
-				vzPrefix + "-linux-arm64.tar.gz", vzPrefix + "-linux-arm64.tar.gz.sha256",
+			var liteBundleZipContens = []string{
+				"operator.yaml", "operator.yaml.sha256", "verrazzano-" + vzDevVersion,
+				"verrazzano-" + vzDevVersion + "-darwin-amd64.tar.gz", "verrazzano-" + vzDevVersion + "-darwin-amd64.tar.gz.sha256",
+				"verrazzano-" + vzDevVersion + "-darwin-arm64.tar.gz", "verrazzano-" + vzDevVersion + "-darwin-arm64.tar.gz.sha256",
+				"verrazzano-" + vzDevVersion + "-linux-amd64.tar.gz", "verrazzano-" + vzDevVersion + "-linux-amd64.tar.gz.sha256",
+				"verrazzano-" + vzDevVersion + "-linux-arm64.tar.gz", "verrazzano-" + vzDevVersion + "-linux-arm64.tar.gz.sha256",
 			}
 			t.It("Verify lite bundle zip contents", func() {
 				filesList := []string{}
@@ -79,7 +76,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				for _, each := range filesInfo {
 					filesList = append(filesList, each.Name())
 				}
-				gomega.Expect(compareSlices(filesList, liteBundleZipContents)).To(gomega.BeTrue())
+				gomega.Expect(compareSlices(filesList, liteBundleZipContens)).To(gomega.BeTrue())
 			})
 
 			t.It("Verify Lite bundle extracted contents", func() {
@@ -128,7 +125,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					eachName = regexSemi.ReplaceAllString(eachName, "-")
 					componentsList = append(componentsList, eachName)
 				}
-				componentsList = removeDuplicate(componentsList)
+				componentsList = RemoveDuplicate(componentsList)
 
 				imagesList := []string{}
 				imagesInfo, err2 := ioutil.ReadDir(generatedPath + allPaths["images"])
@@ -209,7 +206,7 @@ func verifyDistributionByDirectory(inputDir string, key string, variant string) 
 	for _, each := range filesInfo {
 		filesList = append(filesList, each.Name())
 	}
-	if variant == liteDistribution {
+	if variant == "Lite" {
 		fmt.Println("Provided variant is: ", variant)
 		gomega.Expect(compareSlices(filesList, opensourcefileslistbydir[key])).To(gomega.BeTrue())
 	} else {
@@ -237,8 +234,8 @@ func compareSlices(slice1 []string, slice2 []string) bool {
 	return true
 }
 
-// removeDuplicate removes duplicates from origSlice
-func removeDuplicate(origSlice []string) []string {
+// RemoveDuplicate removes duplicates from origSlice
+func RemoveDuplicate(origSlice []string) []string {
 	allKeys := make(map[string]bool)
 	returnSlice := []string{}
 	for _, item := range origSlice {
