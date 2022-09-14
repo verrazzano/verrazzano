@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -133,7 +134,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					eachName = regexSemi.ReplaceAllString(eachName, "-")
 					componentsList = append(componentsList, eachName)
 				}
-				componentsList = removeDuplicate(componentsList)
+				componentsList = helpers.RemoveDuplicate(componentsList)
 
 				imagesList := []string{}
 				imagesInfo, err2 := ioutil.ReadDir(generatedPath + allPaths["images"])
@@ -240,17 +241,4 @@ func compareSlices(slice1 []string, slice2 []string) bool {
 		}
 	}
 	return true
-}
-
-// removeDuplicate removes duplicates from origSlice
-func removeDuplicate(origSlice []string) []string {
-	allKeys := make(map[string]bool)
-	returnSlice := []string{}
-	for _, item := range origSlice {
-		if _, value := allKeys[item]; !value {
-			allKeys[item] = true
-			returnSlice = append(returnSlice, item)
-		}
-	}
-	return returnSlice
 }
