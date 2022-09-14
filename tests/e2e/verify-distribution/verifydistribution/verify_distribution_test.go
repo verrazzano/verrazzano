@@ -41,9 +41,9 @@ var opensourcefileslistbydir = map[string][]string{
 }
 
 var fullBundleFileslistbydir = map[string][]string{
-	"top":       {"LICENSE", "README.md", "README.html", "bin", "images", "manifests"},
-	"bin":       {"bom_utils.sh", "darwin-amd64", "darwin-arm64", "linux-amd64", "linux-arm64", "vz-registry-image-helper.sh"},
-	"vz":        {"vz"},
+	"top": {"LICENSE", "README.md", "README.html", "bin", "images", "manifests"},
+	"bin": {"bom_utils.sh", "darwin-amd64", "darwin-arm64", "linux-amd64", "linux-arm64", "vz-registry-image-helper.sh"},
+	//"vz":        {"vz"},
 	"manifests": {"charts", "k8s", "profiles", "verrazzano-bom.json"},
 	"k8s":       {"verrazzano-platform-operator.yaml"},
 }
@@ -95,10 +95,10 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				verifyDistributionByDirectory(generatedPath+allPaths["top"], "top", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin", variant)
 
-				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/darwin-amd64", "vz", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/darwin-arm64", "vz", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/linux-amd64", "vz", variant)
-				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/linux-arm64", "vz", variant)
+				//verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/darwin-amd64", "vz", variant)
+				//verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/darwin-arm64", "vz", variant)
+				//verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/linux-amd64", "vz", variant)
+				//verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/linux-arm64", "vz", variant)
 
 				verifyDistributionByDirectory(generatedPath+allPaths["manifests"], "manifests", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["k8s"], "k8s", variant)
