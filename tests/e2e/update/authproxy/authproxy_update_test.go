@@ -4,17 +4,16 @@
 package authproxy
 
 import (
-	v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	. "github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 const (
@@ -53,16 +52,17 @@ func (u AuthProxyReplicasModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (u AuthProxyReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+	var valueReplicas map[string]interface{}
 	if cr.Spec.Components.AuthProxy == nil {
 		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
 	}
-	if cr.Spec.Components.AuthProxy.Kubernetes == nil {
-		cr.Spec.Components.AuthProxy.Kubernetes = &v1beta1.AuthProxyKubernetesSection{}
+	if cr.Spec.Components.AuthProxy.ValueOverrides == nil {
+		_ = json.Unmarshal(cr, &valueReplicas)
+		cr.Spec.Components.AuthProxy.ValueOverrides[0].Values, _ =
 	}
-	cr.Spec.Components.AuthProxy.Kubernetes.Replicas = u.replicas
 }
 
-func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+/*func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	if cr.Spec.Components.AuthProxy == nil {
 		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
 	}
@@ -92,7 +92,7 @@ func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.V
 		TopologyKey: "kubernetes.io/hostname",
 	})
 	cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = list
-}
+}*/
 
 func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.AuthProxy == nil {
@@ -187,7 +187,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 		})
 	})
 
-	t.Describe("verrazzano-authproxy update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
+	/*	t.Describe("verrazzano-authproxy update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
 			m := AuthProxyReplicasModifierV1beta1{replicas: nodeCount}
 			err := update.UpdateCRV1beta1(m)
@@ -198,7 +198,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			expectedRunning := nodeCount
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
-	})
+	})*/
 
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
