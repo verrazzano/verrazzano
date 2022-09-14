@@ -581,7 +581,7 @@ spec:
               verrazzano.io/namespace: mysql-operator
           podSelector:
             matchLabels:
-              app: mysql-operator
+              name: mysql-operator
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: ingress-nginx
