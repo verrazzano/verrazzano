@@ -30,8 +30,9 @@ function get_bom_from_release() {
     local tmpDir=$(mktemp -d)
 
     # Download the operator.yaml for the release and get the platform-operator image and tag
-    gh release download ${releaseTag} -p 'operator.yaml' -D ${tmpDir}
-    local image=$(grep "verrazzano-platform-operator:" ${tmpDir}/operator.yaml | grep "image:" -m 1 | xargs | cut -d' ' -f 2)
+    local operator_yaml=$(derive_platform_operator "$releaseTag")
+    gh release download ${releaseTag} -p '${operator_yaml}' -D ${tmpDir}
+    local image=$(grep "verrazzano-platform-operator:" ${tmpDir}/${operator_yaml} | grep "image:" -m 1 | xargs | cut -d' ' -f 2)
 
     # Create a container from the image and copy the BOM from the container
     local containerId=$(docker create ${image})
@@ -64,6 +65,19 @@ function publish_results() {
     OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/details.zip --file ${WORKSPACE}/${resultName}-details.zip
 }
 
+# Read the value for a given key from effective.config.json
+function derive_platform_operator() {
+  local release_tag="$1"
+
+  # Remove prefix v from version
+  local version_num=${release_tag:1}
+
+  # Verrazzano distribution from 1.4.0 release replaces operator.yaml with verrazzano-platform-operator.yaml in release assets
+  local version_14=1.4.0
+  local operator_yaml=$(echo ${VERSION_NUM} ${VERSION_14} | awk '{if ($1 < $2) print "operator.yaml"; else print "verrazzano-platform-operator.yaml"}')
+  echo $operator_yaml
+  return 0
+}
 
 BOM_DIR=${WORKSPACE}/boms
 mkdir -p ${BOM_DIR}
