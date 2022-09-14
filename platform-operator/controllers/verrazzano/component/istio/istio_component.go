@@ -328,7 +328,7 @@ func (i istioComponent) validateForExternalIPSWithNodePortV1Beta1(vz *installv1b
 
 	nodePort := string(installv1beta1.NodePort)
 	// look for externalIPs if NodePort
-	err := vzconfig.CheckExternalIPsOverridesArgsWithPaths(vz.Components.Istio.ValueOverrides, specServiceJsonPath, typeJsonPathSuffix, nodePort, externalIPJsonPathSuffix, i.Name())
+	err := vzconfig.CheckExternalIPsOverridesArgsWithPaths(vz.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, nodePort, externalIPJsonPathSuffix, i.Name())
 	if err != nil {
 		return err
 	}
