@@ -262,7 +262,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 	return nil
 }
 
-/// analyseIstioIngressService generates an issue report if the Istio Ingress Service lacks an external IP
+// analyseIstioIngressService generates an issue report if the Istio Ingress Service lacks an external IP
 func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
 	istioServicesFile := files.FindFileInNamespace(clusterRoot, istioSystem, servicesJSON)
 	serviceList, err := GetServiceList(log, istioServicesFile)
