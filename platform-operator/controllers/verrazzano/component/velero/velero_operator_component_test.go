@@ -203,53 +203,13 @@ func TestValidateMethods(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "singleOverride",
-			vz: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						Velero: &v1alpha1.VeleroComponent{
-							Enabled: &enabled,
-							InstallOverrides: v1alpha1.InstallOverrides{
-								ValueOverrides: []v1alpha1.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(validOverrideJSON),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:    "singleOverride",
+			vz:      getSingleOverrideCR(),
 			wantErr: false,
 		},
 		{
-			name: "multipleOverrides",
-			vz: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						Velero: &v1alpha1.VeleroComponent{
-							Enabled: &enabled,
-							InstallOverrides: v1alpha1.InstallOverrides{
-								ValueOverrides: []v1alpha1.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(validOverrideJSON),
-										},
-										ConfigMapRef: &corev1.ConfigMapKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "overrideConfigMapSecretName",
-											},
-											Key: "Key",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:    "multipleOverrides",
+			vz:      getMultipleOverrideCR(),
 			wantErr: true,
 		},
 	}
@@ -272,5 +232,53 @@ func TestValidateMethods(t *testing.T) {
 				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func getSingleOverrideCR() *v1alpha1.Verrazzano {
+	return &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Velero: &v1alpha1.VeleroComponent{
+					Enabled: &enabled,
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(validOverrideJSON),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getMultipleOverrideCR() *v1alpha1.Verrazzano {
+	return &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Velero: &v1alpha1.VeleroComponent{
+					Enabled: &enabled,
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(validOverrideJSON),
+								},
+								ConfigMapRef: &corev1.ConfigMapKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "overrideConfigMapSecretName",
+									},
+									Key: "Key",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }

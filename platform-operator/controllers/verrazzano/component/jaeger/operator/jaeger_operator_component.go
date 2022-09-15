@@ -160,36 +160,28 @@ func (c jaegerOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 // ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
 func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
-
 	convertedVZNew := installv1beta1.Verrazzano{}
 	convertedVZOld := installv1beta1.Verrazzano{}
-
 	if err := common.ConvertVerrazzanoCR(new, &convertedVZNew); err != nil {
 		return err
 	}
-
 	if err := common.ConvertVerrazzanoCR(old, &convertedVZOld); err != nil {
 		return err
 	}
-
 	if err := c.HelmComponent.ValidateUpdateV1Beta1(&convertedVZOld, &convertedVZNew); err != nil {
 		return err
 	}
-
 	return c.validateJaegerOperator(&convertedVZNew)
 }
 
 // ValidateInstallV1Beta1 validates the installation of the Verrazzano CR
 func (c jaegerOperatorComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-
 	if err := c.HelmComponent.ValidateInstallV1Beta1(vz); err != nil {
 		return err
 	}
-
 	return c.validateJaegerOperator(vz)
 }
 
@@ -198,11 +190,9 @@ func (c jaegerOperatorComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verra
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
-
 	if err := c.HelmComponent.ValidateUpdateV1Beta1(old, new); err != nil {
 		return err
 	}
-
 	return c.validateJaegerOperator(new)
 }
 
@@ -237,7 +227,6 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // Upgrade jaegeroperator component for upgrade processing.
 func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
-
 	return c.HelmComponent.Install(ctx)
 }
 

@@ -1020,60 +1020,20 @@ func getVZCRWithDefaultJaegerOverride(jaegerCROverride string) *vzapi.Verrazzano
 	}
 }
 
-func TestValidateBetaInstall(t *testing.T) {
+func TestValidateBetaMethods(t *testing.T) {
 	tests := []struct {
 		name    string
 		vz      *v1beta1.Verrazzano
 		wantErr bool
 	}{
 		{
-			name: "singleOverride",
-			vz: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						JaegerOperator: &v1beta1.JaegerOperatorComponent{
-							Enabled: &enabled,
-							InstallOverrides: v1beta1.InstallOverrides{
-								ValueOverrides: []v1beta1.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(validOverrideJSON),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:    "singleOverride",
+			vz:      getSingleOverrideCR(),
 			wantErr: false,
 		},
 		{
-			name: "multipleOverrides",
-			vz: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						JaegerOperator: &v1beta1.JaegerOperatorComponent{
-							Enabled: &enabled,
-							InstallOverrides: v1beta1.InstallOverrides{
-								ValueOverrides: []v1beta1.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(validOverrideJSON),
-										},
-										ConfigMapRef: &corev1.ConfigMapKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "overrideConfigMapSecretName",
-											},
-											Key: "Key",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:    "multipleOverrides",
+			vz:      getMultipleOverrideCR(),
 			wantErr: true,
 		},
 	}
@@ -1087,5 +1047,53 @@ func TestValidateBetaInstall(t *testing.T) {
 				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func getSingleOverrideCR() *v1beta1.Verrazzano {
+	return &v1beta1.Verrazzano{
+		Spec: v1beta1.VerrazzanoSpec{
+			Components: v1beta1.ComponentSpec{
+				JaegerOperator: &v1beta1.JaegerOperatorComponent{
+					Enabled: &enabled,
+					InstallOverrides: v1beta1.InstallOverrides{
+						ValueOverrides: []v1beta1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(validOverrideJSON),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getMultipleOverrideCR() *v1beta1.Verrazzano {
+	return &v1beta1.Verrazzano{
+		Spec: v1beta1.VerrazzanoSpec{
+			Components: v1beta1.ComponentSpec{
+				JaegerOperator: &v1beta1.JaegerOperatorComponent{
+					Enabled: &enabled,
+					InstallOverrides: v1beta1.InstallOverrides{
+						ValueOverrides: []v1beta1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(validOverrideJSON),
+								},
+								ConfigMapRef: &corev1.ConfigMapKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "overrideConfigMapSecretName",
+									},
+									Key: "Key",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }

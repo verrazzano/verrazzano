@@ -318,7 +318,7 @@ func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) 
 	return validateInstallOverrides(cr.Spec.Components.JaegerOperator.ValueOverrides, client)
 }
 
-// validateInstallOverrides converts given overrides to YAML format and then validates that they contain only values that are not forbidden to override.
+// validateInstallOverrides validates that the overrides contain only values that are allowed for override
 func validateInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
 	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
 	if err != nil {
