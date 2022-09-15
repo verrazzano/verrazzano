@@ -175,6 +175,28 @@ func TestLBIpNotFound(t *testing.T) {
 	assert.True(t, problemsFound > 0)
 }
 
+// TestIstioLBIpNotFound Tests that analysis of a cluster dump where no Istio Gateway IP was found
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows services with external IP problems
+// THEN a report is generated with issues identified
+func TestIstioLBIpNotFound(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/istio-ingress-ip-not-found")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.IstioIngressNoIP {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}
+
 // TODO: Enable this test once there is a cluster dump for this use case
 // TestIngressInstall Tests that analysis of a cluster dump where Ingress install failed without more info handled
 // GIVEN a call to analyze a cluster-snapshot
