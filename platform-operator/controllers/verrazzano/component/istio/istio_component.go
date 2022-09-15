@@ -69,6 +69,16 @@ const istiodIstioSystem = "istiod-istio-system"
 
 const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 
+const (
+	//ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
+	// Put external IPs into the IstioOperator YAML, which does support it
+	ExternalIPArg            = "gateways.istio-ingressgateway.externalIPs"
+	specServiceJSONPath      = "spec.components.ingressGateways.0.k8s.service"
+	externalIPJsonPathSuffix = "externalIPs.0"
+	typeJSONPathSuffix       = "type"
+	externalIPJsonPath       = specServiceJSONPath + "." + externalIPJsonPathSuffix
+)
+
 // istioComponent represents an Istio component
 type istioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
