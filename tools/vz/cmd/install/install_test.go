@@ -33,6 +33,8 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -53,6 +55,8 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -71,6 +75,8 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 
 	// Run install command
 	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
 	err := cmd.Execute()
 	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
@@ -88,6 +94,8 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 
 	// Run install command
 	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
 	err := cmd.Execute()
 	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
@@ -104,6 +112,8 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -138,6 +148,9 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/v1beta1.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -163,6 +176,8 @@ func TestInstallCmdFilenames(t *testing.T) {
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -185,6 +200,8 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml,../../test/testdata/override-components.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -209,6 +226,8 @@ func TestInstallCmdSets(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -237,6 +256,8 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[1].values.controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"=10Mbps")
 	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.enabled=true")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -271,6 +292,8 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "../../test/testdata/operator-file-fake.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	SetDeleteFunc(FakeDeleteFunc)
+	defer SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
