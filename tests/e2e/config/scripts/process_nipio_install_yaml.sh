@@ -16,10 +16,15 @@ elif [ $INSTALL_PROFILE == "dev" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
 fi
 yq -i eval ".spec.components.dns.wildcard.domain = \"${DNS_WILDCARD_DOMAIN}\"" ${INSTALL_CONFIG_TO_EDIT}
 
-if [ -n "${SYSTEM_LOG_ID}" ]; then
+if [ -n "${SYSTEM_LOG_ID}" ] && [ $CRD_API_VERSION == "v1alpha1" ]; then
   yq -i eval ".spec.components.fluentd.oci.systemLogId = \"${SYSTEM_LOG_ID}\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.fluentd.oci.defaultAppLogId = \"${APP_LOG_ID}\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.elasticsearch.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.kibana.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
+elif [ -n "${SYSTEM_LOG_ID}" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
+  yq -i eval ".spec.components.fluentd.oci.systemLogId = \"${SYSTEM_LOG_ID}\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.fluentd.oci.defaultAppLogId = \"${APP_LOG_ID}\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.opensearch.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.opensearchDashboards.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
 fi
 cat ${INSTALL_CONFIG_TO_EDIT}

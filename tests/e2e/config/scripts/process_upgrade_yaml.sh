@@ -18,7 +18,13 @@ if version_ge $VERSION "1.3.0"; then
     yq -i eval '.spec.components.istio.ingress.kubernetes.replicas = 3' ${CR_FILE}
     yq -i eval '.spec.components.istio.egress.kubernetes.replicas = 3' ${CR_FILE}
   elif [ "$CRD_API_VERSION" == "v1beta1" ]; then
-    yq -i eval '.spec.components.istio.overrides.[0].values.ingressNGINX.spec.ingressGateways.k8s = 3' ${CR_FILE}
-    yq -i eval '.spec.components.istio.overrides.[0].values.egressga.replicas = 3' ${CR_FILE}
+    yq -i eval '.spec.components.istio.overrides.[0].values.apiVersion = "install.istio.io/v1alpha1"' ${CR_FILE}
+    yq -i eval '.spec.components.istio.overrides.[0].values.kind = "IstioOperator"' ${CR_FILE}
+    yq -i eval '.spec.components.istio.overrides.[0].values.spec.components.ingressGateways.[0].enabled = true' ${CR_FILE}
+    yq -i eval '.spec.components.istio.overrides.[0].values.spec.components.ingressGateways.[0].k8s.replicaCount = 3' ${CR_FILE}
+    yq -i eval '.spec.components.istio.overrides.[0].values.spec.components.ingressGateways.[0].name = "istio-ingressgateway"' ${CR_FILE}
+    yq -i eval '.spec.components.istio.overrides.[0].values.spec.components.egressGateways.[0].enabled = true' ${CR_FILE}
+    yq -i eval '.spec.components.istio.overrides.[0].values.spec.components.egressGateways.[0].k8s.replicaCount = 3' ${CR_FILE}
+    yq -i eval '.spec.components.istio.overrides.[0].values.spec.components.egressGateways.[0].name = "istio-egressgateway"' ${CR_FILE}
   fi
 fi

@@ -241,8 +241,14 @@ pipeline {
                             yq -i eval '.spec.components.grafana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.console.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
+                        script {
+                            if(params.CRD_API_VERSION == "v1alpha1"){
+                                scriptForPrepareATEnvironmentV1alpha1()
+                            }else{
+                                scriptForPrepareATEnvironmentV1beta1()
+                            }
+                        }
                     }
                     post {
                         success {
@@ -293,21 +299,23 @@ pipeline {
                             yq -i eval '.spec.components.kiali.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.rancher.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                            yq -i eval '.spec.components.ingress.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.istio.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.applicationOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.fluentd.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                            yq -i eval '.spec.components.elasticsearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                            yq -i eval '.spec.components.kibana.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.console.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                            kubectl apply -f ${WORKSPACE}/vz-update1.yaml
-                            ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
                         """
+                        script {
+                            if(params.CRD_API_VERSION == "v1alpha1"){
+                                vzUpdateComponentsV1alpha1()
+                            }else{
+                                vzUpdateComponentsV1beta1()
+                            }
+                        }
                     }
                     post {
                         always {
@@ -981,4 +989,54 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomize('jobmetrics')
+}
+
+// Update1 enables disabled components except WLS/COH
+def vzUpdateComponentsV1alpha1(){
+
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.ingress.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.elasticsearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.kibana.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        kubectl apply -f ${WORKSPACE}/vz-update1.yaml
+        ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
+    """
+}
+
+// Update1 enables disabled components except WLS/COH
+def vzUpdateComponentsV1beta1(){
+
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.ingressNGINX.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.opensearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        kubectl apply -f ${WORKSPACE}/vz-update1.yaml
+        ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
+    """
+}
+
+def scriptForPrepareATEnvironmentV1beta1(){
+
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        yq -i eval '.spec.components.ingressNGINX.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        yq -i eval '.spec.components.opensearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+    """
+}
+
+def scriptForPrepareATEnvironmentV1alpha1(){
+
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        yq -i eval '.spec.components.ingress.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        yq -i eval '.spec.components.elasticsearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        yq -i eval '.spec.components.kibana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+    """
 }
