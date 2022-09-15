@@ -4,7 +4,6 @@
 package string
 
 import (
-	"fmt"
 	"sort"
 )
 
@@ -73,12 +72,10 @@ func CompareTwoSlices(slice1 []string, slice2 []string) bool {
 	sort.Strings(slice2)
 
 	if len(slice1) != len(slice2) {
-		fmt.Printf("Length mismatched for %s and %s", slice1, slice2)
 		return false
 	}
 	for i, v := range slice1 {
 		if v != slice2[i] {
-			fmt.Printf("%s != %s", slice1, slice2)
 			return false
 		}
 	}
