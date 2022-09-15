@@ -315,15 +315,11 @@ func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) 
 	if err != nil {
 		return err
 	}
-	// Validate install overrides for v1beta1
 	return validateInstallOverrides(cr.Spec.Components.JaegerOperator.ValueOverrides, client)
 }
 
-// validateInstallOverrides validates the v1beta1 install overrides (v1beta1.Overrides) configured for Jaeger component
+// validateInstallOverrides validates that the overrides contain only values that are allowed for override
 func validateInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
-	if err := v1alpha1.ValidateInstallOverridesV1Beta1(overrides); err != nil {
-		return err
-	}
 	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
 	if err != nil {
 		return err

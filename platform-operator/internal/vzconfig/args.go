@@ -65,6 +65,29 @@ func CheckExternalIPsOverridesArgs(overrides []v1beta1.Overrides, jsonPath, comp
 	return nil
 }
 
+// CheckExternalIPsOverridesArgsWithPaths method goes through the key-value pair to detect the presence of the
+// specific keys for the corresponding component that holds the Service type and external IP address
+// It checks whether the service is of a specific type.
+// It also checks whether IP addresses are valid and provided in a List format
+func CheckExternalIPsOverridesArgsWithPaths(overrides []v1beta1.Overrides, jsonBasePath, serviceTypePath, serviceTypeValue, externalIPPath, compName string) error {
+	for _, override := range overrides {
+		o, err := gabs.ParseJSON(override.Values.Raw)
+		if err != nil {
+			return err
+		}
+		typePathFull := jsonBasePath + "." + serviceTypePath
+		externalIPPathFull := jsonBasePath + "." + externalIPPath
+		if typePathContainer := o.Path(typePathFull); typePathContainer != nil && typePathContainer.Data().(string) == serviceTypeValue {
+			if externalIPPathContainer := o.Path(externalIPPathFull); externalIPPathContainer != nil {
+				if err := validateExternalIP([]string{externalIPPathContainer.Data().(string)}, externalIPPathFull, compName); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func validateExternalIP(addresses []string, key, compName string) error {
 	if len(addresses) < 1 {
 		return fmt.Errorf("At least one %s external IPs need to be set as an array for the key \"%v\"", compName, key)

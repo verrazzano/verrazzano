@@ -128,8 +128,8 @@ func (v veleroHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isVeleroOperatorReady(ctx)
 }
 
-func (v veleroHelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
-	return nil
+func (v veleroHelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return v.HelmComponent.ValidateInstall(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
@@ -142,7 +142,7 @@ func (v veleroHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 
 // ValidateUpgrade verifies the install of the Verrazzano object
 func (v veleroHelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	return v.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object

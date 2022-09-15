@@ -6,11 +6,12 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
@@ -595,7 +596,7 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second()),
 	}
-	cr.Status.Conditions = append(cr.Status.Conditions, condition)
+	cr.Status.Conditions = appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
 
 	// Set the state of resource
 	cr.Status.State = conditionToVzState(conditionType)
@@ -626,7 +627,7 @@ func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *inst
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second()),
 	}
-	cr.Status.Conditions = append(cr.Status.Conditions, condition)
+	cr.Status.Conditions = appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
 
 	// Set the state of resource
 	cr.Status.State = state
@@ -685,7 +686,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 			componentStatus.ReconcilingGeneration = cr.Generation
 		}
 	}
-	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)
+	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus.Name, componentStatus.Conditions, condition)
 
 	// Set the state of resource
 	componentStatus.State = checkCondtitionType(conditionType)
@@ -703,15 +704,26 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	return r.updateVerrazzanoStatus(log, cr)
 }
 
-func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
-	for i, existingCondition := range compStatus.Conditions {
+func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string, conditions []installv1alpha1.Condition, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
+	found := false
+	var newConditionsList []installv1alpha1.Condition
+	for i, existingCondition := range conditions {
 		if existingCondition.Type == newCondition.Type {
-			compStatus.Conditions[i] = newCondition
-			return compStatus.Conditions
+			if !found {
+				// If there are duplicates from a legacy VZ resource, only copy the new condition, not
+				// any of the existing ones.
+				newConditionsList = append(newConditionsList, newCondition)
+				found = true
+			}
+		} else {
+			newConditionsList = append(newConditionsList, conditions[i])
 		}
 	}
-	log.Debugf("Adding %s resource newCondition: %v", compStatus.Name, newCondition.Type)
-	return append(compStatus.Conditions, newCondition)
+	log.Debugf("Adding %s resource newCondition: %v", resourceName, newCondition.Type)
+	if !found {
+		newConditionsList = append(newConditionsList, newCondition)
+	}
+	return newConditionsList
 }
 
 func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.CompStateType {
@@ -1117,6 +1129,8 @@ func (r *Reconciler) updateVerrazzano(log vzlog.VerrazzanoLogger, vz *installv1a
 	}
 	if ctrlerrors.IsUpdateConflict(err) {
 		log.Info("Requeuing to get a new copy of the Verrazzano resource since the current one is outdated.")
+	} else if statusErr, ok := err.(*errors.StatusError); ok && strings.Contains(statusErr.Status().Message, "conversion webhook") {
+		log.Oncef("Timed out connecting to conversion webhook")
 	} else {
 		log.Errorf("Failed to update Verrazzano resource :v", err)
 	}
@@ -1138,7 +1152,7 @@ func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *inst
 	return err
 }
 
-//AddWatch adds a component to the watched set
+// AddWatch adds a component to the watched set
 func (r *Reconciler) AddWatch(name string) {
 	r.WatchMutex.Lock()
 	defer r.WatchMutex.Unlock()
@@ -1151,7 +1165,7 @@ func (r *Reconciler) ClearWatch(name string) {
 	delete(r.WatchedComponents, name)
 }
 
-//IsWatchedComponent checks if a component is watched or not
+// IsWatchedComponent checks if a component is watched or not
 func (r *Reconciler) IsWatchedComponent(compName string) bool {
 	r.WatchMutex.RLock()
 	defer r.WatchMutex.RUnlock()

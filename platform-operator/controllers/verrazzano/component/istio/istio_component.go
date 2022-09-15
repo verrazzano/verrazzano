@@ -274,7 +274,7 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	return i.validateForExternalIPSWithNodePort(&new.Spec)
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+// ValidateUpdateV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
 func (i istioComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
@@ -285,17 +285,18 @@ func (i istioComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, ne
 			return err
 		}
 	}
-	return nil
+
+	return i.validateForExternalIPSWithNodePortV1Beta1(&new.Spec)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i istioComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
 	if vz.Spec.Components.Istio != nil {
 		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.Istio.ValueOverrides); err != nil {
 			return err
 		}
 	}
-	return nil
+	return i.validateForExternalIPSWithNodePortV1Beta1(&vz.Spec)
 }
 
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
@@ -313,6 +314,23 @@ func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 	// look for externalIPs if NodePort
 	if vz.Components.Istio.Ingress.Type == vzapi.NodePort {
 		return vzconfig.CheckExternalIPsArgs(vz.Components.Istio.IstioInstallArgs, vz.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, i.Name())
+	}
+
+	return nil
+}
+
+// validateForExternalIPSWithNodePortV1Beta1 checks that externalIPs are set when Type=NodePort
+func (i istioComponent) validateForExternalIPSWithNodePortV1Beta1(vz *installv1beta1.VerrazzanoSpec) error {
+	// good if istio is not set
+	if vz.Components.Istio == nil {
+		return nil
+	}
+
+	nodePort := string(installv1beta1.NodePort)
+	// look for externalIPs if NodePort
+	err := vzconfig.CheckExternalIPsOverridesArgsWithPaths(vz.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, nodePort, externalIPJsonPathSuffix, i.Name())
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -397,7 +415,7 @@ func (i istioComponent) GetDependencies() []string {
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 	if vzconfig.IsApplicationOperatorEnabled(context.ActualCR()) {
-		context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
+		context.Log().Infof("Stopping WebLogic domains that have the old Envoy sidecar")
 		if err := StopDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
 			return err
 		}

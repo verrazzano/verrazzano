@@ -235,7 +235,8 @@ pipeline {
                         success {
                             sh """
                                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file ${WORKSPACE}/downloaded-verrazzano-bom.json
-                                ${GO_REPO_PATH}/verrazzano/tools/scripts/generate_image_list.sh $WORKSPACE/downloaded-verrazzano-bom.json $WORKSPACE/verrazzano_images.txt
+                                ${GO_REPO_PATH}/verrazzano/tools/scripts/generate_image_list.sh $WORKSPACE/downloaded-verrazzano-bom.json $WORKSPACE/generated_verrazzano_images.txt
+                                cat $WORKSPACE/generated_verrazzano_images.txt | cut -d/ -f2- | sort -u > $WORKSPACE/verrazzano_images.txt
                             """
                         }
                         always {
