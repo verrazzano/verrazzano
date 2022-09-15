@@ -176,8 +176,10 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 			})
 		} else if pkg.IsProdProfile() {
 			t.It("Prod install profile", func() {
-				// 50 GB Persistent Volume create for MySQL in a prod install
-				expectedClaims := 1
+				// Expect the number of claims to be equal to the number of MySQL replicas
+				mysqlStatefulSet, err := pkg.GetStatefulSet("keycloak", "mysql")
+				Expect(err).ShouldNot(HaveOccurred(), "Unexpected error obtaining MySQL statefulset")
+				expectedClaims := int(mysqlStatefulSet.Status.Replicas)
 				Expect(len(volumeClaims)).To(Equal(expectedClaims))
 				assertPersistentVolume(claimName, size)
 			})
