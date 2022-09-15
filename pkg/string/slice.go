@@ -4,6 +4,7 @@
 package string
 
 import (
+	"go.uber.org/zap"
 	"sort"
 )
 
@@ -70,12 +71,15 @@ func SliceAddString(slice []string, s string) ([]string, bool) {
 func CompareTwoSlices(slice1 []string, slice2 []string) bool {
 	sort.Strings(slice1)
 	sort.Strings(slice2)
+	log := zap.S().With("test")
 
 	if len(slice1) != len(slice2) {
+		log.Infof("Lengths mismatched for %s and %s", slice1, slice2)
 		return false
 	}
 	for i, v := range slice1 {
 		if v != slice2[i] {
+			log.Infof("%s != %s", slice1, slice2)
 			return false
 		}
 	}
