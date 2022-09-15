@@ -356,7 +356,7 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 // +enables or disables Keycloak Auth provider.
 func configureAuthProviders(ctx spi.ComponentContext) error {
 	log := ctx.Log()
-	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) {
+	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) && isKeycloakAuthEnabled(ctx.ActualCR()) {
 		if err := configureKeycloakOIDC(ctx); err != nil {
 			return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
 		}
@@ -380,10 +380,6 @@ func configureAuthProviders(ctx spi.ComponentContext) error {
 		if err := disableFirstLogin(ctx); err != nil {
 			return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
 		}
-	}
-
-	if err := disableOrEnableAuthProvider(ctx, common.AuthConfigKeycloak); err != nil {
-		return log.ErrorfThrottledNewErr("failed enabling or disabling auth providers: %s", err.Error())
 	}
 
 	return nil

@@ -557,6 +557,7 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
 	authConfig[AuthConfigKeycloakAttributeIssuer] = keycloakURL + AuthConfigKeycloakURLPathIssuer
 	authConfig[AuthConfigKeycloakAttributeRancherURL] = rancherURL + AuthConfigKeycloakURLPathVerifyAuth
+	authConfig[AuthConfigAttributeEnabled] = AuthConfigAttributeEnabled
 
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }
@@ -654,29 +655,6 @@ func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterR
 	data[ClusterRoleTemplateBindingAttributeRoleTemplateName] = clusterRole
 
 	return createOrUpdateResource(ctx, nsn, GVKClusterRoleTemplateBinding, data)
-}
-
-// disableOrEnableAuthProvider disables Keycloak as an Auth Provider
-func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string) error {
-	log := ctx.Log()
-	c := ctx.Client()
-	enableKeycloak := isKeycloakAuthEnabled(ctx.ActualCR())
-	authConfig := unstructured.Unstructured{}
-	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
-	authConfigName := types.NamespacedName{Name: name}
-	err := c.Get(context.Background(), authConfigName, &authConfig)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, unable to fetch, error: %s", enableKeycloak, name, err.Error())
-	}
-
-	authConfigData := authConfig.UnstructuredContent()
-	authConfigData[AuthConfigAttributeEnabled] = enableKeycloak
-	err = c.Update(context.Background(), &authConfig, &client.UpdateOptions{})
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, error: %s", enableKeycloak, name, err.Error())
-	}
-
-	return nil
 }
 
 // disableFirstLogin disables the verrazzano user first log in
