@@ -44,6 +44,24 @@ var vpoWaitRetries = vpoDefaultWaitRetries
 func SetVpoWaitRetries(retries int) { vpoWaitRetries = retries }
 func ResetVpoWaitRetries()          { vpoWaitRetries = vpoDefaultWaitRetries }
 
+// deleteLeftoverPlatformOperatorSig is a function needed for unit test override
+type deleteLeftoverPlatformOperatorSig func(client clipkg.Client) error
+
+// deleteFunc is the default deleteLeftoverPlatformOperator function
+var DeleteFunc deleteLeftoverPlatformOperatorSig = deleteLeftoverPlatformOperator
+
+func SetDeleteFunc(f deleteLeftoverPlatformOperatorSig) {
+	DeleteFunc = f
+}
+
+func SetDefaultDeleteFunc() {
+	DeleteFunc = deleteLeftoverPlatformOperator
+}
+
+func FakeDeleteFunc(client clipkg.Client) error {
+	return nil
+}
+
 // UsePlatformOperatorUninstallJob determines whether the version of the platform operator is using an uninstall job.
 // The uninstall job was removed with Verrazzano 1.4.0.
 func UsePlatformOperatorUninstallJob(client clipkg.Client) (bool, error) {
@@ -351,4 +369,21 @@ func vpoIsReady(client clipkg.Client) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// deleteLeftoverPlatformOperator deletes leftover verrazzano-operator deployment after an abort.
+// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with an updated caBundle.
+func deleteLeftoverPlatformOperator(client clipkg.Client) error {
+	vpoDeployment := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+	}
+	if err := client.Delete(context.TODO(), &vpoDeployment); err != nil {
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("Failed to delete leftover verrazzano-operator deployement: %s", err.Error())
+		}
+	}
+	return nil
 }

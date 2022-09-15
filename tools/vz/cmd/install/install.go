@@ -6,13 +6,9 @@ package install
 import (
 	"context"
 	"fmt"
-	vzConstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"strings"
@@ -60,24 +56,6 @@ metadata:
 EOF`, version.GetCLIVersion())
 
 var logsEnum = cmdhelpers.LogFormatSimple
-
-// deleteLeftoverPlatformOperatorSig is a function needed for unit test override
-type deleteLeftoverPlatformOperatorSig func(client clipkg.Client) error
-
-// deleteFunc is the default deleteLeftoverPlatformOperator function
-var deleteFunc deleteLeftoverPlatformOperatorSig = deleteLeftoverPlatformOperator
-
-func SetDeleteFunc(f deleteLeftoverPlatformOperatorSig) {
-	deleteFunc = f
-}
-
-func SetDefaultDeleteFunc() {
-	deleteFunc = deleteLeftoverPlatformOperator
-}
-
-func FakeDeleteFunc(client clipkg.Client) error {
-	return nil
-}
 
 func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -191,8 +169,8 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		}
 
 		// Delete leftover verrazzano-operator deployment after an abort.
-		// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with an updated caBundle.
-		err = deleteFunc(client)
+		// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with the correct caBundle.
+		err = cmdhelpers.DeleteFunc(client)
 		if err != nil {
 			return err
 		}
@@ -283,23 +261,6 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 
 	// Return the merged verrazzano install resource to be created
 	return vz, nil
-}
-
-// deleteLeftoverPlatformOperator deletes leftover verrazzano-operator deployment after an abort.
-// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with an updated caBundle.
-func deleteLeftoverPlatformOperator(client clipkg.Client) error {
-	vpoDeployment := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzConstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-		},
-	}
-	if err := client.Delete(context.TODO(), &vpoDeployment); err != nil {
-		if !errors.IsNotFound(err) {
-			return fmt.Errorf("Failed to delete leftover verrazzano-operator deployement: %s", err.Error())
-		}
-	}
-	return nil
 }
 
 // generateYAMLForSetFlags creates a YAML string from a map of property value pairs representing --set flags

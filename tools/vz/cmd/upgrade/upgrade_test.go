@@ -37,6 +37,8 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -61,6 +63,8 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -110,6 +114,8 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
@@ -138,6 +144,8 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -163,6 +171,8 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "../../test/testdata/operator-file-fake.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	installcmd "github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -211,8 +212,8 @@ func installVZ(t *testing.T, c client.WithWatch) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
-	installcmd.SetDeleteFunc(installcmd.FakeDeleteFunc)
-	defer installcmd.SetDefaultDeleteFunc()
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
