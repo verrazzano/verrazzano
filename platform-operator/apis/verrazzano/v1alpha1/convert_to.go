@@ -109,7 +109,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		return v1beta1.ComponentSpec{}, err
 	}
 	return v1beta1.ComponentSpec{
-		CertManager:            convertCertManagerToV1Beta1(src.CertManager),
+		CertManager:            ConvertCertManagerToV1Beta1(src.CertManager),
 		CoherenceOperator:      convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
 		AuthProxy:              authProxyComponent,
@@ -140,7 +140,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	}, nil
 }
 
-func convertCertManagerToV1Beta1(src *CertManagerComponent) *v1beta1.CertManagerComponent {
+func ConvertCertManagerToV1Beta1(src *CertManagerComponent) *v1beta1.CertManagerComponent {
 	if src == nil {
 		return nil
 	}

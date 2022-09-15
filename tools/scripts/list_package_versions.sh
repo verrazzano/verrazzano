@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # tools/scripts/list_package_versions.sh list|table [<github-usernsame>:<github-token>]
@@ -33,7 +33,7 @@ function available_versions() {
     TAGS_FILE="$TMP_DIR/tags_$1.json"
     RES="${4:-tags}"
     if [ ! -f "$TAGS_FILE" ]; then
-        curl -s $GH_CRED -H "Accept: application/json" https://api.github.com/repos/$2/$1/$RES?per_page=$TAGS_SIZE > $TAGS_FILE
+        curl -L -s $GH_CRED -H "Accept: application/json" https://api.github.com/repos/$2/$1/$RES?per_page=$TAGS_SIZE > $TAGS_FILE
     fi
     local versions
     if [ -z "$4" ]; then
@@ -109,21 +109,32 @@ function package_versions() {
     fi
 }
 
-# package_versions <component> <owner> [imageInBOM-component] [tags|releases]
-package_versions cert-manager jetstack cert-manager-controller
-package_versions configmap-reload jimmidyson
-package_versions coredns coredns
-package_versions elasticsearch elastic
+package_versions alertmanager prometheus alertmanager
+package_versions backup-restore-operator rancher rancher-backup
+package_versions cert-manager cert-manager cert-manager-controller
+package_versions coherence-operator oracle
 package_versions external-dns kubernetes-sigs
 package_versions fluentd fluent fluentd-kubernetes-daemonset
 package_versions grafana grafana
-package_versions keycloak keycloak
-package_versions mysql-server mysql mysql
 package_versions ingress-nginx kubernetes nginx-ingress-controller releases
+package_versions istio istio proxyv2
+package_versions jaeger jaegertracing jaeger
+package_versions jaeger jaegertracing jaeger-operator
+package_versions keycloak keycloak
+package_versions kiali kiali
+package_versions kube-state-metrics kubernetes
+package_versions mysql-server mysql mysql
+package_versions mysql-operator mysql mysql-operator
 package_versions node_exporter prometheus node-exporter
 package_versions oam-kubernetes-runtime crossplane
+package_versions OpenSearch opensearch-project opensearch
+package_versions OpenSearch-Dashboards opensearch-project opensearch-dashboards
 package_versions prometheus prometheus
-package_versions istio istio proxyv2
+package_versions prometheus-adapter kubernetes-sigs
+package_versions prometheus-operator prometheus-operator
+package_versions pushgateway prometheus pushgateway
 package_versions rancher rancher
+package_versions velero vmware-tanzu velero
+package_versions velero-plugin-for-aws vmware-tanzu
 package_versions weblogic-kubernetes-operator oracle
-package_versions coherence-operator oracle
+
