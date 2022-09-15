@@ -420,7 +420,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	tmpFile, err := vzos.CreateTempFile("helm-override-values-*.yaml", stdout)
+	tmpFile, err := vzos.CreateTempFile("helm-overrides-values-*.yaml", stdout)
 	if err != nil {
 		context.Log().Error(err.Error())
 		return err
