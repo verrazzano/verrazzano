@@ -12,8 +12,11 @@ import (
 const (
 	//ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
 	// Put external IPs into the IstioOperator YAML, which does support it
-	ExternalIPArg      = "gateways.istio-ingressgateway.externalIPs"
-	externalIPJsonPath = "spec.components.ingressGateways.0.k8s.service.externalIPs.0"
+	ExternalIPArg            = "gateways.istio-ingressgateway.externalIPs"
+	specServiceJSONPath      = "spec.components.ingressGateways.0.k8s.service"
+	externalIPJsonPathSuffix = "externalIPs.0"
+	typeJSONPathSuffix       = "type"
+	externalIPJsonPath       = specServiceJSONPath + "." + externalIPJsonPathSuffix
 )
 
 type ReplicaData struct {
@@ -36,18 +39,19 @@ func BuildIstioOperatorYaml(comp *v1beta1.IstioComponent) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	expandedYamls = append(expandedYamls, jaegerTracingYaml)
 	for _, arg := range comp.ValueOverrides {
 		values := arg.Values
 		overrideYaml, err := yaml.JSONToYAML(values.Raw)
 		if err != nil {
 			return "", err
 		}
-		expandedYamls = append(expandedYamls, string(overrideYaml))
+		expandedYamls = append([]string{string(overrideYaml)}, expandedYamls...)
 		if err != nil {
 			return "", err
 		}
 	}
+	// give system jaeger tracing settings the lowest precedence
+	expandedYamls = append([]string{jaegerTracingYaml}, expandedYamls...)
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
