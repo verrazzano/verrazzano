@@ -48,9 +48,13 @@ pipeline {
         RELEASE_VERSION = "${params.RELEASE_VERSION}"
         VERRAZZANO_RELEASE_PREFIX = "verrazzano-${RELEASE_VERSION}"
         VERRAZZANO_LITE_BUNDLE = "${VERRAZZANO_RELEASE_PREFIX}-lite.zip"
+        VERRAZZANO_FULL_BUNDLE = "${VERRAZZANO_RELEASE_PREFIX}.zip"
+
+        VZ_LITE = "vz-lite"
+        VZ_FULL = "vz-full"
 
         SCANNER_HOME = "${WORKSPACE}/scanner_home"
-        SCAN_REPORT_DIR = "${WORKSPACE}/scan_report_dir"
+        SCAN_REPORT_BASE_DIR = "${WORKSPACE}/scan_report_dir"
     }
 
     stages {
@@ -105,7 +109,8 @@ pipeline {
                     sh """
                         mkdir -p ${RELEASE_BINARIES_DIR}
                         cd ${WORKSPACE}/release/scripts
-                        ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${RELEASE_BINARIES_DIR}
+                        ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_LITE}
+                        ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_FULL}
                     """
                 }
             }
@@ -124,7 +129,12 @@ pipeline {
                     timeout(time: 90, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR} ${SCANNER_HOME} ${SCAN_REPORT_DIR}
+
+                            # Scan Verrazzano lite distribution
+                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} "Lite"
+
+                            # Scan Verrazzano full distribution
+                            ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_FULL} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_FULL} "Full" "true"
                         """
                    }
                 }
@@ -146,7 +156,7 @@ pipeline {
                     echo "${env.GITHUB_ACCESS_TOKEN}" | gh auth login --with-token
 
                     cd ${WORKSPACE}/release/scripts
-                    ./create_github_release.sh ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
+                    ./create_github_release.sh ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${TEST_RUN}
                   """
                 }
             }
@@ -159,17 +169,21 @@ pipeline {
                         if [ $TEST_RUN == true ] ; then
                           echo "TEST_RUN is set to true, NOT pushing scan artifacts to object storage, but confirming they exist to be pushed"
                           echo ""
-                          ls ${SCAN_REPORT_DIR}/scan_report.out
-                          ls ${SCAN_REPORT_DIR}/scan_summary.out
+                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
+                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
+                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_report.out
+                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_summary.out
                         else
-                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report.out --file ${SCAN_REPORT_DIR}/scan_report.out
-                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary.out --file ${SCAN_REPORT_DIR}/scan_summary.out
+                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report_vz_lite.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
+                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary_vz_lite.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
+
+                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report_vz_full.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_report.out
+                          oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary_vz_full.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_summary.out
                         fi
                     """
                 }
             }
         }
-
     }
     post {
         always {

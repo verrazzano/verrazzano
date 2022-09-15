@@ -15,6 +15,7 @@ usage() {
 
   Usage:
     $(basename $0) <directory containing the release artifacts> <directory to download the scanner> <directory to place the scan report>
+        <type of distribution - Lite/Full> <flag to indicate whether to skip installing scanner>
 
   Example:
     $(basename $0) release_bundle_dir scanner_home scan_report_dir
@@ -35,32 +36,36 @@ EOM
 . $SCRIPT_DIR/common.sh
 
 if [ -z "$1" ]; then
-  echo "Directory to download the bundle or directory containing the release bundle extracted"
+  echo "Directory to download the bundle or directory containing the release bundle extracted is required"
   exit 1
 fi
 RELEASE_BUNDLE_DOWNLOAD_DIR="$1"
 
 if [ -z "$2" ]; then
-  echo "Directory to place the scaner"
+  echo "Directory to place the scanner is required"
   exit 1
 fi
 SCANNER_HOME="$2"
 
 if [ -z "$3" ]; then
-  echo "Directory to place the scan report"
+  echo "Directory to place the scan report is required"
   exit 1
 fi
 SCAN_REPORT_DIR="$3"
 
-DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR"
+if [ -z "$4" ]; then
+  echo "Verrazzano distribution type to scan is required"
+  exit 1
+fi
+BUNDLE_TO_SCAN="$4"
 
-# When an environment variable BUNDLE_TO_SCAN is set to Full, the script scans the full bundle
-# The variable DIR_TO_SCAN is redefined as there will be a top level verrazzano-<major>.<minor>.<patch> directory inside the full bundle
-if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
-  VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
+SKIP_INSTALL_SCANNER=${5:-"false"}
+
+DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR"
+if [ "$BUNDLE_TO_SCAN" == "Full" ];then
+  # There will be a top level verrazzano-<major>.<minor>.<patch> directory inside the full bundle
   DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/$VERRAZZANO_PREFIX"
 fi
-
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 
 function install_scanner() {
@@ -138,6 +143,15 @@ function scan_release_binaries() {
   fi
 }
 
-install_scanner || exit 1
-update_virus_definition || exit 1
+# Skip installation of scanner if SKIP_INSTALL_SCANNER is true
+if [ "true" == "${SKIP_INSTALL_SCANNER}" ];then
+  echo "Skip installing scanner ..."
+else
+  install_scanner || exit 1
+  update_virus_definition || exit 1
+fi
+
 scan_release_binaries || exit 1
+
+echo "Listing $SCAN_REPORT_DIR"
+ls $SCAN_REPORT_DIR
