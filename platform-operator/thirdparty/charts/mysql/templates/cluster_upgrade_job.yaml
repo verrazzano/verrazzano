@@ -9,6 +9,7 @@ metadata:
     app: mysql
     component: restore-keycloak-db
 spec:
+  backoffLimit: 6
   template:
     spec:
       initContainers:
@@ -55,5 +56,5 @@ spec:
           volumeMounts:
             - mountPath: /var/lib/dump
               name: keycloak-dump
-      restartPolicy: Never
+      restartPolicy: OnFailure
 {{- end -}}
