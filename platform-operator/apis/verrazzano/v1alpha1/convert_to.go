@@ -543,11 +543,11 @@ func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrid
 			if err != nil {
 				return nil, err
 			}
-			mergedJson, err := yaml.YAMLToJSON([]byte(mergedYaml))
+			mergedJSON, err := yaml.YAMLToJSON([]byte(mergedYaml))
 			if err != nil {
 				return nil, err
 			}
-			overrides[0].Values.Raw = mergedJson
+			overrides[0].Values.Raw = mergedJSON
 		}
 	}
 
