@@ -1,3 +1,6 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 ==== START logs for container webhook-init of pod verrazzano-install/verrazzano-platform-operator-54d74bc487-sjr2l ====
 {"level":"info","@timestamp":"2022-09-14T17:52:34.020Z","caller":"platform-operator/main.go:114","message":"Starting Verrazzano Platform Operator"}
 {"level":"info","@timestamp":"2022-09-14T17:52:34.022Z","caller":"platform-operator/main.go:125","message":"Verrazzano version: 1.4.0-3157+11c8d7d8"}
