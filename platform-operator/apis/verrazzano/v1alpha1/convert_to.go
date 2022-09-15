@@ -11,12 +11,9 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	operatorv1alpha1 "istio.io/api/operator/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/yaml"
 )
@@ -534,15 +531,23 @@ func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrid
 		if isOverrideValueUnset(overrides[0]) {
 			overrides[0].Values = override.Values
 		} else {
-			data, err := strategicpatch.StrategicMergePatch(override.Values.Raw, overrides[0].Values.Raw, struct {
-				metav1.TypeMeta   `json:",inline"`
-				metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-				Spec              *operatorv1alpha1.IstioOperatorSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-			}{})
+			baseOverride, err := yaml.JSONToYAML(overrides[0].Values.Raw)
 			if err != nil {
 				return nil, err
 			}
-			overrides[0].Values.Raw = data
+			installArgsOverride, err := yaml.JSONToYAML(override.Values.Raw)
+			if err != nil {
+				return nil, err
+			}
+			mergedYaml, err := vzyaml.ReplacementMerge(string(baseOverride), string(installArgsOverride))
+			if err != nil {
+				return nil, err
+			}
+			mergedJson, err := yaml.YAMLToJSON([]byte(mergedYaml))
+			if err != nil {
+				return nil, err
+			}
+			overrides[0].Values.Raw = mergedJson
 		}
 	}
 
