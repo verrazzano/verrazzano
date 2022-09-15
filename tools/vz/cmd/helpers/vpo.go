@@ -47,7 +47,7 @@ func ResetVpoWaitRetries()          { vpoWaitRetries = vpoDefaultWaitRetries }
 // deleteLeftoverPlatformOperatorSig is a function needed for unit test override
 type deleteLeftoverPlatformOperatorSig func(client clipkg.Client) error
 
-// deleteFunc is the default deleteLeftoverPlatformOperator function
+// DeleteFunc is the default deleteLeftoverPlatformOperator function
 var DeleteFunc deleteLeftoverPlatformOperatorSig = deleteLeftoverPlatformOperator
 
 func SetDeleteFunc(f deleteLeftoverPlatformOperatorSig) {
