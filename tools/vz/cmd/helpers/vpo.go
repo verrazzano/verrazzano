@@ -233,8 +233,8 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 				// Return when the Verrazzano operation has completed
 				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
 				if err != nil {
-					resChan <- err
-					return
+					// Retry if there is a problem getting the resource
+					continue
 				}
 				for _, condition := range vz.Status.Conditions {
 					// Operation condition met for install/upgrade
