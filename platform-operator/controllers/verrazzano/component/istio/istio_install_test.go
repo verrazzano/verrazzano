@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"os/exec"
 	"sigs.k8s.io/yaml"
@@ -38,6 +39,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = istioclisec.AddToScheme(testScheme)
+	_ = corev1.AddToScheme(testScheme)
+}
 
 // fakeIstioInstalledRunner is used to test if Istio is installed
 type fakeIstioInstalledRunner struct {
@@ -616,7 +624,7 @@ func labelNamespaceMock(t *testing.T) *mocks.MockClient {
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
 func fakeInstall(log vzlog.VerrazzanoLogger, _ string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if len(overridesFiles) != 2 {
-		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
+		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 1, received %v", len(overridesFiles))
 	}
 	if overridesFiles[0] != "test-values-file.yaml" {
 		return []byte("error"), []byte(""), fmt.Errorf("invalid values file")

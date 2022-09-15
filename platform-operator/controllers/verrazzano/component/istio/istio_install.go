@@ -16,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -266,29 +265,16 @@ func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
 // createIstioTempFiles creates and returns the temp files needed for installing and upgrading istio
 func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) ([]string, error) {
 	cr := compContext.EffectiveCR()
-	log := compContext.Log()
-
 	files := []string{i.ValuesFile}
 
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
-		// create operator YAML
-		convertedVZ := &v1beta1.Verrazzano{}
-		err := cr.ConvertTo(convertedVZ)
-		if err != nil {
-			return files, log.ErrorfNewErr("Error converting from v1alpha1 to v1beta1: %v", err)
-		}
-		istioOperatorYaml, err := BuildIstioOperatorYaml(convertedVZ.Spec.Components.Istio)
-		if err != nil {
-			return files, log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
-		}
-
-		// Write the overrides to a tmp file and append it to files
-		userFileCR, err := createTempFile(log, istioOperatorYaml)
+		// get the install overrides from the VZ CR, write it to a temp file and append it
+		var err error
+		files, err = appendOverrideFilesInOrder(compContext, files)
 		if err != nil {
 			return files, err
 		}
-		files = append(files, userFileCR)
 	}
 	return files, nil
 }
