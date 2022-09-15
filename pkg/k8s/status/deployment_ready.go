@@ -82,7 +82,7 @@ func DoDeploymentsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namesp
 // running and ready
 func PodsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
-	pods := getPodsList(log, client, namespacedName, selector)
+	pods := GetPodsList(log, client, namespacedName, selector)
 	if pods == nil {
 		return false
 	}
@@ -142,7 +142,7 @@ func PodsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 	}
 
 	// Make sure pods using the latest replicaset revision are ready.
-	podsReady, success := ensurePodsAreReady(log, savedPods, expectedReplicas, prefix)
+	podsReady, success := EnsurePodsAreReady(log, savedPods, expectedReplicas, prefix)
 	if !success {
 		return false
 	}

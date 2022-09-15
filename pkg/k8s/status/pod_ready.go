@@ -12,17 +12,14 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// pod label used to identify the controllerRevision resource for daemonsets and statefulsets
-const controllerRevisionHashLabel = "controller-revision-hash"
-
 // pod label used to identify the replicaset resource for deployments
 const podTemplateHashLabel = "pod-template-hash"
 
 // annotation used to identify the revision of a replicaset
 const deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 
-// getPodsList retrieves a list of pods for a given namespace and labels selector
-func getPodsList(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector) *corev1.PodList {
+// GetPodsList retrieves a list of pods for a given namespace and labels selector
+func GetPodsList(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector) *corev1.PodList {
 	labelSelector, err := metav1.LabelSelectorAsSelector(selector)
 	if err != nil {
 		if log != nil {
@@ -43,9 +40,9 @@ func getPodsList(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNam
 	return &pods
 }
 
-// ensurePodsAreReady makes sure pods using the latest workload revision are ready.
+// EnsurePodsAreReady makes sure pods using the latest workload revision are ready.
 // A list of pods using the latest revision are passed to this function.
-func ensurePodsAreReady(log vzlog.VerrazzanoLogger, podsToCheck []corev1.Pod, expectedPods int32, prefix string) (int32, bool) {
+func EnsurePodsAreReady(log vzlog.VerrazzanoLogger, podsToCheck []corev1.Pod, expectedPods int32, prefix string) (int32, bool) {
 	var podsReady int32 = 0
 	for _, pod := range podsToCheck {
 		// Check that init containers are ready

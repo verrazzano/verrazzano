@@ -156,6 +156,8 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			}
 		}
 
+		// TODO: display message that install is already in progress
+
 		vpoPodName, err = cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
 		if err != nil {
 			return err
@@ -171,6 +173,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		}
 
 		// Delete leftover verrazzano-operator deployment after an abort.
+		// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with an updated caBundle.
 		vpoDeployment := appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzConstants.VerrazzanoInstallNamespace,
