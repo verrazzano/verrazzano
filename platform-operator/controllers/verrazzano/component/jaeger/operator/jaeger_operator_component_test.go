@@ -256,7 +256,7 @@ func TestIsReady(t *testing.T) {
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				getJaegerOperatorObjects(1)...,
 			).Build(),
-			cr:         getVZCRWithDefaultJaegerOverride(defaultJaegerDisabledJSON),
+			cr:         getSingleOverrideCRAlpha(defaultJaegerDisabledJSON),
 			expectTrue: true,
 			dryRun:     true,
 		},
@@ -269,7 +269,7 @@ func TestIsReady(t *testing.T) {
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				getJaegerOperatorObjects(1)...,
 			).Build(),
-			cr:         getVZCRWithDefaultJaegerOverride(defaultJaegerEnabledJSON),
+			cr:         getSingleOverrideCRAlpha(defaultJaegerEnabledJSON),
 			expectTrue: false,
 			dryRun:     true,
 		},
@@ -371,26 +371,8 @@ func TestGetIngressAndCertificateNames(t *testing.T) {
 			// GIVEN a Verrazzano custom resource with Jaeger operator is enabled and instance is disabled
 			// WHEN we call GetIngressNames and GetCertificateNames on the Jaeger Operator component
 			// THEN we do not expect to find the Jaeger ingress and certs
-			name: "Test GetIngressNames and GetCertificateNames when Jaeger instance is disabled",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{
-							Enabled: &trueValue,
-							InstallOverrides: vzapi.InstallOverrides{
-								MonitorChanges: &trueValue,
-								ValueOverrides: []vzapi.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(jaegerDisabledJSON),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:      "Test GetIngressNames and GetCertificateNames when Jaeger instance is disabled",
+			actualCR:  *getSingleOverrideCRAlpha(jaegerDisabledJSON),
 			ingresses: []types.NamespacedName{},
 			certs:     []types.NamespacedName{},
 		},
@@ -455,110 +437,32 @@ func TestValidateInstall(t *testing.T) {
 		// WHEN we call the ValidateInstall function
 		// THEN an error is returned.
 		{
-			name: "test jaeger operator override name",
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{
-							Enabled: &trueValue,
-							InstallOverrides: vzapi.InstallOverrides{
-								MonitorChanges: &trueValue,
-								ValueOverrides: []vzapi.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(nameOverrideJSON),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:        "test jaeger operator override name",
+			vz:          *getSingleOverrideCRAlpha(nameOverrideJSON),
 			expectError: true,
 		},
 		// GIVEN a Verrazzano CR with Jaeger Component enabled and fullNameOverride value set,
 		// WHEN we call the ValidateInstall function,
 		// THEN an error is returned.
 		{
-			name: "test jaeger operator override full name",
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{
-							Enabled: &trueValue,
-							InstallOverrides: vzapi.InstallOverrides{
-								MonitorChanges: &trueValue,
-								ValueOverrides: []vzapi.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(fullnameOverrideJSON),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:        "test jaeger operator override full name",
+			vz:          *getSingleOverrideCRAlpha(fullnameOverrideJSON),
 			expectError: true,
 		},
 		// GIVEN a Verrazzano CR with Jaeger Component enabled and valid override value set,
 		// WHEN we call the ValidateInstall function
 		// THEN no error is returned.
 		{
-			name: "test jaeger operator override allowed value",
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{
-							Enabled: &trueValue,
-							InstallOverrides: vzapi.InstallOverrides{
-								MonitorChanges: &trueValue,
-								ValueOverrides: []vzapi.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(validOverrideJSON),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:        "test jaeger operator override allowed value",
+			vz:          *getSingleOverrideCRAlpha(validOverrideJSON),
 			expectError: false,
 		},
 		// GIVEN a Verrazzano CR with Jaeger Component enabled and multiple overrides specified for one list value
 		// WHEN we call the ValidateInstall function
 		// THEN an error is returned.
 		{
-			name: "test jaeger operator override multiple",
-			vz: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{
-							Enabled: &trueValue,
-							InstallOverrides: vzapi.InstallOverrides{
-								MonitorChanges: &trueValue,
-								ValueOverrides: []vzapi.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(validOverrideJSON),
-										},
-										ConfigMapRef: &corev1.ConfigMapKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "overrideConfigMapSecretName",
-											},
-											Key: "Key",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:        "test jaeger operator override multiple",
+			vz:          *getMultipleOverrideCRAlpha(),
 			expectError: true,
 		},
 	}
@@ -626,54 +530,18 @@ func TestValidateUpdate(t *testing.T) {
 		// WHEN we call the ValidateInstall function
 		// THEN an error is returned.
 		{
-			name:  "test jaeger operator override service account name",
-			oldVZ: oldVZ,
-			newVZ: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{
-							Enabled: &trueValue,
-							InstallOverrides: vzapi.InstallOverrides{
-								MonitorChanges: &trueValue,
-								ValueOverrides: []vzapi.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(serviceAccountNameJSON),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:        "test jaeger operator override service account name",
+			oldVZ:       oldVZ,
+			newVZ:       *getSingleOverrideCRAlpha(serviceAccountNameJSON),
 			expectError: true,
 		},
 		// GIVEN a Verrazzano CR with Jaeger Component enabled and ingress override value set,
 		// WHEN we call the ValidateInstall function
 		// THEN an error is returned.
 		{
-			name:  "test jaeger operator override ingress setting",
-			oldVZ: oldVZ,
-			newVZ: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{
-							Enabled: &trueValue,
-							InstallOverrides: vzapi.InstallOverrides{
-								MonitorChanges: &trueValue,
-								ValueOverrides: []vzapi.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(ingressJSON),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name:        "test jaeger operator override ingress setting",
+			oldVZ:       oldVZ,
+			newVZ:       *getSingleOverrideCRAlpha(ingressJSON),
 			expectError: true,
 		},
 	}
@@ -997,29 +865,6 @@ func getJaegerQueryObjects(availableReplicas int32) []client.Object {
 	}
 }
 
-// getVZCRWithDefaultJaegerOverride returns VZ with the given Jaeger CR overrides applied
-func getVZCRWithDefaultJaegerOverride(jaegerCROverride string) *vzapi.Verrazzano {
-	return &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				JaegerOperator: &vzapi.JaegerOperatorComponent{
-					Enabled: &enabled,
-					InstallOverrides: vzapi.InstallOverrides{
-						MonitorChanges: &trueValue,
-						ValueOverrides: []vzapi.Overrides{
-							{
-								Values: &apiextensionsv1.JSON{
-									Raw: []byte(jaegerCROverride),
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 func TestValidateBetaMethods(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -1028,12 +873,12 @@ func TestValidateBetaMethods(t *testing.T) {
 	}{
 		{
 			name:    "singleOverride",
-			vz:      getSingleOverrideCR(),
+			vz:      getSingleOverrideCRBeta(),
 			wantErr: false,
 		},
 		{
 			name:    "multipleOverrides",
-			vz:      getMultipleOverrideCR(),
+			vz:      getMultipleOverrideCRBeta(),
 			wantErr: true,
 		},
 	}
@@ -1050,7 +895,7 @@ func TestValidateBetaMethods(t *testing.T) {
 	}
 }
 
-func getSingleOverrideCR() *v1beta1.Verrazzano {
+func getSingleOverrideCRBeta() *v1beta1.Verrazzano {
 	return &v1beta1.Verrazzano{
 		Spec: v1beta1.VerrazzanoSpec{
 			Components: v1beta1.ComponentSpec{
@@ -1071,7 +916,7 @@ func getSingleOverrideCR() *v1beta1.Verrazzano {
 	}
 }
 
-func getMultipleOverrideCR() *v1beta1.Verrazzano {
+func getMultipleOverrideCRBeta() *v1beta1.Verrazzano {
 	return &v1beta1.Verrazzano{
 		Spec: v1beta1.VerrazzanoSpec{
 			Components: v1beta1.ComponentSpec{
@@ -1079,6 +924,56 @@ func getMultipleOverrideCR() *v1beta1.Verrazzano {
 					Enabled: &enabled,
 					InstallOverrides: v1beta1.InstallOverrides{
 						ValueOverrides: []v1beta1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(validOverrideJSON),
+								},
+								ConfigMapRef: &corev1.ConfigMapKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "overrideConfigMapSecretName",
+									},
+									Key: "Key",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getSingleOverrideCRAlpha(vzCROverride string) *vzapi.Verrazzano {
+	return &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &enabled,
+					InstallOverrides: vzapi.InstallOverrides{
+						MonitorChanges: &trueValue,
+						ValueOverrides: []vzapi.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(vzCROverride),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getMultipleOverrideCRAlpha() *vzapi.Verrazzano {
+	return &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &trueValue,
+					InstallOverrides: vzapi.InstallOverrides{
+						MonitorChanges: &trueValue,
+						ValueOverrides: []vzapi.Overrides{
 							{
 								Values: &apiextensionsv1.JSON{
 									Raw: []byte(validOverrideJSON),
