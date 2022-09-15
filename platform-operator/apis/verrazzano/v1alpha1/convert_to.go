@@ -534,7 +534,7 @@ func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrid
 		if isOverrideValueUnset(overrides[0]) {
 			overrides[0].Values = override.Values
 		} else {
-			data, err := strategicpatch.StrategicMergePatch(overrides[0].Values.Raw, override.Values.Raw, struct {
+			data, err := strategicpatch.StrategicMergePatch(override.Values.Raw, overrides[0].Values.Raw, struct {
 				metav1.TypeMeta   `json:",inline"`
 				metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 				Spec              *operatorv1alpha1.IstioOperatorSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
