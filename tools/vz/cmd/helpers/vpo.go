@@ -234,6 +234,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
 				if err != nil {
 					// Retry if there is a problem getting the resource
+					time.Sleep(10 * time.Second)
 					continue
 				}
 				for _, condition := range vz.Status.Conditions {
