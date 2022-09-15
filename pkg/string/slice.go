@@ -3,6 +3,11 @@
 
 package string
 
+import (
+	"fmt"
+	"sort"
+)
+
 // SliceContainsString checks for a string in a slice of strings
 // slice is the string slice to search. May be nil.
 // s is the string to search for in the slice.
@@ -60,4 +65,22 @@ func SliceAddString(slice []string, s string) ([]string, bool) {
 		return append(slice, s), true
 	}
 	return slice, false
+}
+
+// compareSlices compares 2 string slices after sorting
+func CompareTwoSlices(slice1 []string, slice2 []string) bool {
+	sort.Strings(slice1)
+	sort.Strings(slice2)
+
+	if len(slice1) != len(slice2) {
+		fmt.Printf("Length mismatched for %s and %s", slice1, slice2)
+		return false
+	}
+	for i, v := range slice1 {
+		if v != slice2[i] {
+			fmt.Printf("%s != %s", slice1, slice2)
+			return false
+		}
+	}
+	return true
 }

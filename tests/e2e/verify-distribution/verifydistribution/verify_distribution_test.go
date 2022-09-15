@@ -8,13 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/onsi/gomega"
+	. "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 )
 
 const SLASH = string(filepath.Separator)
@@ -86,7 +86,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				for _, each := range filesInfo {
 					filesList = append(filesList, each.Name())
 				}
-				gomega.Expect(compareSlices(filesList, liteBundleZipContents)).To(gomega.BeTrue())
+				gomega.Expect(CompareTwoSlices(filesList, liteBundleZipContents)).To(gomega.BeTrue())
 			})
 
 			t.It("Verify Lite bundle extracted contents", func() {
@@ -153,7 +153,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					imagesList = append(imagesList, eachName)
 				}
 
-				gomega.Expect(compareSlices(componentsList, imagesList)).To(gomega.BeTrue())
+				gomega.Expect(CompareTwoSlices(componentsList, imagesList)).To(gomega.BeTrue())
 			})
 		})
 	}
@@ -175,7 +175,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				eachName := re1.ReplaceAllString(each, "")
 				chartsFilesListFiltered = append(chartsFilesListFiltered, eachName)
 			}
-			gomega.Expect(compareSlices(sourcesFilesFilteredList, chartsFilesListFiltered)).To(gomega.BeTrue())
+			gomega.Expect(CompareTwoSlices(sourcesFilesFilteredList, chartsFilesListFiltered)).To(gomega.BeTrue())
 		})
 	})
 })
@@ -220,28 +220,10 @@ func verifyDistributionByDirectory(inputDir string, key string, variant string) 
 	}
 	if variant == liteDistribution {
 		fmt.Println("Provided variant is: ", variant)
-		gomega.Expect(compareSlices(filesList, opensourcefileslistbydir[key])).To(gomega.BeTrue())
+		gomega.Expect(CompareTwoSlices(filesList, opensourcefileslistbydir[key])).To(gomega.BeTrue())
 	} else {
 		fmt.Println("Provided variant is: Full")
-		gomega.Expect(compareSlices(filesList, fullBundleFileslistbydir[key])).To(gomega.BeTrue())
+		gomega.Expect(CompareTwoSlices(filesList, fullBundleFileslistbydir[key])).To(gomega.BeTrue())
 	}
 	fmt.Printf("All files found for %s \n", key)
-}
-
-// compareSlices compares 2 string slices after sorting
-func compareSlices(slice1 []string, slice2 []string) bool {
-	sort.Strings(slice1)
-	sort.Strings(slice2)
-
-	if len(slice1) != len(slice2) {
-		fmt.Printf("Length mismatched for %s and %s", slice1, slice2)
-		return false
-	}
-	for i, v := range slice1 {
-		if v != slice2[i] {
-			fmt.Printf("%s != %s", slice1, slice2)
-			return false
-		}
-	}
-	return true
 }
