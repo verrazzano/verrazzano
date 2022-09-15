@@ -1083,72 +1083,8 @@ func TestValidateBetaInstall(t *testing.T) {
 			if err := c.ValidateInstallV1Beta1(tt.vz); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
-		})
-	}
-}
-
-func TestValidateBetaUpdate(t *testing.T) {
-	tests := []struct {
-		name    string
-		vz      *v1beta1.Verrazzano
-		wantErr bool
-	}{
-		{
-			name: "singleOverride",
-			vz: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						JaegerOperator: &v1beta1.JaegerOperatorComponent{
-							Enabled: &enabled,
-							InstallOverrides: v1beta1.InstallOverrides{
-								ValueOverrides: []v1beta1.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(validOverrideJSON),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "multipleOverrides",
-			vz: &v1beta1.Verrazzano{
-				Spec: v1beta1.VerrazzanoSpec{
-					Components: v1beta1.ComponentSpec{
-						JaegerOperator: &v1beta1.JaegerOperatorComponent{
-							Enabled: &enabled,
-							InstallOverrides: v1beta1.InstallOverrides{
-								ValueOverrides: []v1beta1.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(validOverrideJSON),
-										},
-										ConfigMapRef: &corev1.ConfigMapKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "overrideConfigMapSecretName",
-											},
-											Key: "Key",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent()
 			if err := c.ValidateUpdateV1Beta1(&v1beta1.Verrazzano{}, tt.vz); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -196,7 +196,7 @@ func TestPostUninstall(t *testing.T) {
 	assert.True(t, errors.IsNotFound(err))
 }
 
-func TestValidateInstall(t *testing.T) {
+func TestValidateMethods(t *testing.T) {
 	tests := []struct {
 		name    string
 		vz      *v1alpha1.Verrazzano
@@ -259,84 +259,17 @@ func TestValidateInstall(t *testing.T) {
 			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			if err := c.ValidateUpdate(&v1alpha1.Verrazzano{}, tt.vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
 			v1beta1Vz := &v1beta1.Verrazzano{}
 			err := tt.vz.ConvertTo(v1beta1Vz)
 			assert.NoError(t, err)
 			if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
-		})
-	}
-}
-
-func TestValidateUpdate(t *testing.T) {
-	tests := []struct {
-		name    string
-		vz      *v1alpha1.Verrazzano
-		wantErr bool
-	}{
-		{
-			name: "singleOverride",
-			vz: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						RancherBackup: &v1alpha1.RancherBackupComponent{
-							Enabled: &enabled,
-							InstallOverrides: v1alpha1.InstallOverrides{
-								ValueOverrides: []v1alpha1.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(validOverrideJSON),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "multipleOverrides",
-			vz: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						RancherBackup: &v1alpha1.RancherBackupComponent{
-							Enabled: &enabled,
-							InstallOverrides: v1alpha1.InstallOverrides{
-								ValueOverrides: []v1alpha1.Overrides{
-									{
-										Values: &apiextensionsv1.JSON{
-											Raw: []byte(validOverrideJSON),
-										},
-										ConfigMapRef: &corev1.ConfigMapKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "overrideConfigMapSecretName",
-											},
-											Key: "Key",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent()
-			if err := c.ValidateUpdate(&v1alpha1.Verrazzano{}, tt.vz); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			v1beta1Vz := &v1beta1.Verrazzano{}
-			err := tt.vz.ConvertTo(v1beta1Vz)
-			assert.NoError(t, err)
 			if err := c.ValidateUpdateV1Beta1(&v1beta1.Verrazzano{}, v1beta1Vz); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
