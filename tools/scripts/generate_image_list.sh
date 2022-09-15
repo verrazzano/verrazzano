@@ -41,7 +41,7 @@ function list_images() {
           if [ "$override_registry" == "null" ]; then
               from_image=${from_repository}/${base_image}
           else
-              from_image=${override_registry}/${base_image}
+              from_image=${override_registry}/${from_repository}/${base_image}
           fi
           local existing=$(cat ${IMG_LIST_FILE} | grep ${from_image})
           if [ -z "$existing" ]; then
