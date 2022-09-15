@@ -1054,7 +1054,7 @@ func Test_appendConditionIfNecessary(t *testing.T) {
 			expectNumConditions: 3,
 		},
 		{
-			name: "multiple conditions with InstallStarted dupes",
+			name: "multiple conditions with InstallStarted duplicates",
 			conditions: []vzapi.Condition{
 				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time before"},
 				{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time2"},
