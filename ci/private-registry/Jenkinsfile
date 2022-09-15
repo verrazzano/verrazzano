@@ -95,7 +95,7 @@ pipeline {
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
-
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/platform-operator/manifests/v1beta1/dev.yaml"
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
 
@@ -227,6 +227,7 @@ pipeline {
                 """
 
                 script {
+                    setVZCRDVersionForInstallation()
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
@@ -346,7 +347,6 @@ pipeline {
                         PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
                         CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
                         TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
-                        INSTALL_CONFIG_FILE_KIND="${TARBALL_DIR}/manifests/profiles/dev.yaml"
                     }
                     steps {
                         sh """
@@ -814,4 +814,10 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomize('jobmetrics')
+}
+
+def setVZCRDVersionForInstallation(){
+    if(params.CRD_API_VERSION == "v1alpha1"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/platform-operator/manifests/v1alpha1/dev.yaml"
+    }
 }

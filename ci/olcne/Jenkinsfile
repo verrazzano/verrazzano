@@ -141,7 +141,7 @@ pipeline {
         TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-ocne"
         KUBECONFIG="$WORKSPACE/kubeconfig"
         VZ_COMMAND="$GO_REPO_PATH/vz"
-        INSTALL_CONFIG_FILE_OLCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-olcne.yaml"
+        INSTALL_CONFIG_FILE_OCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-ocne.yaml"
         OCNE_DUMP_DIR="$WORKSPACE/$VZ_ENVIRONMENT_NAME"
         OCNE_TERRAFORM_GIT_URL=credentials("gitlab_ocne_tf_url")
         OCNE_BRANCH_TO_USE="origin/release/${params.OCNE_VERSION}"
