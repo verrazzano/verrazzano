@@ -557,7 +557,7 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
 	authConfig[AuthConfigKeycloakAttributeIssuer] = keycloakURL + AuthConfigKeycloakURLPathIssuer
 	authConfig[AuthConfigKeycloakAttributeRancherURL] = rancherURL + AuthConfigKeycloakURLPathVerifyAuth
-	authConfig[AuthConfigAttributeEnabled] = AuthConfigAttributeEnabled
+	authConfig[AuthConfigAttributeEnabled] = true
 
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }
