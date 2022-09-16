@@ -290,7 +290,7 @@ pipeline {
                             """
                         } else {
                             sh """
-                                mv ${TARBALL_DIR}/bin/linux-amd64/vz ${GO_REPO_PATH}/vz
+                                cp ${TARBALL_DIR}/bin/linux-amd64/vz ${GO_REPO_PATH}/vz
                                 chmod +x ${GO_REPO_PATH}/vz
                                 ${GO_REPO_PATH}/vz version
 
