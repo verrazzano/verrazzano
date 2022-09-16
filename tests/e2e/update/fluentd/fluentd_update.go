@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"strings"
 	"time"
 
@@ -37,6 +38,14 @@ type FluentdModifier struct {
 	Component vzapi.FluentdComponent
 }
 
+type FluentdModifierV1beta1 struct {
+	Component v1beta1.FluentdComponent
+}
+
+func (u *FluentdModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+	cr.Spec.Components.Fluentd = &u.Component
+}
+
 func (u *FluentdModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Fluentd = &u.Component
 }
@@ -44,6 +53,22 @@ func (u *FluentdModifier) ModifyCR(cr *vzapi.Verrazzano) {
 func ValidateUpdate(m update.CRModifier, expectedError string) {
 	gomega.Expect(func() bool {
 		err := update.UpdateCR(m)
+		if err != nil {
+			pkg.Log(pkg.Info, fmt.Sprintf("Update error: %v", err))
+		}
+		if expectedError == "" {
+			return err == nil
+		}
+		if err == nil {
+			return false
+		}
+		return strings.Contains(err.Error(), expectedError)
+	}()).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
+}
+
+func ValidateUpdateV1beta1(m update.CRModifierV1beta1, expectedError string) {
+	gomega.Expect(func() bool {
+		err := update.UpdateCRV1beta1(m)
 		if err != nil {
 			pkg.Log(pkg.Info, fmt.Sprintf("Update error: %v", err))
 		}
@@ -81,7 +106,40 @@ func ValidateDaemonset(osURL, osSec, apiSec string, extra ...vzapi.VolumeMount) 
 	pkg.Log(pkg.Info, fmt.Sprintf("Fluentd took %v to update", time.Since(start)))
 }
 
+func ValidateDaemonsetV1beta1(osURL, osSec, apiSec string, extra ...v1beta1.VolumeMount) {
+	start := time.Now()
+	gomega.Eventually(func() bool {
+		ds, err := pkg.GetDaemonSet(constants.VerrazzanoSystemNamespace, fluentdName)
+		if err != nil {
+			return false
+		}
+		validateCacertsVolume(ds)
+		for _, cntr := range ds.Spec.Template.Spec.Containers {
+			if !validateFluentdContainerV1beta1(cntr, osURL, osSec, extra...) {
+				return false
+			}
+		}
+		if !validateOciSec(ds, apiSec) {
+			return false
+		}
+		if len(extra) > 0 && !checkExtraVolumesV1beta1(ds, extra...) {
+			return false
+		}
+		return ds.Status.NumberReady > 0
+	}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", osURL, time.Since(start)))
+	pkg.Log(pkg.Info, fmt.Sprintf("Fluentd took %v to update", time.Since(start)))
+}
+
 func checkExtraVolumes(ds *appsv1.DaemonSet, extra ...vzapi.VolumeMount) bool {
+	for _, vm := range extra {
+		if found := findVol(ds, "", vm.Source); found == nil {
+			return false
+		}
+	}
+	return true
+}
+
+func checkExtraVolumesV1beta1(ds *appsv1.DaemonSet, extra ...v1beta1.VolumeMount) bool {
 	for _, vm := range extra {
 		if found := findVol(ds, "", vm.Source); found == nil {
 			return false
@@ -108,7 +166,38 @@ func validateFluentdContainer(cntr corev1.Container, osURL, osSec string, extra 
 	return true
 }
 
+func validateFluentdContainerV1beta1(cntr corev1.Container, osURL, osSec string, extra ...v1beta1.VolumeMount) bool {
+	if cntr.Name == fluentdName {
+		if !validateCacerts(cntr) {
+			return false
+		}
+		if !validateEsURL(cntr, osURL) {
+			return false
+		}
+		if !validateEsSec(cntr, osSec) {
+			return false
+		}
+		if len(extra) > 0 && !checkExtraMountsV1beta1(cntr, extra...) {
+			return false
+		}
+	}
+	return true
+}
+
 func checkExtraMounts(cntr corev1.Container, extra ...vzapi.VolumeMount) bool {
+	for _, vm := range extra {
+		dest := vm.Destination
+		if dest == "" {
+			dest = vm.Source
+		}
+		if found := findVolMount(cntr, "", dest); found == nil {
+			return false
+		}
+	}
+	return true
+}
+
+func checkExtraMountsV1beta1(cntr corev1.Container, extra ...v1beta1.VolumeMount) bool {
 	for _, vm := range extra {
 		dest := vm.Destination
 		if dest == "" {
