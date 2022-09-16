@@ -67,6 +67,14 @@ func init() {
 
 // TestIsPrometheusOperatorReady tests the isPrometheusOperatorReady function for the Prometheus Operator
 func TestIsPrometheusOperatorReady(t *testing.T) {
+	operatorObjectMeta := metav1.ObjectMeta{
+		Namespace: ComponentNamespace,
+		Name:      deploymentName,
+		Labels: map[string]string{
+			"app.kubernetes.io/instance":          ComponentName,
+			constants.VerrazzanoComponentLabelKey: ComponentName,
+		},
+	}
 	tests := []struct {
 		name       string
 		client     client.Client
@@ -79,11 +87,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 			name: "Test IsReady when Prometheus Operator is successfully deployed",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-						Labels:    map[string]string{"app.kubernetes.io/instance": ComponentName},
-					},
+					ObjectMeta: operatorObjectMeta,
 					Spec: appsv1.DeploymentSpec{
 						Selector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{"app.kubernetes.io/instance": ComponentName},
@@ -122,10 +126,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 			name: "Test IsReady when Prometheus Operator deployment is not ready",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-					},
+					ObjectMeta: operatorObjectMeta,
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 0,
 						Replicas:          1,
