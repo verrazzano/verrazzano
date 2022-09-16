@@ -377,7 +377,6 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.29",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -386,33 +385,20 @@
             {
               "image": "mysql",
               "tag": "8.0.29",
-              "helmRegKey": "image.registry",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            },
-            {
-              "repository": "oracle",
-              "image": "oraclelinux",
-              "tag": "7-slim",
-              "helmFullImageKey": "initContainerImage"
+              "helmFullImageKey": "image",
+              "helmTagKey": "imageTag"
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "mysql-operator",
-      "subcomponents": [
+        },
         {
-          "repository": "verrazzano",
-          "name": "mysql-operator",
+          "repository": "oracle",
+          "name": "oraclelinux",
           "images": [
             {
-              "image": "mysql-operator",
-              "tag": "8.0.30-2.0.5",
-              "helmRegKey": "image.registry",
-              "helmRepoKey": "image.repository",
-              "helmTagKey": "image.tag"
+              "image": "oraclelinux",
+              "tag": "7-slim",
+              "helmFullImageKey": "busybox.image",
+              "helmTagKey": "busybox.tag"
             }
           ]
         }
