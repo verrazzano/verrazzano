@@ -3,6 +3,7 @@
 package status
 
 import (
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,98 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+var testReadyDeployment = &appsv1.Deployment{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: "bar",
+		Name:      "foo",
+		Labels:    map[string]string{"app": "foo"},
+	},
+	Spec: appsv1.DeploymentSpec{
+		Selector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{"app": "foo"},
+		},
+	},
+	Status: appsv1.DeploymentStatus{
+		AvailableReplicas: 1,
+		Replicas:          1,
+		UpdatedReplicas:   1,
+	},
+}
+var testReadyPod = &corev1.Pod{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: "bar",
+		Name:      "foo-95d8c5d96-m6mbr",
+		Labels: map[string]string{
+			podTemplateHashLabel: "95d8c5d96",
+			"app":                "foo",
+		},
+	},
+	Status: corev1.PodStatus{
+		InitContainerStatuses: []corev1.ContainerStatus{
+			{
+				Ready: true,
+			},
+		},
+		ContainerStatuses: []corev1.ContainerStatus{
+			{
+				Ready: true,
+			},
+		},
+	},
+}
+var testReadyReplicaSet = &appsv1.ReplicaSet{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace:   "bar",
+		Name:        "foo-95d8c5d96",
+		Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
+	},
+}
+
+func TestDeploymentsReadyBySelectors(t *testing.T) {
+	opts := []client.ListOption{
+		client.MatchingLabels{
+			"app": "foo",
+		},
+	}
+	log := vzlog.DefaultLogger()
+	var tests = []struct {
+		name  string
+		c     client.Client
+		opts  []client.ListOption
+		ready bool
+	}{
+		{
+			"not ready when no matching deployments",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(),
+			[]client.ListOption{},
+			false,
+		},
+		{
+			"not ready when matched deployment is not ready",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+				WithObjects(testReadyDeployment).
+				Build(),
+			opts,
+			false,
+		},
+		{
+			"ready when matched deployment is ready",
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).
+				WithObjects(testReadyDeployment, testReadyPod, testReadyReplicaSet).
+				Build(),
+			opts,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ready := DeploymentsReadyBySelectors(log, tt.c, 1, "foo", tt.opts...)
+			assert.Equal(t, tt.ready, ready)
+		})
+	}
+}
 
 // TestDeploymentsReady tests a deployment ready status check
 // GIVEN a call validate DeploymentsReady
@@ -27,52 +120,9 @@ func TestDeploymentsReady(t *testing.T) {
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo",
-				Labels:    map[string]string{"app": "foo"},
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": "foo"},
-				},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "bar",
-				Name:      "foo-95d8c5d96-m6mbr",
-				Labels: map[string]string{
-					podTemplateHashLabel: "95d8c5d96",
-					"app":                "foo",
-				},
-			},
-			Status: corev1.PodStatus{
-				InitContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready: true,
-					},
-				},
-				ContainerStatuses: []corev1.ContainerStatus{
-					{
-						Ready: true,
-					},
-				},
-			},
-		},
-		&appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   "bar",
-				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
-			},
-		},
+		testReadyDeployment,
+		testReadyPod,
+		testReadyReplicaSet,
 	)
 	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
 }
