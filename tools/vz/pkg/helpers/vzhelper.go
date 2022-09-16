@@ -122,6 +122,17 @@ func GetVerrazzanoResource(client client.Client, namespacedName types.Namespaced
 	return vz, nil
 }
 
+func UpdateVerrazzanoResource(client client.Client, vz *v1beta1.Verrazzano) error {
+	err := client.Update(context.TODO(), vz)
+	// upgrade version may not support v1beta1
+	if err != nil && (meta.IsNoMatchError(err) || apierrors.IsNotFound(err)) {
+		vzV1Alpha1 := &v1alpha1.Verrazzano{}
+		err = vzV1Alpha1.ConvertFrom(vz)
+		return client.Update(context.TODO(), vzV1Alpha1)
+	}
+	return err
+}
+
 // GetLatestReleaseVersion - get the version of the latest release of Verrazzano
 func GetLatestReleaseVersion(client *http.Client) (string, error) {
 	// Get the list of all Verrazzano releases
