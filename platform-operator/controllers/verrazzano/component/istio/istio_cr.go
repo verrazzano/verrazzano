@@ -39,19 +39,18 @@ func BuildIstioOperatorYaml(comp *v1beta1.IstioComponent) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	expandedYamls = append(expandedYamls, jaegerTracingYaml)
 	for _, arg := range comp.ValueOverrides {
 		values := arg.Values
 		overrideYaml, err := yaml.JSONToYAML(values.Raw)
 		if err != nil {
 			return "", err
 		}
-		expandedYamls = append([]string{string(overrideYaml)}, expandedYamls...)
+		expandedYamls = append(expandedYamls, string(overrideYaml))
 		if err != nil {
 			return "", err
 		}
 	}
-	// give system jaeger tracing settings the lowest precedence
-	expandedYamls = append([]string{jaegerTracingYaml}, expandedYamls...)
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
