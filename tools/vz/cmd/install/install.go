@@ -152,7 +152,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			}
 		}
 
-		// TODO: display message that install is already in progress
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Install of Verrazzano version %s is already in progress\n", version))
 
 		vpoPodName, err = cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
 		if err != nil {

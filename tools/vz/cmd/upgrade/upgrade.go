@@ -93,6 +93,18 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was %s and current Verrazzano version is %s", version, vz.Status.Version)
 	}
 
+	var vzSpecVersion *semver.SemVersion
+	if vz.Spec.Version != "" {
+		vzSpecVersion, err = semver.NewSemVersion(vz.Spec.Version)
+		if err != nil {
+			return fmt.Errorf("Failed creating semantic version from Verrazzano spec version %s: %s", vz.Spec.Version, err.Error())
+		}
+		// Version being upgraded to cannot be less than version previously specified during an upgrade
+		if upgradeVersion.IsLessThan(vzSpecVersion) {
+			return fmt.Errorf("Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was %s and the upgrade in progress is %s", version, vz.Spec.Version)
+		}
+	}
+
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
 
 	// Get the timeout value for the upgrade command
@@ -113,18 +125,6 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return err
 	}
 
-	var vzSpecVersion *semver.SemVersion
-	if vz.Spec.Version != "" {
-		vzSpecVersion, err = semver.NewSemVersion(vz.Spec.Version)
-		if err != nil {
-			return fmt.Errorf("Failed creating semantic version from Verrazzano spec version %s: %s", vz.Spec.Version, err.Error())
-		}
-	}
-
-	var vpoPodName string
-
-	// If we already started the upgrade no need to apply the operator.yaml, wait for VPO, and update the verrazzano
-	// install resource. This could happen if the upgrade command was aborted and the rerun.
 	if vz.Spec.Version == "" || !upgradeVersion.IsEqualTo(vzSpecVersion) {
 		// Delete leftover verrazzano-operator deployment after an abort.
 		// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with the correct caBundle.
@@ -140,7 +140,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		}
 
 		// Wait for the platform operator to be ready before we update the verrazzano install resource
-		vpoPodName, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete)
+		vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete)
 		if err != nil {
 			return err
 		}
@@ -172,15 +172,25 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			}
 			break
 		}
-	} else {
-		vpoPodName, err = cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
+
+		// Wait for the Verrazzano upgrade to complete
+		return waitForUpgradeToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
+	}
+
+	// If we already started the upgrade no need to apply the operator.yaml, wait for VPO, and update the verrazzano
+	// install resource. This could happen if the upgrade command was aborted and the rerun. We anly wait for the upgrade
+	// to complete.
+	if !vzStatusVersion.IsEqualTo(vzSpecVersion) {
+		vpoPodName, err := cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
 		if err != nil {
 			return err
 		}
+		return waitForUpgradeToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
 	}
 
-	// Wait for the Verrazzano upgrade to complete
-	return waitForUpgradeToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Verrazzano has already been upgraded to version %s\n", vz.Status.Version))
+
+	return nil
 }
 
 // Wait for the upgrade operation to complete
