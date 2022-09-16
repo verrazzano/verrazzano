@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
@@ -446,6 +447,90 @@ func TestSetCommandOverride(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, propValues, 1)
 	assert.Contains(t, propValues["spec.profile"], "prod")
+}
+
+// TestInstallCmdInProgress
+// GIVEN a CLI install command when an install was in progress
+//  WHEN I call cmd.Execute for install
+//  THEN the CLI install command is successful
+func TestInstallCmdInProgress(t *testing.T) {
+	vz := &v1beta1.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+		Status: v1beta1.VerrazzanoStatus{
+			State:   v1beta1.VzStateReconciling,
+			Version: "v1.3.1",
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+}
+
+// TestInstallCmdAlreadyInstalled
+// GIVEN a CLI install command when an install already happened
+//  WHEN I call cmd.Execute for install
+//  THEN the CLI install command is unsuccessful
+func TestInstallCmdAlreadyInstalled(t *testing.T) {
+	vz := &v1beta1.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+		Status: v1beta1.VerrazzanoStatus{
+			State:   v1beta1.VzStateReady,
+			Version: "v1.3.1",
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
+}
+
+// TestInstallCmdDifferentVersion
+// GIVEN a CLI install command when an install is in progress for a different version
+//  WHEN I call cmd.Execute for install
+//  THEN the CLI install command is unsuccessful
+func TestInstallCmdDifferentVersion(t *testing.T) {
+	vz := &v1beta1.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+		Status: v1beta1.VerrazzanoStatus{
+			State:   v1beta1.VzStateReconciling,
+			Version: "v1.3.2",
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
 }
 
 func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {

@@ -145,7 +145,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			}
 			vzVersion, err := semver.NewSemVersion(existingvz.Status.Version)
 			if err != nil {
-				return fmt.Errorf("Failed creating semantic version from Verrazzano resource version %s: %s", existingvz.Status.Version, err.Error())
+				return fmt.Errorf("Failed creating semantic version from Verrazzano status version %s: %s", existingvz.Status.Version, err.Error())
 			}
 			if !installVersion.IsEqualTo(vzVersion) {
 				return fmt.Errorf("Unable to install version %s, install of version %s is in progress", version, existingvz.Status.Version)
