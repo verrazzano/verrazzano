@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	waitTimeout     = 1 * time.Minute
-	pollingInterval = 5 * time.Second
+	waitTimeout     = 3 * time.Minute
+	pollingInterval = 10 * time.Second
 )
 
 var (
