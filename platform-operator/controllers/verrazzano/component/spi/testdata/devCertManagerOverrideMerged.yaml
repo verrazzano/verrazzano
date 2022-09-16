@@ -140,14 +140,6 @@ spec:
             apiVersion: install.istio.io/v1alpha1
             kind: IstioOperator
             spec:
-              values:
-                meshConfig:
-                  defaultConfig:
-                    tracing:
-                      tlsSettings:
-                        mode: ISTIO_MUTUAL
-                      zipkin:
-                        address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
               components:
                 pilot:
                   k8s:
@@ -160,42 +152,36 @@ spec:
                                   app: istiod
                               topologyKey: kubernetes.io/hostname
                             weight: 100
-                egressGateways:
-                  - enabled: true
-                    k8s:
-                      affinity:
-                        podAntiAffinity:
-                          preferredDuringSchedulingIgnoredDuringExecution:
-                            - podAffinityTerm:
-                                labelSelector:
-                                  matchExpressions:
-                                    - key: app
-                                      operator: In
-                                      values:
-                                        - istio-egressgateway
-                                topologyKey: kubernetes.io/hostname
-                              weight: 100
-                      replicaCount: 1
-                    name: istio-egressgateway
-                ingressGateways:
-                  - enabled: true
-                    k8s:
-                      affinity:
-                        podAntiAffinity:
-                          preferredDuringSchedulingIgnoredDuringExecution:
-                            - podAffinityTerm:
-                                labelSelector:
-                                  matchExpressions:
-                                    - key: app
-                                      operator: In
-                                      values:
-                                        - istio-ingressgateway
-                                topologyKey: kubernetes.io/hostname
-                              weight: 100
-                      replicaCount: 1
-                      service:
-                        type: LoadBalancer
-                    name: istio-ingressgateway
+      ingress:
+        kubernetes:
+          replicas: 1
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-ingressgateway
+                    topologyKey: kubernetes.io/hostname
+      egress:
+        kubernetes:
+          replicas: 1
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-egressgateway
+                    topologyKey: kubernetes.io/hostname
     kiali:
       enabled: true
       overrides:

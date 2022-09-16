@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"io/ioutil"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -290,11 +291,21 @@ func TestUpgrade(t *testing.T) {
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
 func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
-	if len(overridesFiles) != 1 {
-		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 1, received %v", len(overridesFiles))
+	if len(overridesFiles) != 2 {
+		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
 	}
 	if overridesFiles[0] != "test-values-file.yaml" {
 		return []byte("error"), []byte(""), fmt.Errorf("invalid values file")
+	}
+	if !strings.Contains(overridesFiles[1], "istio-") || !strings.Contains(overridesFiles[1], ".yaml") {
+		return []byte("error"), []byte(""), fmt.Errorf("incorrect install args overrides file")
+	}
+	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
+	if err != nil {
+		return []byte("error"), []byte(""), fmt.Errorf("unable to read install args overrides file")
+	}
+	if !strings.Contains(string(installArgsFromFile), "val1") {
+		return []byte("error"), []byte(""), fmt.Errorf("install args overrides file does not contain install args")
 	}
 	return []byte("success"), []byte(""), nil
 }

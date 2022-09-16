@@ -1129,8 +1129,6 @@ func (r *Reconciler) updateVerrazzano(log vzlog.VerrazzanoLogger, vz *installv1a
 	}
 	if ctrlerrors.IsUpdateConflict(err) {
 		log.Info("Requeuing to get a new copy of the Verrazzano resource since the current one is outdated.")
-	} else if statusErr, ok := err.(*errors.StatusError); ok && strings.Contains(statusErr.Status().Message, "conversion webhook") {
-		log.Oncef("Timed out connecting to conversion webhook")
 	} else {
 		log.Errorf("Failed to update Verrazzano resource :v", err)
 	}

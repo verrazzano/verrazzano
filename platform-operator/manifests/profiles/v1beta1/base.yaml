@@ -127,14 +127,6 @@ spec:
             apiVersion: install.istio.io/v1alpha1
             kind: IstioOperator
             spec:
-              values:
-                meshConfig:
-                  defaultConfig:
-                    tracing:
-                      tlsSettings:
-                        mode: ISTIO_MUTUAL
-                      zipkin:
-                        address: jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411
               components:
                 egressGateways:
                   - enabled: true
