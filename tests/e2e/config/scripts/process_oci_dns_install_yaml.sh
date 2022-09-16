@@ -23,8 +23,10 @@ if [ "${CERT_MGR}" == "acme" ]; then
   yq -i eval ".spec.components.certManager.certificate.acme.emailAddress = \"emailAddress@domain.com\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.certManager.certificate.acme.environment = \"${ACME_ENV}\"" ${INSTALL_CONFIG_TO_EDIT}
 fi
-if [ $INSTALL_PROFILE == "dev" ]; then
+if [ $INSTALL_PROFILE == "dev" ] && [ $CRD_API_VERSION == "v1alpha1" ]; then
   yq -i eval ".spec.components.keycloak.mysql.mysqlInstallArgs.[0].name = \"persistence.enabled\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.keycloak.mysql.mysqlInstallArgs.[0].value = \"false\"" ${INSTALL_CONFIG_TO_EDIT}
+elif [ $INSTALL_PROFILE == "dev" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
+  yq -i eval ".spec.components.keycloak.overrides.[0].values.persistence.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
 fi
 cat ${INSTALL_CONFIG_TO_EDIT}
