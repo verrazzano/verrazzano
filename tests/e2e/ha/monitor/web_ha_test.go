@@ -27,40 +27,40 @@ var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = t.Describe("Web Access", Label("f:platform-lcm:ha"), func() {
 	t.Context("Prometheus", func() {
 		hacommon.RunningUntilShutdownIt(t, "can access Prometheus endpoint", clientset, runContinuous, func() {
-			Eventually(func() (bool, error) {
-				return pkg.VerifyPrometheusComponent(t.Logs, nil, web.httpClient, web.users.verrazzano), nil
+			Eventually(func() bool {
+				return pkg.VerifyPrometheusComponent(t.Logs, nil, web.httpClient, web.users.verrazzano)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
 	t.Context("OpenSearch", func() {
 		hacommon.RunningUntilShutdownIt(t, "can access OpenSearch endpoint", clientset, runContinuous, func() {
-			Eventually(func() (bool, error) {
-				return pkg.VerifyOpenSearchComponent(t.Logs, nil, web.httpClient, web.users.verrazzano), nil
+			Eventually(func() bool {
+				return pkg.VerifyOpenSearchComponent(t.Logs, nil, web.httpClient, web.users.verrazzano)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
 	t.Context("OpenSearch Dashboards", func() {
 		hacommon.RunningUntilShutdownIt(t, "can access OpenSearch Dashboards endpoint", clientset, runContinuous, func() {
-			Eventually(func() (bool, error) {
-				return pkg.VerifyOpenSearchDashboardsComponent(t.Logs, nil, web.httpClient, web.users.verrazzano), nil
+			Eventually(func() bool {
+				return pkg.VerifyOpenSearchDashboardsComponent(t.Logs, nil, web.httpClient, web.users.verrazzano)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
 	t.Context("Rancher", func() {
 		hacommon.RunningUntilShutdownIt(t, "can get a Rancher admin token", clientset, runContinuous, func() {
-			Eventually(func() (string, error) {
-				return pkg.GetRancherAdminToken(t.Logs, web.httpClient, web.hosts.rancher), nil
+			Eventually(func() string {
+				return pkg.GetRancherAdminToken(t.Logs, web.httpClient, web.hosts.rancher)
 			}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())
 		})
 	})
 
 	t.Context("Kiali", func() {
 		hacommon.RunningUntilShutdownIt(t, "can access Kiali endpoint", clientset, runContinuous, func() {
-			Eventually(func() (bool, error) {
-				return pkg.AssertBearerAuthorized(web.httpClient, web.hosts.kiali), nil
+			Eventually(func() bool {
+				return pkg.AssertBearerAuthorized(web.httpClient, web.hosts.kiali)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
