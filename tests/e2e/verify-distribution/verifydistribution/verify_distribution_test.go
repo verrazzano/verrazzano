@@ -182,6 +182,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 
 // verifyDistributionByDirectory verifies the contents of inputDir with Values from map
 func verifyDistributionByDirectory(inputDir string, key string, variant string) {
+	fmt.Printf("Input DIR provided is: %s, key provided: %s, Variant provided: %s", inputDir, key, variant)
 	filesList := []string{}
 	filesInfo, err := ioutil.ReadDir(inputDir)
 	if err != nil {
