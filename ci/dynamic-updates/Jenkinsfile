@@ -993,7 +993,6 @@ def vzUpdateComponentsV1alpha1(){
 
     sh """
         cd ${GO_REPO_PATH}/verrazzano
-        cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
         yq -i eval '.spec.components.ingress.enabled = true' ${WORKSPACE}/vz-update1.yaml
         yq -i eval '.spec.components.elasticsearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
         yq -i eval '.spec.components.kibana.enabled = true' ${WORKSPACE}/vz-update1.yaml
@@ -1007,7 +1006,6 @@ def vzUpdateComponentsV1beta1(){
 
     sh """
         cd ${GO_REPO_PATH}/verrazzano
-        cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
         yq -i eval '.spec.components.ingressNGINX.enabled = true' ${WORKSPACE}/vz-update1.yaml
         yq -i eval '.spec.components.opensearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
         yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${WORKSPACE}/vz-update1.yaml
