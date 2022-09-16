@@ -141,36 +141,42 @@ spec:
                                   app: istiod
                               topologyKey: kubernetes.io/hostname
                             weight: 100
-      ingress:
-        kubernetes:
-          replicas: 1
-          affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - weight: 100
-                  podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-ingressgateway
-                    topologyKey: kubernetes.io/hostname
-      egress:
-        kubernetes:
-          replicas: 1
-          affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - weight: 100
-                  podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-egressgateway
-                    topologyKey: kubernetes.io/hostname
+                egressGateways:
+                  - enabled: true
+                    k8s:
+                      affinity:
+                        podAntiAffinity:
+                          preferredDuringSchedulingIgnoredDuringExecution:
+                            - podAffinityTerm:
+                                labelSelector:
+                                  matchExpressions:
+                                    - key: app
+                                      operator: In
+                                      values:
+                                        - istio-egressgateway
+                                topologyKey: kubernetes.io/hostname
+                              weight: 100
+                      replicaCount: 1
+                    name: istio-egressgateway
+                ingressGateways:
+                  - enabled: true
+                    k8s:
+                      affinity:
+                        podAntiAffinity:
+                          preferredDuringSchedulingIgnoredDuringExecution:
+                            - podAffinityTerm:
+                                labelSelector:
+                                  matchExpressions:
+                                    - key: app
+                                      operator: In
+                                      values:
+                                        - istio-ingressgateway
+                                topologyKey: kubernetes.io/hostname
+                              weight: 100
+                      replicaCount: 1
+                      service:
+                        type: LoadBalancer
+                    name: istio-ingressgateway
     kiali:
       enabled: false
       overrides:
