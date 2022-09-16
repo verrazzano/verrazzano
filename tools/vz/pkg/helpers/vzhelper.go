@@ -128,6 +128,9 @@ func UpdateVerrazzanoResource(client client.Client, vz *v1beta1.Verrazzano) erro
 	if err != nil && (meta.IsNoMatchError(err) || apierrors.IsNotFound(err)) {
 		vzV1Alpha1 := &v1alpha1.Verrazzano{}
 		err = vzV1Alpha1.ConvertFrom(vz)
+		if err != nil {
+			return err
+		}
 		return client.Update(context.TODO(), vzV1Alpha1)
 	}
 	return err
