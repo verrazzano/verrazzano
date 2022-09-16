@@ -4,6 +4,7 @@
 package authproxy
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -12,8 +13,9 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/json"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -52,47 +54,48 @@ func (u AuthProxyReplicasModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (u AuthProxyReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
-	var valueReplicas map[string]interface{}
 	if cr.Spec.Components.AuthProxy == nil {
 		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
 	}
-	if cr.Spec.Components.AuthProxy.ValueOverrides == nil {
-		_ = json.Unmarshal(cr, &valueReplicas)
-		cr.Spec.Components.AuthProxy.ValueOverrides[0].Values, _ =
+	authProxyReplicasOverridesYaml := fmt.Sprintf(`replicas: %v`, u.replicas)
+	cr.Spec.Components.AuthProxy.ValueOverrides = createOverridesOrDie(authProxyReplicasOverridesYaml)
+}
+
+func createOverridesOrDie(yamlString string) []v1beta1.Overrides {
+	data, err := yaml.YAMLToJSON([]byte(yamlString))
+	if err != nil {
+		t.Logs.Errorf("Failed to convert yaml to JSON: %s", yamlString)
+		panic(err)
+	}
+	return []v1beta1.Overrides{
+		{
+			ConfigMapRef: nil,
+			SecretRef:    nil,
+			Values: &apiextensionsv1.JSON{
+				Raw: data,
+			},
+		},
 	}
 }
 
-/*func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	if cr.Spec.Components.AuthProxy == nil {
 		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
 	}
-	if cr.Spec.Components.AuthProxy.Kubernetes == nil {
-		cr.Spec.Components.AuthProxy.Kubernetes = &v1beta1.AuthProxyKubernetesSection{}
-	}
-	if cr.Spec.Components.AuthProxy.Kubernetes.Affinity == nil {
-		cr.Spec.Components.AuthProxy.Kubernetes.Affinity = &corev1.Affinity{}
-	}
-	if cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity == nil {
-		cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity = &corev1.PodAntiAffinity{}
-	}
-	list := cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
-	list = append(list, corev1.PodAffinityTerm{
-		LabelSelector: &metav1.LabelSelector{
-			MatchLabels: nil,
-			MatchExpressions: []metav1.LabelSelectorRequirement{
-				{
-					Key:      authProxyLabelKey,
-					Operator: "In",
-					Values: []string{
-						authProxyLabelValue,
-					},
-				},
-			},
-		},
-		TopologyKey: "kubernetes.io/hostname",
-	})
-	cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = list
-}*/
+	authProxyAffinityOverridesYaml := fmt.Sprintf(`affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                      - key: %v
+                        operator: In
+                        values:
+                        - %v
+                    topologyKey: kubernetes.io/hostname
+                  weight: 100`, authProxyLabelKey, authProxyLabelValue)
+	cr.Spec.Components.AuthProxy.ValueOverrides = createOverridesOrDie(authProxyAffinityOverridesYaml)
+}
 
 func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.AuthProxy == nil {
@@ -159,6 +162,7 @@ var _ = t.AfterSuite(func() {
 		expectedRunning = 2
 	}
 	update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+
 })
 
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
@@ -187,19 +191,6 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 		})
 	})
 
-	/*	t.Describe("verrazzano-authproxy update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
-		t.It("authproxy explicit replicas", func() {
-			m := AuthProxyReplicasModifierV1beta1{replicas: nodeCount}
-			err := update.UpdateCRV1beta1(m)
-			if err != nil {
-				Fail(err.Error())
-			}
-
-			expectedRunning := nodeCount
-			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
-		})
-	})*/
-
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
 			m := AuthProxyPodPerNodeAffintyModifier{}
@@ -217,4 +208,35 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
 		})
 	})
+
+	t.Describe("verrazzano-authproxy update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
+		t.It("authproxy explicit replicas", func() {
+			m := AuthProxyReplicasModifierV1beta1{replicas: nodeCount}
+			err := update.UpdateCRV1beta1(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+			expectedRunning := nodeCount
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+		})
+	})
+
+	t.Describe("verrazzano-authproxy update affinity using v1beta1 client", Label("f:platform-lcm.authproxy-update-affinity"), func() {
+		t.It("authproxy explicit affinity", func() {
+			m := AuthProxyPodPerNodeAffintyModifierV1beta1{}
+			err := update.UpdateCRV1beta1(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			expectedRunning := nodeCount - 1
+			expectedPending := true
+			if nodeCount == 1 {
+				expectedRunning = nodeCount
+				expectedPending = false
+			}
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
+		})
+	})
+
 })
