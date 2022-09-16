@@ -216,7 +216,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			if err != nil {
 				Fail(err.Error())
 			}
-			expectedRunning := nodeCount
+			expectedRunning := nodeCount + 1
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
 	})
@@ -228,14 +228,9 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			if err != nil {
 				Fail(err.Error())
 			}
+			expectedRunning := nodeCount + 1
 
-			expectedRunning := nodeCount - 1
-			expectedPending := true
-			if nodeCount == 1 {
-				expectedRunning = nodeCount
-				expectedPending = false
-			}
-			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
 	})
 
