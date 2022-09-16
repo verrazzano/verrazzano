@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,14 +58,20 @@ const (
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
 func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      deploymentName,
-			Namespace: ComponentNamespace,
-		},
-	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	selector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			constants.VerrazzanoComponentLabelKey: ComponentName,
+		},
+	})
+	if err != nil {
+		ctx.Log().Errorf("Failed to create selector for %s: %v", ComponentName, err)
+		return false
+	}
+	return status.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, &client.ListOptions{
+		Namespace:     ComponentNamespace,
+		LabelSelector: selector,
+	})
 }
 
 // preInstallUpgrade handles pre-install and pre-upgrade processing for the Prometheus Operator Component
