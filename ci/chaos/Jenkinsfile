@@ -31,6 +31,10 @@ pipeline {
                 defaultValue: 'v1.1.2',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
+        string (name: 'INTERIM_UPGRADE_VERSION',
+                defaultValue: 'v1.3.4',
+                description: 'This is the Verrazzano version for interim upgrade.',
+                trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash for the target upgrade.  By default, the Verrazzano last stable commit will be used.',
@@ -301,21 +305,6 @@ pipeline {
                 sh """
                     git fetch
                 """
-                script {
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    // check if this commit is first in branch
-                    BRANCH_ORIGIN = sh(returnStdout: true, script: "git log origin/master..HEAD --oneline --pretty='%h' | tail -1").trim()
-                    BRANCH_TO_USE = "${env.BRANCH_NAME}"
-                    if (BRANCH_ORIGIN == null || BRANCH_ORIGIN.equals(SHORT_COMMIT_HASH)) {
-                        INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git log origin/master^1 -1 --pretty='%h' | tail -1").trim()
-                        BRANCH_TO_USE = "master"
-                    } else {
-                        INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${SHORT_COMMIT_HASH}^1").trim()
-                    }
-                    while (sh(returnStatus: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_TO_USE}/${INTERIM_UPGRADE_COMMIT}/operator.yaml --file ${WORKSPACE}/interim-operator.yaml") != 0) {
-                        INTERIM_UPGRADE_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=8 ${INTERIM_UPGRADE_COMMIT}^1").trim()
-                    }
-                }
                 sh """
                     # Download the operator.yaml for the target version that we are upgrading to
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
@@ -329,10 +318,8 @@ pipeline {
 
                     elif [[ "upgrade.failing.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
                     then
-                        echo "Upgrading VPO to earlier version from branch"
-                        echo "commit: ${INTERIM_UPGRADE_COMMIT}"
-                        curl -o ${WORKSPACE}/interim-upgrade-bom.json https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_COMMIT_BUCKET}/o/ephemeral/${BRANCH_TO_USE}/${INTERIM_UPGRADE_COMMIT}/generated-verrazzano-bom.json
-                        kubectl apply -f ${WORKSPACE}/interim-operator.yaml
+                        echo "Upgrading VPO to interim version ${params.INTERIM_UPGRADE_VERSION}"
+                        kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/${params.INTERIM_UPGRADE_VERSION}/operator.yaml
 
                     else
                         echo "Upgrading VPO to this commit version"
@@ -376,7 +363,7 @@ pipeline {
                     if ("upgrade.failed.upgrade".equals(params.CHAOS_TEST_TYPE)) {
                         VERRAZZANO_INTERIM_VERSION = "1.2.0"
                     } else if ("upgrade.failing.upgrade".equals(params.CHAOS_TEST_TYPE)) {
-                        VERRAZZANO_INTERIM_VERSION = sh(returnStdout: true, script: "cat ${WORKSPACE}/interim-upgrade-bom.json | jq -r '.version'").trim()
+                        VERRAZZANO_INTERIM_VERSION = params.INTERIM_UPGRADE_VERSION
                     }
                     VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/${OCI_OS_COMMIT_BUCKET}/o/ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()

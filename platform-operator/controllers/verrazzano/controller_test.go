@@ -1046,13 +1046,21 @@ func Test_appendConditionIfNecessary(t *testing.T) {
 			expectNumConditions: 2,
 		},
 		{
-			name: "multiple conditions with InstallStarted dupes",
+			name: "multiple other conditions",
 			conditions: []vzapi.Condition{
-				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+				{Type: vzapi.CondUpgradeStarted, Status: corev1.ConditionTrue, LastTransitionTime: "some time 1"},
+				{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time 2"},
+			},
+			expectNumConditions: 3,
+		},
+		{
+			name: "multiple conditions with InstallStarted duplicates",
+			conditions: []vzapi.Condition{
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time before"},
 				{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time2"},
 				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some other time"},
-				{Type: vzapi.CondPreInstall, Status: corev1.ConditionFalse, LastTransitionTime: "some time preinstall"},
 				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionTrue, LastTransitionTime: "yet another time"},
+				{Type: vzapi.CondPreInstall, Status: corev1.ConditionFalse, LastTransitionTime: "some time preinstall"},
 			},
 			expectNumConditions: 3,
 		},
@@ -1063,12 +1071,12 @@ func Test_appendConditionIfNecessary(t *testing.T) {
 			newCondition := vzapi.Condition{Status: corev1.ConditionTrue, Type: vzapi.CondInstallStarted, LastTransitionTime: "updatedtime"}
 			updatedConditions := appendConditionIfNecessary(vzlog.DefaultLogger(), "my-vz", tt.conditions, newCondition)
 			asserts.Equal(tt.expectNumConditions, len(updatedConditions))
-			// find the install started condition and make sure its values are what we set it to
-			for _, cond := range updatedConditions {
-				if cond.Type == vzapi.CondInstallStarted {
-					asserts.Equal("updatedtime", cond.LastTransitionTime)
-					asserts.Equal(corev1.ConditionTrue, cond.Status)
-				}
+			// the new install started condition should be the last one in the list, and its value
+			// should be what we set it to
+			cond := updatedConditions[tt.expectNumConditions-1]
+			if cond.Type == vzapi.CondInstallStarted {
+				asserts.Equal("updatedtime", cond.LastTransitionTime)
+				asserts.Equal(corev1.ConditionTrue, cond.Status)
 			}
 		})
 	}
