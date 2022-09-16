@@ -223,6 +223,8 @@ spec:
           port: 6449
         - protocol: TCP
           port: 7600
+        - protocol: TCP
+          port: 8080
     - from:
       - namespaceSelector:
           matchLabels:
