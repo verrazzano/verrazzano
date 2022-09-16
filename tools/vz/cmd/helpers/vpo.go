@@ -233,7 +233,8 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 				// Return when the Verrazzano operation has completed
 				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
 				if err != nil {
-					// Retry if there is a problem getting the resource
+					// Retry if there is a problem getting the resource.  It is ok to keep retrying since
+					// WaitForOperationToComplete main routine will timeout.
 					time.Sleep(10 * time.Second)
 					continue
 				}
