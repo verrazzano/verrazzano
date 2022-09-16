@@ -118,13 +118,13 @@ func (rb rancherBackupHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isRancherBackupOperatorReady(ctx)
 }
 
-func (rb rancherBackupHelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
-	return nil
+func (rb rancherBackupHelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return rb.HelmComponent.ValidateInstall(vz)
 }
 
 // ValidateUpgrade verifies the install of the Verrazzano object
 func (rb rancherBackupHelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	return rb.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
 func (rb rancherBackupHelmComponent) IsOperatorUninstallSupported() bool {

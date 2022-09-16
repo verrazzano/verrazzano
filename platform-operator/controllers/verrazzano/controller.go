@@ -705,25 +705,19 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 }
 
 func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string, conditions []installv1alpha1.Condition, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
-	found := false
 	var newConditionsList []installv1alpha1.Condition
 	for i, existingCondition := range conditions {
-		if existingCondition.Type == newCondition.Type {
-			if !found {
-				// If there are duplicates from a legacy VZ resource, only copy the new condition, not
-				// any of the existing ones.
-				newConditionsList = append(newConditionsList, newCondition)
-				found = true
-			}
-		} else {
+		if existingCondition.Type != newCondition.Type {
+			// Skip any existing conditions of the same type as the new condition. We will append
+			// the new condition at the end. If there are duplicate conditions from a legacy
+			// VZ resource, they will all be skipped.
 			newConditionsList = append(newConditionsList, conditions[i])
 		}
 	}
-	log.Debugf("Adding %s resource newCondition: %v", resourceName, newCondition.Type)
-	if !found {
-		newConditionsList = append(newConditionsList, newCondition)
-	}
-	return newConditionsList
+	log.Debugf("Adding/modifying %s resource newCondition: %v", resourceName, newCondition.Type)
+	// Always put the new condition at the end of the list since the kubectl status display and
+	// some upgrade stuff depends on the most recent condition being the last one
+	return append(newConditionsList, newCondition)
 }
 
 func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.CompStateType {
@@ -1129,6 +1123,8 @@ func (r *Reconciler) updateVerrazzano(log vzlog.VerrazzanoLogger, vz *installv1a
 	}
 	if ctrlerrors.IsUpdateConflict(err) {
 		log.Info("Requeuing to get a new copy of the Verrazzano resource since the current one is outdated.")
+	} else if statusErr, ok := err.(*errors.StatusError); ok && strings.Contains(statusErr.Status().Message, "conversion webhook") {
+		log.Oncef("Timed out connecting to conversion webhook")
 	} else {
 		log.Errorf("Failed to update Verrazzano resource :v", err)
 	}
