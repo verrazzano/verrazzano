@@ -46,7 +46,7 @@ func BuildIstioOperatorYaml(comp *v1beta1.IstioComponent) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		expandedYamls = append(expandedYamls, string(overrideYaml))
+		expandedYamls = append([]string{string(overrideYaml)}, expandedYamls...)
 		if err != nil {
 			return "", err
 		}
