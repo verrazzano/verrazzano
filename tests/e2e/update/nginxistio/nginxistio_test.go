@@ -243,10 +243,10 @@ spec:
             type: NodePort
             ports:
               - name: https
-                protocol: "TCP"
-                port: "443"
-                nodePort: "32443"
-                targetPort: "8443"
+                protocol: TCP
+                port: 443
+                nodePort: 32443
+                targetPort: 8443
             externalIPs:
               - %s
         name: istio-ingressgateway
