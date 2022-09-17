@@ -188,6 +188,50 @@ spec:
         - port: 15090
           protocol: TCP
 ---
+# Network policy for mysql-router
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-mysqlrouter
+  namespace: keycloak
+spec:
+  podSelector:
+    matchLabels:
+      component: mysqlrouter
+  policyTypes:
+    - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: keycloak
+    ports:
+      - protocol: TCP
+        port: 6446
+      - protocol: TCP
+        port: 6447
+      - protocol: TCP
+        port: 6448
+      - protocol: TCP
+        port: 6449
+      - protocol: TCP
+        port: 8443
+  - from:
+    - podSelector:
+        matchLabels:
+          name: mysql-operator
+    ports:
+    - protocol: TCP
+      port: 6446
+    - protocol: TCP
+      port: 6447
+    - protocol: TCP
+      port: 6448
+    - protocol: TCP
+      port: 6449
+    - protocol: TCP
+      port: 8443
+---
 # Network policy for Keycloak MySQL
 # Ingress: allow port 3306 from Keycloak pods
 #          allow connect from Prometheus to scrape Envoy stats on port 15090
