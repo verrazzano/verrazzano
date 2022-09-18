@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"strconv"
 
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -90,6 +93,13 @@ func (c mysqlOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, err
 func (c mysqlOperatorComponent) PreInstall(compContext spi.ComponentContext) error {
 	cli := compContext.Client()
 	log := compContext.Log()
+
+	v1 := netv1.NetworkPolicy{}
+	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-mysql", Namespace: "keycloak"}, &v1)
+	if err != nil {
+		compContext.Log().Infof("network policy %s/%s not created yet", "keycloak", "keycloak-mysql")
+		return err
+	}
 
 	// create namespace
 	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
