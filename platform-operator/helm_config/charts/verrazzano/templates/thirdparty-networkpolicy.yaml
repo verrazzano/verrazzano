@@ -189,6 +189,7 @@ spec:
           protocol: TCP
 ---
 # Network policy for mysql-router
+# Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -217,9 +218,9 @@ spec:
       - protocol: TCP
         port: 8443
   - from:
-    - podSelector:
-        matchLabels:
-          name: mysql-operator
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: mysql-operator
     ports:
     - protocol: TCP
       port: 6446
