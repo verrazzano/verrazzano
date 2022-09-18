@@ -4,8 +4,11 @@
 package mysql
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -18,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -84,6 +88,12 @@ func (c mysqlComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // PreInstall calls MySQL preInstall function
 func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
+	v1 := netv1.NetworkPolicy{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "keycloak-mysql", Namespace: "keycloak"}, &v1)
+	if err != nil {
+		ctx.Log().Infof("network policy %s/%s not created yet", "keycloak", "keycloak-mysql")
+		return err
+	}
 	return preInstall(ctx, c.ChartNamespace)
 }
 
