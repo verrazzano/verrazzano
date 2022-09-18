@@ -15,14 +15,14 @@ yq -i eval '.spec.components.kubeStateMetrics.enabled = true' "${VZ_CR_FILE}"
 yq -i eval '.spec.components.prometheusPushgateway.enabled = true' "${VZ_CR_FILE}"
 yq -i eval '.spec.components.jaegerOperator.enabled = true' "${VZ_CR_FILE}"
 # For managed clusters, enable Jaeger operator and update the istio tracing configuration
-if [ "${CLUSTER_COUNT}" -gt 1 ] ; then
-    yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.sampling"' "${VZ_CR_FILE}"
-    yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "90.0"' "${VZ_CR_FILE}"
-    yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.zipkin.address"' "${VZ_CR_FILE}"
-    yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' "${VZ_CR_FILE}"
-    yq -i eval '.spec.components.istio.istioInstallArgs[2].name = "global.proxy.holdApplicationUntilProxyStarts"' ${VZ_CR_FILE}
-    yq -i eval '.spec.components.istio.istioInstallArgs[2].value = "true"' ${VZ_CR_FILE}
-fi
+#if [ "${CLUSTER_COUNT}" -gt 1 ] ; then
+#    yq -i eval '.spec.components.istio.istioInstallArgs[0].name = "meshConfig.defaultConfig.tracing.sampling"' "${VZ_CR_FILE}"
+#    yq -i eval '.spec.components.istio.istioInstallArgs[0].value = "90.0"' "${VZ_CR_FILE}"
+#    yq -i eval '.spec.components.istio.istioInstallArgs[1].name = "meshConfig.defaultConfig.tracing.zipkin.address"' "${VZ_CR_FILE}"
+#    yq -i eval '.spec.components.istio.istioInstallArgs[1].value = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' "${VZ_CR_FILE}"
+#    yq -i eval '.spec.components.istio.istioInstallArgs[2].name = "global.proxy.holdApplicationUntilProxyStarts"' ${VZ_CR_FILE}
+#    yq -i eval '.spec.components.istio.istioInstallArgs[2].value = "true"' ${VZ_CR_FILE}
+#fi
 
 echo "VZ CR to be applied:"
 cat "${VZ_CR_FILE}"
