@@ -4,9 +4,7 @@
 package upgrade
 
 import (
-	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"time"
@@ -136,12 +134,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		vz, err = helpers.GetVerrazzanoResource(client, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
 		if err == nil {
 			vz.Spec.Version = version
-			vzV1Alpha1 := &v1alpha1.Verrazzano{}
-			err = vzV1Alpha1.ConvertFrom(vz) // upgrade version may not support v1beta1
-			if err == nil {
-				err = client.Update(context.TODO(), vz)
-			}
-
+			err = helpers.UpdateVerrazzanoResource(client, vz)
 		}
 		if err != nil {
 			if retry == 5 {
