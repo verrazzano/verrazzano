@@ -18,7 +18,11 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-const ComponentInstallArgShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
+const (
+	ComponentInstallArgShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
+	traceEnableFlagPath      = "meshConfig.enableTracing"
+	traceSamplingRatePath    = "meshConfig.defaultConfig.tracing.sampling"
+)
 
 var testScheme = runtime.NewScheme()
 
@@ -529,11 +533,11 @@ var cr4 = &vzapi.IstioComponent{
 	Egress:  prodIstioEgress,
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  "meshConfig.enableTracing",
+			Name:  traceEnableFlagPath,
 			Value: "true",
 		},
 		{
-			Name:  "meshConfig.defaultConfig.tracing.sampling",
+			Name:  traceSamplingRatePath,
 			Value: "100",
 		},
 	},
@@ -545,11 +549,11 @@ var cr5 = &vzapi.IstioComponent{
 	Egress:  prodIstioEgress,
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  "meshConfig.enableTracing",
+			Name:  traceEnableFlagPath,
 			Value: "true",
 		},
 		{
-			Name:  "meshConfig.defaultConfig.tracing.sampling",
+			Name:  traceSamplingRatePath,
 			Value: "100",
 		},
 		{
@@ -565,7 +569,7 @@ var cr6 = &vzapi.IstioComponent{
 	Egress:  prodIstioEgress,
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
-			Name:  "meshConfig.enableTracing",
+			Name:  traceEnableFlagPath,
 			Value: "false",
 		},
 	},
