@@ -39,17 +39,21 @@ const istioGatewayTemplate = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-{{- if .IngressOrEgressFound }}
+{{- if (or .IngressKubernetes .EgressKubernetes) }}
   components:
 {{- if .EgressKubernetes }}
     egressGateways:
       - name: istio-egressgateway
         enabled: true
+{{- if (or (gt .IngressReplicaCount 0) (ne .EgressAffinity "")) }}
         k8s:
+{{- if (gt .IngressReplicaCount 0) }}
           replicaCount: {{.EgressReplicaCount}}
+{{- end}}
 {{- if .EgressAffinity }}
           affinity:
 {{ multiLineIndent 12 .EgressAffinity }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- if .IngressKubernetes }}
@@ -57,7 +61,9 @@ spec:
       - name: istio-ingressgateway
         enabled: true
         k8s:
+{{- if (gt .IngressReplicaCount 0) }}
           replicaCount: {{.IngressReplicaCount}}
+{{- end }}
           service:
             type: {{.IngressServiceType}}
 {{- if .IngressServicePorts }}
@@ -73,6 +79,8 @@ spec:
 {{ multiLineIndent 12 .IngressAffinity }}
 {{- end }}
 {{- end }}
+{{else}}
+{}
 {{- end }}
 `
 
@@ -84,16 +92,15 @@ const (
 )
 
 type istioTemplateData struct {
-	IngressOrEgressFound bool
-	IngressKubernetes    bool
-	EgressKubernetes     bool
-	IngressReplicaCount  uint32
-	EgressReplicaCount   uint32
-	IngressAffinity      string
-	EgressAffinity       string
-	IngressServiceType   string
-	IngressServicePorts  string
-	ExternalIps          string
+	IngressKubernetes   bool
+	EgressKubernetes    bool
+	IngressReplicaCount uint32
+	EgressReplicaCount  uint32
+	IngressAffinity     string
+	EgressAffinity      string
+	IngressServiceType  string
+	IngressServicePorts string
+	ExternalIps         string
 }
 
 func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, error) {
@@ -104,11 +111,6 @@ func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, erro
 	var externalIPYAMLTemplateValue = ""
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	var expandedYamls []string
-	gatewayYaml, err := configureGateways(comp, fixExternalIPYaml(externalIPYAMLTemplateValue))
-	if err != nil {
-		return nil, err
-	}
-	expandedYamls = append(expandedYamls, gatewayYaml)
 	for _, arg := range comp.IstioInstallArgs {
 		values := arg.ValueList
 		if len(values) == 0 {
@@ -135,6 +137,11 @@ func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, erro
 			}
 		}
 	}
+	gatewayYaml, err := configureGateways(comp, fixExternalIPYaml(externalIPYAMLTemplateValue))
+	if err != nil {
+		return nil, err
+	}
+	expandedYamls = append([]string{gatewayYaml}, expandedYamls...)
 	// Merge all the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
@@ -182,11 +189,15 @@ func configureGateways(istioComponent *IstioComponent, externalIP string) (strin
 	if err := configureEgressGateway(istioComponent, &data); err != nil {
 		return "", err
 	}
-	data.IngressOrEgressFound = data.IngressKubernetes || data.EgressKubernetes
 	data.ExternalIps = ""
 	if externalIP != "" {
 		data.ExternalIps = externalIP
 	}
+	// Include ingress component in the spec when either of the data is available
+	//	- ingress section is filled,
+	//	- external ip is provided through IstioInstallArgs
+	//	- its service ports are overridden through IstioInstallArgs
+	data.IngressKubernetes = data.IngressKubernetes || data.ExternalIps != "" || data.IngressServicePorts != ""
 
 	// use template to get populate template with data
 	var b bytes.Buffer
