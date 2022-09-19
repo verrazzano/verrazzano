@@ -22,18 +22,14 @@ const deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 func GetPodsList(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector) *corev1.PodList {
 	labelSelector, err := metav1.LabelSelectorAsSelector(selector)
 	if err != nil {
-		if log != nil {
-			log.Errorf("Failed to convert LabelSelector %v for %v: %v", selector, namespacedName, err)
-		}
+		logErrorf(log, "Failed to convert LabelSelector %v for %v: %v", selector, namespacedName, err)
 		return nil
 	}
 	var pods corev1.PodList
 	err = client.List(context.TODO(), &pods,
 		&clipkg.ListOptions{Namespace: namespacedName.Namespace, LabelSelector: labelSelector})
 	if err != nil {
-		if log != nil {
-			log.Errorf("Failed listing pods in namespace %s: %v", namespacedName.Namespace, err)
-		}
+		logErrorf(log, "Failed listing pods in namespace %s: %v", namespacedName.Namespace, err)
 		return nil
 	}
 
@@ -48,18 +44,14 @@ func EnsurePodsAreReady(log vzlog.VerrazzanoLogger, podsToCheck []corev1.Pod, ex
 		// Check that init containers are ready
 		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
 			if !initContainerStatus.Ready {
-				if log != nil {
-					log.Progressf("%s is waiting for init container of pod %s to be ready", prefix, pod.Name)
-				}
+				logProgressf(log, "%s is waiting for init container of pod %s to be ready", prefix, pod.Name)
 				return 0, false
 			}
 		}
 		// Check that containers are ready
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if !containerStatus.Ready {
-				if log != nil {
-					log.Progressf("%s is waiting for container of pod %s to be ready", prefix, pod.Name)
-				}
+				logProgressf(log, "%s is waiting for container of pod %s to be ready", prefix, pod.Name)
 				return 0, false
 			}
 		}
@@ -72,4 +64,22 @@ func EnsurePodsAreReady(log vzlog.VerrazzanoLogger, podsToCheck []corev1.Pod, ex
 		}
 	}
 	return podsReady, true
+}
+
+func logOncef(log vzlog.VerrazzanoLogger, template string, args ...interface{}) {
+	if log != nil {
+		log.Oncef(template, args)
+	}
+}
+
+func logErrorf(log vzlog.VerrazzanoLogger, template string, args ...interface{}) {
+	if log != nil {
+		log.Errorf(template, args)
+	}
+}
+
+func logProgressf(log vzlog.VerrazzanoLogger, template string, args ...interface{}) {
+	if log != nil {
+		log.Progressf(template, args)
+	}
 }

@@ -26,11 +26,11 @@ var veleroPodSelector = &metav1.LabelSelector{
 func DeploymentsReadyBySelectors(log vzlog.VerrazzanoLogger, client clipkg.Client, expectedReplicas int32, prefix string, opts ...clipkg.ListOption) bool {
 	deploymentList := &appsv1.DeploymentList{}
 	if err := client.List(context.TODO(), deploymentList, opts...); err != nil {
-		log.Errorf("%s failed listing deployments for selectors %v: %v", prefix, opts, err)
+		logErrorf(log, "%s failed listing deployments for selectors %v: %v", prefix, opts, err)
 		return false
 	}
 	if deploymentList.Items == nil || len(deploymentList.Items) < 1 {
-		log.Errorf("%s is waiting for deployments matching selector %s to exist", prefix, opts)
+		logErrorf(log, "%s is waiting for deployments matching selector %s to exist", prefix, opts)
 		return false
 	}
 	for idx := range deploymentList.Items {
@@ -52,10 +52,10 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf("%s is waiting for deployment %v to exist", prefix, namespacedName)
+				logProgressf(log, "%s is waiting for deployment %v to exist", prefix, namespacedName)
 				return false
 			}
-			log.Errorf("%s failed getting deployment %v: %v", prefix, namespacedName, err)
+			logErrorf(log, "%s failed getting deployment %v: %v", prefix, namespacedName, err)
 			return false
 		}
 		if !deploymentFullyReady(log, client, &deployment, namespacedName, expectedReplicas, prefix) {
@@ -71,10 +71,10 @@ func DoDeploymentsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namesp
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf("%s is waiting for deployment %v to exist", prefix, namespacedName)
+				logProgressf(log, "%s is waiting for deployment %v to exist", prefix, namespacedName)
 				return false
 			}
-			log.Errorf("%s failed getting deployment %v: %v", prefix, namespacedName, err)
+			logErrorf(log, "%s failed getting deployment %v: %v", prefix, namespacedName, err)
 			return false
 		}
 	}
@@ -88,7 +88,7 @@ func deploymentFullyReady(log vzlog.VerrazzanoLogger, client clipkg.Client, depl
 		return false
 	}
 	if deployment.Status.AvailableReplicas < expectedReplicas {
-		log.Progressf("%s is waiting for deployment %s replicas to be %v. Current available replicas is %v", prefix, namespacedName,
+		logProgressf(log, "%s is waiting for deployment %s replicas to be %v. Current available replicas is %v", prefix, namespacedName,
 			expectedReplicas, deployment.Status.AvailableReplicas)
 		return false
 	}
@@ -103,7 +103,7 @@ func deploymentFullyReady(log vzlog.VerrazzanoLogger, client clipkg.Client, depl
 	if !PodsReadyDeployment(log, client, namespacedName, podSelector, expectedReplicas, prefix) {
 		return false
 	}
-	log.Oncef("%s has enough replicas for deployment %v", prefix, namespacedName)
+	logOncef(log, "%s has enough replicas for deployment %v", prefix, namespacedName)
 	return true
 }
 
@@ -118,9 +118,7 @@ func PodsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
-		if log != nil {
-			log.Progressf("Found no pods with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
-		}
+		logProgressf(log, "Found no pods with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
 		return false
 	}
 
@@ -131,9 +129,7 @@ func PodsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 	for _, pod := range pods.Items {
 		// Log error and return if the pod-template-hash label is not found.  This should never happen.
 		if _, ok := pod.Labels[podTemplateHashLabel]; !ok {
-			if log != nil {
-				log.Errorf("Failed to find pod label [pod-template-hash] for pod %s/%s", pod.Namespace, pod.Name)
-			}
+			logErrorf(log, "Failed to find pod label [pod-template-hash] for pod %s/%s", pod.Namespace, pod.Name)
 			return false
 		}
 
@@ -147,17 +143,13 @@ func PodsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 		rsName := fmt.Sprintf("%s-%s", namespacedName.Name, pod.Labels[podTemplateHashLabel])
 		err := client.Get(context.TODO(), types.NamespacedName{Namespace: namespacedName.Namespace, Name: rsName}, &rs)
 		if err != nil {
-			if log != nil {
-				log.Errorf("Failed to get replicaset %s: %v", namespacedName, err)
-			}
+			logErrorf(log, "Failed to get replicaset %s: %v", namespacedName, err)
 			return false
 		}
 
 		// Log error and return if the deployment.kubernetes.io/revision annotation is not found.  This should never happen.
 		if _, ok := rs.Annotations[deploymentRevisionAnnotation]; !ok {
-			if log != nil {
-				log.Errorf("Failed to find pod annotation [deployment.kubernetes.io/revision] for pod %s/%s", pod.Namespace, pod.Name)
-			}
+			logErrorf(log, "Failed to find pod annotation [deployment.kubernetes.io/revision] for pod %s/%s", pod.Namespace, pod.Name)
 			return false
 		}
 
@@ -177,10 +169,8 @@ func PodsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 	}
 
 	if podsReady < expectedReplicas {
-		if log != nil {
-			log.Progressf("%s is waiting for deployment %s pods to be %v. Current available pods are %v", prefix, namespacedName,
-				expectedReplicas, podsReady)
-		}
+		logProgressf(log, "%s is waiting for deployment %s pods to be %v. Current available pods are %v", prefix, namespacedName,
+			expectedReplicas, podsReady)
 		return false
 	}
 
