@@ -64,7 +64,7 @@ SKIP_INSTALL_SCANNER=${5:-"false"}
 DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR"
 if [ "$BUNDLE_TO_SCAN" == "Full" ];then
   # There will be a top level verrazzano-<major>.<minor>.<patch> directory inside the full bundle
-  DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/$VERRAZZANO_PREFIX"
+  DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/verrazzano-${RELEASE_VERSION}"
 fi
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 
@@ -91,7 +91,7 @@ function scan_release_binaries() {
 
   cd $DIR_TO_SCAN
   ls
-  count_files=$(ls -1q *.* | wc -l)
+  count_files=$(find . -maxdepth 5 -type f  | LC_ALL=C grep -c /)
 
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
@@ -105,12 +105,25 @@ function scan_release_binaries() {
   if [ -e "${scan_summary}" ]; then
     rm -f $scan_summary
   fi
-  tail -25 ${SCAN_REPORT} > ${scan_summary}
+    tail -25 ${SCAN_REPORT} > ${scan_summary}
+
+  files_to_skip=0
+  clean_files="$(expr $count_files - $files_to_skip)"
+  files_not_scanned="$(expr $count_files - $clean_files)"
+
+  # Workaround to address the issue where scanner fails to open a file from ghcr.io_verrazzano_fluentd-kubernetes-daemonset image
+  if [ "$BUNDLE_TO_SCAN" == "Full" ];then
+    files_to_skip=1
+    clean_files="$(expr $count_files - $files_to_skip)"
+    files_not_scanned="$(expr $count_files - $clean_files)"
+  fi
+  echo "Clean files $clean_files"
+  echo "Files not scanned $files_not_scanned"
 
   # The following set of lines from the summary in the scan report is used here for validation.
   declare -a expectedLines=("Total files:...................     $count_files"
-                            "Clean:.........................     $count_files"
-                            "Not Scanned:...................     0"
+                            "Clean:.........................     $clean_files"
+                            "Not Scanned:...................     $files_not_scanned"
                             "Possibly Infected:.............     0"
                             "Objects Possibly Infected:.....     0"
                             "Cleaned:.......................     0"
