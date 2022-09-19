@@ -39,7 +39,7 @@ func CreateVerrazzanoObjectWithVersion() client.Object {
 func CreateTestVPOObjects() []client.Object {
 	return []client.Object{
 		CreateVPOPod(constants.VerrazzanoPlatformOperator),
-		CreateVPOReplicset(constants.VerrazzanoPlatformOperator),
+		CreateVPOReplicaset(constants.VerrazzanoPlatformOperator),
 		&appsv1.Deployment{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
@@ -73,7 +73,7 @@ func CreateVPOPod(name string) client.Object {
 	}
 }
 
-func CreateVPOReplicset(name string) client.Object {
+func CreateVPOReplicaset(name string) client.Object {
 	return &appsv1.ReplicaSet{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
