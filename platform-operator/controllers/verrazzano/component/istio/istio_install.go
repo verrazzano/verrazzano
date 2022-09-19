@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/pkg/yaml"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -207,6 +208,14 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 		return err
 	}
 
+	//TODO: Remove later after debugging
+	for _, tempFileName := range istioTempFiles {
+		fileContent, err := ioutil.ReadFile(tempFileName)
+		if err != nil {
+			compContext.Log().Error(err)
+		}
+		compContext.Log().Infof("Istio CR temp file contents: '%s'", fileContent)
+	}
 	// build image override strings
 	overrideStrings, err := getOverridesString(compContext)
 	if err != nil {
@@ -268,7 +277,7 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 	cr := compContext.EffectiveCR()
 	log := compContext.Log()
 
-	files := []string{i.ValuesFile}
+	var files []string
 
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
@@ -283,8 +292,12 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 			return files, log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
 
+		mergedIstioCRYaml, err := yaml.ReplacementMerge(i.ValuesFile, istioOperatorYaml)
+		if err != nil {
+			return files, log.ErrorfNewErr("Failed to merge generated istio CR and ValuesFile YAML: %v", err)
+		}
 		// Write the overrides to a tmp file and append it to files
-		userFileCR, err := createTempFile(log, istioOperatorYaml)
+		userFileCR, err := createTempFile(log, mergedIstioCRYaml)
 		if err != nil {
 			return files, err
 		}
