@@ -531,10 +531,11 @@ func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrid
 			}, nil
 		}
 
-		if isOverrideValueUnset(overrides[0]) {
-			overrides[0].Values = override.Values
+		lastIndex := len(overrides) - 1
+		if isOverrideValueUnset(overrides[lastIndex]) {
+			overrides[lastIndex].Values = override.Values
 		} else {
-			data, err := strategicpatch.StrategicMergePatch(overrides[0].Values.Raw, override.Values.Raw, struct {
+			data, err := strategicpatch.StrategicMergePatch(overrides[lastIndex].Values.Raw, override.Values.Raw, struct {
 				metav1.TypeMeta   `json:",inline"`
 				metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 				Spec              *operatorv1alpha1.IstioOperatorSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
@@ -542,7 +543,7 @@ func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrid
 			if err != nil {
 				return nil, err
 			}
-			overrides[0].Values.Raw = data
+			overrides[lastIndex].Values.Raw = data
 		}
 	}
 
