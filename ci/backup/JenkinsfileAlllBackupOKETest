@@ -398,27 +398,6 @@ pipeline {
             }
         }
 
-        stage('Initiate Mysql backup and restore tests') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
-            }
-            steps {
-                waitForPodsToBeUp("keycloak")
-                runGinkgoRandomize('backup/mysql')
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
-                    }
-                }
-            }
-        }
-
     }
     post {
         always {
