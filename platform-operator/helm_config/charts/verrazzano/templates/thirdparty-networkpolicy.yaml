@@ -137,6 +137,22 @@ spec:
 {{- end }}
 {{- if .Values.keycloak.enabled }}
 ---
+# Network policy for keycloak pod communication
+# Ingress: allow all pod-to-pod communication within the namespace
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: keycloak
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+      - podSelector: {}
+---
 # Network policy for Keycloak
 # Ingress: allow nginx ingress and ingress from pods in the verrazzano-system namespace
 #          allow connect from Prometheus to scrape Envoy stats on port 15090
@@ -160,23 +176,14 @@ spec:
       - podSelector:
           matchLabels:
             app.kubernetes.io/instance: ingress-controller
-      ports:
-        - protocol: TCP
-          port: 8080
     - from:
       - namespaceSelector:
           matchLabels:
             verrazzano.io/namespace: {{ .Release.Namespace }}
-      ports:
-        - protocol: TCP
-          port: 8080
     - from:
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
-      ports:
-        - protocol: TCP
-          port: 7600
     - from:
       - namespaceSelector:
           matchLabels:
@@ -184,9 +191,6 @@ spec:
         podSelector:
           matchLabels:
             app.kubernetes.io/name: prometheus
-      ports:
-        - port: 15090
-          protocol: TCP
 ---
 # Network policy for mysql-router
 # Egress: allow all
