@@ -35,6 +35,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		{Key: "initContainers[0].imagePullPolicy", Value: "IfNotPresent"},
 		{Key: "initContainers[0].volumeMounts[0].name", Value: "plugins"},
 		{Key: "initContainers[0].volumeMounts[0].mountPath", Value: "/target"},
+		{Key: "metrics.serviceMonitor.namespace", Value: ComponentNamespace},
 	}
 	kvs = append(kvs, arguments...)
 	return kvs, nil
