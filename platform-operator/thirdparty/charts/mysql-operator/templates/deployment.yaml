@@ -27,7 +27,7 @@ spec:
         - name: mysql-operator
           image: {{ if .Values.image.registry }}{{ .Values.image.registry }}/{{- end }}{{- if .Values.image.repository }}{{ .Values.image.repository }}/{{ end }}{{ .Values.image.name }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ required "image.pullPolicy is required" .Values.image.pullPolicy }}
-          args: ["mysqlsh", "--log-level=@INFO", "--pym", "mysqloperator", "operator"]
+          args: ["mysqlsh", "--log-level=@DEBUG", "--pym", "mysqloperator", "operator"]
           env:
           - name: MYSQLSH_USER_CONFIG_HOME
             value: /mysqlsh
