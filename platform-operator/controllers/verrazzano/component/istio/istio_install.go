@@ -291,8 +291,11 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 		if err != nil {
 			return files, log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
-
-		mergedIstioCRYaml, err := yaml.ReplacementMerge(i.ValuesFile, istioOperatorYaml)
+		fileContent, err := ioutil.ReadFile(i.ValuesFile)
+		if err != nil {
+			compContext.Log().Error(err)
+		}
+		mergedIstioCRYaml, err := yaml.ReplacementMerge(string(fileContent), istioOperatorYaml)
 		if err != nil {
 			return files, log.ErrorfNewErr("Failed to merge generated istio CR and ValuesFile YAML: %v", err)
 		}
