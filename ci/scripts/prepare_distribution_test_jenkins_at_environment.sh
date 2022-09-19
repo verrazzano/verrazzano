@@ -77,7 +77,6 @@ fi
 yq eval -i '.spec.components.prometheusAdapter.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.kubeStateMetrics.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.prometheusPushgateway.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-yq eval -i '.spec.components.prometheusNodeExporter.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.velero.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.rancherBackup.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 
