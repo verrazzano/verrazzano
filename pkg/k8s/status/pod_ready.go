@@ -68,18 +68,18 @@ func EnsurePodsAreReady(log vzlog.VerrazzanoLogger, podsToCheck []corev1.Pod, ex
 
 func logOncef(log vzlog.VerrazzanoLogger, template string, args ...interface{}) {
 	if log != nil {
-		log.Oncef(template, args)
+		log.Oncef(template, args...)
 	}
 }
 
 func logErrorf(log vzlog.VerrazzanoLogger, template string, args ...interface{}) {
 	if log != nil {
-		log.Errorf(template, args)
+		log.Errorf(template, args...)
 	}
 }
 
 func logProgressf(log vzlog.VerrazzanoLogger, template string, args ...interface{}) {
 	if log != nil {
-		log.Progressf(template, args)
+		log.Progressf(template, args...)
 	}
 }

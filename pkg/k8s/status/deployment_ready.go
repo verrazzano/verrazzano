@@ -83,7 +83,7 @@ func DoDeploymentsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namesp
 
 func deploymentFullyReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployment *appsv1.Deployment, namespacedName types.NamespacedName, expectedReplicas int32, prefix string) bool {
 	if deployment.Status.UpdatedReplicas < expectedReplicas {
-		log.Progressf("%s is waiting for deployment %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
+		logProgressf(log, "%s is waiting for deployment %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
 			expectedReplicas, deployment.Status.UpdatedReplicas)
 		return false
 	}
