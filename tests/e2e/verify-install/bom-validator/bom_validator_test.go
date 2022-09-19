@@ -16,6 +16,7 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -188,11 +189,25 @@ func populateClusterImages(installedNamespace string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, podList := range podsList.Items {
-		for _, initContainer := range podList.Spec.InitContainers {
+	for _, pod := range podsList.Items {
+		for _, initContainer := range pod.Spec.InitContainers {
+			podLabels := pod.GetLabels()
+			_, ok := podLabels["job-name"]
+			if pod.Status.Phase != corev1.PodRunning && ok {
+				fmt.Println("inside conditional", pod.Name)
+				continue
+			}
 			clusterImageArray = append(clusterImageArray, initContainer.Image)
 		}
-		for _, container := range podList.Spec.Containers {
+
+
+		for _, container := range pod.Spec.Containers {
+			podLabels := pod.GetLabels()
+			_, ok := podLabels["job-name"]
+			if pod.Status.Phase != corev1.PodRunning && ok {
+				fmt.Println("inside conditional", pod.Name)
+				continue
+			}
 			clusterImageArray = append(clusterImageArray, container.Image)
 		}
 	}
