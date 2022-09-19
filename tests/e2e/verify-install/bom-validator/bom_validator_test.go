@@ -6,6 +6,7 @@ package bomvalidator
 import (
 	"encoding/json"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"log"
 	"os"
 	"regexp"
@@ -16,7 +17,6 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -190,23 +190,16 @@ func populateClusterImages(installedNamespace string) {
 		log.Fatal(err)
 	}
 	for _, pod := range podsList.Items {
+		podLabels := pod.GetLabels()
+		_, ok := podLabels["job-name"]
+		if pod.Status.Phase != corev1.PodRunning && ok {
+			fmt.Println("inside conditional", pod.Name)
+			continue
+		}
 		for _, initContainer := range pod.Spec.InitContainers {
-			podLabels := pod.GetLabels()
-			_, ok := podLabels["job-name"]
-			if pod.Status.Phase != corev1.PodRunning && ok {
-				fmt.Println("inside conditional", pod.Name)
-				continue
-			}
 			clusterImageArray = append(clusterImageArray, initContainer.Image)
 		}
-
 		for _, container := range pod.Spec.Containers {
-			podLabels := pod.GetLabels()
-			_, ok := podLabels["job-name"]
-			if pod.Status.Phase != corev1.PodRunning && ok {
-				fmt.Println("inside conditional", pod.Name)
-				continue
-			}
 			clusterImageArray = append(clusterImageArray, container.Image)
 		}
 	}
