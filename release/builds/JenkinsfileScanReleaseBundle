@@ -109,8 +109,8 @@ pipeline {
             }
            steps {
                 script {
-                    // The scan alone takes around 55 minutes, so setting a higher timeout
-                    timeout(time: 240, unit: 'MINUTES') {
+                    // The scan takes more than 3 hours for the full bundle, so setting a higher timeout
+                    timeout(time: 300, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
                             if [ "${params.DISTRIBUTION_VARIANT}" == "Full" ];then
