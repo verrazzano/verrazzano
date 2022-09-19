@@ -21,6 +21,7 @@ import (
 const (
 	authProxyLabelValue = "verrazzano-authproxy"
 	authProxyLabelKey   = "app"
+	explicitReplicas    = uint32(3)
 )
 
 type AuthProxyReplicasModifier struct {
@@ -216,7 +217,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			if err != nil {
 				Fail(err.Error())
 			}
-			expectedRunning := nodeCount + 1
+			expectedRunning := explicitReplicas
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
 	})
@@ -228,8 +229,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			if err != nil {
 				Fail(err.Error())
 			}
-			expectedRunning := nodeCount + 1
-
+			expectedRunning := explicitReplicas
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
 	})
