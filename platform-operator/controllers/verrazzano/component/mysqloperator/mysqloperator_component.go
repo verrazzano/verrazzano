@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -59,7 +61,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      vpocons.VerrazzanoVersion1_4_0,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
-			Dependencies:              []string{},
+			Dependencies:              []string{istio.ComponentName},
 			GetInstallOverridesFunc:   getOverrides,
 			InstallBeforeUpgrade:      true,
 		},
