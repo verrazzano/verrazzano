@@ -200,7 +200,6 @@ func populateClusterImages(installedNamespace string) {
 			clusterImageArray = append(clusterImageArray, initContainer.Image)
 		}
 
-
 		for _, container := range pod.Spec.Containers {
 			podLabels := pod.GetLabels()
 			_, ok := podLabels["job-name"]
