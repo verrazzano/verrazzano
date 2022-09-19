@@ -167,48 +167,48 @@ var _ = t.AfterSuite(func() {
 })
 
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
-	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {
-		t.It("authproxy default replicas", func() {
-			cr := update.GetCR()
+	/*	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {
+			t.It("authproxy default replicas", func() {
+				cr := update.GetCR()
 
-			expectedRunning := uint32(1)
-			if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
-				expectedRunning = 2
-			}
-			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+				expectedRunning := uint32(1)
+				if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
+					expectedRunning = 2
+				}
+				update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+			})
 		})
-	})
 
-	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
-		t.It("authproxy explicit replicas", func() {
-			m := AuthProxyReplicasModifier{replicas: nodeCount}
-			err := update.UpdateCR(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+		t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
+			t.It("authproxy explicit replicas", func() {
+				m := AuthProxyReplicasModifier{replicas: nodeCount}
+				err := update.UpdateCR(m)
+				if err != nil {
+					Fail(err.Error())
+				}
 
-			expectedRunning := nodeCount
-			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+				expectedRunning := nodeCount
+				update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+			})
 		})
-	})
 
-	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
-		t.It("authproxy explicit affinity", func() {
-			m := AuthProxyPodPerNodeAffintyModifier{}
-			err := update.UpdateCR(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+		t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
+			t.It("authproxy explicit affinity", func() {
+				m := AuthProxyPodPerNodeAffintyModifier{}
+				err := update.UpdateCR(m)
+				if err != nil {
+					Fail(err.Error())
+				}
 
-			expectedRunning := nodeCount - 1
-			expectedPending := true
-			if nodeCount == 1 {
-				expectedRunning = nodeCount
-				expectedPending = false
-			}
-			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
-		})
-	})
+				expectedRunning := nodeCount - 1
+				expectedPending := true
+				if nodeCount == 1 {
+					expectedRunning = nodeCount
+					expectedPending = false
+				}
+				update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
+			})
+		})*/
 
 	t.Describe("verrazzano-authproxy update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {

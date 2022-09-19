@@ -117,6 +117,7 @@ var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func()
 			}
 			expectedRunning := nodeCount
 			update.ValidatePods(ingressNGINXLabelValue, ingressNGINXLabelKey, constants.IngressNamespace, expectedRunning, false)
+
 		})
 	})
 })

@@ -75,6 +75,18 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 		})
 	})
 
+	t.Describe("Update external Opensearch using v1beta1", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
+		t.It("external Opensearch", func() {
+			pkg.CreateCredentialsSecret(pcons.VerrazzanoInstallNamespace, extEsSec, "user", "pw", map[string]string{})
+			m := &FluentdModifierV1beta1{Component: v1beta1.FluentdComponent{
+				OpenSearchSecret: extEsSec,
+				OpenSearchURL:    opensearchURL,
+			}}
+			ValidateUpdateV1beta1(m, "")
+			ValidateDaemonsetV1beta1(opensearchURL, extEsSec, "")
+		})
+	})
+
 	t.Describe("Validate OCI logging config", Label(labelValidation), func() {
 		t.It("secret validation", func() {
 			m := &FluentdModifier{Component: vzapi.FluentdComponent{
