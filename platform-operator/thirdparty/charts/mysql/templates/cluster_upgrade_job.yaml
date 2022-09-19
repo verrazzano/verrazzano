@@ -38,7 +38,6 @@ spec:
             - -c
             - >-
               while ! mysqladmin ping -h"{{ $cluster_name }}.{{ .Release.Namespace }}.svc.cluster.local" --silent; do sleep 1; done &&
-              rm -rf "/var/lib/dump/{{ .Values.legacyUpgrade.dumpDir }}" &&
               mysqlsh -u root -p$(MYSQL_ROOT_PASSWORD) -h {{ $cluster_name }}.{{ .Release.Namespace }}.svc.cluster.local -e 'util.loadDump("/var/lib/dump/{{ .Values.legacyUpgrade.dumpDir }}", {includeSchemas: ["keycloak"], includeUsers: ["keycloak"], loadUsers: true})'
           env:
             - name: MYSQL_ROOT_PASSWORD

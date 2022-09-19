@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
 	mySQLDbCommands = `mysql -uroot -p%s -e "USE keycloak; 
 ALTER TABLE DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"
 `
+	mySQLCleanup    = `rm -rf /var/lib/mysql/dump`
 	mySQLShCommands = `mysqlsh -uroot -p%s --js <<EOF
 util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})
 EOF

@@ -257,6 +257,7 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
 	execCmd := []string{"bash", "-c", sqlCmd}
 	// util.dumpInstance() Cmd
+	cleanupCmd := []string{"bash", "-c", mySQLCleanup}
 	sqlShCmd := fmt.Sprintf(mySQLShCommands, rootPwd)
 	execShCmd := []string{"bash", "-c", sqlShCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
@@ -274,6 +275,7 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Debug("Successfully updated keycloak table primary key")
+	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", cleanupCmd)
 	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execShCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed executing database dump, err = %v", err))
