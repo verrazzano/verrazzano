@@ -117,8 +117,6 @@ function scan_release_binaries() {
     clean_files="$(expr $count_files - $files_to_skip)"
     files_not_scanned="$(expr $count_files - $clean_files)"
   fi
-  echo "Clean files $clean_files"
-  echo "Files not scanned $files_not_scanned"
 
   # The following set of lines from the summary in the scan report is used here for validation.
   declare -a expectedLines=("Total files:...................     $count_files"
@@ -165,6 +163,3 @@ else
 fi
 
 scan_release_binaries || exit 1
-
-echo "Listing $SCAN_REPORT_DIR"
-ls $SCAN_REPORT_DIR

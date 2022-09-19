@@ -115,12 +115,8 @@ pipeline {
                             cd ${WORKSPACE}/release/scripts
                             if [ "${params.DISTRIBUTION_VARIANT}" == "Full" ];then
                                 ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_FULL} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_FULL} ${params.DISTRIBUTION_VARIANT}
-                                echo "Listing the directory containing release artifacts ..."
-                                ls ${RELEASE_BINARIES_DIR}/${VZ_LITE}
                             else
                                 ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} ${params.DISTRIBUTION_VARIANT}
-                                echo "Listing the directory containing release artifacts ..."
-                                ls ${RELEASE_BINARIES_DIR}/${VZ_LITE}
                             fi
                         """
                    }
