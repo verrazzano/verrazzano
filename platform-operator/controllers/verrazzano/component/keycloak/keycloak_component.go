@@ -92,6 +92,11 @@ func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
 }
 
 func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
+	// Wait for MySQL to be ready
+	if !mysql.NewComponent().IsReady(ctx) {
+		return fmt.Errorf("Component %s waiting for %s to be ready", ComponentName, "mysql")
+	}
+
 	// Check Verrazzano Secret. return error which will cause requeue
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
