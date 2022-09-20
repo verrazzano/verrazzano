@@ -7,12 +7,15 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/ioutil"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"net/http"
 	neturl "net/url"
 	"os"
 	"reflect"
 	"regexp"
+	"sigs.k8s.io/yaml"
 	"strconv"
 	"strings"
 	"sync"
@@ -707,4 +710,21 @@ func CalculateSeconds(age string) (int64, error) {
 		return number, nil
 	}
 	return 0, fmt.Errorf("conversion to seconds for time unit %s is unsupported", match[2])
+}
+
+func CreateOverridesOrDie(yamlString string) []v1beta1.Overrides {
+	data, err := yaml.YAMLToJSON([]byte(yamlString))
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to convert yaml to JSON: %s", yamlString))
+		panic(err)
+	}
+	return []v1beta1.Overrides{
+		{
+			ConfigMapRef: nil,
+			SecretRef:    nil,
+			Values: &apiextensionsv1.JSON{
+				Raw: data,
+			},
+		},
+	}
 }

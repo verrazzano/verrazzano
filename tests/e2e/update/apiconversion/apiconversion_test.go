@@ -24,9 +24,6 @@ type IngressNGINXReplicasModifierV1beta1 struct {
 	replicas uint32
 }
 
-type IngressNGINXPodPerNodeAffinityModifierV1beta1 struct {
-}
-
 type IngressNGINXDefaultModifierV1beta1 struct {
 }
 
@@ -72,24 +69,6 @@ func (u IngressNGINXReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazz
 	cr.Spec.Components.IngressNGINX.ValueOverrides = createOverridesOrDie(ingressNginxReplicaOverridesYaml)
 }
 
-func (u IngressNGINXPodPerNodeAffinityModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
-	if cr.Spec.Components.IngressNGINX == nil {
-		cr.Spec.Components.IngressNGINX = &v1beta1.IngressNginxComponent{}
-	}
-	ingressNginxReplicaOverridesYaml := fmt.Sprintf(`controller:
-              affinity:
-                podAntiAffinity:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - podAffinityTerm:
-                        labelSelector:
-                          matchLabels:
-                            app.kubernetes.io/component: controller
-                            app.kubernetes.io/name: %v
-                        topologyKey: kubernetes.io/hostname
-                      weight: 100`, ingressNGINXLabelValue)
-	cr.Spec.Components.IngressNGINX.ValueOverrides = createOverridesOrDie(ingressNginxReplicaOverridesYaml)
-}
-
 func createOverridesOrDie(yamlString string) []v1beta1.Overrides {
 	data, err := yaml.YAMLToJSON([]byte(yamlString))
 	if err != nil {
@@ -108,8 +87,8 @@ func createOverridesOrDie(yamlString string) []v1beta1.Overrides {
 }
 
 var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func() {
-	t.Describe("ingress-nginx update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
-		t.It("authproxy explicit replicas", func() {
+	t.Describe("ingressNginx update replicas with v1beta1 client", Label("f:platform-lcm.ingressNginx-update-replicas"), func() {
+		t.It("ingressNginx explicit replicas", func() {
 			m := IngressNGINXReplicasModifierV1beta1{replicas: nodeCount}
 			err := update.UpdateCRV1beta1(m)
 			if err != nil {

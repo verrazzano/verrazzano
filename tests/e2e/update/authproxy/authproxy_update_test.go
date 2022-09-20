@@ -13,9 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -59,24 +57,7 @@ func (u AuthProxyReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano
 		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
 	}
 	authProxyReplicasOverridesYaml := fmt.Sprintf(`replicas: %v`, u.replicas)
-	cr.Spec.Components.AuthProxy.ValueOverrides = createOverridesOrDie(authProxyReplicasOverridesYaml)
-}
-
-func createOverridesOrDie(yamlString string) []v1beta1.Overrides {
-	data, err := yaml.YAMLToJSON([]byte(yamlString))
-	if err != nil {
-		t.Logs.Errorf("Failed to convert yaml to JSON: %s", yamlString)
-		panic(err)
-	}
-	return []v1beta1.Overrides{
-		{
-			ConfigMapRef: nil,
-			SecretRef:    nil,
-			Values: &apiextensionsv1.JSON{
-				Raw: data,
-			},
-		},
-	}
+	cr.Spec.Components.AuthProxy.ValueOverrides = pkg.CreateOverridesOrDie(authProxyReplicasOverridesYaml)
 }
 
 func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
@@ -95,7 +76,7 @@ func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.V
                         - %v
                     topologyKey: kubernetes.io/hostname
                   weight: 100`, authProxyLabelKey, authProxyLabelValue)
-	cr.Spec.Components.AuthProxy.ValueOverrides = createOverridesOrDie(authProxyAffinityOverridesYaml)
+	cr.Spec.Components.AuthProxy.ValueOverrides = pkg.CreateOverridesOrDie(authProxyAffinityOverridesYaml)
 }
 
 func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -151,8 +132,8 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
-	m := AuthProxyDefaultModifier{}
-	err := update.UpdateCR(m)
+	m := AuthProxyDefaultModifierV1beta1{}
+	err := update.UpdateCRV1beta1(m)
 	if err != nil {
 		Fail(err.Error())
 	}
