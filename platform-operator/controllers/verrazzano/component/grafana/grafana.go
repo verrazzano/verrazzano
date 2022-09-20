@@ -6,9 +6,9 @@ package grafana
 import (
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
 )
 
