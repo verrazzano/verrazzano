@@ -18,7 +18,7 @@ import (
 const (
 	labelValidation         = "f:platform-lcm.fluentd-update-validation"
 	opensearchURL           = "https://opensearch.example.com:9200"
-	openSearchDashboardsUrl = "https://kibana.vmi.system.default.172.18.0.231.nip.io"
+	openSearchDashboardsURL = "https://kibana.vmi.system.default.172.18.0.231.nip.io"
 	waitTimeout             = 5 * time.Minute
 )
 
@@ -81,8 +81,8 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("Verify Opensearch and OpenDashboard urls", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
 		t.It("external Opensearch", func() {
-			validateOpenSearchUrl(opensearchURL)
-			validateOpensearchDashboardUrl(openSearchDashboardsUrl)
+			validateOpenSearchURL(opensearchURL)
+			validateOpensearchDashboardURL(openSearchDashboardsURL)
 		})
 	})
 
@@ -132,7 +132,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 	})
 })
 
-func validateOpenSearchUrl(osURL string) {
+func validateOpenSearchURL(osURL string) {
 	Eventually(func() bool {
 		cr, _ := pkg.GetVerrazzanoV1beta1()
 
@@ -141,7 +141,7 @@ func validateOpenSearchUrl(osURL string) {
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the opensearchURL is valid")
 }
 
-func validateOpensearchDashboardUrl(osdURL string) {
+func validateOpensearchDashboardURL(osdURL string) {
 	Eventually(func() bool {
 		cr, _ := pkg.GetVerrazzanoV1beta1()
 		return *cr.Status.VerrazzanoInstance.OpenSearchDashboardsURL != osdURL
