@@ -6,6 +6,7 @@ package status
 import (
 	"context"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -15,6 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// pod label used to identify the controllerRevision resource for daemonsets and statefulsets
+const controllerRevisionHashLabel = "controller-revision-hash"
 
 // StatefulSetsAreReady Check that the named statefulsets have the minimum number of specified replicas ready and available
 func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
@@ -67,7 +71,7 @@ func DoStatefulSetsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 // running and ready
 func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
-	pods := getPodsList(log, client, namespacedName, selector)
+	pods := status.GetPodsList(log, client, namespacedName, selector)
 	if pods == nil {
 		return false
 	}
@@ -111,7 +115,7 @@ func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client clipkg.Client, name
 	}
 
 	// Make sure pods using the latest controllerRevision resource are ready.
-	podsReady, success := ensurePodsAreReady(log, savedPods, expectedReplicas, prefix)
+	podsReady, success := status.EnsurePodsAreReady(log, savedPods, expectedReplicas, prefix)
 	if !success {
 		return false
 	}
