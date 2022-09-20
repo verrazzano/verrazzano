@@ -6,6 +6,7 @@ package install
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"helm.sh/helm/v3/pkg/strvals"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,7 +48,7 @@ vz install -f base.yaml -f custom.yaml --set profile=prod --log-format json
 
 # Install the latest version of Verrazzano using a Verrazzano CR specified with stdin.
 vz install -f - <<EOF
-apiVersion: install.verrazzano.io/v1alpha1
+apiVersion: install.verrazzano.io/v1beta1
 kind: Verrazzano
 metadata:
   namespace: default
@@ -124,45 +124,93 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Installing Verrazzano version %s\n", version))
 	}
 
-	// Get the verrazzano install resource to be created
-	vz, err := getVerrazzanoYAML(cmd, vzHelper, version)
-	if err != nil {
-		return err
-	}
+	var vzNamespace string
+	var vzName string
+	var vpoPodName string
 
-	// Apply the Verrazzano operator.yaml.
-	lastTransitionTime := metav1.Now()
-	err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
-	if err != nil {
-		return err
-	}
-
-	// Wait for the platform operator to be ready before we create the Verrazzano resource.
-	vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, lastTransitionTime)
-	if err != nil {
-		return err
-	}
-
-	// Create the Verrazzano install resource.
-	// We will retry up to 5 times if there is an error.
-	// Sometimes we see intermittent webhook errors due to timeouts.
-	retry := 0
-	for {
-		err = client.Create(context.TODO(), vz)
-		if err != nil {
-			if retry == 5 {
-				return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
-			}
-			time.Sleep(time.Second)
-			retry++
-			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to create the verrazzano install resource: %s\n", err.Error()))
-			continue
+	// Check to see if we have a vz resource already deployed
+	existingvz, _ := helpers.FindVerrazzanoResource(client)
+	if existingvz != nil {
+		// Allow install command to continue if an install is in progress and the same version is specified.
+		// For example, control-C was entered and the install command is run again.
+		// Note: "Installing" is a state that was used in pre 1.4.0 installs and replaced wih "Reconciling".
+		if existingvz.Status.State != v1beta1.VzStateReconciling && existingvz.Status.State != "Installing" {
+			return fmt.Errorf("Only one install of Verrazzano is allowed")
 		}
-		break
+
+		if version != "" {
+			installVersion, err := semver.NewSemVersion(version)
+			if err != nil {
+				return fmt.Errorf("Failed creating semantic version from install version %s: %s", version, err.Error())
+			}
+			vzVersion, err := semver.NewSemVersion(existingvz.Status.Version)
+			if err != nil {
+				return fmt.Errorf("Failed creating semantic version from Verrazzano status version %s: %s", existingvz.Status.Version, err.Error())
+			}
+			if !installVersion.IsEqualTo(vzVersion) {
+				return fmt.Errorf("Unable to install version %s, install of version %s is in progress", version, existingvz.Status.Version)
+			}
+		}
+
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Install of Verrazzano version %s is already in progress\n", version))
+
+		vpoPodName, err = cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
+		if err != nil {
+			return err
+		}
+
+		vzNamespace = existingvz.Namespace
+		vzName = existingvz.Name
+	} else {
+		// Get the verrazzano install resource to be created
+		vz, err := getVerrazzanoYAML(cmd, vzHelper, version)
+		if err != nil {
+			return err
+		}
+
+		// Delete leftover verrazzano-operator deployment after an abort.
+		// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with the correct caBundle.
+		err = cmdhelpers.DeleteFunc(client)
+		if err != nil {
+			return err
+		}
+
+		// Apply the Verrazzano operator.yaml.
+		err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
+		if err != nil {
+			return err
+		}
+
+		// Wait for the platform operator to be ready before we create the Verrazzano resource.
+		vpoPodName, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete)
+		if err != nil {
+			return err
+		}
+
+		// Create the Verrazzano install resource, if need be.
+		// We will retry up to 5 times if there is an error.
+		// Sometimes we see intermittent webhook errors due to timeouts.
+		retry := 0
+		for {
+			err = client.Create(context.TODO(), vz)
+			if err != nil {
+				if retry == 5 {
+					return fmt.Errorf("Failed to create the verrazzano install resource: %s", err.Error())
+				}
+				time.Sleep(time.Second)
+				retry++
+				fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Retrying after failing to create the verrazzano install resource: %s\n", err.Error()))
+				continue
+			}
+			break
+		}
+
+		vzNamespace = vz.GetNamespace()
+		vzName = vz.GetName()
 	}
 
 	// Wait for the Verrazzano install to complete
-	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.GetNamespace(), Name: vz.GetName()}, timeout, logFormat)
+	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, logFormat)
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
