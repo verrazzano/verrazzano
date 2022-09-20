@@ -5,6 +5,7 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
@@ -67,36 +68,67 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 29, "Wrong number of components")
-	a.Equal(comps[0].Name(), oam.ComponentName)
-	a.Equal(comps[1].Name(), appoper.ComponentName)
-	a.Equal(comps[2].Name(), istio.ComponentName)
-	a.Equal(comps[3].Name(), weblogic.ComponentName)
-	a.Equal(comps[4].Name(), nginx.ComponentName)
-	a.Equal(comps[5].Name(), certmanager.ComponentName)
-	a.Equal(comps[6].Name(), externaldns.ComponentName)
-	a.Equal(comps[7].Name(), rancher.ComponentName)
-	a.Equal(comps[8].Name(), verrazzano.ComponentName)
-	a.Equal(comps[9].Name(), vmo.ComponentName)
-	a.Equal(comps[10].Name(), opensearch.ComponentName)
-	a.Equal(comps[11].Name(), opensearchdashboards.ComponentName)
-	a.Equal(comps[12].Name(), grafana.ComponentName)
-	a.Equal(comps[13].Name(), authproxy.ComponentName)
-	a.Equal(comps[14].Name(), coherence.ComponentName)
-	a.Equal(comps[15].Name(), mysqloperator.ComponentName)
-	a.Equal(comps[16].Name(), mysql.ComponentName)
-	a.Equal(comps[17].Name(), keycloak.ComponentName)
-	a.Equal(comps[18].Name(), kiali.ComponentName)
-	a.Equal(comps[19].Name(), promoperator.ComponentName)
-	a.Equal(comps[20].Name(), promadapter.ComponentName)
-	a.Equal(comps[21].Name(), kubestatemetrics.ComponentName)
-	a.Equal(comps[22].Name(), pushgateway.ComponentName)
-	a.Equal(comps[23].Name(), promnodeexporter.ComponentName)
-	a.Equal(comps[24].Name(), jaegeroperator.ComponentName)
-	a.Equal(comps[25].Name(), console.ComponentName)
-	a.Equal(comps[26].Name(), fluentd.ComponentName)
-	a.Equal(comps[27].Name(), velero.ComponentName)
-	a.Equal(comps[28].Name(), rancherbackup.ComponentName)
+	var i int
+	a.Len(comps, 30, "Wrong number of components")
+	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), oam.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), appoper.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), istio.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), weblogic.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), nginx.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), certmanager.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), externaldns.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), rancher.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), verrazzano.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), vmo.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), opensearch.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), opensearchdashboards.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), grafana.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), authproxy.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), coherence.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), mysqloperator.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), mysql.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), keycloak.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), kiali.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), promoperator.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), promadapter.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), kubestatemetrics.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), pushgateway.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), promnodeexporter.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), jaegeroperator.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), console.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), fluentd.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), velero.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), rancherbackup.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -204,7 +236,7 @@ func TestComponentOptionalDependenciesMet(t *testing.T) {
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{istio.ComponentName},
+		Dependencies:   []string{certmanager.ComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	enabled := false
@@ -214,7 +246,7 @@ func TestComponentOptionalDependenciesMet(t *testing.T) {
 		},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
-				Istio: &v1alpha1.IstioComponent{
+				CertManager: &v1alpha1.CertManagerComponent{
 					Enabled: &enabled,
 				},
 			},

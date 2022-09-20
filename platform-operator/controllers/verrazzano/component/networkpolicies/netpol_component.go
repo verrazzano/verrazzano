@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Note that there is no NetworkPolicy component in Verrazzano CR.
@@ -8,7 +8,6 @@ package networkpolicies
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"path/filepath"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -41,11 +40,11 @@ type networkPoliciesComponent struct {
 func NewComponent() spi.Component {
 	return networkPoliciesComponent{
 		helm.HelmComponent{
-			ReleaseName:               ComponentName,
-			JSONName:                  ComponentJSONName,
-			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:            ComponentNamespace,
-			AppendOverridesFunc:       verrazzano.AppendVerrazzanoOverrides,
+			ReleaseName:    ComponentName,
+			JSONName:       ComponentJSONName,
+			ChartDir:       filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace: ComponentNamespace,
+			//AppendOverridesFunc:       verrazzano.AppendVerrazzanoOverrides,
 			GetInstallOverridesFunc:   getOverrides,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,

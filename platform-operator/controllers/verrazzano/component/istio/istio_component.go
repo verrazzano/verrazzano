@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
@@ -419,7 +420,7 @@ func isIstioManifestNotInstalledError(err error) bool {
 
 // GetDependencies returns the dependencies of this component
 func (i istioComponent) GetDependencies() []string {
-	return []string{}
+	return []string{networkpolicies.ComponentName}
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
