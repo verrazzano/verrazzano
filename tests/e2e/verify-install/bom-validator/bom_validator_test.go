@@ -193,7 +193,6 @@ func populateClusterImages(installedNamespace string) {
 		podLabels := pod.GetLabels()
 		_, ok := podLabels["job-name"]
 		if pod.Status.Phase != corev1.PodRunning && ok {
-			fmt.Println("inside conditional", pod.Name)
 			continue
 		}
 		for _, initContainer := range pod.Spec.InitContainers {
