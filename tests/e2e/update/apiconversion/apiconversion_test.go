@@ -11,8 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -66,24 +64,7 @@ func (u IngressNGINXReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazz
 	ingressNginxReplicaOverridesYaml := fmt.Sprintf(`controller:
             defaultBackend:
               replicaCount: %v`, u.replicas)
-	cr.Spec.Components.IngressNGINX.ValueOverrides = createOverridesOrDie(ingressNginxReplicaOverridesYaml)
-}
-
-func createOverridesOrDie(yamlString string) []v1beta1.Overrides {
-	data, err := yaml.YAMLToJSON([]byte(yamlString))
-	if err != nil {
-		t.Logs.Errorf("Failed to convert yaml to JSON: %s", yamlString)
-		panic(err)
-	}
-	return []v1beta1.Overrides{
-		{
-			ConfigMapRef: nil,
-			SecretRef:    nil,
-			Values: &apiextensionsv1.JSON{
-				Raw: data,
-			},
-		},
-	}
+	cr.Spec.Components.IngressNGINX.ValueOverrides = pkg.CreateOverridesOrDie(ingressNginxReplicaOverridesYaml)
 }
 
 var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func() {

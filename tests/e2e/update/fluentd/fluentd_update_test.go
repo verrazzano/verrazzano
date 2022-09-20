@@ -132,24 +132,19 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 	})
 })
 
-func validateOpenSearchUrl(opensearchURL string) {
+func validateOpenSearchUrl(osURL string) {
 	Eventually(func() bool {
 		cr, _ := pkg.GetVerrazzanoV1beta1()
-		vzOpensearchURL := *cr.Status.VerrazzanoInstance.OpenSearchURL
-		if vzOpensearchURL != opensearchURL {
-			return false
-		}
-		return true
+
+		return *cr.Status.VerrazzanoInstance.OpenSearchURL != osURL
+
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the opensearchURL is valid")
 }
 
-func validateOpensearchDashboardUrl(opensearchDashboardUrl string) {
+func validateOpensearchDashboardUrl(osdURL string) {
 	Eventually(func() bool {
 		cr, _ := pkg.GetVerrazzanoV1beta1()
-		vzopenSearchDashboardsURL := *cr.Status.VerrazzanoInstance.OpenSearchDashboardsURL
-		if vzopenSearchDashboardsURL != openSearchDashboardsUrl {
-			return false
-		}
-		return true
+		return *cr.Status.VerrazzanoInstance.OpenSearchDashboardsURL != osdURL
+
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the openSearchDashboardsUrl is valid")
 }
