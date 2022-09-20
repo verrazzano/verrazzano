@@ -11,6 +11,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	k8sstatus "github.com/verrazzano/verrazzano/pkg/k8s/status"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -136,7 +137,7 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 	}
 	ready := status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, int32(serverReplicas), prefix)
 	if ready && routerReplicas > 0 {
-		ready = status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
+		ready = k8sstatus.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
 	}
 
 	return ready && checkDbMigrationJobCompletion(ctx)
