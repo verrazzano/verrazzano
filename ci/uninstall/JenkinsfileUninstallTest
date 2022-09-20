@@ -475,13 +475,6 @@ def uninstallVerrazzano(vpoLogsDir) {
         sh """
             kubectl delete --wait=true --timeout=20m verrazzano my-verrazzano
 
-            #if kubectl get verrazzano my-verrazzano 2>&1 > /dev/null; then
-            #  echo "Waiting for Verrazzano resource to be deleted..."
-            #  kubectl wait verrazzano my-verrazzano --for=delete --timeout=20m
-            #else
-            #  echo "Verrazzano resource my-verrazzano successfully deleted"
-            #fi
-
             # Wait a bit before continuing
             sleep 90s
             kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${vpoLogsDir}/verrazzano-platform-operator-post-uninstall.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
