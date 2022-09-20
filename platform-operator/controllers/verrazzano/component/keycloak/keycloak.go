@@ -833,7 +833,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, err)
+		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, maskPw(err.Error()))
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")
