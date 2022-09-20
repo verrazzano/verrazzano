@@ -288,13 +288,6 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 			return files, err
 		}
 		files = append(files, userFileCR)
-		for _, fileName := range files {
-			fileContents, err := ioutil.ReadFile(fileName)
-			if err != nil {
-				log.Errorf("ISTIO: Failed to read the file contents")
-			}
-			log.Infof("ISTIO: Temp File contents: %s", fileContents)
-		}
 	}
 	return files, nil
 }
