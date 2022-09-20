@@ -1,0 +1,32 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: my-verrazzano
+spec:
+  profile: prod
+  defaultVolumeSource:
+    persistentVolumeClaim:
+      claimName: vmi     # set storage for the metrics stack
+  components:
+    keycloak:
+      mysql:
+        volumeSource:
+          persistentVolumeClaim:
+            claimName: mysql  # set storage for keycloak's MySql instance
+    # Prometheus Operator components are not included to account for upgrade tests
+  volumeClaimSpecTemplates:
+    - metadata:
+        name: mysql
+      spec:
+        resources:
+          requests:
+            storage: 1Gi
+    - metadata:
+        name: vmi
+      spec:
+        resources:
+          requests:
+            storage: 1Gi

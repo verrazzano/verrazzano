@@ -40,6 +40,8 @@ const (
 	istioTempSuffix           = "yaml"
 	istioTmpFileCreatePattern = istioTempPrefix + "*." + istioTempSuffix
 	istioTmpFileCleanPattern  = istioTempPrefix + ".*\\." + istioTempSuffix
+
+	vzNsLabel = "verrazzano.io/namespace"
 )
 
 // create func vars for unit tests
@@ -341,7 +343,7 @@ func labelNamespace(compContext spi.ComponentContext) error {
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
 		}
-		ns.Labels["verrazzano.io/namespace"] = IstioNamespace
+		ns.Labels[vzNsLabel] = IstioNamespace
 		return nil
 	}); err != nil {
 		return err

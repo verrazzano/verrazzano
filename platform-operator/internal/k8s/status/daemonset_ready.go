@@ -6,6 +6,7 @@ package status
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
@@ -66,7 +67,7 @@ func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namesp
 // running and ready
 func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedNodes int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
-	pods := getPodsList(log, client, namespacedName, selector)
+	pods := status.GetPodsList(log, client, namespacedName, selector)
 	if pods == nil {
 		return false
 	}
@@ -111,7 +112,7 @@ func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, namesp
 	}
 
 	// Make sure pods using the latest controllerRevision resource are ready.
-	podsReady, success := ensurePodsAreReady(log, savedPods, expectedNodes, prefix)
+	podsReady, success := status.EnsurePodsAreReady(log, savedPods, expectedNodes, prefix)
 	if !success {
 		return false
 	}

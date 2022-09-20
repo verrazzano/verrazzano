@@ -59,6 +59,10 @@ pipeline {
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
                 choices: [ "v1.24.1", "v1.23.4", "v1.22.5", "v1.21.5", "v1.20.8" ])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
                 choices: certIssuers)
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
@@ -138,9 +142,9 @@ pipeline {
 
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
-        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
+        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-ocidns.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nodeport.yaml"
 
         //OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         OCI_DNS_ZONE_NAME="${params.DNS_SCOPE == 'PRIVATE' ? "z${zoneId}-private.v8o.io" : "z${zoneId}.v8o.io"}"

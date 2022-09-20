@@ -46,6 +46,11 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io" ])
 
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
+
         string (name: 'GIT_COMMIT_TO_USE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -109,9 +114,9 @@ pipeline {
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
 
-        INSTALL_CONFIG_FILE_KIND_PERSISTENCE = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
-        INSTALL_CONFIG_FILE_KIND_EPHEMERAL = "./tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND_PERSISTENCE = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-with-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND_EPHEMERAL = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-no-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-no-persistence.yaml"
 
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"

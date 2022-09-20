@@ -6,9 +6,11 @@ package analyze
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	installcmd "github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -23,7 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
-	"time"
 )
 
 const imagePullCase1 = "../../pkg/analysis/test/cluster/image-pull-case1/"
@@ -184,16 +185,20 @@ func getClientWithWatch() client.WithWatch {
 			},
 		},
 		Status: appsv1.DeploymentStatus{
-			Conditions: []appsv1.DeploymentCondition{
-				{
-					Type:               appsv1.DeploymentAvailable,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
-				},
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
+		},
+	}
+	replicaset := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      fmt.Sprintf("%s-45f78ffddd", constants.VerrazzanoPlatformOperator),
+			Annotations: map[string]string{
+				"deployment.kubernetes.io/revision": "1",
 			},
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(vpo, deployment).Build()
+	c := fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(vpo, deployment, replicaset).Build()
 	return c
 }
 
@@ -207,6 +212,8 @@ func installVZ(t *testing.T, c client.WithWatch) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()

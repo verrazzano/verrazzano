@@ -25,6 +25,8 @@ jaeger:
         # Number of days to wait before deleting a record
         numberOfDays: 7
         schedule: "55 23 * * *"
+        # Number of times to retry before considering the job as failed
+        backoffLimit: 2
       options:
         es:
           index-prefix: verrazzano

@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -48,7 +48,7 @@ func isNginxReady(context spi.ComponentContext) bool {
 	// Only log the message for if the request comes from this component's context
 	// Otherwise, the message is logged for each component that checks the status of the ingress controller
 	if err != nil && context.GetComponent() == ComponentName {
-		context.Log().Errorf("Ingress external IP pending for component %s: %v", ComponentName, err)
+		context.Log().Progressf("Ingress external IP pending for component %s: %s", ComponentName, err.Error())
 	}
 	return err == nil && status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
