@@ -598,7 +598,7 @@ func checkNS(ns []v1.Namespace) error {
 					return nil
 				}
 			}
-			return fmt.Errorf("found existing Istio installation %s not created by Verrazzano", IstioNamespace)
+			return fmt.Errorf("found existing Istio namespace %s not created by Verrazzano", IstioNamespace)
 		}
 	}
 	return nil
