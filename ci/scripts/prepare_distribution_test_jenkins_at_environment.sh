@@ -14,13 +14,20 @@ if [ -z "$GO_REPO_PATH" ] || [ -z "$WORKSPACE" ] || [ -z "$TARBALL_DIR" ] || [ -
   [ -z "$KIND_KUBERNETES_CLUSTER_VERSION" ] || [ -z "$KUBECONFIG" ] ||
   [ -z "$IMAGE_PULL_SECRET" ] || [ -z "$PRIVATE_REPO" ] || [ -z "$REGISTRY" ] || [ -z "$PRIVATE_REGISTRY_USR" ] ||
   [ -z "$PRIVATE_REGISTRY_PSW" ] || [ -z "$VZ_ENVIRONMENT_NAME" ] || [ -z "$INSTALL_PROFILE" ] ||
-  [ -z "$TESTS_EXECUTED_FILE" ] || [ -z "$INSTALL_CONFIG_FILE_KIND" ] || [ -z "$TEST_SCRIPTS_DIR" ]; then
+  [ -z "$TESTS_EXECUTED_FILE" ] || [ -z "$TEST_SCRIPTS_DIR" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
 
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"nip.io"}
+
+if [ -z "$3" ]; then
+  echo "Location of verrazzano install file must be specified"
+  exit 1
+fi
+
+INSTALL_CONFIG_FILE_KIND="$3"
 KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
 
 BOM_FILE=${TARBALL_DIR}/manifests/verrazzano-bom.json
@@ -74,6 +81,7 @@ if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
   ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
 fi
 
+yq eval -i '.metadata.name = "verrazzano"' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.prometheusAdapter.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.kubeStateMetrics.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.prometheusPushgateway.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
