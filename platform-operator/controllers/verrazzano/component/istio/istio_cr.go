@@ -58,9 +58,7 @@ func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *v1beta1.IstioCompone
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
-	for _, merged := range expandedYamls {
-		ctx.Log().Infof("ISTIO: Merged YAML contents %s", merged)
-	}
+	ctx.Log().Infof("ISTIO: Merged YAML contents %s", merged)
 	if err != nil {
 		return "", err
 	}
