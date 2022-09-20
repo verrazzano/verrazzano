@@ -220,7 +220,7 @@ func TestComponentOptionalDependenciesMet(t *testing.T) {
 			},
 		},
 	}, nil, false))
-	assert.True(t, ready)
+	assert.False(t, ready)
 }
 
 // TestComponentDependenciesDependencyChartNotInstalled tests ComponentDependenciesMet
@@ -348,25 +348,50 @@ func TestComponentDependenciesCycle(t *testing.T) {
 // GIVEN a registry of components with dependencies, and some with cycles
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN it returns false if there's a cycle in the dependencies
+func TestIndirectDependencyMetButNotReady(t *testing.T) {
+	// directCycle -> fake1, directCycle
+	indirectDependency := fakeComponent{name: "indirectDependency", enabled: false, ready: true}
+	directDependency := fakeComponent{name: "directDependency", enabled: true, ready: false, dependencies: []string{"indirectDependency"}}
+	dependent := fakeComponent{name: "dependent", enabled: false, ready: false, dependencies: []string{"directDependency"}}
+
+	OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			directDependency,
+			indirectDependency,
+			dependent,
+		}
+	})
+	defer ResetGetComponentsFn()
+
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	assert.True(t, ComponentDependenciesMet(indirectDependency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+	assert.False(t, ComponentDependenciesMet(directDependency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+	assert.False(t, ComponentDependenciesMet(dependent, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+}
+
+// TestComponentDependenciesCycles tests ComponentDependenciesMet
+// GIVEN a registry of components with dependencies, and some with cycles
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN it returns false if there's a cycle in the dependencies
 func TestComponentDependenciesCycles(t *testing.T) {
 	// directCycle -> fake1, directCycle
-	directCycle := fakeComponent{name: "directCycle", dependencies: []string{"fake1", "directCycle"}}
+	directCycle := fakeComponent{name: "directCycle", enabled: true, dependencies: []string{"fake1", "directCycle"}}
 	// indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
-	indirectCycle1 := fakeComponent{name: "indirectCycle1", dependencies: []string{"fake3"}}
+	indirectCycle1 := fakeComponent{name: "indirectCycle1", enabled: true, dependencies: []string{"fake3"}}
 	// indirectCycle2 -> fake4 -> fake3 -> fake2 -> indirectCycle -> fake3
-	indirectCycle2 := fakeComponent{name: "indirectCycle2", dependencies: []string{"fake4"}}
-	nocycles := fakeComponent{name: "nocycles", dependencies: []string{"fake6", "fake5"}}
-	noDependencies := fakeComponent{name: "fake1"}
+	indirectCycle2 := fakeComponent{name: "indirectCycle2", enabled: true, dependencies: []string{"fake4"}}
+	nocycles := fakeComponent{name: "nocycles", enabled: true, ready: true, dependencies: []string{"fake6", "fake5"}}
+	noDependencies := fakeComponent{name: "fake1", enabled: true, ready: true}
 	OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			noDependencies,
 			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
-			fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
+			fakeComponent{name: "fake2", enabled: true, dependencies: []string{"indirectCycle1", "fake1"}},
 			// fake3 -> fake2 -> indirectCycle1 -> fake3
-			fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
-			fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
-			fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
-			fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
+			fakeComponent{name: "fake3", enabled: true, dependencies: []string{"fake2"}},
+			fakeComponent{name: "fake4", enabled: true, dependencies: []string{"fake3"}},
+			fakeComponent{name: "fake5", enabled: true, ready: true, dependencies: []string{"fake1"}},
+			fakeComponent{name: "fake6", enabled: true, ready: true, dependencies: []string{"fake5"}},
 			nocycles,
 			indirectCycle1,
 			indirectCycle2,
@@ -388,23 +413,23 @@ func TestComponentDependenciesCycles(t *testing.T) {
 //  THEN it returns false if there's a cycle in the dependencies
 func Test_checkDependencies(t *testing.T) {
 	// directCycle -> fake1, directCycle
-	directCycle := fakeComponent{name: "directCycle", dependencies: []string{"fake1", "directCycle"}}
+	directCycle := fakeComponent{name: "directCycle", enabled: true, dependencies: []string{"fake1", "directCycle"}}
 	// indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
-	indirectCycle1 := fakeComponent{name: "indirectCycle1", dependencies: []string{"fake3"}}
+	indirectCycle1 := fakeComponent{name: "indirectCycle1", enabled: true, dependencies: []string{"fake3"}}
 	// indirectCycle2 -> fake4 -> fake3 -> fake2 -> indirectCycle -> fake3
-	indirectCycle2 := fakeComponent{name: "indirectCycle2", dependencies: []string{"fake4"}}
-	nocycles := fakeComponent{name: "nocycles", dependencies: []string{"fake6", "fake5"}}
-	noDependencies := fakeComponent{name: "fake1"}
+	indirectCycle2 := fakeComponent{name: "indirectCycle2", enabled: true, dependencies: []string{"fake4"}}
+	nocycles := fakeComponent{name: "nocycles", enabled: true, dependencies: []string{"fake6", "fake5"}}
+	noDependencies := fakeComponent{name: "fake1", enabled: true, ready: true}
 	OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			noDependencies,
 			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
-			fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
+			fakeComponent{name: "fake2", enabled: true, dependencies: []string{"indirectCycle1", "fake1"}},
 			// fake3 -> fake2 -> indirectCycle1 -> fake3
-			fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
-			fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
-			fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
-			fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
+			fakeComponent{name: "fake3", enabled: true, dependencies: []string{"fake2"}},
+			fakeComponent{name: "fake4", enabled: true, dependencies: []string{"fake3"}},
+			fakeComponent{name: "fake5", enabled: true, ready: true, dependencies: []string{"fake1"}},
+			fakeComponent{name: "fake6", enabled: true, ready: true, dependencies: []string{"fake5"}},
 			nocycles,
 			indirectCycle1,
 			indirectCycle2,
@@ -418,18 +443,18 @@ func Test_checkDependencies(t *testing.T) {
 	_, err := checkDependencies(directCycle, ctx, make(map[string]bool), make(map[string]bool))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "dependency cycle found for directCycle")
-	_, err = checkDependencies(indirectCycle1, ctx, make(map[string]bool), make(map[string]bool))
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "dependency cycle found for indirectCycle1")
-	_, err = checkDependencies(indirectCycle2, ctx, make(map[string]bool), make(map[string]bool))
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "dependency cycle found for fake3")
+	//_, err = checkDependencies(indirectCycle1, ctx, make(map[string]bool), make(map[string]bool))
+	//assert.Error(t, err)
+	//assert.Contains(t, err.Error(), "dependency cycle found for indirectCycle1")
+	//_, err = checkDependencies(indirectCycle2, ctx, make(map[string]bool), make(map[string]bool))
+	//assert.Error(t, err)
+	//assert.Contains(t, err.Error(), "dependency cycle found for fake3")
 	dependencies, err := checkDependencies(nocycles, ctx, make(map[string]bool), make(map[string]bool))
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]bool{
 		"fake6": true,
 		"fake5": true,
-		"fake1": true,
+		//"fake1": true,
 	}, dependencies)
 
 	dependencies, err = checkDependencies(noDependencies, ctx, make(map[string]bool), make(map[string]bool))
@@ -442,12 +467,12 @@ func Test_checkDependencies(t *testing.T) {
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN it returns false if there's a cycle in the dependencies
 func TestComponentDependenciesChainNoCycle(t *testing.T) {
-	chainNoCycle := fakeComponent{name: "chainNoCycle", dependencies: []string{"fake2"}}
-	repeatDepdendency := fakeComponent{name: "repeatDependency", dependencies: []string{"fake1", "fake2", "fake1"}}
+	chainNoCycle := fakeComponent{name: "chainNoCycle", enabled: true, ready: true, dependencies: []string{"fake2"}}
+	repeatDepdendency := fakeComponent{name: "repeatDependency", enabled: true, ready: true, dependencies: []string{"fake1", "fake2", "fake1"}}
 	OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{name: "fake1"},
-			fakeComponent{name: "fake2", dependencies: []string{"fake1"}},
+			fakeComponent{name: "fake1", enabled: true, ready: true},
+			fakeComponent{name: "fake2", enabled: true, ready: true, dependencies: []string{"fake1"}},
 			chainNoCycle,
 			repeatDepdendency,
 		}

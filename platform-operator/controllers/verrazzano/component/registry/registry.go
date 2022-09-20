@@ -155,14 +155,14 @@ func checkDependencies(c spi.Component, context spi.ComponentContext, visited ma
 		if !found {
 			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
 		}
-		if trace, err := checkDependencies(dependency, context, visited, stateMap); err != nil {
-			return trace, err
-		}
 		// Only check if dependency is ready when the dependency is enabled
-		if dependency.IsEnabled(context.EffectiveCR()) && // Is enabled
-			!isInReadyState(context, dependency) && // CR status does not already indicate ready status
-			!dependency.IsReady(context) {
-			stateMap[dependencyName] = false // dependency is not ready
+		if !dependency.IsEnabled(context.EffectiveCR()) {
+			stateMap[dependencyName] = false
+			continue
+		}
+		if !isInReadyState(context, dependency) && // CR status does not already indicate ready status
+			!dependency.IsReady(context) { // Component is not ready
+			stateMap[dependencyName] = false // Mark the dependency is not ready
 			continue
 		}
 		stateMap[dependencyName] = true // dependency is ready
