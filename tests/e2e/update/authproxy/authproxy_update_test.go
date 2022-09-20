@@ -83,7 +83,7 @@ func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.V
 	if cr.Spec.Components.AuthProxy == nil {
 		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
 	}
-	authProxyAffinityOverridesYaml := fmt.Sprintf(`affinity:
+	authProxyAffinityOverridesYaml := fmt.Sprintf(`affinity: |
               podAntiAffinity:
                 preferredDuringSchedulingIgnoredDuringExecution:
                 - podAffinityTerm:
