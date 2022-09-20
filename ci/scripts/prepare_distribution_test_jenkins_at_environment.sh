@@ -81,6 +81,7 @@ if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
   ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
 fi
 
+yq eval -i '.metadata.name = "verrazzano"' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.prometheusAdapter.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.kubeStateMetrics.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
 yq eval -i '.spec.components.prometheusPushgateway.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
