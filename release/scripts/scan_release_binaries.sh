@@ -15,6 +15,7 @@ usage() {
 
   Usage:
     $(basename $0) <directory containing the release artifacts> <directory to download the scanner> <directory to place the scan report>
+        <type of distribution - Lite/Full> <flag to indicate whether to skip installing scanner>
 
   Example:
     $(basename $0) release_bundle_dir scanner_home scan_report_dir
@@ -35,32 +36,36 @@ EOM
 . $SCRIPT_DIR/common.sh
 
 if [ -z "$1" ]; then
-  echo "Directory to download the bundle or directory containing the release bundle extracted"
+  echo "Directory to download the bundle or directory containing the release bundle extracted is required"
   exit 1
 fi
 RELEASE_BUNDLE_DOWNLOAD_DIR="$1"
 
 if [ -z "$2" ]; then
-  echo "Directory to place the scaner"
+  echo "Directory to place the scanner is required"
   exit 1
 fi
 SCANNER_HOME="$2"
 
 if [ -z "$3" ]; then
-  echo "Directory to place the scan report"
+  echo "Directory to place the scan report is required"
   exit 1
 fi
 SCAN_REPORT_DIR="$3"
 
-DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR"
-
-# When an environment variable BUNDLE_TO_SCAN is set to Full, the script scans the full bundle
-# The variable DIR_TO_SCAN is redefined as there will be a top level verrazzano-<major>.<minor>.<patch> directory inside the full bundle
-if [ "${BUNDLE_TO_SCAN}" == "Full" ];then
-  VERRAZZANO_PREFIX="verrazzano-$RELEASE_VERSION"
-  DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/$VERRAZZANO_PREFIX"
+if [ -z "$4" ]; then
+  echo "Verrazzano distribution type to scan is required"
+  exit 1
 fi
+BUNDLE_TO_SCAN="$4"
 
+SKIP_INSTALL_SCANNER=${5:-"false"}
+
+DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR"
+if [ "$BUNDLE_TO_SCAN" == "Full" ];then
+  # There will be a top level verrazzano-<major>.<minor>.<patch> directory inside the full bundle
+  DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/verrazzano-${RELEASE_VERSION}"
+fi
 SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 
 function install_scanner() {
@@ -86,7 +91,7 @@ function scan_release_binaries() {
 
   cd $DIR_TO_SCAN
   ls
-  count_files=$(ls -1q *.* | wc -l)
+  count_files=$(find . -maxdepth 5 -type f  | LC_ALL=C grep -c /)
 
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
@@ -100,12 +105,23 @@ function scan_release_binaries() {
   if [ -e "${scan_summary}" ]; then
     rm -f $scan_summary
   fi
-  tail -25 ${SCAN_REPORT} > ${scan_summary}
+    tail -25 ${SCAN_REPORT} > ${scan_summary}
+
+  files_to_skip=0
+  clean_files="$(expr $count_files - $files_to_skip)"
+  files_not_scanned="$(expr $count_files - $clean_files)"
+
+  # Workaround to address the issue where scanner fails to open a file from ghcr.io_verrazzano_fluentd-kubernetes-daemonset image
+  if [ "$BUNDLE_TO_SCAN" == "Full" ];then
+    files_to_skip=1
+    clean_files="$(expr $count_files - $files_to_skip)"
+    files_not_scanned="$(expr $count_files - $clean_files)"
+  fi
 
   # The following set of lines from the summary in the scan report is used here for validation.
   declare -a expectedLines=("Total files:...................     $count_files"
-                            "Clean:.........................     $count_files"
-                            "Not Scanned:...................     0"
+                            "Clean:.........................     $clean_files"
+                            "Not Scanned:...................     $files_not_scanned"
                             "Possibly Infected:.............     0"
                             "Objects Possibly Infected:.....     0"
                             "Cleaned:.......................     0"
@@ -138,6 +154,12 @@ function scan_release_binaries() {
   fi
 }
 
-install_scanner || exit 1
-update_virus_definition || exit 1
+# Skip installation of scanner if SKIP_INSTALL_SCANNER is true
+if [ "true" == "${SKIP_INSTALL_SCANNER}" ];then
+  echo "Skip installing scanner ..."
+else
+  install_scanner || exit 1
+  update_virus_definition || exit 1
+fi
+
 scan_release_binaries || exit 1

@@ -128,6 +128,7 @@
             {
               "image": "rancher",
               "tag": "v2.6.8-20220915024629-46df1b595",
+              "dashboard": "v2.6.7-20220915023507-27ac2fda",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
@@ -224,7 +225,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.4.0-20220825162747-94d2305",
+              "tag": "v1.4.0-20220916071156-9043384",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -377,7 +378,6 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.29",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -386,33 +386,20 @@
             {
               "image": "mysql",
               "tag": "8.0.29",
-              "helmRegKey": "image.registry",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            },
-            {
-              "repository": "oracle",
-              "image": "oraclelinux",
-              "tag": "7-slim",
-              "helmFullImageKey": "initContainerImage"
+              "helmFullImageKey": "image",
+              "helmTagKey": "imageTag"
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "mysql-operator",
-      "subcomponents": [
+        },
         {
-          "repository": "verrazzano",
-          "name": "mysql-operator",
+          "repository": "oracle",
+          "name": "oraclelinux",
           "images": [
             {
-              "image": "mysql-operator",
-              "tag": "8.0.30-2.0.5",
-              "helmRegKey": "image.registry",
-              "helmRepoKey": "image.repository",
-              "helmTagKey": "image.tag"
+              "image": "oraclelinux",
+              "tag": "7-slim",
+              "helmFullImageKey": "busybox.image",
+              "helmTagKey": "busybox.tag"
             }
           ]
         }

@@ -17,15 +17,37 @@ import (
 	"strconv"
 )
 
+var veleroPodSelector = &metav1.LabelSelector{
+	MatchLabels: map[string]string{
+		"name": pkgConstants.Velero,
+	},
+}
+
+func DeploymentsReadyBySelectors(log vzlog.VerrazzanoLogger, client clipkg.Client, expectedReplicas int32, prefix string, opts ...clipkg.ListOption) bool {
+	deploymentList := &appsv1.DeploymentList{}
+	if err := client.List(context.TODO(), deploymentList, opts...); err != nil {
+		log.Errorf("%s failed listing deployments for selectors %v: %v", prefix, opts, err)
+		return false
+	}
+	if deploymentList.Items == nil || len(deploymentList.Items) < 1 {
+		log.Errorf("%s is waiting for deployments matching selector %s to exist", prefix, opts)
+		return false
+	}
+	for idx := range deploymentList.Items {
+		deployment := &deploymentList.Items[idx]
+		namespacedName := types.NamespacedName{
+			Namespace: deployment.Namespace,
+			Name:      deployment.Name,
+		}
+		if !deploymentFullyReady(log, client, deployment, namespacedName, expectedReplicas, prefix) {
+			return false
+		}
+	}
+	return true
+}
+
 // DeploymentsAreReady check that the named deployments have the minimum number of specified replicas ready and available
 func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
-	veleroPodLabel := map[string]string{
-		"name": pkgConstants.Velero,
-	}
-	veleroPodSelector := &metav1.LabelSelector{
-		MatchLabels: veleroPodLabel,
-	}
-
 	for _, namespacedName := range namespacedNames {
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
@@ -36,28 +58,9 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 			log.Errorf("%s failed getting deployment %v: %v", prefix, namespacedName, err)
 			return false
 		}
-		if deployment.Status.UpdatedReplicas < expectedReplicas {
-			log.Progressf("%s is waiting for deployment %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
-				expectedReplicas, deployment.Status.UpdatedReplicas)
+		if !deploymentFullyReady(log, client, &deployment, namespacedName, expectedReplicas, prefix) {
 			return false
 		}
-		if deployment.Status.AvailableReplicas < expectedReplicas {
-			log.Progressf("%s is waiting for deployment %s replicas to be %v. Current available replicas is %v", prefix, namespacedName,
-				expectedReplicas, deployment.Status.AvailableReplicas)
-			return false
-		}
-
-		// Velero install deploys a daemonset and deployment with common labels. The labels need to be adjusted so the pod fetch logic works
-		// as expected
-		podSelector := deployment.Spec.Selector
-		if namespacedName.Namespace == constants.VeleroNameSpace && namespacedName.Name == pkgConstants.Velero {
-			podSelector = veleroPodSelector
-		}
-
-		if !podsReadyDeployment(log, client, namespacedName, podSelector, expectedReplicas, prefix) {
-			return false
-		}
-		log.Oncef("%s has enough replicas for deployment %v", prefix, namespacedName)
 	}
 	return true
 }
@@ -75,6 +78,32 @@ func DoDeploymentsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namesp
 			return false
 		}
 	}
+	return true
+}
+
+func deploymentFullyReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployment *appsv1.Deployment, namespacedName types.NamespacedName, expectedReplicas int32, prefix string) bool {
+	if deployment.Status.UpdatedReplicas < expectedReplicas {
+		log.Progressf("%s is waiting for deployment %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
+			expectedReplicas, deployment.Status.UpdatedReplicas)
+		return false
+	}
+	if deployment.Status.AvailableReplicas < expectedReplicas {
+		log.Progressf("%s is waiting for deployment %s replicas to be %v. Current available replicas is %v", prefix, namespacedName,
+			expectedReplicas, deployment.Status.AvailableReplicas)
+		return false
+	}
+
+	// Velero install deploys a daemonset and deployment with common labels. The labels need to be adjusted so the pod fetch logic works
+	// as expected
+	podSelector := deployment.Spec.Selector
+	if namespacedName.Namespace == constants.VeleroNameSpace && namespacedName.Name == pkgConstants.Velero {
+		podSelector = veleroPodSelector
+	}
+
+	if !podsReadyDeployment(log, client, namespacedName, podSelector, expectedReplicas, prefix) {
+		return false
+	}
+	log.Oncef("%s has enough replicas for deployment %v", prefix, namespacedName)
 	return true
 }
 
