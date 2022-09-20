@@ -28,6 +28,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
@@ -35,7 +36,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -221,7 +221,8 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 		return err
 	}
 	// Obtain the CA Common Name for comparison
-	issuerCNs, err := findIssuerCommonName(compContext.EffectiveCR().Spec.Components.CertManager.Certificate, isCAConfig)
+	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
+	issuerCNs, err := findIssuerCommonName(comp.Certificate, isCAConfig)
 	if err != nil {
 		return err
 	}
@@ -479,31 +480,31 @@ func createSnippetWithPadding(padding string) []byte {
 
 // Check if cert-type is CA, if not it is assumed to be Acme
 func isCA(compContext spi.ComponentContext) (bool, error) {
-	return validateConfiguration(compContext.EffectiveCR())
+	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
+	return validateConfiguration(comp)
 }
 
 // validateConfiguration Checks if the configuration is valid and is a CA configuration
 // - returns true if it is a CA configuration, false if not
 // - returns an error if both CA and ACME settings are configured
-func validateConfiguration(cr *vzapi.Verrazzano) (isCA bool, err error) {
-	components := cr.Spec.Components
-	if components.CertManager == nil {
+func validateConfiguration(comp *v1beta1.CertManagerComponent) (isCA bool, err error) {
+	if comp == nil {
 		// Is default CA configuration
 		return true, nil
 	}
 	// Check if Ca or Acme is empty
-	caNotEmpty := components.CertManager.Certificate.CA != vzapi.CA{}
-	acmeNotEmpty := components.CertManager.Certificate.Acme != vzapi.Acme{}
+	caNotEmpty := comp.Certificate.CA != v1beta1.CA{}
+	acmeNotEmpty := comp.Certificate.Acme != v1beta1.Acme{}
 	if caNotEmpty && acmeNotEmpty {
 		return false, errors.New("Certificate object Acme and CA cannot be simultaneously populated")
 	}
 	if caNotEmpty {
-		if err := validateCAConfiguration(components.CertManager.Certificate.CA); err != nil {
+		if err := validateCAConfiguration(comp.Certificate.CA); err != nil {
 			return true, err
 		}
 		return true, nil
 	} else if acmeNotEmpty {
-		if err := validateAcmeConfiguration(components.CertManager.Certificate.Acme); err != nil {
+		if err := validateAcmeConfiguration(comp.Certificate.Acme); err != nil {
 			return false, err
 		}
 		return false, nil
@@ -511,7 +512,7 @@ func validateConfiguration(cr *vzapi.Verrazzano) (isCA bool, err error) {
 	return false, errors.New("Either Acme or CA certificate authorities must be configured")
 }
 
-func validateCAConfiguration(ca vzapi.CA) error {
+func validateCAConfiguration(ca v1beta1.CA) error {
 	if ca.SecretName == constants.DefaultVerrazzanoCASecretName && ca.ClusterResourceNamespace == ComponentNamespace {
 		// if it's the default self-signed config the secret won't exist until created by CertManager
 		return nil
@@ -521,7 +522,7 @@ func validateCAConfiguration(ca vzapi.CA) error {
 	return err
 }
 
-func getCASecret(ca vzapi.CA) (*v1.Secret, error) {
+func getCASecret(ca v1beta1.CA) (*v1.Secret, error) {
 	name := ca.SecretName
 	namespace := ca.ClusterResourceNamespace
 	return getSecret(namespace, name)
@@ -536,7 +537,7 @@ func getSecret(namespace string, name string) (*v1.Secret, error) {
 }
 
 //validateAcmeConfiguration Validate the ACME/LetsEncrypt values
-func validateAcmeConfiguration(acme vzapi.Acme) error {
+func validateAcmeConfiguration(acme v1beta1.Acme) error {
 	if !isLetsEncryptProvider(acme) {
 		return fmt.Errorf("Invalid ACME certificate provider %v", acme.Provider)
 	}
@@ -549,15 +550,15 @@ func validateAcmeConfiguration(acme vzapi.Acme) error {
 	return nil
 }
 
-func isLetsEncryptProvider(acme vzapi.Acme) bool {
+func isLetsEncryptProvider(acme v1beta1.Acme) bool {
 	return strings.ToLower(string(acme.Provider)) == strings.ToLower(string(vzapi.LetsEncrypt))
 }
 
-func isLetsEncryptStagingEnv(acme vzapi.Acme) bool {
+func isLetsEncryptStagingEnv(acme v1beta1.Acme) bool {
 	return strings.ToLower(acme.Environment) == letsEncryptStaging
 }
 
-func isLetsEncryptProductionEnv(acme vzapi.Acme) bool {
+func isLetsEncryptProductionEnv(acme v1beta1.Acme) bool {
 	return strings.ToLower(acme.Environment) == letsencryptProduction
 }
 
@@ -757,7 +758,7 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) (controllerutil
 	return opResult, nil
 }
 
-func findIssuerCommonName(certificate vzapi.Certificate, isCAValue bool) ([]string, error) {
+func findIssuerCommonName(certificate v1beta1.Certificate, isCAValue bool) ([]string, error) {
 	if isCAValue {
 		return extractCACommonName(certificate.CA)
 	}
@@ -765,14 +766,14 @@ func findIssuerCommonName(certificate vzapi.Certificate, isCAValue bool) ([]stri
 }
 
 //getACMEIssuerName Let's encrypt certificates are published, and the intermediate signing CA CNs are well-known
-func getACMEIssuerName(acme vzapi.Acme) ([]string, error) {
+func getACMEIssuerName(acme v1beta1.Acme) ([]string, error) {
 	if isLetsEncryptProductionEnv(acme) {
 		return letsEncryptProductionCACommonNames, nil
 	}
 	return letsEncryptStagingCACommonNames, nil
 }
 
-func extractCACommonName(ca vzapi.CA) ([]string, error) {
+func extractCACommonName(ca v1beta1.CA) ([]string, error) {
 	secret, err := getCASecret(ca)
 	if err != nil {
 		return []string{}, err

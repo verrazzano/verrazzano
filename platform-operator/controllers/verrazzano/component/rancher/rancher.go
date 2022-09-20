@@ -12,6 +12,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -19,7 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	corev1 "k8s.io/api/core/v1"
@@ -128,7 +128,6 @@ const (
 	AuthConfigAttributeEnabled                    = "enabled"
 	AuthConfigKeycloakAttributeGroupSearchEnabled = "groupSearchEnabled"
 	AuthConfigKeycloakAttributeAuthEndpoint       = "authEndpoint"
-	AuthConfigKeycloakAttributeClientSecret       = "clientSecret"
 	AuthConfigKeycloakAttributeIssuer             = "issuer"
 	AuthConfigKeycloakAttributeRancherURL         = "rancherUrl"
 )
@@ -558,6 +557,7 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
 	authConfig[AuthConfigKeycloakAttributeIssuer] = keycloakURL + AuthConfigKeycloakURLPathIssuer
 	authConfig[AuthConfigKeycloakAttributeRancherURL] = rancherURL + AuthConfigKeycloakURLPathVerifyAuth
+	authConfig[AuthConfigAttributeEnabled] = true
 
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }
@@ -655,28 +655,6 @@ func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterR
 	data[ClusterRoleTemplateBindingAttributeRoleTemplateName] = clusterRole
 
 	return createOrUpdateResource(ctx, nsn, GVKClusterRoleTemplateBinding, data)
-}
-
-// disableOrEnableAuthProvider disables Keycloak as an Auth Provider
-func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string, enable bool) error {
-	log := ctx.Log()
-	c := ctx.Client()
-	authConfig := unstructured.Unstructured{}
-	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
-	authConfigName := types.NamespacedName{Name: name}
-	err := c.Get(context.Background(), authConfigName, &authConfig)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, unable to fetch, error: %s", enable, name, err.Error())
-	}
-
-	authConfigData := authConfig.UnstructuredContent()
-	authConfigData[AuthConfigAttributeEnabled] = enable
-	err = c.Update(context.Background(), &authConfig, &client.UpdateOptions{})
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, error: %s", enable, name, err.Error())
-	}
-
-	return nil
 }
 
 // disableFirstLogin disables the verrazzano user first log in

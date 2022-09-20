@@ -3,7 +3,7 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-# Downloads the operator.yaml and the zip file containing the analysis tool.
+# Downloads the verrazzano-platform-operator.yaml, the Verrazzano distributions for AMD64 and ARM64 architectures.
 
 set -e
 
@@ -12,7 +12,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 usage() {
     cat <<EOM
-  Downloads the operator.yaml, the Verrazzano distributions for AMD64 and ARM64 architectures.
+  Downloads the verrazzano-platform-operator.yaml, the Verrazzano distributions for AMD64 and ARM64 architectures.
 
   Usage:
     $(basename $0) <release branch> <short hash of commit to release> <release bundle> <directory where the release artifacts need to be downloaded, defaults to the current directory>
@@ -30,9 +30,24 @@ EOM
 
 [ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
 
+if [ -z "$1" ]; then
+  echo "Verrazzano release branch is required"
+  exit 1
+fi
 BRANCH=$1
+
+if [ -z "$2" ]; then
+  echo "The short commit used to build the release distribution is required"
+  exit 1
+fi
 RELEASE_COMMIT_SHORT=$2
-RELEASE_BUNDLE=$3
+
+if [ -z "$3" ]; then
+  echo "Verrazzano distribution to download is required"
+  exit 1
+fi
+RELEASE_BUNDLE="$3"
+
 RELEASE_BINARIES_DIR=${4:-$SCRIPT_DIR}
 
 function get_vz_release_artifacts() {
@@ -40,6 +55,7 @@ function get_vz_release_artifacts() {
       echo "Usage: ${FUNCNAME[0]} commit release_bundle"
       return 1
     fi
+
     cd $RELEASE_BINARIES_DIR
     local _folder="$1"
     local _file="$2"

@@ -41,7 +41,7 @@ const (
 	fiveMinutes = 5 * time.Minute
 
 	pollingInterval = 10 * time.Second
-	envoyImage      = "proxyv2:1.13.5"
+	envoyImage      = "proxyv2:1.14.3"
 	minimumVersion  = "1.1.0"
 )
 
@@ -107,7 +107,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	t.DescribeTable("should contain Envoy sidecar 1.13.5",
+	t.DescribeTable("should contain Envoy sidecar 1.14.3",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
@@ -282,7 +282,6 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			},
 			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
 			t.Entry("Checking StatefulSet keycloak", keycloak.ComponentNamespace, keycloak.ComponentName, "keycloak"),
-			t.Entry("Checking StatefulSet mysql", mysql.ComponentNamespace, mysql.ComponentName, "mysql"),
 		)
 	})
 
