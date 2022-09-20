@@ -401,6 +401,22 @@ pipeline {
                     }
                 }
 
+                stage('apiConversion Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/apiConversion-update"
+                    }
+                    steps {
+                        runGinkgo('update/apiConversion')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
                 stage('AuthProxy Update Tests') {
                     environment {
                         TEST_ENV = "KIND"
