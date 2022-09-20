@@ -6,6 +6,7 @@ package istio
 import (
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"sigs.k8s.io/yaml"
 )
 
@@ -31,7 +32,7 @@ type ReplicaData struct {
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
 // Transform the Verrazzano CR istioComponent provided by the user onto an IstioOperator formatted YAML
-func BuildIstioOperatorYaml(comp *v1beta1.IstioComponent) (string, error) {
+func BuildIstioOperatorYaml(ctx spi.ComponentContext, comp *v1beta1.IstioComponent) (string, error) {
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
 	// get istio overrides for Jaeger tracing
@@ -51,9 +52,15 @@ func BuildIstioOperatorYaml(comp *v1beta1.IstioComponent) (string, error) {
 		}
 	}
 	expandedYamls = append([]string{jaegerTracingYaml}, expandedYamls...)
+	for _, yamlContent := range expandedYamls {
+		ctx.Log().Infof("ISTIO: BuildOperator YAML contents %s", yamlContent)
+	}
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
+	for _, merged := range expandedYamls {
+		ctx.Log().Infof("ISTIO: Merged YAML contents %s", merged)
+	}
 	if err != nil {
 		return "", err
 	}

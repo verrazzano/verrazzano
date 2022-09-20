@@ -278,7 +278,7 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 		if err != nil {
 			return files, log.ErrorfNewErr("Error converting from v1alpha1 to v1beta1: %v", err)
 		}
-		istioOperatorYaml, err := BuildIstioOperatorYaml(convertedVZ.Spec.Components.Istio)
+		istioOperatorYaml, err := BuildIstioOperatorYaml(compContext, convertedVZ.Spec.Components.Istio)
 		if err != nil {
 			return files, log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
@@ -288,6 +288,13 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 			return files, err
 		}
 		files = append(files, userFileCR)
+		for _, fileName := range files {
+			fileContents, err := ioutil.ReadFile(fileName)
+			if err != nil {
+				log.Errorf("ISTIO: Failed to read the file contents")
+			}
+			log.Infof("ISTIO: Temp File contents: %s", fileContents)
+		}
 	}
 	return files, nil
 }

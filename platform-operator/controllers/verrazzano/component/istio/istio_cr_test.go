@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -826,6 +828,7 @@ spec:
 // WHEN BuildIstioOperatorYaml is called
 // THEN ensure that the result is correct.
 func TestBuildIstioOperatorYaml(t *testing.T) {
+	fakeCtx := spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false)
 	tests := []struct {
 		testName string
 		value    *vzapi.IstioComponent
@@ -872,7 +875,7 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 			a := assert.New(t)
 			convertedComp, err := vzapi.ConvertIstioToV1Beta1(test.value)
 			a.NoError(err, convertedComp, "error converting istio component")
-			s, err := BuildIstioOperatorYaml(convertedComp)
+			s, err := BuildIstioOperatorYaml(fakeCtx, convertedComp)
 			fmt.Println(s)
 			a.NoError(err, s, "error merging yamls")
 			a.YAMLEq(test.expected, s, "Result does not match expected value")
