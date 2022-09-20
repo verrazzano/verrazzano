@@ -6,16 +6,20 @@ package fluentd
 import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	pcons "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"time"
 )
 
 const (
-	labelValidation = "f:platform-lcm.fluentd-update-validation"
-	opensearchURL   = "https://opensearch.example.com:9200"
+	labelValidation         = "f:platform-lcm.fluentd-update-validation"
+	opensearchURL           = "https://opensearch.example.com:9200"
+	openSearchDashboardsUrl = "https://kibana.vmi.system.default.172.18.0.231.nip.io"
+	waitTimeout             = 5 * time.Minute
 )
 
 var (
@@ -75,6 +79,13 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 		})
 	})
 
+	t.Describe("Verify Opensearch and OpenDashboard urls", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
+		t.It("external Opensearch", func() {
+			validateOpenSearchUrl(opensearchURL)
+			validateOpensearchDashboardUrl(openSearchDashboardsUrl)
+		})
+	})
+
 	t.Describe("Validate OCI logging config", Label(labelValidation), func() {
 		t.It("secret validation", func() {
 			m := &FluentdModifier{Component: vzapi.FluentdComponent{
@@ -120,3 +131,25 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 		})
 	})
 })
+
+func validateOpenSearchUrl(opensearchURL string) {
+	Eventually(func() bool {
+		cr, _ := pkg.GetVerrazzanoV1beta1()
+		vzOpensearchURL := *cr.Status.VerrazzanoInstance.OpenSearchURL
+		if vzOpensearchURL != opensearchURL {
+			return false
+		}
+		return true
+	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the opensearchURL is valid")
+}
+
+func validateOpensearchDashboardUrl(opensearchDashboardUrl string) {
+	Eventually(func() bool {
+		cr, _ := pkg.GetVerrazzanoV1beta1()
+		vzopenSearchDashboardsURL := *cr.Status.VerrazzanoInstance.OpenSearchDashboardsURL
+		if vzopenSearchDashboardsURL != openSearchDashboardsUrl {
+			return false
+		}
+		return true
+	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the openSearchDashboardsUrl is valid")
+}

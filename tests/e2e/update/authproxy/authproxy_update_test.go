@@ -151,8 +151,8 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
-	m := AuthProxyDefaultModifierV1beta1{}
-	err := update.UpdateCRV1beta1(m)
+	m := AuthProxyDefaultModifier{}
+	err := update.UpdateCR(m)
 	if err != nil {
 		Fail(err.Error())
 	}
