@@ -470,17 +470,9 @@ def uninstallVerrazzano(vpoLogsDir) {
         echo "Platform operator uninstall logs dir: ${vpoLogsDir}"
 
         // Delete VZ in the background
-        // - does not use the CLI as the CLI will also delete the VPO namespace, and until recently the CLI
-        //   was not able to resume an uninstall on error
         sh """
-            kubectl delete --wait=true --timeout=20m verrazzano my-verrazzano
-
-            # Wait a bit before continuing
-            sleep 90s
-            kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${vpoLogsDir}/verrazzano-platform-operator-post-uninstall.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-
-            echo "Deleting the Platform Operator resources"
-            kubectl delete -f ${TARGET_OPERATOR_FILE} --wait=true --timeout=10m
+            echo "Deleting the Verrazzano resource..."
+            ${GO_REPO_PATH}/vz uninstall --timeout=20m
         """
     }
 }
