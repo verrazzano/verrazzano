@@ -14,8 +14,11 @@ import (
 )
 
 const (
-	ingressNGINXLabelValue = "ingress-nginx"
-	ingressNGINXLabelKey   = "app.kubernetes.io/name"
+	ingressNGINXComponentLabelKey        = "app.kubernetes.io/component"
+	ingressNGINXComponentBackendValue    = "default-backend"
+	ingressNGINXComponentControllerValue = "controller"
+	ingressNGINXNameLabelValue           = "ingress-nginx"
+	ingressNGINXNameLabelKey             = "app.kubernetes.io/name"
 )
 
 type IngressNGINXReplicasModifierV1beta1 struct {
@@ -53,7 +56,7 @@ var _ = t.AfterSuite(func() {
 	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 		expectedRunning = 2
 	}
-	update.ValidatePods(ingressNGINXLabelValue, ingressNGINXLabelKey, constants.IngressNamespace, expectedRunning, false)
+	update.ValidatePods(ingressNGINXNameLabelValue, ingressNGINXNameLabelKey, constants.IngressNamespace, expectedRunning, false)
 
 })
 
@@ -68,7 +71,7 @@ func (u IngressNGINXReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazz
 }
 
 var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func() {
-	t.Describe("ingressNginx update replicas with v1beta1 client", Label("f:platform-lcm.ingressNginx-update-replicas"), func() {
+	t.Describe("ingressNginx update backend replicas with v1beta1 client", Label("f:platform-lcm.ingressNginx-update-replicas"), func() {
 		t.It("ingressNginx explicit replicas", func() {
 			m := IngressNGINXReplicasModifierV1beta1{replicas: nodeCount}
 			err := update.UpdateCRV1beta1(m)
@@ -76,7 +79,20 @@ var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func()
 				Fail(err.Error())
 			}
 			expectedRunning := nodeCount
-			update.ValidatePods(ingressNGINXLabelValue, ingressNGINXLabelKey, constants.IngressNamespace, expectedRunning, false)
+			update.ValidatePods(ingressNGINXComponentBackendValue, ingressNGINXComponentLabelKey, constants.IngressNamespace, expectedRunning, false)
+
+		})
+	})
+
+	t.Describe("ingressNginx update controller replicas with v1beta1 client", Label("f:platform-lcm.ingressNginx-update-replicas"), func() {
+		t.It("ingressNginx explicit replicas", func() {
+			m := IngressNGINXReplicasModifierV1beta1{replicas: nodeCount}
+			err := update.UpdateCRV1beta1(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+			expectedRunning := nodeCount
+			update.ValidatePods(ingressNGINXComponentControllerValue, ingressNGINXComponentLabelKey, constants.IngressNamespace, expectedRunning, false)
 
 		})
 	})
