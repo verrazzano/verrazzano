@@ -6,6 +6,7 @@ package bomvalidator
 import (
 	"encoding/json"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"log"
 	"os"
 	"regexp"
@@ -188,11 +189,16 @@ func populateClusterImages(installedNamespace string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, podList := range podsList.Items {
-		for _, initContainer := range podList.Spec.InitContainers {
+	for _, pod := range podsList.Items {
+		podLabels := pod.GetLabels()
+		_, ok := podLabels["job-name"]
+		if pod.Status.Phase != corev1.PodRunning && ok {
+			continue
+		}
+		for _, initContainer := range pod.Spec.InitContainers {
 			clusterImageArray = append(clusterImageArray, initContainer.Image)
 		}
-		for _, container := range podList.Spec.Containers {
+		for _, container := range pod.Spec.Containers {
 			clusterImageArray = append(clusterImageArray, container.Image)
 		}
 	}
