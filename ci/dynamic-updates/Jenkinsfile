@@ -413,10 +413,10 @@ pipeline {
                 stage('apiConversion Update Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/apiConversion-update"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/apiconversion-update"
                     }
                     steps {
-                        runGinkgo('update/apiConversion')
+                        runGinkgo('update/apiconversion')
                     }
                     post {
                         always {
