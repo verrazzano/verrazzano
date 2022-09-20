@@ -7,14 +7,10 @@
 package networkpolicies
 
 import (
-	"fmt"
 	"path/filepath"
 
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -40,11 +36,11 @@ type networkPoliciesComponent struct {
 func NewComponent() spi.Component {
 	return networkPoliciesComponent{
 		helm.HelmComponent{
-			ReleaseName:    ComponentName,
-			JSONName:       ComponentJSONName,
-			ChartDir:       filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace: ComponentNamespace,
-			//AppendOverridesFunc:       verrazzano.AppendVerrazzanoOverrides,
+			ReleaseName:               ComponentName,
+			JSONName:                  ComponentJSONName,
+			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
+			ChartNamespace:            ComponentNamespace,
+			AppendOverridesFunc:       appendOverrides,
 			GetInstallOverridesFunc:   getOverrides,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
@@ -59,22 +55,9 @@ func (c networkPoliciesComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsWebLogicOperatorEnabled(effectiveCR)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c networkPoliciesComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	// Do not allow disabling of any component post-install for now
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
-	return c.HelmComponent.ValidateUpdate(old, new)
-}
-
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c networkPoliciesComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	// Do not allow disabling of any component post-install for now
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
-	}
-	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
+// IsInstalled component check - network policies are always applied
+func (c networkPoliciesComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	return true, nil
 }
 
 // IsReady component check
@@ -82,7 +65,10 @@ func (c networkPoliciesComponent) IsReady(ctx spi.ComponentContext) bool {
 	return c.HelmComponent.IsReady(ctx)
 }
 
-// getOverrides returns install overrides for a component
-func getOverrides(object runtime.Object) interface{} {
-	return []vzapi.Overrides{}
+// PreUpgrade dis-associates existing network policies from Verrazzano chart
+func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
+
+	// TODO write this code, see authProxy
+
+	return nil
 }
