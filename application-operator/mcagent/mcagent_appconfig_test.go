@@ -17,7 +17,6 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -111,7 +110,7 @@ func TestCreateMCAppConfigNoOAMComponent(t *testing.T) {
 	// using a MultiClusterComponent instead of a OAM Component in the MultuClusterApplicationConfiguration
 	component := &oamv1alpha2.Component{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCComponent.Name, Namespace: testMCComponent.Namespace}, component)
-	assert.True(apierrors.IsNotFound(err))
+	assert.True(errors.IsNotFound(err))
 
 	// Verify MultiClusterApplicationConfiguration got created on local cluster
 	mcAppConfig := &clustersv1alpha1.MultiClusterApplicationConfiguration{}
