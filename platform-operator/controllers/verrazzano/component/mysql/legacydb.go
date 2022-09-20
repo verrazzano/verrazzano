@@ -276,6 +276,11 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	}
 	ctx.Log().Debug("Successfully updated keycloak table primary key")
 	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", cleanupCmd)
+	if err != nil {
+		errorMsg := fmt.Sprintf("Failed to remove resources from previous attempts, err = %v", err)
+		ctx.Log().Error(errorMsg)
+		return fmt.Errorf("error: %s", err.Error())
+	}
 	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execShCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed executing database dump, err = %v", err))
