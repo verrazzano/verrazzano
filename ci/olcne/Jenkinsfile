@@ -75,6 +75,10 @@ pipeline {
             name: "OCNE_OS_VERSION",
             description: 'OracleLinux OS version for OCNE nodes',
             choices: osVersions)
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         string (
             name: "INSTALL_PROFILE",
             defaultValue: 'prod',
@@ -137,8 +141,8 @@ pipeline {
         TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-ocne"
         KUBECONFIG="$WORKSPACE/kubeconfig"
         VZ_COMMAND="$GO_REPO_PATH/vz"
+        INSTALL_CONFIG_FILE_OCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-ocne.yaml"
         OCNE_DUMP_DIR="$WORKSPACE/$VZ_ENVIRONMENT_NAME"
-        INSTALL_CONFIG_FILE_OCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocne.yaml"
         OCNE_TERRAFORM_GIT_URL=credentials("gitlab_ocne_tf_url")
         OCNE_BRANCH_TO_USE="origin/release/${params.OCNE_VERSION}"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"

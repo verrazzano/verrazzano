@@ -1,0 +1,31 @@
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: my-verrazzano
+spec:
+  components:
+    dns:
+      oci:
+        ociConfigSecret: oci
+        dnsZoneCompartmentOCID: dnsZoneCompartmentOcid
+        dnsZoneOCID: dnsZoneOcid
+        dnsZoneName: my.dns.zone.name
+        dnsScope: GLOBAL
+    ingressNGINX:
+      type: LoadBalancer
+    fluentd:
+      extraVolumeMounts:
+        - source: /u01/data
+    prometheusOperator:
+      enabled: true
+    prometheusAdapter:
+      enabled: true
+    kubeStateMetrics:
+      enabled: true
+    prometheusPushgateway:
+      enabled: true
+    prometheusNodeExporter:
+      enabled: true
