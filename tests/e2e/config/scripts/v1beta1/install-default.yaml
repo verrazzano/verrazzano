@@ -1,0 +1,10 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
+# This install resource installs the default or "prod" profile to install a full set of Verrazzano services
+# for production scenarios.
+#
+apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: my-verrazzano
