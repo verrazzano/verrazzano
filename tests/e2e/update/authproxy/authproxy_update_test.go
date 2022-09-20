@@ -151,8 +151,8 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
-	m := AuthProxyDefaultModifier{}
-	err := update.UpdateCR(m)
+	m := AuthProxyDefaultModifierV1beta1{}
+	err := update.UpdateCRV1beta1(m)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -212,7 +212,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("verrazzano-authproxy update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
-			m := AuthProxyReplicasModifierV1beta1{replicas: nodeCount}
+			m := AuthProxyReplicasModifierV1beta1{replicas: explicitReplicas}
 			err := update.UpdateCRV1beta1(m)
 			if err != nil {
 				Fail(err.Error())
