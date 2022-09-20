@@ -12,17 +12,13 @@ import (
 func TestGetMatchingFiles(t *testing.T) {
 	assert := asserts.New(t)
 
-	files1, err1 := GetMatchingFiles("testdata", regexp.MustCompile("dummy"))
+	files1, err1 := GetMatchingFiles("../../tools/vz/pkg/analysis/test/json", regexp.MustCompile("bogus"))
 	assert.Nil(err1)
-	assert.Equal(len(files1), 2)
+	assert.Equal(len(files1), 1)
 
-	files2, err2 := GetMatchingFiles("testdata", regexp.MustCompile("k8s"))
+	files2, err2 := GetMatchingFiles("../../tools/vz/pkg/analysis/test", regexp.MustCompile("json"))
 	assert.Nil(err2)
-	assert.Equal(len(files2), 2)
-
-	files3, err3 := GetMatchingFiles("testdata", regexp.MustCompile("cluster"))
-	assert.Nil(err3)
-	assert.Equal(len(files3), 1)
+	assert.True(len(files2) > 0)
 
 	files4, err4 := GetMatchingFiles("testdata", regexp.MustCompile("non-existing-file-regex"))
 	assert.Nil(err4)
