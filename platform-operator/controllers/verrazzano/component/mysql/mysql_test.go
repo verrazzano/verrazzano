@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -947,6 +948,7 @@ func TestAppendMySQLOverridesUpgradeLegacyProdProfile(t *testing.T) {
 // TestIsMySQLReady tests the isMySQLReady function
 // GIVEN a call to isMySQLReady
 //  WHEN the deployment object has enough replicas available
+//   AND the InnoDBCluster is online
 //  THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -1020,6 +1022,7 @@ func TestIsMySQLReady(t *testing.T) {
 			},
 			Revision: 1,
 		},
+		newInnoDBCluster(innoDBClusterStatusOnline),
 	).Build()
 	servers := []byte(`{"serverInstances": 1}`)
 	routers := []byte(`{"routerInstances": 1}`)
@@ -1128,6 +1131,116 @@ func TestIsMySQLNotReady(t *testing.T) {
 			},
 			Revision: 1,
 		},
+	).Build()
+	servers := []byte(`{"serverInstances": 1}`)
+	routers := []byte(`{"routerInstances": 1}`)
+
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("prod"),
+			Components: vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					MySQL: vzapi.MySQLComponent{
+						InstallOverrides: vzapi.InstallOverrides{
+							ValueOverrides: []vzapi.Overrides{
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: servers,
+									},
+								},
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: routers,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	assert.False(t, isMySQLReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+}
+
+// TestIsMySQLReadyInnoDBClusterNotOnline tests the isMySQLReady function
+// GIVEN a call to isMySQLReady
+//  WHEN the deployment object has enough replicas available
+//   AND the InnoDBCluster is NOT online
+//  THEN false is returned
+func TestIsMySQLReadyInnoDBClusterNotOnline(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
+				Labels:    map[string]string{"app": ComponentName},
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": ComponentName},
+				},
+			},
+			Status: appsv1.StatefulSetStatus{
+				ReadyReplicas:   1,
+				Replicas:        1,
+				UpdatedReplicas: 1,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      fmt.Sprintf("%s-router", ComponentName),
+				Labels:    map[string]string{"app": ComponentName},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": ComponentName},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        "mysql-router-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName + "-0",
+				Labels: map[string]string{
+					"controller-revision-hash": ComponentName + "-f97fd59d8",
+					"pod-template-hash":        "95d8c5d96",
+					"app":                      ComponentName,
+				},
+			},
+		},
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName + "-router-jfkdlf",
+				Labels: map[string]string{
+					"controller-revision-hash": ComponentName + "-f97fd59d8",
+					"pod-template-hash":        "95d8c5d96",
+					"app":                      ComponentName,
+				},
+			},
+		},
+		&appsv1.ControllerRevision{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ComponentName + "-f97fd59d8",
+				Namespace: ComponentNamespace,
+			},
+			Revision: 1,
+		},
+		newInnoDBCluster("PARTIAL"),
 	).Build()
 	servers := []byte(`{"serverInstances": 1}`)
 	routers := []byte(`{"routerInstances": 1}`)
@@ -1273,4 +1386,14 @@ func TestConvertOldInstallArgs(t *testing.T) {
 
 func getBoolPtr(b bool) *bool {
 	return &b
+}
+
+// newInnoDBCluster returns an unstructured representation of an InnoDBCluster resource
+func newInnoDBCluster(status string) *unstructured.Unstructured {
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+	innoDBCluster.SetNamespace(ComponentNamespace)
+	innoDBCluster.SetName(helmReleaseName)
+	unstructured.SetNestedField(innoDBCluster.Object, status, innoDBClusterStatusFields...)
+	return &innoDBCluster
 }
