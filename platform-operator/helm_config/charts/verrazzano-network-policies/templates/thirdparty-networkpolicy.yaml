@@ -1,22 +1,5 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
-# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
-# Allow any pod in the keycloak namespace to have network ingress to any other pod
-# in the keycloak namespace
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-same-namespace
-  namespace: keycloak
-spec:
-  podSelector: {}
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        - podSelector: {}
-
+  # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 # Network policy for WebLogic operator
 # Ingress: allow from istio-system
@@ -35,9 +18,9 @@ spec:
     - Ingress
   ingress:
     - from:
-      - namespaceSelector:
-          matchLabels:
-            verrazzano.io/namespace: istio-system
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: istio-system
     - from:
         - namespaceSelector:
             matchLabels:
@@ -171,19 +154,19 @@ spec:
     - Ingress
   ingress:
     - from:
-      - namespaceSelector:
-          matchLabels:
-            verrazzano.io/namespace: ingress-nginx
-      - podSelector:
-          matchLabels:
-            app.kubernetes.io/instance: ingress-controller
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
       ports:
         - protocol: TCP
           port: 8080
     - from:
-      - namespaceSelector:
-          matchLabels:
-            verrazzano.io/namespace: {{ .Release.Namespace }}
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: {{ .Release.Namespace }}
       ports:
         - protocol: TCP
           port: 8080
@@ -195,12 +178,12 @@ spec:
         - protocol: TCP
           port: 7600
     - from:
-      - namespaceSelector:
-          matchLabels:
-            verrazzano.io/namespace: verrazzano-monitoring
-        podSelector:
-          matchLabels:
-            app.kubernetes.io/name: prometheus
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
           protocol: TCP
@@ -217,75 +200,26 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      tier: mysql
+      app: mysql
   policyTypes:
     - Ingress
   ingress:
     - from:
-      - podSelector:
-          matchLabels:
-            app.kubernetes.io/name: keycloak
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
       ports:
         - protocol: TCP
           port: 3306
-        - protocol: TCP
-          port: 33060
-        - protocol: TCP
-          port: 6446
-        - protocol: TCP
-          port: 6447
-        - protocol: TCP
-          port: 6448
-        - protocol: TCP
-          port: 6449
         - protocol: TCP
           port: 7600
     - from:
-      - namespaceSelector:
-          matchLabels:
-            verrazzano.io/namespace: mysql-operator
-      ports:
-        - protocol: TCP
-          port: 3306
-        - protocol: TCP
-          port: 33060
-        - protocol: TCP
-          port: 33061
-    - from:
-      - podSelector:
-          matchLabels:
-            job-name: load-dump
-      ports:
-        - protocol: TCP
-          port: 3306
-        - protocol: TCP
-          port: 33060
-        - protocol: TCP
-          port: 6446
-        - protocol: TCP
-          port: 6447
-        - protocol: TCP
-          port: 6448
-        - protocol: TCP
-          port: 6449
-    - from:
-      - podSelector:
-          matchLabels:
-            component: mysqlrouter
-      ports:
-        - protocol: TCP
-          port: 3306
-        - protocol: TCP
-          port: 33060
-        - protocol: TCP
-          port: 33061
-    - from:
-      - namespaceSelector:
-          matchLabels:
-            verrazzano.io/namespace: verrazzano-monitoring
-        podSelector:
-          matchLabels:
-            app.kubernetes.io/name: prometheus
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
           protocol: TCP
@@ -323,16 +257,16 @@ spec:
     - Ingress
   ingress:
     - from:
-      - namespaceSelector:
-          matchLabels:
-            verrazzano.io/namespace: cattle-system
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: cattle-system
     - from:
-      - namespaceSelector:
-          matchLabels:
-            verrazzano.io/namespace: ingress-nginx
-      - podSelector:
-          matchLabels:
-            app.kubernetes.io/instance: ingress-controller
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
       ports:
         - protocol: TCP
           port: 80
@@ -592,19 +526,7 @@ spec:
               verrazzano.io/namespace: keycloak
           podSelector:
             matchLabels:
-              tier: mysql
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: keycloak
-          podSelector:
-            matchLabels:
-              job-name: load-dump
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: mysql-operator
-          podSelector:
-            matchLabels:
-              name: mysql-operator
+              app: mysql
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: ingress-nginx
@@ -636,7 +558,6 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: prometheus
-{{- end }}
 ---
 # Network policy for Kiali
 # Ingress: allow connect from istio-system
@@ -677,3 +598,4 @@ spec:
           protocol: TCP
         - port: 15090
           protocol: TCP
+{{- end }}
