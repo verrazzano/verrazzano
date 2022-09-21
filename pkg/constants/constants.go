@@ -188,7 +188,6 @@ const (
 	Verrazzano                    = "verrazzano"
 	Fluentd                       = "fluentd"
 	RancherBackup                 = "rancher-backup"
-	MySQLOperator                 = "mysql-operator"
 )
 
 const (
@@ -225,5 +224,4 @@ var ComponentNameToNamespacesMap = map[string][]string{
 	Verrazzano:                    {VerrazzanoSystemNamespace},
 	Fluentd:                       {VerrazzanoSystemNamespace},
 	RancherBackup:                 {platformOperatorConstants.RancherBackupNamesSpace},
-	MySQLOperator:                 {MySQLOperatorNamespace},
 }
