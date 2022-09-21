@@ -144,8 +144,9 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Kiali-specific enabled check for installation
+// If Istio is enabled then only enabled kiali else it will be disabled always
 func (c kialiComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsKialiEnabled(effectiveCR)
+	return vzconfig.IsIstioEnabled(effectiveCR) && vzconfig.IsKialiEnabled(effectiveCR)
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources
