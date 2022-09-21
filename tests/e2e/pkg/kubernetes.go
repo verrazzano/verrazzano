@@ -548,7 +548,7 @@ func GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath string) (*v1bet
 	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {
-		return nil, fmt.Errorf("error listing out Verrazzano instances: %v", err)
+		return nil, fmt.Errorf("error listing out v1beta1 Verrazzano instances: %v", err)
 	}
 	numVzs := len(vzList.Items)
 	if numVzs == 0 {

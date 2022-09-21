@@ -67,10 +67,10 @@ func GetCRV1beta1() *v1beta1.Verrazzano {
 			return err
 		}
 		if cr.Status.State != v1beta1.VzStateReady {
-			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+			return fmt.Errorf("v1beta1 CR in state %s, not Ready yet", cr.Status.State)
 		}
 		return nil
-	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano v1beta1 CR with Ready state")
 
 	// Get the CR
 	cr, err := pkg.GetVerrazzanoV1beta1()
@@ -78,7 +78,7 @@ func GetCRV1beta1() *v1beta1.Verrazzano {
 		ginkgov2.Fail(err.Error())
 	}
 	if cr == nil {
-		ginkgov2.Fail("CR is nil")
+		ginkgov2.Fail("v1beta1 CR is nil")
 	}
 
 	return cr
@@ -115,6 +115,7 @@ func UpdateCR(m CRModifier) error {
 // Then, it updates the modified.
 // Any error during the process will cause Ginkgo Fail.
 func UpdateCRV1beta1(m CRModifierV1beta1) error {
+	pkg.Log(pkg.Info, fmt.Sprintf("v1beta1 - update CR "))
 	// GetCRV1beta1 gets the CR using v1beta1 client.
 	cr := GetCRV1beta1()
 

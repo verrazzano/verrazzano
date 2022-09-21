@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	labelValidation         = "f:platform-lcm.fluentd-update-validation"
-	opensearchURL           = "https://opensearch.example.com:9200"
-	openSearchDashboardsURL = "https://kibana.vmi.system.default.172.18.0.231.nip.io"
-	waitTimeout             = 5 * time.Minute
+	labelValidation      = "f:platform-lcm.fluentd-update-validation"
+	opensearchURL        = "https://opensearch.example.com:9200"
+	opensearchURLV1beta1 = "https://opensearch.v1beta1.example.com:9200"
+	waitTimeout          = 5 * time.Minute
 )
 
 var (
@@ -58,36 +58,24 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 	t.Describe("Update external Opensearch", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
 		t.It("external Opensearch", func() {
 			pkg.CreateCredentialsSecret(pcons.VerrazzanoInstallNamespace, extEsSec, "user", "pw", map[string]string{})
-			m := &FluentdModifier{Component: vzapi.FluentdComponent{
+			v1alpha1Modifier := &FluentdModifier{Component: vzapi.FluentdComponent{
 				ElasticsearchSecret: extEsSec,
 				ElasticsearchURL:    opensearchURL,
 			}}
-			ValidateUpdate(m, "")
-			ValidateDaemonset(opensearchURL, extEsSec, "")
-		})
-	})
-
-	t.Describe("Update external Opensearch using v1beta1", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
-		t.It("external Opensearch", func() {
-			pkg.CreateCredentialsSecret(pcons.VerrazzanoInstallNamespace, extEsSec, "user", "pw", map[string]string{})
-			m := &FluentdModifierV1beta1{Component: v1beta1.FluentdComponent{
+			v1beta1Modifier := &FluentdModifierV1beta1{Component: v1beta1.FluentdComponent{
 				OpenSearchSecret: extEsSec,
-				OpenSearchURL:    opensearchURL,
+				OpenSearchURL:    opensearchURLV1beta1,
 			}}
-			ValidateUpdateV1beta1(m, "")
-			ValidateDaemonsetV1beta1(opensearchURL, extEsSec, "")
-		})
-	})
+			////Update CR using v1alpha1 API client.
+			ValidateUpdate(v1alpha1Modifier, "")
+			ValidateDaemonset(opensearchURL, extEsSec, "")
 
-	t.Describe("Verrazzano instance urls", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
-		t.It("Verify Opensearch url", func() {
-			validateOpenSearchURL(opensearchURL)
-		})
-	})
+			//Update CR using v1beta1 API client.
+			ValidateUpdateV1beta1(v1beta1Modifier, "")
+			ValidateDaemonsetV1beta1(opensearchURLV1beta1, extEsSec, "")
 
-	t.Describe("Verrazzano instance urls", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
-		t.It("Verify OpenDashboard url", func() {
-			validateOpensearchDashboardURL(openSearchDashboardsURL)
+			//Validating the updated opensearchURLV1beta1
+			validateOpenSearchURL(opensearchURLV1beta1)
 		})
 	})
 
@@ -138,18 +126,9 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 })
 
 func validateOpenSearchURL(osURL string) {
-	Eventually(func() bool {
+	Eventually(func() string {
 		cr, _ := pkg.GetVerrazzanoV1beta1()
+		return *cr.Status.VerrazzanoInstance.OpenSearchURL
 
-		return *cr.Status.VerrazzanoInstance.OpenSearchURL == osURL
-
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the opensearchURL is valid")
-}
-
-func validateOpensearchDashboardURL(osdURL string) {
-	Eventually(func() bool {
-		cr, _ := pkg.GetVerrazzanoV1beta1()
-		return *cr.Status.VerrazzanoInstance.OpenSearchDashboardsURL == osdURL
-
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the openSearchDashboardsUrl is valid")
+	}, waitTimeout, pollingInterval).Should(BeEquivalentTo(osURL), "Expected that the opensearchURL is valid")
 }

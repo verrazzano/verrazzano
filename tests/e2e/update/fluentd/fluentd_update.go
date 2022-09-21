@@ -70,7 +70,7 @@ func ValidateUpdateV1beta1(m update.CRModifierV1beta1, expectedError string) {
 	gomega.Expect(func() bool {
 		err := update.UpdateCRV1beta1(m)
 		if err != nil {
-			pkg.Log(pkg.Info, fmt.Sprintf("Update error: %v", err))
+			pkg.Log(pkg.Info, fmt.Sprintf("v1beta1 - Update error: %v", err))
 		}
 		if expectedError == "" {
 			return err == nil
@@ -140,6 +140,7 @@ func checkExtraVolumes(ds *appsv1.DaemonSet, extra ...vzapi.VolumeMount) bool {
 }
 
 func checkExtraVolumesV1beta1(ds *appsv1.DaemonSet, extra ...v1beta1.VolumeMount) bool {
+	pkg.Log(pkg.Info, fmt.Sprintf("v1beta1 - check extra volumes"))
 	for _, vm := range extra {
 		if found := findVol(ds, "", vm.Source); found == nil {
 			return false
@@ -167,6 +168,7 @@ func validateFluentdContainer(cntr corev1.Container, osURL, osSec string, extra 
 }
 
 func validateFluentdContainerV1beta1(cntr corev1.Container, osURL, osSec string, extra ...v1beta1.VolumeMount) bool {
+	pkg.Log(pkg.Info, fmt.Sprintf("v1beta1 - validate FluentdContainer"))
 	if cntr.Name == fluentdName {
 		if !validateCacerts(cntr) {
 			return false
