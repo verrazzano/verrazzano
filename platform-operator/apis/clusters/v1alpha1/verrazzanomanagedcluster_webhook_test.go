@@ -155,7 +155,7 @@ func TestCreateNoConfigMap(t *testing.T) {
 							Name:      secretName,
 							Namespace: constants.VerrazzanoMultiClusterNamespace,
 						},
-					}).WithLists(verrazzanoList).Build(), nil
+					}).WithLists(test.verrazzanos).Build(), nil
 			}
 			defer func() { getClientFunc = getClient }()
 
