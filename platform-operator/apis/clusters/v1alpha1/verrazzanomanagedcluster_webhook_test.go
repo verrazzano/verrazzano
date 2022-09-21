@@ -92,8 +92,7 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 
 			// fake client needed to get secret
 			getClientFunc = func() (client.Client, error) {
-				return fake.NewFakeClientWithScheme(newScheme(),
-					verrazzanoList,
+				return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
 					&corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      secretName,
@@ -108,7 +107,7 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 						Data: map[string]string{
 							constants.ServerDataKey: "https://testUrl",
 						},
-					}), nil
+					}).WithLists(verrazzanoList).Build(), nil
 			}
 			defer func() { getClientFunc = getClient }()
 
@@ -150,14 +149,13 @@ func TestCreateNoConfigMap(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			// fake client needed to get secret
 			getClientFunc = func() (client.Client, error) {
-				return fake.NewFakeClientWithScheme(newScheme(),
-					test.verrazzanos,
+				return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
 					&corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      secretName,
 							Namespace: constants.VerrazzanoMultiClusterNamespace,
 						},
-					}), nil
+					}).WithLists(verrazzanoList).Build(), nil
 			}
 			defer func() { getClientFunc = getClient }()
 
@@ -203,8 +201,7 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			// fake client needed to get secret
 			getClientFunc = func() (client.Client, error) {
-				return fake.NewFakeClientWithScheme(newScheme(),
-					test.verrazzanos,
+				return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
 					&corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      secretName,
@@ -216,7 +213,7 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 							Name:      constants.AdminClusterConfigMapName,
 							Namespace: constants.VerrazzanoMultiClusterNamespace,
 						},
-					}), nil
+					}).WithLists(test.verrazzanos).Build(), nil
 			}
 			defer func() { getClientFunc = getClient }()
 
@@ -248,8 +245,7 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 // THEN the validation should succeed and default to a well-known CA
 func TestCreateMissingSecretName(t *testing.T) {
 	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(),
-			verrazzanoList,
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
 			&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      constants.AdminClusterConfigMapName,
@@ -258,7 +254,7 @@ func TestCreateMissingSecretName(t *testing.T) {
 				Data: map[string]string{
 					constants.ServerDataKey: "https://testUrl",
 				},
-			}), nil
+			}).WithLists(verrazzanoList).Build(), nil
 	}
 	defer func() { getClientFunc = getClient }()
 	vz := VerrazzanoManagedCluster{
@@ -291,7 +287,7 @@ func TestCreateMissingSecret(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			getClientFunc = func() (client.Client, error) {
-				return fake.NewFakeClientWithScheme(newScheme(), test.verrazzanos), nil
+				return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(test.verrazzanos).Build(), nil
 			}
 			defer func() { getClientFunc = getClient }()
 
@@ -343,9 +339,7 @@ func TestCreateVerrazzanoNotInstalled(t *testing.T) {
 
 	// fake client needed to validate create
 	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(),
-			notInstalledList,
-		), nil
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(notInstalledList).Build(), nil
 	}
 	defer func() { getClientFunc = getClient }()
 

@@ -30,7 +30,7 @@ const (
 // THEN the network policies are created
 func TestCreateNetworkPolicies(t *testing.T) {
 	asserts := assert.New(t)
-	mockClient := ctrlfake.NewFakeClientWithScheme(k8scheme.Scheme)
+	mockClient := ctrlfake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// mock the clientset with a kubernetes API server endpoint
 	mockClientset := k8sfake.NewSimpleClientset(makeKubeAPIServerEndpoint())
@@ -55,7 +55,7 @@ func TestCreateNetworkPolicies(t *testing.T) {
 // THEN the network policies are updated
 func TestUpdateNetworkPolicies(t *testing.T) {
 	asserts := assert.New(t)
-	mockClient := ctrlfake.NewFakeClientWithScheme(k8scheme.Scheme)
+	mockClient := ctrlfake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// mock the clientset with a kubernetes API server endpoint
 	mockClientset := k8sfake.NewSimpleClientset(makeKubeAPIServerEndpoint())
@@ -82,7 +82,7 @@ func TestUpdateNetworkPolicies(t *testing.T) {
 // the operator network policies.
 func TestNetworkPoliciesFailures(t *testing.T) {
 	asserts := assert.New(t)
-	mockClient := ctrlfake.NewFakeClientWithScheme(k8scheme.Scheme)
+	mockClient := ctrlfake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// GIVEN a call to CreateOrUpdateNetworkPolicies
 	// WHEN there is no Kubernetes API server endpoint found
