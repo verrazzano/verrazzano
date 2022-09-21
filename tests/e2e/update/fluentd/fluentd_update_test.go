@@ -136,7 +136,7 @@ func validateOpenSearchURL(osURL string) {
 	Eventually(func() bool {
 		cr, _ := pkg.GetVerrazzanoV1beta1()
 
-		return *cr.Status.VerrazzanoInstance.OpenSearchURL != osURL
+		return *cr.Status.VerrazzanoInstance.OpenSearchURL == osURL
 
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the opensearchURL is valid")
 }
@@ -144,7 +144,7 @@ func validateOpenSearchURL(osURL string) {
 func validateOpensearchDashboardURL(osdURL string) {
 	Eventually(func() bool {
 		cr, _ := pkg.GetVerrazzanoV1beta1()
-		return *cr.Status.VerrazzanoInstance.OpenSearchDashboardsURL != osdURL
+		return *cr.Status.VerrazzanoInstance.OpenSearchDashboardsURL == osdURL
 
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the openSearchDashboardsUrl is valid")
 }

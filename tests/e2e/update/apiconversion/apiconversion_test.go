@@ -21,7 +21,11 @@ const (
 	ingressNGINXNameLabelKey             = "app.kubernetes.io/name"
 )
 
-type IngressNGINXReplicasModifierV1beta1 struct {
+type IngressNGINXControllerReplicasModifierV1beta1 struct {
+	replicas uint32
+}
+
+type IngressNGINXBackendReplicasModifierV1beta1 struct {
 	replicas uint32
 }
 
@@ -60,12 +64,20 @@ var _ = t.AfterSuite(func() {
 
 })
 
-func (u IngressNGINXReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+func (u IngressNGINXBackendReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+	if cr.Spec.Components.IngressNGINX == nil {
+		cr.Spec.Components.IngressNGINX = &v1beta1.IngressNginxComponent{}
+	}
+	ingressNginxReplicaOverridesYaml := fmt.Sprintf(`defaultBackend:
+              replicaCount: %v`, u.replicas)
+	cr.Spec.Components.IngressNGINX.ValueOverrides = pkg.CreateOverridesOrDie(ingressNginxReplicaOverridesYaml)
+}
+
+func (u IngressNGINXControllerReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	if cr.Spec.Components.IngressNGINX == nil {
 		cr.Spec.Components.IngressNGINX = &v1beta1.IngressNginxComponent{}
 	}
 	ingressNginxReplicaOverridesYaml := fmt.Sprintf(`controller:
-            defaultBackend:
               replicaCount: %v`, u.replicas)
 	cr.Spec.Components.IngressNGINX.ValueOverrides = pkg.CreateOverridesOrDie(ingressNginxReplicaOverridesYaml)
 }
@@ -73,7 +85,7 @@ func (u IngressNGINXReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazz
 var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func() {
 	t.Describe("ingressNginx update backend replicas with v1beta1 client", Label("f:platform-lcm.ingressNginx-update-replicas"), func() {
 		t.It("ingressNginx explicit replicas", func() {
-			m := IngressNGINXReplicasModifierV1beta1{replicas: nodeCount}
+			m := IngressNGINXBackendReplicasModifierV1beta1{replicas: nodeCount}
 			err := update.UpdateCRV1beta1(m)
 			if err != nil {
 				Fail(err.Error())
@@ -86,7 +98,7 @@ var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func()
 
 	t.Describe("ingressNginx update controller replicas with v1beta1 client", Label("f:platform-lcm.ingressNginx-update-replicas"), func() {
 		t.It("ingressNginx explicit replicas", func() {
-			m := IngressNGINXReplicasModifierV1beta1{replicas: nodeCount}
+			m := IngressNGINXControllerReplicasModifierV1beta1{replicas: nodeCount}
 			err := update.UpdateCRV1beta1(m)
 			if err != nil {
 				Fail(err.Error())
