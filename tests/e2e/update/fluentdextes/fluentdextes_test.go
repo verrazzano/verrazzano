@@ -45,7 +45,10 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterSuite(func() {
 	if extOpensearchURL != "" && extOpensearchURL != pkg.VmiESURL && extOpensearchSec != "" {
-		fluentd.ValidateDaemonset(extOpensearchURL, extOpensearchSec, "")
+		start := time.Now()
+		gomega.Eventually(func() bool {
+			return fluentd.ValidateDaemonset(extOpensearchURL, extOpensearchSec, "")
+		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", extOpensearchURL, time.Since(start)))
 	}
 })
 
@@ -54,8 +57,15 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 		t.It("default Opensearch", func() {
 			if orignalFluentd != nil { //External Collector is enabled
 				m := &fluentd.FluentdModifier{Component: vzapi.FluentdComponent{}}
-				fluentd.ValidateUpdate(m, "")
-				fluentd.ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+
+				start := time.Now()
+				gomega.Expect(func() bool {
+					return fluentd.ValidateUpdate(m, "")
+				}, fmt.Sprintf("expected error %v", ""))
+
+				gomega.Eventually(func() bool {
+					return fluentd.ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+				}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 			}
 		})
 	})
@@ -70,7 +80,11 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			if orignalFluentd != nil { //External Collector is enabled
 				m := &fluentd.FluentdModifier{Component: *orignalFluentd}
 				update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, tenMinutes)
-				fluentd.ValidateDaemonset(extOpensearchURL, extOpensearchSec, "")
+
+				start := time.Now()
+				gomega.Eventually(func() bool {
+					return fluentd.ValidateDaemonset(extOpensearchURL, extOpensearchSec, "")
+				}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", extOpensearchURL, time.Since(start)))
 				verifyCaSync(extOpensearchSec)
 			}
 		})

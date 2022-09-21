@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -50,84 +49,72 @@ func (u *FluentdModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Fluentd = &u.Component
 }
 
-func ValidateUpdate(m update.CRModifier, expectedError string) {
-	gomega.Expect(func() bool {
-		err := update.UpdateCR(m)
-		if err != nil {
-			pkg.Log(pkg.Info, fmt.Sprintf("Update error: %v", err))
-		}
-		if expectedError == "" {
-			return err == nil
-		}
-		if err == nil {
-			return false
-		}
-		return strings.Contains(err.Error(), expectedError)
-	}()).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
+func ValidateUpdate(m update.CRModifier, expectedError string) bool {
+	err := update.UpdateCR(m)
+	if err != nil {
+		pkg.Log(pkg.Info, fmt.Sprintf("Update error: %v", err))
+	}
+	if expectedError == "" {
+		return err == nil
+	}
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), expectedError)
 }
 
-func ValidateUpdateV1beta1(m update.CRModifierV1beta1, expectedError string) {
-	gomega.Expect(func() bool {
-		err := update.UpdateCRV1beta1(m)
-		if err != nil {
-			pkg.Log(pkg.Info, fmt.Sprintf("v1beta1 - Update error: %v", err))
-		}
-		if expectedError == "" {
-			return err == nil
-		}
-		if err == nil {
-			return false
-		}
-		return strings.Contains(err.Error(), expectedError)
-	}()).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
+func ValidateUpdateV1beta1(m update.CRModifierV1beta1, expectedError string) bool {
+	err := update.UpdateCRV1beta1(m)
+	if err != nil {
+		pkg.Log(pkg.Info, fmt.Sprintf("v1beta1 - Update error: %v", err))
+	}
+	if expectedError == "" {
+		return err == nil
+	}
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), expectedError)
 }
 
-func ValidateDaemonset(osURL, osSec, apiSec string, extra ...vzapi.VolumeMount) {
-	start := time.Now()
-	gomega.Eventually(func() bool {
-		ds, err := pkg.GetDaemonSet(constants.VerrazzanoSystemNamespace, fluentdName)
-		if err != nil {
+func ValidateDaemonset(osURL, osSec, apiSec string, extra ...vzapi.VolumeMount) bool {
+	ds, err := pkg.GetDaemonSet(constants.VerrazzanoSystemNamespace, fluentdName)
+	if err != nil {
+		return false
+	}
+	validateCacertsVolume(ds)
+	for _, cntr := range ds.Spec.Template.Spec.Containers {
+		if !validateFluentdContainer(cntr, osURL, osSec, extra...) {
 			return false
 		}
-		validateCacertsVolume(ds)
-		for _, cntr := range ds.Spec.Template.Spec.Containers {
-			if !validateFluentdContainer(cntr, osURL, osSec, extra...) {
-				return false
-			}
-		}
-		if !validateOciSec(ds, apiSec) {
-			return false
-		}
-		if len(extra) > 0 && !checkExtraVolumes(ds, extra...) {
-			return false
-		}
-		return ds.Status.NumberReady > 0
-	}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", osURL, time.Since(start)))
-	pkg.Log(pkg.Info, fmt.Sprintf("Fluentd took %v to update", time.Since(start)))
+	}
+	if !validateOciSec(ds, apiSec) {
+		return false
+	}
+	if len(extra) > 0 && !checkExtraVolumes(ds, extra...) {
+		return false
+	}
+	return ds.Status.NumberReady > 0
 }
 
-func ValidateDaemonsetV1beta1(osURL, osSec, apiSec string, extra ...v1beta1.VolumeMount) {
-	start := time.Now()
-	gomega.Eventually(func() bool {
-		ds, err := pkg.GetDaemonSet(constants.VerrazzanoSystemNamespace, fluentdName)
-		if err != nil {
+func ValidateDaemonsetV1beta1(osURL, osSec, apiSec string, extra ...v1beta1.VolumeMount) bool {
+	ds, err := pkg.GetDaemonSet(constants.VerrazzanoSystemNamespace, fluentdName)
+	if err != nil {
+		return false
+	}
+	validateCacertsVolume(ds)
+	for _, cntr := range ds.Spec.Template.Spec.Containers {
+		if !validateFluentdContainerV1beta1(cntr, osURL, osSec, extra...) {
 			return false
 		}
-		validateCacertsVolume(ds)
-		for _, cntr := range ds.Spec.Template.Spec.Containers {
-			if !validateFluentdContainerV1beta1(cntr, osURL, osSec, extra...) {
-				return false
-			}
-		}
-		if !validateOciSec(ds, apiSec) {
-			return false
-		}
-		if len(extra) > 0 && !checkExtraVolumesV1beta1(ds, extra...) {
-			return false
-		}
-		return ds.Status.NumberReady > 0
-	}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", osURL, time.Since(start)))
-	pkg.Log(pkg.Info, fmt.Sprintf("Fluentd took %v to update", time.Since(start)))
+	}
+	if !validateOciSec(ds, apiSec) {
+		return false
+	}
+	if len(extra) > 0 && !checkExtraVolumesV1beta1(ds, extra...) {
+		return false
+	}
+	return ds.Status.NumberReady > 0
 }
 
 func checkExtraVolumes(ds *appsv1.DaemonSet, extra ...vzapi.VolumeMount) bool {
@@ -329,30 +316,28 @@ key_file=/root/.oci/key
 	return scr, err
 }
 
-func ValidateConfigMap(sysLog, defLog string) {
+func ValidateConfigMap(sysLog, defLog string) bool {
 	cmName := fluentdName + "-config"
-	gomega.Eventually(func() bool {
-		cm, err := pkg.GetConfigMap(cmName, constants.VerrazzanoSystemNamespace)
-		pkg.Log(pkg.Info, fmt.Sprintf("Found ConfigMap: %v %v", cmName, err))
-		if err != nil {
+	cm, err := pkg.GetConfigMap(cmName, constants.VerrazzanoSystemNamespace)
+	pkg.Log(pkg.Info, fmt.Sprintf("Found ConfigMap: %v %v", cmName, err))
+	if err != nil {
+		return false
+	}
+	if sysLog != "" {
+		entry := "oci-logging-system.conf"
+		conf, ok := cm.Data[entry]
+		pkg.Log(pkg.Info, fmt.Sprintf("Found sysLog %v in ConfigMap: %v", entry, ok))
+		if !ok || !strings.Contains(conf, sysLog) {
 			return false
 		}
-		if sysLog != "" {
-			entry := "oci-logging-system.conf"
-			conf, ok := cm.Data[entry]
-			pkg.Log(pkg.Info, fmt.Sprintf("Found sysLog %v in ConfigMap: %v", entry, ok))
-			if !ok || !strings.Contains(conf, sysLog) {
-				return false
-			}
+	}
+	if defLog != "" {
+		entry := "oci-logging-default-app.conf"
+		conf, ok := cm.Data[entry]
+		pkg.Log(pkg.Info, fmt.Sprintf("Found defLog %v in ConfigMap: %v", entry, ok))
+		if !ok || !strings.Contains(conf, defLog) {
+			return false
 		}
-		if defLog != "" {
-			entry := "oci-logging-default-app.conf"
-			conf, ok := cm.Data[entry]
-			pkg.Log(pkg.Info, fmt.Sprintf("Found defLog %v in ConfigMap: %v", entry, ok))
-			if !ok || !strings.Contains(conf, defLog) {
-				return false
-			}
-		}
-		return true
-	}, oneMinute, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("ConfigMap %s is not ready", cmName))
+	}
+	return true
 }
