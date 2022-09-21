@@ -79,9 +79,14 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 		})
 	})
 
-	t.Describe("Verify Opensearch and OpenDashboard urls", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
-		t.It("external Opensearch", func() {
+	t.Describe("Verrazzano instance urls", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
+		t.It("Verify Opensearch url", func() {
 			validateOpenSearchURL(opensearchURL)
+		})
+	})
+
+	t.Describe("Verrazzano instance urls", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
+		t.It("Verify OpenDashboard url", func() {
 			validateOpensearchDashboardURL(openSearchDashboardsURL)
 		})
 	})
