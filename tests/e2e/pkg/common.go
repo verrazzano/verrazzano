@@ -712,6 +712,7 @@ func CalculateSeconds(age string) (int64, error) {
 	return 0, fmt.Errorf("conversion to seconds for time unit %s is unsupported", match[2])
 }
 
+// CreateOverridesOrDie converts the yaml string to JSON overrides object
 func CreateOverridesOrDie(yamlString string) []v1beta1.Overrides {
 	data, err := yaml.YAMLToJSON([]byte(yamlString))
 	if err != nil {

@@ -590,7 +590,7 @@ func GetVerrazzano() (*v1alpha1.Verrazzano, error) {
 	return cr, nil
 }
 
-// GetVerrazzano returns the installed Verrazzano
+// GetVerrazzanoV1beta1 returns the installed Verrazzano using v1beta1 API client
 func GetVerrazzanoV1beta1() (*v1beta1.Verrazzano, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {

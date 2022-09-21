@@ -56,7 +56,7 @@ var _ = t.AfterSuite(func() {
 	}
 
 	cr := update.GetCR()
-	expectedRunning := uint32(1)
+	expectedRunning := uint32(2)
 	if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 		expectedRunning = 2
 	}
