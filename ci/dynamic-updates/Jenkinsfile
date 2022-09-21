@@ -410,7 +410,7 @@ pipeline {
                     }
                 }
 
-                stage('apiConversion Update Tests') {
+                stage('API Conversion Update Tests') {
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/apiconversion-update"
