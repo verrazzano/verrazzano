@@ -6,6 +6,7 @@ package velero
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -72,7 +73,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "velero-override-static-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
-			Dependencies:              []string{},
+			Dependencies:              []string{networkpolicies.ComponentName},
 		},
 	}
 }

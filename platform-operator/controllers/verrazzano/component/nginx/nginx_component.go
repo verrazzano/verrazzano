@@ -6,6 +6,7 @@ package nginx
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
@@ -59,7 +60,7 @@ func NewComponent() spi.Component {
 			PreInstallFunc:            PreInstall,
 			AppendOverridesFunc:       AppendOverrides,
 			PostInstallFunc:           PostInstall,
-			Dependencies:              []string{istio.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
