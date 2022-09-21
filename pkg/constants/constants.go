@@ -4,9 +4,8 @@
 package constants
 
 import (
-	"time"
-
 	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"time"
 )
 
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
@@ -59,9 +58,6 @@ const CertManagerNamespace = "cert-manager"
 
 // KeycloakNamespace - the keycloak namespace
 const KeycloakNamespace = "keycloak"
-
-// MySQLOperatorNamespace indicates the namespace to be used for the MySQLOperator installation
-const MySQLOperatorNamespace = "mysql-operator"
 
 // RancherSystemNamespace - the Rancher cattle-system namespace
 const RancherSystemNamespace = "cattle-system"

@@ -27,7 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -69,7 +68,6 @@ const (
 	grafanaMetricName              metricName = grafana.ComponentName
 	coherenceMetricName            metricName = coherence.ComponentName
 	mysqlMetricName                metricName = mysql.ComponentName
-	mysqlOperatorMetricName        metricName = mysqloperator.ComponentName
 	keycloakMetricname             metricName = keycloak.ComponentName
 	kialiMetricName                metricName = kiali.ComponentName
 	promoperatorMetricname         metricName = promoperator.ComponentName
@@ -163,7 +161,6 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 		grafanaMetricName:              newMetricsComponent("grafana"),
 		coherenceMetricName:            newMetricsComponent("coherence"),
 		mysqlMetricName:                newMetricsComponent("mysql"),
-		mysqlOperatorMetricName:        newMetricsComponent("mysql_operator"),
 		keycloakMetricname:             newMetricsComponent("keycloak"),
 		kialiMetricName:                newMetricsComponent("kiali"),
 		promoperatorMetricname:         newMetricsComponent("prometheus_operator"),
