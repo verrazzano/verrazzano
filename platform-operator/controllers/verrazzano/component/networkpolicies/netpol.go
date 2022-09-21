@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"io/ioutil"
 	netv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -17,7 +16,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -51,11 +49,6 @@ var (
 //func resetWriteFileFunc() {
 //	writeFileFunc = ioutil.WriteFile
 //}
-
-// getOverrides returns install overrides for a component
-func getOverrides(object runtime.Object) interface{} {
-	return []vzapi.Overrides{}
-}
 
 // appendOverrides appends the overrides for this component
 func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {

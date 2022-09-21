@@ -7,8 +7,6 @@
 package networkpolicies
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"path/filepath"
 
@@ -44,7 +42,6 @@ func NewComponent() spi.Component {
 			ChartNamespace:            ComponentNamespace,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
 			AppendOverridesFunc:       appendOverrides,
-			GetInstallOverridesFunc:   getOverrides,
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
@@ -85,19 +82,4 @@ func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 func (c networkPoliciesComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
 	return c.HelmComponent.PostUpgrade(ctx)
-}
-
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c networkPoliciesComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	return nil
-}
-
-// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c networkPoliciesComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
-}
-
-// MonitorOverrides checks whether monitoring of install overrides is enabled or not
-func (c networkPoliciesComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
-	return false
 }
