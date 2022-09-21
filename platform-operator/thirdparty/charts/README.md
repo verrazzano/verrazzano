@@ -155,3 +155,18 @@ helm repo update
 helm fetch rancher-charts/rancher-backup-crd --untar=true
 helm fetch rancher-charts/rancher-backup --untar=true
 ```
+
+### Jaeger Operator
+
+The `jaegertracing/jaeger-operator` folder was created by running the following commands:
+
+```shell
+export JAEGER_OPERATOR_CHART_REPO=https://jaegertracing.github.io/helm-charts
+export JAEGER_OPERATOR_CHART_VERSION=2.32.2
+rm -rf jaegertracing/jaeger-operator
+mkdir -p jaegertracing
+cd jaegertracing
+helm repo add jaegertracing ${JAEGER_OPERATOR_CHART_REPO}
+helm repo update
+helm fetch jaegertracing/jaeger-operator --untar=true --version=${JAEGER_OPERATOR_CHART_VERSION}
+```
