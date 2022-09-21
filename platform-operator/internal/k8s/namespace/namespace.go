@@ -4,6 +4,7 @@ package namespace
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -24,19 +25,44 @@ func CreateAndLabelNamespace(client client.Client, ns string, isVerrazzanoManage
 	return err
 }
 
-//CreateVerrazzanoSystemNamespace - Create/Update and label the Verrazzano system namespace
-func CreateVerrazzanoSystemNamespace(client client.Client, istioInjectionEnabled bool) error {
-	return CreateAndLabelNamespace(client, globalconst.VerrazzanoSystemNamespace, true, istioInjectionEnabled)
+// CreateCertManagerNamespace - Create/Update and label the cert-manager namespace
+func CreateCertManagerNamespace(client client.Client, istioInjectionEnabled bool) error {
+	return CreateAndLabelNamespace(client, globalconst.CertManagerNamespace, true, istioInjectionEnabled)
 }
 
-//CreateKeycloakNamespace - Create/Update and label the Keycloak namespace
+// CreateIngressNginxNamespace - Create/Update and label the ingres-nginx namespace
+func CreateIngressNginxNamespace(client client.Client, istioInjectionEnabled bool) error {
+	return CreateAndLabelNamespace(client, globalconst.IngressNamespace, true, istioInjectionEnabled)
+}
+
+//CreateIstioNamespace - Create/Update and label the Istio namespace
+func CreateIstioNamespace(client client.Client) error {
+	return CreateAndLabelNamespace(client, globalconst.IstioSystemNamespace, true, false)
+}
+
+// CreateKeycloakNamespace - Create/Update and label the Keycloak namespace
 func CreateKeycloakNamespace(client client.Client, istioInjectionEnabled bool) error {
 	return CreateAndLabelNamespace(client, globalconst.KeycloakNamespace, true, istioInjectionEnabled)
 }
 
-//CreateRancherNamespace - Create/Update and label the Rancher system namespace
+// CreateMysqlOperator - Create/Update and label the MySQL operator namespace
+func CreateMysqlOperator(client client.Client, istioInjectionEnabled bool) error {
+	return CreateAndLabelNamespace(client, globalconst.MySQLOperatorNamespace, true, istioInjectionEnabled)
+}
+
+// CreateRancherNamespace - Create/Update and label the Rancher system namespace
 func CreateRancherNamespace(client client.Client) error {
 	return CreateAndLabelNamespace(client, globalconst.RancherSystemNamespace, true, false)
+}
+
+// CreateVerrazzanoMonitoringNamespace - Create/Update and label the Verrazzano monitoring namespace
+func CreateVerrazzanoMonitoringNamespace(client client.Client, istioInjectionEnabled bool) error {
+	return CreateAndLabelNamespace(client, constants.VerrazzanoMonitoringNamespace, true, istioInjectionEnabled)
+}
+
+// CreateVerrazzanoSystemNamespace - Create/Update and label the Verrazzano system namespace
+func CreateVerrazzanoSystemNamespace(client client.Client, istioInjectionEnabled bool) error {
+	return CreateAndLabelNamespace(client, globalconst.VerrazzanoSystemNamespace, true, istioInjectionEnabled)
 }
 
 //CreateVerrazzanoMultiClusterNamespace - Create/Update and label the Verrazzano multi-cluster namespace

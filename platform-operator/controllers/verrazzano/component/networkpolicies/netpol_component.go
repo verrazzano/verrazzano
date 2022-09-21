@@ -7,9 +7,9 @@
 package networkpolicies
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -50,25 +50,17 @@ func NewComponent() spi.Component {
 	}
 }
 
-// IsEnabled WebLogic-specific enabled check for installation
+// IsEnabled always returns true since network policies are always installed
 func (c networkPoliciesComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsWebLogicOperatorEnabled(effectiveCR)
-}
-
-// IsInstalled component check - network policies are always applied
-func (c networkPoliciesComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	return true, nil
-}
-
-// IsReady component check
-func (c networkPoliciesComponent) IsReady(ctx spi.ComponentContext) bool {
-	return c.HelmComponent.IsReady(ctx)
+	return true
 }
 
 // PreUpgrade dis-associates existing network policies from Verrazzano chart
 func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	// Create all namespaces needed by network policies
+	common.CreateAndLabelNamespaces(ctx)
 
-	// TODO write this code, see authProxy
-
-	return nil
+	// Make sure netpols are associated with the netpol chart, set keep to false so
+	// policies are deleted on uninstall.
+	return associateNetworkPolicies(ctx.Client(), false)
 }
