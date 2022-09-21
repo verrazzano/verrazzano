@@ -4,8 +4,9 @@
 package constants
 
 import (
-	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"time"
+
+	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
