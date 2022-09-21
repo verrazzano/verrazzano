@@ -418,7 +418,7 @@
           "images": [
             {
               "image": "mysql-operator",
-              "tag": "8.0.30-2.0.5",
+              "tag": "8.0.30-2.0.6",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
               "helmTagKey": "image.tag"

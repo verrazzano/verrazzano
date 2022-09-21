@@ -17,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -191,11 +190,6 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isKeycloakReady(ctx)
 	}
 	return false
-}
-
-// GetDependencies returns the dependencies of the keycloak component
-func (c KeycloakComponent) GetDependencies() []string {
-	return []string{mysqloperator.ComponentName}
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
