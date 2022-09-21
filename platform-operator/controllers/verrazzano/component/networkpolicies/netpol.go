@@ -48,9 +48,9 @@ var (
 	writeFileFunc = ioutil.WriteFile
 )
 
-func resetWriteFileFunc() {
-	writeFileFunc = ioutil.WriteFile
-}
+//func resetWriteFileFunc() {
+//	writeFileFunc = ioutil.WriteFile
+//}
 
 // getOverrides returns install overrides for a component
 func getOverrides(object runtime.Object) interface{} {
@@ -127,9 +127,9 @@ func associateNetworkPolicies(cli clipkg.Client, keep bool) error {
 		cli.List(context.TODO(), &netpolList, &clipkg.ListOptions{Namespace: ns})
 
 		// Associate each policy with the verrazzano-network-policies helm chart
-		for _, netpol := range netpolList.Items {
+		for i, netpol := range netpolList.Items {
 			netpolNsn := types.NamespacedName{Name: netpol.Name, Namespace: netpol.Namespace}
-			objs := []clipkg.Object{&netpol}
+			objs := []clipkg.Object{&netpolList.Items[i]}
 			if _, err := common.AssociateHelmObject(cli, objs[0], releaseNsn, netpolNsn, keep); err != nil {
 				return err
 			}
