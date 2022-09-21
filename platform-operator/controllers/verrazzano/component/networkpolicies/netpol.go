@@ -104,7 +104,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	return nil
 }
 
-// AssociateNetworkPoliciesWithHelmRelease associates the network policies with the verrazzano-network-policies helm chart
+// AssociateNetworkPoliciesWithHelmRelease associates the network policies with the verrazzano-network-policies Helm chart
 func AssociateNetworkPoliciesWithHelmRelease(cli clipkg.Client) error {
 	return associateNetworkPolicies(cli, true)
 }
