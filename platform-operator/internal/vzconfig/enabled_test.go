@@ -681,44 +681,6 @@ func TestIsComponentEnabled(t *testing.T) {
 			false,
 			IsOAMEnabled,
 		},
-
-		// MySQL Operator
-		{
-			"mysqlop enabled when empty v1alpha1 CR",
-			&vzapi.Verrazzano{},
-			true,
-			IsMySQLOperatorEnabled,
-		},
-		{
-			"mysqlop enabled when empty v1beta1 CR",
-			&installv1beta1.Verrazzano{},
-			true,
-			IsMySQLOperatorEnabled,
-		},
-		{
-			"mysqlop enabled when component enabled, v1alpha1 CR",
-			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{MySQLOperator: &vzapi.MySQLOperatorComponent{Enabled: &enabled}}}},
-			true,
-			IsMySQLOperatorEnabled,
-		},
-		{
-			"mysqlop enabled when component enabled, v1beta1 CR",
-			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{MySQLOperator: &installv1beta1.MySQLOperatorComponent{Enabled: &enabled}}}},
-			true,
-			IsMySQLOperatorEnabled,
-		},
-		{
-			"mysqlop disabled when component disabled, v1alpha1 CR",
-			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{MySQLOperator: &vzapi.MySQLOperatorComponent{Enabled: &disabled}}}},
-			false,
-			IsMySQLOperatorEnabled,
-		},
-		{
-			"mysqlop disabled when component disabled, v1beta1 CR",
-			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{MySQLOperator: &installv1beta1.MySQLOperatorComponent{Enabled: &disabled}}}},
-			false,
-			IsMySQLOperatorEnabled,
-		},
 	}
 
 	for _, tt := range tests {
