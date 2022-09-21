@@ -19,6 +19,7 @@ jobs:
           destination_branch: "main"
           pr_title: "CI: Update Rancher Image in BOM"
           pr_body: "*Automated Pull Request*  Updating Rancher image in BOM for ${{ github.ref }}"
+          pr_reviewer: "ddsharpe,robertpatrick"
           pr_draft: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
