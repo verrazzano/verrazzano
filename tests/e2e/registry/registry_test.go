@@ -74,6 +74,11 @@ var _ = t.Describe("Image Registry Verification", Label("f:platform-lcm.private-
 						if pod.Name == extOSPod {
 							continue
 						}
+						podLabels := pod.GetLabels()
+						_, ok := podLabels["job-name"]
+						if pod.Status.Phase != corev1.PodRunning && ok {
+							continue
+						}
 						pkg.Log(pkg.Info, fmt.Sprintf("%d. Validating the registry url prefix for pod: %s in namespace: %s", i, pod.Name, ns))
 						for k := range pod.Spec.Containers {
 							registryURL, err := getRegistryURL(pod.Spec.Containers[k].Image)
