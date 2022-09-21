@@ -410,6 +410,25 @@
       ]
     },
     {
+      "name": "mysql-operator",
+      "version": "8.0.30",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "mysql-operator",
+          "images": [
+            {
+              "image": "mysql-operator",
+              "tag": "8.0.30-2.0.6",
+              "helmRegKey": "image.registry",
+              "helmRepoKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "keycloak",
       "version": "15.0.2",
       "subcomponents": [
