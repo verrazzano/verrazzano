@@ -40,6 +40,7 @@ func NewComponent() spi.Component {
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:            ComponentNamespace,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
 			AppendOverridesFunc:       appendOverrides,
 			GetInstallOverridesFunc:   getOverrides,
 			IgnoreNamespaceOverride:   true,
