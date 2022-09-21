@@ -55,7 +55,20 @@ func (c networkPoliciesComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return true
 }
 
-// PreUpgrade dis-associates existing network policies from Verrazzano chart
+// PreInstall performs pre-install actions
+func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
+	// Create all namespaces needed by network policies
+	common.CreateAndLabelNamespaces(ctx)
+	return c.HelmComponent.PreInstall(ctx)
+}
+
+// PostInstall performs post-install actions
+func (c networkPoliciesComponent) PostInstall(ctx spi.ComponentContext) error {
+	cleanTempFiles(ctx)
+	return c.HelmComponent.PostInstall(ctx)
+}
+
+// PreUpgrade performs pre-upgrade actions
 func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
 	common.CreateAndLabelNamespaces(ctx)
@@ -63,4 +76,10 @@ func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Make sure netpols are associated with the netpol chart, set keep to false so
 	// policies are deleted on uninstall.
 	return associateNetworkPolicies(ctx.Client(), false)
+}
+
+// PostUpgrade performs post-upgrade actions
+func (c networkPoliciesComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	cleanTempFiles(ctx)
+	return c.HelmComponent.PostUpgrade(ctx)
 }

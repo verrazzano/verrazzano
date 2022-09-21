@@ -5,12 +5,7 @@ package networkpolicies
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io/fs"
 	"io/ioutil"
 	netv1 "k8s.io/api/networking/v1"
@@ -143,47 +138,9 @@ func associateNetworkPolicies(cli clipkg.Client, keep bool) error {
 	return nil
 }
 
-// ensureNamespaces creates the netwprk policy namespaces if they don't exist
-func ensureNamespaces(cli clipkg.Client, cr *v1beta1.Verrazzano) error {
-
-	return nil
-}
-
-func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
-	if err := LabelKubeSystemNamespace(ctx.Client()); err != nil {
-		return err
+// cleanTempFiles - Clean up the override temp files in the temp dir
+func cleanTempFiles(ctx spi.ComponentContext) {
+	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
+		ctx.Log().Errorf("Failed deleting temp files: %v", err)
 	}
-	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
-		return err
-	}
-	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
-		return err
-	}
-	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		istio := ctx.EffectiveCR().Spec.Components.Istio
-		if err := namespace.CreateKeycloakNamespace(ctx.Client(), istio != nil && istio.IsInjectionEnabled()); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
-		}
-	}
-	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
-	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating Rancher namespace: %v", err)
-	}
-	return nil
-}
-
-// LabelKubeSystemNamespace adds the label needed by network polices to kube-system
-func LabelKubeSystemNamespace(client clipkg.Client) error {
-	const KubeSystemNamespace = "kube-system"
-	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubeSystemNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), client, &ns, func() error {
-		if ns.Labels == nil {
-			ns.Labels = make(map[string]string)
-		}
-		ns.Labels["verrazzano.io/namespace"] = KubeSystemNamespace
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
 }
