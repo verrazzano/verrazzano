@@ -1563,7 +1563,6 @@ func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli k
 	kcPod := keycloakPod()
 	addRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + targetRealm + " --uusername " + userName + " --cclientid " + clientID + " --rolename " + roleName
 	ctx.Log().Debugf("addRoleCmd: add role %s to the user %s, command = %s", roleName, userName, addRoleCmd)
-	ctx.Log().Infof("addRoleCmd: %s", addRoleCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(addRoleCmd))
 	if err != nil {
 		ctx.Log().Errorf("Adding role %s to the user %s failed: stdout = %s, stderr = %s", roleName, userName, stdout, stderr)
