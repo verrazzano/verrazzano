@@ -58,7 +58,7 @@ func GetCR() *vzapi.Verrazzano {
 	return cr
 }
 
-// GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
+// GetCRV1beta1 gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
 func GetCRV1beta1() *v1beta1.Verrazzano {
 	// Wait for the CR to be Ready
 	gomega.Eventually(func() error {
@@ -110,8 +110,12 @@ func UpdateCR(m CRModifier) error {
 	return err
 }
 
+// UpdateCRV1beta1 updates the CR with the given CRModifierV1beta1.
+// First it waits for CR to be "Ready" before using the specified CRModifierV1beta1 modifies the CR.
+// Then, it updates the modified.
+// Any error during the process will cause Ginkgo Fail.
 func UpdateCRV1beta1(m CRModifierV1beta1) error {
-	// Get the CR
+	// GetCRV1beta1 gets the CR using v1beta1 client.
 	cr := GetCRV1beta1()
 
 	// Modify the CR
