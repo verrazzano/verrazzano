@@ -1,5 +1,5 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
-  # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 # Network policy for WebLogic operator
 # Ingress: allow from istio-system
@@ -18,9 +18,9 @@ spec:
     - Ingress
   ingress:
     - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: istio-system
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: istio-system
     - from:
         - namespaceSelector:
             matchLabels:
@@ -154,19 +154,19 @@ spec:
     - Ingress
   ingress:
     - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: ingress-nginx
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: ingress-controller
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: ingress-nginx
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/instance: ingress-controller
       ports:
         - protocol: TCP
           port: 8080
     - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: {{ .Release.Namespace }}
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: {{ .Release.Namespace }}
       ports:
         - protocol: TCP
           port: 8080
@@ -178,12 +178,12 @@ spec:
         - protocol: TCP
           port: 7600
     - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-monitoring
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: prometheus
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: verrazzano-monitoring
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
           protocol: TCP
@@ -205,21 +205,21 @@ spec:
     - Ingress
   ingress:
     - from:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: keycloak
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: keycloak
       ports:
         - protocol: TCP
           port: 3306
         - protocol: TCP
           port: 7600
     - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-monitoring
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: prometheus
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: verrazzano-monitoring
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: prometheus
       ports:
         - port: 15090
           protocol: TCP
@@ -257,16 +257,16 @@ spec:
     - Ingress
   ingress:
     - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: cattle-system
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: cattle-system
     - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: ingress-nginx
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: ingress-controller
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: ingress-nginx
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/instance: ingress-controller
       ports:
         - protocol: TCP
           port: 80

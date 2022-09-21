@@ -7,7 +7,6 @@ package networkpolicies
 // Each field in this struct must have a corresponding key in the values.yaml file for the chart.
 // This is only needed for the enabled/disable field for various components
 // used by the network policies helm charts
-
 type chartValues struct {
 	Name           string                `json:"name,omitempty"`
 	ElasticSearch  *elasticsearchValues  `json:"elasticSearch,omitempty"`
