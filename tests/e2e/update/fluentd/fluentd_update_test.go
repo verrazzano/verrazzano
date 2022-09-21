@@ -61,7 +61,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			expectedError := "must be created"
 			gomega.Expect(func() bool {
 				return ValidateUpdate(m, expectedError)
-			}, fmt.Sprintf("expected error %v", expectedError))
+			}).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
 		})
 	})
 
@@ -80,7 +80,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			// Update CR using v1alpha1 API client.
 			gomega.Expect(func() bool {
 				return ValidateUpdate(v1alpha1Modifier, "")
-			}, fmt.Sprintf("expected error %v", ""))
+			}).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
 			start := time.Now()
 			gomega.Eventually(func() bool {
 				return ValidateDaemonset(opensearchURL, extEsSec, "")
@@ -90,7 +90,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			//Update CR using v1beta1 API client.
 			gomega.Expect(func() bool {
 				return ValidateUpdateV1beta1(v1beta1Modifier, "")
-			}, fmt.Sprintf("expected error %v", ""))
+			}).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
 
 			start = time.Now()
 			gomega.Eventually(func() bool {
@@ -109,14 +109,14 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			expectedError1 := "must be created"
 			gomega.Expect(func() bool {
 				return ValidateUpdate(m, expectedError1)
-			}, fmt.Sprintf("expected error %v", expectedError1))
+			}).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError1))
 
 			pkg.CreateCredentialsSecret(pcons.VerrazzanoInstallNamespace, wrongSec, "api", "pw", map[string]string{})
 
 			expectedError2 := "Did not find OCI configuration"
 			gomega.Expect(func() bool {
 				return ValidateUpdate(m, expectedError2)
-			}, fmt.Sprintf("expected error %v", expectedError2))
+			}).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError2))
 		})
 	})
 
@@ -130,7 +130,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			}}}
 			gomega.Expect(func() bool {
 				return ValidateUpdate(m, "")
-			}, fmt.Sprintf("expected error %v", ""))
+			}).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
 
 			start := time.Now()
 			gomega.Eventually(func() bool {
@@ -152,7 +152,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			expectedError := "duplicate mount path found"
 			gomega.Expect(func() bool {
 				return ValidateUpdate(m, expectedError)
-			}, fmt.Sprintf("expected error %v", expectedError))
+			}).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
 		})
 	})
 
@@ -164,7 +164,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			}}
 			gomega.Expect(func() bool {
 				return ValidateUpdate(m, "")
-			}, fmt.Sprintf("expected error %v", ""))
+			}).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
 
 			start := time.Now()
 			gomega.Eventually(func() bool {
