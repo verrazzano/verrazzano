@@ -101,26 +101,29 @@ trap exit_trap EXIT
 
 function run_docker() {
   if [ "${DRY_RUN}" != "true" ]; then
-    docker_out=$(docker $* 2>&1)
+    tmpfile=$(mktemp -t vz-helper-docker-err.XXXXXX)
+    docker $* 2>${tmpfile}
     local result=$?
-    local denied=$(echo "${docker_out}" | egrep -i "(Anonymous|permission_denied)")
+    local denied=$(egrep -i "(Anonymous|permission_denied)" ${tmpfile})
     if [ -n "$denied" ]; then
        echo """
 
 Permission error from Docker:
 
-${docker_out}
+$(cat ${tmpfile})
 
 Please log into the target registry and try again.
 
       """
+      rm ${tmpfile}
       usage 1
     elif [ "${result}" != "0" ]; then
-      echo ${docker_out}
+      echo "An error occurred running docker command:"
+      cat ${tmpfile}
     fi
-    return ${result}
   fi
-  return 0
+  rm ${tmpfile}
+  return ${result}
 }
 
 # Wrapper for Docker pull
