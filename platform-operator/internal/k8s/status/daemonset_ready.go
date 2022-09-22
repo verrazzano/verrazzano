@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // DaemonSetsAreReady Check that the named daemonsets have the minimum number of specified nodes ready and available
@@ -65,7 +64,7 @@ func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namesp
 
 // podsReadyDaemonSet checks for an expected number of pods to be using the latest controllerRevision resource and are
 // running and ready
-func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedNodes int32, prefix string) bool {
+func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client client.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedNodes int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
 	pods := status.GetPodsList(log, client, namespacedName, selector)
 	if pods == nil {

@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	testhelper "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,8 +29,9 @@ import (
 
 // TestBugReportHelp
 // GIVEN a CLI bug-report command
-//  WHEN I call cmd.Help for bug-report
-//  THEN expect the help for the command in the standard output
+//
+//	WHEN I call cmd.Help for bug-report
+//	THEN expect the help for the command in the standard output
 func TestBugReportHelp(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -47,8 +47,9 @@ func TestBugReportHelp(t *testing.T) {
 
 // TestBugReportExistingReportFile
 // GIVEN a CLI bug-report command using an existing file for flag --report-file
-//  WHEN I call cmd.Execute for bug-report
-//  THEN expect an error
+//
+//	WHEN I call cmd.Execute for bug-report
+//	THEN expect an error
 func TestBugReportExistingReportFile(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -75,8 +76,9 @@ func TestBugReportExistingReportFile(t *testing.T) {
 
 // TestBugReportExistingDir
 // GIVEN a CLI bug-report command with flag --report-file pointing to an existing directory
-//  WHEN I call cmd.Execute for bug-report
-//  THEN expect an error
+//
+//	WHEN I call cmd.Execute for bug-report
+//	THEN expect an error
 func TestBugReportExistingDir(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -100,8 +102,9 @@ func TestBugReportExistingDir(t *testing.T) {
 
 // TestBugReportNonExistingFileDir
 // GIVEN a CLI bug-report command with flag --report-file pointing to a file, where the directory doesn't exist
-//  WHEN I call cmd.Execute for bug-report
-//  THEN expect an error
+//
+//	WHEN I call cmd.Execute for bug-report
+//	THEN expect an error
 func TestBugReportNonExistingFileDir(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -123,8 +126,9 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 
 // TestBugReportFileNoPermission
 // GIVEN a CLI bug-report command with flag --report-file pointing to a file, where there is no write permission
-//  WHEN I call cmd.Execute for bug-report
-//  THEN expect an error
+//
+//	WHEN I call cmd.Execute for bug-report
+//	THEN expect an error
 func TestBugReportFileNoPermission(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -149,8 +153,9 @@ func TestBugReportFileNoPermission(t *testing.T) {
 
 // TestBugReportSuccess
 // GIVEN a CLI bug-report command
-//  WHEN I call cmd.Execute
-//  THEN expect the command to show the resources captured in the standard output and create the bug report file
+//
+//	WHEN I call cmd.Execute
+//	THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccess(t *testing.T) {
 	c := getClientWithWatch()
 	installVZ(t, c)
@@ -210,8 +215,9 @@ func TestBugReportSuccess(t *testing.T) {
 
 // TestBugReportDefaultReportFile
 // GIVEN a CLI bug-report command
-//  WHEN I call cmd.Execute, without specifying --report-file
-//  THEN expect the command to create the report bug-report.tar.gz under the current directory
+//
+//	WHEN I call cmd.Execute, without specifying --report-file
+//	THEN expect the command to create the report bug-report.tar.gz under the current directory
 func TestBugReportDefaultReportFile(t *testing.T) {
 	c := getClientWithWatch()
 	installVZ(t, c)
@@ -249,8 +255,9 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 
 // TestBugReportNoVerrazzano
 // GIVEN a CLI bug-report command
-//  WHEN I call cmd.Execute without Verrazzano installed
-//  THEN expect the command to display a message indicating Verrazzano is not installed
+//
+//	WHEN I call cmd.Execute without Verrazzano installed
+//	THEN expect the command to display a message indicating Verrazzano is not installed
 func TestBugReportNoVerrazzano(t *testing.T) {
 	c := getClientWithWatch()
 	buf := new(bytes.Buffer)
@@ -275,8 +282,9 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 
 // TestBugReportFailureUsingInvalidClient
 // GIVEN a CLI bug-report command
-//  WHEN I call cmd.Execute without Verrazzano installed and using an invalid client
-//  THEN expect the command to fail with a message indicating Verrazzano is not installed and no resource captured
+//
+//	WHEN I call cmd.Execute without Verrazzano installed and using an invalid client
+//	THEN expect the command to fail with a message indicating Verrazzano is not installed and no resource captured
 func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	c := getInvalidClient()
 	buf := new(bytes.Buffer)
@@ -372,7 +380,7 @@ func getInvalidClient() client.WithWatch {
 func installVZ(t *testing.T, c client.WithWatch) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := installcmd.NewCmdInstall(rc)
 	assert.NotNil(t, cmd)

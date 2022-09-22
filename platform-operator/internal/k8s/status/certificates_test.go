@@ -18,8 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func getScheme() *runtime.Scheme {
@@ -45,7 +43,7 @@ func TestCheckCertificatesReady(t *testing.T) {
 	}
 	cmEnabled := true
 	vz := &v1alpha1.Verrazzano{
-		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
@@ -60,7 +58,7 @@ func TestCheckCertificatesReady(t *testing.T) {
 
 	client := fake.NewFakeClientWithScheme(getScheme(),
 		&certv1.Certificate{
-			ObjectMeta: v1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
 			Spec:       certv1.CertificateSpec{},
 			Status: certv1.CertificateStatus{
 				Conditions: []certv1.CertificateCondition{
@@ -71,7 +69,7 @@ func TestCheckCertificatesReady(t *testing.T) {
 			},
 		},
 		&certv1.Certificate{
-			ObjectMeta: v1.ObjectMeta{Name: certNames[1].Name, Namespace: certNames[1].Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: certNames[1].Name, Namespace: certNames[1].Namespace},
 			Spec:       certv1.CertificateSpec{},
 			Status: certv1.CertificateStatus{
 				Conditions: []certv1.CertificateCondition{
@@ -100,7 +98,7 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 	}
 	cmEnabled := true
 	vz := &v1alpha1.Verrazzano{
-		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
@@ -114,7 +112,7 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 
 	client := fake.NewFakeClientWithScheme(getScheme(),
 		&certv1.Certificate{
-			ObjectMeta: v1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
 			Spec:       certv1.CertificateSpec{},
 			Status: certv1.CertificateStatus{
 				Conditions: []certv1.CertificateCondition{
@@ -124,7 +122,7 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 			},
 		},
 		&certv1.Certificate{
-			ObjectMeta: v1.ObjectMeta{Name: certNames[1].Name, Namespace: certNames[1].Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: certNames[1].Name, Namespace: certNames[1].Namespace},
 			Spec:       certv1.CertificateSpec{},
 			Status: certv1.CertificateStatus{
 				Conditions: []certv1.CertificateCondition{
@@ -150,7 +148,7 @@ func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
 
 	cmEnabled := false
 	vz := &v1alpha1.Verrazzano{
-		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
@@ -171,7 +169,7 @@ func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
 func TestCheckCertificatesNotReadyNoCertsPassed(t *testing.T) {
 	cmEnabled := true
 	vz := &v1alpha1.Verrazzano{
-		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},

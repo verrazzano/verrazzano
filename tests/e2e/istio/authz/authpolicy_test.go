@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	testpkg "github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -485,7 +484,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// THEN they should be created to use the https protocol
 	t.It("Verify that ServiceMonitor authpolicy-appconf-foo-springboot-frontend is using https for scraping.", func() {
 		Eventually(func() bool {
-			serviceMonitor, err := testpkg.GetServiceMonitor(fooNamespace, "authpolicy-appconf-foo-springboot-frontend")
+			serviceMonitor, err := pkg.GetServiceMonitor(fooNamespace, "authpolicy-appconf-foo-springboot-frontend")
 			if err != nil {
 				return false
 			}
@@ -499,7 +498,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// THEN they should be created to use the https protocol
 	t.It("Verify that ServiceMonitor authpolicy-appconf-bar-springboot-frontend is using https for scraping.", func() {
 		Eventually(func() bool {
-			serviceMonitor, err := testpkg.GetServiceMonitor(barNamespace, "authpolicy-appconf-bar-springboot-frontend")
+			serviceMonitor, err := pkg.GetServiceMonitor(barNamespace, "authpolicy-appconf-bar-springboot-frontend")
 			if err != nil {
 				return false
 			}
@@ -513,7 +512,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// THEN they should be created to use the http protocol
 	t.It("Verify that ServiceMonitor authpolicy-appconf-noistio-springboot-frontend is using http for scraping.", func() {
 		Eventually(func() bool {
-			serviceMonitor, err := testpkg.GetServiceMonitor(noIstioNamespace, "authpolicy-appconf-noistio-springboot-frontend")
+			serviceMonitor, err := pkg.GetServiceMonitor(noIstioNamespace, "authpolicy-appconf-noistio-springboot-frontend")
 			if err != nil {
 				return false
 			}
