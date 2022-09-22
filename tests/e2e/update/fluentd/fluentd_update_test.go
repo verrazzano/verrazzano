@@ -80,7 +80,6 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			gomega.Eventually(func() bool {
 				return ValidateDaemonset(opensearchURL, extEsSec, "")
 			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", opensearchURL, time.Since(start)))
-			fmt.Sprintf("Fluentd took %v to update", time.Since(start))
 
 			//Update CR using v1beta1 API client.
 			gomega.Expect(ValidateUpdateV1beta1(v1beta1Modifier, "")).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
