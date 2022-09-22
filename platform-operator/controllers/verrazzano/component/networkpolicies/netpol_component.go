@@ -60,8 +60,14 @@ func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
 	common.CreateAndLabelNamespaces(ctx)
 
-	// Disassociate the network policies from the Verrazzano release
+	// Disassociate the network policies from the verrazzano release
 	err := removeNetPolsFromVerrazzanoHelmRelease(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Associate the network policies from the verrazzano-network-policies release
+	err = associateNetworkPolicies(ctx)
 	if err != nil {
 		return err
 	}
@@ -80,8 +86,14 @@ func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
 	common.CreateAndLabelNamespaces(ctx)
 
-	// Disassociate the network policies from the Verrazzano release
+	// Disassociate the network policies from the verrazzano release
 	err := removeNetPolsFromVerrazzanoHelmRelease(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Associate the network policies from the verrazzano-network-policies release
+	err = associateNetworkPolicies(ctx)
 	if err != nil {
 		return err
 	}

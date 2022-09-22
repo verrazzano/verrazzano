@@ -104,6 +104,45 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	return nil
 }
 
+func associateNetworkPolicies(ctx spi.ComponentContext) error {
+	cli := ctx.Client()
+	log := ctx.Log()
+
+	// specify helm release nsn
+	releaseNsn := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
+
+	// Loop through the namespaces that have Verrazzano network policies
+	for _, ns := range netpolNamespaces {
+		// Get all the network policies in the current namespace
+		netpolList := netv1.NetworkPolicyList{}
+		cli.List(context.TODO(), &netpolList, &clipkg.ListOptions{Namespace: ns})
+
+		// Associate each policy with the verrazzano-network-policies helm chart
+		for i, netpol := range netpolList.Items {
+			netpolNsn := types.NamespacedName{Name: netpol.Name, Namespace: netpol.Namespace}
+			annotations := netpol.GetAnnotations()
+			if annotations == nil {
+				continue
+			}
+			if annotations["meta.helm.sh/release-name"] != ComponentName {
+				continue
+			}
+
+			objs := []clipkg.Object{&netpolList.Items[i]}
+			log.Progressf("Associating NetworkPolicy %s:%s with verrazzano-network-policies Helm release", netpol.Namespace, netpol.Name)
+			if _, err := common.AssociateHelmObject(cli, objs[0], releaseNsn, netpolNsn, false); err != nil {
+				return err
+			}
+			// Remove the helm policy
+			log.Progressf("Removing helm 'keep' resource policy from NetworkPolicy %s:%s", netpol.Namespace, netpol.Name)
+			if _, err := common.RemoveResourcePolicyAnnotation(cli, objs[0], netpolNsn); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // removeNetPolsFromVerrazzanoHelmRelease disassociates the network policies from the Verrazzano release
 func removeNetPolsFromVerrazzanoHelmRelease(ctx spi.ComponentContext) error {
 	cli := ctx.Client()
@@ -111,8 +150,6 @@ func removeNetPolsFromVerrazzanoHelmRelease(ctx spi.ComponentContext) error {
 
 	// Loop through the namespaces that have Verrazzano network policies
 	for _, ns := range netpolNamespaces {
-		log.Progressf("Looking for network policies in namespace %s", ns)
-
 		// Get all the network policies in the current namespace
 		netpolList := netv1.NetworkPolicyList{}
 		cli.List(context.TODO(), &netpolList, &clipkg.ListOptions{Namespace: ns})
@@ -126,11 +163,11 @@ func removeNetPolsFromVerrazzanoHelmRelease(ctx spi.ComponentContext) error {
 			if annotations["meta.helm.sh/release-name"] != constants.Verrazzano {
 				continue
 			}
-			log.Progressf("Disassociating network policy %s:%s from Verrazzano Helm release", netpol.Namespace, netpol.Name)
+			log.Progressf("Disassociating NetworkPolicy %s:%s from Verrazzano Helm release", netpol.Namespace, netpol.Name)
 			netpolNsn := types.NamespacedName{Name: netpol.Name, Namespace: netpol.Namespace}
 			objs := []clipkg.Object{&netpolList.Items[i]}
 			if _, err := common.RemoveAllHelmAnnotationsAndLabels(cli, objs[0], netpolNsn); err != nil {
-				return log.ErrorfNewErr("Failed disassociating network policy %s:%s from Verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
+				return log.ErrorfNewErr("Failed disassociating NetworkPolicy %s:%s from Verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
 			}
 		}
 	}
