@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   DEPLOYMENT_ID varchar(10) DEFAULT NULL,
   PRIMARY KEY (ID,AUTHOR,FILENAME)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
-	mySQLDbCommands = `mysqlsh --py -uroot -p$MYSQL_ROOT_PASSWORD -e "
+	mySQLDbCommands = `mysqlsh --py -uroot -p$%s -e "
 if (session.run_sql(\"SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_TYPE = 'PRIMARY KEY' AND TABLE_NAME = 'DATABASECHANGELOG' AND TABLE_SCHEMA = 'keycloak'\").fetch_one()[0] == 0):
      session.run_sql('ALTER TABLE keycloak.DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME)')"
 `
@@ -268,7 +268,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
 		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR)
 		if !found {
-			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			return kvs, fmt.Errorf("failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
 		storageClass := storageSpec.StorageClassName
 		if storageClass != nil && len(*storageClass) > 0 {
