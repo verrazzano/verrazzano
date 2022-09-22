@@ -2,7 +2,10 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // This component is needed to apply network policies during install and upgrade before
-// any other components are installed or upgraded.
+// any other components are installed or upgraded.  This removes any race conditions that used
+// to occur when network polices where installed in parallel, after other components were
+// already installed.  This component must be first in registry.go so that it runs first during
+// upgrade
 // Note that there is no NetworkPolicy component in Verrazzano CR.
 
 package networkpolicies

@@ -70,7 +70,7 @@ func getComponents() []spi.Component {
 	defer mutex.Unlock()
 	if len(componentsRegistry) == 0 {
 		componentsRegistry = []spi.Component{
-			networkpolicies.NewComponent(),
+			networkpolicies.NewComponent(), // This must be first, don't move it.  see netpol_components.go
 			oam.NewComponent(),
 			appoper.NewComponent(),
 			istio.NewComponent(),
