@@ -37,6 +37,8 @@ import (
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
@@ -78,6 +80,8 @@ const (
 	jaegeroperatorMetricName       metricName = jaegeroperator.ComponentName
 	consoleMetricName              metricName = console.ComponentName
 	fluentdMetricName              metricName = fluentd.ComponentName
+	veleroMetricName               metricName = velero.ComponentName
+	rancherBackupMetricName        metricName = rancherbackup.ComponentName
 )
 
 func init() {
@@ -171,6 +175,8 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 		jaegeroperatorMetricName:       newMetricsComponent("jaeger_operator"),
 		consoleMetricName:              newMetricsComponent("verrazzano_console"),
 		fluentdMetricName:              newMetricsComponent("fluentd"),
+		veleroMetricName:               newMetricsComponent("velero"),
+		rancherBackupMetricName:        newMetricsComponent("rancher-backup"),
 	}
 }
 
