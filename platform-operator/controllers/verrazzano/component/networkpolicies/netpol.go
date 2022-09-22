@@ -104,6 +104,8 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	return nil
 }
 
+// removeResourcePolicyFromHelm associates network policies, that used to be verrazzano helm resources,
+// to the verrazzano-network-policies release
 func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
 	cli := ctx.Client()
 	log := ctx.Log()
