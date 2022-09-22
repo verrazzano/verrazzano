@@ -224,39 +224,39 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
       name-n: value-n`, u.nginxReplicas, u.nginxLBShape)
 	cr.Spec.Components.Ingress.ValueOverrides = createOverridesOrDie(nginxYaml)
 
+	istio := cr.Spec.Components.Istio
+	istio.IstioInstallArgs = []vzapi.InstallArgs{
+		{
+			Name:      "gateways.istio-ingressgateway.externalIPs",
+			ValueList: []string{u.applicationExternalLBIP},
+		},
+	}
+	istio.Ingress = &vzapi.IstioIngressSection{
+		Type:  vzapi.NodePort,
+		Ports: testIstioIngressPorts,
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: newReplicas,
+			},
+		},
+	}
+	istio.Egress = &vzapi.IstioEgressSection{
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: newReplicas,
+			},
+		},
+	}
 	// update Istio
-	istioYaml := fmt.Sprintf(`
-apiVersion: install.istio.io/v1alpha1
+	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  components:
-    egressGateways:
-      - enabled: true
-        k8s:
-          replicaCount: %v
-        name: istio-egressgateway
-    ingressGateways:
-      - enabled: true
-        k8s:
-          replicaCount: %v
-          service:
-            type: NodePort
-            ports:
-              - name: https
-                protocol: TCP
-                port: 443
-                nodePort: 32443
-                targetPort: 8443
-            externalIPs:
-              - %s
-        name: istio-ingressgateway
   values:
     gateways:
       istio-ingressgateway:
         serviceAnnotations:
           name-i: value-i
-          service.beta.kubernetes.io/oci-load-balancer-shape: %s`, newReplicas, newReplicas, u.applicationExternalLBIP,
-		u.istioLBShape)
+          service.beta.kubernetes.io/oci-load-balancer-shape: %s`, u.istioLBShape)
 	cr.Spec.Components.Istio.ValueOverrides = createOverridesOrDie(istioYaml)
 }
 
@@ -329,12 +329,9 @@ spec:
     egressGateways:
       - enabled: true
         name: istio-egressgateway
-        k8s:
-          replicaCount: 1
     ingressGateways:
       - enabled: true
         k8s:
-          replicaCount: 1
           service:
             type: LoadBalancer
         name: istio-ingressgateway
