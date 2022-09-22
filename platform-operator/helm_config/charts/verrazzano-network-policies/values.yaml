@@ -26,6 +26,7 @@ externaldns:
 
 jaegerOperator:
   enabled: false
+  namespace: verrazzano-monitoring
 
 console:
   enabled: true
