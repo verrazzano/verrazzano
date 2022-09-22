@@ -7,30 +7,30 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/semver"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"regexp"
-	"strings"
-	"time"
-
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	clik8sutil "github.com/verrazzano/verrazzano/tools/vz/pkg/k8sutil"
+	"io"
+	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"net/http"
+	"os"
+	"regexp"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
+	"time"
 )
 
 const VpoSimpleLogFormatRegexp = `"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`
@@ -43,6 +43,24 @@ var vpoWaitRetries = vpoDefaultWaitRetries
 // Used with unit testing
 func SetVpoWaitRetries(retries int) { vpoWaitRetries = retries }
 func ResetVpoWaitRetries()          { vpoWaitRetries = vpoDefaultWaitRetries }
+
+// deleteLeftoverPlatformOperatorSig is a function needed for unit test override
+type deleteLeftoverPlatformOperatorSig func(client clipkg.Client) error
+
+// DeleteFunc is the default deleteLeftoverPlatformOperator function
+var DeleteFunc deleteLeftoverPlatformOperatorSig = deleteLeftoverPlatformOperator
+
+func SetDeleteFunc(f deleteLeftoverPlatformOperatorSig) {
+	DeleteFunc = f
+}
+
+func SetDefaultDeleteFunc() {
+	DeleteFunc = deleteLeftoverPlatformOperator
+}
+
+func FakeDeleteFunc(client clipkg.Client) error {
+	return nil
+}
 
 // UsePlatformOperatorUninstallJob determines whether the version of the platform operator is using an uninstall job.
 // The uninstall job was removed with Verrazzano 1.4.0.
@@ -141,7 +159,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 }
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
-func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType v1beta1.ConditionType, lastTransitionTime metav1.Time) (string, error) {
+func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType v1beta1.ConditionType) (string, error) {
 	// Provide the user with feedback while waiting for the verrazzano-platform-operator to be ready
 	feedbackChan := make(chan bool)
 	defer close(feedbackChan)
@@ -160,18 +178,11 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 		}
 	}(vzHelper.GetOutputStream())
 
-	deployments := []types.NamespacedName{
-		{
-			Name:      constants.VerrazzanoPlatformOperator,
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-		},
-	}
-
 	// Wait for the verrazzano-platform-operator pod to be found
 	seconds := 0
 	retryCount := 0
 	for {
-		ready, err := clik8sutil.DeploymentsAreReady(client, deployments, 1, lastTransitionTime)
+		ready, err := vpoIsReady(client)
 		if ready {
 			break
 		}
@@ -333,4 +344,46 @@ func getOperationString(condType v1beta1.ConditionType) string {
 		operation = "upgrade"
 	}
 	return operation
+}
+
+// vpoIsReady check that the named deployments have the minimum number of specified replicas ready and available
+func vpoIsReady(client clipkg.Client) (bool, error) {
+	var expectedReplicas int32 = 1
+	deployment := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: constants.VerrazzanoPlatformOperator, Namespace: vzconstants.VerrazzanoInstallNamespace}
+	if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("Failed getting deployment %s: %s", constants.VerrazzanoPlatformOperator, err.Error())
+	}
+	if deployment.Status.UpdatedReplicas < expectedReplicas {
+		return false, nil
+	}
+	if deployment.Status.AvailableReplicas < expectedReplicas {
+		return false, nil
+	}
+
+	if !status.PodsReadyDeployment(nil, client, namespacedName, deployment.Spec.Selector, expectedReplicas, constants.VerrazzanoPlatformOperator) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// deleteLeftoverPlatformOperator deletes leftover verrazzano-operator deployment after an abort.
+// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with an updated caBundle.
+func deleteLeftoverPlatformOperator(client clipkg.Client) error {
+	vpoDeployment := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+	}
+	if err := client.Delete(context.TODO(), &vpoDeployment); err != nil {
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("Failed to delete leftover verrazzano-operator deployement: %s", err.Error())
+		}
+	}
+	return nil
 }

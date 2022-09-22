@@ -7,20 +7,19 @@ import (
 	"context"
 	"fmt"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	pkgstatus "github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"os/exec"
-	"strings"
-	"time"
-
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"os/exec"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
+	"time"
 )
 
 const (
@@ -95,11 +94,11 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 				Namespace: ComponentNamespace,
 			})
 		}
-		return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), dataDeployments, 1, prefix)
+		return pkgstatus.DeploymentsAreReady(ctx.Log(), ctx.Client(), dataDeployments, 1, prefix)
 	}
 
 	// Ingest nodes can be handled like normal deployments
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
+	return pkgstatus.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 		Name:      nodeControllerName,
 		Namespace: ComponentNamespace,
 	}}, node.Replicas, prefix)

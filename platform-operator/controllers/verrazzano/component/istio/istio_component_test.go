@@ -13,31 +13,28 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/verrazzano/verrazzano/pkg/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/test/ip"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-
-	"github.com/verrazzano/verrazzano/pkg/test/ip"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	gofake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -1278,4 +1275,40 @@ func TestGetOverrides(t *testing.T) {
 			assert.EqualValues(t, tt.res, override)
 		})
 	}
+}
+
+func TestValidateInstallWithExistingIstio(t *testing.T) {
+	vz := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Istio: &v1alpha1.IstioComponent{},
+			},
+		},
+	}
+	mkns := func() *v1.Namespace {
+		ns := &v1.Namespace{}
+		ns.Namespace = IstioNamespace
+		ns.Name = IstioNamespace
+		return ns
+	}
+	ns1 := mkns()
+	ns2 := mkns()
+	ns2.Labels = map[string]string{vzNsLabel: IstioNamespace}
+	tests := []common.ValidateInstallTest{
+		{
+			Name:      IstioNamespace,
+			WantErr:   IstioNamespace,
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(ns1),
+			Vz:        vz,
+		},
+		{
+			Name:      vzNsLabel,
+			WantErr:   "",
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(ns2),
+			Vz:        vz,
+		},
+	}
+	common.RunValidateInstallTest(t, NewComponent, tests...)
 }
