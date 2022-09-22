@@ -1583,3 +1583,19 @@ func TestGetVerrazzanoUserFromKeycloak(t *testing.T) {
 		})
 	}
 }
+
+// TestAddClientRoleToUser adds a client role to the verrazzano user
+// GIVEN a client, and a k8s environment
+// WHEN I call addClientRoleToUser
+// THEN confirm that the function doesn't return an error
+func TestAddClientRoleToUser(t *testing.T) {
+	k8sutil.ClientConfig = fakeRESTConfig
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	cfg, cli, _ := fakeRESTConfig()
+
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(c, testVZ, nil, false)
+
+	err := addClientRoleToUser(ctx, cfg, cli, "testuser", "test-client", "test-realm", "test-role")
+	assert.NoError(t, err)
+}
