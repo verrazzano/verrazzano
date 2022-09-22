@@ -48,7 +48,6 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			gomega.Eventually(func() bool {
 				return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
 			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
-			fmt.Sprintf("Fluentd took %v to update", time.Since(start))
 		})
 	})
 
@@ -90,8 +89,6 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			gomega.Eventually(func() bool {
 				return ValidateDaemonsetV1beta1(opensearchURLV1beta1, extEsSec, "")
 			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", opensearchURLV1beta1, time.Since(start)))
-
-			fmt.Sprintf("Fluentd took %v to update", time.Since(start))
 		})
 	})
 

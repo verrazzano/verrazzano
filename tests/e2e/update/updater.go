@@ -115,7 +115,6 @@ func UpdateCR(m CRModifier) error {
 // Then, it updates the modified.
 // Any error during the process will cause Ginkgo Fail.
 func UpdateCRV1beta1(m CRModifierV1beta1) error {
-	pkg.Log(pkg.Info, fmt.Sprintf("v1beta1 - update CR "))
 	// GetCRV1beta1 gets the CR using v1beta1 client.
 	cr := GetCRV1beta1()
 
