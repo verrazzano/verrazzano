@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
 	"github.com/golang/mock/gomock"
@@ -176,7 +175,7 @@ func TestAppendOverrideFilesInOrder(t *testing.T) {
 			},
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, cr, nil, false)
 	convertedVZ := &v1beta1.Verrazzano{}
 	err := cr.ConvertTo(convertedVZ)
