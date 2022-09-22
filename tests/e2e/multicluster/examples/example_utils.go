@@ -127,11 +127,8 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 			// the verrazzano-managed label will exist on unwrapped resources in the cluster where
 			// app is placed
 			return mcAppConfExists && vzManagedLabelExists
-		} else {
-			return mcAppConfExists && !vzManagedLabelExists
 		}
-
-		return mcAppConfExists
+		return mcAppConfExists && !vzManagedLabelExists
 	} else {
 		// don't expect
 		return !mcAppConfExists

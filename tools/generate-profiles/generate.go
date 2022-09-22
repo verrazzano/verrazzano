@@ -55,7 +55,7 @@ func main() {
 
 	parseFlags(defaultDir)
 	if help {
-		fmt.Println(info)
+		fmt.Print(info)
 		os.Exit(0)
 	}
 
