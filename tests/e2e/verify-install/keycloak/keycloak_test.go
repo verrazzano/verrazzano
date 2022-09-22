@@ -571,13 +571,13 @@ func verifyUserClientRole(user, userRole string) bool {
 
 	err = json.Unmarshal([]byte(out), &keycloakRoles)
 	if err != nil {
-		t.Logs.Error(fmt.Sprintf("error unmarshalling Keycloak client role json %v", err.Error()))
+		t.Logs.Error(fmt.Sprintf("error unmarshalling Keycloak client role json %v\n", err.Error()))
 		return false
 	}
 
 	for _, role := range keycloakRoles {
 		if role.Name == userRole {
-			t.Logs.Info(fmt.Printf("Client role %s found", userRole))
+			t.Logs.Info(fmt.Printf("Client role %s found\n", userRole))
 			return true
 		}
 	}
