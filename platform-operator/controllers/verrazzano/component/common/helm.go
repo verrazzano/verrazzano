@@ -86,7 +86,7 @@ func RemoveAllHelmAnnotationsAndLabels(cli clipkg.Client, obj clipkg.Object, nam
 	// Clear Helm labels
 	labels := obj.GetLabels()
 	if labels != nil {
-		delete(annotations, "app.kubernetes.io/managed-by")
+		delete(labels, "app.kubernetes.io/managed-by")
 		obj.SetLabels(labels)
 	}
 
