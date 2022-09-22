@@ -24,6 +24,9 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "mysql"
 
+// helmReleaseName is the name of the helm release
+const helmReleaseName = ComponentName
+
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.KeycloakNamespace
 
@@ -52,7 +55,7 @@ func NewComponent() spi.Component {
 
 	return mysqlComponent{
 		helm.HelmComponent{
-			ReleaseName:               ComponentName,
+			ReleaseName:               helmReleaseName,
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:            ComponentNamespace,

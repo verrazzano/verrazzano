@@ -298,7 +298,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// vz-specific chart overrides file
 	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
-	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `\w*`)
+	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)
 	if err != nil {
 		return err
 	}
@@ -410,7 +410,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	}
 
 	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
-	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `\w*`)
+	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)
 	if err != nil {
 		return err
 	}
@@ -420,7 +420,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	tmpFile, err := vzos.CreateTempFile("values-*.yaml", stdout)
+	tmpFile, err := vzos.CreateTempFile("helm-overrides-values-*.yaml", stdout)
 	if err != nil {
 		context.Log().Error(err.Error())
 		return err
@@ -463,7 +463,7 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 		return overrides, err
 	}
 	for _, overrideString := range overrideStrings {
-		file, err := vzos.CreateTempFile(fmt.Sprintf("install-overrides-%s-*.yaml", h.Name()), []byte(overrideString))
+		file, err := vzos.CreateTempFile(fmt.Sprintf("helm-overrides-user-%s-*.yaml", h.Name()), []byte(overrideString))
 		if err != nil {
 			context.Log().Error(err.Error())
 			return overrides, err
@@ -544,7 +544,7 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 	}
 
 	// Create the file from the string
-	file, err := vzos.CreateTempFile("helm-overrides-*.yaml", []byte(fileString))
+	file, err := vzos.CreateTempFile("helm-overrides-verrazzano-*.yaml", []byte(fileString))
 	if err != nil {
 		context.Log().Error(err.Error())
 		return newKvs, err

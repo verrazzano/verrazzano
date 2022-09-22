@@ -25,7 +25,9 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
@@ -82,6 +84,8 @@ ALTER TABLE DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);"
 util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})
 EOF
 `
+
+	innoDBClusterStatusOnline = "ONLINE"
 )
 
 var (
@@ -96,6 +100,14 @@ var (
 	maskPw = vzpassword.MaskFunction("-p")
 	// Set to true during unit testing
 	unitTesting bool
+
+	innoDBClusterGVK = schema.GroupVersionKind{
+		Group:   "mysql.oracle.com",
+		Version: "v2",
+		Kind:    "InnoDBCluster",
+	}
+
+	innoDBClusterStatusFields = []string{"status", "cluster", "status"}
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
@@ -140,7 +152,38 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 		ready = k8sstatus.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
 	}
 
-	return ready && checkDbMigrationJobCompletion(ctx)
+	return ready && checkDbMigrationJobCompletion(ctx) && isInnoDBClusterOnline(ctx)
+}
+
+// isInnoDBClusterOnline returns true if the InnoDBCluster resource cluster status is online
+func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
+	ctx.Log().Progress("Waiting for InnoDBCluster to be online")
+
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+
+	// the InnoDBCluster resource name is the helm release name
+	nsn := types.NamespacedName{Namespace: ComponentNamespace, Name: helmReleaseName}
+	if err := ctx.Client().Get(context.Background(), nsn, &innoDBCluster); err != nil {
+		ctx.Log().Errorf("Error retrieving InnoDBCluster %v: %v", nsn, err)
+		return false
+	}
+
+	status, exists, err := unstructured.NestedString(innoDBCluster.UnstructuredContent(), innoDBClusterStatusFields...)
+	if err != nil {
+		ctx.Log().Errorf("Error retrieving InnoDBCluster %v status: %v", nsn, err)
+		return false
+	}
+	if exists {
+		if status == innoDBClusterStatusOnline {
+			return true
+		}
+		ctx.Log().Debugf("InnoDBCluster %v status is: %s", nsn, status)
+		return false
+	}
+
+	ctx.Log().Debugf("InnoDBCluster %v status not found", nsn)
+	return false
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides
