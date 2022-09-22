@@ -191,7 +191,7 @@ func TestHandleAppConfigOnwerReference1(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
-	client := ctrlfake.NewFakeClientWithScheme(scheme)
+	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
 	defaulter := &IstioWebhook{
 		Client:        client,
@@ -265,7 +265,7 @@ func TestHandleAppConfigOnwerReference2(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
-	client := ctrlfake.NewFakeClientWithScheme(scheme)
+	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
 	defaulter := &IstioWebhook{
 		Client:        client,
@@ -351,7 +351,7 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
-	client := ctrlfake.NewFakeClientWithScheme(scheme)
+	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
 	defaulter := &IstioWebhook{
 		Client:        client,
@@ -493,7 +493,7 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
-	client := ctrlfake.NewFakeClientWithScheme(scheme)
+	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
 	defaulter := &IstioWebhook{
 		Client:        client,
@@ -625,7 +625,7 @@ func TestHandleProject1(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
-	client := ctrlfake.NewFakeClientWithScheme(scheme)
+	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
 	defaulter := &IstioWebhook{
 		Client:        client,
@@ -719,7 +719,7 @@ func TestHandleProject2(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
-	client := ctrlfake.NewFakeClientWithScheme(scheme)
+	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
 	defaulter := &IstioWebhook{
 		Client:        client,
@@ -877,7 +877,7 @@ func TestHandleProject3(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
 	assert.NoError(t, err, "Unexpected error adding to scheme")
-	client := ctrlfake.NewFakeClientWithScheme(scheme)
+	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
 	defaulter := &IstioWebhook{
 		Client:        client,

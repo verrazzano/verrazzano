@@ -21,15 +21,17 @@ const testServerData = "https://testurl"
 // WHEN the verrazzano-admin-cluster configmap has the server data
 // THEN the correct API URL shoule be returned
 func TestGetApiServerURL(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-			Name:      constants.AdminClusterConfigMapName,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.VerrazzanoMultiClusterNamespace,
+				Name:      constants.AdminClusterConfigMapName,
+			},
+			Data: map[string]string{
+				constants.ServerDataKey: testServerData,
+			},
 		},
-		Data: map[string]string{
-			constants.ServerDataKey: testServerData,
-		},
-	})
+	).Build()
 
 	url, err := GetAPIServerURL(client)
 	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")
@@ -41,15 +43,17 @@ func TestGetApiServerURL(t *testing.T) {
 // WHEN the verrazzano-admin-cluster configmap has the server data
 // THEN the correct API URL shoule be returned
 func TestGetApiServerURLErr(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-			Name:      constants.AdminClusterConfigMapName,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.VerrazzanoMultiClusterNamespace,
+				Name:      constants.AdminClusterConfigMapName,
+			},
+			Data: map[string]string{
+				constants.ServerDataKey: testServerData,
+			},
 		},
-		Data: map[string]string{
-			constants.ServerDataKey: testServerData,
-		},
-	})
+	).Build()
 
 	url, err := GetAPIServerURL(client)
 	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")

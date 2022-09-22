@@ -30,7 +30,7 @@ func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 	}()
 
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme()), nil
+		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
@@ -54,7 +54,7 @@ func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
 	}()
 
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme()), nil
+		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
@@ -92,7 +92,7 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 	}()
 
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme()), nil
+		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
@@ -131,7 +131,7 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 	}
 
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme()), nil
+		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
@@ -164,7 +164,7 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 	}
 
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme()), nil
+		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
@@ -196,7 +196,7 @@ func TestRollbackRejected(t *testing.T) {
 	}
 
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme()), nil
+		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
@@ -351,13 +351,13 @@ func Test_verifyPlatformOperatorSingleton(t *testing.T) {
 		"app": "verrazzano-platform-operator",
 	}
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(), &v1.PodList{
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
 			TypeMeta: metav1.TypeMeta{},
 			Items: []v1.Pod{
 				{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "thud", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
 			},
-		}), nil
+		}).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
@@ -375,12 +375,12 @@ func Test_verifyPlatformOperatorSingletonNoMatchingLabels(t *testing.T) {
 		"app": "someapp",
 	}
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(), &v1.PodList{
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
 			TypeMeta: metav1.TypeMeta{},
 			Items: []v1.Pod{
 				{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
 			},
-		}), nil
+		}).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
@@ -398,12 +398,12 @@ func Test_verifyPlatformOperatorSingletonSuccess(t *testing.T) {
 		"app": "verrazzano-platform-operator",
 	}
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme(), &v1.PodList{
+		return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
 			TypeMeta: metav1.TypeMeta{},
 			Items: []v1.Pod{
 				{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: constants.VerrazzanoInstallNamespace, Labels: labels}},
 			},
-		}), nil
+		}).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
@@ -452,7 +452,7 @@ func TestUpdateMissingOciLoggingApiSecret(t *testing.T) {
 		},
 	}
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme()), nil
+		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
 	}
 	defer func() {
 		config.SetDefaultBomFilePath("")
