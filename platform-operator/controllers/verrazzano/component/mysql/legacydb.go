@@ -254,7 +254,8 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	rootPwd := rootSecret.Data[rootPasswordKey]
 
 	// Root priv
-	rootCmd := fmt.Sprintf(mySQLRootCommand, rootPwd)
+	temp := fmt.Sprintf("mysql -uroot -p%s -e ", rootPwd)
+	rootCmd := temp + mySQLRootCommand
 	rootExecCmd := []string{"bash", "-c", rootCmd}
 	// CHECK and ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
