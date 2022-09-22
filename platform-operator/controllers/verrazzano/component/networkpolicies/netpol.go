@@ -121,9 +121,6 @@ func associateNetworkPolicies(ctx spi.ComponentContext) error {
 		for i, netpol := range netpolList.Items {
 			netpolNsn := types.NamespacedName{Name: netpol.Name, Namespace: netpol.Namespace}
 			annotations := netpol.GetAnnotations()
-			if annotations == nil {
-				continue
-			}
 			if annotations["meta.helm.sh/release-name"] == ComponentName {
 				continue
 			}
