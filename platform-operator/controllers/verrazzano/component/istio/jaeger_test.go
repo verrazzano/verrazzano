@@ -165,6 +165,7 @@ func TestBuildJaegerTracingYaml(t *testing.T) {
 		},
 	}
 	convertedIstioComponent, _ := vzapi.ConvertIstioToV1Beta1(&testV1Alpha1Istio)
+	fakeContext := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
 	var tests = []struct {
 		name         string
 		istio        v1beta1.IstioComponent
@@ -213,7 +214,7 @@ func TestBuildJaegerTracingYaml(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.NotNilf(t, tt.istio, "expected yaml cannot be nil")
-			yamlString, err := buildJaegerTracingYaml(&tt.istio)
+			yamlString, err := buildJaegerTracingYaml(fakeContext, &tt.istio, "default")
 			assert.NoError(t, err)
 			assert.NotEmpty(t, tt.expectedYaml, "expected yaml cannot be empty yaml string")
 			assert.YAMLEq(t, tt.expectedYaml, yamlString)

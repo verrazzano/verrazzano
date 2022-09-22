@@ -13,6 +13,8 @@ import (
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"sigs.k8s.io/yaml"
 )
 
@@ -38,7 +40,7 @@ type istioTracingTemplateData struct {
 
 // buildJaegerTracingYaml builds the IstioOperator CR YAML that will contain the default system generated Jaeger
 // configurations merged with any user provided overrides.
-func buildJaegerTracingYaml(comp *v1beta1.IstioComponent) (string, error) {
+func buildJaegerTracingYaml(ctx spi.ComponentContext, comp *v1beta1.IstioComponent, namespace string) (string, error) {
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	// get istio overrides for Jaeger tracing
 	jaegerTracingYaml, err := configureJaegerTracing()
@@ -46,19 +48,15 @@ func buildJaegerTracingYaml(comp *v1beta1.IstioComponent) (string, error) {
 		return "", err
 	}
 	expandedYamls := []string{jaegerTracingYaml}
-	for _, arg := range comp.ValueOverrides {
-		values := arg.Values
-		if values == nil {
-			continue
-		}
+	installOverrideYamls, err := common.GetInstallOverridesYAMLUsingClient(ctx.Client(), comp.ValueOverrides, namespace)
+	if err != nil {
+		return "", err
+	}
+	for _, overrideYaml := range installOverrideYamls {
 		// If user provided overrided already contains Jaeger tracing related settings, then merge it with
 		// default values and use that else use the default values as a system added override.
-		if containsJaegerTracingOverrides(values.Raw) {
-			overrideYaml, err := yaml.JSONToYAML(values.Raw)
-			if err != nil {
-				return "", err
-			}
-			expandedYamls = append(expandedYamls, string(overrideYaml))
+		if containsJaegerTracingOverrides(overrideYaml) {
+			expandedYamls = append(expandedYamls, overrideYaml)
 		}
 	}
 	// Merge all of the expanded YAMLs into a single YAML,
@@ -70,7 +68,11 @@ func buildJaegerTracingYaml(comp *v1beta1.IstioComponent) (string, error) {
 	return merged, nil
 }
 
-func containsJaegerTracingOverrides(jsonOverride []byte) bool {
+func containsJaegerTracingOverrides(overrideYaml string) bool {
+	jsonOverride, err := yaml.YAMLToJSON([]byte(overrideYaml))
+	if err != nil {
+		return false
+	}
 	jsonString, err := gabs.ParseJSON(jsonOverride)
 	if err != nil {
 		return false

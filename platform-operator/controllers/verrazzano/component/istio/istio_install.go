@@ -280,7 +280,7 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 		if err != nil {
 			return files, log.ErrorfNewErr("Error converting from v1alpha1 to v1beta1: %v", err)
 		}
-		jaegerTracingYaml, err := buildJaegerTracingYaml(convertedVZ.Spec.Components.Istio)
+		jaegerTracingYaml, err := buildJaegerTracingYaml(compContext, convertedVZ.Spec.Components.Istio, convertedVZ.Namespace)
 		if err != nil {
 			return files, log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
