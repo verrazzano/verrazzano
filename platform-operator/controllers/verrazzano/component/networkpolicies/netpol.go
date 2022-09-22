@@ -124,7 +124,7 @@ func associateNetworkPolicies(ctx spi.ComponentContext) error {
 			if annotations == nil {
 				continue
 			}
-			if annotations["meta.helm.sh/release-name"] != ComponentName {
+			if annotations["meta.helm.sh/release-name"] == ComponentName {
 				continue
 			}
 
