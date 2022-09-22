@@ -253,9 +253,6 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	}
 	rootPwd := rootSecret.Data[rootPasswordKey]
 
-	// CHECK Primary Key Cmd
-	primKeyCmd := fmt.Sprintf(primKeyCommand, rootPwd)
-	primExecCmd := []string{"bash", "-c", primKeyCmd}
 	// ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
 	execCmd := []string{"bash", "-c", sqlCmd}
@@ -271,24 +268,14 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	// Check Primary Key
-	out, _, err := k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", primExecCmd)
+	// Check and Update Primary Key
+	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
 	if err != nil {
-		errorMsg := maskPw(fmt.Sprintf("Failed querying table, err = %v", err))
+		errorMsg := maskPw(fmt.Sprintf("Failed updating table, err = %v", err))
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Infof("Value of table query is: %s", out)
-	if out == "Empty Set" {
-		// Update Primary Key
-		_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
-		if err != nil {
-			errorMsg := maskPw(fmt.Sprintf("Failed updating table, err = %v", err))
-			ctx.Log().Error(errorMsg)
-			return fmt.Errorf("error: %s", maskPw(err.Error()))
-		}
-		ctx.Log().Debug("Successfully updated keycloak table primary key")
-	}
+	ctx.Log().Debug("Successfully updated keycloak table primary key")
 	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", cleanupCmd)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to remove resources from previous attempts, err = %v", err)
