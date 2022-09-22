@@ -59,6 +59,14 @@ func (c networkPoliciesComponent) IsEnabled(effectiveCR runtime.Object) bool {
 func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
 	common.CreateAndLabelNamespaces(ctx)
+
+	// Make sure netpols are associated with the netpol chart, set keep to false so
+	// policies are deleted on uninstall.
+	err := associateNetworkPolicies(ctx.Client(), false)
+	if err != nil {
+		return err
+	}
+
 	return c.HelmComponent.PreInstall(ctx)
 }
 
