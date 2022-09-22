@@ -76,7 +76,7 @@ type installMonitorType struct {
 	inputCh  chan installRoutineParams
 }
 
-//installRoutineParams - Used to pass args to the install goroutine
+// installRoutineParams - Used to pass args to the install goroutine
 type installRoutineParams struct {
 	overrides     string
 	fileOverrides []string
@@ -280,22 +280,27 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 		if err != nil {
 			return files, log.ErrorfNewErr("Error converting from v1alpha1 to v1beta1: %v", err)
 		}
-		istioOperatorYaml, err := BuildIstioOperatorYaml(compContext, convertedVZ.Spec.Components.Istio)
+		jaegerTracingYaml, err := buildJaegerTracingYaml(convertedVZ.Spec.Components.Istio)
 		if err != nil {
 			return files, log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
 		// Write the overrides to a tmp file and append it to files
-		userFileCR, err := createTempFile(log, istioOperatorYaml)
+		jaegerTracingFile, err := createTempFile(log, jaegerTracingYaml)
 		if err != nil {
 			return files, err
 		}
-		files = append(files, userFileCR)
+		// get the install overrides from the VZ CR, write it to a temp file and append it
+		files, err = appendOverrideFilesInOrder(compContext, convertedVZ, files)
+		if err != nil {
+			return files, err
+		}
+		files = append(files, jaegerTracingFile)
 	}
 	return files, nil
 }
 
-func appendOverrideFilesInOrder(ctx spi.ComponentContext, files []string) ([]string, error) {
-	overrideYAMLs, err := common.GetInstallOverridesYAML(ctx, ctx.EffectiveCR().Spec.Components.Istio.ValueOverrides)
+func appendOverrideFilesInOrder(ctx spi.ComponentContext, cr *v1beta1.Verrazzano, files []string) ([]string, error) {
+	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(ctx.Client(), cr.Spec.Components.Istio.ValueOverrides, cr.Namespace)
 	if err != nil {
 		return files, err
 	}

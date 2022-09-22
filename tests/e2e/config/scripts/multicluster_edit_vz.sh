@@ -18,9 +18,9 @@ yq -i eval '.spec.components.jaegerOperator.enabled = true' "${VZ_CR_FILE}"
 if [ "${CLUSTER_COUNT}" -gt 1  ]; then
   yq -i eval '.spec.components.istio.overrides.[0].values.apiVersion = "install.istio.io/v1alpha1"' ${VZ_CR_FILE}
   yq -i eval '.spec.components.istio.overrides.[0].values.kind = "IstioOperator"' ${VZ_CR_FILE}
-  yq -i eval '.spec.components.istio.overrides.[0].values.spec.values.meshConfig.defaultConfig.tracing.sampling = 90' ${VZ_CR_FILE}
-  yq -i eval '.spec.components.istio.overrides.[0].values.spec.values.meshConfig.defaultConfig.tracing.zipkin.address = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${VZ_CR_FILE}
-  yq -i eval '.spec.components.istio.overrides.[0].values.spec.values.meshConfig.enableTracing = true' ${VZ_CR_FILE}
+  yq -i eval '.spec.components.istio.overrides.[0].values.spec.meshConfig.defaultConfig.tracing.sampling = 90' ${VZ_CR_FILE}
+  yq -i eval '.spec.components.istio.overrides.[0].values.spec.meshConfig.defaultConfig.tracing.zipkin.address = "jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411"' ${VZ_CR_FILE}
+  yq -i eval '.spec.components.istio.overrides.[0].values.spec.meshConfig.enableTracing = true' ${VZ_CR_FILE}
 fi
 
 echo "VZ CR to be applied:"

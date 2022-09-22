@@ -128,35 +128,11 @@ spec:
     egressGateways:
       - enabled: true
         k8s:
-          affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-egressgateway
-                    topologyKey: kubernetes.io/hostname
-                  weight: 100
           replicaCount: %v
         name: istio-egressgateway
     ingressGateways:
       - enabled: true
         k8s:
-          affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-ingressgateway
-                    topologyKey: kubernetes.io/hostname
-                  weight: 100
           replicaCount: %v
           service:
             type: LoadBalancer
@@ -257,35 +233,11 @@ spec:
     egressGateways:
       - enabled: true
         k8s:
-          affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-egressgateway
-                    topologyKey: kubernetes.io/hostname
-                  weight: 100
           replicaCount: %v
         name: istio-egressgateway
     ingressGateways:
       - enabled: true
         k8s:
-          affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-ingressgateway
-                    topologyKey: kubernetes.io/hostname
-                  weight: 100
           replicaCount: %v
           service:
             type: NodePort
@@ -336,35 +288,11 @@ spec:
     egressGateways:
       - enabled: true
         k8s:
-          affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-egressgateway
-                    topologyKey: kubernetes.io/hostname
-                  weight: 100
           replicaCount: %v
         name: istio-egressgateway
     ingressGateways:
       - enabled: true
         k8s:
-          affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-ingressgateway
-                    topologyKey: kubernetes.io/hostname
-                  weight: 100
           replicaCount: %v
           service:
             type: LoadBalancer
@@ -402,34 +330,10 @@ spec:
       - enabled: true
         name: istio-egressgateway
         k8s:
-          affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-egressgateway
-                    topologyKey: kubernetes.io/hostname
-                  weight: 100
           replicaCount: 1
     ingressGateways:
       - enabled: true
         k8s:
-          affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-ingressgateway
-                    topologyKey: kubernetes.io/hostname
-                  weight: 100
           replicaCount: 1
           service:
             type: LoadBalancer

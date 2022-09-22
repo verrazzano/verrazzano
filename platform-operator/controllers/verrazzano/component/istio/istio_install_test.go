@@ -10,10 +10,13 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/yaml"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -173,9 +176,12 @@ func TestAppendOverrideFilesInOrder(t *testing.T) {
 			},
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	c := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
 	ctx := spi.NewFakeContext(c, cr, nil, false)
-	files, err := appendOverrideFilesInOrder(ctx, []string{})
+	convertedVZ := &v1beta1.Verrazzano{}
+	err := cr.ConvertTo(convertedVZ)
+	assert.NoError(t, err)
+	files, err := appendOverrideFilesInOrder(ctx, convertedVZ, []string{})
 
 	equalFoos := func(jsonFoo, yamlFoo []byte) {
 		jsonFooObj := &Foo{}
