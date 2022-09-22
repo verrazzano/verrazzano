@@ -8,6 +8,8 @@ metadata:
 spec:
   profile: dev
   components:
+    velero:
+      enabled: true
     prometheusOperator:
       enabled: true
       overrides:

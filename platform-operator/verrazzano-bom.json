@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20220915024629-46df1b595",
-              "dashboard": "v2.6.7-20220915023507-27ac2fda",
+              "tag": "v2.6.8-20220920024636-46df1b595",
+              "dashboard": "v2.6.8-20220921134806-afea0c9f",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20220915024629-46df1b595"
+              "tag": "v2.6.8-20220920024636-46df1b595"
             }
           ]
         },
@@ -410,6 +410,25 @@
       ]
     },
     {
+      "name": "mysql-operator",
+      "version": "8.0.30",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "mysql-operator",
+          "images": [
+            {
+              "image": "mysql-operator",
+              "tag": "8.0.30-2.0.6",
+              "helmRegKey": "image.registry",
+              "helmRepoKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "keycloak",
       "version": "15.0.2",
       "subcomponents": [
@@ -567,7 +586,7 @@
     },
     {
       "name": "jaeger",
-      "version":"1.34,1",
+      "version":"1.34.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
