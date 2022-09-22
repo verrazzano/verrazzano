@@ -34,7 +34,7 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 	istioInject := istio != nil && istio.IsInjectionEnabled()
 
 	if vzconfig.IsCertManagerEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateCertManagerNamespace(ctx.Client(), istioInject); err != nil {
+		if err := namespace.CreateCertManagerNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.CertManagerNamespace, err)
 		}
 	}

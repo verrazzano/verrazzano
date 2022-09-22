@@ -26,8 +26,8 @@ func CreateAndLabelNamespace(client client.Client, ns string, isVerrazzanoManage
 }
 
 // CreateCertManagerNamespace - Create/Update and label the cert-manager namespace
-func CreateCertManagerNamespace(client client.Client, istioInjectionEnabled bool) error {
-	return CreateAndLabelNamespace(client, globalconst.CertManagerNamespace, true, istioInjectionEnabled)
+func CreateCertManagerNamespace(client client.Client) error {
+	return CreateAndLabelNamespace(client, globalconst.CertManagerNamespace, false, false)
 }
 
 // CreateIngressNginxNamespace - Create/Update and label the ingres-nginx namespace
