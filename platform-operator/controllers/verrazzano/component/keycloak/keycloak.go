@@ -1568,6 +1568,6 @@ func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli k
 		ctx.Log().Errorf("addClientRoleToUser: Adding role %s to the user %s failed: stdout = %s, stderr = %s, error = %s", roleName, userName, stdout, stderr, err.Error())
 		return err
 	}
-	ctx.Log().Once("Added role %s to the user %s", roleName, userName)
+	ctx.Log().Oncef("Added role %s to the user %s", roleName, userName)
 	return nil
 }
