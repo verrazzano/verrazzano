@@ -209,8 +209,6 @@ spec:
                         topologyKey: kubernetes.io/hostname
                       weight: 100
               replicas: 1
-    mySQLOperator:
-      enabled: true
     oam:
       enabled: true
     opensearch:

@@ -45,7 +45,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			continue
 		}
 
-		// Some components, like MySQL Operator, need to be installed before upgrade
+		// Some components need to be installed before upgrade
 		if preUpgrade && !comp.ShouldInstallBeforeUpgrade() {
 			continue
 		}

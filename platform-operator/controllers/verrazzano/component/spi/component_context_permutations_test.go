@@ -221,7 +221,6 @@ var devAllDisabledOverride = v1alpha1.Verrazzano{
 			Grafana:           &v1alpha1.GrafanaComponent{Enabled: &falseValue},
 			Kiali:             &v1alpha1.KialiComponent{Enabled: &falseValue},
 			Keycloak:          &v1alpha1.KeycloakComponent{Enabled: &falseValue},
-			MySQLOperator:     &v1alpha1.MySQLOperatorComponent{Enabled: &falseValue},
 			Kibana:            &v1alpha1.KibanaComponent{Enabled: &falseValue},
 			Prometheus:        &v1alpha1.PrometheusComponent{Enabled: &falseValue},
 			Rancher:           &v1alpha1.RancherComponent{Enabled: &falseValue},

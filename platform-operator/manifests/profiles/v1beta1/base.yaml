@@ -210,8 +210,6 @@ spec:
               replicas: 1
     kubeStateMetrics:
       enabled: false
-    mySQLOperator:
-      enabled: true
     oam:
       enabled: true
     opensearch:

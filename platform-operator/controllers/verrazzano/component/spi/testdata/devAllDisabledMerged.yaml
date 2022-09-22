@@ -211,8 +211,6 @@ spec:
                           app.kubernetes.io/instance: keycloak
                           app.kubernetes.io/name: keycloak
                       topologyKey: kubernetes.io/hostname
-    mySQLOperator:
-      enabled: false
     kibana:
       enabled: false
       replicas: 1
