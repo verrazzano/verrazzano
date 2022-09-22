@@ -104,7 +104,7 @@ function run_docker() {
     tmpfile=$(mktemp -t vz-helper-docker-err.XXXXXX)
     docker $* 2>${tmpfile}
     local result=$?
-    local denied=$(egrep -i "(Anonymous|permission_denied)" ${tmpfile})
+    local denied=$(egrep -i "(Anonymous|permission_denied|403.*forbidden)" ${tmpfile})
     if [ -n "$denied" ]; then
        echo """
 
@@ -116,7 +116,7 @@ Please log into the target registry and try again.
 
       """
       rm ${tmpfile}
-      usage 1
+      exit 1
     elif [ "${result}" != "0" ]; then
       echo "An error occurred running docker command:"
       cat ${tmpfile}
