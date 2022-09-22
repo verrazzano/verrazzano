@@ -14,12 +14,15 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 const (
 	authProxyLabelValue = "verrazzano-authproxy"
 	authProxyLabelKey   = "app"
 	explicitReplicas    = uint32(3)
+	waitTimeout         = 20 * time.Minute
+	pollingInterval     = 10 * time.Second
 )
 
 type AuthProxyReplicasModifier struct {
@@ -132,11 +135,8 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
-	m := AuthProxyDefaultModifierV1beta1{}
-	err := update.UpdateCRV1beta1(m)
-	if err != nil {
-		Fail(err.Error())
-	}
+	m := AuthProxyDefaultModifier{}
+	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
 	cr := update.GetCR()
 	expectedRunning := uint32(1)
