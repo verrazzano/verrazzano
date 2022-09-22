@@ -268,6 +268,7 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+	// Check and Update Primary Key
 	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed updating table, err = %v", err))

@@ -3,6 +3,11 @@
 
 image:
   pullPolicy: IfNotPresent
+metrics:
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus-operator
 configuration:
   provider: aws
 backupsEnabled: false
