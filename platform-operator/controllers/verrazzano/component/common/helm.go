@@ -65,3 +65,31 @@ func RemoveResourcePolicyAnnotation(cli clipkg.Client, obj clipkg.Object, namesp
 	err := cli.Update(context.TODO(), obj)
 	return obj, err
 }
+
+// RemoveAllHelmAnnotationsAndLabels removes all helm annotations and labels
+func RemoveAllHelmAnnotationsAndLabels(cli clipkg.Client, obj clipkg.Object, namespacedName types.NamespacedName) (clipkg.Object, error) {
+	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
+		if errors.IsNotFound(err) {
+			return obj, nil
+		}
+		return obj, err
+	}
+	// Clear Helm annotations
+	annotations := obj.GetAnnotations()
+	if annotations != nil {
+		delete(annotations, "helm.sh/resource-policy")
+		delete(annotations, "meta.helm.sh/release-name")
+		delete(annotations, "meta.helm.sh/release-namespace")
+		obj.SetAnnotations(annotations)
+	}
+
+	// Clear Helm labels
+	labels := obj.GetLabels()
+	if labels != nil {
+		delete(annotations, "app.kubernetes.io/managed-by")
+		obj.SetLabels(labels)
+	}
+
+	err := cli.Update(context.TODO(), obj)
+	return obj, err
+}

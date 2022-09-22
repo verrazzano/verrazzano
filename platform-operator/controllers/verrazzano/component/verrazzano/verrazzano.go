@@ -9,7 +9,6 @@ import (
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -110,11 +109,6 @@ func exportFromHelmChart(cli clipkg.Client) error {
 	}
 
 	err = associateJaegerResources(cli)
-	if err != nil {
-		return err
-	}
-
-	err = networkpolicies.AssociateNetworkPoliciesWithHelmRelease(cli)
 	if err != nil {
 		return err
 	}

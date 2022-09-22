@@ -60,9 +60,8 @@ func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
 	common.CreateAndLabelNamespaces(ctx)
 
-	// Make sure netpols are disassociated with the netpol chart, set keep to false so
-	// policies are deleted on uninstall.
-	err := DisassociateNetworkPoliciesFromHelmRelease(ctx.Client())
+	// Disassociate the network policies from the Verrazzano release
+	err := removeNetPolsFromVerrazzanoHelmRelease(ctx)
 	if err != nil {
 		return err
 	}
@@ -81,9 +80,13 @@ func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
 	common.CreateAndLabelNamespaces(ctx)
 
-	// Make sure netpols are associated with the netpol chart, set keep to false so
-	// policies are deleted on uninstall.
-	return DisassociateNetworkPoliciesFromHelmRelease(ctx.Client())
+	// Disassociate the network policies from the Verrazzano release
+	err := removeNetPolsFromVerrazzanoHelmRelease(ctx)
+	if err != nil {
+		return err
+	}
+
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostUpgrade performs post-upgrade actions
