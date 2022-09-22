@@ -104,7 +104,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	return nil
 }
 
-func associateNetworkPolicies(ctx spi.ComponentContext) error {
+func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
 	cli := ctx.Client()
 	log := ctx.Log()
 
@@ -125,23 +125,19 @@ func associateNetworkPolicies(ctx spi.ComponentContext) error {
 				continue
 			}
 
+			log.Progress("Associating network policies with verrazzano-network-policies Helm release")
+
 			objs := []clipkg.Object{&netpolList.Items[i]}
-			log.Progressf("Associating NetworkPolicy %s:%s with verrazzano-network-policies Helm release", netpol.Namespace, netpol.Name)
-			if _, err := common.AssociateHelmObject(cli, objs[0], releaseNsn, netpolNsn, false); err != nil {
-				return err
-			}
-			// Remove the helm policy
-			log.Progressf("Removing helm 'keep' resource policy from NetworkPolicy %s:%s", netpol.Namespace, netpol.Name)
-			if _, err := common.RemoveResourcePolicyAnnotation(cli, objs[0], netpolNsn); err != nil {
-				return err
+			if _, err := common.AssociateHelmObject(cli, objs[0], releaseNsn, netpolNsn, true); err != nil {
+				return log.ErrorfNewErr("Failed associating NetworkPolicy %s:%s from Verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
 			}
 		}
 	}
 	return nil
 }
 
-// removeNetPolsFromVerrazzanoHelmRelease disassociates the network policies from the Verrazzano release
-func removeNetPolsFromVerrazzanoHelmRelease(ctx spi.ComponentContext) error {
+// removeResourcePolicyFromHelm removes the Helm resource annotation to get rid of "keep" policy
+func removeResourcePolicyFromHelm(ctx spi.ComponentContext) error {
 	cli := ctx.Client()
 	log := ctx.Log()
 
@@ -151,19 +147,20 @@ func removeNetPolsFromVerrazzanoHelmRelease(ctx spi.ComponentContext) error {
 		netpolList := netv1.NetworkPolicyList{}
 		cli.List(context.TODO(), &netpolList, &clipkg.ListOptions{Namespace: ns})
 
-		// Remove the helm annotations for each policy IF the netpol is part of the Verrazzano release
+		// Remove the app.kubernetes.io/managed-by helm annotations for each policy IF the netpol is part of the Verrazzano release
 		for i, netpol := range netpolList.Items {
 			annotations := netpol.GetAnnotations()
 			if annotations == nil {
 				continue
 			}
-			if annotations["meta.helm.sh/release-name"] != constants.Verrazzano {
+			_, ok := annotations["helm.sh/resource-policy"]
+			if !ok {
 				continue
 			}
-			log.Progressf("Disassociating NetworkPolicy %s:%s from Verrazzano Helm release", netpol.Namespace, netpol.Name)
+			log.Progress("Removing resourcce-policy %s:%s from Verrazzano Helm release")
 			netpolNsn := types.NamespacedName{Name: netpol.Name, Namespace: netpol.Namespace}
 			objs := []clipkg.Object{&netpolList.Items[i]}
-			if _, err := common.RemoveAllHelmAnnotationsAndLabels(cli, objs[0], netpolNsn); err != nil {
+			if _, err := common.RemoveResourcePolicyAnnotation(cli, objs[0], netpolNsn); err != nil {
 				return log.ErrorfNewErr("Failed disassociating NetworkPolicy %s:%s from Verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
 			}
 		}

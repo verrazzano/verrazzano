@@ -64,14 +64,8 @@ func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
 	common.CreateAndLabelNamespaces(ctx)
 
-	// Disassociate the network policies from the verrazzano release
-	err := removeNetPolsFromVerrazzanoHelmRelease(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Associate the network policies from the verrazzano-network-policies release
-	err = associateNetworkPolicies(ctx)
+	// Associate the network policies to the verrazzano-network-policies release
+	err := associateNetworkPoliciesWithHelm(ctx)
 	if err != nil {
 		return err
 	}
@@ -81,6 +75,12 @@ func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // PostInstall performs post-install actions
 func (c networkPoliciesComponent) PostInstall(ctx spi.ComponentContext) error {
+	// All the helm resource to get deleted now that install is done
+	err := removeResourcePolicyFromHelm(ctx)
+	if err != nil {
+		return err
+	}
+
 	cleanTempFiles(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
@@ -90,14 +90,8 @@ func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// Create all namespaces needed by network policies
 	common.CreateAndLabelNamespaces(ctx)
 
-	// Disassociate the network policies from the verrazzano release
-	err := removeNetPolsFromVerrazzanoHelmRelease(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Associate the network policies from the verrazzano-network-policies release
-	err = associateNetworkPolicies(ctx)
+	// Associate the network policies to the verrazzano-network-policies release
+	err := associateNetworkPoliciesWithHelm(ctx)
 	if err != nil {
 		return err
 	}
@@ -107,6 +101,12 @@ func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // PostUpgrade performs post-upgrade actions
 func (c networkPoliciesComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	// All the helm resource to get deleted now that upgrade is done
+	err := removeResourcePolicyFromHelm(ctx)
+	if err != nil {
+		return err
+	}
+
 	cleanTempFiles(ctx)
 	return c.HelmComponent.PostUpgrade(ctx)
 }
