@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,16 +30,37 @@ const (
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
-// netpolNamespaces specifies the namespaces that have network policies
-var netpolNamespaces []string = []string{
-	vzconst.CertManagerNamespace,
-	constants.IngressNginxNamespace,
-	constants.IstioSystemNamespace,
-	constants.KeycloakNamespace,
-	vzconst.MySQLOperatorNamespace,
-	vzconst.RancherSystemNamespace,
-	constants.VerrazzanoMonitoringNamespace,
-	constants.VerrazzanoSystemNamespace,
+// netpolNamespaceNames specifies the NSNs that have network policies
+var netpolNamespaceNames []types.NamespacedName = []types.NamespacedName{
+	{Namespace: vzconst.CertManagerNamespace, Name: "cert-manager"},
+	{Namespace: vzconst.CertManagerNamespace, Name: "external-dns"},
+	{Namespace: constants.IngressNginxNamespace, Name: "ingress-nginx-controller"},
+	{Namespace: constants.IngressNginxNamespace, Name: "ingress-nginx-default-backend"},
+	{Namespace: vzconst.IstioSystemNamespace, Name: "istio-ingressgateway"},
+	{Namespace: vzconst.IstioSystemNamespace, Name: "istio-egressgateway"},
+	{Namespace: vzconst.IstioSystemNamespace, Name: "allow-same-namespace"},
+	{Namespace: vzconst.IstioSystemNamespace, Name: "istiocoredns"},
+	{Namespace: vzconst.IstioSystemNamespace, Name: "istiod-access"},
+	{Namespace: vzconst.KeycloakNamespace, Name: "keycloak"},
+	{Namespace: vzconst.KeycloakNamespace, Name: "keycloak-mysql"},
+	{Namespace: vzconst.MySQLOperatorNamespace, Name: "mysql-operator"},
+	{Namespace: vzconst.RancherSystemNamespace, Name: "cattle-cluster-agent"},
+	{Namespace: vzconst.RancherSystemNamespace, Name: "rancher"},
+	{Namespace: vzconst.RancherSystemNamespace, Name: "rancher-webhook"},
+	{Namespace: constants.VerrazzanoMonitoringNamespace, Name: "jaeger-collector"},
+	{Namespace: constants.VerrazzanoMonitoringNamespace, Name: "jaeger-query"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-authproxy"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-console"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-application-operator"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "oam-kubernetes-runtime"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-es-master"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-es-data"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-kibana"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-grafana"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "weblogic-operator"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "coherence-operator"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "kibana"},
 }
 
 var (
@@ -99,7 +121,9 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	overrides.Istio = &istioValues{Enabled: vzconfig.IsIstioEnabled(effectiveCR)}
 	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzconfig.IsJaegerOperatorEnabled(effectiveCR)}
 	overrides.Keycloak = &keycloakValues{Enabled: vzconfig.IsKeycloakEnabled(effectiveCR)}
-	overrides.Prometheus = &prometheusValues{Enabled: vzconfig.IsPrometheusEnabled(effectiveCR)}
+
+	promEnable := vzconfig.IsPrometheusEnabled(effectiveCR) || vzconfig.IsPrometheusOperatorEnabled(effectiveCR)
+	overrides.Prometheus = &prometheusValues{Enabled: promEnable}
 	overrides.Rancher = &rancherValues{Enabled: vzconfig.IsRancherEnabled(effectiveCR)}
 	return nil
 }
@@ -113,26 +137,29 @@ func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
 	// specify helm release nsn
 	releaseNsn := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
 
-	// Loop through the namespaces that have Verrazzano network policies
-	for _, ns := range netpolNamespaces {
-		// Get all the network policies in the current namespace
-		netpolList := netv1.NetworkPolicyList{}
-		cli.List(context.TODO(), &netpolList, &clipkg.ListOptions{Namespace: ns})
-
-		// Associate each policy with the verrazzano-network-policies helm chart
-		for i, netpol := range netpolList.Items {
-			netpolNsn := types.NamespacedName{Name: netpol.Name, Namespace: netpol.Namespace}
-			annotations := netpol.GetAnnotations()
-			if annotations["meta.helm.sh/release-name"] == ComponentName {
+	// Loop through the all the network policies
+	for _, nsn := range netpolNamespaceNames {
+		// Get the policy
+		netpol := netv1.NetworkPolicy{}
+		err := cli.Get(context.TODO(), nsn, &netpol)
+		if err != nil {
+			if errors.IsNotFound(err) {
 				continue
 			}
+			return log.ErrorfNewErr("Error getting NetworkPolicy %v: %v", nsn, err)
+		}
+		// Associate the policy with the verrazzano-network-policies helm chart
+		netpolNsn := types.NamespacedName{Name: netpol.Name, Namespace: netpol.Namespace}
+		annotations := netpol.GetAnnotations()
+		if annotations["meta.helm.sh/release-name"] == ComponentName {
+			continue
+		}
 
-			log.Progress("Associating network policies with verrazzano-network-policies Helm release")
+		log.Progress("Associating network policies with verrazzano-network-policies Helm release")
 
-			objs := []clipkg.Object{&netpolList.Items[i]}
-			if _, err := common.AssociateHelmObject(cli, objs[0], releaseNsn, netpolNsn, true); err != nil {
-				return log.ErrorfNewErr("Failed associating NetworkPolicy %s:%s from Verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
-			}
+		objs := []clipkg.Object{&netpol}
+		if _, err := common.AssociateHelmObject(cli, objs[0], releaseNsn, netpolNsn, true); err != nil {
+			return log.ErrorfNewErr("Failed associating NetworkPolicy %s:%s from Verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
 		}
 	}
 	return nil
@@ -143,30 +170,34 @@ func removeResourcePolicyFromHelm(ctx spi.ComponentContext) error {
 	cli := ctx.Client()
 	log := ctx.Log()
 
-	// Loop through the namespaces that have Verrazzano network policies
-	for _, ns := range netpolNamespaces {
-		// Get all the network policies in the current namespace
-		netpolList := netv1.NetworkPolicyList{}
-		cli.List(context.TODO(), &netpolList, &clipkg.ListOptions{Namespace: ns})
-
+	// Loop through the all the network policies
+	for _, nsn := range netpolNamespaceNames {
+		// Get the policy
+		netpol := netv1.NetworkPolicy{}
+		err := cli.Get(context.TODO(), nsn, &netpol)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return log.ErrorfNewErr("Error getting NetworkPolicy %v: %v", nsn, err)
+		}
 		// Remove the app.kubernetes.io/managed-by helm annotations for each policy IF the netpol is part of the Verrazzano release
-		for i, netpol := range netpolList.Items {
-			annotations := netpol.GetAnnotations()
-			if annotations == nil {
-				continue
-			}
-			_, ok := annotations["helm.sh/resource-policy"]
-			if !ok {
-				continue
-			}
-			log.Progress("Removing resourcce-policy %s:%s from Verrazzano Helm release")
-			netpolNsn := types.NamespacedName{Name: netpol.Name, Namespace: netpol.Namespace}
-			objs := []clipkg.Object{&netpolList.Items[i]}
-			if _, err := common.RemoveResourcePolicyAnnotation(cli, objs[0], netpolNsn); err != nil {
-				return log.ErrorfNewErr("Failed disassociating NetworkPolicy %s:%s from Verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
-			}
+		annotations := netpol.GetAnnotations()
+		if annotations == nil {
+			continue
+		}
+		_, ok := annotations["helm.sh/resource-policy"]
+		if !ok {
+			continue
+		}
+		log.Progress("Removing resourcce-policy %s:%s from Verrazzano Helm release")
+		netpolNsn := types.NamespacedName{Name: netpol.Name, Namespace: netpol.Namespace}
+		objs := []clipkg.Object{&netpol}
+		if _, err := common.RemoveResourcePolicyAnnotation(cli, objs[0], netpolNsn); err != nil {
+			return log.ErrorfNewErr("Failed disassociating NetworkPolicy %s:%s from Verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
 		}
 	}
+
 	return nil
 }
 

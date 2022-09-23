@@ -75,12 +75,6 @@ func (c networkPoliciesComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // PostInstall performs post-install actions
 func (c networkPoliciesComponent) PostInstall(ctx spi.ComponentContext) error {
-	// All the helm resource to get deleted now that install is done
-	err := removeResourcePolicyFromHelm(ctx)
-	if err != nil {
-		return err
-	}
-
 	cleanTempFiles(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
@@ -101,12 +95,17 @@ func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // PostUpgrade performs post-upgrade actions
 func (c networkPoliciesComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	cleanTempFiles(ctx)
+	return c.HelmComponent.PostUpgrade(ctx)
+}
+
+// PreUninstall performs pre-uninstall actions
+func (c networkPoliciesComponent) PreUninstall(ctx spi.ComponentContext) error {
 	// All the helm resource to get deleted now that upgrade is done
 	err := removeResourcePolicyFromHelm(ctx)
 	if err != nil {
 		return err
 	}
 
-	cleanTempFiles(ctx)
-	return c.HelmComponent.PostUpgrade(ctx)
+	return c.HelmComponent.PreUninstall(ctx)
 }
