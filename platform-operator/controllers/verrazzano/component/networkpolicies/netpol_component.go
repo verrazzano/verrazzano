@@ -7,20 +7,20 @@
 // already installed.  This component must be first in registry.go so that it runs first during
 // upgrade.
 //
-// Most of the network policies were in verrazzano chart previous to the existing of this code, but not all of them.
+// Most of the network policies were in verrazzano chart previous to the existence of this code, but not all of them.
 // Some policies are specified in other charts, like verrazzano-monitoring-operator.  This is ideally what
-// should happen but for now pulling the network policies into a dedicated chart is a improvement.
+// should happen, but for now, putting the network policies into a dedicated chart is a improvement.
 //
 // This code changes the ownership of the existing network policies from the verrazzano chart to the
 // verrazzano-network-policies chart.  This is done by modifying the helm annotations in each NetworkPolicy
-// resource
+// resource thereby changing the Helm release ownership.
 //
-// There are additional network policies that are created dynamically.  For example, VOA creates a netpol to
-// all applications in the mesh to access the Istio control plane (istiod).
+// There are additional network policies that are created dynamically.  For example, VOA creates a NetworkPolicy
+// to an application in the mesh to access the Istio control plane (istiod).
 //
 // Note that there is no NetworkPolicy component in Verrazzano CR (API).  The user has no control over this
-// component, it is always enabled. However, the netpols are only enforced if a CNI with a NetworkPolicy controller
-// is running (like Calico).
+// component, it is always enabled. However, the network policies are only enforced if a CNI with a NetworkPolicy
+// controller is running, such as Calico.
 
 package networkpolicies
 
