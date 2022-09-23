@@ -112,10 +112,18 @@ func FindComponent(componentName string) (bool, spi.Component) {
 	return false, nil
 }
 
-// ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available
+// ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available; this is
+// a shallow check of the direct dependencies, with the expectation that any indirect dependencies will be implicitly
+// handled.
+//
+// For now, a dependency is soft; that is, we only care if it's Ready if it's enabled; if not we pass the dependency check
+// so as not to block the dependent.  This would theoretically allow, for example, components that depend on Istio
+// to continue to deploy if it's not enabled.  In the long run, the dependency mechanism should likely go away and
+// allow components to individually make those decisions.
+//
 func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
 	log := context.Log()
-	trace, err := checkDependencies(c, context, make(map[string]bool), make(map[string]bool))
+	trace, err := checkDirectDependenciesReady(c, context, make(map[string]bool))
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -134,14 +142,10 @@ func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) boo
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles
-func checkDependencies(c spi.Component, context spi.ComponentContext, visited map[string]bool, stateMap map[string]bool) (map[string]bool, error) {
+func checkDirectDependenciesReady(c spi.Component, context spi.ComponentContext, stateMap map[string]bool) (map[string]bool, error) {
 	compName := c.Name()
 	log := context.Log()
 	log.Debugf("Checking %s dependencies", compName)
-	if _, wasVisited := visited[compName]; wasVisited {
-		return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
-	}
-	visited[compName] = true
 	for _, dependencyName := range c.GetDependencies() {
 		if compName == dependencyName {
 			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
@@ -161,9 +165,10 @@ func checkDependencies(c spi.Component, context spi.ComponentContext, visited ma
 	return stateMap, nil
 }
 
+// isDependencyReady Returns true if the component is disabled, is already in the Ready state, or if it's isReady() check is true
 func isDependencyReady(dependency spi.Component, context spi.ComponentContext) bool {
 	if !dependency.IsEnabled(context.EffectiveCR()) {
-		return false
+		return true
 	}
 	if isInReadyState(context, dependency) {
 		// CR component status indicates ready
