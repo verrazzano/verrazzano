@@ -179,7 +179,7 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 				// Expect the number of claims to be equal to the number of MySQL replicas
 				mysqlStatefulSet, err := pkg.GetStatefulSet("keycloak", "mysql")
 				Expect(err).ShouldNot(HaveOccurred(), "Unexpected error obtaining MySQL statefulset")
-				expectedClaims := int(mysqlStatefulSet.Status.Replicas)
+				expectedClaims := int(mysqlStatefulSet.Status.Replicas) + 1
 				Expect(len(volumeClaims)).To(Equal(expectedClaims))
 				assertPersistentVolume(claimName, size)
 			})
