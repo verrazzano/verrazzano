@@ -9,6 +9,10 @@ import (
 	"testing"
 )
 
+// TestGetMatchingFiles Tests that we can find the expected set of files with a matching expression
+// GIVEN a call to GetMatchingFiles
+// WHEN with a valid rootDirectory and regular expression
+// THEN files that matched will be returned, if not returns nil
 func TestGetMatchingFiles(t *testing.T) {
 	assert := asserts.New(t)
 
