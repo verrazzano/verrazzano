@@ -252,7 +252,7 @@ spec:
     - from:
       - podSelector:
           matchLabels:
-            component: restore-keycloak-db
+            job-name: load-dump
       ports:
         - protocol: TCP
           port: 3306
@@ -592,6 +592,12 @@ spec:
           podSelector:
             matchLabels:
               tier: mysql
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              job-name: load-dump
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: mysql-operator
