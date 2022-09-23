@@ -111,7 +111,7 @@ var volumeClaims map[string]*corev1.PersistentVolumeClaim
 var t = framework.NewTestFramework("keycloak")
 
 var isMinVersion140 bool
-var keycloakEnabled bool
+var isKeycloakEnabled bool
 
 var _ = t.BeforeSuite(func() {
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
@@ -124,7 +124,7 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	keycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
+	isKeycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
@@ -213,7 +213,7 @@ var _ = t.Describe("Verify client role", Label("f:platform-lcm.install"), func()
 	t.It("Verify clients role for verrazzano user", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		// verrazzano user has the view-user role, starting from v1.4.0
-		if keycloakEnabled && isMinVersion140 && !isManagedClusterProfile {
+		if isKeycloakEnabled && isMinVersion140 && !isManagedClusterProfile {
 			Eventually(func() bool {
 				return verifyUserClientRole(vzUser, viewUsersRole)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
