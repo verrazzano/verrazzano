@@ -212,6 +212,7 @@ var _ = t.Describe("Verify Keycloak", Label("f:platform-lcm.install"), func() {
 var _ = t.Describe("Verify client role", Label("f:platform-lcm.install"), func() {
 	t.It("Verify clients role for verrazzano user", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
+		// verrazzano user has the view-user role, starting from v1.4.0
 		if keycloakEnabled && isMinVersion140 && !isManagedClusterProfile {
 			Eventually(func() bool {
 				return verifyUserClientRole(vzUser, viewUsersRole)
