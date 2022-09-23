@@ -253,7 +253,11 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	}
 	rootPwd := rootSecret.Data[rootPasswordKey]
 
-	// ADD Primary Key Cmd
+	// Root priv
+	temp := fmt.Sprintf("mysql -uroot -p%s -e ", rootPwd)
+	rootCmd := temp + mySQLRootCommand
+	rootExecCmd := []string{"bash", "-c", rootCmd}
+	// CHECK and ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
 	execCmd := []string{"bash", "-c", sqlCmd}
 	// util.dumpInstance() Cmd
@@ -267,6 +271,13 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	mysqlPod, err := getMySQLPod(ctx)
 	if err != nil {
 		return err
+	}
+	// Grant root privilege =
+	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", rootExecCmd)
+	if err != nil {
+		errorMsg := maskPw(fmt.Sprintf("Failed granting root priv, err = %v", err))
+		ctx.Log().Error(errorMsg)
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	// Check and Update Primary Key
 	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
