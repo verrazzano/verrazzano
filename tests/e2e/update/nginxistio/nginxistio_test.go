@@ -7,12 +7,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
 	"time"
+
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"sigs.k8s.io/yaml"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -247,7 +248,8 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		},
 	}
 	// update Istio
-	istioYaml := fmt.Sprintf(`kind: IstioOperator
+	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
 spec:
   values:
     gateways:
