@@ -124,7 +124,6 @@ package_versions keycloak keycloak
 package_versions kiali kiali
 package_versions kube-state-metrics kubernetes
 package_versions mysql-server mysql mysql
-package_versions mysql-operator mysql mysql-operator
 package_versions node_exporter prometheus node-exporter
 package_versions oam-kubernetes-runtime crossplane
 package_versions OpenSearch opensearch-project opensearch

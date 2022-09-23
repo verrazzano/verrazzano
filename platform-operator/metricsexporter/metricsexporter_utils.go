@@ -27,7 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -38,6 +37,8 @@ import (
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
@@ -69,7 +70,6 @@ const (
 	grafanaMetricName              metricName = grafana.ComponentName
 	coherenceMetricName            metricName = coherence.ComponentName
 	mysqlMetricName                metricName = mysql.ComponentName
-	mysqlOperatorMetricName        metricName = mysqloperator.ComponentName
 	keycloakMetricname             metricName = keycloak.ComponentName
 	kialiMetricName                metricName = kiali.ComponentName
 	promoperatorMetricname         metricName = promoperator.ComponentName
@@ -80,6 +80,8 @@ const (
 	jaegeroperatorMetricName       metricName = jaegeroperator.ComponentName
 	consoleMetricName              metricName = console.ComponentName
 	fluentdMetricName              metricName = fluentd.ComponentName
+	veleroMetricName               metricName = velero.ComponentName
+	rancherBackupMetricName        metricName = rancherbackup.ComponentName
 )
 
 func init() {
@@ -163,7 +165,6 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 		grafanaMetricName:              newMetricsComponent("grafana"),
 		coherenceMetricName:            newMetricsComponent("coherence"),
 		mysqlMetricName:                newMetricsComponent("mysql"),
-		mysqlOperatorMetricName:        newMetricsComponent("mysql_operator"),
 		keycloakMetricname:             newMetricsComponent("keycloak"),
 		kialiMetricName:                newMetricsComponent("kiali"),
 		promoperatorMetricname:         newMetricsComponent("prometheus_operator"),
@@ -174,6 +175,8 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 		jaegeroperatorMetricName:       newMetricsComponent("jaeger_operator"),
 		consoleMetricName:              newMetricsComponent("verrazzano_console"),
 		fluentdMetricName:              newMetricsComponent("fluentd"),
+		veleroMetricName:               newMetricsComponent("velero"),
+		rancherBackupMetricName:        newMetricsComponent("rancher-backup"),
 	}
 }
 

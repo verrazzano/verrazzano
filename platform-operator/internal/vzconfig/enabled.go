@@ -321,20 +321,6 @@ func IsVeleroEnabled(cr runtime.Object) bool {
 	return false
 }
 
-//IsMySQLOperatorEnabled returns false if MySqlOperator is explicitly disabled in the CR
-func IsMySQLOperatorEnabled(cr runtime.Object) bool {
-	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
-		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.MySQLOperator != nil && vzv1alpha1.Spec.Components.MySQLOperator.Enabled != nil {
-			return *vzv1alpha1.Spec.Components.MySQLOperator.Enabled
-		}
-	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
-		if vzv1beta1 != nil && vzv1beta1.Spec.Components.MySQLOperator != nil && vzv1beta1.Spec.Components.MySQLOperator.Enabled != nil {
-			return *vzv1beta1.Spec.Components.MySQLOperator.Enabled
-		}
-	}
-	return true
-}
-
 //IsOAMEnabled returns false if OAM is explicitly disabled in the CR
 func IsOAMEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {

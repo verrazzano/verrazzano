@@ -145,13 +145,6 @@
                     "f:reconcilingGeneration": {},
                     "f:state": {}
                   },
-                  "f:mysql-operator": {
-                    ".": {},
-                    "f:conditions": {},
-                    "f:lastReconciledGeneration": {},
-                    "f:name": {},
-                    "f:state": {}
-                  },
                   "f:oam-kubernetes-runtime": {
                     ".": {},
                     "f:conditions": {},
@@ -468,31 +461,6 @@
             "state": "PreInstalling",
             "lastReconciledGeneration": 1,
             "reconcilingGeneration": 1
-          },
-          "mysql-operator": {
-            "name": "mysql-operator",
-            "conditions": [
-              {
-                "type": "PreInstall",
-                "status": "True",
-                "lastTransitionTime": "2022-09-14T17:52:55Z",
-                "message": "PreInstall started"
-              },
-              {
-                "type": "InstallStarted",
-                "status": "True",
-                "lastTransitionTime": "2022-09-14T17:53:08Z",
-                "message": "Install started"
-              },
-              {
-                "type": "InstallComplete",
-                "status": "True",
-                "lastTransitionTime": "2022-09-14T17:54:45Z",
-                "message": "Install complete"
-              }
-            ],
-            "state": "Ready",
-            "lastReconciledGeneration": 1
           },
           "oam-kubernetes-runtime": {
             "name": "oam-kubernetes-runtime",
