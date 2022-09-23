@@ -6,6 +6,7 @@ package opensearch
 import (
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -45,7 +46,7 @@ func (o opensearchComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the OpenSearch component
 func (o opensearchComponent) GetDependencies() []string {
-	return []string{vmo.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch component

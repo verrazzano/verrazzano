@@ -5,6 +5,7 @@ package coherence
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -45,7 +46,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
-			Dependencies:              []string{},
+			Dependencies:              []string{networkpolicies.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}

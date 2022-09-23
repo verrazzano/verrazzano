@@ -5,6 +5,7 @@ package mysql
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -65,7 +66,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:       appendMySQLOverrides,
-			Dependencies:              []string{istio.ComponentName, MySQLOperatorComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, MySQLOperatorComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}

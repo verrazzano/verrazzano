@@ -5,6 +5,7 @@ package weblogic
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -51,7 +52,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
 			PreInstallFunc:            WeblogicOperatorPreInstall,
 			AppendOverridesFunc:       AppendWeblogicOperatorOverrides,
-			Dependencies:              []string{istio.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
