@@ -46,9 +46,8 @@ type bindingParams struct {
 }
 
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// Get the  resource
 	if ctx == nil {
-		ctx = context.TODO()
+		panic("context cannot be nil")
 	}
 	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
 	if err := r.Get(context.TODO(), req.NamespacedName, cr); err != nil {

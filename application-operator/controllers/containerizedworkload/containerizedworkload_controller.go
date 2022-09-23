@@ -42,6 +42,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile checks restart version annotations on an ContainerizedWorkload and
 // restarts as needed.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if ctx == nil {
+		panic("context cannot be nil")
+	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -52,9 +55,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reconcile.Result{}, nil
 	}
 
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	var workload oamv1.ContainerizedWorkload
 	if err := r.Client.Get(ctx, req.NamespacedName, &workload); err != nil {
 		return clusters.IgnoreNotFoundWithLog(err, zap.S())

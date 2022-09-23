@@ -97,7 +97,7 @@ func TestNewImageBuildRequest(t *testing.T) {
 
 	request := newRequest("default", "cluster1")
 	reconciler := newImageBuildRequestReconciler(cli)
-	_, err := reconciler.Reconcile(nil, request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	// Verify the DryRun flag is set to false by default (this value can be changed in the helm config values.yaml file)
@@ -171,7 +171,7 @@ func TestIBRJobSucceeded(t *testing.T) {
 
 	request := newRequest("default", "cluster1")
 	reconciler := newImageBuildRequestReconciler(cli)
-	_, err := reconciler.Reconcile(nil, request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	// Testing if ImageBuildRequest status reflects that ImageJob is complete
@@ -206,7 +206,7 @@ func TestIBRJobFailed(t *testing.T) {
 
 	request := newRequest("default", "cluster1")
 	reconciler := newImageBuildRequestReconciler(cli)
-	_, err := reconciler.Reconcile(nil, request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	// Testing if ImageBuildRequest status reflects that ImageJob failed
@@ -243,7 +243,7 @@ func TestIBRDryRun(t *testing.T) {
 
 	// Running the image job as a DryRun
 	reconciler.DryRun = true
-	_, err := reconciler.Reconcile(nil, request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	// Testing if ImageBuildRequest status reflects that ImageJob is in progress of a DryRun
@@ -280,7 +280,7 @@ func TestIBRDryRunJobSucceeded(t *testing.T) {
 
 	// Running the image job as a DryRun
 	reconciler.DryRun = true
-	_, err := reconciler.Reconcile(nil, request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	// Testing if ImageBuildRequest status reflects that ImageJob DryRun is complete
@@ -318,7 +318,7 @@ func TestIBRDryRunJobFailed(t *testing.T) {
 
 	// Running the image job as a DryRun
 	reconciler.DryRun = true
-	_, err := reconciler.Reconcile(nil, request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	// Testing if ImageBuildRequest status reflects that ImageJob DryRun failed

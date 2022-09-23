@@ -609,7 +609,7 @@ func TestFailureCreateNewIngressWithAuthorizationPolicyNoFromClause(t *testing.T
 	// Create and make the request
 	request := newRequest(testNamespace, testTraitName)
 	reconciler := newIngressTraitReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()

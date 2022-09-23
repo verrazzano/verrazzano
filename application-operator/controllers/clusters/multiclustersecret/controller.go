@@ -39,6 +39,9 @@ const (
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
 // success or failure of the changes to the embedded Secret
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if ctx == nil {
+		panic("context cannot be nil")
+	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -49,9 +52,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reconcile.Result{}, nil
 	}
 
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	var mcSecret clustersv1alpha1.MultiClusterSecret
 	err := r.fetchMultiClusterSecret(ctx, req.NamespacedName, &mcSecret)
 	if err != nil {

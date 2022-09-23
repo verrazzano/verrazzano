@@ -63,6 +63,9 @@ func (nc *NamespaceController) setupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile - Watches for and manages namespace activity as it relates to Verrazzano platform services
 func (nc *NamespaceController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if ctx == nil {
+		panic("context cannot be nil")
+	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -73,9 +76,6 @@ func (nc *NamespaceController) Reconcile(ctx context.Context, req ctrl.Request) 
 		return reconcile.Result{}, nil
 	}
 
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	// fetch the namespace
 	ns := corev1.Namespace{}
 	if err := nc.Client.Get(ctx, req.NamespacedName, &ns); err != nil {
