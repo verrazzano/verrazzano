@@ -9,7 +9,9 @@ platform-operator/helm_config/charts/verrazzano-console/NOTES.txt
 platform-operator/helm_config/charts/verrazzano-fluentd/NOTES.txt
 platform-operator/helm_config/charts/verrazzano-platform-operator/NOTES.txt
 platform-operator/helm_config/charts/verrazzano-monitoring-operator/NOTES.txt
+platform-operator/helm_config/charts/verrazzano-network-policies/NOTES.txt
 image-patch-operator/helm_config/charts/image-patch-operator/NOTES.txt
+
 LICENSES-OLCNE.pdf
 coverage.xml
 # The charts and manifests directories contains external (3rd party) Helm charts and manifests

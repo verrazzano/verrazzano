@@ -216,6 +216,12 @@ spec:
     - from:
       - namespaceSelector:
           matchLabels:
+            verrazzano.io/namespace: mysql-operator
+        podSelector:
+          matchLabels:
+            name: mysql-operator
+      - namespaceSelector:
+          matchLabels:
             verrazzano.io/namespace: verrazzano-monitoring
         podSelector:
           matchLabels:
@@ -223,6 +229,7 @@ spec:
       ports:
         - port: 15090
           protocol: TCP
+
 {{- end }}
 ---
 # Network policy for Rancher cluster agent
@@ -545,6 +552,12 @@ spec:
           podSelector:
             matchLabels:
               app: jaeger
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: mysql-operator
+          podSelector:
+            matchLabels:
+              name: mysql-operator
     - ports:
         - port: 15017
           protocol: TCP

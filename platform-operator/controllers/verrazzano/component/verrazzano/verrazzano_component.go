@@ -89,7 +89,7 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 	ctx.Log().Debug("Verrazzano pre-install")
-	if err := createAndLabelNamespaces(ctx); err != nil {
+	if err := common.CreateAndLabelNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
 	}
 	return nil
