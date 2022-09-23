@@ -560,18 +560,18 @@ func verifyUserClientRole(user, userRole string) bool {
 	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "id,name")
 	out, err := cmd.Output()
 	if err != nil {
-		t.Logs.Error(fmt.Printf("Error retrieving client role for the user %s: %s\n", vzUser, err))
+		t.Logs.Error(fmt.Printf("Error retrieving client role for the user %s: %s\n", vzUser, err.Error()))
 		return false
 	}
 
 	if len(string(out)) == 0 {
-		t.Logs.Error(fmt.Print("Error retrieving client roles JSON from Keycloak, zero length\n"))
+		t.Logs.Error(fmt.Print("Client roles retrieved from Keycloak is of zero length\n"))
 		return false
 	}
 
 	err = json.Unmarshal([]byte(out), &keycloakRoles)
 	if err != nil {
-		t.Logs.Error(fmt.Sprintf("error unmarshalling Keycloak client role json %v\n", err.Error()))
+		t.Logs.Error(fmt.Sprintf("Error unmarshalling Keycloak client role, received as JSON: %s\n", err.Error()))
 		return false
 	}
 
