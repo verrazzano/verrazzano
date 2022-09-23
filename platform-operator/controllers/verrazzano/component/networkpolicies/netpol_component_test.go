@@ -163,7 +163,7 @@ func netPolNamespaces() []string {
 
 	// convert to array of namespace names
 	var namespaces []string
-	for key, _ := range nsnMap {
+	for key := range nsnMap {
 		namespaces = append(namespaces, key)
 	}
 
