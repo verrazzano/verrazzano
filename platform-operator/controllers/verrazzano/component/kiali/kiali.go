@@ -217,6 +217,7 @@ func getKialiSigningKey(ctx spi.ComponentContext) (string, error) {
 			Name:      kialiSigningKeySecret,
 			Namespace: globalconst.VerrazzanoSystemNamespace,
 		},
+		Data: map[string][]byte{},
 	}
 	err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
 		Namespace: constants.VerrazzanoSystemNamespace,
