@@ -101,7 +101,7 @@ func (c networkPoliciesComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // PreUninstall performs pre-uninstall actions
 func (c networkPoliciesComponent) PreUninstall(ctx spi.ComponentContext) error {
-	// All the helm resource to get deleted now that upgrade is done
+	// Remove the helm "keep" policy so that the helm resources can get deleted
 	err := removeResourcePolicyFromHelm(ctx)
 	if err != nil {
 		return err
