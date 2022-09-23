@@ -1,12 +1,26 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// This component is needed to apply network policies during install and upgrade before
-// any other components are installed or upgraded.  This removes any race conditions that used
+// The networkpolicies component is needed to apply network policies during install and upgrade before
+// any other components are installed or upgraded. This removes any race conditions that used
 // to occur when network polices where installed in parallel, after other components were
 // already installed.  This component must be first in registry.go so that it runs first during
-// upgrade
-// Note that there is no NetworkPolicy component in Verrazzano CR.
+// upgrade.
+//
+// Most of the network policies were in verrazzano chart previous to the existing of this code, but not all of them.
+// Some policies are specified in other charts, like verrazzano-monitoring-operator.  This is ideally what
+// should happen but for now pulling the network policies into a dedicated chart is a improvement.
+//
+// This code changes the ownership of the existing network policies from the verrazzano chart to the
+// verrazzano-network-policies chart.  This is done by modifying the helm annotations in each NetworkPolicy
+// resource
+//
+// There are additional network policies that are created dynamically.  For example, VOA creates a netpol to
+// all applications in the mesh to access the Istio control plane (istiod).
+//
+// Note that there is no NetworkPolicy component in Verrazzano CR (API).  The user has no control over this
+// component, it is always enabled. However, the netpols are only enforced if a CNI with a NetworkPolicy controller
+// is running (like Calico).
 
 package networkpolicies
 
