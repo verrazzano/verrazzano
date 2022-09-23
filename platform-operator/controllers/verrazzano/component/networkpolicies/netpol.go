@@ -61,6 +61,7 @@ var netpolNamespaceNames []types.NamespacedName = []types.NamespacedName{
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "weblogic-operator"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "coherence-operator"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "kibana"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "kiali"},
 }
 
 var (
@@ -155,11 +156,11 @@ func associateNetworkPoliciesWithHelm(ctx spi.ComponentContext) error {
 			continue
 		}
 
-		log.Progress("Associating network policies with verrazzano-network-policies Helm release")
+		log.Progressf("Associating NetworkPolicy %v with the verrazzano-network-policies Helm release", netpolNsn)
 
 		objs := []clipkg.Object{&netpol}
 		if _, err := common.AssociateHelmObject(cli, objs[0], releaseNsn, netpolNsn, true); err != nil {
-			return log.ErrorfNewErr("Failed associating NetworkPolicy %s:%s from Verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
+			return log.ErrorfNewErr("Failed associating NetworkPolicy %s:%s from verrazzano Helm release: %v", netpol.Namespace, netpol.Name, err)
 		}
 	}
 	return nil
@@ -190,7 +191,7 @@ func removeResourcePolicyFromHelm(ctx spi.ComponentContext) error {
 		if !ok {
 			continue
 		}
-		log.Progress("Removing resourcce-policy %s:%s from Verrazzano Helm release")
+		log.Progress("Removing helm.sh/resource-policy annotations from all network policies in the verrazzano-network-policies Helm release")
 		netpolNsn := types.NamespacedName{Name: netpol.Name, Namespace: netpol.Namespace}
 		objs := []clipkg.Object{&netpol}
 		if _, err := common.RemoveResourcePolicyAnnotation(cli, objs[0], netpolNsn); err != nil {
