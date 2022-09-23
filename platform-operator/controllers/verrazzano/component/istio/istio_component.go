@@ -7,8 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	"strings"
 
@@ -30,6 +28,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -72,6 +72,17 @@ const istioReaderIstioSystem = "istio-reader-istio-system"
 const istiodIstioSystem = "istiod-istio-system"
 
 const istioSidecarMutatingWebhook = "istio-sidecar-injector"
+
+const (
+	//ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
+	// Put external IPs into the IstioOperator YAML, which does support it
+	ExternalIPArg            = "gateways.istio-ingressgateway.externalIPs"
+	specServiceJSONPath      = "spec.components.ingressGateways.0.k8s.service"
+	externalIPJsonPathSuffix = "externalIPs.0"
+	typeJSONPathSuffix       = "type"
+	externalIPJsonPath       = specServiceJSONPath + "." + externalIPJsonPathSuffix
+	meshConfigTracingPath    = "spec.meshConfig.defaultConfig.tracing"
+)
 
 // istioComponent represents an Istio component
 type istioComponent struct {

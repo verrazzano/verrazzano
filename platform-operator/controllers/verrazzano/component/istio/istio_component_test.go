@@ -289,7 +289,7 @@ func TestUpgrade(t *testing.T) {
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
 func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
-	if len(overridesFiles) != 2 {
+	if len(overridesFiles) != 3 {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
 	}
 	if overridesFiles[0] != "test-values-file.yaml" {

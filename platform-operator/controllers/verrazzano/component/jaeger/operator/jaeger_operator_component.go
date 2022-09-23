@@ -85,7 +85,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
-			ImagePullSecretKeyname:    "image.imagePullSecrets[0].name",
+			ImagePullSecretKeyname:    "image.imagePullSecrets[0]",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
 			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, opensearch.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
