@@ -5,6 +5,7 @@ package clusters
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"time"
 
@@ -47,7 +48,7 @@ type bindingParams struct {
 
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
-		panic("context cannot be nil")
+		return ctrl.Result{}, goerrors.New("context cannot be nil")
 	}
 	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
 	if err := r.Get(context.TODO(), req.NamespacedName, cr); err != nil {

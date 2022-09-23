@@ -5,6 +5,7 @@ package verrazzanoproject
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -59,7 +60,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // and create namespaces in the local cluster.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
-		panic("context cannot be nil")
+		return ctrl.Result{}, errors.New("context cannot be nil")
 	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system

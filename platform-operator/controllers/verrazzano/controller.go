@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -80,7 +81,7 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
-		panic("context cannot be nil")
+		return ctrl.Result{}, goerrors.New("context cannot be nil")
 	}
 	// Get the Verrazzano resource
 	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")

@@ -5,6 +5,7 @@ package namespace
 
 import (
 	"context"
+	"errors"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -64,7 +65,7 @@ func (nc *NamespaceController) setupWithManager(mgr ctrl.Manager) error {
 // Reconcile - Watches for and manages namespace activity as it relates to Verrazzano platform services
 func (nc *NamespaceController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
-		panic("context cannot be nil")
+		return ctrl.Result{}, errors.New("context cannot be nil")
 	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system

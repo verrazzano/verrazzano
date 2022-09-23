@@ -5,6 +5,7 @@ package controllers
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"os"
 	"time"
@@ -50,7 +51,7 @@ const finalizerName = "images.verrazzano.io"
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.6.4/pkg/reconcile
 func (r *ImageBuildRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
-		panic("context cannot be nil")
+		return ctrl.Result{}, goerrors.New("context cannot be nil")
 	}
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
 

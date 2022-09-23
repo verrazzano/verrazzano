@@ -5,6 +5,7 @@ package multiclustercomponent
 
 import (
 	"context"
+	"errors"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -41,7 +42,7 @@ type Reconciler struct {
 // MultiClusterComponent to reflect the success or failure of the changes to the embedded resource
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
-		panic("context cannot be nil")
+		return ctrl.Result{}, errors.New("context cannot be nil")
 	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system

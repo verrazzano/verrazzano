@@ -5,6 +5,7 @@ package multiclusterconfigmap
 
 import (
 	"context"
+	"errors"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -41,7 +42,7 @@ const (
 // Currently it does NOT support Immutable ConfigMap resources
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
-		panic("context cannot be nil")
+		return ctrl.Result{}, errors.New("context cannot be nil")
 	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system

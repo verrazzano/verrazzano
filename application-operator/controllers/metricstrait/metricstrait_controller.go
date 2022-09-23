@@ -5,6 +5,7 @@ package metricstrait
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -217,7 +218,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=metricstraits/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
-		panic("context cannot be nil")
+		return ctrl.Result{}, errors.New("context cannot be nil")
 	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system

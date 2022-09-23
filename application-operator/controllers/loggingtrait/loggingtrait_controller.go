@@ -5,6 +5,7 @@ package loggingtrait
 
 import (
 	"context"
+	errors "errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -59,7 +60,7 @@ type LoggingTraitReconciler struct {
 
 func (r *LoggingTraitReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
-		panic("context cannot be nil")
+		return ctrl.Result{}, errors.New("context cannot be nil")
 	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system

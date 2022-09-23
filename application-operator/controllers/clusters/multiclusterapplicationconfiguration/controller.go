@@ -5,6 +5,7 @@ package multiclusterapplicationconfiguration
 
 import (
 	"context"
+	"errors"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -45,7 +46,7 @@ const (
 // the embedded resource
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if ctx == nil {
-		panic("context cannot be nil")
+		return ctrl.Result{}, errors.New("context cannot be nil")
 	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
