@@ -225,7 +225,7 @@ func getKialiSigningKey(ctx spi.ComponentContext) (string, error) {
 	}, &secret)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			return "", ctx.Log().ErrorfThrottledNewErr("Unexpected error getting secre %s, : %V", kialiSigningKeySecret, err)
+			return "", ctx.Log().ErrorfThrottledNewErr("Unexpected error getting secret %s, : %V", kialiSigningKeySecret, err)
 		}
 		pw, err := password.GeneratePassword(16)
 		if err != nil {
