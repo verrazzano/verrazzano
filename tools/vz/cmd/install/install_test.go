@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
@@ -33,6 +34,8 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -40,7 +43,7 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	assert.Equal(t, "", errBuf.String())
 
 	// Verify the vz resource is as expected
-	vz := v1beta1.Verrazzano{}
+	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 }
@@ -53,6 +56,8 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -71,6 +76,8 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 
 	// Run install command
 	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 	err := cmd.Execute()
 	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
@@ -88,6 +95,8 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 
 	// Run install command
 	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 	err := cmd.Execute()
 	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
@@ -104,6 +113,8 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -111,7 +122,7 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	assert.Equal(t, "", errBuf.String())
 
 	// Verify the vz resource is as expected
-	vz := v1beta1.Verrazzano{}
+	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 }
@@ -138,6 +149,9 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/v1beta1.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
@@ -163,6 +177,8 @@ func TestInstallCmdFilenames(t *testing.T) {
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -185,6 +201,8 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml,../../test/testdata/override-components.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -209,6 +227,8 @@ func TestInstallCmdSets(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -216,10 +236,10 @@ func TestInstallCmdSets(t *testing.T) {
 	assert.Equal(t, "", errBuf.String())
 
 	// Verify the vz resource is as expected
-	vz := v1beta1.Verrazzano{}
+	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
-	assert.Equal(t, v1beta1.Dev, vz.Spec.Profile)
+	assert.Equal(t, v1alpha1.Dev, vz.Spec.Profile)
 	assert.Equal(t, "test", vz.Spec.EnvironmentName)
 }
 
@@ -237,6 +257,8 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.overrides[1].values.controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"=10Mbps")
 	cmd.PersistentFlags().Set(constants.SetFlag, "components.ingress.enabled=true")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -271,6 +293,8 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "../../test/testdata/operator-file-fake.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()
@@ -292,7 +316,7 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify the vz resource is as expected
-	vz := v1beta1.Verrazzano{}
+	vz := v1alpha1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 }
@@ -423,6 +447,90 @@ func TestSetCommandOverride(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, propValues, 1)
 	assert.Contains(t, propValues["spec.profile"], "prod")
+}
+
+// TestInstallCmdInProgress
+// GIVEN a CLI install command when an install was in progress
+//  WHEN I call cmd.Execute for install
+//  THEN the CLI install command is successful
+func TestInstallCmdInProgress(t *testing.T) {
+	vz := &v1beta1.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+		Status: v1beta1.VerrazzanoStatus{
+			State:   v1beta1.VzStateReconciling,
+			Version: "v1.3.1",
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
+}
+
+// TestInstallCmdAlreadyInstalled
+// GIVEN a CLI install command when an install already happened
+//  WHEN I call cmd.Execute for install
+//  THEN the CLI install command is unsuccessful
+func TestInstallCmdAlreadyInstalled(t *testing.T) {
+	vz := &v1beta1.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+		Status: v1beta1.VerrazzanoStatus{
+			State:   v1beta1.VzStateReady,
+			Version: "v1.3.1",
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
+}
+
+// TestInstallCmdDifferentVersion
+// GIVEN a CLI install command when an install is in progress for a different version
+//  WHEN I call cmd.Execute for install
+//  THEN the CLI install command is unsuccessful
+func TestInstallCmdDifferentVersion(t *testing.T) {
+	vz := &v1beta1.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+		Status: v1beta1.VerrazzanoStatus{
+			State:   v1beta1.VzStateReconciling,
+			Version: "v1.3.2",
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
+
+	// Run install command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
 }
 
 func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {

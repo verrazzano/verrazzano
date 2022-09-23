@@ -23,6 +23,7 @@ import (
 var installNGINXIngressControllerFailedRe = regexp.MustCompile(`Installing NGINX Ingress Controller.*\[FAILED\]`)
 var noIPForIngressControllerRegExp = regexp.MustCompile(`Failed getting DNS suffix: No IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer`)
 var errorSettingRancherTokenRegExp = regexp.MustCompile(`Failed setting Rancher access token.*no such host`)
+var noIPForIstioIngressReqExp = regexp.MustCompile(`Ingress external IP pending for component istio: No IP found for service istio-ingressgateway with type *`)
 
 // I'm going with a more general pattern for limit reached as the supporting details should give the precise message
 // and the advice can be to refer to the supporting details on the limit that was exceeded. We can change it up
@@ -40,6 +41,7 @@ const eventsJSON = "events.json"
 const servicesJSON = "services.json"
 const podsJSON = "pods.json"
 const ingressNginx = "ingress-nginx"
+const istioSystem = "istio-system"
 
 const installErrorNotFound = "Component specific error(s) not found in the Verrazzano install log for - "
 const installErrorMessage = "One or more components listed below did not reach Ready state:"
@@ -47,6 +49,7 @@ const installErrorMessage = "One or more components listed below did not reach R
 const (
 	// Service name
 	ingressController = "ingress-controller-ingress-nginx-controller"
+	istioIngress      = "istio-ingressgateway"
 
 	// Function names
 	nginxIngressControllerFailed = "nginxIngressControllerFailed"
@@ -86,11 +89,15 @@ func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issue
 
 // analyzeVerrazzanoInstallIssue is called when we have reason to believe that the installation has failed
 func analyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) (err error) {
+	// Because NGINX depends on the Istio Component, we should verify its service external IP exists
+	// before verifying that the NGINX service is in good standing
+	analyzeIstioIngressService(log, clusterRoot, issueReporter)
+
 	podFile := files.FindFileInNamespace(clusterRoot, ingressNginx, podsJSON)
 
 	podList, err := GetPodList(log, podFile)
 	if err != nil {
-		log.Debugf("Failed to get the list of pods for the given pod file %s, skipping", podFile, err)
+		log.Debugf("Failed to get the list of pods for the given pod file %s, skipping", podFile)
 		return err
 	}
 	if podList == nil {
@@ -255,6 +262,43 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 	return nil
 }
 
+// analyseIstioIngressService generates an issue report if the Istio Ingress Service lacks an external IP
+func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
+	istioServicesFile := files.FindFileInNamespace(clusterRoot, istioSystem, servicesJSON)
+	serviceList, err := GetServiceList(log, istioServicesFile)
+	if err != nil {
+		log.Debugf("Failed to get the list of services for the given service file %s, skipping", serviceList)
+		return
+	}
+	if serviceList == nil {
+		log.Debugf("No service was returned, skipping")
+		return
+	}
+	for _, service := range serviceList.Items {
+		if !strings.HasPrefix(service.Name, istioIngress) {
+			continue
+		}
+		log.Debugf("Service found for Istio ingress verification. namespace: %s, name: %s", service.ObjectMeta.Namespace, service.ObjectMeta.Name)
+		if len(service.Spec.ExternalIPs) < 0 || len(service.Status.LoadBalancer.Ingress) < 0 {
+			log.Debugf("External IP located for service %s/%s, skipping issue report", service.ObjectMeta.Namespace, service.ObjectMeta.Name)
+			return
+		}
+		for _, errorMsg := range vpoErrorMessages {
+			if noIPForIstioIngressReqExp.MatchString(errorMsg) {
+				// Populate the message from the matched error message
+				messages := make(StringSlice, 1)
+				messages[0] = noIPForIngressControllerRegExp.String()
+				// Create the service message from the object metadata
+				servFiles := make(StringSlice, 1)
+				servFiles[0] = report.GetRelatedServiceMessage(service.ObjectMeta.Name, service.ObjectMeta.Namespace)
+				// Reporting as an Ingress not found issue with the relevant Service data from the istio-system service file
+				issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressNoIP, clusterRoot, messages, servFiles)
+				issueReporter.Contribute(log, clusterRoot)
+			}
+		}
+	}
+}
+
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
 func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string, error) {
 	var compsNotReady = make([]string, 0)
@@ -315,6 +359,9 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 		return err
 	}
 
+	if len(allPodFiles) < 1 {
+		return fmt.Errorf("failed to find Verrazzano Platform Operator pod")
+	}
 	// We should get only one pod file, use the first element rather than going through the slice
 	vpoLog := allPodFiles[0]
 	messages := make(StringSlice, 1)

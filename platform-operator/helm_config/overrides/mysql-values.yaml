@@ -4,42 +4,30 @@
 # NOTE: The image you're looking for isn't here. The mysql and linux images now come from
 # the bill of materials file (verrazzano-bom.json).
 
-image:
-  pullPolicy: IfNotPresent
-commonLabels:
-  app: "mysql"
+imagePullPolicy: IfNotPresent
 
-## Add an init container to chown the data directory to be owned by the mysql user
-## (uid=27 gid=27) so that when upgrading, mysql user can definitely access data dir
-## from previous volume. The Helm chart expects this to be a STRING, so using a multi-line string here
-## Note: if the Helm chart for MySQL changes, this should be reviewed for correctness
-primary:
-  podLabels:
-    app: "mysql"
-  configuration: |-
-    [mysqld]
-    datadir=/oracle/mysql
-  initContainers:
-    - command:
-        - chown
-        - -R
-        - 999:999
-        - /oracle/mysql
-      image: "{{ .Values.initContainerImage }}"
-      imagePullPolicy: IfNotPresent
-      name: chown-data-dir
-      resources:
-        requests:
-          cpu: 10m
-          memory: 10Mi
-      terminationMessagePath: /dev/termination-log
-      terminationMessagePolicy: File
-      volumeMounts:
-        - mountPath: /oracle/mysql
-          name: data
-  containerSecurityContext:
-    enabled: true
-    runAsUser: 0
-    runAsNonRoot: false
-serviceAccount:
-  create: false
+ssl:
+  enabled: false
+
+# Add an init container to chown the data directory to be owned by the mysql user
+# (uid=27 gid=27) so that when upgrading, mysql user can definitely access data dir
+# from previous volume. The Helm chart expects this to be a STRING, so using a multi-line string here
+# Note: if the Helm chart for MySQL changes, this should be reviewed for correctness
+extraInitContainers: |
+  - command:
+      - chown
+      - -R
+      - 27:27
+      - /var/lib/mysql
+    image: "{{ .Values.busybox.image}}:{{ .Values.busybox.tag }}"
+    imagePullPolicy: IfNotPresent
+    name: chown-data-dir
+    resources:
+      requests:
+        cpu: 10m
+        memory: 10Mi
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+      - mountPath: /var/lib/mysql
+        name: data

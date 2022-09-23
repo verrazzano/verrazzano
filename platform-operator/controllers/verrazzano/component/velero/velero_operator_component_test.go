@@ -7,11 +7,13 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -22,13 +24,16 @@ import (
 	"testing"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
+const (
+	profilesRelativePath = "../../../../manifests/profiles"
+	validOverrideJSON    = "{\"serviceAccount\": {\"create\": false}}"
+)
 
 var enabled = true
-var veleroEnabledCR = &vzapi.Verrazzano{
-	Spec: vzapi.VerrazzanoSpec{
-		Components: vzapi.ComponentSpec{
-			Velero: &vzapi.VeleroComponent{
+var veleroEnabledCR = &v1alpha1.Verrazzano{
+	Spec: v1alpha1.VerrazzanoSpec{
+		Components: v1alpha1.ComponentSpec{
+			Velero: &v1alpha1.VeleroComponent{
 				Enabled: &enabled,
 			},
 		},
@@ -52,7 +57,7 @@ func TestIsEnabled(t *testing.T) {
 	falseValue := false
 	tests := []struct {
 		name       string
-		actualCR   vzapi.Verrazzano
+		actualCR   v1alpha1.Verrazzano
 		expectTrue bool
 	}{
 		{
@@ -60,7 +65,7 @@ func TestIsEnabled(t *testing.T) {
 			// WHEN we call IsReady on the Velero Operator component
 			// THEN the call returns false
 			name:       "Test IsEnabled when using default Verrazzano CR",
-			actualCR:   vzapi.Verrazzano{},
+			actualCR:   v1alpha1.Verrazzano{},
 			expectTrue: false,
 		},
 		{
@@ -76,10 +81,10 @@ func TestIsEnabled(t *testing.T) {
 			// WHEN we call IsReady on the Velero Operator component
 			// THEN the call returns false
 			name: "Test IsEnabled when Velero Operator component set to disabled",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Velero: &vzapi.VeleroComponent{
+			actualCR: v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Velero: &v1alpha1.VeleroComponent{
 							Enabled: &falseValue,
 						},
 					},
@@ -182,11 +187,98 @@ func TestPostUninstall(t *testing.T) {
 	).Build()
 
 	var iComp veleroHelmComponent
-	compContext := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
 	assert.NoError(t, iComp.PostUninstall(compContext))
 
 	// Validate that the namespace does not exist
 	ns := corev1.Namespace{}
 	err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
 	assert.True(t, errors.IsNotFound(err))
+}
+
+func TestValidateMethods(t *testing.T) {
+	tests := []struct {
+		name    string
+		vz      *v1alpha1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name:    "singleOverride",
+			vz:      getSingleOverrideCR(),
+			wantErr: false,
+		},
+		{
+			name:    "multipleOverrides",
+			vz:      getMultipleOverrideCR(),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err := c.ValidateUpdate(&v1alpha1.Verrazzano{}, tt.vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			v1beta1Vz := &v1beta1.Verrazzano{}
+			err := tt.vz.ConvertTo(v1beta1Vz)
+			assert.NoError(t, err)
+			if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err := c.ValidateUpdateV1Beta1(&v1beta1.Verrazzano{}, v1beta1Vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func getSingleOverrideCR() *v1alpha1.Verrazzano {
+	return &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Velero: &v1alpha1.VeleroComponent{
+					Enabled: &enabled,
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(validOverrideJSON),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getMultipleOverrideCR() *v1alpha1.Verrazzano {
+	return &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Velero: &v1alpha1.VeleroComponent{
+					Enabled: &enabled,
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(validOverrideJSON),
+								},
+								ConfigMapRef: &corev1.ConfigMapKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "overrideConfigMapSecretName",
+									},
+									Key: "Key",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }

@@ -8,19 +8,17 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/runtime"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ComponentName is the name of the component
@@ -28,12 +26,6 @@ const ComponentName = "mysql"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.KeycloakNamespace
-
-// DeploymentPersistentVolumeClaim is the name of a volume claim associated with a MySQL deployment
-const DeploymentPersistentVolumeClaim = "mysql"
-
-// StatefulsetPersistentVolumeClaim is the name of a volume claim associated with a MySQL statefulset
-const StatefulsetPersistentVolumeClaim = "data-mysql-0"
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak.mysql"
@@ -85,19 +77,9 @@ func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx, c.ChartNamespace)
 }
 
-// PreUpgrade updates resources necessary for the MySQL Component upgrade
-func (c mysqlComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return preUpgrade(ctx)
-}
-
 // PostInstall calls MySQL postInstall function
 func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 	return postInstall(ctx)
-}
-
-// PostUpgrade creates/updates associated resources after this component is upgraded
-func (c mysqlComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	return postUpgrade(ctx)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -152,13 +134,13 @@ func (c mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1be
 
 // validatePersistenceSpecificChanges validates if there are any persistence related changes done via the install overrides
 func validatePersistenceSpecificChanges(oldSetting, newSetting []bom.KeyValue) error {
-	if bom.FindKV(oldSetting, "primary.persistence.enabled") != bom.FindKV(newSetting, "primary.persistence.enabled") {
+	if bom.FindKV(oldSetting, "persistence.enabled") != bom.FindKV(newSetting, "persistence.enabled") {
 		return fmt.Errorf("Can not change persistence enabled setting in component: %s", ComponentJSONName)
 	}
-	if bom.FindKV(oldSetting, "primary.persistence.size") != bom.FindKV(newSetting, "primary.persistence.size") {
+	if bom.FindKV(oldSetting, "persistence.size") != bom.FindKV(newSetting, "persistence.size") {
 		return fmt.Errorf("Can not change persistence volume size in component: %s", ComponentJSONName)
 	}
-	if bom.FindKV(oldSetting, "primary.persistence.storageClass") != bom.FindKV(newSetting, "primary.persistence.storageClass") {
+	if bom.FindKV(oldSetting, "persistence.storageClass") != bom.FindKV(newSetting, "persistence.storageClass") {
 		return fmt.Errorf("Can not change persistence storage class in component: %s", ComponentJSONName)
 	}
 	return nil

@@ -3,20 +3,22 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-# Downloads the operator.yaml and the zip file containing the analysis tool.
+# Downloads the verrazzano-platform-operator.yaml, the Verrazzano distributions for AMD64 and ARM64 architectures.
+
+set -e
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
 
 usage() {
     cat <<EOM
-  Downloads the operator.yaml, the zip file containing the analysis tool, and the zip file containing the Verrazzno CLI.
+  Downloads the verrazzano-platform-operator.yaml, the Verrazzano distributions for AMD64 and ARM64 architectures.
 
   Usage:
-    $(basename $0) <release branch> <short hash of commit to release> <directory where the release artifacts need to be downloaded, defaults to the current directory>
+    $(basename $0) <release branch> <short hash of commit to release> <release bundle> <directory where the release artifacts need to be downloaded, defaults to the current directory>
 
   Example:
-    $(basename $0) release-1.0 ab12123
+    $(basename $0) release-1.4 ab12123 verrazzano-1.4.0-lite.zip
 
   The script expects the OCI CLI is installed. It also expects the following environment variables -
     OCI_REGION - OCI region
@@ -26,32 +28,57 @@ EOM
     exit 0
 }
 
-[ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$1" ] || [ -z "$2" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OCI_OS_COMMIT_BUCKET" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
 
+if [ -z "$1" ]; then
+  echo "Verrazzano release branch is required"
+  exit 1
+fi
 BRANCH=$1
-RELEASE_COMMIT_SHORT=$2
-RELEASE_BINARIES_DIR=${3:-$SCRIPT_DIR}
 
-function get_file_from_build_bucket() {
+if [ -z "$2" ]; then
+  echo "The short commit used to build the release distribution is required"
+  exit 1
+fi
+RELEASE_COMMIT_SHORT=$2
+
+if [ -z "$3" ]; then
+  echo "Verrazzano distribution to download is required"
+  exit 1
+fi
+RELEASE_BUNDLE="$3"
+
+RELEASE_BINARIES_DIR=${4:-$SCRIPT_DIR}
+
+function get_vz_release_artifacts() {
     if [ $# -ne 1 ] && [ $# -ne 2 ]; then
-      echo "Usage: ${FUNCNAME[0]} commit [file]"
+      echo "Usage: ${FUNCNAME[0]} commit release_bundle"
       return 1
     fi
-    local _folder="$1"
-    local _file="${2:--}"
+
     cd $RELEASE_BINARIES_DIR
+    local _folder="$1"
+    local _file="$2"
     oci --region ${OCI_REGION} os object get \
             --namespace ${OBJECT_STORAGE_NS} \
             --bucket-name ${OCI_OS_COMMIT_BUCKET} \
             --name "${_folder}/${_file}" \
             --file "${_file}"
-}
 
-function get_vz_release_artifacts() {
-    for i in "${releaseArtifacts[@]}"
-    do
-      get_file_from_build_bucket $1 $i
-    done
+    oci --region ${OCI_REGION} os object get \
+            --namespace ${OBJECT_STORAGE_NS} \
+            --bucket-name ${OCI_OS_COMMIT_BUCKET} \
+            --name "${_folder}/${_file}.sha256" \
+            --file "${_file}.sha256"
+
+    SHA256_CMD="sha256sum -c"
+    if [ "$(uname)" == "Darwin" ]; then
+      SHA256_CMD="shasum -a 256 -c"
+    fi
+    ${SHA256_CMD} ${_file}.sha256
+    unzip ${_file}
+    rm -f ${_file}
+    rm -f ${_file}.sha256
 }
 
 # Validate OCI CLI
@@ -60,4 +87,4 @@ validate_oci_cli || exit 1
 mkdir -p $RELEASE_BINARIES_DIR
 
 # Download the release artifacts
-get_vz_release_artifacts ephemeral/$BRANCH/$RELEASE_COMMIT_SHORT || exit 1
+get_vz_release_artifacts ephemeral/$BRANCH/$RELEASE_COMMIT_SHORT ${RELEASE_BUNDLE} || exit 1

@@ -134,7 +134,7 @@ func TestMergeYAMLFilesNotFound(t *testing.T) {
 // THEN the call returns a vz resource with the two source merged
 func TestMergeSetFlags(t *testing.T) {
 	yamlString := "spec:\n  environmentName: test"
-	vz, err := helpers.NewDefaultVerrazzano()
+	_, vz, err := helpers.NewVerrazzanoForVZVersion("1.4.0")
 	assert.NoError(t, err)
 	obj, err := MergeSetFlags(v1beta1.SchemeGroupVersion, vz, yamlString)
 	assert.NoError(t, err)

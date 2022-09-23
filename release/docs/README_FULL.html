@@ -1,0 +1,71 @@
+<!-- Copyright (c) 2022, Oracle and/or its affiliates. -->
+<!-- Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl. -->
+
+    <!DOCTYPE html>
+    <html lang="en" xml:lang="en">
+        <head>
+            <title>Verrazzano</title>
+        </head>
+        <body>
+            <h1 id="verrazzano">Verrazzano</h1>
+<p>Verrazzano is an end-to-end enterprise container platform for deploying cloud native and traditional applications in multicloud and hybrid environments. It is made up of a curated set of open source components – many that you may already use and trust, and some that were written specifically to pull together all of the pieces that make Verrazzano a cohesive and easy to use platform.</p>
+<p>Verrazzano includes the following capabilities:</p>
+<ul>
+<li>Hybrid and multicluster workload management</li>
+<li>Special handling for WebLogic, Coherence, and Helidon applications</li>
+<li>Multicluster infrastructure management</li>
+<li>Integrated and pre-wired application monitoring</li>
+<li>Integrated security</li>
+<li>DevOps and GitOps enablement</li>
+</ul>
+<p>Select <a href="https://verrazzano.io/latest/docs/quickstart/">Quick Start</a> to get started.</p>
+<p>Verrazzano <a href="https://github.com/verrazzano/verrazzano/releases/">release versions</a> and source code are available at <a href="https://github.com/verrazzano/verrazzano">https://github.com/verrazzano/verrazzano</a>.
+This repository contains a Kubernetes operator for installing Verrazzano and example applications for use with Verrazzano.</p>
+<p>For documentation from all releases, see the <a href="https://verrazzano.io/archive/docs/">Documentation Archive</a>.</p>
+<h2 id="distribution-layout">Distribution layout</h2>
+<p>The Verrazzano distribution includes the following artifacts:</p>
+<ul>
+<li><code>verrazzano-&lt;major&gt;.&lt;minor&gt;.&lt;patch&gt;/</code>
+<ul>
+<li><code>README.md</code></li>
+<li><code>README.html</code></li>
+<li><code>LICENSE</code>: The Universal Permissive License (UPL).</li>
+<li><code>bin/</code>
+<ul>
+<li><code>linux-amd64/vz</code>: Verrazzano command-line interface for Linux AMD64 architecture.</li>
+<li><code>linux-arm64/vz</code>: Verrazzano command-line interface for Linux ARM64 architecture.</li>
+<li><code>darwin-amd64/vz</code>: Verrazzano command-line interface for Darwin AMD64 architecture.</li>
+<li><code>darwin-arm64/vz</code>: Verrazzano command-line interface for Darwin ARM64 architecture.</li>
+<li><code>vz-registry-image-helper.sh, bom_utils.sh</code>:  Helper scripts to download the images from the bill of materials (BOM).</li>
+</ul>
+</li>
+<li><code>manifests/</code>
+<ul>
+<li><code>k8s/verrazzano-platform-operator.yaml</code>: Kubernetes manifests to deploy the Verrazzano platform operator.</li>
+<li><code>charts/verrazzano-platform-operator/</code>: Verrazzano Platform Operator Helm chart.</li>
+<li><code>verrazzano-bom.json</code>: Bill of materials (BOM) containing the list of container images for Verrazzano and the components installed by Verrazzano.</li>
+<li><code>profiles/</code>
+<ul>
+<li><code>dev.yaml</code>: The standard <code>dev</code> profile to install Verrazzano.</li>
+<li><code>prod.yaml</code>: The standard <code>prod</code> profile to install Verrazzano.</li>
+<li><code>managed-cluster.yaml</code>: The standard <code>managed-cluster</code> profile to install Verrazzano</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>images/</code>:  Verrazzano Enterprise Container Platform archives for private registry install.</li>
+</ul>
+</li>
+</ul>
+<h2 id="install-verrazzano">Install Verrazzano</h2>
+<p>Install Verrazzano using the instructions in the <a href="https://verrazzano.io/latest/docs/setup/install/installation/">Verrazzano Installation Guide</a>.</p>
+<h2 id="support">Support</h2>
+<ul>
+<li>For troubleshooting information, see <a href="https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/">Diagnostic Tools</a> in the Verrazzano documentation.</li>
+<li>For instructions on using Verrazzano, see the <a href="https://verrazzano.io/latest/docs/">Verrazzano documentation</a>.</li>
+<li>If you have any questions about Verrazzano, contact us through our <a href="https://bit.ly/3gOeRJn">Slack channel</a>.</li>
+<li>Use <a href="https://support.oracle.com/">My Oracle Support</a> to request support.</li>
+</ul>
+
+        </body>
+    </html>

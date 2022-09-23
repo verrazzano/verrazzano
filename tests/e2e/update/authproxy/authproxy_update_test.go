@@ -4,31 +4,45 @@
 package authproxy
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-
+	"fmt"
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	. "github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
+	"time"
 )
 
 const (
 	authProxyLabelValue = "verrazzano-authproxy"
 	authProxyLabelKey   = "app"
+	explicitReplicas    = uint32(3)
+	waitTimeout         = 20 * time.Minute
+	pollingInterval     = 10 * time.Second
 )
 
 type AuthProxyReplicasModifier struct {
 	replicas uint32
 }
 
+type AuthProxyReplicasModifierV1beta1 struct {
+	replicas uint32
+}
+
+type AuthProxyPodPerNodeAffintyModifierV1beta1 struct {
+}
+
 type AuthProxyPodPerNodeAffintyModifier struct {
 }
 
 type AuthProxyDefaultModifier struct {
+}
+
+type AuthProxyDefaultModifierV1beta1 struct {
 }
 
 func (u AuthProxyReplicasModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -39,6 +53,33 @@ func (u AuthProxyReplicasModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		cr.Spec.Components.AuthProxy.Kubernetes = &vzapi.AuthProxyKubernetesSection{}
 	}
 	cr.Spec.Components.AuthProxy.Kubernetes.Replicas = u.replicas
+}
+
+func (u AuthProxyReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+	if cr.Spec.Components.AuthProxy == nil {
+		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
+	}
+	authProxyReplicasOverridesYaml := fmt.Sprintf(`replicas: %v`, u.replicas)
+	cr.Spec.Components.AuthProxy.ValueOverrides = pkg.CreateOverridesOrDie(authProxyReplicasOverridesYaml)
+}
+
+func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+	if cr.Spec.Components.AuthProxy == nil {
+		cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
+	}
+	authProxyAffinityOverridesYaml := fmt.Sprintf(`affinity: |
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                      - key: %v
+                        operator: In
+                        values:
+                        - %v
+                    topologyKey: kubernetes.io/hostname
+                  weight: 100`, authProxyLabelKey, authProxyLabelValue)
+	cr.Spec.Components.AuthProxy.ValueOverrides = pkg.CreateOverridesOrDie(authProxyAffinityOverridesYaml)
 }
 
 func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -77,6 +118,10 @@ func (u AuthProxyDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
 }
 
+func (u AuthProxyDefaultModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
+	cr.Spec.Components.AuthProxy = &v1beta1.AuthProxyComponent{}
+}
+
 var t = framework.NewTestFramework("update authproxy")
 
 var nodeCount uint32
@@ -91,10 +136,7 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterSuite(func() {
 	m := AuthProxyDefaultModifier{}
-	err := update.UpdateCR(m)
-	if err != nil {
-		Fail(err.Error())
-	}
+	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
 	cr := update.GetCR()
 	expectedRunning := uint32(1)
@@ -102,6 +144,7 @@ var _ = t.AfterSuite(func() {
 		expectedRunning = 2
 	}
 	update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+
 })
 
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
@@ -147,4 +190,29 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
 		})
 	})
+
+	t.Describe("verrazzano-authproxy update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
+		t.It("authproxy explicit replicas", func() {
+			m := AuthProxyReplicasModifierV1beta1{replicas: explicitReplicas}
+			err := update.UpdateCRV1beta1(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+			expectedRunning := explicitReplicas
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+		})
+	})
+
+	t.Describe("verrazzano-authproxy update affinity using v1beta1 client", Label("f:platform-lcm.authproxy-update-affinity"), func() {
+		t.It("authproxy explicit affinity", func() {
+			m := AuthProxyPodPerNodeAffintyModifierV1beta1{}
+			err := update.UpdateCRV1beta1(m)
+			if err != nil {
+				Fail(err.Error())
+			}
+			expectedRunning := explicitReplicas
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+		})
+	})
+
 })

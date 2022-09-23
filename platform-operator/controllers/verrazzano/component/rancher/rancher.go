@@ -7,10 +7,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"strings"
 
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -18,7 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +33,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // checkRancherUpgradeFailureSig is a function needed for unit test override
@@ -96,15 +98,22 @@ const (
 )
 
 const (
-	SettingServerURL            = "server-url"
-	SettingFirstLogin           = "first-login"
-	KontainerDriverOKE          = "oraclecontainerengine"
-	NodeDriverOCI               = "oci"
-	ClusterLocal                = "local"
-	AuthConfigLocal             = "local"
-	UserVerrazzano              = "u-verrazzano"
-	UserVerrazzanoDescription   = "Verrazzano Admin"
-	GlobalRoleBindingVerrazzano = "grb-" + UserVerrazzano
+	SettingServerURL               = "server-url"
+	SettingFirstLogin              = "first-login"
+	KontainerDriverOKE             = "oraclecontainerengine"
+	NodeDriverOCI                  = "oci"
+	ClusterLocal                   = "local"
+	AuthConfigLocal                = "local"
+	UserVerrazzano                 = "u-verrazzano"
+	UserVerrazzanoDescription      = "Verrazzano Admin"
+	GlobalRoleBindingVerrazzano    = "grb-" + UserVerrazzano
+	SettingUIPL                    = "ui-pl"
+	SettingUIPLValueVerrazzano     = "Verrazzano"
+	SettingUILogoLight             = "ui-logo-light"
+	SettingUILogoLightLogoFilePath = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-light.svg"
+	SettingUILogoDark              = "ui-logo-dark"
+	SettingUILogoDarkLogoFilePath  = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
+	SettingUILogoValueprefix       = "data:image/svg+xml;base64,"
 )
 
 // auth config
@@ -119,7 +128,6 @@ const (
 	AuthConfigAttributeEnabled                    = "enabled"
 	AuthConfigKeycloakAttributeGroupSearchEnabled = "groupSearchEnabled"
 	AuthConfigKeycloakAttributeAuthEndpoint       = "authEndpoint"
-	AuthConfigKeycloakAttributeClientSecret       = "clientSecret"
 	AuthConfigKeycloakAttributeIssuer             = "issuer"
 	AuthConfigKeycloakAttributeRancherURL         = "rancherUrl"
 )
@@ -549,39 +557,28 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
 	authConfig[AuthConfigKeycloakAttributeIssuer] = keycloakURL + AuthConfigKeycloakURLPathIssuer
 	authConfig[AuthConfigKeycloakAttributeRancherURL] = rancherURL + AuthConfigKeycloakURLPathVerifyAuth
+	authConfig[AuthConfigAttributeEnabled] = true
 
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }
 
-// createOrUpdateResource creates or updates a Rancher resource used in the Keycloak OIDC integration
+// createOrUpdateResource creates or updates a Rancher resource
 func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, gvk schema.GroupVersionKind, attributes map[string]interface{}) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	resource := unstructured.Unstructured{}
 	resource.SetGroupVersionKind(gvk)
-	err := c.Get(context.Background(), nsn, &resource)
-	createNew := false
-	if err != nil {
-		if errors.IsNotFound(err) {
-			createNew = true
-			log.Debugf("%s %s does not exist", gvk.Kind, nsn.Name)
-		} else {
-			return log.ErrorfThrottledNewErr("failed configuring %s, unable to fetch %s: %s", gvk.Kind, nsn.Name, err.Error())
+	resource.SetName(nsn.Name)
+	resource.SetNamespace(nsn.Namespace)
+	_, err := controllerutil.CreateOrUpdate(context.Background(), c, &resource, func() error {
+		if len(attributes) > 0 {
+			data := resource.UnstructuredContent()
+			for k, v := range attributes {
+				data[k] = v
+			}
 		}
-	}
-
-	data := resource.UnstructuredContent()
-	for k, v := range attributes {
-		data[k] = v
-	}
-
-	if createNew {
-		resource.SetName(nsn.Name)
-		resource.SetNamespace(nsn.Namespace)
-		err = c.Create(context.Background(), &resource, &client.CreateOptions{})
-	} else {
-		err = c.Update(context.Background(), &resource, &client.UpdateOptions{})
-	}
+		return nil
+	})
 
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring %s %s: %s", gvk.Kind, nsn.Name, err.Error())
@@ -660,28 +657,6 @@ func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterR
 	return createOrUpdateResource(ctx, nsn, GVKClusterRoleTemplateBinding, data)
 }
 
-// disableOrEnableAuthProvider disables Keycloak as an Auth Provider
-func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string, enable bool) error {
-	log := ctx.Log()
-	c := ctx.Client()
-	authConfig := unstructured.Unstructured{}
-	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
-	authConfigName := types.NamespacedName{Name: name}
-	err := c.Get(context.Background(), authConfigName, &authConfig)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, unable to fetch, error: %s", enable, name, err.Error())
-	}
-
-	authConfigData := authConfig.UnstructuredContent()
-	authConfigData[AuthConfigAttributeEnabled] = enable
-	err = c.Update(context.Background(), &authConfig, &client.UpdateOptions{})
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, error: %s", enable, name, err.Error())
-	}
-
-	return nil
-}
-
 // disableFirstLogin disables the verrazzano user first log in
 func disableFirstLogin(ctx spi.ComponentContext) error {
 	log := ctx.Log()
@@ -691,14 +666,46 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 	firstLoginSettingName := types.NamespacedName{Name: SettingFirstLogin}
 	err := c.Get(context.Background(), firstLoginSettingName, &firstLoginSetting)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting first-login Setting: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed getting first-login setting: %s", err.Error())
 	}
 
 	firstLoginSetting.UnstructuredContent()["value"] = "false"
 	err = c.Update(context.Background(), &firstLoginSetting)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed updating first-login Setting: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed updating first-login setting: %s", err.Error())
 	}
 
 	return nil
+}
+
+// createOrUpdateUIPlSetting creates/updates the ui-pl setting with value Verrazzano
+func createOrUpdateUIPlSetting(ctx spi.ComponentContext) error {
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPL}, GVKSetting, map[string]interface{}{"value": SettingUIPLValueVerrazzano})
+}
+
+// createOrUpdateUILogoSetting updates the ui-logo-* settings
+func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, logoPath string) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	pod, err := k8sutil.GetRunningPodForLabel(c, "app=rancher", "cattle-system", log)
+	if err != nil {
+		return err
+	}
+
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, pod, "rancher", logoCommand)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed execing into Rancher pod %s: %v", stderr, err)
+	}
+
+	if len(stdout) == 0 {
+		return log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
+	}
+
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
 }

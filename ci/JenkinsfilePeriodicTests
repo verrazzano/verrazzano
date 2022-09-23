@@ -41,9 +41,13 @@ def periodicsUpToDate              = false // If true, indicates that the period
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
 
+// File containing the links to download the Verrazzano distributions
+@Field
+def verrazzanoDistributionsFile = "verrazzano_distributions.html"
+
 pipeline {
     options {
-        timeout(time: 6, unit: 'HOURS')
+        timeout(time: 12, unit: 'HOURS')
         skipDefaultCheckout true
         disableConcurrentBuilds()
         timestamps ()
@@ -334,26 +338,12 @@ pipeline {
                         }
                     }
                 }
-                stage('Upgrade tests') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-upgrade-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                    ], wait: true
-                            }
-                        }
-                    }
-                }
                 stage('Upgrade Path Minor Release Tests') {
                     steps {
                             script {
                                 build job: "/verrazzano-push-triggered-upgrade-minor-release-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
+                                        string(name: 'N_JOBS_FOR_EACH_BATCH', value: '6'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -536,7 +526,7 @@ pipeline {
                 }
             }
             stages {
-                stage("Upload Periodic Run Artifacts") {
+                stage("Build Release Distributions") {
                     steps {
                         sh """
                             ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
@@ -544,7 +534,7 @@ pipeline {
                     }
                 }
 
-                stage('Private Registry Tests') {
+                stage('Private Registry Tests - OCIR') {
                     when {
                         allOf {
                             not { buildingTag() }
@@ -555,7 +545,7 @@ pipeline {
                         }
                     }
                     parallel {
-                        stage('Verrazzano Lite Distribution') {
+                        stage('Private Registry - Lite Distribution') {
                             steps {
                                 retry(count: JOB_PROMOTION_RETRIES) {
                                     script {
@@ -569,7 +559,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Verrazzano Full Distribution') {
+                        stage('Private Registry - Full Distribution') {
                             steps {
                                 retry(count: JOB_PROMOTION_RETRIES) {
                                     script {
@@ -617,6 +607,9 @@ pipeline {
                 }
 
                 stage('Update Last Clean Periodic Test') {
+                    environment {
+                        GIT_COMMIT_USED = "${env.GIT_COMMIT}"
+                    }
                     steps {
                         script {
                             sh """
@@ -624,8 +617,14 @@ pipeline {
                             """
                         }
                     }
+                    post {
+                        success {
+                            script {
+                                captureDistributionURLs()
+                            }
+                        }
+                    }
                 }
-
             }
         }
     }
@@ -643,7 +642,7 @@ pipeline {
                     println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
                 }
             }
-            archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile},**/${verrazzanoDistributionsFile}", allowEmptyArchive: true
         }
         failure {
             script {
@@ -974,4 +973,28 @@ def getLatestReleaseVersion() {
     list gitTags = extractReleaseTags(releaseTags)
     echo "gitTags = ${gitTags}"
     return gitTags.pop()
+}
+
+// Create a html file containing the links to the Verrazzano distributions
+def captureDistributionURLs() {
+    script {
+        def BRANCH_IN_OS = "${env.BRANCH_NAME.replace("/", "%252F")}"
+        BASE_URL="https://objectstorage.${OCI_OS_REGION}.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${BRANCH_IN_OS}-last-clean-periodic-test"
+        LITE_BUNDLE="${BASE_URL}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}-lite.zip"
+        FULL_BUNDLE="${BASE_URL}/${verrazzanoPrefix}${VERRAZZANO_DEV_VERSION}.zip"
+        sh """
+            cat <<EOF > ${WORKSPACE}/${verrazzanoDistributionsFile}
+<!DOCTYPE html>
+<html>
+      <body>
+          <b>Verrazzano Release Distributions</b>
+		  <ul>
+		    <li><a href="${LITE_BUNDLE}">Verrazzano Lite Distribution</a></li>
+		    <li><a href="${FULL_BUNDLE}">Verrazzano Full Distribution</a></li>
+		  </ul>
+      </body>
+</html>
+EOF
+        """
+    }
 }

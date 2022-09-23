@@ -41,7 +41,7 @@ import (
 )
 
 const (
-	profileDir      = "../../../../manifests/profiles/v1alpha1"
+	profileDir      = "../../../../manifests/profiles"
 	testBomFilePath = "../../testdata/test_bom.json"
 )
 

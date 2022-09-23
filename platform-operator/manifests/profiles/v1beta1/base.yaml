@@ -175,6 +175,8 @@ spec:
                                   app: istiod
                               topologyKey: kubernetes.io/hostname
                             weight: 100
+    jaegerOperator:
+      enabled: false
     keycloak:
       enabled: true
       mysql: { }
@@ -206,6 +208,8 @@ spec:
                         topologyKey: kubernetes.io/hostname
                       weight: 100
               replicas: 1
+    kubeStateMetrics:
+      enabled: false
     mySQLOperator:
       enabled: true
     oam:
@@ -216,6 +220,10 @@ spec:
       enabled: true
       replicas: 1
     prometheus:
+      enabled: true
+    prometheusAdapter:
+      enabled: false
+    prometheusNodeExporter:
       enabled: true
     prometheusOperator:
       enabled: true
@@ -233,8 +241,14 @@ spec:
                           topologyKey: kubernetes.io/hostname
                         weight: 100
                 replicas: 1
+    prometheusPushgateway:
+      enabled: false
     rancher:
       enabled: true
+    rancherBackup:
+      enabled: false
+    velero:
+      enabled: false
     verrazzano:
       enabled: true
     weblogicOperator:

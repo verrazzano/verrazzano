@@ -18,8 +18,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -595,42 +597,16 @@ var tests = []validationTestStruct{
 	{
 		name: "updateCustomCA",
 		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Certificate: vzapi.Certificate{
-							CA: vzapi.CA{
-								SecretName:               secretName,
-								ClusterResourceNamespace: secretNamespace,
-							},
-						},
-					},
-				},
-			},
-		},
+		new:  getCaSecretCR(),
 		caSecret: &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
 		},
 		wantErr: false,
 	},
 	{
-		name: "updateCustomCASecretNotFound",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Certificate: vzapi.Certificate{
-							CA: vzapi.CA{
-								SecretName:               secretName,
-								ClusterResourceNamespace: secretNamespace,
-							},
-						},
-					},
-				},
-			},
-		},
+		name:    "updateCustomCASecretNotFound",
+		old:     &vzapi.Verrazzano{},
+		new:     getCaSecretCR(),
 		wantErr: true,
 	},
 	{
@@ -664,23 +640,9 @@ var tests = []validationTestStruct{
 		wantErr: true,
 	},
 	{
-		name: "validLetsEncryptStaging",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
-								Provider:     vzapi.LetsEncrypt,
-								EmailAddress: emailAddress,
-								Environment:  "staging",
-							},
-						},
-					},
-				},
-			},
-		},
+		name:    "validLetsEncryptStaging",
+		old:     &vzapi.Verrazzano{},
+		new:     getAcmeCR(vzapi.LetsEncrypt, emailAddress, "staging"),
 		wantErr: false,
 	},
 	{
@@ -704,82 +666,27 @@ var tests = []validationTestStruct{
 		wantErr: false,
 	},
 	{
-		name: "validLetsEncryptStagingCaseInsensitivity",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
-								Provider:     vzapi.LetsEncrypt,
-								EmailAddress: emailAddress,
-								Environment:  "STAGING",
-							},
-						},
-					},
-				},
-			},
-		},
+		name:    "validLetsEncryptStagingCaseInsensitivity",
+		old:     &vzapi.Verrazzano{},
+		new:     getAcmeCR(vzapi.LetsEncrypt, emailAddress, "STAGING"),
 		wantErr: false,
 	},
 	{
-		name: "validLetsEncryptProdCaseInsensitivity",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
-								Provider:     vzapi.LetsEncrypt,
-								EmailAddress: emailAddress,
-								Environment:  "PRODUCTION",
-							},
-						},
-					},
-				},
-			},
-		},
+		name:    "validLetsEncryptProdCaseInsensitivity",
+		old:     &vzapi.Verrazzano{},
+		new:     getAcmeCR(vzapi.LetsEncrypt, emailAddress, "PRODUCTION"),
 		wantErr: false,
 	},
 	{
-		name: "validLetsEncryptDefaultStagingEnv",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
-								Provider:     vzapi.LetsEncrypt,
-								EmailAddress: emailAddress,
-							},
-						},
-					},
-				},
-			},
-		},
+		name:    "validLetsEncryptDefaultStagingEnv",
+		old:     &vzapi.Verrazzano{},
+		new:     getAcmeCR(vzapi.LetsEncrypt, emailAddress, ""),
 		wantErr: false,
 	},
 	{
-		name: "validLetsEncryptProd",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
-								Provider:     vzapi.LetsEncrypt,
-								EmailAddress: emailAddress,
-								Environment:  letsencryptProduction,
-							},
-						},
-					},
-				},
-			},
-		},
+		name:    "validLetsEncryptProd",
+		old:     &vzapi.Verrazzano{},
+		new:     getAcmeCR(vzapi.LetsEncrypt, emailAddress, letsencryptProduction),
 		wantErr: false,
 	},
 	{
@@ -803,42 +710,30 @@ var tests = []validationTestStruct{
 		wantErr: true,
 	},
 	{
-		name: "invalidLetsEncryptEnv",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
-								Provider:     vzapi.LetsEncrypt,
-								EmailAddress: emailAddress,
-								Environment:  "myenv",
-							},
-						},
-					},
-				},
-			},
-		},
+		name:    "invalidLetsEncryptEnv",
+		old:     &vzapi.Verrazzano{},
+		new:     getAcmeCR(vzapi.LetsEncrypt, emailAddress, "myenv"),
 		wantErr: true,
 	},
 	{
-		name: "invalidACMEEmail",
-		old:  &vzapi.Verrazzano{},
-		new: &vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{
-					CertManager: &vzapi.CertManagerComponent{
-						Certificate: vzapi.Certificate{
-							Acme: vzapi.Acme{
-								Provider:     vzapi.LetsEncrypt,
-								EmailAddress: "joeblow",
-								Environment:  letsEncryptStaging,
-							},
-						},
-					},
-				},
-			},
+		name:    "invalidACMEEmail",
+		old:     &vzapi.Verrazzano{},
+		new:     getAcmeCR(vzapi.LetsEncrypt, "joeblow", letsEncryptStaging),
+		wantErr: true,
+	},
+	{
+		name: "singleOverride",
+		new:  getSingleOverrideCR(),
+		caSecret: &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
+		},
+		wantErr: false,
+	},
+	{
+		name: "multipleOverridesInOneListValue",
+		new:  getMultipleOverrideCR(),
+		caSecret: &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: secretNamespace},
 		},
 		wantErr: true,
 	},
@@ -860,10 +755,26 @@ func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c s
 		if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 		}
+		v1beta1New := &v1beta1.Verrazzano{}
+		v1beta1Old := &v1beta1.Verrazzano{}
+		err := tt.new.ConvertTo(v1beta1New)
+		assert.NoError(t, err)
+		err = tt.old.ConvertTo(v1beta1Old)
+		assert.NoError(t, err)
+		if err := c.ValidateUpdateV1Beta1(v1beta1Old, v1beta1New); (err != nil) != tt.wantErr {
+			t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+		}
+
 	} else {
 		wantErr := tt.name != "disable" && tt.wantErr // hack for disable validation, allowed on initial install but not on update
 		if err := c.ValidateInstall(tt.new); (err != nil) != wantErr {
-			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+		}
+		v1beta1Vz := &v1beta1.Verrazzano{}
+		err := tt.new.ConvertTo(v1beta1Vz)
+		assert.NoError(t, err)
+		if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != wantErr {
+			t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 		}
 	}
 }
@@ -874,5 +785,98 @@ func getTestClient(tt validationTestStruct) func(log ...vzlog.VerrazzanoLogger) 
 			return createFakeClient(tt.caSecret).CoreV1(), nil
 		}
 		return createFakeClient().CoreV1(), nil
+	}
+}
+
+func getAcmeCR(provider vzapi.ProviderType, emailAddr string, env string) *vzapi.Verrazzano {
+	return &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{
+					Certificate: vzapi.Certificate{
+						Acme: vzapi.Acme{
+							Provider:     provider,
+							EmailAddress: emailAddr,
+							Environment:  env,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getCaSecretCR() *vzapi.Verrazzano {
+	return &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{
+					Certificate: vzapi.Certificate{
+						CA: vzapi.CA{
+							SecretName:               secretName,
+							ClusterResourceNamespace: secretNamespace,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getMultipleOverrideCR() *vzapi.Verrazzano {
+	return &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{
+					Certificate: vzapi.Certificate{
+						CA: vzapi.CA{
+							SecretName:               secretName,
+							ClusterResourceNamespace: secretNamespace,
+						},
+					},
+					InstallOverrides: vzapi.InstallOverrides{
+						ValueOverrides: []vzapi.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte("certManagerCROverride"),
+								},
+								ConfigMapRef: &corev1.ConfigMapKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "overrideConfigMapSecretName",
+									},
+									Key: "Key",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getSingleOverrideCR() *vzapi.Verrazzano {
+	return &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{
+					Certificate: vzapi.Certificate{
+						CA: vzapi.CA{
+							SecretName:               secretName,
+							ClusterResourceNamespace: secretNamespace,
+						},
+					},
+					InstallOverrides: vzapi.InstallOverrides{
+						ValueOverrides: []vzapi.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte("certManagerCROverride"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }
