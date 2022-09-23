@@ -36,9 +36,8 @@ type KeycloakClients []struct {
 	ClientID string `json:"clientId"`
 }
 
-// KeycloakRoles represents an array of roles configured in Keycloak
-type KeycloakRoles []struct {
-	ID   string `json:"id"`
+// keycloakRoles represents an array of role names configured in Keycloak
+type keycloakRoles []struct {
 	Name string `json:"name"`
 }
 
@@ -334,12 +333,7 @@ func verifyKeycloakClientURIs() bool {
 		return false
 	}
 
-	minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	if err != nil {
-		t.Logs.Error(fmt.Printf("Error checking minimum Verrazzano version: %s\n", err))
-		return false
-	}
-	if minVer14 {
+	if isMinVersion140 {
 		keycloakClient, err = getKeycloakClientByClientID(keycloakClients, "rancher")
 		if err != nil {
 			t.Logs.Error(fmt.Printf("Error retrieving Verrazzano rancher client: %s\n", err))
@@ -549,15 +543,15 @@ func loginKeycloak() bool {
 
 // verifyUserClientRole verifies whether user has the specified client role
 func verifyUserClientRole(user, userRole string) bool {
-	var keycloakRoles KeycloakRoles
+	var kcRoles keycloakRoles
 
 	// Login to Keycloak
 	if !loginKeycloak() {
 		return false
 	}
 
-	// Get the roles for the verrazzano user
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "id,name")
+	// Get the roles for the user
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "name")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error retrieving client role for the user %s: %s\n", vzUser, err.Error()))
@@ -569,13 +563,13 @@ func verifyUserClientRole(user, userRole string) bool {
 		return false
 	}
 
-	err = json.Unmarshal([]byte(out), &keycloakRoles)
+	err = json.Unmarshal([]byte(out), &kcRoles)
 	if err != nil {
 		t.Logs.Error(fmt.Sprintf("Error unmarshalling Keycloak client role, received as JSON: %s\n", err.Error()))
 		return false
 	}
 
-	for _, role := range keycloakRoles {
+	for _, role := range kcRoles {
 		if role.Name == userRole {
 			t.Logs.Info(fmt.Printf("Client role %s found\n", userRole))
 			return true
